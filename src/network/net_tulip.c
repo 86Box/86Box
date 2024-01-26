@@ -1375,13 +1375,23 @@ nic_init(const device_t *info)
     s->device_info = info;
 
     if (info->local != 3) {
-        /*Subsystem Vendor ID*/
-        s->eeprom_data[0] = info->local ? 0x25 : 0x11;
-        s->eeprom_data[1] = 0x10;
+        if (info->local == 2) {
+           /*Subsystem Vendor ID*/
+            s->eeprom_data[0] = 0x00;
+            s->eeprom_data[1] = 0x0a;
 
-        /*Subsystem ID*/
-        s->eeprom_data[2] = info->local ? 0x10 : 0x0a;
-        s->eeprom_data[3] = info->local ? 0x03 : 0x50;
+            /*Subsystem ID*/
+            s->eeprom_data[2] = 0x14;
+            s->eeprom_data[3] = 0x21;
+        } else {
+           /*Subsystem Vendor ID*/
+            s->eeprom_data[0] = info->local ? 0x25 : 0x11;
+            s->eeprom_data[1] = 0x10;
+
+            /*Subsystem ID*/
+            s->eeprom_data[2] = info->local ? 0x10 : 0x0a;
+            s->eeprom_data[3] = info->local ? 0x03 : 0x50;
+        }
 
         /*Cardbus CIS Pointer low*/
         s->eeprom_data[4] = 0x00;

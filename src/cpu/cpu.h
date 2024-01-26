@@ -833,6 +833,9 @@ extern void nmi_raise(void);
 extern MMX_REG  *MMP[8];
 extern uint16_t *MMEP[8];
 
+extern int  cpu_block_end;
+extern int  cpu_override_dynarec;
+
 extern void mmx_init(void);
 extern void prefetch_flush(void);
 

@@ -1211,11 +1211,11 @@ machine_at_ms5146_init(const machine_t *model)
 }
 
 int
-machine_at_cb52x_si_init(const machine_t *model)
+machine_at_cb52xsi_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/cb52x_si/CD5205S.ROM",
+    ret = bios_load_linear("roms/machines/cb52xsi/CD5205S.ROM",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

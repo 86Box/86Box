@@ -178,8 +178,8 @@ xga_updatemapping(svga_t *svga)
             }
         }
 
-        xga_log("XGA opmode (extended) = %d, disp mode = %d, aperture = %d.\n", xga->op_mode & 7,
-                xga->disp_cntl_2 & 7, xga->aperture_cntl);
+        xga_log("XGA opmode (extended) = %d, disp mode = %d, aperture = %d, on = %d, linear endian reverse = %d.\n", xga->op_mode & 7,
+                xga->disp_cntl_2 & 7, xga->aperture_cntl, xga->on, xga->linear_endian_reverse);
     }
     xga_log("VGA on = %d, map = %02x.\n", vga_on, svga->gdcreg[6] & 0x0c);
 }
@@ -198,7 +198,7 @@ xga_recalctimings(svga_t *svga)
 
         xga->h_disp = (xga->hdisp + 1) << 3;
 
-        xga->rowoffset = (xga->hdisp + 1);
+        xga->rowoffset = xga->hdisp + 1;
 
         xga->interlace = !!(xga->disp_cntl_1 & 0x08);
         xga->rowcount  = (xga->disp_cntl_2 & 0xc0) >> 6;
@@ -212,6 +212,11 @@ xga_recalctimings(svga_t *svga)
         }
 
         xga->ma_latch = xga->disp_start_addr;
+
+        if ((xga->disp_cntl_2 & 7) == 2)
+            xga->rowoffset >>= 1;
+        else if ((xga->disp_cntl_2 & 7) == 4)
+            xga->rowoffset <<= 1;
 
         xga_log("XGA ClkSel1 = %d, ClkSel2 = %02x.\n", (xga->clk_sel_1 >> 2) & 3, xga->clk_sel_2 & 0x80);
         switch ((xga->clk_sel_1 >> 2) & 3) {
@@ -410,7 +415,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
                     xga->cursor_data_on = 1;
                 else if ((xga->sprite_pos >= 1) || (((xga->disp_cntl_2 & 7) == 2) || (xga->disp_cntl_2 & 7) == 4))
                     xga->cursor_data_on = 1;
-                else if (xga->aperture_cntl == 0) {
+                else if (!xga->aperture_cntl) {
                     if (xga->linear_endian_reverse && !(xga->access_mode & 8))
                         xga->cursor_data_on = 0;
                 }
@@ -422,10 +427,11 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
                         xga->cursor_data_on = 1;
                     else
                         xga->cursor_data_on = 0;
-                } else {
+                } else
                     xga->cursor_data_on = 0;
-                }
-            }
+            } else if (!xga->sprite_pos && xga->cursor_data_on && !xga->aperture_cntl && xga->linear_endian_reverse)
+                xga->cursor_data_on = 0;
+
 
             xga_log("Sprite POS = %d, data on = %d, idx = %d, apcntl = %d\n", xga->sprite_pos,
                     xga->cursor_data_on, xga->sprite_pal_addr_idx, xga->aperture_cntl);
@@ -998,9 +1004,9 @@ xga_accel_read_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int
             addr += x;
             if (!skip) {
                 READ(addr, byte);
-            } else {
+            } else
                 byte = mem_readb_phys(addr);
-            }
+
             return byte;
         case 4: /*16-bit*/
             addr += (y * (width << 1));
@@ -1082,6 +1088,7 @@ xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, ui
             } else {
                 byte = mem_readb_phys(addr);
             }
+
             if (xga->linear_endian_reverse)
                 mask = 0x0f << ((1 - (x & 1)) << 2);
             else {
@@ -1259,31 +1266,17 @@ xga_line_draw_write(svga_t *svga)
     uint32_t plane_mask = xga->accel.plane_mask;
     uint32_t dstbase    = xga->accel.px_map_base[xga->accel.dst_map];
     uint32_t srcbase    = xga->accel.px_map_base[xga->accel.src_map];
-    int      dminor;
-    int      destxtmp;
-    int      dmajor;
-    int      err;
     int      y = xga->accel.blt_width;
     int      x = 0;
     int16_t  dx;
     int16_t  dy;
-    int      draw_pixel;
+    int16_t  cx;
+    int16_t  cy;
+    int      err = xga->accel.bres_err_term;
+    int      draw_pixel = 0;
 
-    dminor = xga->accel.bres_k1;
-    if (xga->accel.bres_k1 & 0x2000)
-        dminor |= ~0x1fff;
-
-    dminor >>= 1;
-
-    destxtmp = xga->accel.bres_k2;
-    if (xga->accel.bres_k2 & 0x2000)
-        destxtmp |= ~0x1fff;
-
-    dmajor = -(destxtmp - (dminor << 1)) >> 1;
-
-    err = xga->accel.bres_err_term;
-    if (xga->accel.bres_err_term & 0x2000)
-        err |= ~0x1fff;
+    cx = xga->accel.src_map_x & 0xfff;
+    cy = xga->accel.src_map_y & 0xfff;
 
     dx = xga->accel.dst_map_x & 0x1fff;
     if (xga->accel.dst_map_x >= 0x1800)
@@ -1300,75 +1293,46 @@ xga_line_draw_write(svga_t *svga)
     if (xga->accel.pat_src == 8) {
         if ((xga->accel.command & 0x30) == 0x30) {
             while (y >= 0) {
-                draw_pixel = 1;
+                draw_pixel = 0;
+
+                if (xga->accel.octant & 0x01) {
+                    if (xga->accel.octant & 0x02) { /*Bottom-to-Top*/
+                        if (x)
+                            draw_pixel = 1;
+                    } else { /*Top-to-Bottom*/
+                        if (y)
+                            draw_pixel = 1;
+                    }
+                } else if (!(xga->accel.octant & 0x04) && (err < (xga->accel.bres_k2 + xga->accel.bres_k1))) /*X+*/
+                    draw_pixel = 1;
+                else if ((xga->accel.octant & 0x04) && (err >= 0)) /*X-*/
+                    draw_pixel = 1;
 
                 if (xga->accel.command & 0xc0) {
                     if ((dx >= xga->accel.mask_map_origin_x_off) && (dx <= ((xga->accel.px_map_width[0] & 0xfff) + xga->accel.mask_map_origin_x_off)) && (dy >= xga->accel.mask_map_origin_y_off) && (dy <= ((xga->accel.px_map_height[0] & 0xfff) + xga->accel.mask_map_origin_y_off))) {
-                        src_dat  = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.src_map_x & 0xfff, xga->accel.src_map_y & 0xfff, xga->accel.src_map, srcbase, xga->accel.px_map_width[xga->accel.src_map] + 1, 1) : xga->accel.frgd_color;
+                        if (draw_pixel) {
+                            src_dat  = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, cx, cy, xga->accel.src_map, srcbase, xga->accel.px_map_width[xga->accel.src_map] + 1, 1) : xga->accel.frgd_color;
+                            dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, xga->accel.px_map_width[xga->accel.dst_map] + 1, 0);
+
+                            if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
+                                ROP(1, dest_dat, src_dat);
+                                xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, xga->accel.px_map_width[xga->accel.dst_map] + 1);
+                            }
+                        }
+                    }
+                } else {
+                    if (draw_pixel) {
+                        src_dat  = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, cx, cy, xga->accel.src_map, srcbase, xga->accel.px_map_width[xga->accel.src_map] + 1, 1) : xga->accel.frgd_color;
                         dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, xga->accel.px_map_width[xga->accel.dst_map] + 1, 0);
 
                         if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
                             ROP(1, dest_dat, src_dat);
-                            dest_dat = (dest_dat & plane_mask) | (old_dest_dat & ~plane_mask);
-                            if (xga->accel.octant & 0x01) { /*Y Major*/
-                                if (xga->accel.octant & 0x02) { /*Bottom-to-Top*/
-                                    if (!x)
-                                        draw_pixel = 0;
-                                } else { /*Top-to-Bottom*/
-                                    if (!y)
-                                        draw_pixel = 0;
-                                }
-                            } else {
-                                if (err >= 0) {
-                                    if (xga->accel.octant & 0x02) { /*Bottom-to-Top*/
-                                        if (!x)
-                                            draw_pixel = 0;
-                                    } else { /*Top-to-Bottom*/
-                                        if (!y)
-                                            draw_pixel = 0;
-                                    }
-                                } else
-                                    draw_pixel = 0;
-                            }
-
-                            if (draw_pixel)
-                                xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, xga->accel.px_map_width[xga->accel.dst_map] + 1);
-                        }
-                    }
-                } else {
-                    src_dat  = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.src_map_x & 0xfff, xga->accel.src_map_y & 0xfff, xga->accel.src_map, srcbase, xga->accel.px_map_width[xga->accel.src_map] + 1, 1) : xga->accel.frgd_color;
-                    dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, xga->accel.px_map_width[xga->accel.dst_map] + 1, 0);
-
-                    if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
-                        ROP(1, dest_dat, src_dat);
-                        dest_dat = (dest_dat & plane_mask) | (old_dest_dat & ~plane_mask);
-                        if (xga->accel.octant & 0x01) { /*Y Major*/
-                            if (xga->accel.octant & 0x02) { /*Bottom-to-Top*/
-                                if (!x)
-                                    draw_pixel = 0;
-                            } else { /*Top-to-Bottom*/
-                                if (!y)
-                                    draw_pixel = 0;
-                            }
-                        } else {
-                            if (err >= 0) {
-                                if (xga->accel.octant & 0x02) { /*Bottom-to-Top*/
-                                    if (!x)
-                                        draw_pixel = 0;
-                                } else { /*Top-to-Bottom*/
-                                    if (!y)
-                                        draw_pixel = 0;
-                                }
-                            } else
-                                draw_pixel = 0;
-                        }
-
-                        if (draw_pixel)
                             xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, xga->accel.px_map_width[xga->accel.dst_map] + 1);
+                        }
                     }
                 }
 
-                if (!y)
+                if (x == xga->accel.blt_width)
                     break;
 
                 if (xga->accel.octant & 0x01) {
@@ -1377,34 +1341,31 @@ xga_line_draw_write(svga_t *svga)
                     else
                         dy++;
 
-                    while (err >= 0) {
-                        err -= (dmajor << 1);
+                    if (err >= 0) {
+                        err += xga->accel.bres_k2;
                         if (xga->accel.octant & 0x04)
                             dx--;
                         else
                             dx++;
-                    }
-
-                    err += (dminor << 1);
+                    } else
+                        err += xga->accel.bres_k1;
                 } else {
                     if (xga->accel.octant & 0x04)
                         dx--;
                     else
                         dx++;
 
-                    while (err >= 0) {
-                        err -= (dmajor << 1);
+                    if (err >= 0) {
+                        err += xga->accel.bres_k2;
                         if (xga->accel.octant & 0x02)
                             dy--;
                         else
                             dy++;
-                    }
-
-                    err += (dminor << 1);
+                    } else
+                        err += xga->accel.bres_k1;
                 }
-
-                y--;
                 x++;
+                y--;
             }
         } else {
             while (y >= 0) {
@@ -1451,47 +1412,40 @@ xga_line_draw_write(svga_t *svga)
                     else
                         dy++;
 
-                    while (err >= 0) {
-                        err -= (dmajor << 1);
+                    if (err >= 0) {
+                        err += xga->accel.bres_k2;
                         if (xga->accel.octant & 0x04)
                             dx--;
                         else
                             dx++;
-                    }
-
-                    err += (dminor << 1);
+                    } else
+                        err += xga->accel.bres_k1;
                 } else {
                     if (xga->accel.octant & 0x04)
                         dx--;
                     else
                         dx++;
 
-                    while (err >= 0) {
-                        err -= (dmajor << 1);
+                    if (err >= 0) {
+                        err += xga->accel.bres_k2;
                         if (xga->accel.octant & 0x02)
                             dy--;
                         else
                             dy++;
-                    }
-
-                    err += (dminor << 1);
+                    } else
+                        err += xga->accel.bres_k1;
                 }
-
                 y--;
                 x++;
             }
         }
     }
-
-    xga->accel.dst_map_x = dx;
-    xga->accel.dst_map_y = dy;
 }
 
 static void
 xga_bitblt(svga_t *svga)
 {
     xga_t   *xga = (xga_t *) svga->xga;
-    uint8_t  area_state = 0;
     uint32_t src_dat;
     uint32_t dest_dat;
     uint32_t old_dest_dat;
@@ -1530,6 +1484,7 @@ xga_bitblt(svga_t *svga)
     xga_log("D(%d,%d), SWH(%d,%d), BLT(%d,%d), dstwidth=%d.\n", dx, dy, xga->accel.x, xga->accel.y, srcwidth, srcheight, dstwidth);
 
     xga->accel.pattern = 0;
+    xga->accel.filling = 0;
 
     xga_log("XGA bitblt linear endian reverse=%d, access_mode=%x, octanty=%d, src command = %08x, "
             "pxsrcmap=%x, pxpatmap=%x, pxdstmap=%x, srcmap=%d, patmap=%d, dstmap=%d, "
@@ -1660,70 +1615,66 @@ xga_bitblt(svga_t *svga)
                 xga->accel.px_map_width[0], xga->accel.px_map_width[1],
                 xga->accel.px_map_width[2], xga->accel.px_map_width[3], bkgdcol);
 
-        if (((xga->accel.command >> 24) & 0x0f) == 0x0a) {
+        if ((((xga->accel.command >> 24) & 0x0f) == 0x0a) && ((xga->accel.bkgd_mix & 0x1f) == 5)) {
             while (xga->accel.y >= 0) {
                 mix = xga_accel_read_pattern_map_pixel(svga, xga->accel.px, xga->accel.py, xga->accel.pat_src, patbase, patwidth + 1);
                 if (mix)
-                    area_state = !area_state;
+                    xga->accel.filling = !xga->accel.filling;
 
                 if (xga->accel.command & 0xc0) {
                     if ((dx >= xga->accel.mask_map_origin_x_off) && (dx <= ((xga->accel.px_map_width[0] & 0xfff) + xga->accel.mask_map_origin_x_off)) && (dy >= xga->accel.mask_map_origin_y_off) && (dy <= ((xga->accel.px_map_height[0] & 0xfff) + xga->accel.mask_map_origin_y_off))) {
-                        if (area_state)
-                            src_dat = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.sx, xga->accel.sy, xga->accel.src_map, srcbase, srcwidth + 1, 1) : frgdcol;
-                        else
-                            src_dat = (((xga->accel.command >> 30) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.sx, xga->accel.sy, xga->accel.src_map, srcbase, srcwidth + 1, 1) : bkgdcol;
-
-                        dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dstwidth + 1, 0);
-                        if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
-                            old_dest_dat = dest_dat;
-                            ROP(area_state, dest_dat, src_dat);
-                            dest_dat = (dest_dat & plane_mask) | (old_dest_dat & ~plane_mask);
-                            xga_log("1SRCDat=%02x, DSTDat=%02x, Old=%02x, MIX=%d.\n", src_dat, dest_dat, old_dest_dat, area_state);
-                            xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, dstwidth + 1);
+                        src_dat  = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.sx, xga->accel.sy, xga->accel.src_map, srcbase, srcwidth + 1, 1) : frgdcol;
+                        if (xga->accel.filling) {
+                            dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, 1024, 0);
+                            if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
+                                old_dest_dat = dest_dat;
+                                ROP(1, dest_dat, src_dat);
+                                dest_dat = (dest_dat & plane_mask) | (old_dest_dat & ~plane_mask);
+                                xga_log("1SRCDat=%02x, DSTDat=%02x, Old=%02x, MIX=%d.\n", src_dat, dest_dat, old_dest_dat, area_state);
+                                xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, dstwidth + 1);
+                            }
                         }
                     }
                 } else {
                     if ((dx >= 0) && (dx <= dstwidth) && (dy >= 0) && (dy <= dstheight)) {
-                        if (area_state)
-                            src_dat = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.sx, xga->accel.sy, xga->accel.src_map, srcbase, srcwidth + 1, 1) : frgdcol;
-                        else
-                            src_dat = (((xga->accel.command >> 30) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.sx, xga->accel.sy, xga->accel.src_map, srcbase, srcwidth + 1, 1) : bkgdcol;
-
-                        dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dstwidth + 1, 0);
-                        if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
-                            old_dest_dat = dest_dat;
-                            ROP(area_state, dest_dat, src_dat);
-                            dest_dat = (dest_dat & plane_mask) | (old_dest_dat & ~plane_mask);
-                            xga_log("2Fill: NumXY(%d,%d): DXY(%d,%d): SRCDat=%02x, DSTDat=%02x, Old=%02x, frgdcol=%02x, bkgdcol=%02x, MIX=%d, frgdmix=%02x, bkgdmix=%02x, dstmapfmt=%02x, srcmapfmt=%02x, srcmapnum=%d.\n", x, y, dx, dy, src_dat, dest_dat, old_dest_dat, frgdcol, bkgdcol, area_state, xga->accel.frgd_mix & 0x1f, xga->accel.bkgd_mix & 0x1f, xga->accel.px_map_format[xga->accel.dst_map] & 0x0f, xga->accel.px_map_format[xga->accel.src_map] & 0x0f, xga->accel.src_map);
-                            xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, dstwidth + 1);
+                        src_dat  = (((xga->accel.command >> 28) & 3) == 2) ? xga_accel_read_map_pixel(svga, xga->accel.sx, xga->accel.sy, xga->accel.src_map, srcbase, srcwidth + 1, 1) : frgdcol;
+                        if (xga->accel.filling) {
+                            dest_dat = xga_accel_read_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dstwidth + 1, 0);
+                            if ((xga->accel.cc_cond == 4) || ((xga->accel.cc_cond == 1) && (dest_dat > color_cmp)) || ((xga->accel.cc_cond == 2) && (dest_dat == color_cmp)) || ((xga->accel.cc_cond == 3) && (dest_dat < color_cmp)) || ((xga->accel.cc_cond == 5) && (dest_dat >= color_cmp)) || ((xga->accel.cc_cond == 6) && (dest_dat != color_cmp)) || ((xga->accel.cc_cond == 7) && (dest_dat <= color_cmp))) {
+                                old_dest_dat = dest_dat;
+                                ROP(1, dest_dat, src_dat);
+                                dest_dat = (dest_dat & plane_mask) | (old_dest_dat & ~plane_mask);
+                                xga_log("2Fill: NumXY(%d,%d): DXY(%d,%d): SRCDat=%02x, DSTDat=%02x, Old=%02x, frgdcol=%02x, bkgdcol=%02x, MIX=%d, frgdmix=%02x, bkgdmix=%02x, dstmapfmt=%02x, srcmapfmt=%02x, srcmapnum=%d.\n", x, y, dx, dy, src_dat, dest_dat, old_dest_dat, frgdcol, bkgdcol, area_state, xga->accel.frgd_mix & 0x1f, xga->accel.bkgd_mix & 0x1f, xga->accel.px_map_format[xga->accel.dst_map] & 0x0f, xga->accel.px_map_format[xga->accel.src_map] & 0x0f, xga->accel.src_map);
+                                xga_accel_write_map_pixel(svga, dx, dy, xga->accel.dst_map, dstbase, dest_dat, dstwidth + 1);
+                            }
                         }
                     }
                 }
 
-                xga->accel.sx = ((xga->accel.sx + 1) & srcwidth) | (xga->accel.sx & ~srcwidth);
-                xga->accel.px = ((xga->accel.px + 1) & patwidth) | (xga->accel.px & ~patwidth);
+                xga->accel.sx = ((xga->accel.sx + xdir) & srcwidth) | (xga->accel.sx & ~srcwidth);
+                xga->accel.px++;
+
                 dx++;
                 xga->accel.x--;
                 if (xga->accel.x < 0) {
-                    area_state = 0;
                     xga->accel.y--;
                     xga->accel.x = xga->accel.blt_width & 0xfff;
 
                     dx = xga->accel.dst_map_x & 0x1fff;
                     if (xga->accel.dst_map_x >= 0x1800)
                         dx |= ~0x17ff;
+
                     xga->accel.sx = xga->accel.src_map_x & 0xfff;
                     xga->accel.px = xga->accel.pat_map_x & 0xfff;
 
                     xga->accel.sy = ((xga->accel.sy + ydir) & srcheight) | (xga->accel.sy & ~srcheight);
-                    xga->accel.py += ydir;
-                    dy += ydir;
+                    xga->accel.py++;
 
-                    if (xga->accel.y < 0) {
-                        xga->accel.dst_map_x = dx;
-                        xga->accel.dst_map_y = dy;
+                    dy++;
+                    xga->accel.filling = 0;
+
+                    if (xga->accel.y < 0)
                         return;
-                    }
                 }
             }
         } else {
@@ -1777,6 +1728,7 @@ xga_bitblt(svga_t *svga)
                     dx = xga->accel.dst_map_x & 0x1fff;
                     if (xga->accel.dst_map_x >= 0x1800)
                         dx |= ~0x17ff;
+
                     xga->accel.sx = xga->accel.src_map_x & 0xfff;
                     xga->accel.px = xga->accel.pat_map_x & 0xfff;
 
@@ -1870,7 +1822,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len >= 2) {
                     xga->accel.bres_err_term = val & 0x3fff;
                     if (val & 0x2000)
-                        xga->accel.bres_err_term |= ~0x3fff;
+                        xga->accel.bres_err_term |= ~0x1fff;
                 } else
                     xga->accel.bres_err_term = (xga->accel.bres_err_term & 0x3f00) | val;
                 break;
@@ -1878,7 +1830,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len == 1) {
                     xga->accel.bres_err_term = (xga->accel.bres_err_term & 0xff) | ((val & 0x3f) << 8);
                     if (val & 0x20)
-                        xga->accel.bres_err_term |= ~0x3fff;
+                        xga->accel.bres_err_term |= ~0x1fff;
                 }
                 break;
 
@@ -1886,7 +1838,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len >= 2) {
                     xga->accel.bres_k1 = val & 0x3fff;
                     if (val & 0x2000)
-                        xga->accel.bres_k1 |= ~0x3fff;
+                        xga->accel.bres_k1 |= ~0x1fff;
                 } else
                     xga->accel.bres_k1 = (xga->accel.bres_k1 & 0x3f00) | val;
                 break;
@@ -1894,7 +1846,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len == 1) {
                     xga->accel.bres_k1 = (xga->accel.bres_k1 & 0xff) | ((val & 0x3f) << 8);
                     if (val & 0x20)
-                        xga->accel.bres_k1 |= ~0x3fff;
+                        xga->accel.bres_k1 |= ~0x1fff;
                 }
                 break;
 
@@ -1902,7 +1854,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len >= 2) {
                     xga->accel.bres_k2 = val & 0x3fff;
                     if (val & 0x2000)
-                        xga->accel.bres_k2 |= ~0x3fff;
+                        xga->accel.bres_k2 |= ~0x1fff;
                 } else
                     xga->accel.bres_k2 = (xga->accel.bres_k2 & 0x3f00) | val;
                 break;
@@ -1910,7 +1862,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len == 1) {
                     xga->accel.bres_k2 = (xga->accel.bres_k2 & 0xff) | ((val & 0x3f) << 8);
                     if (val & 0x20)
-                        xga->accel.bres_k2 |= ~0x3fff;
+                        xga->accel.bres_k2 |= ~0x1fff;
                 }
                 break;
 
@@ -2014,6 +1966,30 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                 if (len == 1)
                     xga->accel.plane_mask = (xga->accel.plane_mask & 0x00ffffff) | (val << 24);
                 break;
+
+            case 0x54:
+                if (len == 4)
+                    xga->accel.carry_chain = val;
+                else if (len == 2)
+                    xga->accel.carry_chain = (xga->accel.carry_chain & 0xffff0000) | val;
+                else
+                    xga->accel.carry_chain = (xga->accel.carry_chain & 0xffffff00) | val;
+                break;
+            case 0x55:
+                if (len == 1)
+                    xga->accel.carry_chain = (xga->accel.carry_chain & 0xffff00ff) | (val << 8);
+                break;
+            case 0x56:
+                if (len == 2)
+                    xga->accel.carry_chain = (xga->accel.carry_chain & 0x0000ffff) | (val << 16);
+                else
+                    xga->accel.carry_chain = (xga->accel.carry_chain & 0xff00ffff) | (val << 16);
+                break;
+            case 0x57:
+                if (len == 1)
+                    xga->accel.carry_chain = (xga->accel.carry_chain & 0x00ffffff) | (val << 24);
+                break;
+
 
             case 0x58:
                 if (len == 4)
@@ -2454,7 +2430,7 @@ xga_hwcursor_draw(svga_t *svga, int displine)
     int       y_pos;
     int       comb = 0;
     uint32_t *p;
-    int       idx = (xga->cursor_data_on) ? 32 : 0;
+    int       idx = xga->cursor_data_on ? 32 : 0;
 
     if (xga->interlace && xga->hwcursor_oddeven)
         xga->hwcursor_latch.addr += 16;
@@ -2549,20 +2525,24 @@ xga_render_4bpp(svga_t *svga)
 
         for (int x = 0; x <= xga->h_disp; x += 16) {
             dat  = *(uint32_t *) (&xga->vram[xga->ma & xga->vram_mask]);
-            p[0] = xga->pallook[(dat >> 4) & 0x0f];
-            p[1] = xga->pallook[dat & 0x0f];
-            p[2] = xga->pallook[(dat >> 12) & 0x0f];
-            p[3] = xga->pallook[(dat >> 8) & 0x0f];
-            p[4] = xga->pallook[(dat >> 20) & 0x0f];
-            p[5] = xga->pallook[(dat >> 16) & 0x0f];
-            p[6] = xga->pallook[(dat >> 28) & 0x0f];
-            p[7] = xga->pallook[(dat >> 24) & 0x0f];
+            p[0] = xga->pallook[dat & 0x0f];
+            p[1] = xga->pallook[(dat >> 4) & 0x0f];
+            p[2] = xga->pallook[(dat >> 8) & 0x0f];
+            p[3] = xga->pallook[(dat >> 12) & 0x0f];
+            p[4] = xga->pallook[(dat >> 16) & 0x0f];
+            p[5] = xga->pallook[(dat >> 20) & 0x0f];
+            p[6] = xga->pallook[(dat >> 24) & 0x0f];
+            p[7] = xga->pallook[(dat >> 28) & 0x0f];
 
             dat  = *(uint32_t *) (&xga->vram[(xga->ma + 4) & xga->vram_mask]);
-            p[9] = xga->pallook[dat & 0x0f];
-            p[11] = xga->pallook[(dat >> 8) & 0x0f];
-            p[13] = xga->pallook[(dat >> 16) & 0x0f];
-            p[15] = xga->pallook[(dat >> 24) & 0x0f];
+            p[8] = xga->pallook[dat & 0x0f];
+            p[9] = xga->pallook[(dat >> 4) & 0x0f];
+            p[10] = xga->pallook[(dat >> 8) & 0x0f];
+            p[11] = xga->pallook[(dat >> 12) & 0x0f];
+            p[12] = xga->pallook[(dat >> 16) & 0x0f];
+            p[13] = xga->pallook[(dat >> 20) & 0x0f];
+            p[14] = xga->pallook[(dat >> 24) & 0x0f];
+            p[15] = xga->pallook[(dat >> 28) & 0x0f];
 
             xga->ma += 8;
             p += 16;
@@ -2626,7 +2606,7 @@ xga_render_16bpp(svga_t *svga)
             xga->firstline_draw = xga->displine;
         xga->lastline_draw = xga->displine;
 
-        for (x = 0; x <= (xga->h_disp); x += 8) {
+        for (x = 0; x <= xga->h_disp; x += 8) {
             dat      = *(uint32_t *) (&xga->vram[(xga->ma + (x << 1)) & xga->vram_mask]);
             p[x]     = video_16to32[dat & 0xffff];
             p[x + 1] = video_16to32[dat >> 16];
@@ -2969,9 +2949,8 @@ xga_poll(void *priv, svga_t *svga)
                 video_wait_for_buffer_monitor(svga->monitor_index);
             }
 
-            if (xga->hwcursor_on) {
+            if (xga->hwcursor_on)
                 xga->changedvram[xga->ma >> 12] = xga->changedvram[(xga->ma >> 12) + 1] = xga->interlace ? 3 : 2;
-            }
 
             xga_do_render(svga);
 
@@ -2993,9 +2972,10 @@ xga_poll(void *priv, svga_t *svga)
             if (xga->sc == xga->rowcount) {
                 xga->sc = 0;
 
-                xga->maback += (xga->rowoffset << (xga->disp_cntl_2 & 7));
+                xga->maback += (xga->rowoffset << 3);
                 if (xga->interlace)
-                    xga->maback += (xga->rowoffset << (xga->disp_cntl_2 & 7));
+                    xga->maback += (xga->rowoffset << 3);
+
                 xga->maback &= xga->vram_mask;
                 xga->ma = xga->maback;
             } else {
@@ -3013,6 +2993,7 @@ xga_poll(void *priv, svga_t *svga)
                 xga->ma = xga->maback = (xga->rowoffset << 1);
             else
                 xga->ma = xga->maback = 0;
+
             xga->ma     = (xga->ma << 2);
             xga->maback = (xga->maback << 2);
 
@@ -3152,6 +3133,8 @@ xga_mca_reset(void *priv)
     xga->on = 0;
     vga_on  = 1;
     xga_mca_write(0x102, 0, svga);
+    xga->linear_endian_reverse = 0;
+    xga->a5_test               = 0;
 }
 
 static void
