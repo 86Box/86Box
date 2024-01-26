@@ -2782,14 +2782,7 @@ amd_k_invalid_rdmsr:
         case CPU_P24T:
         case CPU_PENTIUM:
         case CPU_PENTIUMMMX:
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-        case CPU_Cx6x86:
-        case CPU_Cx6x86L:
-        case CPU_CxGX1:
-        case CPU_Cx6x86MX:
-            if (cpu_s->cpu_type < CPU_Cx6x86)
-#endif
-                EAX = EDX = 0;
+            EAX = EDX = 0;
             switch (ECX) {
                 case 0x00:
                 case 0x01:
@@ -2801,6 +2794,24 @@ amd_k_invalid_rdmsr:
             }
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             break;
+
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+        case CPU_Cx6x86:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_Cx6x86MX:
+            switch (ECX) {
+                case 0x00:
+                case 0x01:
+                    break;
+                case 0x10:
+                    EAX = tsc & 0xffffffff;
+                    EDX = tsc >> 32;
+                    break;
+            }
+            cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
+            break;
+#endif
 
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
@@ -3276,12 +3287,6 @@ amd_k_invalid_wrmsr:
         case CPU_P24T:
         case CPU_PENTIUM:
         case CPU_PENTIUMMMX:
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-        case CPU_Cx6x86:
-        case CPU_Cx6x86L:
-        case CPU_CxGX1:
-        case CPU_Cx6x86MX:
-#endif
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             switch (ECX) {
                 case 0x00:
@@ -3291,17 +3296,28 @@ amd_k_invalid_wrmsr:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x8b:
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-                    if (cpu_s->cpu_type < CPU_Cx6x86) {
-#endif
-                        cpu_log("WRMSR: Invalid MSR: 0x8B\n");
-                        x86gpf(NULL, 0); /* Needed for Vista to correctly break on Pentium */
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-                    }
-#endif
+                    cpu_log("WRMSR: Invalid MSR: 0x8B\n");
+                    x86gpf(NULL, 0); /* Needed for Vista to correctly break on Pentium */
                     break;
             }
             break;
+
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+        case CPU_Cx6x86:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_Cx6x86MX:
+            cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
+            switch (ECX) {
+                case 0x00:
+                case 0x01:
+                    break;
+                case 0x10:
+                    tsc = EAX | ((uint64_t) EDX << 32);
+                    break;
+            }
+            break;
+#endif
 
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
