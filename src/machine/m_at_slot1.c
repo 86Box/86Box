@@ -183,8 +183,7 @@ machine_at_ma30d_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c67x_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-    device_add(&lm78_device); /* no reporting in BIOS */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
