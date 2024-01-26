@@ -1961,7 +1961,7 @@ cpu_CPUID(void)
                     EDX = 0x48727561;
                 }
             } else if (EAX == 1) {
-                EAX = 0x540;
+                EAX = ((msr.fcr2 & 0x0ff0) ? ((msr.fcr2 & 0x0ff0) | (CPUID & 0xf00f)) : CPUID);
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR;
                 if (cpu_has_feature(CPU_FEATURE_CX8))
@@ -1987,7 +1987,7 @@ cpu_CPUID(void)
                     }
                     break;
                 case 1:
-                    EAX = CPUID;
+                    EAX = ((msr.fcr2 & 0x0ff0) ? ((msr.fcr2 & 0x0ff0) | (CPUID & 0xf00f)) : CPUID);
                     EBX = ECX = 0;
                     EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
@@ -2464,7 +2464,7 @@ cpu_CPUID(void)
                     }
                     break;
                 case 1:
-                    EAX = CPUID;
+                    EAX = ((msr.fcr2 & 0x0ff0) ? ((msr.fcr2 & 0x0ff0) | (CPUID & 0xf00f)) : CPUID);
                     EBX = ECX = 0;
                     EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
