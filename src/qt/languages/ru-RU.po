@@ -938,7 +938,7 @@ msgid "Do you want to save the settings?"
 msgstr "Хотите ли вы сохранить настройки?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Это приведет к холодной перезагрузке эмулируемой машины."
+msgstr "Это приведёт к холодной перезагрузке эмулируемой машины."
 
 msgid "Save"
 msgstr "Сохранить"
