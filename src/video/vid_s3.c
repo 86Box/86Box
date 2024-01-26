@@ -3920,6 +3920,7 @@ s3_recalctimings(svga_t *svga)
                     case S3_VISION968:
                         switch (s3->card_type) {
                             case S3_MIROVIDEO40SV_ERGO_968:
+                            case S3_SPEA_MERCURY_P64V:
                                 switch (s3->width) {
                                     case 1280:
                                         svga->hdisp = ((svga->hdisp << 1) / 3) << 1;
