@@ -195,11 +195,11 @@ machine_at_acerv60n_init(const machine_t *model)
 }
 
 int
-machine_at_lgibm440fx_init(const machine_t *model)
+machine_at_lgibmx61_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/lgibm440fx/bios.rom",
+    ret = bios_load_linear("roms/machines/lgibmx61/bios.rom",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

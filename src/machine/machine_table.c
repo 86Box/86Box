@@ -9570,10 +9570,10 @@ const machine_t machines[] = {
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
         .name = "[i430VX] Dell Hannibal+",
-        .internal_name = "dell_430vx",
+        .internal_name = "dellhannibalp",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
-        .init = machine_at_dell_430vx_init,
+        .init = machine_at_dellhannibalp_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -11122,10 +11122,10 @@ const machine_t machines[] = {
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
         .name = "[SiS 5571] Daewoo CB52X-SI",
-        .internal_name = "cb52x_si",
+        .internal_name = "cb52xsi",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_SIS_5571,
-        .init = machine_at_cb52x_si_init,
+        .init = machine_at_cb52xsi_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -12024,10 +12024,10 @@ const machine_t machines[] = {
     /* Has the AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name = "[i440FX] LG IBM Multinet x61 (MSI MS-6106)",
-        .internal_name = "lgibm440fx",
+        .internal_name = "lgibmx61",
         .type = MACHINE_TYPE_SOCKET8,
         .chipset = MACHINE_CHIPSET_INTEL_440FX,
-        .init = machine_at_lgibm440fx_init,
+        .init = machine_at_lgibmx61_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -12357,10 +12357,10 @@ const machine_t machines[] = {
        AMIKey-2 KBC firmware. */
     {
         .name = "[i440LX] NEC Mate NX MA30D/23D",
-        .internal_name = "mate_nx_ma30d_23d",
+        .internal_name = "ma30d",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440LX,
-        .init = machine_at_mate_nx_ma30d_23d_init,
+        .init = machine_at_ma30d_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -12688,10 +12688,10 @@ const machine_t machines[] = {
     /* Has the AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name = "[i440BX] LG IBM Multinet i x7G (MSI MS-6119)",
-        .internal_name = "lgibm440bx",
+        .internal_name = "lgibmx7g",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440BX,
-        .init = machine_at_lgibm440bx_init,
+        .init = machine_at_lgibmx7g_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,

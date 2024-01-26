@@ -153,11 +153,11 @@ machine_at_spitfire_init(const machine_t *model)
 }
 
 int
-machine_at_mate_nx_ma30d_23d_init(const machine_t *model)
+machine_at_ma30d_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/mate_nx_ma30d_23d/BIOS.ROM",
+    ret = bios_load_linear("roms/machines/ma30d/BIOS.ROM",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -261,11 +261,11 @@ machine_at_p2bls_init(const machine_t *model)
 }
 
 int
-machine_at_lgibm440bx_init(const machine_t *model)
+machine_at_lgibmx7g_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/lgibm440bx/ms6119.331",
+    ret = bios_load_linear("roms/machines/lgibmx7g/ms6119.331",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
