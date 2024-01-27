@@ -59,7 +59,17 @@ static uint8_t  mach_accel_inb(uint16_t port, void *priv);
 static uint16_t mach_accel_inw(uint16_t port, void *priv);
 static uint8_t  mach_in(uint16_t addr, void *priv);
 
-static void     mach32_updatemapping(mach_t *mach, svga_t *svga);
+#ifdef ATI_8514_ULTRA
+static void     ati8514_accel_outb(uint16_t port, uint8_t val, void *priv);
+static void     ati8514_accel_outw(uint16_t port, uint16_t val, void *priv);
+static void     ati8514_accel_outl(uint16_t port, uint32_t val, void *priv);
+static uint8_t  ati8514_accel_inb(uint16_t port, void *priv);
+static uint16_t ati8514_accel_inw(uint16_t port, void *priv);
+static uint32_t ati8514_accel_inl(uint16_t port, void *priv);
+#endif
+
+
+static void mach32_updatemapping(mach_t *mach, svga_t *svga);
 
 #ifdef ENABLE_MACH_LOG
 int mach_do_log = ENABLE_MACH_LOG;
@@ -113,9 +123,9 @@ mach_log(const char *fmt, ...)
 
 #define READ_PIXTRANS_WORD(cx, n)                                                                    \
     if ((cmd == 0) || (cmd == 1) || (cmd == 5) || (mach->accel.cmd_type == -1)) { \
-        if (dev->bpp) { \
+        if (dev->bpp) \
             temp = vram_w[((dev->accel.cy * dev->pitch) + (cx) + (n)) & (dev->vram_mask >> 1)];             \
-        } else { \
+        else { \
             temp = dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n)) & dev->vram_mask];             \
             temp |= (dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n + 1)) & dev->vram_mask] << 8); \
         } \
@@ -2482,8 +2492,8 @@ ati8514_recalctimings(svga_t *svga)
         dev->h_total                    = dev->htotal + 1;
         dev->h_blankstart               = dev->hblankstart;
         dev->h_blank_end_val            = dev->hblank_end_val;
-        dev->v_total                    = dev->vtotal + 1;
-        dev->v_syncstart                = dev->vsyncstart + 1;
+        dev->v_total                    = dev->vtotal;
+        dev->v_syncstart                = dev->vsyncstart;
         dev->rowcount                   = !!(dev->disp_cntl & 0x08);
         dev->dispend                    = dev->vdisp;
 
@@ -2604,8 +2614,8 @@ mach_recalctimings(svga_t *svga)
         dev->h_total                    = dev->htotal + 1;
         dev->h_blankstart               = dev->hblankstart;
         dev->h_blank_end_val            = dev->hblank_end_val;
-        dev->v_total                    = dev->vtotal + 1;
-        dev->v_syncstart                = dev->vsyncstart + 1;
+        dev->v_total                    = dev->vtotal;
+        dev->v_syncstart                = dev->vsyncstart;
         dev->dispend                    = dev->vdisp;
         dev->rowcount                   = !!(dev->disp_cntl & 0x08);
 
@@ -2613,6 +2623,9 @@ mach_recalctimings(svga_t *svga)
             dev->dispend += 2;
 
         if (dev->dispend == 598)
+            dev->dispend += 2;
+
+        if (dev->dispend == 478)
             dev->dispend += 2;
 
         if ((dev->local & 0xff) >= 0x02) {
@@ -2710,8 +2723,11 @@ mach_recalctimings(svga_t *svga)
                     svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
 
                 if (((mach->shadow_set & 0x03) != 0x02) || !(dev->accel.advfunc_cntl & 0x04)) { /*Shadow set of 2 and bit 2 of port 0x4ae8 mean 1024x768+*/
-                    dev->h_disp = 640;
-                    dev->dispend = 480;
+                    if (!(mach->accel.clock_sel & 0x01)) {
+                        dev->h_disp = 640;
+                        dev->dispend = 480;
+                    }
+                    dev->interlace = 0;
                 }
             }
 
@@ -2726,25 +2742,11 @@ mach_recalctimings(svga_t *svga)
 
             dev->pitch = dev->ext_pitch;
             dev->rowoffset = dev->ext_crt_pitch;
-            mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x.\n", dev->accel.advfunc_cntl & 4, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset, mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3);
+            mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n", dev->accel.advfunc_cntl & 4, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset, mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace);
             svga->map8 = dev->pallook;
             svga->render8514 = ibm8514_render_8bpp;
             if (mach->regs[0xb8] & 0x40)
                 svga->clock *= 2;
-        }
-
-        dev->hblankend = (dev->h_blankstart & ~0x3f) | dev->h_blank_end_val;
-        if (dev->hblankend <= dev->h_blankstart)
-            dev->hblankend += 0x40;
-
-        dev->hblankend += dev->hblank_ext;
-
-        dev->hblank_sub = 0;
-        if (dev->hblankend > dev->h_total) {
-            dev->hblankend &= 0x3f;
-            dev->hblank_sub = dev->hblankend + 1;
-
-            dev->h_disp -= dev->hblank_sub;
         }
     }
 
@@ -3636,7 +3638,7 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
         case 0x6e8:
         case 0x6e9:
             if (!(port & 1)) {
-                if (((dev->disp_cntl & 0x60) == 0x20) || (mach->accel.clock_sel & 0x01)) {
+                if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
                     dev->hdisped = val;
                     dev->hdisp = (dev->hdisped + 1) << 3;
                 }
@@ -3647,8 +3649,10 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
         case 0xae8:
         case 0xae9:
             if (!(port & 1)) {
-                dev->hsync_start = val;
-                dev->hblankstart = (dev->hsync_start & 0x07) + 1;
+                if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
+                    dev->hsync_start = val;
+                    dev->hblankstart = (dev->hsync_start & 0x07) + 1;
+                }
             }
             mach_log("ATI 8514/A: H_SYNC_STRT write 0AE8 = %d\n", val + 1);
             break;
@@ -3656,36 +3660,46 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
         case 0xee8:
         case 0xee9:
             if (!(port & 1)) {
-                dev->hsync_width = val;
-                dev->hblank_end_val = (dev->hblankstart + (dev->hsync_start & 0x1f) - 1) & 0x3f;
+                if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
+                    dev->hsync_width = val;
+                    dev->hblank_end_val = (dev->hblankstart + (dev->hsync_start & 0x1f) - 1) & 0x3f;
+                }
             }
             mach_log("ATI 8514/A: H_SYNC_WID write 0EE8 = %d\n", val + 1);
             break;
 
         case 0x12e8:
         case 0x12e9:
-            WRITE8(port, dev->vtotal, val);
-            dev->vtotal &= 0x1fff;
+            if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
+                WRITE8(port, dev->v_total_reg, val);
+                dev->v_total_reg &= 0x1fff;
+                dev->vtotal = dev->v_total_reg;
+                dev->vtotal++;
+            }
             break;
 
         case 0x16e8:
         case 0x16e9:
-            if (((dev->disp_cntl & 0x60) == 0x20) || (mach->accel.clock_sel & 0x01)) {
+            if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
                 WRITE8(port, dev->v_disp, val);
                 dev->v_disp &= 0x1fff;
                 dev->vdisp = dev->v_disp;
                 dev->vdisp >>= 1;
                 dev->vdisp++;
             }
-            dev->modechange = dev->accel.advfunc_cntl & 4;
-            mach->compat_mode = mach->shadow_set & 3;
+            dev->modechange = dev->accel.advfunc_cntl & 0x04;
+            mach->compat_mode = mach->shadow_set & 0x03;
             mach_log("ATI 8514/A: V_DISP write 16E8 = %d\n", dev->vdisp);
             break;
 
         case 0x1ae8:
         case 0x1ae9:
-            WRITE8(port, dev->vsyncstart, val);
-            dev->vsyncstart &= 0x1fff;
+            if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
+                WRITE8(port, dev->v_sync_start, val);
+                dev->v_sync_start &= 0x1fff;
+                dev->vsyncstart = dev->v_sync_start;
+                dev->vsyncstart++;
+            }
             break;
 
         case 0x1ee8:
@@ -3694,7 +3708,7 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             break;
 
         case 0x22e8:
-            dev->disp_cntl = val & 0x7e;
+            dev->disp_cntl = val;
             dev->interlace = !!(val & 0x10);
             mach_log("ATI 8514/A: DISP_CNTL write 22E8 = %02x, interlace = %d\n", dev->disp_cntl, dev->interlace);
             break;
@@ -4314,13 +4328,13 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
 
         case 0xcaee:
             if (len == 1)
-                temp = dev->vsyncstart & 0xff;
+                temp = dev->v_sync_start & 0xff;
             else
-                temp = dev->vsyncstart;
+                temp = dev->v_sync_start;
             break;
         case 0xcaef:
             if (len == 1)
-                temp = dev->vsyncstart >> 8;
+                temp = dev->v_sync_start >> 8;
             break;
 
         case 0xceee:
