@@ -56,6 +56,8 @@ typedef struct ega_t {
 
     uint8_t *vram;
 
+    uint16_t light_pen;
+
     int vidclock;
     int fast;
     int extvram;

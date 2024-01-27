@@ -1585,40 +1585,38 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     for (i = 0; i < num; i++)
         a64[i] = (uint64_t) addr;
 
-    for (i = 0; i < num; i++) {
-        if (cr0 >> 31) {
-            if (write && ((i == 0) || !(addr & 0xfff)))
-                cond = (!page_lookup[addr >> 12] || !page_lookup[addr >> 12]->write_b);
+    if (cr0 >> 31)  for (i = 0; i < num; i++) {
+        if (write && ((i == 0) || !(addr & 0xfff)))
+            cond = (!page_lookup[addr >> 12] || !page_lookup[addr >> 12]->write_b);
 
-            if (cond) {
-                /* If we have encountered at least one page fault, mark all subsequent addresses as
-                   having page faulted, prevents false negatives in readmem*l_no_mmut. */
-                if ((i > 0) && cpu_state.abrt && !high_page)
-                    a64[i] = a64[i - 1];
-                /* If we are on the same page, there is no need to translate again, as we can just
-                   reuse the previous result. */
-                else if (i == 0) {
-                    a      = mmutranslatereal(addr, write);
-                    a64[i] = (uint32_t) a;
+        if (cond) {
+            /* If we have encountered at least one page fault, mark all subsequent addresses as
+               having page faulted, prevents false negatives in readmem*l_no_mmut. */
+            if ((i > 0) && cpu_state.abrt && !high_page)
+                a64[i] = a64[i - 1];
+            /* If we are on the same page, there is no need to translate again, as we can just
+               reuse the previous result. */
+            else if (i == 0) {
+                a      = mmutranslatereal(addr, write);
+                a64[i] = (uint32_t) a;
 
-                    high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
-                } else if (!(addr & 0xfff)) {
-                    a      = mmutranslatereal(last_addr, write);
-                    a64[i] = (uint32_t) a;
+                high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
+            } else if (!(addr & 0xfff)) {
+                a      = mmutranslatereal(last_addr, write);
+                a64[i] = (uint32_t) a;
 
-                    high_page = high_page || (!cpu_state.abrt && (a64[i] > 0xffffffffULL));
+                high_page = high_page || (!cpu_state.abrt && (a64[i] > 0xffffffffULL));
 
-                    if (!cpu_state.abrt) {
-                        a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
-                        a64[i] = (uint32_t) a;
-                    }
-                } else {
+                if (!cpu_state.abrt) {
                     a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
                     a64[i] = (uint32_t) a;
                 }
-            } else
-                mmu_perm = page_lookupp[addr >> 12];
-        }
+            } else {
+                a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
+                a64[i] = (uint32_t) a;
+            }
+        } else
+            mmu_perm = page_lookupp[addr >> 12];
 
         addr++;
     }
@@ -2869,6 +2867,35 @@ mem_init(void)
     readlookupp  = malloc((1 << 20) * sizeof(uint8_t));
     writelookup2 = malloc((1 << 20) * sizeof(uintptr_t));
     writelookupp = malloc((1 << 20) * sizeof(uint8_t));
+}
+
+static void
+umc_page_recalc(uint32_t c, int set)
+{
+    if (set) {
+        pages[c].mem = &ram[(c & 0xff) << 12];
+        pages[c].write_b = mem_write_ramb_page;
+        pages[c].write_w = mem_write_ramw_page;
+        pages[c].write_l = mem_write_raml_page;
+    } else {
+        pages[c].mem = page_ff;
+        pages[c].write_b = NULL;
+        pages[c].write_w = NULL;
+        pages[c].write_l = NULL;
+    }
+
+#ifdef USE_NEW_DYNAREC
+    pages[c].evict_prev             = EVICT_NOT_IN_LIST;
+    pages[c].byte_dirty_mask        = &byte_dirty_mask[(c & 0xff) * 64];
+    pages[c].byte_code_present_mask = &byte_code_present_mask[(c & 0xff) * 64];
+#endif
+}
+
+void
+umc_smram_recalc(uint32_t start, int set)
+{
+    for (uint32_t c = start; c < (start + 0x0020); c++)
+        umc_page_recalc(c, set);
 }
 
 void

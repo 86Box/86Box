@@ -672,15 +672,15 @@ machine_at_p5vxb_init(const machine_t *model)
 }
 
 int
-machine_at_dell_430vx_init(const machine_t *model)
+machine_at_dellhannibalp_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/dell_430vx/1003DY0J.BIO",
-                                     "roms/machines/dell_430vx/1003DY0J.BI1",
-                                     "roms/machines/dell_430vx/1003DY0J.BI2",
-                                     "roms/machines/dell_430vx/1003DY0J.BI3",
-                                     "roms/machines/dell_430vx/1003DY0J.RCV",
+    ret = bios_load_linear_combined2("roms/machines/dellhannibalp/1003DY0J.BIO",
+                                     "roms/machines/dellhannibalp/1003DY0J.BI1",
+                                     "roms/machines/dellhannibalp/1003DY0J.BI2",
+                                     "roms/machines/dellhannibalp/1003DY0J.BI3",
+                                     "roms/machines/dellhannibalp/1003DY0J.RCV",
                                      0x3a000, 128);
 
     if (bios_only || !ret)
