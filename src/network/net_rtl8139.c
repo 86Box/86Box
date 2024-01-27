@@ -3124,8 +3124,10 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
             return 1;
         case 0x14:
             return 0;
-#ifndef USE_256_BYTE_BAR
         case 0x15:
+#ifdef USE_256_BYTE_BAR
+            return s->pci_conf[addr & 0xFF];
+#else
             return s->pci_conf[addr & 0xFF] & 0xf0;
 #endif
         case 0x2c:
@@ -3187,7 +3189,9 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
                               rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
                               priv);
             break;
+#ifndef USE_256_BYTE_BAR
         case 0x14:
+#endif
         case 0x15:
         case 0x16:
         case 0x17:

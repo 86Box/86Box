@@ -1038,37 +1038,55 @@ tulip_writel_io(uint16_t addr, uint32_t data, void *opaque)
 static void
 tulip_mem_writeb(uint32_t addr, uint8_t data, void *opaque)
 {
-    return tulip_write(addr, data, opaque);
+    if ((addr & 0xfff) < 0x100)
+        tulip_write(addr, data, opaque);
 }
 
 static void
 tulip_mem_writew(uint32_t addr, uint16_t data, void *opaque)
 {
-    return tulip_write(addr, data, opaque);
+    if ((addr & 0xfff) < 0x100)
+        tulip_write(addr, data, opaque);
 }
 
 static void
 tulip_mem_writel(uint32_t addr, uint32_t data, void *opaque)
 {
-    return tulip_write(addr, data, opaque);
+    if ((addr & 0xfff) < 0x100)
+        tulip_write(addr, data, opaque);
 }
 
 static uint8_t
 tulip_mem_readb(uint32_t addr, void *opaque)
 {
-    return tulip_read(addr, opaque);
+    uint8_t ret = 0xff;
+
+    if ((addr & 0xfff) < 0x100)
+        ret = tulip_read(addr, opaque);
+
+    return ret;
 }
 
 static uint16_t
 tulip_mem_readw(uint32_t addr, void *opaque)
 {
-    return tulip_read(addr, opaque);
+    uint16_t ret = 0xffff;
+
+    if ((addr & 0xfff) < 0x100)
+        ret = tulip_read(addr, opaque);
+
+    return ret;
 }
 
 static uint32_t
 tulip_mem_readl(uint32_t addr, void *opaque)
 {
-    return tulip_read(addr, opaque);
+    uint32_t ret = 0xffffffff;
+
+    if ((addr & 0xfff) < 0x100)
+        ret = tulip_read(addr, opaque);
+
+    return ret;
 }
 
 static uint8_t
@@ -1208,11 +1226,17 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x13:
             ret = tulip_pci_bar[0].addr_regs[3];
             break;
+#ifdef USE_128_BYTE_BAR
         case 0x14:
             ret = (tulip_pci_bar[1].addr_regs[0] & 0x80);
             break;
+#endif
         case 0x15:
+#ifdef USE_128_BYTE_BAR
             ret = tulip_pci_bar[1].addr_regs[1];
+#else
+            ret = tulip_pci_bar[1].addr_regs[1] & 0xf0;
+#endif
             break;
         case 0x16:
             ret = tulip_pci_bar[1].addr_regs[2];
@@ -1283,7 +1307,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             //pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
             mem_mapping_disable(&s->memory);
             if ((s->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
-                mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
+                mem_mapping_enable(&s->memory);
             break;
         case 0x05:
             s->pci_conf[0x05] = val & 1;
@@ -1308,18 +1332,28 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                              priv);
             }
             break;
+#ifndef USE_128_BYTE_BAR
         case 0x14:
+#endif
         case 0x15:
         case 0x16:
         case 0x17:
             mem_mapping_disable(&s->memory);
             tulip_pci_bar[1].addr_regs[addr & 3] = val;
+#ifdef USE_128_BYTE_BAR
             tulip_pci_bar[1].addr &= 0xffffff80;
+#else
+            tulip_pci_bar[1].addr &= 0xfffff000;
+#endif
             s->MMIOBase = tulip_pci_bar[1].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
                 //pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
                 if (s->MMIOBase != 0)
+#ifdef USE_128_BYTE_BAR
                     mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
+#else
+                    mem_mapping_set_addr(&s->memory, s->MMIOBase, 4096);
+#endif
             }
             break;
         case 0x30: /* PCI_ROMBAR */
@@ -1369,7 +1403,11 @@ nic_init(const device_t *info)
         s->has_bios  = 0;
     }
 
+#ifdef USE_128_BYTE_BAR
     mem_mapping_add(&s->memory, 0x0fffff00, 128, tulip_mem_readb, tulip_mem_readw, tulip_mem_readl, tulip_mem_writeb, tulip_mem_writew, tulip_mem_writel, NULL, MEM_MAPPING_EXTERNAL, s);
+#else
+    mem_mapping_add(&s->memory, 0x0ffff000, 4096, tulip_mem_readb, tulip_mem_readw, tulip_mem_readl, tulip_mem_writeb, tulip_mem_writew, tulip_mem_writel, NULL, MEM_MAPPING_EXTERNAL, s);
+#endif
     mem_mapping_disable(&s->memory);
 
     s->device_info = info;
