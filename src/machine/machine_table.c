@@ -6165,46 +6165,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* KBC?? Does the VLSI have On-Chip KBC? */
-    {
-        .name = "[VLSI 82C480] ZEOS Martin",
-        .internal_name = "zmartin",
-        .type = MACHINE_TYPE_486_S2,
-        .chipset = MACHINE_CHIPSET_VLSI_VL82C480,
-        .init = machine_at_zmartin_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET3,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_SUPER_IO,
-        .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
-        },
-        .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL, //&fdc37c651_device,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
+
 
     /* 486 machines - Socket 3 */
     /* 486 machines with just the ISA slot */
@@ -7136,46 +7097,6 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &gd5430_onboard_pci_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Absolutely no information. Anything here is guesswork. */
-    {
-        .name = "[OPTi 802GP] Olivetti M4-5xx",
-        .internal_name = "m45xx",
-        .type = MACHINE_TYPE_486_S3,
-        .chipset = MACHINE_CHIPSET_OPTI_895_802G, //OPTi 802GP
-        .init = machine_at_m45xx_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET3,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_PS2_PCIV,
-        .flags = MACHINE_IDE | MACHINE_APM,
-        .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
-        },
-        .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },

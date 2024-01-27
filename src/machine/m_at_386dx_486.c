@@ -732,35 +732,6 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
 }
 
 int
-machine_at_m45xx_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_inverted("roms/machines/m45xx/optoli_082594.rom",
-                                    0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1994_nvr_device);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x15, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x16, PCI_CARD_NORMAL,      3, 4, 1, 2);
-
-    device_add(&opti802g_pci_device);
-    device_add(&opti822_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c665_device);
-    device_add(&ide_vlb_2ch_device);
-    device_add(&intel_flash_bxt_device); // Just in case, no idea if it has it or not
-
-    return ret;
-}
-
-int
 machine_at_mvi486_init(const machine_t *model)
 {
     int ret;
@@ -910,25 +881,6 @@ machine_at_pci400ca_init(const machine_t *model)
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
-
-    return ret;
-}
-
-int
-machine_at_zmartin_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/zeos_martin/rel11.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-    device_add(&keyboard_at_device);
-    device_add(&intel_flash_bxt_ami_device);
-    device_add(&fdc37c651_device);
 
     return ret;
 }
