@@ -536,9 +536,7 @@ extern int machine_at_greenb_init(const machine_t *);
 extern int machine_at_r418_init(const machine_t *);
 extern int machine_at_ls486e_init(const machine_t *);
 extern int machine_at_4dps_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_MS4144)
 extern int machine_at_ms4144_init(const machine_t *);
-#endif
 extern int machine_at_4saw2_init(const machine_t *);
 extern int machine_at_m4li_init(const machine_t *);
 extern int machine_at_alfredo_init(const machine_t *);

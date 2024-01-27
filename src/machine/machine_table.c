@@ -7783,7 +7783,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#if defined(DEV_BRANCH) && defined(USE_MS4144)
     /* AMIKEY-2 */
     {
         .name = "[SiS 496] MSI MS-4144",
@@ -7824,7 +7823,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
     /* This has the UMC 88xx on-chip KBC. */
     {
         .name = "[UMC 8881] A-Trend ATC-1415",
