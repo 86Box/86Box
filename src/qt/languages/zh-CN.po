@@ -352,6 +352,9 @@ msgstr "CPU 类型:"
 msgid "Speed:"
 msgstr "速度:"
 
+msgid "Frequency:"
+msgstr "频率:"
+
 msgid "FPU:"
 msgstr "浮点处理器 (FPU):"
 

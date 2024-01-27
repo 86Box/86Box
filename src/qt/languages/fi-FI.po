@@ -352,6 +352,9 @@ msgstr "Suorittimen tyyppi:"
 msgid "Speed:"
 msgstr "Nopeus:"
 
+msgid "Frequency:"
+msgstr "Taajuus:"
+
 msgid "FPU:"
 msgstr "Apusuoritin:"
 

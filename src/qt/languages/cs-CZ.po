@@ -352,6 +352,9 @@ msgstr "Procesor:"
 msgid "Speed:"
 msgstr "Rychlost:"
 
+msgid "Frequency:"
+msgstr "Frekvence:"
+
 msgid "FPU:"
 msgstr "Koprocesor:"
 

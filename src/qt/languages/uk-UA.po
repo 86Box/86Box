@@ -352,6 +352,9 @@ msgstr "Тип ЦП:"
 msgid "Speed:"
 msgstr "Швидкість:"
 
+msgid "Frequency:"
+msgstr "Частота:"
+
 msgid "FPU:"
 msgstr "FPU:"
 

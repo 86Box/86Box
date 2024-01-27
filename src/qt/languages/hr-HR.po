@@ -352,6 +352,9 @@ msgstr "Tip procesora:"
 msgid "Speed:"
 msgstr "Brzina:"
 
+msgid "Frequency:"
+msgstr "Frekvencija:"
+
 msgid "FPU:"
 msgstr "FPU uređaj:"
 

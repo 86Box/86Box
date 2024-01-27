@@ -352,6 +352,9 @@ msgstr "Processzor:"
 msgid "Speed:"
 msgstr "Seb.:"
 
+msgid "Frequency:"
+msgstr "Frekvencia:"
+
 msgid "FPU:"
 msgstr "FPU-egység:"
 

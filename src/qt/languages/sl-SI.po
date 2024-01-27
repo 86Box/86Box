@@ -352,6 +352,9 @@ msgstr "Vrsta procesorja:"
 msgid "Speed:"
 msgstr "Hitrost:"
 
+msgid "Frequency:"
+msgstr "Pogostost:"
+
 msgid "FPU:"
 msgstr "Procesor plavajoče vejice:"
 

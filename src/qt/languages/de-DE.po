@@ -352,6 +352,9 @@ msgstr "CPU-Typ:"
 msgid "Speed:"
 msgstr "Takt:"
 
+msgid "Frequency:"
+msgstr "Frequenz:"
+
 msgid "FPU:"
 msgstr "FPU-Einheit:"
 
