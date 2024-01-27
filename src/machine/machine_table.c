@@ -7807,7 +7807,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
-            .min = 1024,
+            .min = 5120, /* Hack: machine seems to break with less than 5 MBs of RAM */
             .max = 131072,
             .step = 1024
         },
