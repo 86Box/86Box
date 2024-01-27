@@ -1045,7 +1045,7 @@ machine_at_4dps_init(const machine_t *model)
 
     return ret;
 }
-
+#if defined(DEV_BRANCH) && defined(USE_MS4144)
 int
 machine_at_ms4144_init(const machine_t *model)
 {
@@ -1072,7 +1072,7 @@ machine_at_ms4144_init(const machine_t *model)
 
     return ret;
 }
-
+#endif
 int
 machine_at_486sp3c_init(const machine_t *model)
 {
