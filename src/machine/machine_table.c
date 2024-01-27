@@ -7783,7 +7783,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#if defined(DEV_BRANCH) && defined(USE_MS4144)
     /* AMIKEY-2 */
     {
         .name = "[SiS 496] MSI MS-4144",
@@ -7808,7 +7807,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
-            .min = 1024,
+            .min = 5120, /* Hack: machine seems to break with less than 5 MBs of RAM */
             .max = 131072,
             .step = 1024
         },
@@ -7824,7 +7823,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
     /* This has the UMC 88xx on-chip KBC. */
     {
         .name = "[UMC 8881] A-Trend ATC-1415",
