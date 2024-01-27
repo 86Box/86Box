@@ -40,3 +40,7 @@ endif()
 if(OPEN_AT)
     target_compile_definitions(mch PRIVATE USE_OPEN_AT)
 endif()
+
+if(MS4144)
+    target_compile_definitions(mch PRIVATE USE_MS4144)
+endif()
