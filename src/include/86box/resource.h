@@ -79,10 +79,10 @@
 #define IDT_JOYSTICK 1718 /* Joystick: */
 
 /* DLG_CFG_SOUND */
-#define IDT_SOUND1   1719 /* Sound card 1: */
-#define IDT_SOUND2   1720 /* Sound card 2: */
-#define IDT_SOUND3   1721 /* Sound card 3: */
-#define IDT_SOUND4   1722 /* Sound card 4: */
+#define IDT_SOUND1   1719 /* Sound card #1: */
+#define IDT_SOUND2   1720 /* Sound card #2: */
+#define IDT_SOUND3   1721 /* Sound card #3: */
+#define IDT_SOUND4   1722 /* Sound card #4: */
 #define IDT_MIDI_OUT 1723 /* MIDI Out Device: */
 #define IDT_MIDI_IN  1724 /* MIDI In Device: */
 

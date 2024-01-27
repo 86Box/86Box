@@ -409,16 +409,16 @@ msgstr "조이스틱 3..."
 msgid "Joystick 4..."
 msgstr "조이스틱 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "사운드 카드 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "사운드 카드 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "사운드 카드 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "사운드 카드 4:"
 
 msgid "MIDI Out Device:"

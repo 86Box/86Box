@@ -409,17 +409,17 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
-msgstr "Sound card 1:"
+msgid "Sound card #1:"
+msgstr "Sound card #1:"
 
-msgid "Sound card 2:"
-msgstr "Sound card 2:"
+msgid "Sound card #2:"
+msgstr "Sound card #2:"
 
-msgid "Sound card 3:"
-msgstr "Sound card 3:"
+msgid "Sound card #3:"
+msgstr "Sound card #3:"
 
-msgid "Sound card 4:"
-msgstr "Sound card 4:"
+msgid "Sound card #4:"
+msgstr "Sound card #4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI Out Device:"

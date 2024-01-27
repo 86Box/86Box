@@ -409,16 +409,16 @@ msgstr "操纵杆 3..."
 msgid "Joystick 4..."
 msgstr "操纵杆 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "声卡 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "声卡 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "声卡 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "声卡 4:"
 
 msgid "MIDI Out Device:"

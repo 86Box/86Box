@@ -409,16 +409,16 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Zvuková karta 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Zvuková karta 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Zvuková karta 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"

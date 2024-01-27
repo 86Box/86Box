@@ -409,16 +409,16 @@ msgstr "Peliohjain 3..."
 msgid "Joystick 4..."
 msgstr "Peliohjain 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Äänikortti 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Äänikortti 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Äänikortti 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Äänikortti 4:"
 
 msgid "MIDI Out Device:"
