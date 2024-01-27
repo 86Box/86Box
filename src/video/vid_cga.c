@@ -891,7 +891,7 @@ const device_config_t cga_config[] = {
 // clang-format on
 
 const device_t cga_device = {
-    .name          = "CGA",
+    .name          = "IBM CGA",
     .internal_name = "cga",
     .flags         = DEVICE_ISA,
     .local         = 0,
