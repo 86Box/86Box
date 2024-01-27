@@ -385,8 +385,8 @@ msgstr "Vídeo:"
 msgid "Voodoo Graphics"
 msgstr "3DFX Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Gráficos IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Gráficos IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Gráficos XGA"

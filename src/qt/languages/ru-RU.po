@@ -385,8 +385,8 @@ msgstr "Видеокарта:"
 msgid "Voodoo Graphics"
 msgstr "Ускоритель Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Ускоритель IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Ускоритель IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Ускоритель XGA"

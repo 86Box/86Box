@@ -385,8 +385,8 @@ msgstr "Відеокарта:"
 msgid "Voodoo Graphics"
 msgstr "Прискорювач Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Прискорювач IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Прискорювач IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Прискорювач XGA"

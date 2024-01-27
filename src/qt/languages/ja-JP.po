@@ -385,8 +385,8 @@ msgstr "ビデオカード:"
 msgid "Voodoo Graphics"
 msgstr "Voodooグラフィック"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/aグラフィック"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/Aグラフィック"
 
 msgid "XGA Graphics"
 msgstr "XGAグラフィック"

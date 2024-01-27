@@ -385,8 +385,8 @@ msgstr "显卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a Graphics"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
 msgstr "XGA Graphics"

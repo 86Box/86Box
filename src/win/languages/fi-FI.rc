@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Näytönohjain:"
 #define STR_VIDEO_2       "Näytönohjain 2:"
 #define STR_VOODOO        "Voodoo-grafiikkasuoritin"
-#define STR_IBM8514       "IBM 8514/a-grafiikkasuoritin"
+#define STR_IBM8514       "IBM 8514/A-grafiikkasuoritin"
 #define STR_XGA           "XGA-grafiikkasuoritin"
 
 #define STR_MOUSE         "Hiiri:"
