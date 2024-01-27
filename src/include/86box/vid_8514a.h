@@ -152,8 +152,10 @@ typedef struct ibm8514_t {
     int      hblank_ext;
     int      hblank_sub;
 
+    int      v_total_reg;
     int      v_total;
     int      dispend;
+    int      v_sync_start;
     int      v_syncstart;
     int      split;
     int      h_disp;
