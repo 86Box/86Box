@@ -261,8 +261,11 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     break;
                 }
             case CONFIG_STRING:
+            case CONFIG_MAC:
                 {
                     auto lineEdit = new QLineEdit;
+                    if (config->type == CONFIG_MAC)
+                        lineEdit->setInputMask("HH:HH:HH;0");
                     lineEdit->setObjectName(config->name);
                     lineEdit->setCursor(Qt::IBeamCursor);
                     lineEdit->setText(config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string)));
@@ -332,9 +335,10 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         break;
                     }
                 case CONFIG_STRING:
+                case CONFIG_MAC:
                     {
                         auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
-                        config_set_string(device_context.name, const_cast<char *>(config->name), lineEdit->text().toUtf8());
+                        config_set_string(device_context.name, const_cast<char *>(config->name), config->type == CONFIG_MAC ? lineEdit->displayText().toUtf8() : lineEdit->text().toUtf8());
                         break;
                     }
                 case CONFIG_HEX16:
