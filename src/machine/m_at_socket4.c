@@ -317,7 +317,6 @@ machine_at_586mc1_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
-    device_add(&sio_device);
     device_add(&intel_flash_bxt_device);
     device_add(&i430lx_device);
 
