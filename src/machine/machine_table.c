@@ -6087,7 +6087,7 @@ const machine_t machines[] = {
        'F', in which case, it ends in -F, so it has an AMIKey F KBC firmware.
        The photo of the board shows an AMIKey KBC which is indeed F. */
     {
-        .name = "[SiS 471] ABIT AB-AH4",
+        .name = "[SiS 471] ABit AB-AH4",
         .internal_name = "win471",
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_SIS_471,
