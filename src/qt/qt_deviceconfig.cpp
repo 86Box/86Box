@@ -38,6 +38,7 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/midi_rtmidi.h>
 #include <86box/mem.h>
+#include <86box/random.h>
 #include <86box/rom.h>
 }
 
@@ -261,14 +262,24 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     break;
                 }
             case CONFIG_STRING:
-            case CONFIG_MAC:
                 {
                     auto lineEdit = new QLineEdit;
-                    if (config->type == CONFIG_MAC)
-                        lineEdit->setInputMask("HH:HH:HH;0");
                     lineEdit->setObjectName(config->name);
                     lineEdit->setCursor(Qt::IBeamCursor);
                     lineEdit->setText(config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string)));
+                    dc.ui->formLayout->addRow(config->description, lineEdit);
+                    break;
+                }
+            case CONFIG_MAC:
+                {
+                    auto lineEdit = new QLineEdit;
+                    lineEdit->setInputMask("HH:HH:HH;0");
+                    lineEdit->setObjectName(config->name);
+                    lineEdit->setCursor(Qt::IBeamCursor);
+                    if (config_get_mac(device_context.name, const_cast<char *>(config->name), config->default_int) & 0xFF000000) {
+                        lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(), random_generate(), random_generate()));
+                    } else
+                        lineEdit->setText(config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string)));
                     dc.ui->formLayout->addRow(config->description, lineEdit);
                     break;
                 }
