@@ -2172,7 +2172,7 @@ cpu_CPUID(void)
                 case 0x80000001:
                     EAX = CPUID + 0x100;
                     EBX = ECX = 0;
-                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_SEP | CPUID_MMX | CPUID_3DNOW;
                     if (cpu_s->cpu_type == CPU_K6_2C)
                         EDX |= CPUID_PGE;
                     break;
@@ -2220,7 +2220,7 @@ cpu_CPUID(void)
                 case 0x80000001:
                     EAX = CPUID + 0x100;
                     EBX = ECX = 0;
-                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_PGE | CPUID_MMX | CPUID_3DNOW;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_SEP | CPUID_PGE | CPUID_MMX | CPUID_3DNOW;
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x2d444d41; /* AMD-K6(tm) 3D+ P */
@@ -2271,7 +2271,7 @@ cpu_CPUID(void)
                 case 0x80000001:
                     EAX = CPUID + 0x100;
                     EBX = ECX = 0;
-                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_PGE | CPUID_3DNOW | CPUID_3DNOWE;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_SEP | CPUID_MMX | CPUID_PGE | CPUID_3DNOW | CPUID_3DNOWE;
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x2d444d41; /* AMD-K6(tm)-III P */
