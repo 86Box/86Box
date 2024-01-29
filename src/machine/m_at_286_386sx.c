@@ -749,6 +749,26 @@ machine_at_flytech386_init(const machine_t *model)
 }
 
 int
+machine_at_325ax_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/325ax/M27C512.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&fdc_at_device);
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
 machine_at_mr1217_init(const machine_t *model)
 {
     int ret;
@@ -759,11 +779,11 @@ machine_at_mr1217_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&ali1217_device);
     device_add(&fdc_at_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }

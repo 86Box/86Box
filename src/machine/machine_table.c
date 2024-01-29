@@ -4044,10 +4044,49 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* I'm going to assume this has a standard/generic IBM-compatible AT KBC
-       firmware until the board is identified. */
+    /* Has a JetKey KBC without version, shows up as a 'H'. */
     {
-        .name = "[ALi M1217] MR BIOS 386SX clone",
+        .name = "[ALi M1217] Chaintech 325AX",
+        .internal_name = "325ax",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_325ax_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has a JetKey KBC without version, shows up as a 'H'. */
+    {
+        .name = "[ALi M1217] Chaintech 325AX (MR BIOS)",
         .internal_name = "mr1217",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1217,
@@ -4067,7 +4106,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,

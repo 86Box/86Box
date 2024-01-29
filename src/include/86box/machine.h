@@ -472,6 +472,7 @@ extern int machine_at_wd76c10_init(const machine_t *);
 extern int machine_at_arb1374_init(const machine_t *);
 extern int machine_at_sbc350a_init(const machine_t *);
 extern int machine_at_flytech386_init(const machine_t *);
+extern int machine_at_325ax_init(const machine_t *);
 extern int machine_at_mr1217_init(const machine_t *);
 extern int machine_at_pja511m_init(const machine_t *);
 extern int machine_at_prox1332_init(const machine_t *);
