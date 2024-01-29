@@ -8725,7 +8725,7 @@ const machine_t machines[] = {
     },
     /* Has AMI MegaKey KBC firmware. */
     {
-        .name = "[i430LX] Gigabyte GA-586IS",
+        .name = "[i430LX] Micro Star 586MC1",
         .internal_name = "586mc1",
         .type = MACHINE_TYPE_SOCKET4,
         .chipset = MACHINE_CHIPSET_INTEL_430LX,
@@ -8744,8 +8744,8 @@ const machine_t machines[] = {
             .min_multi = MACHINE_MULTIPLIER_FIXED,
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
-        .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_APM | MACHINE_ACPI,
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
