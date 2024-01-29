@@ -719,7 +719,7 @@ machine_at_sbc350a_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&fdc37c665_ide_device);
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
@@ -743,7 +743,7 @@ machine_at_flytech386_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&tvga8900d_device);
 
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }

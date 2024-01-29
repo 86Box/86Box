@@ -2737,7 +2737,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE, /* Has internal video: Paradise PVGA1A */
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 640,
             .max = 16384,
@@ -3964,7 +3964,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has the AMIKey KBC firmware, which is an updated 'F' type. */
+    /* Has the AMIKey-2 KBC. */
     {
         .name = "[ALi M1217] AAEON SBC-350A",
         .internal_name = "sbc350a",
@@ -4004,11 +4004,9 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has an AMI KBC firmware, the only photo of this is too low resolution
-       for me to read what's on the KBC chip, so I'm going to assume AMI 'F'
-       based on the other known HT18 AMI BIOS strings. */
+    /* Has a VIA VT82C42N KBC. */
     {
-        .name = "[ALi M1217] Flytech 386",
+        .name = "[ALi M1217] Flytech A36",
         .internal_name = "flytech386",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1217,
@@ -4027,7 +4025,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
@@ -4539,7 +4537,7 @@ const machine_t machines[] = {
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
        photo or real hardware BIOS string is found. */
     {
-        .name = "[SCAT] KMX-C-02",
+        .name = "[SCAT] Kaimei KMX-C-02",
         .internal_name = "kmxc02",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_SCAT,
