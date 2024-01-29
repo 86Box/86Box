@@ -776,7 +776,7 @@
     <string>ACPI Shutdown</string>
    </property>
    <property name="toolTip">
-    <string>ACPI Shutdown</string>
+    <string>ACPI shutdown</string>
    </property>
    <property name="visible">
     <bool>true</bool>
