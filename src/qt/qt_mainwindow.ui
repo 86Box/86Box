@@ -773,10 +773,10 @@
      <normaloff>:/menuicons/win/icons/acpi_shutdown.ico</normaloff>:/menuicons/win/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>ACPI Shutdown</string>
+    <string>ACPI shutdown</string>
    </property>
    <property name="toolTip">
-    <string>ACPI Shutdown</string>
+    <string>ACPI shutdown</string>
    </property>
    <property name="visible">
     <bool>true</bool>
