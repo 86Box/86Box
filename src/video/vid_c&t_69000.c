@@ -544,7 +544,7 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint8_t nonpatte
 void
 chips_69000_recalctimings(svga_t *svga)
 {
-    chips_69000_t *chips = (chips_69000_t *) svga->p;
+    chips_69000_t *chips = (chips_69000_t *) svga->priv;
 
     if (chips->ext_regs[0x81] & 0x10) {
         svga->htotal -= 5;
@@ -1265,10 +1265,10 @@ chips_69000_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_sis);
 
     svga_init(info, &chips->svga, chips, 1 << 21, /*2048kb*/
-              NULL,
+              chips_69000_recalctimings,
               chips_69000_in, chips_69000_out,
               NULL,
-              chips_69000_recalctimings);
+              NULL);
 
     io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
