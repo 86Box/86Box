@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "ビデオカード:"
 #define STR_VIDEO_2       "ビデオカード2:"
 #define STR_VOODOO        "Voodooグラフィック"
-#define STR_IBM8514       "IBM 8514/aグラフィック"
+#define STR_IBM8514       "IBM 8514/Aグラフィック"
 #define STR_XGA           "XGAグラフィック"
 
 #define STR_MOUSE         "マウス:"

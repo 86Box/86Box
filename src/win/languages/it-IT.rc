@@ -284,7 +284,7 @@ END
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"
 #define STR_VOODOO        "Grafica Voodoo"
-#define STR_IBM8514       "Grafica IBM 8514/a"
+#define STR_IBM8514       "Grafica IBM 8514/A"
 #define STR_XGA           "Grafica XGA"
 
 #define STR_MOUSE         "Mouse:"

@@ -2736,7 +2736,7 @@ pgc_standalone_init(const device_t *info)
 }
 
 const device_t pgc_device = {
-    .name          = "PGC",
+    .name          = "IBM PGC",
     .internal_name = "pgc",
     .flags         = DEVICE_ISA,
     .local         = 0,

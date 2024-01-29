@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"
 #define STR_VOODOO        "Voodoo Graphics"
-#define STR_IBM8514       "IBM 8514/a Graphics"
+#define STR_IBM8514       "IBM 8514/A Graphics"
 #define STR_XGA           "XGA Graphics"
 
 #define STR_MOUSE         "Mouse:"
@@ -293,10 +293,10 @@ END
 #define STR_JOY3          "Joystick 3..."
 #define STR_JOY4          "Joystick 4..."
 
-#define STR_SOUND1        "Sound card 1:"
-#define STR_SOUND2        "Sound card 2:"
-#define STR_SOUND3        "Sound card 3:"
-#define STR_SOUND4        "Sound card 4:"
+#define STR_SOUND1        "Sound card #1:"
+#define STR_SOUND2        "Sound card #2:"
+#define STR_SOUND3        "Sound card #3:"
+#define STR_SOUND4        "Sound card #4:"
 #define STR_MIDI_OUT      "MIDI Out Device:"
 #define STR_MIDI_IN       "MIDI In Device:"
 #define STR_MPU401        "Standalone MPU-401"

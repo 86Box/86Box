@@ -1533,7 +1533,8 @@ load_other_peripherals(void)
 void
 config_load(void)
 {
-    int i;
+    int           i;
+    ini_section_t c;
 
     config_log("Loading config file '%s'..\n", cfg_path);
 
@@ -1622,6 +1623,23 @@ config_load(void)
         load_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
         load_other_removable_devices(); /* Other removable devices */
         load_other_peripherals();       /* Other peripherals */
+
+        /* Migrate renamed device configurations. */
+        c = ini_find_section(config, "MDA");
+        if (c != NULL)
+            ini_rename_section(c, "IBM MDA");
+        c = ini_find_section(config, "CGA");
+        if (c != NULL)
+            ini_rename_section(c, "IBM CGA");
+        c = ini_find_section(config, "EGA");
+        if (c != NULL)
+            ini_rename_section(c, "IBM EGA");
+        c = ini_find_section(config, "3DFX Voodoo Graphics");
+        if (c != NULL)
+            ini_rename_section(c, "3Dfx Voodoo Graphics");
+        c = ini_find_section(config, "3dfx Voodoo Banshee");
+        if (c != NULL)
+            ini_rename_section(c, "3Dfx Voodoo Banshee");
 
         /* Mark the configuration as changed. */
         config_changed = 1;
