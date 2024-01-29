@@ -42,6 +42,7 @@ typedef struct chips_69000_t {
     uint8_t       pci_line_interrupt;
     uint8_t       pci_rom_enable;
     uint8_t       read_write_bank;
+    uint8_t       slot;
     atomic_bool   engine_active;
     atomic_bool   quit;
     thread_t     *accel_thread;
@@ -1193,7 +1194,7 @@ uint16_t
 chips_69000_readw_linear(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readw_mmio(addr, chips);
@@ -1205,7 +1206,7 @@ uint32_t
 chips_69000_readl_linear(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readl_mmio(addr, chips);
@@ -1217,7 +1218,7 @@ void
 chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writeb_mmio(addr, val, chips);
@@ -1229,7 +1230,7 @@ void
 chips_69000_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writew_mmio(addr, val, chips);
@@ -1241,7 +1242,7 @@ void
 chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writel_mmio(addr, val, chips);
@@ -1271,7 +1272,7 @@ chips_69000_init(const device_t *info)
 
     io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
-    pci_add_card(PCI_ADD_VIDEO, chips_69000_pci_read, chips_69000_pci_write, chips);
+    pci_add_card(PCI_ADD_VIDEO, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
 
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
