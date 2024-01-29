@@ -45,9 +45,9 @@ typedef struct pgc_cl {
 typedef struct pgc_cmd {
     char    ascii[6];
     uint8_t hex;
-    void (*handler)(struct pgc *);
-    int (*parser)(struct pgc *, pgc_cl_t *, int);
-    int p;
+    void  (*handler)(struct pgc *);
+    int   (*parser)(struct pgc *, pgc_cl_t *, int);
+    int     p;
 } pgc_cmd_t;
 
 typedef struct pgc {
@@ -59,10 +59,10 @@ typedef struct pgc {
     mem_mapping_t mapping;
     mem_mapping_t cga_mapping;
 
-    pgc_cl_t *clist,
-        *clcur;
-    const pgc_cmd_t *master,
-        *commands;
+    pgc_cl_t        *clist;
+    pgc_cl_t        *clcur;
+    const pgc_cmd_t *master;
+    const pgc_cmd_t *commands;
 
     uint8_t  mapram[2048]; /* host <> PGC communication buffer */
     uint8_t *cga_vram;
@@ -71,12 +71,22 @@ typedef struct pgc {
     uint8_t  hex_command;
     uint32_t palette[256];
     uint32_t userpal[256];
-    uint32_t maxw, maxh; /* maximum framebuffer size */
-    uint32_t visw, vish; /* maximum screen size */
-    uint32_t screenw, screenh;
-    int16_t  pan_x, pan_y;
-    uint16_t win_x1, win_x2, win_y1, win_y2;
-    uint16_t vp_x1, vp_x2, vp_y1, vp_y2;
+    uint32_t maxw; /* maximum framebuffer size - Width */
+    uint32_t maxh; /* maximum framebuffer size - Height */
+    uint32_t visw; /* maximum screen size - Width */
+    uint32_t vish; /* maximum screen size - Height */
+    uint32_t screenw;
+    uint32_t screenh;
+    int16_t  pan_x;
+    int16_t  pan_y;
+    uint16_t win_x1;
+    uint16_t win_x2;
+    uint16_t win_y1;
+    uint16_t win_y2;
+    uint16_t vp_x1;
+    uint16_t vp_x2;
+    uint16_t vp_y1;
+    uint16_t vp_y2;
     int16_t  fill_pattern[16];
     int16_t  line_pattern;
     uint8_t  draw_mode;
@@ -86,7 +96,9 @@ typedef struct pgc {
     uint8_t  tjust_v; /* vert alignment 1=bottom 2=ctr 3=top*/
     int32_t  tsize;   /* horizontal spacing */
 
-    int32_t x, y, z; /* drawing position */
+    int32_t x;
+    int32_t y;
+    int32_t z; /* drawing position */
 
     thread_t  *pgc_thread;
     event_t   *pgc_wake_thread;
@@ -98,18 +110,23 @@ typedef struct pgc {
     int ascii_mode;
     int result_count;
 
-    int fontbase;
-    int linepos,
-        displine;
+    int      fontbase;
+    int      linepos;
+    int      displine;
     int      vc;
     int      cgadispon;
-    int      con, coff, cursoron, cgablink;
-    int      vsynctime, vadj;
-    uint16_t ma, maback;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      cgablink;
+    int      vsynctime;
+    int      vadj;
+    uint16_t ma;
+    uint16_t maback;
     int      oddeven;
 
-    uint64_t dispontime,
-        dispofftime;
+    uint64_t dispontime;
+    uint64_t dispofftime;
     pc_timer_t timer;
     double     native_pixel_clock;
 
@@ -140,10 +157,14 @@ extern void    pgc_init(pgc_t *,
 extern void pgc_sto_raster(pgc_t *, int16_t *x, int16_t *y);
 extern void pgc_ito_raster(pgc_t *, int32_t *x, int32_t *y);
 extern void pgc_dto_raster(pgc_t *, double *x, double *y);
-// extern int	pgc_input_byte(pgc_t *, uint8_t *val);
-// extern int	pgc_output_byte(pgc_t *, uint8_t val);
+#if 0
+extern int pgc_input_byte(pgc_t *, uint8_t *val);
+extern int pgc_output_byte(pgc_t *, uint8_t val);
+#endif
 extern int pgc_output_string(pgc_t *, const char *val);
-// extern int	pgc_error_byte(pgc_t *, uint8_t val);
+#if 0
+extern int pgc_error_byte(pgc_t *, uint8_t val);
+#endif
 extern int pgc_error_string(pgc_t *, const char *val);
 extern int pgc_error(pgc_t *, int err);
 

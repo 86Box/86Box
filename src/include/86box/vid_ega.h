@@ -27,11 +27,26 @@ typedef struct ega_t {
 
     rom_t bios_rom;
 
-    uint8_t crtcreg, gdcaddr, attraddr, attrff,
-        attr_palette_enable, seqaddr, miscout,
-        writemask, la, lb, lc, ld,
-        stat, colourcompare, colournocare, scrblank,
-        plane_mask, pad, pad0, pad1;
+    uint8_t crtcreg;
+    uint8_t gdcaddr;
+    uint8_t attraddr;
+    uint8_t attrff;
+    uint8_t attr_palette_enable;
+    uint8_t seqaddr;
+    uint8_t miscout;
+    uint8_t writemask;
+    uint8_t la;
+    uint8_t lb;
+    uint8_t lc;
+    uint8_t ld;
+    uint8_t stat;
+    uint8_t colourcompare;
+    uint8_t colournocare;
+    uint8_t scrblank;
+    uint8_t plane_mask;
+    uint8_t ctl_mode;
+    uint8_t color_mux;
+    uint8_t dot;
     uint8_t crtc[32];
     uint8_t gdcreg[16];
     uint8_t attrregs[32];
@@ -41,35 +56,90 @@ typedef struct ega_t {
 
     uint8_t *vram;
 
-    int vidclock, fast, extvram, vres,
-        readmode, writemode, readplane, vrammask,
-        chain4, chain2_read, chain2_write, con,
-        oddeven_page, oddeven_chain, vc, sc,
-        dispon, hdisp_on, cursoron, blink, fullchange,
-        linepos, vslines, linecountff, oddeven,
-        lowres, interlace, linedbl, lindebl, rowcount,
-        vtotal, dispend, vsyncstart, split,
-        hdisp, hdisp_old, htotal, hdisp_time, rowoffset,
-        vblankstart, scrollcache, firstline, lastline,
-        firstline_draw, lastline_draw, x_add, y_add,
-        displine, res_x, res_y, bpp, index;
+    uint16_t light_pen;
 
-    uint32_t charseta, charsetb, ma_latch, ma,
-        maback, ca, vram_limit, overscan_color;
+    int vidclock;
+    int fast;
+    int extvram;
+    int vres;
+    int readmode;
+    int writemode;
+    int readplane;
+    int vrammask;
+    int chain4;
+    int chain2_read;
+    int chain2_write;
+    int con;
+    int oddeven_page;
+    int oddeven_chain;
+    int vc;
+    int sc;
+    int dispon;
+    int hdisp_on;
+    int cursoron;
+    int blink;
+    int fullchange;
+    int linepos;
+    int vslines;
+    int linecountff;
+    int oddeven;
+    int lowres;
+    int interlace;
+    int linedbl;
+    int lindebl;
+    int rowcount;
+    int vtotal;
+    int dispend;
+    int vsyncstart;
+    int split;
+    int hdisp;
+    int hdisp_old;
+    int htotal;
+    int hdisp_time;
+    int rowoffset;
+    int vblankstart;
+    int scrollcache;
+    int firstline;
+    int lastline;
+    int firstline_draw;
+    int lastline_draw;
+    int x_add;
+    int y_add;
+    int displine;
+    int res_x;
+    int res_y;
+    int bpp;
+    int index;
+    int remap_required;
+    int actual_type;
+    int chipset;
+
+    uint32_t charseta;
+    uint32_t charsetb;
+    uint32_t ma_latch;
+    uint32_t ma;
+    uint32_t maback;
+    uint32_t ca;
+    uint32_t vram_limit;
+    uint32_t overscan_color;
+    uint32_t cca;
 
     uint32_t *pallook;
 
-    uint64_t   dispontime, dispofftime;
+    uint64_t   dispontime;
+    uint64_t   dispofftime;
+
+    uint64_t   dot_time;
+
     pc_timer_t timer;
+    pc_timer_t dot_timer;
 
-    double clock;
+    double     dot_clock;
 
-    int remap_required;
-    uint32_t (*remap_func)(struct ega_t *ega, uint32_t in_addr);
+    void *     eeprom;
 
-    void (*render)(struct ega_t *svga);
-
-    void *eeprom;
+    uint32_t   (*remap_func)(struct ega_t *ega, uint32_t in_addr);
+    void       (*render)(struct ega_t *svga);
 } ega_t;
 #endif
 
@@ -77,7 +147,7 @@ typedef struct ega_t {
 extern const device_t ega_device;
 extern const device_t cpqega_device;
 extern const device_t sega_device;
-extern const device_t atiega_device;
+extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
 #endif
@@ -97,18 +167,22 @@ extern void ega_recalctimings(struct ega_t *ega);
 extern void ega_recalc_remap_func(struct ega_t *ega);
 #endif
 
-extern void    ega_out(uint16_t addr, uint8_t val, void *p);
-extern uint8_t ega_in(uint16_t addr, void *p);
-extern void    ega_poll(void *p);
-extern void    ega_write(uint32_t addr, uint8_t val, void *p);
-extern uint8_t ega_read(uint32_t addr, void *p);
+extern void    ega_out(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t ega_in(uint16_t addr, void *priv);
+extern void    ega_poll(void *priv);
+extern void    ega_write(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t ega_read(uint32_t addr, void *priv);
 
-extern int firstline_draw, lastline_draw;
+extern int firstline_draw;
+extern int lastline_draw;
 extern int displine;
 extern int sc;
 
-extern uint32_t ma, ca;
-extern int      con, cursoron, cgablink;
+extern uint32_t ma;
+extern uint32_t ca;
+extern int      con;
+extern int      cursoron;
+extern int      cgablink;
 
 extern int scrollcache;
 

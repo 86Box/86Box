@@ -35,6 +35,8 @@
 
 #include <QMenuBar>
 
+#include <atomic>
+
 #include <windows.h>
 
 #include <86box/keyboard.h>
@@ -51,17 +53,15 @@ extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
-    HWND wnd = (HWND) window->winId();
-
     RAWINPUTDEVICE rid[2] = {
         {.usUsagePage = 0x01,
          .usUsage     = 0x06,
          .dwFlags     = RIDEV_NOHOTKEYS,
-         .hwndTarget  = wnd},
+         .hwndTarget  = nullptr},
         { .usUsagePage = 0x01,
          .usUsage     = 0x02,
          .dwFlags     = 0,
-         .hwndTarget  = wnd}
+         .hwndTarget  = nullptr}
     };
 
     if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
@@ -172,9 +172,6 @@ void
 WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
     USHORT     scancode;
-    static int recv_lalt = 0;
-    static int recv_ralt = 0;
-    static int recv_tab = 0;
 
     RAWKEYBOARD rawKB = raw->data.keyboard;
     scancode          = rawKB.MakeCode;
@@ -183,7 +180,18 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
         return;
 
     /* If it's not a scan code that starts with 0xE1 */
-    if (!(rawKB.Flags & RI_KEY_E1)) {
+    if ((rawKB.Flags & RI_KEY_E1)) {
+        if (rawKB.MakeCode == 0x1D) {
+            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
+                                               otherwise be E0 00 but that is invalid
+                                               anyway).
+                                               Also, take a potential mapping into
+                                               account. */
+        } else
+            scancode = 0xFFFF;
+        if (scancode != 0xFFFF)
+            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+    } else {
         if (rawKB.Flags & RI_KEY_E0)
             scancode |= 0x100;
 
@@ -196,68 +204,22 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
         scancode = scancode_map[scancode];
 
         /* If it's not 0xFFFF, send it to the emulated
-       keyboard.
-       We use scan code 0xFFFF to mean a mapping that
-       has a prefix other than E0 and that is not E1 1D,
-       which is, for our purposes, invalid. */
-        if ((scancode == 0x00f) && !(rawKB.Flags & RI_KEY_BREAK) && (recv_lalt || recv_ralt) && (!kbd_req_capture || mouse_capture)) {
-            /* We received a TAB while ALT was pressed, while the mouse
-               is not captured, suppress the TAB and send an ALT key up. */
-            if (recv_lalt) {
-                keyboard_input(0, 0x038);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x038);
-                keyboard_input(0, 0x038);
-                recv_lalt = 0;
-            }
-            if (recv_ralt) {
-                keyboard_input(0, 0x138);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x138);
-                keyboard_input(0, 0x138);
-                recv_ralt = 0;
-            }
-        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_tab && (!kbd_req_capture || mouse_capture)) {
-            /* We received an ALT while TAB was pressed, while the mouse
-               is not captured, suppress the ALT and send a TAB key up. */
-            keyboard_input(0, 0x00f);
-            recv_tab = 0;
-        } else {
-            switch (scancode) {
-                case 0x00f:
-                    recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-                case 0x038:
-                    recv_lalt = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-                case 0x138:
-                    recv_ralt = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-            }
+           keyboard.
+           We use scan code 0xFFFF to mean a mapping that
+           has a prefix other than E0 and that is not E1 1D,
+           which is, for our purposes, invalid. */
 
-            /* Translate right CTRL to left ALT if the user has so
+        /* Translate right CTRL to left ALT if the user has so
            chosen. */
-            if ((scancode == 0x11d) && rctrl_is_lalt)
-                scancode = 0x038;
+        if ((scancode == 0x11d) && rctrl_is_lalt)
+            scancode = 0x038;
 
-            /* Normal scan code pass through, pass it through as is if
+        /* Normal scan code pass through, pass it through as is if
            it's not an invalid scan code. */
-            if (scancode != 0xFFFF)
-                keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-        }
-    } else {
-        if (rawKB.MakeCode == 0x1D) {
-            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
-                           otherwise be E0 00 but that is invalid
-                           anyway).
-                           Also, take a potential mapping into
-                           account. */
-        } else
-            scancode = 0xFFFF;
         if (scancode != 0xFFFF)
             keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+
+        window->checkFullscreenHotkey();
     }
 }
 
@@ -336,85 +298,71 @@ void
 WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 {
     RAWMOUSE   state = raw->data.mouse;
-    static int x;
-    static int y;
+    static int x, delta_x;
+    static int y, delta_y;
+    static int b, delta_z;
+
+    b = mouse_get_buttons_ex();
 
     /* read mouse buttons and wheel */
     if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
-        buttons |= 1;
+        b |= 1;
     else if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
-        buttons &= ~1;
+        b &= ~1;
 
     if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
-        buttons |= 4;
+        b |= 4;
     else if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
-        buttons &= ~4;
+        b &= ~4;
 
     if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
-        buttons |= 2;
+        b |= 2;
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
-        buttons &= ~2;
+        b &= ~2;
 
     if (state.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
-        buttons |= 8;
+        b |= 8;
     else if (state.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
-        buttons &= ~8;
+        b &= ~8;
 
     if (state.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
-        buttons |= 16;
+        b |= 16;
     else if (state.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
-        buttons &= ~16;
-    
+        b &= ~16;
+
+    mouse_set_buttons_ex(b);
+
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
-        dwheel += (SHORT) state.usButtonData / 120;
-    }
+        delta_z = (SHORT) state.usButtonData / 120;
+        mouse_set_z(delta_z);
+    } else
+        delta_z = 0;
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC
          * seems to work fine for RDP on Windows 10
          * Not sure about other environments.
          */
-        dx += (state.lLastX - x) / 25;
-        dy += (state.lLastY - y) / 25;
+        delta_x = (state.lLastX - x) / 25;
+        delta_y = (state.lLastY - y) / 25;
         x = state.lLastX;
         y = state.lLastY;
     } else {
         /* relative mouse, i.e. regular mouse */
-        dx += state.lLastX;
-        dy += state.lLastY;
+        delta_x = state.lLastX;
+        delta_y = state.lLastY;
     }
-    HWND wnd = (HWND) window->winId();
+
+    mouse_scale(delta_x, delta_y);
+
+    HWND wnd = (HWND)window->winId();
 
     RECT rect;
 
     GetWindowRect(wnd, &rect);
 
     int left = rect.left + (rect.right - rect.left) / 2;
-    int top  = rect.top + (rect.bottom - rect.top) / 2;
+    int top = rect.top + (rect.bottom - rect.top) / 2;
 
     SetCursorPos(left, top);
-}
-
-void
-WindowsRawInputFilter::mousePoll()
-{
-    if (mouse_mode >= 1) return;
-    if (mouse_capture || video_fullscreen) {
-        static int b = 0;
-
-        if (dx != 0 || dy != 0 || dwheel != 0) {
-            mouse_x += dx;
-            mouse_y += dy;
-            mouse_z = dwheel;
-
-            dx     = 0;
-            dy     = 0;
-            dwheel = 0;
-        }
-
-        if (b != buttons) {
-            mouse_buttons = buttons;
-            b             = buttons;
-        }
-    }
 }

@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -16,7 +17,7 @@ static struct
 };
 
 void
-codegen_accumulate(ir_data_t *ir, int acc_reg, int delta)
+codegen_accumulate(UNUSED(ir_data_t *ir), int acc_reg, int delta)
 {
     acc_regs[acc_reg].count += delta;
 

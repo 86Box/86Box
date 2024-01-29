@@ -33,7 +33,7 @@
 #include <86box/chipset.h>
 
 typedef struct opti499_t {
-    uint8_t idx,
+    uint8_t idx;
     uint8_t regs[256];
     uint8_t scratch[2];
 } opti499_t;

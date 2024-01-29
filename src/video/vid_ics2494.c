@@ -49,9 +49,9 @@ ics2494_log(const char *fmt, ...)
 #endif
 
 float
-ics2494_getclock(int clock, void *p)
+ics2494_getclock(int clock, void *priv)
 {
-    ics2494_t *ics2494 = (ics2494_t *) p;
+    const ics2494_t *ics2494 = (ics2494_t *) priv;
 
     if (clock > 15)
         clock = 15;
@@ -66,6 +66,63 @@ ics2494_init(const device_t *info)
     memset(ics2494, 0, sizeof(ics2494_t));
 
     switch (info->local) {
+        case 10:
+            /* ATI 18810 for ATI 28800 */
+            ics2494->freq[0x0] = 30240000.0;
+            ics2494->freq[0x1] = 32000000.0;
+            ics2494->freq[0x2] = 37500000.0;
+            ics2494->freq[0x3] = 39000000.0;
+            ics2494->freq[0x4] = 42954000.0;
+            ics2494->freq[0x5] = 48771000.0;
+            ics2494->freq[0x6] = 16657000.0;
+            ics2494->freq[0x7] = 36000000.0;
+            ics2494->freq[0x8] = 40000000.0;
+            ics2494->freq[0x9] = 56644000.0;
+            ics2494->freq[0xa] = 75000000.0;
+            ics2494->freq[0xb] = 65000000.0;
+            ics2494->freq[0xc] = 50350000.0;
+            ics2494->freq[0xd] = 56640000.0;
+            ics2494->freq[0xe] = 28322000.0;
+            ics2494->freq[0xf] = 44900000.0;
+            break;
+        case 110:
+            /* ATI 18811-0 for ATI Mach32 */
+            ics2494->freq[0x0] = 30240000.0;
+            ics2494->freq[0x1] = 32000000.0;
+            ics2494->freq[0x2] = 110000000.0;
+            ics2494->freq[0x3] = 80000000.0;
+            ics2494->freq[0x4] = 42954000.0;
+            ics2494->freq[0x5] = 48771000.0;
+            ics2494->freq[0x6] = 92400000.0;
+            ics2494->freq[0x7] = 36000000.0;
+            ics2494->freq[0x8] = 39910000.0;
+            ics2494->freq[0x9] = 44900000.0;
+            ics2494->freq[0xa] = 75000000.0;
+            ics2494->freq[0xb] = 65000000.0;
+            ics2494->freq[0xc] = 50350000.0;
+            ics2494->freq[0xd] = 56640000.0;
+            ics2494->freq[0xe] = 0.0;
+            ics2494->freq[0xf] = 44900000.0;
+            break;
+        case 111:
+            /* ATI 18811-1 for ATI Mach32 MCA */
+            ics2494->freq[0x0] = 135000000.0;
+            ics2494->freq[0x1] = 32000000.0;
+            ics2494->freq[0x2] = 110000000.0;
+            ics2494->freq[0x3] = 80000000.0;
+            ics2494->freq[0x4] = 100000000.0;
+            ics2494->freq[0x5] = 126000000.0;
+            ics2494->freq[0x6] = 92400000.0;
+            ics2494->freq[0x7] = 36000000.0;
+            ics2494->freq[0x8] = 39910000.0;
+            ics2494->freq[0x9] = 44900000.0;
+            ics2494->freq[0xa] = 75000000.0;
+            ics2494->freq[0xb] = 65000000.0;
+            ics2494->freq[0xc] = 50350000.0;
+            ics2494->freq[0xd] = 56640000.0;
+            ics2494->freq[0xe] = 0.0;
+            ics2494->freq[0xf] = 44900000.0;
+            break;
         case 305:
             /* ICS2494A(N)-205 for S3 86C924 */
             ics2494->freq[0x0] = 25175000.0;
@@ -84,6 +141,9 @@ ics2494_init(const device_t *info)
             ics2494->freq[0xd] = 65000000.0;
             ics2494->freq[0xe] = 75000000.0;
             ics2494->freq[0xf] = 94500000.0;
+            break;
+
+        default:
             break;
     }
 
@@ -104,6 +164,48 @@ const device_t ics2494an_305_device = {
     .internal_name = "ics2494an_305",
     .flags         = 0,
     .local         = 305,
+    .init          = ics2494_init,
+    .close         = ics2494_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ati18810_device = {
+    .name          = "ATI 18810 Clock Generator",
+    .internal_name = "ati18810",
+    .flags         = 0,
+    .local         = 10,
+    .init          = ics2494_init,
+    .close         = ics2494_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ati18811_0_device = {
+    .name          = "ATI 18811-0 Clock Generator",
+    .internal_name = "ati18811_0",
+    .flags         = 0,
+    .local         = 110,
+    .init          = ics2494_init,
+    .close         = ics2494_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ati18811_1_device = {
+    .name          = "ATI 18811-1 Clock Generator",
+    .internal_name = "ati18811_1",
+    .flags         = 0,
+    .local         = 111,
     .init          = ics2494_init,
     .close         = ics2494_close,
     .reset         = NULL,

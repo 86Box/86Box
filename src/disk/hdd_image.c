@@ -85,28 +85,28 @@ image_is_hdi(const char *s)
 int
 image_is_hdx(const char *s, int check_signature)
 {
-    FILE    *f;
+    FILE    *fp;
     uint64_t filelen;
     uint64_t signature;
 
     if (!strcasecmp(path_get_extension((char *) s), "HDX")) {
         if (check_signature) {
-            f = plat_fopen(s, "rb");
-            if (!f)
+            fp = plat_fopen(s, "rb");
+            if (!fp)
                 return 0;
-            if (fseeko64(f, 0, SEEK_END))
+            if (fseeko64(fp, 0, SEEK_END))
                 fatal("image_is_hdx(): Error while seeking");
-            filelen = ftello64(f);
-            if (fseeko64(f, 0, SEEK_SET))
+            filelen = ftello64(fp);
+            if (fseeko64(fp, 0, SEEK_SET))
                 fatal("image_is_hdx(): Error while seeking");
             if (filelen < 44) {
-                if (f != NULL)
-                    fclose(f);
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
             }
-            if (fread(&signature, 1, 8, f) != 8)
+            if (fread(&signature, 1, 8, fp) != 8)
                 fatal("image_is_hdx(): Error reading signature\n");
-            fclose(f);
+            fclose(fp);
             if (signature == 0xD778A82044445459LL)
                 return 1;
             else
@@ -120,16 +120,16 @@ image_is_hdx(const char *s, int check_signature)
 int
 image_is_vhd(const char *s, int check_signature)
 {
-    FILE *f;
+    FILE *fp;
 
     if (!strcasecmp(path_get_extension((char *) s), "VHD")) {
         if (check_signature) {
-            f = plat_fopen(s, "rb");
-            if (!f)
+            fp = plat_fopen(s, "rb");
+            if (!fp)
                 return 0;
 
-            bool is_vhd = mvhd_file_is_vhd(f);
-            fclose(f);
+            bool is_vhd = mvhd_file_is_vhd(fp);
+            fclose(fp);
             return is_vhd ? 1 : 0;
         } else
             return 1;
@@ -450,7 +450,7 @@ retry_vhd:
                 else
                     fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn, mvhd_strerr(vhd_error));
             } else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-                fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
+                pclog("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
             }
 
             hdd[id].tracks        = hdd_images[id].vhd->footer.geom.cyl;

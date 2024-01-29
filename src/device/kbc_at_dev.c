@@ -38,6 +38,7 @@
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
 #include <86box/keyboard.h>
+#include <86box/plat_fallthrough.h>
 
 #ifdef ENABLE_KBC_AT_DEV_LOG
 int kbc_at_dev_do_log = ENABLE_KBC_AT_DEV_LOG;
@@ -118,12 +119,13 @@ kbc_at_dev_poll(void *priv)
             break;
         case DEV_STATE_MAIN_2:
             /* Output from scan queue if needed and then return to main loop #1. */
-            if (*dev->scan && (dev->port->out_new == -1) && (dev->queue_start != dev->queue_end)) {
+            if (!dev->ignore && *dev->scan && (dev->port->out_new == -1) &&
+                (dev->queue_start != dev->queue_end)) {
                 kbc_at_dev_log("%s: %02X (DATA) on channel 1\n", dev->name, dev->queue[dev->queue_start]);
                 dev->port->out_new   = dev->queue[dev->queue_start];
                 dev->queue_start     = (dev->queue_start + 1) & dev->fifo_mask;
             }
-            if (!(*dev->scan) || dev->port->wantcmd)
+            if (dev->ignore || !(*dev->scan) || dev->port->wantcmd)
                 dev->state = DEV_STATE_MAIN_1;
             break;
         case DEV_STATE_MAIN_OUT:
@@ -135,7 +137,7 @@ kbc_at_dev_poll(void *priv)
                 dev->port->wantcmd    = 0;
                 break;
             }
-            /* FALLTHROUGH */
+            fallthrough;
         case DEV_STATE_MAIN_WANT_IN:
             /* Output command response and then return to main loop #2. */
             if ((dev->port->out_new == -1) && (dev->cmd_queue_start != dev->cmd_queue_end)) {
@@ -198,8 +200,7 @@ kbc_at_dev_init(uint8_t inst)
 {
     atkbc_dev_t *dev;
 
-    dev = (atkbc_dev_t *) malloc(sizeof(atkbc_dev_t));
-    memset(dev, 0x00, sizeof(atkbc_dev_t));
+    dev = (atkbc_dev_t *) calloc(1, sizeof(atkbc_dev_t));
 
     dev->port = kbc_at_ports[inst];
 

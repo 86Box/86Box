@@ -165,7 +165,7 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 static void
 hl_ems_disable(headland_t *dev, uint8_t mar, uint32_t base_addr, uint8_t indx)
 {
-    if (base_addr < ((uint32_t) mem_size << 10))
+    if (base_addr < (mem_size << 10))
         mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + base_addr);
     else
         mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], NULL);
@@ -197,7 +197,7 @@ hl_ems_update(headland_t *dev, uint8_t mar)
         dev->ems_mr[mar & 0x3f].virt_base = virt_addr;
         if (indx < 24)
             mem_mapping_disable(&dev->upper_mapping[indx]);
-        if (virt_addr < ((uint32_t) mem_size << 10))
+        if (virt_addr < (mem_size << 10))
             mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + virt_addr);
         else
             mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], NULL);
@@ -244,7 +244,7 @@ memmap_state_update(headland_t *dev)
 
     for (uint8_t i = 0; i < 24; i++) {
         addr = get_addr(dev, 0x40000 + (i << 14), NULL);
-        mem_mapping_set_exec(&dev->upper_mapping[i], addr < ((uint32_t) mem_size << 10) ? ram + addr : NULL);
+        mem_mapping_set_exec(&dev->upper_mapping[i], addr < (mem_size << 10) ? ram + addr : NULL);
     }
 
     memmap_state_default(dev, ht_romcs);
@@ -513,7 +513,7 @@ mem_read_b(uint32_t addr, void *priv)
     uint8_t        ret = 0xff;
 
     addr = get_addr(dev, addr, mr);
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = ram[addr];
 
     return ret;
@@ -527,7 +527,7 @@ mem_read_w(uint32_t addr, void *priv)
     uint16_t       ret = 0xffff;
 
     addr = get_addr(dev, addr, mr);
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = *(uint16_t *) &ram[addr];
 
     return ret;
@@ -541,7 +541,7 @@ mem_read_l(uint32_t addr, void *priv)
     uint32_t       ret = 0xffffffff;
 
     addr = get_addr(dev, addr, mr);
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = *(uint32_t *) &ram[addr];
 
     return ret;
@@ -554,7 +554,7 @@ mem_write_b(uint32_t addr, uint8_t val, void *priv)
     headland_t    *dev = mr->headland;
 
     addr = get_addr(dev, addr, mr);
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ram[addr] = val;
 }
 
@@ -565,7 +565,7 @@ mem_write_w(uint32_t addr, uint16_t val, void *priv)
     headland_t    *dev = mr->headland;
 
     addr = get_addr(dev, addr, mr);
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         *(uint16_t *) &ram[addr] = val;
 }
 
@@ -576,7 +576,7 @@ mem_write_l(uint32_t addr, uint32_t val, void *priv)
     headland_t    *dev = mr->headland;
 
     addr = get_addr(dev, addr, mr);
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         *(uint32_t *) &ram[addr] = val;
 }
 

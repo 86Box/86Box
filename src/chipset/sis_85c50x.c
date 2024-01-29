@@ -59,6 +59,10 @@ sis_85c50x_log(const char *fmt, ...)
 
 typedef struct sis_85c50x_t {
     uint8_t index;
+    uint8_t nb_slot;
+    uint8_t sb_slot;
+    uint8_t pad;
+
     uint8_t pci_conf[256];
     uint8_t pci_conf_sb[256];
     uint8_t regs[256];
@@ -228,8 +232,8 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c50x_read(int func, int addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t             ret = 0xff;
 
     if (func == 0x00)
         ret = dev->pci_conf[addr];
@@ -283,8 +287,8 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c50x_sb_read(int func, int addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t             ret = 0xff;
 
     if (func == 0x00)
         ret = dev->pci_conf_sb[addr];
@@ -338,8 +342,8 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c50x_isa_read(uint16_t addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t             ret = 0xff;
 
     switch (addr) {
         case 0x22:
@@ -426,10 +430,10 @@ sis_85c50x_init(UNUSED(const device_t *info))
     memset(dev, 0x00, sizeof(sis_85c50x_t));
 
     /* 501/502 (Northbridge) */
-    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c50x_read, sis_85c50x_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c50x_read, sis_85c50x_write, dev, &dev->nb_slot);
 
     /* 503 (Southbridge) */
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_85c50x_sb_read, sis_85c50x_sb_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_85c50x_sb_read, sis_85c50x_sb_write, dev, &dev->sb_slot);
     io_sethandler(0x0022, 0x0002, sis_85c50x_isa_read, NULL, NULL, sis_85c50x_isa_write, NULL, NULL, dev);
 
     dev->smram[0] = smram_add();

@@ -224,9 +224,9 @@ nvr_path(char *str)
 int
 nvr_load(void)
 {
-    char   *path;
-    FILE   *fp;
-    uint8_t regs[NVR_MAXSIZE] = { 0 };
+    const char *path;
+    FILE       *fp;
+    uint8_t     regs[NVR_MAXSIZE] = { 0 };
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL)
@@ -274,8 +274,8 @@ nvr_set_ven_save(void (*ven_save)(void))
 int
 nvr_save(void)
 {
-    char *path;
-    FILE *fp;
+    const char *path;
+    FILE       *fp;
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL)

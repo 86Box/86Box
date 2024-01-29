@@ -42,7 +42,7 @@
    <item row="6" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxXga">
      <property name="text">
-      <string>XGA</string>
+      <string>XGA Graphics</string>
      </property>
     </widget>
    </item>
@@ -61,6 +61,9 @@
    </item>
    <item row="1" column="0" colspan="2">
     <widget class="QComboBox" name="comboBoxVideo">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -92,7 +95,7 @@
    <item row="5" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBox8514">
      <property name="text">
-      <string>8514/A</string>
+      <string>IBM 8514/A Graphics</string>
      </property>
     </widget>
    </item>
@@ -119,6 +122,9 @@
    </item>
    <item row="3" column="0" colspan="2">
     <widget class="QComboBox" name="comboBoxVideoSecondary">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>

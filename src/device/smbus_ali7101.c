@@ -28,6 +28,7 @@
 #include <86box/timer.h>
 #include <86box/i2c.h>
 #include <86box/smbus.h>
+#include <86box/plat_fallthrough.h>
 
 #ifdef ENABLE_SMBUS_ALI7101_LOG
 int smbus_ali7101_do_log = ENABLE_SMBUS_ALI7101_LOG;
@@ -192,8 +193,7 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x4:          /* block R/W */
                     timer_bytes++; /* count the SMBus length byte now */
-
-                    /* fall-through */
+                    fallthrough;
 
                 default:                   /* unknown */
                     dev->next_stat = 0x20; /* raise DEV_ERR */

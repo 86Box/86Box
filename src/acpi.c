@@ -46,6 +46,8 @@ int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
 
+static int    acpi_power_on    = 0;
+
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -122,20 +124,20 @@ acpi_update_irq(acpi_t *dev)
     if (dev->vendor == VEN_SMC)
         sci_level |= (dev->regs.pmsts & BM_STS);
 
-    if (sci_level) {
+    if ((dev->regs.pmcntrl & 0x01) && sci_level) {
         if (dev->irq_mode == 1)
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_set_mirq(5, dev->mirq_is_level);
+            pci_set_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_set_mirq(0xf0 | dev->irq_line, 1);
+            picintlevel(1 << dev->irq_line, &dev->irq_state);
     } else {
         if (dev->irq_mode == 1)
-            pci_clear_irq(dev->slot, dev->irq_pin);
+            pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_clear_mirq(5, dev->mirq_is_level);
+            pci_clear_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_clear_mirq(0xf0 | dev->irq_line, 1);
+            picintclevel(1 << dev->irq_line, &dev->irq_state);
     }
 
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
@@ -226,10 +228,10 @@ acpi_reg_read_common_regs(UNUSED(int size), uint16_t addr, void *priv)
 static uint32_t
 acpi_reg_read_ali(int size, uint16_t addr, void *priv)
 {
-    acpi_t  *dev = (acpi_t *) priv;
-    uint32_t ret = 0x00000000;
-    int      shift16;
-    int      shift32;
+    const acpi_t  *dev = (acpi_t *) priv;
+    uint32_t       ret = 0x00000000;
+    int            shift16;
+    int            shift32;
 
     addr &= 0x3f;
     shift16 = (addr & 1) << 3;
@@ -294,10 +296,10 @@ acpi_reg_read_ali(int size, uint16_t addr, void *priv)
 static uint32_t
 acpi_reg_read_intel(int size, uint16_t addr, void *priv)
 {
-    acpi_t  *dev = (acpi_t *) priv;
-    uint32_t ret = 0x00000000;
-    int      shift16;
-    int      shift32;
+    const acpi_t  *dev = (acpi_t *) priv;
+    uint32_t       ret = 0x00000000;
+    int            shift16;
+    int            shift32;
 
     addr &= 0x3f;
     shift16 = (addr & 1) << 3;
@@ -391,10 +393,10 @@ acpi_reg_read_intel(int size, uint16_t addr, void *priv)
 static uint32_t
 acpi_reg_read_via_common(int size, uint16_t addr, void *priv)
 {
-    acpi_t  *dev = (acpi_t *) priv;
-    uint32_t ret = 0x00000000;
-    int      shift16;
-    int      shift32;
+    const acpi_t  *dev = (acpi_t *) priv;
+    uint32_t       ret = 0x00000000;
+    int            shift16;
+    int            shift32;
 
     addr &= 0xff;
     shift16 = (addr & 1) << 3;
@@ -544,10 +546,10 @@ acpi_reg_read_via(int size, uint16_t addr, void *priv)
 static uint32_t
 acpi_reg_read_via_596b(int size, uint16_t addr, void *priv)
 {
-    acpi_t  *dev = (acpi_t *) priv;
-    uint32_t ret = 0x00000000;
-    int      shift16;
-    int      shift32;
+    const acpi_t  *dev = (acpi_t *) priv;
+    uint32_t       ret = 0x00000000;
+    int            shift16;
+    int            shift32;
 
     addr &= 0x7f;
     shift16 = (addr & 1) << 3;
@@ -610,9 +612,9 @@ acpi_reg_read_smc(int size, uint16_t addr, void *priv)
 static uint32_t
 acpi_aux_reg_read_smc(UNUSED(int size), uint16_t addr, void *priv)
 {
-    acpi_t  *dev = (acpi_t *) priv;
-    uint32_t ret = 0x00000000;
-    int      shift16;
+    const acpi_t  *dev = (acpi_t *) priv;
+    uint32_t       ret = 0x00000000;
+    int            shift16;
 
     addr &= 0x07;
     shift16 = (addr & 1) << 3;
@@ -656,6 +658,7 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
     acpi_t *dev = (acpi_t *) priv;
     int     shift16;
     int     sus_typ;
+    uint8_t old;
 
     addr &= 0x3f;
 #ifdef ENABLE_ACPI_LOG
@@ -682,6 +685,7 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
         case 0x04:
         case 0x05:
             /* PMCNTRL - Power Management Control Register (IO) */
+            old = dev->regs.pmcntrl & 0xff;
             if ((addr == 0x05) && (val & 0x20)) {
                 sus_typ = dev->suspend_types[(val >> 2) & 7];
                 acpi_log("ACPI suspend type %d flags %02X\n", (val >> 2) & 7, sus_typ);
@@ -719,11 +723,14 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
 
                     /* Since the UI doesn't have a power button at the moment, pause emulation,
                        then trigger a resume event so that the system resumes after unpausing. */
-                    plat_pause(1);
+                    plat_pause(2);    /* 2 means do not wait for pause as
+                                         we're already in the CPU thread. */
                     timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
                 }
             }
             dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
+            if ((addr == 0x04) && ((old ^ val) & 0x01))
+                acpi_update_irq(dev);
             break;
 
         default:
@@ -787,7 +794,7 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
             dev->regs.gpcntrl = ((dev->regs.gpcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00000001;
             break;
         case 0x30:
-            /* PM2_CNTRL - Power Management 2 Control Register( */
+            /* PM2_CNTRL - Power Management 2 Control Register */
             dev->regs.pmcntrl = val & 1;
             break;
         default:
@@ -1189,7 +1196,7 @@ acpi_aux_reg_write_smc(UNUSED(int size), uint16_t addr, uint8_t val, void *priv)
 static uint32_t
 acpi_reg_read_common(int size, uint16_t addr, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
+    const acpi_t *dev = (acpi_t *) priv;
     uint8_t ret = 0xff;
 
     if (dev->vendor == VEN_ALI)
@@ -1209,7 +1216,7 @@ acpi_reg_read_common(int size, uint16_t addr, void *priv)
 static void
 acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
+    const acpi_t *dev = (acpi_t *) priv;
 
     if (dev->vendor == VEN_ALI)
         acpi_reg_write_ali(size, addr, val, priv);
@@ -1226,7 +1233,7 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
 static uint32_t
 acpi_aux_reg_read_common(int size, uint16_t addr, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
+    const acpi_t *dev = (acpi_t *) priv;
     uint8_t ret = 0xff;
 
     if (dev->vendor == VEN_SMC)
@@ -1238,7 +1245,7 @@ acpi_aux_reg_read_common(int size, uint16_t addr, void *priv)
 static void
 acpi_aux_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
+    const acpi_t *dev = (acpi_t *) priv;
 
     if (dev->vendor == VEN_SMC)
         acpi_aux_reg_write_smc(size, addr, val, priv);
@@ -1591,8 +1598,8 @@ acpi_apm_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 acpi_apm_in(uint16_t port, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
-    uint8_t ret = 0xff;
+    const acpi_t *dev = (acpi_t *) priv;
+    uint8_t       ret = 0xff;
 
     port &= 0x0001;
 
@@ -1619,7 +1626,10 @@ acpi_reset(void *priv)
     acpi_t *dev = (acpi_t *) priv;
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
-    dev->regs.gpireg[0] = 0xff;
+    /* PC Chips M773:
+       - Bit 3: 80-conductor cable on unknown IDE channel (active low)
+       - Bit 1: 80-conductor cable on unknown IDE channel (active low) */
+    dev->regs.gpireg[0] = !strcmp(machine_get_internal_name(), "m773") ? 0xf5 : 0xff;
     dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
@@ -1653,10 +1663,20 @@ acpi_reset(void *priv)
             dev->regs.gpi_val |= 0x00000004;
     }
 
-    /* Power on always generates a resume event. */
-    dev->regs.pmsts |= 0x8000;
+    if (acpi_power_on) {
+        /* Power on always generates a resume event. */
+        dev->regs.pmsts |= 0x8100;
+        acpi_power_on = 0;
+    }
+
+    /* The Gateway Tomahawk requires the LID polarity bit to be set. */
+    if (!strcmp(machine_get_internal_name(), "tomahawk"))
+        dev->regs.glbctl |= 0x02000000;
 
     acpi_rtc_status = 0;
+
+    acpi_update_irq(dev);
+    dev->irq_state = 0;
 }
 
 static void
@@ -1694,7 +1714,7 @@ acpi_init(const device_t *info)
 
     dev = (acpi_t *) malloc(sizeof(acpi_t));
     if (dev == NULL)
-        return (NULL);
+        return NULL;
     memset(dev, 0x00, sizeof(acpi_t));
 
     cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
@@ -1723,6 +1743,7 @@ acpi_init(const device_t *info)
             dev->suspend_types[2] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
             dev->suspend_types[3] = SUS_SUSPEND;
             dev->suspend_types[5] = SUS_POWER_OFF; /* undocumented, used for S4/S5 by ASUS P5A ACPI table */
+            dev->suspend_types[7] = SUS_POWER_OFF; /* undocumented, used for S5 by Gigabyte GA-5AX ACPI table */
             break;
 
         case VEN_VIA:
@@ -1758,7 +1779,9 @@ acpi_init(const device_t *info)
 
     acpi_reset(dev);
 
-    acpi_enabled = 1;
+    acpi_enabled  = 1;
+    acpi_power_on = 1;
+
     return dev;
 }
 

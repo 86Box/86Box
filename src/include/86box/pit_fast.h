@@ -69,6 +69,8 @@ typedef struct pitf_t {
     uint8_t ctrl;
 } pitf_t;
 
+extern uint8_t pitf_read_reg(void *priv, uint8_t reg);
+
 extern const pit_intf_t pit_fast_intf;
 
 #ifdef EMU_DEVICE_H

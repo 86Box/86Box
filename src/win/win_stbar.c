@@ -493,22 +493,22 @@ ui_sb_set_ready(int ready)
 void
 ui_sb_update_panes(void)
 {
-    int   i;
-    int   id;
-    int   cart_int;
-    int   mfm_int;
-    int   xta_int;
-    int   esdi_int;
-    int   ide_int;
-    int   scsi_int;
-    int   edge = 0;
-    int   c_mfm;
-    int   c_esdi;
-    int   c_xta;
-    int   c_ide;
-    int   c_scsi;
-    int   do_net;
-    char *hdc_name;
+    int         i;
+    int         id;
+    int         cart_int;
+    int         mfm_int;
+    int         xta_int;
+    int         esdi_int;
+    int         ide_int;
+    int         scsi_int;
+    int         edge = 0;
+    int         c_mfm;
+    int         c_esdi;
+    int         c_xta;
+    int         c_ide;
+    int         c_scsi;
+    int         do_net;
+    const char *hdc_name;
 
     if (!config_changed)
         return;
@@ -522,7 +522,7 @@ ui_sb_update_panes(void)
     xta_int  = machine_has_flags(machine, MACHINE_XTA) ? 1 : 0;
     esdi_int = machine_has_flags(machine, MACHINE_ESDI) ? 1 : 0;
     ide_int  = machine_has_flags(machine, MACHINE_IDE_QUAD) ? 1 : 0;
-    scsi_int = machine_has_flags(machine, MACHINE_SCSI_DUAL) ? 1 : 0;
+    scsi_int = machine_has_flags(machine, MACHINE_SCSI) ? 1 : 0;
 
     c_mfm  = hdd_count(HDD_BUS_MFM);
     c_esdi = hdd_count(HDD_BUS_ESDI);
@@ -833,7 +833,7 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 
     pt.x = id * icon_width; /* Justify to the left. */
     pt.y = 0;               /* Justify to the top. */
-    ClientToScreen(hwnd, (LPPOINT) &pt);
+    ClientToScreen(hwnd, &pt);
 
     switch (sb_part_meanings[id] & 0xF0) {
         case SB_CASSETTE:
@@ -865,7 +865,7 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 
 /* API: Load status bar icons */
 void
-StatusBarLoadIcon(HINSTANCE hInst)
+StatusBarLoadIcon(UNUSED(HINSTANCE hInst))
 {
     win_load_icon_set();
 }
@@ -891,19 +891,19 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
-            GetClientRect(hwnd, (LPRECT) &rc);
+            GetClientRect(hwnd, &rc);
             pt.x = GET_X_LPARAM(lParam);
             pt.y = GET_Y_LPARAM(lParam);
-            if (PtInRect((LPRECT) &rc, pt))
+            if (PtInRect(&rc, pt))
                 StatusBarPopupMenu(hwnd, pt, (pt.x / icon_width));
             break;
 
         case WM_LBUTTONDBLCLK:
-            GetClientRect(hwnd, (LPRECT) &rc);
+            GetClientRect(hwnd, &rc);
             pt.x    = GET_X_LPARAM(lParam);
             pt.y    = GET_Y_LPARAM(lParam);
             item_id = (pt.x / icon_width);
-            if (PtInRect((LPRECT) &rc, pt) && (item_id < sb_parts)) {
+            if (PtInRect(&rc, pt) && (item_id < sb_parts)) {
                 if (sb_part_meanings[item_id] == SB_SOUND)
                     SoundGainDialogCreate(hwndMain);
             }
@@ -1052,6 +1052,7 @@ ui_sb_bugui(char *str)
 
 /* API */
 void
-ui_sb_mt32lcd(char *str)
+ui_sb_mt32lcd(UNUSED(char *str))
 {
+    //
 }

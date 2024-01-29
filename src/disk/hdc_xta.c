@@ -102,7 +102,7 @@
 #include <86box/hdc.h>
 #include <86box/hdd.h>
 
-#define HDC_TIME           (50 * TIMER_USEC)
+#define HDC_TIME           (250 * TIMER_USEC)
 
 #define WD_REV_1_BIOS_FILE "roms/hdd/xta/idexywd2.bin"
 #define WD_REV_2_BIOS_FILE "roms/hdd/xta/infowdbios.rom"
@@ -248,7 +248,6 @@ typedef struct hdc_t {
     uint8_t    sense;  /* current SENSE ERROR value    */
     uint8_t    status; /* current operational status    */
     uint8_t    intr;
-    uint64_t   callback;
     pc_timer_t timer;
 
     /* Data transfer. */
@@ -343,22 +342,6 @@ next_sector(hdc_t *dev, drive_t *drive)
     }
 }
 
-static void
-xta_set_callback(hdc_t *dev, uint64_t callback)
-{
-    if (!dev) {
-        return;
-    }
-
-    if (callback) {
-        dev->callback = callback;
-        timer_set_delay_u64(&dev->timer, dev->callback);
-    } else {
-        dev->callback = 0;
-        timer_disable(&dev->timer);
-    }
-}
-
 /* Perform the seek operation. */
 static void
 do_seek(hdc_t *dev, drive_t *drive, int cyl)
@@ -449,16 +432,13 @@ do_fmt:
 static void
 hdc_callback(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    dcb_t   *dcb = &dev->dcb;
-    drive_t *drive;
-    dprm_t  *params;
-    off64_t  addr;
-    int      no_data = 0;
-    int      val;
-
-    /* Cancel timer. */
-    xta_set_callback(dev, 0);
+    hdc_t        *dev = (hdc_t *) priv;
+    dcb_t        *dcb = &dev->dcb;
+    drive_t      *drive;
+    const dprm_t *params;
+    off64_t       addr;
+    int           no_data = 0;
+    int           val;
 
     drive     = &dev->drives[dcb->drvsel];
     dev->comp = (dcb->drvsel) ? COMP_DRIVE : 0x00;
@@ -509,7 +489,7 @@ hdc_callback(void *priv)
 
         case CMD_READ_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -534,7 +514,7 @@ hdc_callback(void *priv)
                     dev->buf_len = 512;
 
                     dev->state = STATE_SEND;
-                    /*FALLTHROUGH*/
+                    fallthrough;
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -558,12 +538,12 @@ do_send:
                     dev->buf_idx = 0;
                     if (no_data) {
                         /* Delay a bit, no actual transfer. */
-                        xta_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
                         if (dev->intr & DMA_ENA) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
-                            xta_set_callback(dev, HDC_TIME);
+                            timer_advance_u64(&dev->timer, HDC_TIME);
                         } else {
                             /* Copy from sector to data. */
                             memcpy(dev->data,
@@ -586,14 +566,14 @@ do_send:
                                 xta_log("%s: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->name, dev->buf_idx, dev->buf_len);
 
                                 dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
-                                xta_set_callback(dev, HDC_TIME);
+                                timer_advance_u64(&dev->timer, HDC_TIME);
                                 return;
                             }
                             dev->buf_ptr++;
                             dev->buf_idx++;
                         }
                     }
-                    xta_set_callback(dev, HDC_TIME);
+                    timer_advance_u64(&dev->timer, HDC_TIME);
                     dev->state = STATE_SDONE;
                     break;
 
@@ -642,7 +622,7 @@ do_send:
                     dev->buf_len = 512;
 
                     dev->state = STATE_RECV;
-                    /*FALLTHROUGH*/
+                    fallthrough;
 
                 case STATE_RECV:
                     /* Activate the status icon. */
@@ -654,7 +634,7 @@ do_recv:
                     if (dev->intr & DMA_ENA) {
                         /* DMA enabled. */
                         dev->buf_ptr = dev->sector_buf;
-                        xta_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
                         /* No DMA, do PIO. */
                         dev->buf_ptr = dev->data;
@@ -673,7 +653,7 @@ do_recv:
 
                                 xta_log("%s: CMD_WRITE_SECTORS out of data!\n", dev->name);
                                 dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
-                                xta_set_callback(dev, HDC_TIME);
+                                timer_advance_u64(&dev->timer, HDC_TIME);
                                 return;
                             }
 
@@ -681,7 +661,7 @@ do_recv:
                             dev->buf_idx++;
                         }
                         dev->state = STATE_RDONE;
-                        xta_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     }
                     break;
 
@@ -785,7 +765,7 @@ do_recv:
                     dev->state   = STATE_RDATA;
                     if (dev->intr & DMA_ENA) {
                         dev->buf_ptr = dev->sector_buf;
-                        xta_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
                         dev->buf_ptr = dev->data;
                         dev->status |= STAT_REQ;
@@ -800,7 +780,7 @@ do_recv:
                             if (val == DMA_NODATA) {
                                 xta_log("%s: CMD_WRITE_BUFFER out of data!\n", dev->name);
                                 dev->status |= (STAT_CD | STAT_IO | STAT_REQ);
-                                xta_set_callback(dev, HDC_TIME);
+                                timer_advance_u64(&dev->timer, HDC_TIME);
                                 return;
                             }
 
@@ -808,7 +788,7 @@ do_recv:
                             dev->buf_idx++;
                         }
                         dev->state = STATE_RDONE;
-                        xta_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     }
                     break;
 
@@ -828,7 +808,7 @@ do_recv:
             switch (dev->state) {
                 case STATE_IDLE:
                     dev->state = STATE_RDONE;
-                    xta_set_callback(dev, 5 * HDC_TIME);
+                    timer_advance_u64(&dev->timer, 5 * HDC_TIME);
                     break;
 
                 case STATE_RDONE:
@@ -845,7 +825,7 @@ do_recv:
                 case STATE_IDLE:
                     if (drive->present) {
                         dev->state = STATE_RDONE;
-                        xta_set_callback(dev, 5 * HDC_TIME);
+                        timer_advance_u64(&dev->timer, 5 * HDC_TIME);
                     } else {
                         dev->comp |= COMP_ERR;
                         dev->sense = ERR_NOTRDY;
@@ -866,7 +846,7 @@ do_recv:
             switch (dev->state) {
                 case STATE_IDLE:
                     dev->state = STATE_RDONE;
-                    xta_set_callback(dev, 10 * HDC_TIME);
+                    timer_advance_u64(&dev->timer, 10 * HDC_TIME);
                     break;
 
                 case STATE_RDONE:
@@ -911,7 +891,7 @@ hdc_read(uint16_t port, void *priv)
                     /* All data sent. */
                     dev->status &= ~STAT_REQ;
                     dev->state = STATE_SDONE;
-                    xta_set_callback(dev, HDC_TIME);
+                    timer_set_delay_u64(&dev->timer, HDC_TIME);
                 }
             } else if (dev->state == STATE_COMPL) {
                 xta_log("DCB=%02X  status=%02X comp=%02X\n", dev->dcb.cmd, dev->status, dev->comp);
@@ -969,7 +949,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                     else
                         dev->state = STATE_IDLE;
                     dev->status &= ~STAT_CD;
-                    xta_set_callback(dev, HDC_TIME);
+                    timer_set_delay_u64(&dev->timer, HDC_TIME);
                 }
             }
             break;
@@ -1003,12 +983,12 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 static void *
 xta_init(const device_t *info)
 {
-    drive_t *drive;
-    char    *bios_rev = NULL;
-    char    *fn       = NULL;
-    hdc_t   *dev;
-    int      c;
-    int      max = XTA_NUM;
+    drive_t    *drive;
+    const char *bios_rev = NULL;
+    const char *fn       = NULL;
+    hdc_t      *dev;
+    int         c;
+    int         max = XTA_NUM;
 
     /* Allocate and initialize device block. */
     dev = malloc(sizeof(hdc_t));
@@ -1024,7 +1004,7 @@ xta_init(const device_t *info)
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
             bios_rev      = (char *) device_get_config_bios("bios_rev");
-            fn            = (char *) device_get_bios_file(info, (const char *) bios_rev, 0);
+            fn            = (char *) device_get_bios_file(info, bios_rev, 0);
             max           = 1;
             break;
 
@@ -1098,8 +1078,8 @@ xta_init(const device_t *info)
 static void
 xta_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 4,

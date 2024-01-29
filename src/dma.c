@@ -118,7 +118,7 @@ dma_sg_next_addr(dma_t *dev)
     dev->eot = dev->count >> 31;
     dev->count &= 0xfffe;
     dev->cb = (uint16_t) dev->count;
-    dev->cc = (int) dev->count;
+    dev->cc = dev->count;
     if (!dev->count)
         dev->count = 65536;
     if (ts == 2)
@@ -133,9 +133,7 @@ dma_sg_next_addr(dma_t *dev)
 static void
 dma_block_transfer(int channel)
 {
-    int bit16;
-
-    bit16 = (channel >= 4);
+    int bit16 = (channel >= 4);
 
     if (dma_advanced)
         bit16 = !!(dma_transfer_size(&(dma[channel])) == 2);
@@ -300,7 +298,7 @@ dma_sg_writel(uint16_t port, uint32_t val, void *priv)
 static uint8_t
 dma_sg_read(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint8_t ret = 0xff;
 
@@ -348,7 +346,7 @@ dma_sg_read(uint16_t port, void *priv)
 static uint16_t
 dma_sg_readw(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint16_t ret = 0xffff;
 
@@ -382,7 +380,7 @@ dma_sg_readw(uint16_t port, void *priv)
 static uint32_t
 dma_sg_readl(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint32_t ret = 0xffffffff;
 
@@ -596,7 +594,7 @@ dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 static uint8_t
 dma_ps2_read(uint16_t addr, UNUSED(void *priv))
 {
-    dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
+    const dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
     uint8_t temp  = 0xff;
 
     switch (addr) {
@@ -1273,14 +1271,12 @@ dma_sg(uint8_t *data, int transfer_length, int out, void *priv)
             }
         }
     }
-
-    return 1;
 }
 
 uint8_t
 _dma_read(uint32_t addr, dma_t *dma_c)
 {
-    uint8_t temp;
+    uint8_t temp = 0;
 
     if (dma_advanced) {
         if (dma_c->sg_status & 1)
@@ -1296,7 +1292,7 @@ _dma_read(uint32_t addr, dma_t *dma_c)
 static uint16_t
 _dma_readw(uint32_t addr, dma_t *dma_c)
 {
-    uint16_t temp;
+    uint16_t temp = 0;
 
     if (dma_advanced) {
         if (dma_c->sg_status & 1)

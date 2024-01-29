@@ -650,9 +650,9 @@ cassette_close(UNUSED(void *priv))
 }
 
 static void
-cassette_callback(void *p)
+cassette_callback(void *priv)
 {
-    pc_cassette_t *cas = (pc_cassette_t *) p;
+    pc_cassette_t *cas = (pc_cassette_t *) priv;
 
     pc_cas_clock(cas, 8);
 

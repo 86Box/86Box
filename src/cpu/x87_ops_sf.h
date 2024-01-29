@@ -1,7 +1,7 @@
 static uint32_t
 fpu_save_environment(void)
 {
-    int tag;
+    int      tag;
     unsigned offset = 0;
 
     /* read all registers in stack order and update x87 tag word */
@@ -16,91 +16,98 @@ fpu_save_environment(void)
     fpu_state.swd = (fpu_state.swd & ~(7 << 11)) | ((fpu_state.tos & 7) << 11);
 
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
-        case 0x000: { /*16-bit real mode*/
-            uint16_t tmp;
-            uint32_t fp_ip, fp_dp;
+        case 0x000:
+            { /*16-bit real mode*/
+                uint16_t tmp;
+                uint32_t fp_ip;
+                uint32_t fp_dp;
 
-            fp_ip = ((uint32_t)(fpu_state.fcs << 4)) | fpu_state.fip;
-            fp_dp = ((uint32_t)(fpu_state.fds << 4)) | fpu_state.fdp;
+                fp_ip = ((uint32_t) (fpu_state.fcs << 4)) | fpu_state.fip;
+                fp_dp = ((uint32_t) (fpu_state.fds << 4)) | fpu_state.fdp;
 
-            tmp = i387_get_control_word();
-            writememw(easeg, cpu_state.eaaddr + 0x00, tmp);
-            tmp = i387_get_status_word();
-            writememw(easeg, cpu_state.eaaddr + 0x02, tmp);
-            tmp = fpu_state.tag;
-            writememw(easeg, cpu_state.eaaddr + 0x04, tmp);
-            tmp = fp_ip & 0xffff;
-            writememw(easeg, cpu_state.eaaddr + 0x06, tmp);
-            tmp = (uint16_t)((fp_ip & 0xf0000) >> 4) | fpu_state.foo;
-            writememw(easeg, cpu_state.eaaddr + 0x08, tmp);
-            tmp = fp_dp & 0xffff;
-            writememw(easeg, cpu_state.eaaddr + 0x0a, tmp);
-            tmp = (uint16_t)((fp_dp & 0xf0000) >> 4);
-            writememw(easeg, cpu_state.eaaddr + 0x0c, tmp);
-            offset = 0x0e;
-        }
-        break;
-        case 0x001: {/*16-bit protected mode*/
-            uint16_t tmp;
-            tmp = i387_get_control_word();
-            writememw(easeg, cpu_state.eaaddr + 0x00, tmp);
-            tmp = i387_get_status_word();
-            writememw(easeg, cpu_state.eaaddr + 0x02, tmp);
-            tmp = fpu_state.tag;
-            writememw(easeg, cpu_state.eaaddr + 0x04, tmp);
-            tmp = (uint16_t)(fpu_state.fip) & 0xffff;
-            writememw(easeg, cpu_state.eaaddr + 0x06, tmp);
-            tmp = fpu_state.fcs;
-            writememw(easeg, cpu_state.eaaddr + 0x08, tmp);
-            tmp = (uint16_t)(fpu_state.fdp) & 0xffff;
-            writememw(easeg, cpu_state.eaaddr + 0x0a, tmp);
-            tmp = fpu_state.fds;
-            writememw(easeg, cpu_state.eaaddr + 0x0c, tmp);
-            offset = 0x0e;
-        }
-        break;
-        case 0x100: { /*32-bit real mode*/
-            uint32_t tmp, fp_ip, fp_dp;
+                tmp = i387_get_control_word();
+                writememw(easeg, cpu_state.eaaddr + 0x00, tmp);
+                tmp = i387_get_status_word();
+                writememw(easeg, cpu_state.eaaddr + 0x02, tmp);
+                tmp = fpu_state.tag;
+                writememw(easeg, cpu_state.eaaddr + 0x04, tmp);
+                tmp = fp_ip & 0xffff;
+                writememw(easeg, cpu_state.eaaddr + 0x06, tmp);
+                tmp = (uint16_t) ((fp_ip & 0xf0000) >> 4) | fpu_state.foo;
+                writememw(easeg, cpu_state.eaaddr + 0x08, tmp);
+                tmp = fp_dp & 0xffff;
+                writememw(easeg, cpu_state.eaaddr + 0x0a, tmp);
+                tmp = (uint16_t) ((fp_dp & 0xf0000) >> 4);
+                writememw(easeg, cpu_state.eaaddr + 0x0c, tmp);
+                offset = 0x0e;
+            }
+            break;
+        case 0x001:
+            { /*16-bit protected mode*/
+                uint16_t tmp;
+                tmp = i387_get_control_word();
+                writememw(easeg, cpu_state.eaaddr + 0x00, tmp);
+                tmp = i387_get_status_word();
+                writememw(easeg, cpu_state.eaaddr + 0x02, tmp);
+                tmp = fpu_state.tag;
+                writememw(easeg, cpu_state.eaaddr + 0x04, tmp);
+                tmp = (uint16_t) (fpu_state.fip) & 0xffff;
+                writememw(easeg, cpu_state.eaaddr + 0x06, tmp);
+                tmp = fpu_state.fcs;
+                writememw(easeg, cpu_state.eaaddr + 0x08, tmp);
+                tmp = (uint16_t) (fpu_state.fdp) & 0xffff;
+                writememw(easeg, cpu_state.eaaddr + 0x0a, tmp);
+                tmp = fpu_state.fds;
+                writememw(easeg, cpu_state.eaaddr + 0x0c, tmp);
+                offset = 0x0e;
+            }
+            break;
+        case 0x100:
+            { /*32-bit real mode*/
+                uint32_t tmp;
+                uint32_t fp_ip;
+                uint32_t fp_dp;
 
-            fp_ip = ((uint32_t)(fpu_state.fcs << 4)) | fpu_state.fip;
-            fp_dp = ((uint32_t)(fpu_state.fds << 4)) | fpu_state.fdp;
+                fp_ip = ((uint32_t) (fpu_state.fcs << 4)) | fpu_state.fip;
+                fp_dp = ((uint32_t) (fpu_state.fds << 4)) | fpu_state.fdp;
 
-            tmp = 0xffff0000 | i387_get_control_word();
-            writememl(easeg, cpu_state.eaaddr + 0x00, tmp);
-            tmp = 0xffff0000 | i387_get_status_word();
-            writememl(easeg, cpu_state.eaaddr + 0x04, tmp);
-            tmp = 0xffff0000 | fpu_state.tag;
-            writememl(easeg, cpu_state.eaaddr + 0x08, tmp);
-            tmp = 0xffff0000 | (fp_ip & 0xffff);
-            writememl(easeg, cpu_state.eaaddr + 0x0c, tmp);
-            tmp = ((fp_ip & 0xffff0000) >> 4) | fpu_state.foo;
-            writememl(easeg, cpu_state.eaaddr + 0x10, tmp);
-            tmp = 0xffff0000 | (fp_dp & 0xffff);
-            writememl(easeg, cpu_state.eaaddr + 0x14, tmp);
-            tmp = (fp_dp & 0xffff0000) >> 4;
-            writememl(easeg, cpu_state.eaaddr + 0x18, tmp);
-            offset = 0x1c;
-        }
-        break;
-        case 0x101: { /*32-bit protected mode*/
-            uint32_t tmp;
-            tmp = 0xffff0000 | i387_get_control_word();
-            writememl(easeg, cpu_state.eaaddr + 0x00, tmp);
-            tmp = 0xffff0000 | i387_get_status_word();
-            writememl(easeg, cpu_state.eaaddr + 0x04, tmp);
-            tmp = 0xffff0000 | fpu_state.tag;
-            writememl(easeg, cpu_state.eaaddr + 0x08, tmp);
-            tmp = (uint32_t)(fpu_state.fip);
-            writememl(easeg, cpu_state.eaaddr + 0x0c, tmp);
-            tmp = fpu_state.fcs | (((uint32_t)(fpu_state.foo)) << 16);
-            writememl(easeg, cpu_state.eaaddr + 0x10, tmp);
-            tmp = (uint32_t)(fpu_state.fdp);
-            writememl(easeg, cpu_state.eaaddr + 0x14, tmp);
-            tmp = 0xffff0000 | fpu_state.fds;
-            writememl(easeg, cpu_state.eaaddr + 0x18, tmp);
-            offset = 0x1c;
-        }
-        break;
+                tmp = 0xffff0000 | i387_get_control_word();
+                writememl(easeg, cpu_state.eaaddr + 0x00, tmp);
+                tmp = 0xffff0000 | i387_get_status_word();
+                writememl(easeg, cpu_state.eaaddr + 0x04, tmp);
+                tmp = 0xffff0000 | fpu_state.tag;
+                writememl(easeg, cpu_state.eaaddr + 0x08, tmp);
+                tmp = 0xffff0000 | (fp_ip & 0xffff);
+                writememl(easeg, cpu_state.eaaddr + 0x0c, tmp);
+                tmp = ((fp_ip & 0xffff0000) >> 4) | fpu_state.foo;
+                writememl(easeg, cpu_state.eaaddr + 0x10, tmp);
+                tmp = 0xffff0000 | (fp_dp & 0xffff);
+                writememl(easeg, cpu_state.eaaddr + 0x14, tmp);
+                tmp = (fp_dp & 0xffff0000) >> 4;
+                writememl(easeg, cpu_state.eaaddr + 0x18, tmp);
+                offset = 0x1c;
+            }
+            break;
+        case 0x101:
+            { /*32-bit protected mode*/
+                uint32_t tmp;
+                tmp = 0xffff0000 | i387_get_control_word();
+                writememl(easeg, cpu_state.eaaddr + 0x00, tmp);
+                tmp = 0xffff0000 | i387_get_status_word();
+                writememl(easeg, cpu_state.eaaddr + 0x04, tmp);
+                tmp = 0xffff0000 | fpu_state.tag;
+                writememl(easeg, cpu_state.eaaddr + 0x08, tmp);
+                tmp = (uint32_t) (fpu_state.fip);
+                writememl(easeg, cpu_state.eaaddr + 0x0c, tmp);
+                tmp = fpu_state.fcs | (((uint32_t) (fpu_state.foo)) << 16);
+                writememl(easeg, cpu_state.eaaddr + 0x10, tmp);
+                tmp = (uint32_t) (fpu_state.fdp);
+                writememl(easeg, cpu_state.eaaddr + 0x14, tmp);
+                tmp = 0xffff0000 | fpu_state.fds;
+                writememl(easeg, cpu_state.eaaddr + 0x18, tmp);
+                offset = 0x1c;
+            }
+            break;
     }
 
     return (cpu_state.eaaddr + offset);
@@ -112,95 +119,104 @@ fpu_load_environment(void)
     unsigned offset = 0;
 
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
-        case 0x000: { /*16-bit real mode*/
-            uint16_t tmp;
-            uint32_t fp_ip, fp_dp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x0c);
-            fp_dp = (tmp & 0xf000) << 4;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x0a);
-            fpu_state.fdp = fp_dp | tmp;
-            fpu_state.fds = 0;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x08);
-            fp_ip = (tmp & 0xf000) << 4;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x06);
-            fpu_state.fip = fp_ip | tmp;
-            fpu_state.fcs = 0;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x04);
-            fpu_state.tag = tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x02);
-            fpu_state.swd = tmp;
-            fpu_state.tos = (tmp >> 11) & 7;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x00);
-            fpu_state.cwd = tmp;
-            offset = 0x0e;
-        }
-        break;
-        case 0x001: {/*16-bit protected mode*/
-            uint16_t tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x0c);
-            fpu_state.fds = tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x0a);
-            fpu_state.fdp = tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x08);
-            fpu_state.fcs = tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x06);
-            fpu_state.fip = tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x04);
-            fpu_state.tag = tmp;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x02);
-            fpu_state.swd = tmp;
-            fpu_state.tos = (tmp >> 11) & 7;
-            tmp = readmemw(easeg, cpu_state.eaaddr + 0x00);
-            fpu_state.cwd = tmp;
-            offset = 0x0e;
-        }
-        break;
-        case 0x100: { /*32-bit real mode*/
-            uint32_t tmp, fp_ip, fp_dp;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x18);
-            fp_dp = (tmp & 0x0ffff000) << 4;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x14);
-            fp_dp |= (tmp & 0xffff);
-            fpu_state.fdp = fp_dp;
-            fpu_state.fds = 0;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x10);
-            fpu_state.foo = tmp & 0x07ff;
-            fp_ip = (tmp & 0x0ffff000) << 4;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x0c);
-            fp_ip |= (tmp & 0xffff);
-            fpu_state.fip = fp_ip;
-            fpu_state.fcs = 0;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x08);
-            fpu_state.tag = tmp & 0xffff;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x04);
-            fpu_state.swd = tmp & 0xffff;
-            fpu_state.tos = (tmp >> 11) & 7;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x00);
-            fpu_state.cwd = tmp & 0xffff;
-            offset = 0x1c;
-        }
-        break;
-        case 0x101: { /*32-bit protected mode*/
-            uint32_t tmp;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x18);
-            fpu_state.fds = tmp & 0xffff;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x14);
-            fpu_state.fdp = tmp;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x10);
-            fpu_state.fcs = tmp & 0xffff;
-            fpu_state.foo = (tmp >> 16) & 0x07ff;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x0c);
-            fpu_state.fip = tmp;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x08);
-            fpu_state.tag = tmp & 0xffff;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x04);
-            fpu_state.swd = tmp & 0xffff;
-            fpu_state.tos = (tmp >> 11) & 7;
-            tmp = readmeml(easeg, cpu_state.eaaddr + 0x00);
-            fpu_state.cwd = tmp & 0xffff;
-            offset = 0x1c;
-        }
-        break;
+        case 0x000:
+            { /*16-bit real mode*/
+                uint16_t tmp;
+                uint32_t fp_ip;
+                uint32_t fp_dp;
+
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x0c);
+                fp_dp         = (tmp & 0xf000) << 4;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x0a);
+                fpu_state.fdp = fp_dp | tmp;
+                fpu_state.fds = 0;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x08);
+                fp_ip         = (tmp & 0xf000) << 4;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x06);
+                fpu_state.fip = fp_ip | tmp;
+                fpu_state.fcs = 0;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x04);
+                fpu_state.tag = tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x02);
+                fpu_state.swd = tmp;
+                fpu_state.tos = (tmp >> 11) & 7;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x00);
+                fpu_state.cwd = tmp;
+                offset        = 0x0e;
+            }
+            break;
+        case 0x001:
+            { /*16-bit protected mode*/
+                uint16_t tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x0c);
+                fpu_state.fds = tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x0a);
+                fpu_state.fdp = tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x08);
+                fpu_state.fcs = tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x06);
+                fpu_state.fip = tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x04);
+                fpu_state.tag = tmp;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x02);
+                fpu_state.swd = tmp;
+                fpu_state.tos = (tmp >> 11) & 7;
+                tmp           = readmemw(easeg, cpu_state.eaaddr + 0x00);
+                fpu_state.cwd = tmp;
+                offset        = 0x0e;
+            }
+            break;
+        case 0x100:
+            { /*32-bit real mode*/
+                uint32_t tmp;
+                uint32_t fp_ip;
+                uint32_t fp_dp;
+
+                tmp   = readmeml(easeg, cpu_state.eaaddr + 0x18);
+                fp_dp = (tmp & 0x0ffff000) << 4;
+                tmp   = readmeml(easeg, cpu_state.eaaddr + 0x14);
+                fp_dp |= (tmp & 0xffff);
+                fpu_state.fdp = fp_dp;
+                fpu_state.fds = 0;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x10);
+                fpu_state.foo = tmp & 0x07ff;
+                fp_ip         = (tmp & 0x0ffff000) << 4;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x0c);
+                fp_ip |= (tmp & 0xffff);
+                fpu_state.fip = fp_ip;
+                fpu_state.fcs = 0;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x08);
+                fpu_state.tag = tmp & 0xffff;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x04);
+                fpu_state.swd = tmp & 0xffff;
+                fpu_state.tos = (tmp >> 11) & 7;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x00);
+                fpu_state.cwd = tmp & 0xffff;
+                offset        = 0x1c;
+            }
+            break;
+        case 0x101:
+            { /*32-bit protected mode*/
+                uint32_t tmp;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x18);
+                fpu_state.fds = tmp & 0xffff;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x14);
+                fpu_state.fdp = tmp;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x10);
+                fpu_state.fcs = tmp & 0xffff;
+                fpu_state.foo = (tmp >> 16) & 0x07ff;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x0c);
+                fpu_state.fip = tmp;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x08);
+                fpu_state.tag = tmp & 0xffff;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x04);
+                fpu_state.swd = tmp & 0xffff;
+                fpu_state.tos = (tmp >> 11) & 7;
+                tmp           = readmeml(easeg, cpu_state.eaaddr + 0x00);
+                fpu_state.cwd = tmp & 0xffff;
+                offset        = 0x1c;
+            }
+            break;
     }
 
     /* always set bit 6 as '1 */
@@ -356,7 +372,7 @@ static int
 sf_FRSTOR_a16(uint32_t fetchdat)
 {
     floatx80 tmp;
-    int offset;
+    int      offset;
 
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -364,7 +380,7 @@ sf_FRSTOR_a16(uint32_t fetchdat)
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
         tmp.fraction = readmemq(easeg, offset + (n * 10));
-        tmp.exp = readmemw(easeg, offset + (n * 10) + 8);
+        tmp.exp      = readmemw(easeg, offset + (n * 10) + 8);
         FPU_save_regi_tag(tmp, IS_TAG_EMPTY(n) ? X87_TAG_EMPTY : FPU_tagof(tmp), n);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frstor) : (x87_timings.frstor * cpu_multi));
@@ -376,7 +392,7 @@ static int
 sf_FRSTOR_a32(uint32_t fetchdat)
 {
     floatx80 tmp;
-    int offset;
+    int      offset;
 
     FP_ENTER();
     fetch_ea_32(fetchdat);
@@ -384,7 +400,7 @@ sf_FRSTOR_a32(uint32_t fetchdat)
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
         tmp.fraction = readmemq(easeg, offset + (n * 10));
-        tmp.exp = readmemw(easeg, offset + (n * 10) + 8);
+        tmp.exp      = readmemw(easeg, offset + (n * 10) + 8);
         FPU_save_regi_tag(tmp, IS_TAG_EMPTY(n) ? X87_TAG_EMPTY : FPU_tagof(tmp), n);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frstor) : (x87_timings.frstor * cpu_multi));
@@ -397,7 +413,7 @@ static int
 sf_FNSAVE_a16(uint32_t fetchdat)
 {
     floatx80 stn;
-    int offset;
+    int      offset;
 
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -415,15 +431,15 @@ sf_FNSAVE_a16(uint32_t fetchdat)
 #else
     fpu_state.cwd = 0x37F;
 #endif
-    fpu_state.swd = 0;
-    fpu_state.tos = 0;
-    fpu_state.tag = 0xffff;
+    fpu_state.swd   = 0;
+    fpu_state.tos   = 0;
+    fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
-    fpu_state.foo = 0;
-    fpu_state.fds = 0;
-    fpu_state.fdp = 0;
-    fpu_state.fcs = 0;
-    fpu_state.fip = 0;
+    fpu_state.foo   = 0;
+    fpu_state.fds   = 0;
+    fpu_state.fdp   = 0;
+    fpu_state.fcs   = 0;
+    fpu_state.fip   = 0;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
     return cpu_state.abrt;
@@ -433,7 +449,7 @@ static int
 sf_FNSAVE_a32(uint32_t fetchdat)
 {
     floatx80 stn;
-    int offset;
+    int      offset;
 
     FP_ENTER();
     fetch_ea_32(fetchdat);
@@ -446,20 +462,20 @@ sf_FNSAVE_a32(uint32_t fetchdat)
         writememw(easeg, offset + (m * 10) + 8, stn.exp);
     }
 
-#ifdef FPU_8087
+#    ifdef FPU_8087
     fpu_state.swd = 0x3FF;
-#else
+#    else
     fpu_state.cwd = 0x37F;
-#endif
-    fpu_state.swd = 0;
-    fpu_state.tos = 0;
-    fpu_state.tag = 0xffff;
+#    endif
+    fpu_state.swd   = 0;
+    fpu_state.tos   = 0;
+    fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
-    fpu_state.foo = 0;
-    fpu_state.fds = 0;
-    fpu_state.fdp = 0;
-    fpu_state.fcs = 0;
-    fpu_state.fip = 0;
+    fpu_state.foo   = 0;
+    fpu_state.fds   = 0;
+    fpu_state.fdp   = 0;
+    fpu_state.fcs   = 0;
+    fpu_state.fip   = 0;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
     return cpu_state.abrt;
@@ -471,9 +487,7 @@ sf_FNCLEX(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    fpu_state.swd &= ~(FPU_SW_Backward | FPU_SW_Summary | FPU_SW_Stack_Fault | FPU_SW_Precision |
-               FPU_SW_Underflow | FPU_SW_Overflow | FPU_SW_Zero_Div | FPU_SW_Denormal_Op |
-               FPU_SW_Invalid);
+    fpu_state.swd &= ~(FPU_SW_Backward | FPU_SW_Summary | FPU_SW_Stack_Fault | FPU_SW_Precision | FPU_SW_Underflow | FPU_SW_Overflow | FPU_SW_Zero_Div | FPU_SW_Denormal_Op | FPU_SW_Invalid);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fnop) : (x87_concurrency.fnop * cpu_multi));
     return 0;
@@ -489,14 +503,14 @@ sf_FNINIT(uint32_t fetchdat)
 #else
     fpu_state.cwd = 0x37F;
 #endif
-    fpu_state.swd = 0;
+    fpu_state.swd   = 0;
     fpu_state.tos   = 0;
-    fpu_state.tag = 0xffff;
-    fpu_state.foo = 0;
-    fpu_state.fds = 0;
-    fpu_state.fdp = 0;
-    fpu_state.fcs = 0;
-    fpu_state.fip = 0;
+    fpu_state.tag   = 0xffff;
+    fpu_state.foo   = 0;
+    fpu_state.fds   = 0;
+    fpu_state.fdp   = 0;
+    fpu_state.fcs   = 0;
+    fpu_state.fip   = 0;
     cpu_state.ismmx = 0;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.finit) : (x87_timings.finit * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.finit) : (x87_concurrency.finit * cpu_multi));
@@ -559,7 +573,7 @@ sf_FNSTENV_a16(uint32_t fetchdat)
     /* mask all floating point exceptions */
     fpu_state.cwd |= FPU_CW_Exceptions_Mask;
     /* clear the B and ES bits in the status word */
-    fpu_state.swd &= ~(FPU_SW_Backward|FPU_SW_Summary);
+    fpu_state.swd &= ~(FPU_SW_Backward | FPU_SW_Summary);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fstenv) : (x87_timings.fstenv * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fstenv) : (x87_concurrency.fstenv * cpu_multi));
     return cpu_state.abrt;
@@ -575,7 +589,7 @@ sf_FNSTENV_a32(uint32_t fetchdat)
     /* mask all floating point exceptions */
     fpu_state.cwd |= FPU_CW_Exceptions_Mask;
     /* clear the B and ES bits in the status word */
-    fpu_state.swd &= ~(FPU_SW_Backward|FPU_SW_Summary);
+    fpu_state.swd &= ~(FPU_SW_Backward | FPU_SW_Summary);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fstenv) : (x87_timings.fstenv * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fstenv) : (x87_concurrency.fstenv * cpu_multi));
     return cpu_state.abrt;

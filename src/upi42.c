@@ -916,7 +916,7 @@ timer:
 uint8_t
 upi42_port_read(void *priv, int port)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
+    const upi42_t *upi42 = (upi42_t *) priv;
 
     /* Read base port value. */
     port &= 7;
@@ -972,7 +972,7 @@ upi42_dbb_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 uint8_t
 upi42_sts_read(UNUSED(uint16_t port), void *priv)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
+    const upi42_t *upi42 = (upi42_t *) priv;
 
     uint8_t ret = upi42->sts;
     upi42_log("UPI42: sts_read(%04X) = %02X\n", port, ret);
@@ -1056,13 +1056,13 @@ main(int argc, char **argv)
 
     /* Load ROM. */
     uint8_t rom[4096] = { 0 };
-    FILE   *f         = fopen(argv[1], "rb");
-    if (!f) {
+    FILE   *fp        = fopen(argv[1], "rb");
+    if (!fp) {
         upi42_log("Could not read ROM file.\n");
         return 2;
     }
-    size_t rom_size = fread(rom, sizeof(rom[0]), sizeof(rom), f);
-    fclose(f);
+    size_t rom_size = fread(rom, sizeof(rom[0]), sizeof(rom), fp);
+    fclose(fp);
 
     /* Determine chip type from ROM. */
     upi42_log("%d-byte ROM, ", rom_size);

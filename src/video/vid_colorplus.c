@@ -34,6 +34,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_colorplus.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 /* Bits in the colorplus control register: */
 #define COLORPLUS_PLANE_SWAP   0x40 /* Swap planes at 0000h and 4000h */
@@ -55,9 +56,9 @@ video_timings_t timing_colorplus = { .type = VIDEO_ISA, .write_b = 8, .write_w =
 void cga_recalctimings(cga_t *cga);
 
 void
-colorplus_out(uint16_t addr, uint8_t val, void *p)
+colorplus_out(uint16_t addr, uint8_t val, void *priv)
 {
-    colorplus_t *colorplus = (colorplus_t *) p;
+    colorplus_t *colorplus = (colorplus_t *) priv;
 
     if (addr == 0x3DD) {
         colorplus->control = val & 0x70;
@@ -67,17 +68,17 @@ colorplus_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-colorplus_in(uint16_t addr, void *p)
+colorplus_in(uint16_t addr, void *priv)
 {
-    colorplus_t *colorplus = (colorplus_t *) p;
+    colorplus_t *colorplus = (colorplus_t *) priv;
 
     return cga_in(addr, &colorplus->cga);
 }
 
 void
-colorplus_write(uint32_t addr, uint8_t val, void *p)
+colorplus_write(uint32_t addr, uint8_t val, void *priv)
 {
-    colorplus_t *colorplus = (colorplus_t *) p;
+    colorplus_t *colorplus = (colorplus_t *) priv;
 
     if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_GRAPHICS_MODE)) {
         addr ^= 0x4000;
@@ -94,9 +95,9 @@ colorplus_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-colorplus_read(uint32_t addr, void *p)
+colorplus_read(uint32_t addr, void *priv)
 {
-    colorplus_t *colorplus = (colorplus_t *) p;
+    colorplus_t *colorplus = (colorplus_t *) priv;
 
     if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_GRAPHICS_MODE)) {
         addr ^= 0x4000;
@@ -119,9 +120,9 @@ colorplus_recalctimings(colorplus_t *colorplus)
 }
 
 void
-colorplus_poll(void *p)
+colorplus_poll(void *priv)
 {
-    colorplus_t     *colorplus = (colorplus_t *) p;
+    colorplus_t     *colorplus = (colorplus_t *) priv;
     int              x;
     int              c;
     int              oldvc;
@@ -134,8 +135,8 @@ colorplus_poll(void *p)
                                     0x18, 0x1A, 0x1C, 0x1E,
                                     0x11, 0x13, 0x15, 0x17,
                                     0x19, 0x1B, 0x1D, 0x1F };
-    uint8_t         *plane0     = colorplus->cga.vram;
-    uint8_t         *plane1     = colorplus->cga.vram + 0x4000;
+    const uint8_t   *plane0     = colorplus->cga.vram;
+    const uint8_t   *plane1     = colorplus->cga.vram + 0x4000;
 
     /* If one of the extra modes is not selected, drop down to the CGA
      * drawing code. */
@@ -333,7 +334,7 @@ colorplus_init(colorplus_t *colorplus)
 }
 
 void *
-colorplus_standalone_init(const device_t *info)
+colorplus_standalone_init(UNUSED(const device_t *info))
 {
     int display_type;
 
@@ -362,18 +363,18 @@ colorplus_standalone_init(const device_t *info)
 }
 
 void
-colorplus_close(void *p)
+colorplus_close(void *priv)
 {
-    colorplus_t *colorplus = (colorplus_t *) p;
+    colorplus_t *colorplus = (colorplus_t *) priv;
 
     free(colorplus->cga.vram);
     free(colorplus);
 }
 
 void
-colorplus_speed_changed(void *p)
+colorplus_speed_changed(void *priv)
 {
-    colorplus_t *colorplus = (colorplus_t *) p;
+    colorplus_t *colorplus = (colorplus_t *) priv;
 
     cga_recalctimings(&colorplus->cga);
 }

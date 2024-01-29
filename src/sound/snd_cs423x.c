@@ -36,6 +36,8 @@
 #include <86box/snd_ad1848.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 #define CRYSTAL_NOEEPROM 0x100
 
@@ -133,14 +135,32 @@ typedef struct cs423x_t {
     ad1848_t ad1848;
     sb_t    *sb;
     void    *gameport;
-    void    *i2c, *eeprom;
+    void    *i2c;
+    void    *eeprom;
 
-    uint16_t wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size : 11, pnp_offset;
-    uint8_t  type, ad1848_type, regs[8], indirect_regs[16],
-        eeprom_data[2048], ram_data[65536], ram_dl : 2, opl_wss : 1;
-    char *nvr_path;
+    uint16_t wss_base;
+    uint16_t opl_base;
+    uint16_t sb_base;
+    uint16_t ctrl_base;
+    uint16_t ram_addr;
+    uint16_t eeprom_size : 11;
+    uint16_t pnp_offset;
+    uint8_t  type;
+    uint8_t  ad1848_type;
+    uint8_t  regs[8];
+    uint8_t  indirect_regs[16];
+    uint8_t  eeprom_data[2048];
+    uint8_t  ram_data[65536];
+    uint8_t  ram_dl : 2;
+    uint8_t  opl_wss : 1;
+    char    *nvr_path;
 
-    uint8_t                 pnp_enable : 1, key_pos : 5, slam_enable : 1, slam_state : 2, slam_ld, slam_reg;
+    uint8_t                 pnp_enable : 1;
+    uint8_t                 key_pos : 5;
+    uint8_t                 slam_enable : 1;
+    uint8_t                 slam_state : 2;
+    uint8_t                 slam_ld;
+    uint8_t                 slam_reg;
     isapnp_device_config_t *slam_config;
 } cs423x_t;
 
@@ -151,13 +171,13 @@ static void cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config
 static void
 cs423x_nvram(cs423x_t *dev, uint8_t save)
 {
-    FILE *f = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
-    if (f) {
+    FILE *fp = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
+    if (fp) {
         if (save)
-            fwrite(dev->eeprom_data, sizeof(dev->eeprom_data), 1, f);
+            fwrite(dev->eeprom_data, sizeof(dev->eeprom_data), 1, fp);
         else
-            (void) !fread(dev->eeprom_data, sizeof(dev->eeprom_data), 1, f);
-        fclose(f);
+            (void) !fread(dev->eeprom_data, sizeof(dev->eeprom_data), 1, fp);
+        fclose(fp);
     }
 }
 
@@ -197,6 +217,9 @@ cs423x_read(uint16_t addr, void *priv)
             if (dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16 || dev->sb->dsp.sb_irq401) /* SBPro interrupt */
                 ret |= 0x20;
 
+            break;
+
+        default:
             break;
     }
 
@@ -264,6 +287,9 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                     dev->ad1848.wten = !!(val & 0x08);
                     ad1848_updatevolmask(&dev->ad1848);
                     break;
+
+                default:
+                    break;
             }
             dev->indirect_regs[dev->regs[3]] = val;
             break;
@@ -274,7 +300,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                     switch (val) {
                         case 0x55: /* Disable PnP Key */
                             dev->pnp_enable = 0;
-                            /* fall-through */
+                            fallthrough;
 
                         case 0x5a: /* Update Hardware Configuration Data */
                             cs423x_pnp_enable(dev, 0, 1);
@@ -289,6 +315,9 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 
                         case 0xaa: /* Download RAM */
                             dev->ram_dl = 1;
+                            break;
+
+                        default:
                             break;
                     }
                     break;
@@ -306,6 +335,9 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                 case 3: /* data */
                     dev->ram_data[dev->ram_addr++] = val;
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -321,13 +353,16 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 
         case 7: /* Global Status */
             return;
+
+        default:
+            break;
     }
 
     dev->regs[reg] = val;
 }
 
 static void
-cs423x_slam_write(uint16_t addr, uint8_t val, void *priv)
+cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
     uint8_t   idx;
@@ -441,10 +476,16 @@ cs423x_slam_write(uint16_t addr, uint8_t val, void *priv)
                     /* Activate or deactivate the device. */
                     dev->slam_config->activate = val & 0x01;
                     break;
+
+                default:
+                    break;
             }
 
             /* Prepare for the next register, unless a two-byte read returns above. */
             dev->slam_state = CRYSTAL_SLAM_INDEX;
+            break;
+
+        default:
             break;
     }
 }
@@ -467,7 +508,7 @@ cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
 }
 
 static void
-cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
+cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     cs423x_t *dev        = (cs423x_t *) priv;
     uint8_t   ctx        = (dev->regs[7] & 0x80);
@@ -503,9 +544,9 @@ cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
 static void
 cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    cs423x_t *dev = (cs423x_t *) priv;
-    int       opl_wss = dev->opl_wss;
-    int32_t  *opl_buf = NULL;
+    cs423x_t       *dev = (cs423x_t *) priv;
+    int             opl_wss = dev->opl_wss;
+    const int32_t  *opl_buf = NULL;
 
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
     ad1848_update(&dev->ad1848);
@@ -542,7 +583,9 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
         /* But wait! The TriGem Delhi-III BIOS sends command 0x55, and its behavior doesn't
            line up with real hardware (still listed in the POST summary and seen by software).
            Disable the PnP key disabling mechanism until someone figures something out. */
-        // isapnp_enable_card(dev->pnp_card, ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable) ? ISAPNP_CARD_NO_KEY : ISAPNP_CARD_ENABLE);
+#if 0
+        isapnp_enable_card(dev->pnp_card, ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable) ? ISAPNP_CARD_NO_KEY : ISAPNP_CARD_ENABLE);
+#endif
         if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
             pclog("CS423x: Attempted to disable PnP key\n");
     }
@@ -674,6 +717,9 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
             }
 
             break;
+
+        default:
+            break;
     }
 }
 
@@ -764,6 +810,9 @@ cs423x_init(const device_t *info)
                         dev->eeprom_data[26] = 0x38;
                         dev->nvr_path        = "cs4238b.nvr";
                         break;
+
+                    default:
+                        break;
                 }
 
                 /* Load EEPROM contents from file if present. */
@@ -774,6 +823,9 @@ cs423x_init(const device_t *info)
                2 ports are reserved on those chips, and probably connected to the Digital Assist feature. */
             dev->gameport = gameport_add(((dev->type == CRYSTAL_CS4235) || (dev->type == CRYSTAL_CS4236B)) ? &gameport_pnp_device : &gameport_pnp_6io_device);
 
+            break;
+
+        default:
             break;
     }
 

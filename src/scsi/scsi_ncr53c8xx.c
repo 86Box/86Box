@@ -204,7 +204,7 @@ typedef enum {
     SCSI_STATE_WRITE_MESSAGE
 } scsi_state_t;
 
-typedef struct {
+typedef struct ncr53c8xx_t {
     char         *nvr_path;
     uint8_t       pci_slot;
     uint8_t       chip, wide;
@@ -234,6 +234,7 @@ typedef struct {
     int waiting;
 
     uint8_t current_lun;
+    uint8_t irq_state;
 
     uint8_t istat;
     uint8_t dcmd;
@@ -291,9 +292,16 @@ typedef struct {
     uint32_t dbc;
     uint32_t dsp;
     uint32_t dsps;
-    uint32_t scratcha, scratchb, scratchc, scratchd;
-    uint32_t scratche, scratchf, scratchg, scratchh;
-    uint32_t scratchi, scratchj;
+    uint32_t scratcha;
+    uint32_t scratchb;
+    uint32_t scratchc;
+    uint32_t scratchd;
+    uint32_t scratche;
+    uint32_t scratchf;
+    uint32_t scratchg;
+    uint32_t scratchh;
+    uint32_t scratchi;
+    uint32_t scratchj;
     int      last_level;
     void    *hba_private;
     uint32_t buffer_pos;
@@ -479,7 +487,7 @@ ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 }
 
 static __inline uint32_t
-read_dword(ncr53c8xx_t *dev, uint32_t addr)
+read_dword(UNUSED(ncr53c8xx_t *dev), uint32_t addr)
 {
     uint32_t buf;
     ncr53c8xx_log("Reading the next DWORD from memory (%08X)...\n", addr);
@@ -491,10 +499,10 @@ static void
 do_irq(ncr53c8xx_t *dev, int level)
 {
     if (level) {
-        pci_set_irq(dev->pci_slot, PCI_INTA);
+        pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         ncr53c8xx_log("Raising IRQ...\n");
     } else {
-        pci_clear_irq(dev->pci_slot, PCI_INTA);
+        pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         ncr53c8xx_log("Lowering IRQ...\n");
     }
 }
@@ -527,12 +535,16 @@ ncr53c8xx_update_irq(ncr53c8xx_t *dev)
         level = 1;
     }
 
+#ifdef STATE_KEEPING
     if (level != dev->last_level) {
+#endif
         ncr53c8xx_log("Update IRQ level %d dstat %02x sist %02x%02x\n",
                       level, dev->dstat, dev->sist1, dev->sist0);
         dev->last_level = level;
         do_irq(dev, level); /* Only do something with the IRQ if the new level differs from the previous one. */
+#ifdef STATE_KEEPING
     }
+#endif
 }
 
 /* Stop SCRIPTS execution and raise a SCSI interrupt.  */
@@ -578,7 +590,7 @@ ncr53c8xx_set_phase(ncr53c8xx_t *dev, int phase)
 }
 
 static void
-ncr53c8xx_bad_phase(ncr53c8xx_t *dev, int out, int new_phase)
+ncr53c8xx_bad_phase(ncr53c8xx_t *dev, UNUSED(int out), int new_phase)
 {
     /* Trigger a phase mismatch.  */
     ncr53c8xx_log("Phase mismatch interrupt\n");
@@ -603,7 +615,7 @@ ncr53c8xx_disconnect(ncr53c8xx_t *dev)
 }
 
 static void
-ncr53c8xx_bad_selection(ncr53c8xx_t *dev, uint32_t id)
+ncr53c8xx_bad_selection(ncr53c8xx_t *dev, UNUSED(uint32_t id))
 {
     ncr53c8xx_log("Selected absent target %d\n", id);
     ncr53c8xx_script_scsi_interrupt(dev, 0, NCR_SIST1_STO);
@@ -863,7 +875,7 @@ ncr53c8xx_skip_msgbytes(ncr53c8xx_t *dev, unsigned int n)
 }
 
 static void
-ncr53c8xx_bad_message(ncr53c8xx_t *dev, uint8_t msg)
+ncr53c8xx_bad_message(ncr53c8xx_t *dev, UNUSED(uint8_t msg))
 {
     ncr53c8xx_log("Unimplemented message 0x%02x\n", msg);
     ncr53c8xx_set_phase(dev, PHASE_MI);
@@ -1191,6 +1203,9 @@ again:
                         if (insn & (1 << 10))
                             dev->carry = 0;
                         break;
+
+                    default:
+                        break;
                 }
             } else {
                 reg    = ((insn >> 16) & 0x7f) | (insn & 0x80);
@@ -1215,6 +1230,9 @@ again:
                             op1 = dev->sfbr;
                         else
                             op1 = data8;
+                        break;
+
+                    default:
                         break;
                 }
 
@@ -1252,6 +1270,9 @@ again:
                         else
                             dev->carry = op0 < op1;
                         break;
+
+                    default:
+                        break;
                 }
 
                 switch (opcode) {
@@ -1261,6 +1282,9 @@ again:
                         break;
                     case 6: /* To SFBR */
                         dev->sfbr = op0;
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -1403,9 +1427,9 @@ ncr53c8xx_execute_script(ncr53c8xx_t *dev)
 }
 
 static void
-ncr53c8xx_callback(void *p)
+ncr53c8xx_callback(void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     if (!dev->sstop) {
         if (dev->waiting)
@@ -1421,15 +1445,15 @@ ncr53c8xx_callback(void *p)
 static void
 ncr53c8xx_eeprom(ncr53c8xx_t *dev, uint8_t save)
 {
-    FILE *f;
+    FILE *fp;
 
-    f = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
-    if (f) {
+    fp = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
+    if (fp) {
         if (save)
-            fwrite(&dev->nvram, sizeof(dev->nvram), 1, f);
+            fwrite(&dev->nvram, sizeof(dev->nvram), 1, fp);
         else
-            (void) !fread(&dev->nvram, sizeof(dev->nvram), 1, f);
-        fclose(f);
+            (void) !fread(&dev->nvram, sizeof(dev->nvram), 1, fp);
+        fclose(fp);
     }
 }
 
@@ -1559,7 +1583,9 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
                 ncr53c8xx_log("Woken by SIGP\n");
                 dev->waiting = 0;
                 dev->dsp     = dev->dnad;
-                /* ncr53c8xx_execute_script(dev); */
+#if 0
+                ncr53c8xx_execute_script(dev);
+#endif
             }
             if ((val & NCR_ISTAT_SRST) && !(tmp & NCR_ISTAT_SRST)) {
                 ncr53c8xx_soft_reset(dev);
@@ -1978,6 +2004,9 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             CASE_GET_REG32_COND(scratchh, 0x74)
             CASE_GET_REG32_COND(scratchi, 0x78)
             CASE_GET_REG32_COND(scratchj, 0x7c)
+
+        default:
+            break;
     }
     ncr53c8xx_log("readb 0x%x\n", offset);
     return 0;
@@ -1987,16 +2016,17 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 }
 
 static uint8_t
-ncr53c8xx_io_readb(uint16_t addr, void *p)
+ncr53c8xx_io_readb(uint16_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     return ncr53c8xx_reg_readb(dev, addr & 0xff);
 }
 
 static uint16_t
-ncr53c8xx_io_readw(uint16_t addr, void *p)
+ncr53c8xx_io_readw(uint16_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint16_t     val;
 
     addr &= 0xff;
@@ -2006,9 +2036,9 @@ ncr53c8xx_io_readw(uint16_t addr, void *p)
 }
 
 static uint32_t
-ncr53c8xx_io_readl(uint16_t addr, void *p)
+ncr53c8xx_io_readl(uint16_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint32_t     val;
 
     addr &= 0xff;
@@ -2020,25 +2050,28 @@ ncr53c8xx_io_readl(uint16_t addr, void *p)
 }
 
 static void
-ncr53c8xx_io_writeb(uint16_t addr, uint8_t val, void *p)
+ncr53c8xx_io_writeb(uint16_t addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     ncr53c8xx_reg_writeb(dev, addr & 0xff, val);
 }
 
 static void
-ncr53c8xx_io_writew(uint16_t addr, uint16_t val, void *p)
+ncr53c8xx_io_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
     ncr53c8xx_reg_writeb(dev, addr + 1, (val >> 8) & 0xff);
 }
 
 static void
-ncr53c8xx_io_writel(uint16_t addr, uint32_t val, void *p)
+ncr53c8xx_io_writel(uint16_t addr, uint32_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
     ncr53c8xx_reg_writeb(dev, addr + 1, (val >> 8) & 0xff);
@@ -2047,17 +2080,17 @@ ncr53c8xx_io_writel(uint16_t addr, uint32_t val, void *p)
 }
 
 static void
-ncr53c8xx_mmio_writeb(uint32_t addr, uint8_t val, void *p)
+ncr53c8xx_mmio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     ncr53c8xx_reg_writeb(dev, addr & 0xff, val);
 }
 
 static void
-ncr53c8xx_mmio_writew(uint32_t addr, uint16_t val, void *p)
+ncr53c8xx_mmio_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
@@ -2065,9 +2098,9 @@ ncr53c8xx_mmio_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-ncr53c8xx_mmio_writel(uint32_t addr, uint32_t val, void *p)
+ncr53c8xx_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
@@ -2077,17 +2110,17 @@ ncr53c8xx_mmio_writel(uint32_t addr, uint32_t val, void *p)
 }
 
 static uint8_t
-ncr53c8xx_mmio_readb(uint32_t addr, void *p)
+ncr53c8xx_mmio_readb(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     return ncr53c8xx_reg_readb(dev, addr & 0xff);
 }
 
 static uint16_t
-ncr53c8xx_mmio_readw(uint32_t addr, void *p)
+ncr53c8xx_mmio_readw(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint16_t     val;
 
     addr &= 0xff;
@@ -2097,9 +2130,9 @@ ncr53c8xx_mmio_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-ncr53c8xx_mmio_readl(uint32_t addr, void *p)
+ncr53c8xx_mmio_readl(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint32_t     val;
 
     addr &= 0xff;
@@ -2112,57 +2145,57 @@ ncr53c8xx_mmio_readl(uint32_t addr, void *p)
 }
 
 static void
-ncr53c8xx_ram_writeb(uint32_t addr, uint8_t val, void *p)
+ncr53c8xx_ram_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     dev->ram[addr & 0x0fff] = val;
 }
 
 static void
-ncr53c8xx_ram_writew(uint32_t addr, uint16_t val, void *p)
+ncr53c8xx_ram_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    ncr53c8xx_ram_writeb(addr, val & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, p);
+    ncr53c8xx_ram_writeb(addr, val & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, priv);
 }
 
 static void
-ncr53c8xx_ram_writel(uint32_t addr, uint32_t val, void *p)
+ncr53c8xx_ram_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    ncr53c8xx_ram_writeb(addr, val & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 2, (val >> 16) & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 3, (val >> 24) & 0xff, p);
+    ncr53c8xx_ram_writeb(addr, val & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 2, (val >> 16) & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 3, (val >> 24) & 0xff, priv);
 }
 
 static uint8_t
-ncr53c8xx_ram_readb(uint32_t addr, void *p)
+ncr53c8xx_ram_readb(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    const ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     return dev->ram[addr & 0x0fff];
 }
 
 static uint16_t
-ncr53c8xx_ram_readw(uint32_t addr, void *p)
+ncr53c8xx_ram_readw(uint32_t addr, void *priv)
 {
     uint16_t val;
 
-    val = ncr53c8xx_ram_readb(addr, p);
-    val |= ncr53c8xx_ram_readb(addr + 1, p) << 8;
+    val = ncr53c8xx_ram_readb(addr, priv);
+    val |= ncr53c8xx_ram_readb(addr + 1, priv) << 8;
 
     return val;
 }
 
 static uint32_t
-ncr53c8xx_ram_readl(uint32_t addr, void *p)
+ncr53c8xx_ram_readl(uint32_t addr, void *priv)
 {
     uint32_t val;
 
-    val = ncr53c8xx_ram_readb(addr, p);
-    val |= ncr53c8xx_ram_readb(addr + 1, p) << 8;
-    val |= ncr53c8xx_ram_readb(addr + 2, p) << 16;
-    val |= ncr53c8xx_ram_readb(addr + 3, p) << 24;
+    val = ncr53c8xx_ram_readb(addr, priv);
+    val |= ncr53c8xx_ram_readb(addr + 1, priv) << 8;
+    val |= ncr53c8xx_ram_readb(addr + 2, priv) << 16;
+    val |= ncr53c8xx_ram_readb(addr + 3, priv) << 24;
 
     return val;
 }
@@ -2246,9 +2279,9 @@ uint8_t ncr53c8xx_pci_regs[256];
 bar_t   ncr53c8xx_pci_bar[4];
 
 static uint8_t
-ncr53c8xx_pci_read(int func, int addr, void *p)
+ncr53c8xx_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     ncr53c8xx_log("NCR53c8xx: Reading register %02X\n", addr & 0xff);
 
@@ -2341,15 +2374,18 @@ ncr53c8xx_pci_read(int func, int addr, void *p)
             return 0x11;
         case 0x3F:
             return 0x40;
+
+        default:
+            break;
     }
 
     return 0;
 }
 
 static void
-ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
+ncr53c8xx_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint8_t      valxor;
 
     ncr53c8xx_log("NCR53c8xx: Write value %02X to register %02X\n", val, addr & 0xff);
@@ -2479,6 +2515,9 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
             ncr53c8xx_pci_regs[addr] = val;
             dev->irq                 = val;
             return;
+
+        default:
+            break;
     }
 }
 
@@ -2518,9 +2557,9 @@ ncr53c8xx_init(const device_t *info)
         dev->has_bios = 0;
 
     if (info->local & 0x8000)
-        dev->pci_slot = pci_add_card(PCI_ADD_SCSI, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
+        pci_add_card(PCI_ADD_SCSI, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev, &dev->pci_slot);
     else
-        dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
+        pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev, &dev->pci_slot);
 
     if (dev->chip == CHIP_875) {
         dev->chip_rev = 0x04;
@@ -2583,6 +2622,8 @@ ncr53c8xx_init(const device_t *info)
     ncr53c8xx_soft_reset(dev);
 
     timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
+
+    scsi_bus_set_speed(dev->bus, 10000000.0);
 
     return dev;
 }

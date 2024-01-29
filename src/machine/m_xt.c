@@ -310,7 +310,9 @@ machine_xt_pxxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model);
 
     return ret;
 }
@@ -491,6 +493,14 @@ machine_xt_vendex_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_xt_hyundai_common_init(const machine_t *model)
+{
+    device_add(&keyboard_xt_hyundai_device);
+
+    machine_xt_common_init(model);
+}
+
 int
 machine_xt_super16t_init(const machine_t *model)
 {
@@ -502,7 +512,7 @@ machine_xt_super16t_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_hyundai_common_init(model);
 
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);
@@ -521,7 +531,7 @@ machine_xt_super16te_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_hyundai_common_init(model);
 
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);
@@ -627,6 +637,22 @@ machine_xt_pb8810_init(const machine_t *model)
         return ret;
 
     machine_xt_clone_init(model);
+
+    return ret;
+}
+
+int
+machine_xt_glabios_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.2.6_8X_012324.ROM",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_init_ex(model);
 
     return ret;
 }

@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"
 #define STR_VOODOO        "Voodoo Graphics"
-#define STR_IBM8514       "IBM 8514/a Graphics"
+#define STR_IBM8514       "IBM 8514/A Graphics"
 #define STR_XGA           "XGA Graphics"
 
 #define STR_MOUSE         "Mouse:"
@@ -293,10 +293,10 @@ END
 #define STR_JOY3          "Joystick 3..."
 #define STR_JOY4          "Joystick 4..."
 
-#define STR_SOUND1        "Sound card 1:"
-#define STR_SOUND2        "Sound card 2:"
-#define STR_SOUND3        "Sound card 3:"
-#define STR_SOUND4        "Sound card 4:"
+#define STR_SOUND1        "Sound card #1:"
+#define STR_SOUND2        "Sound card #2:"
+#define STR_SOUND3        "Sound card #3:"
+#define STR_SOUND4        "Sound card #4:"
 #define STR_MIDI_OUT      "MIDI Out Device:"
 #define STR_MIDI_IN       "MIDI In Device:"
 #define STR_MPU401        "Standalone MPU-401"
@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Unable to initialize FluidSynth"
     IDS_2081    "Bus"
     IDS_2082    "File"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Floppy %i (%s): %ls"
     IDS_2110    "All images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2111    "Unable to initialize FreeType"
     IDS_2112    "Unable to initialize SDL, SDL2.dll is required"
     IDS_2113    "Are you sure you want to hard reset the emulated machine?"
     IDS_2114    "Are you sure you want to exit 86Box?"
@@ -482,7 +480,7 @@ BEGIN
     IDS_2125    "About 86Box"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+    IDS_2127    "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
     IDS_2128    "OK"
     IDS_2129    "Hardware not available"
 #ifdef _WIN32
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "Make sure " LIB_NAME_PCAP " is installed and that you are on a " LIB_NAME_PCAP "-compatible network connection."
     IDS_2131    "Invalid configuration"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " is required for ESC/P printer emulation."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " is required for FluidSynth MIDI output."
     IDS_2135    "Entering fullscreen mode"
     IDS_2136    "Don't show this message again"
     IDS_2137    "Don't exit"

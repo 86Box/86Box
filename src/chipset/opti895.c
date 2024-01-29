@@ -140,6 +140,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 {
     opti895_t *dev = (opti895_t *) priv;
 
+    opti895_log("opti895_write(%04X, %08X)\n", addr, val);
+
     switch (addr) {
         case 0x22:
             dev->idx = val;
@@ -155,6 +157,7 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
                 dev->regs[dev->idx] = val;
                 opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
 
+                /* TODO: Registers 0x30-0x3F for OPTi 802GP and 898. */
                 switch (dev->idx) {
                     case 0x21:
                         cpu_cache_ext_enabled = !!(dev->regs[0x21] & 0x10);
@@ -204,8 +207,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti895_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    opti895_t *dev = (opti895_t *) priv;
+    uint8_t          ret = 0xff;
+    const opti895_t *dev = (opti895_t *) priv;
 
     switch (addr) {
         case 0x23:
@@ -213,12 +216,14 @@ opti895_read(uint16_t addr, void *priv)
                 ret = dev->regs[dev->idx];
             break;
         case 0x24:
+            /* TODO: Registers 0x30-0x3F for OPTi 802GP and 898. */
             if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) || ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
                 ret = dev->regs[dev->idx];
                 if (dev->idx == 0xe0)
                     ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
             }
             break;
+
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[addr - 0xe1];
@@ -227,6 +232,8 @@ opti895_read(uint16_t addr, void *priv)
         default:
             break;
     }
+
+    opti895_log("opti895_read(%04X) = %02X\n", addr, ret);
 
     return ret;
 }

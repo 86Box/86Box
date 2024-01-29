@@ -2,8 +2,11 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_ir.h"
@@ -12,7 +15,7 @@
 #include "codegen_ops_helpers.h"
 
 void
-LOAD_IMMEDIATE_FROM_RAM_16_unaligned(codeblock_t *block, ir_data_t *ir, int dest_reg, uint32_t addr)
+LOAD_IMMEDIATE_FROM_RAM_16_unaligned(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
 {
     /*Word access that crosses two pages. Perform reads from both pages, shift and combine*/
     uop_MOVZX_REG_PTR_8(ir, IREG_temp3_W, get_ram_ptr(addr));
@@ -22,7 +25,7 @@ LOAD_IMMEDIATE_FROM_RAM_16_unaligned(codeblock_t *block, ir_data_t *ir, int dest
 }
 
 void
-LOAD_IMMEDIATE_FROM_RAM_32_unaligned(codeblock_t *block, ir_data_t *ir, int dest_reg, uint32_t addr)
+LOAD_IMMEDIATE_FROM_RAM_32_unaligned(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
 {
     /*Dword access that crosses two pages. Perform reads from both pages, shift and combine*/
     uop_MOV_REG_PTR(ir, dest_reg, get_ram_ptr(addr & ~3));
@@ -36,7 +39,7 @@ LOAD_IMMEDIATE_FROM_RAM_32_unaligned(codeblock_t *block, ir_data_t *ir, int dest
 #define UNROLL_MAX_UOPS           1000
 #define UNROLL_MAX_COUNT          10
 int
-codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
+codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_pc), uint32_t dest_addr)
 {
     int start;
     int max_unroll;

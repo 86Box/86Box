@@ -64,6 +64,8 @@
 #include <86box/net_dp8390.h>
 #include <86box/net_wd8003.h>
 #include <86box/bswap.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 #include "cpu.h"
 
@@ -98,12 +100,14 @@
 #define WE_ID_EXTRA_RAM   0x40
 #define WE_ID_BUS_MCA     0x80
 
-typedef struct {
+typedef struct wd_t {
     dp8390_t     *dp8390;
     mem_mapping_t ram_mapping;
-    uint32_t      ram_addr, ram_size;
+    uint32_t      ram_addr;
+    uint32_t      ram_size;
     uint8_t       maclocal[6]; /* configured MAC (local) address */
-    uint8_t       bit16, pad;
+    uint8_t       bit16;
+    uint8_t       pad;
     int           board;
     const char   *name;
     uint32_t      base_address;
@@ -113,11 +117,12 @@ typedef struct {
     uint8_t pos_regs[8];
 
     /* Memory for WD cards*/
-    uint8_t msr, /* Memory Select Register (MSR) */
-        icr,     /* Interface Configuration Register (ICR) */
-        irr,     /* Interrupt Request Register (IRR) */
-        laar,    /* LA Address Register (read by Windows 98!) */
-        if_chip, board_chip;
+    uint8_t msr;        /* Memory Select Register (MSR) */
+    uint8_t icr;        /* Interface Configuration Register (ICR) */
+    uint8_t irr;        /* Interrupt Request Register (IRR) */
+    uint8_t laar;       /* LA Address Register (read by Windows 98!) */
+    uint8_t if_chip;
+    uint8_t board_chip;
 } wd_t;
 
 #ifdef ENABLE_WD_LOG
@@ -143,7 +148,7 @@ static const int we_int_table[4] = { 2, 3, 4, 7 };
 static void
 wd_interrupt(void *priv, int set)
 {
-    wd_t *dev = (wd_t *) priv;
+    const wd_t *dev = (wd_t *) priv;
 
     if (!(dev->irr & WE_IRR_ENABLE_IRQ))
         return;
@@ -176,7 +181,7 @@ wd_soft_reset(void *priv)
 static uint8_t
 wd_ram_read(uint32_t addr, void *priv)
 {
-    wd_t *dev = (wd_t *) priv;
+    const wd_t *dev = (wd_t *) priv;
 
     wdlog("WD80x3: RAM Read: addr=%06x, val=%02x\n", addr & (dev->ram_size - 1), dev->dp8390->mem[addr & (dev->ram_size - 1)]);
     return dev->dp8390->mem[addr & (dev->ram_size - 1)];
@@ -279,6 +284,9 @@ wd_smc_read(wd_t *dev, uint32_t off)
             checksum = (dev->dp8390->physaddr[0] + dev->dp8390->physaddr[1] + dev->dp8390->physaddr[2] + dev->dp8390->physaddr[3] + dev->dp8390->physaddr[4] + dev->dp8390->physaddr[5] + dev->board_chip);
 
             retval = 0xff - (checksum & 0xff);
+            break;
+
+        default:
             break;
     }
 
@@ -513,7 +521,7 @@ wd_io_remove(wd_t *dev, uint16_t addr)
 static uint8_t
 wd_mca_read(int port, void *priv)
 {
-    wd_t *dev = (wd_t *) priv;
+    const wd_t *dev = (wd_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -602,6 +610,9 @@ wd_8013epa_mca_write(int port, uint8_t val, void *priv)
         case 0x0c:
             dev->irq = 14;
             break;
+
+        default:
+            break;
     }
 
     if (dev->pos_regs[3] & 0x10)
@@ -629,7 +640,7 @@ wd_8013epa_mca_write(int port, uint8_t val, void *priv)
 }
 
 static uint8_t
-wd_mca_feedb(void *priv)
+wd_mca_feedb(UNUSED(void *priv))
 {
     return 1;
 }
@@ -724,6 +735,8 @@ wd_init(const device_t *info)
         /* Ethernet, MCA, 5x3 interface chip, RAM 16k */
         case WD8003EA:
             dev->board_chip = WE_ID_SOFT_CONFIG;
+            fallthrough;
+
         /* Ethernet, MCA, no interface chip, RAM 16k */
         case WD8003ETA:
             dev->board_chip |= WE_TYPE_WD8013EBT | WE_ID_BUS_MCA;
@@ -739,6 +752,9 @@ wd_init(const device_t *info)
             dev->pos_regs[0] = 0xC8;
             dev->pos_regs[1] = 0x61;
             dev->bit16       = 3;
+            break;
+
+        default:
             break;
     }
 

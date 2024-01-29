@@ -414,7 +414,7 @@ hndl_clbeg(pgc_t *dev)
 }
 
 static void
-hndl_clend(pgc_t *dev)
+hndl_clend(UNUSED(pgc_t *dev))
 {
     /* Should not happen outside a CLBEG. */
 }
@@ -682,7 +682,7 @@ pgc_write_pixel(pgc_t *dev, uint16_t x, uint16_t y, uint8_t ink)
 uint8_t
 pgc_read_pixel(pgc_t *dev, uint16_t x, uint16_t y)
 {
-    uint8_t *vram;
+    const uint8_t *vram;
 
     /* Suppress out-of-range reads. */
     if (x >= dev->maxw || y >= dev->maxh)
@@ -747,7 +747,7 @@ pgc_plot(pgc_t *dev, uint16_t x, uint16_t y)
  * Draw a line (using raster coordinates).
  *
  * Bresenham's Algorithm from:
- *	<https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C>
+ *  <https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C>
  *
  * The line pattern mask to use is passed in. Return value is the
  * line pattern mask, rotated by the number of points drawn.
@@ -1035,7 +1035,7 @@ hndl_poly(pgc_t *dev)
 
 /* Parse but don't execute a POLY command (for adding to a command list) */
 static int
-parse_poly(pgc_t *dev, pgc_cl_t *cl, int c)
+parse_poly(pgc_t *dev, pgc_cl_t *cl, UNUSED(int c))
 {
     uint8_t count;
 
@@ -1384,11 +1384,11 @@ hndl_window(pgc_t *dev)
  * core commands (listed below) and subclass commands (listed in the clone).
  *
  * Each row has five parameters:
- * 	ASCII-mode command
- * 	Hex-mode command
- * 	Function that executes this command
- * 	Function that parses this command when building a command list
- * 	Parameter for the parse function
+ *  ASCII-mode command
+ *  Hex-mode command
+ *  Function that executes this command
+ *  Function that parses this command when building a command list
+ *  Parameter for the parse function
  *
  * TODO: This list omits numerous commands present in a genuine PGC
  *       (ARC, AREA, AREABC, BUFFER, CIRCLE etc etc).
@@ -1898,7 +1898,6 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
                     pgc_error(dev, PGC_ERROR_MISSING);
                     return err_digit(dev);
                 }
-                break;
 
             /* Scientific notation. */
             case 'd':
@@ -2197,6 +2196,9 @@ pgc_out(uint16_t addr, uint8_t val, void *priv)
         case 0x03d9: /* CRTC Color Select register */
             dev->mapram[0x03d9] = val;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -2204,8 +2206,8 @@ pgc_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 pgc_in(uint16_t addr, void *priv)
 {
-    pgc_t  *dev = (pgc_t *) priv;
-    uint8_t ret = 0xff;
+    const pgc_t *dev = (pgc_t *) priv;
+    uint8_t      ret = 0xff;
 
     switch (addr) {
         case 0x03d0: /* CRTC Index register */
@@ -2233,6 +2235,9 @@ pgc_in(uint16_t addr, void *priv)
 
         case 0x03da: /* CRTC Status register */
             ret = dev->mapram[0x03da];
+            break;
+
+        default:
             break;
     }
 
@@ -2297,6 +2302,9 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
                 case 0x3ff: /* reboot the PGC */
                     pgc_wake(dev);
                     break;
+
+                default:
+                    break;
             }
         }
     }
@@ -2311,8 +2319,8 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 pgc_read(uint32_t addr, void *priv)
 {
-    pgc_t  *dev = (pgc_t *) priv;
-    uint8_t ret = 0xff;
+    const pgc_t *dev = (pgc_t *) priv;
+    uint8_t      ret = 0xff;
 
     if (addr >= 0xc6000 && addr < 0xc6800) {
         addr &= 0x7ff;
@@ -2329,17 +2337,17 @@ pgc_read(uint32_t addr, void *priv)
 void
 pgc_cga_text(pgc_t *dev, int w)
 {
-    uint8_t  chr;
-    uint8_t  attr;
-    int      drawcursor = 0;
-    uint32_t cols[2];
-    int      pitch = (dev->mapram[0x3e9] + 1) * 2;
-    uint16_t sc    = (dev->displine & 0x0f) % pitch;
-    uint16_t ma    = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
-    uint16_t ca    = (dev->mapram[0x3ef] | (dev->mapram[0x3ee] << 8)) & 0x3fff;
-    uint8_t *addr;
-    uint32_t val;
-    int      cw = (w == 80) ? 8 : 16;
+    uint8_t        chr;
+    uint8_t        attr;
+    int            drawcursor = 0;
+    uint32_t       cols[2];
+    int            pitch = (dev->mapram[0x3e9] + 1) * 2;
+    uint16_t       sc    = (dev->displine & 0x0f) % pitch;
+    uint16_t       ma    = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
+    uint16_t       ca    = (dev->mapram[0x3ef] | (dev->mapram[0x3ee] << 8)) & 0x3fff;
+    const uint8_t *addr;
+    uint32_t       val;
+    int            cw = (w == 80) ? 8 : 16;
 
     addr = &dev->cga_vram[((ma + ((dev->displine / pitch) * w)) * 2) & 0x3ffe];
     ma += (dev->displine / pitch) * w;
@@ -2385,11 +2393,11 @@ pgc_cga_text(pgc_t *dev, int w)
 void
 pgc_cga_gfx40(pgc_t *dev)
 {
-    uint32_t cols[4];
-    int      col;
-    uint16_t ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
-    uint8_t *addr;
-    uint16_t dat;
+    uint32_t       cols[4];
+    int            col;
+    uint16_t       ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
+    const uint8_t *addr;
+    uint16_t       dat;
 
     cols[0] = (dev->mapram[0x3d9] & 15) + 16;
     col     = ((dev->mapram[0x3d9] & 16) ? 8 : 0) + 16;
@@ -2428,10 +2436,10 @@ pgc_cga_gfx40(pgc_t *dev)
 void
 pgc_cga_gfx80(pgc_t *dev)
 {
-    uint32_t cols[2];
-    uint16_t ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
-    uint8_t *addr;
-    uint16_t dat;
+    uint32_t       cols[2];
+    uint16_t       ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
+    const uint8_t *addr;
+    uint16_t       dat;
 
     cols[0] = 16;
     cols[1] = (dev->mapram[0x3d9] & 15) + 16;
@@ -2728,7 +2736,7 @@ pgc_standalone_init(const device_t *info)
 }
 
 const device_t pgc_device = {
-    .name          = "PGC",
+    .name          = "IBM PGC",
     .internal_name = "pgc",
     .flags         = DEVICE_ISA,
     .local         = 0,

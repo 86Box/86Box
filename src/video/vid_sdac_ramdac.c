@@ -44,10 +44,13 @@ enum {
 
 typedef struct sdac_ramdac_t {
     uint16_t regs[256];
-    int      magic_count,
-        windex, rindex,
-        reg_ff, rs2;
-    uint8_t type, command;
+    int      magic_count;
+    int      windex;
+    int      rindex;
+    int      reg_ff;
+    int      rs2;
+    uint8_t  type;
+    uint8_t  command;
 } sdac_ramdac_t;
 
 static void
@@ -59,8 +62,8 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
         case ICS_5300:
         case ICS_5301:
             switch (val >> 5) {
-                case 0x00:
                 default:
+                case 0x00:
                     svga->bpp = 8;
                     break;
                 case 0x01:
@@ -82,9 +85,9 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
         case ICS_5341:
         case ICS_5342:
             switch (val >> 4) {
+                default:
                 case 0x00:
                 case 0x01: /* This is actually 8bpp with two pixels read at a time. */
-                default:
                     svga->bpp = 8;
                     break;
                 case 0x02:
@@ -107,6 +110,9 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
                     svga->bpp = 32;
                     break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -144,9 +150,9 @@ sdac_reg_read(sdac_ramdac_t *ramdac, int reg)
 }
 
 void
-sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
+sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga)
 {
-    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
+    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) priv;
     uint8_t        rs     = (addr & 0x03);
     rs |= ((!!rs2) << 2);
 
@@ -184,13 +190,16 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
             ramdac->rindex = val;
             ramdac->reg_ff = 0;
             break;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
+sdac_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 {
-    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
+    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) priv;
     uint8_t        temp   = 0xff;
     uint8_t        rs     = (addr & 0x03);
     rs |= ((!!rs2) << 2);
@@ -237,19 +246,22 @@ sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
         case 0x07:
             temp = ramdac->rindex;
             break;
+
+        default:
+            break;
     }
 
     return temp;
 }
 
 float
-sdac_getclock(int clock, void *p)
+sdac_getclock(int clock, void *priv)
 {
-    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
-    float          t;
-    int            m;
-    int            n1;
-    int            n2;
+    const sdac_ramdac_t *ramdac = (sdac_ramdac_t *) priv;
+    float                t;
+    int                  m;
+    int                  n1;
+    int                  n2;
 
     if (ramdac->regs[0xe] & (1 << 5))
         clock = ramdac->regs[0xe] & 7;

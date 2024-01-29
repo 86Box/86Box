@@ -103,25 +103,11 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/smram.h>
-
-#ifdef USE_DYNAREC
-#    include "codegen_public.h"
-#else
-#    ifdef USE_NEW_DYNAREC
-#        define PAGE_MASK_SHIFT 6
-#    else
-#        define PAGE_MASK_INDEX_MASK  3
-#        define PAGE_MASK_INDEX_SHIFT 10
-#        define PAGE_MASK_SHIFT       4
-#    endif
-#    define PAGE_MASK_MASK 63
-#endif
 #include <86box/chipset.h>
 
 #ifdef ENABLE_HB4_LOG
@@ -146,6 +132,8 @@ typedef struct hb4_t {
     uint8_t  shadow;
     uint8_t  shadow_read;
     uint8_t  shadow_write;
+    uint8_t  pci_slot;
+
     uint8_t  pci_conf[256]; /* PCI Registers */
     int      mem_state[9];
     smram_t *smram[3]; /* SMRAM Handlers */
@@ -333,8 +321,8 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 hb4_read(int func, int addr, void *priv)
 {
-    hb4_t  *dev = (hb4_t *) priv;
-    uint8_t ret = 0xff;
+    const hb4_t  *dev = (hb4_t *) priv;
+    uint8_t       ret = 0xff;
 
     if (func == 0)
         ret = dev->pci_conf[addr];
@@ -393,7 +381,7 @@ hb4_init(UNUSED(const device_t *info))
     hb4_t *dev = (hb4_t *) malloc(sizeof(hb4_t));
     memset(dev, 0, sizeof(hb4_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev); /* Device 10: UMC 8881x */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev, &dev->pci_slot); /* Device 10: UMC 8881x */
 
     /* Port 92 */
     device_add(&port_92_pci_device);

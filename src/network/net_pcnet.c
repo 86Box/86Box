@@ -47,6 +47,8 @@
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 /* PCI info. */
 #define PCI_VENDID  0x1022 /* AMD */
@@ -215,7 +217,8 @@ typedef struct {
     uint32_t      base_address;
     int           base_irq;
     int           dma_channel;
-    int           card; /* PCI card slot */
+    uint8_t       pci_slot; /* PCI card slot */
+    uint8_t       irq_state;
     int           xmit_pos;
     /** Register Address Pointer */
     uint32_t u32RAP;
@@ -412,9 +415,9 @@ pcnet_do_irq(nic_t *dev, int issue)
 {
     if (dev->is_pci) {
         if (issue)
-            pci_set_irq(dev->card, PCI_INTA);
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         else
-            pci_clear_irq(dev->card, PCI_INTA);
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     } else {
         if (issue)
             picint(1 << dev->base_irq);
@@ -744,11 +747,12 @@ static const uint32_t crctab[256] =
 };
 
 static __inline int
-padr_match(nic_t *dev, const uint8_t *buf, int size)
+padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
-    int                  result;
-    uint8_t              padr[6];
+    const struct ether_header *hdr = (const struct ether_header *) buf;
+    int                        result;
+    uint8_t                    padr[6];
+
     padr[0] = dev->aCSR[12] & 0xff;
     padr[1] = dev->aCSR[12] >> 8;
     padr[2] = dev->aCSR[13] & 0xff;
@@ -768,19 +772,22 @@ padr_match(nic_t *dev, const uint8_t *buf, int size)
 }
 
 static __inline int
-padr_bcast(nic_t *dev, const uint8_t *buf, size_t size)
+padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    struct ether_header *hdr       = (struct ether_header *) buf;
-    int                  result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+    static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    const struct ether_header *hdr       = (const struct ether_header *) buf;
+    int                        result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+
     pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
+
     return result;
 }
 
 static int
-ladr_match(nic_t *dev, const uint8_t *buf, size_t size)
+ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (const struct ether_header *) buf;
+
     if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
         int     index;
         uint8_t ladr[8];
@@ -859,7 +866,10 @@ pcnetSoftReset(nic_t *dev)
         case DEV_AM79C960_VLB:
         case DEV_AM79C961:
             dev->aCSR[88] = 0x3003;
-            dev->aCSR[89] = 0x0262;
+            dev->aCSR[89] = 0x0000;
+            break;
+
+        default:
             break;
     }
 
@@ -1263,14 +1273,14 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             ++;
             pcnet_log(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
         } else {
-            RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
-            int            fStrip = 0;
-            size_t         len_802_3;
-            uint8_t       *src  = &dev->abRecvBuf[8];
-            uint32_t       crda = CSR_CRDA(dev);
-            uint32_t       next_crda;
-            RMD            rmd;
-            RMD            next_rmd;
+            const RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
+            int                  fStrip = 0;
+            size_t               len_802_3;
+            uint8_t             *src  = &dev->abRecvBuf[8];
+            uint32_t             crda = CSR_CRDA(dev);
+            uint32_t             next_crda;
+            RMD                  rmd;
+            RMD                  next_rmd;
 
             /*
              * Ethernet framing considers these two octets to be
@@ -1297,8 +1307,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                     while (size < 60)
                         src[size++] = 0;
 
-                uint32_t fcs = UINT32_MAX;
-                uint8_t *p   = src;
+                uint32_t       fcs = UINT32_MAX;
+                const uint8_t *p   = src;
 
                 while (p != &src[size])
                     CRC(fcs, *p++);
@@ -1308,7 +1318,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 size += 4;
             }
 
-            cbPacket = (int) size;
+            cbPacket = size;
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */
@@ -1680,9 +1690,9 @@ pcnetPollRxTx(nic_t *dev)
 }
 
 static void
-pcnetPollTimer(void *p)
+pcnetPollTimer(void *priv)
 {
-    nic_t *dev = (nic_t *) p;
+    nic_t *dev = (nic_t *) priv;
 
     timer_advance_u64(&dev->timer, 2000 * TIMER_USEC);
 
@@ -1989,7 +1999,7 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
                     break;
             }
             dev->aCSR[58] = val;
-            /* fall through */
+            fallthrough;
         case BCR_LNKST:
         case BCR_LED1:
         case BCR_LED2:
@@ -2223,6 +2233,9 @@ pcnet_word_write(nic_t *dev, uint32_t addr, uint16_t val)
             case 0x06:
                 pcnet_bcr_writew(dev, dev->u32RAP, val);
                 break;
+
+            default:
+                break;
         }
     }
 }
@@ -2237,6 +2250,9 @@ pcnet_byte_read(nic_t *dev, uint32_t addr)
             case 0x04:
                 pcnetSoftReset(dev);
                 val = 0;
+                break;
+
+            default:
                 break;
         }
     }
@@ -2275,6 +2291,9 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
             case 0x06:
                 val = pcnet_bcr_readw(dev, dev->u32RAP);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -2301,6 +2320,9 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
                 break;
             case 0x0c:
                 pcnet_bcr_writew(dev, dev->u32RAP, val & 0xffff);
+                break;
+
+            default:
                 break;
         }
     } else if ((addr & 0x0f) == 0) {
@@ -2333,6 +2355,9 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
                 break;
             case 0x0c:
                 val = pcnet_bcr_readw(dev, dev->u32RAP);
+                break;
+
+            default:
                 break;
         }
     }
@@ -2540,9 +2565,9 @@ pcnet_ioset(nic_t *dev, uint16_t addr, int len)
 }
 
 static void
-pcnet_pci_write(int func, int addr, uint8_t val, void *p)
+pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    nic_t  *dev = (nic_t *) p;
+    nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;
 
     pcnet_log(4, "%s: Write value %02X to register %02X\n", dev->name, val, addr & 0xff);
@@ -2616,13 +2641,16 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
             dev->base_irq        = val;
             pcnet_pci_regs[addr] = val;
             return;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-pcnet_pci_read(int func, int addr, void *p)
+pcnet_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    nic_t *dev = (nic_t *) p;
+    const nic_t *dev = (nic_t *) priv;
 
     pcnet_log(4, "%s: Read to register %02X\n", dev->name, addr & 0xff);
 
@@ -2687,6 +2715,9 @@ pcnet_pci_read(int func, int addr, void *p)
             return 0x06;
         case 0x3F:
             return 0xff;
+
+        default:
+            break;
     }
 
     return 0;
@@ -2731,7 +2762,7 @@ pcnet_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 static uint8_t
 pcnet_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     if (!ld && (reg == 0xf0))
         return dev->aPROM[50];
@@ -2865,7 +2896,7 @@ pcnet_init(const device_t *info)
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
     dev->name  = info->name;
-    dev->board = info->local;
+    dev->board = info->local & 0xff;
 
     dev->is_pci = !!(info->flags & DEVICE_PCI);
     dev->is_vlb = !!(info->flags & DEVICE_VLB);
@@ -2966,8 +2997,10 @@ pcnet_init(const device_t *info)
         pcnet_pci_regs[0x04]          = 3;
 
         /* Add device to the PCI bus, keep its slot number. */
-        dev->card = pci_add_card(PCI_ADD_NORMAL,
-                                 pcnet_pci_read, pcnet_pci_write, dev);
+        if (info->local & 0x0100)
+            pci_add_card(PCI_ADD_NETWORK, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
+        else
+            pci_add_card(PCI_ADD_NORMAL, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
     } else if (dev->board == DEV_AM79C961) {
         dev->dma_channel = -1;
 
@@ -3071,9 +3104,12 @@ static const device_config_t pcnet_isa_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 9", .value = 9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
     },
@@ -3086,6 +3122,7 @@ static const device_config_t pcnet_isa_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
+            { .description = "DMA 0", .value = 0 },
             { .description = "DMA 3", .value = 3 },
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
@@ -3132,9 +3169,12 @@ static const device_config_t pcnet_vlb_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 9", .value = 9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
     },
@@ -3224,6 +3264,20 @@ const device_t pcnet_am79c973_device = {
     .internal_name = "pcnetfast",
     .flags         = DEVICE_PCI,
     .local         = DEV_AM79C973,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+const device_t pcnet_am79c973_onboard_device = {
+    .name          = "AMD PCnet-FAST III",
+    .internal_name = "pcnetfast_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C973 | 0x0100,
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,

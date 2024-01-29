@@ -52,18 +52,22 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
+#define ET4000_TYPE_TC6058AF 0 /* ISA ET4000AX (TC6058AF) */
 #define ET4000_TYPE_ISA      1 /* ISA ET4000AX */
 #define ET4000_TYPE_MCA      2 /* MCA ET4000AX */
 #define ET4000_TYPE_KOREAN   3 /* Korean ET4000 */
 #define ET4000_TYPE_TRIGEM   4 /* Trigem 286M ET4000 */
 #define ET4000_TYPE_KASAN    5 /* Kasan ET4000 */
 
-#define BIOS_ROM_PATH        "roms/video/et4000/ET4000.BIN"
-#define KOREAN_BIOS_ROM_PATH "roms/video/et4000/tgkorvga.bin"
-#define KOREAN_FONT_ROM_PATH "roms/video/et4000/tg_ksc5601.rom"
-#define KASAN_BIOS_ROM_PATH  "roms/video/et4000/et4000_kasan16.bin"
-#define KASAN_FONT_ROM_PATH  "roms/video/et4000/kasan_ksc5601.rom"
+#define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
+#define TC6058AF_BIOS_ROM_PATH "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
+#define KOREAN_BIOS_ROM_PATH   "roms/video/et4000/tgkorvga.bin"
+#define KOREAN_FONT_ROM_PATH   "roms/video/et4000/tg_ksc5601.rom"
+#define KASAN_BIOS_ROM_PATH    "roms/video/et4000/et4000_kasan16.bin"
+#define KASAN_FONT_ROM_PATH    "roms/video/et4000/kasan_ksc5601.rom"
 
 typedef struct {
     const char *name;
@@ -105,14 +109,15 @@ static const uint8_t crtc_mask[0x40] = {
 static video_timings_t timing_et4000_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
 static video_timings_t timing_et4000_mca = { .type = VIDEO_MCA, .write_b = 4, .write_w = 5, .write_l = 10, .read_b = 5, .read_w = 5, .read_l = 10 };
 
-static void    et4000_kasan_out(uint16_t addr, uint8_t val, void *p);
-static uint8_t et4000_kasan_in(uint16_t addr, void *p);
+static void    et4000_kasan_out(uint16_t addr, uint8_t val, void *priv);
+static uint8_t et4000_kasan_in(uint16_t addr, void *priv);
 
 static uint8_t
 et4000_in(uint16_t addr, void *priv)
 {
     et4000_t *dev  = (et4000_t *) priv;
     svga_t   *svga = &dev->svga;
+    uint8_t   ret;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -136,7 +141,8 @@ et4000_in(uint16_t addr, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-            return sc1502x_ramdac_in(addr, svga->ramdac, svga);
+            if (dev->type >= ET4000_TYPE_ISA)
+                return sc1502x_ramdac_in(addr, svga->ramdac, svga);
 
         case 0x3cd: /*Banking*/
             return dev->banking;
@@ -146,6 +152,29 @@ et4000_in(uint16_t addr, void *priv)
 
         case 0x3d5:
             return svga->crtc[svga->crtcreg];
+
+        case 0x3da:
+            svga->attrff = 0;
+
+            if (svga->cgastat & 0x01)
+                svga->cgastat &= ~0x30;
+            else
+                svga->cgastat ^= 0x30;
+
+            ret = svga->cgastat;
+
+            if ((svga->fcr & 0x08) && svga->dispon)
+                ret |= 0x08;
+
+            if (ret & 0x08)
+                ret &= 0x7f;
+            else
+                ret |= 0x80;
+
+            return ret;
+
+        default:
+            break;
     }
 
     return svga_in(addr, svga);
@@ -220,12 +249,33 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
+        case 0x3c5:
+            if (svga->seqaddr == 4) {
+                svga->seqregs[4] = val;
+
+                svga->chain2_write = !(val & 4);
+                svga->chain4       = (svga->chain4 & ~8) | (val & 8);
+                svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && svga->chain4 && !(svga->adv_flags & FLAG_ADDR_BY8);
+                return;
+            } else if (svga->seqaddr == 0x0e) {
+                svga->seqregs[0x0e] = val;
+                svga->chain4 &= ~0x02;
+                if (svga->gdcreg[5] & 0x40)
+                    svga->chain4 |= (svga->seqregs[0x0e] & 0x02);
+                svga_recalctimings(svga);
+                return;
+            }
+            break;
+
         case 0x3c6:
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-            sc1502x_ramdac_out(addr, val, svga->ramdac, svga);
-            return;
+            if (dev->type >= ET4000_TYPE_ISA) {
+                sc1502x_ramdac_out(addr, val, svga->ramdac, svga);
+                return;
+            }
+            break;
 
         case 0x3cd: /*Banking*/
             if (!(svga->crtc[0x36] & 0x10) && !(svga->gdcreg[6] & 0x08)) {
@@ -236,7 +286,11 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
             return;
 
         case 0x3cf:
-            if ((svga->gdcaddr & 15) == 6) {
+            if ((svga->gdcaddr & 15) == 5) {
+                svga->chain4 &= ~0x02;
+                if (val & 0x40)
+                    svga->chain4 |= (svga->seqregs[0x0e] & 0x02);
+            } else if ((svga->gdcaddr & 15) == 6) {
                 if (!(svga->crtc[0x36] & 0x10) && !(val & 0x08)) {
                     svga->write_bank = (dev->banking & 0x0f) * 0x10000;
                     svga->read_bank  = ((dev->banking >> 4) & 0x0f) * 0x10000;
@@ -287,6 +341,9 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
+            break;
+
+        default:
             break;
     }
 
@@ -359,8 +416,8 @@ et4000k_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 et4000_kasan_in(uint16_t addr, void *priv)
 {
-    et4000_t *et4000 = (et4000_t *) priv;
-    uint8_t   val    = 0xFF;
+    const et4000_t *et4000 = (et4000_t *) priv;
+    uint8_t         val    = 0xFF;
 
     if (addr == 0x258) {
         val = et4000->kasan_cfg_index;
@@ -410,7 +467,8 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 1:
                 case 2:
-                    et4000->kasan_cfg_regs[et4000->kasan_cfg_index - 0xF0] = val;
+                    if ((et4000->kasan_cfg_index - 0xF0) <= 16)
+                        et4000->kasan_cfg_regs[et4000->kasan_cfg_index - 0xF0] = val;
                     io_removehandler(et4000->kasan_access_addr, 0x0008, et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, et4000);
                     et4000->kasan_access_addr = (et4000->kasan_cfg_regs[2] << 8) | et4000->kasan_cfg_regs[1];
                     io_sethandler(et4000->kasan_access_addr, 0x0008, et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, et4000);
@@ -425,6 +483,7 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
                 case 5:
                     et4000->kasan_cfg_regs[5]              = val;
                     et4000->svga.ksc5601_english_font_type = 0x100 | val;
+                    fallthrough;
                 case 6:
                 case 7:
                     et4000->svga.ksc5601_udc_area_msb[et4000->kasan_cfg_index - 0xF6] = val;
@@ -454,7 +513,8 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
             case 4:
             case 5:
                 if (et4000->kasan_cfg_regs[0] & 1) {
-                    et4000->kasan_font_data[addr - (((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1])) + 3)] = val;
+                    if ((addr - (((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1])) + 3)) <= 4)
+                        et4000->kasan_font_data[addr - (((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1])) + 3)] = val;
                 }
                 break;
             case 6:
@@ -474,10 +534,10 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
 }
 
 uint32_t
-get_et4000_addr(uint32_t addr, void *p)
+get_et4000_addr(uint32_t addr, void *priv)
 {
-    svga_t  *svga = (svga_t *) p;
-    uint32_t nbank;
+    const svga_t *svga = (svga_t *) priv;
+    uint32_t      nbank;
 
     switch (svga->crtc[0x37] & 0x0B) {
         case 0x00:
@@ -536,9 +596,12 @@ get_et4000_addr(uint32_t addr, void *p)
 static void
 et4000_recalctimings(svga_t *svga)
 {
-    et4000_t *dev = (et4000_t *) svga->p;
+    const et4000_t *dev = (et4000_t *) svga->priv;
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
+
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+
     if (svga->crtc[0x35] & 1)
         svga->vblankstart += 0x400;
     if (svga->crtc[0x35] & 2)
@@ -553,8 +616,11 @@ et4000_recalctimings(svga_t *svga)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
         svga->htotal += 256;
-    if (svga->attrregs[0x16] & 0x20)
+    if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
+        svga->hblankstart <<= 1;
+        svga->hblank_end_val <<= 1;
+    }
 
     switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4)) {
         case 0:
@@ -575,10 +641,17 @@ et4000_recalctimings(svga_t *svga)
         case 15:
         case 16:
             svga->hdisp /= 2;
+            svga->hblankstart /= 2;
+            svga->hblank_end_val /= 2;
             break;
 
         case 24:
             svga->hdisp /= 3;
+            svga->hblankstart /= 3;
+            svga->hblank_end_val /= 3;
+            break;
+
+        default:
             break;
     }
 
@@ -593,17 +666,39 @@ et4000_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if ((svga->seqregs[0x0e] & 0x02) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
+        svga->ma_latch <<= (1 << 0);
+        svga->rowoffset <<= (1 << 0);
+        svga->render = svga_render_8bpp_highres;
+    }
+
+    if (dev->type == ET4000_TYPE_TC6058AF) {
+        if (svga->render == svga_render_8bpp_lowres)
+            svga->render = svga_render_8bpp_tseng_lowres;
+        else if (svga->render == svga_render_8bpp_highres)
+            svga->render = svga_render_8bpp_tseng_highres;
+    }
+
+    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
+        svga->map8 = svga->pallook;
+        if (svga->lowres)
+            svga->render = svga_render_8bpp_lowres;
+        else
+            svga->render = svga_render_8bpp_highres;
+    }
 }
 
 static void
 et4000_kasan_recalctimings(svga_t *svga)
 {
-    et4000_t *et4000 = (et4000_t *) svga->p;
+    const et4000_t *et4000 = (et4000_t *) svga->priv;
 
     et4000_recalctimings(svga);
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
-        svga->ma_latch -= 3;
+        svga->hdisp             += svga->dots_per_clock;
+        svga->ma_latch          -= 5;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
@@ -614,7 +709,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 static uint8_t
 et4000_mca_read(int port, void *priv)
 {
-    et4000_t *et4000 = (et4000_t *) priv;
+    const et4000_t *et4000 = (et4000_t *) priv;
 
     return (et4000->pos_regs[port & 7]);
 }
@@ -633,7 +728,7 @@ et4000_mca_write(int port, uint8_t val, void *priv)
 }
 
 static uint8_t
-et4000_mca_feedb(void *priv)
+et4000_mca_feedb(UNUSED(void *priv))
 {
     return 1;
 }
@@ -652,6 +747,7 @@ et4000_init(const device_t *info)
     fn        = BIOS_ROM_PATH;
 
     switch (dev->type) {
+        case ET4000_TYPE_TC6058AF: /* ISA ET4000AX (TC6058AF) */
         case ET4000_TYPE_ISA: /* ISA ET4000AX */
             dev->vram_size = device_get_config_int("memory") << 10;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
@@ -660,6 +756,8 @@ et4000_init(const device_t *info)
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
+            if (dev->type == ET4000_TYPE_TC6058AF)
+                fn = TC6058AF_BIOS_ROM_PATH;
             break;
 
         case ET4000_TYPE_MCA: /* MCA ET4000AX */
@@ -734,13 +832,17 @@ et4000_init(const device_t *info)
             loadfont(KASAN_FONT_ROM_PATH, 6);
             fn = KASAN_BIOS_ROM_PATH;
             break;
+
+        default:
+            break;
     }
 
-    dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
+    if (dev->type >= ET4000_TYPE_ISA)
+        dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
     dev->vram_mask = dev->vram_size - 1;
 
-    rom_init(&dev->bios_rom, (char *) fn,
+    rom_init(&dev->bios_rom, fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.translate_address = get_et4000_addr;
@@ -777,6 +879,12 @@ et4000_force_redraw(void *priv)
 }
 
 static int
+et4000_tc6058af_available(void)
+{
+    return rom_present(TC6058AF_BIOS_ROM_PATH);
+}
+
+static int
 et4000_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
@@ -793,6 +901,33 @@ et4000_kasan_available(void)
 {
     return rom_present(KASAN_BIOS_ROM_PATH) && rom_present(KASAN_FONT_ROM_PATH);
 }
+
+static const device_config_t et4000_tc6058af_config[] = {
+  // clang-format off
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+// clang-format on
+};
 
 static const device_config_t et4000_config[] = {
   // clang-format off
@@ -823,6 +958,20 @@ static const device_config_t et4000_config[] = {
         .type = CONFIG_END
     }
   // clang-format on
+};
+
+const device_t et4000_tc6058af_isa_device = {
+    .name          = "Tseng Labs ET4000AX (TC6058AF) (ISA)",
+    .internal_name = "et4000ax_tc6058af",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = et4000_init,
+    .close         = et4000_close,
+    .reset         = NULL,
+    { .available = et4000_tc6058af_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw  = et4000_force_redraw,
+    .config        = et4000_tc6058af_config
 };
 
 const device_t et4000_isa_device = {

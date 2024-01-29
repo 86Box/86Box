@@ -349,9 +349,9 @@ ems_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 ems_read(uint16_t port, void *priv)
 {
-    neat_t *dev = (neat_t *) priv;
-    uint8_t ret = 0xff;
-    int     vpage;
+    const neat_t *dev = (neat_t *) priv;
+    uint8_t       ret = 0xff;
+    int           vpage;
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);
@@ -637,8 +637,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 neat_read(uint16_t port, void *priv)
 {
-    neat_t *dev = (neat_t *) priv;
-    uint8_t ret = 0xff;
+    const neat_t *dev = (neat_t *) priv;
+    uint8_t       ret = 0xff;
 
     switch (port) {
         case 0x22:
@@ -673,13 +673,14 @@ neat_init(UNUSED(const device_t *info))
 {
     neat_t *dev;
     uint8_t dram_mode = 0;
+    uint8_t i;
 
     /* Create an instance. */
     dev = (neat_t *) malloc(sizeof(neat_t));
     memset(dev, 0x00, sizeof(neat_t));
 
     /* Initialize some of the registers to specific defaults. */
-    for (uint8_t i = REG_RA0; i <= REG_RB11; i++) {
+    for (i = REG_RA0; i <= REG_RB11; i++) {
         dev->indx = i;
         neat_write(0x0023, 0x00, dev);
     }

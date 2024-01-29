@@ -437,6 +437,7 @@ reset_printer(escp_t *dev)
     dev->cpi                              = PAGE_CPI;
     dev->curr_char_table                  = 1;
     dev->font_style                       = 0;
+    dev->print_quality                    = QUALITY_DRAFT;
     dev->extra_intra_space                = 0.0;
     dev->print_upper_control              = 1;
     dev->bg_remaining_bytes               = 0;
@@ -494,11 +495,11 @@ init_codepage(escp_t *dev, uint16_t num)
 static void
 update_font(escp_t *dev)
 {
-    char      path[1024];
-    char     *fn;
-    FT_Matrix matrix;
-    double    hpoints = 10.5;
-    double    vpoints = 10.5;
+    char        path[1024];
+    const char *fn;
+    FT_Matrix   matrix;
+    double      hpoints = 10.5;
+    double      vpoints = 10.5;
 
     /* We need the FreeType library. */
     if (ft_lib == NULL)
@@ -508,9 +509,12 @@ update_font(escp_t *dev)
     if (dev->fontface)
         FT_Done_Face(dev->fontface);
 
-    if (dev->print_quality == QUALITY_DRAFT)
-        fn = FONT_FILE_DOTMATRIX;
-    else
+    if (dev->print_quality == QUALITY_DRAFT) {
+        if (dev->font_style & STYLE_ITALICS)
+            fn = FONT_FILE_DOTMATRIX_ITALIC;
+        else
+            fn = FONT_FILE_DOTMATRIX;
+    } else
         switch (dev->lq_typeface) {
             case TYPEFACE_ROMAN:
                 fn = FONT_FILE_ROMAN;
@@ -531,7 +535,7 @@ update_font(escp_t *dev)
                 fn = FONT_FILE_OCRB;
                 break;
             default:
-                fn = FONT_FILE_DOTMATRIX;
+                fn = FONT_FILE_ROMAN;
         }
 
     /* Create a full pathname for the ROM file. */
@@ -592,7 +596,7 @@ update_font(escp_t *dev)
                      (uint16_t) (hpoints * 64), (uint16_t) (vpoints * 64),
                      dev->dpi, dev->dpi);
 
-    if ((dev->font_style & STYLE_ITALICS) || (dev->char_tables[dev->curr_char_table] == 0)) {
+    if ((dev->print_quality != QUALITY_DRAFT) && ((dev->font_style & STYLE_ITALICS) || (dev->char_tables[dev->curr_char_table] == 0))) {
         /* Italics transformation. */
         matrix.xx = 0x10000L;
         matrix.xy = (FT_Fixed) (0.20 * 0x10000L);
@@ -1462,7 +1466,7 @@ process_char(escp_t *dev, uint8_t ch)
             dev->curr_x = dev->left_margin;
             if (!dev->autofeed)
                 return 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case 0x0a: /* Line feed */
             if (dev->font_style & STYLE_DOUBLEWIDTHONELINE) {
@@ -1578,8 +1582,8 @@ handle_char(escp_t *dev, uint8_t ch)
         FT_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
     }
 
-    pen_x = PIXX + dev->fontface->glyph->bitmap_left;
-    pen_y = (uint16_t) (PIXY - dev->fontface->glyph->bitmap_top + dev->fontface->size->metrics.ascender / 64);
+    pen_x = PIXX + fmax(0.0, dev->fontface->glyph->bitmap_left);
+    pen_y = (uint16_t) (PIXY + fmax(0.0, -dev->fontface->glyph->bitmap_top + dev->fontface->size->metrics.ascender / 64));
 
     if (dev->font_style & STYLE_SUBSCRIPT)
         pen_y += dev->fontface->glyph->bitmap.rows / 2;
@@ -1649,9 +1653,9 @@ handle_char(escp_t *dev, uint8_t ch)
 static void
 blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
 {
-    FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
-    uint8_t    src;
-    uint8_t   *dst;
+    const FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
+    uint8_t          src;
+    uint8_t         *dst;
 
     /* check if freetype is available */
     if (ft_lib == NULL)
@@ -1918,7 +1922,7 @@ write_ctrl(uint8_t val, void *priv)
 static uint8_t
 read_data(void *priv)
 {
-    escp_t *dev = (escp_t *) priv;
+    const escp_t *dev = (escp_t *) priv;
 
     return dev->data;
 }
@@ -1926,7 +1930,7 @@ read_data(void *priv)
 static uint8_t
 read_ctrl(void *priv)
 {
-    escp_t *dev = (escp_t *) priv;
+    const escp_t *dev = (escp_t *) priv;
 
     return 0xe0 | (dev->autofeed ? 0x02 : 0x00) | (dev->ctrl & 0xfd);
 }
@@ -1934,7 +1938,7 @@ read_ctrl(void *priv)
 static uint8_t
 read_status(void *priv)
 {
-    escp_t *dev = (escp_t *) priv;
+    const escp_t *dev = (escp_t *) priv;
     uint8_t ret = 0x1f;
 
     ret |= 0x80;
@@ -1953,7 +1957,7 @@ escp_init(void *lpt)
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
         if (FT_Init_FreeType(&ft_lib)) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
+            pclog("ESC/P: FT_Init_FreeType failed\n");
             ft_lib = NULL;
             return (NULL);
         }

@@ -55,11 +55,11 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          John Elliott, <jce@seasip.info>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 Miran Grca.
- *          Copyright 2018-2019 Sarah Walker.
+ *          Copyright 2018-2019 John Elliott.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -135,7 +135,7 @@ enum TC8521_ADDR {
     TC8521_LEAPYEAR = 0x1B
 };
 
-typedef struct {
+typedef struct t1000_t {
     /* ROM drive */
     uint8_t      *romdrive;
     uint8_t       rom_ctl;
@@ -237,7 +237,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
 
 /* This is called every second through the NVR/RTC hook. */
 static void
-tc8521_tick(nvr_t *nvr)
+tc8521_tick(UNUSED(nvr_t *nvr))
 {
     t1000_log("TC8521: ping\n");
 }
@@ -288,8 +288,8 @@ tc8521_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 tc8521_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
-    uint8_t page;
+    const nvr_t  *nvr = (nvr_t *) priv;
+    uint8_t       page;
 
     /* Get to the correct register page. */
     addr &= 0x0f;
@@ -336,7 +336,7 @@ tc8521_init(nvr_t *nvr, int size)
 
 /* Given an EMS page ID, return its physical address in RAM. */
 static uint32_t
-ems_execaddr(t1000_t *sys, int pg, uint16_t val)
+ems_execaddr(t1000_t *sys, UNUSED(int pg), uint16_t val)
 {
     if (!(val & 0x80))
         return 0; /* Bit 7 reset => not mapped */
@@ -360,7 +360,7 @@ ems_execaddr(t1000_t *sys, int pg, uint16_t val)
 static uint8_t
 ems_in(uint16_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
 #if 0
     t1000_log("ems_in(%04x)=%02x\n", addr, sys->ems_reg[(addr >> 14) & 3]);
@@ -467,7 +467,7 @@ addr_to_page(uint32_t addr)
 static uint8_t
 ems_read_ram(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
     int      pg  = addr_to_page(addr);
 
     if (pg < 0)
@@ -480,8 +480,8 @@ ems_read_ram(uint32_t addr, void *priv)
 static uint16_t
 ems_read_ramw(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return 0xff;
@@ -501,8 +501,8 @@ ems_read_ramw(uint32_t addr, void *priv)
 static uint32_t
 ems_read_raml(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return 0xff;
@@ -515,8 +515,8 @@ ems_read_raml(uint32_t addr, void *priv)
 static void
 ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -531,8 +531,8 @@ ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 static void
 ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -555,8 +555,8 @@ ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 static void
 ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -571,8 +571,8 @@ ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 read_ctl(uint16_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    uint8_t  ret = 0xff;
+    const t1000_t *sys = (t1000_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (addr & 0x0f) {
         case 1:
@@ -594,6 +594,9 @@ read_ctl(uint16_t addr, void *priv)
 
                 case 0x52:
                     ret = (sys->is_640k ? 0x80 : 0);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -656,7 +659,13 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
                 case 0x52:
                     ems_set_640k(sys, val);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -688,6 +697,9 @@ t1000_read_nvram(uint16_t addr, void *priv)
             tmp |= (sys->nvr_active & 0xc0);      /* Bits 6, 7 are r/w mode */
             tmp |= 0x2e;                          /* Bits 5, 3, 2, 1 always 1 */
             tmp |= (sys->nvr_active & 0x40) >> 6; /* Ready state */
+            break;
+
+        default:
             break;
     }
 
@@ -733,13 +745,16 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
             if (val == 0x80)
                 sys->nvr_addr = -1;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 read_t1200_nvram(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     return sys->t1200_nvram[addr & 0x7FF];
 }
@@ -757,15 +772,15 @@ write_t1200_nvram(uint32_t addr, uint8_t value, void *priv)
 
 /* Port 0xC8 controls the ROM drive */
 static uint8_t
-t1000_read_rom_ctl(uint16_t addr, void *priv)
+t1000_read_rom_ctl(UNUSED(uint16_t addr), void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     return (sys->rom_ctl);
 }
 
 static void
-t1000_write_rom_ctl(uint16_t addr, uint8_t val, void *priv)
+t1000_write_rom_ctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     t1000_t *sys = (t1000_t *) priv;
 
@@ -785,7 +800,7 @@ t1000_write_rom_ctl(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 t1000_read_rom(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
         return 0xff;
@@ -818,7 +833,7 @@ t1000_read_roml(uint32_t addr, void *priv)
 int
 machine_xt_t1000_init(const machine_t *model)
 {
-    FILE *f;
+    FILE *fp;
     int ret;
 
     ret = bios_load_linear("roms/machines/t1000/t1000.rom",
@@ -841,15 +856,15 @@ machine_xt_t1000_init(const machine_t *model)
      * If the file is missing, continue to boot; the BIOS will
      * complain 'No ROM drive' but boot normally from floppy.
      */
-    f = rom_fopen("roms/machines/t1000/t1000dos.rom", "rb");
-    if (f != NULL) {
+    fp = rom_fopen("roms/machines/t1000/t1000dos.rom", "rb");
+    if (fp != NULL) {
         t1000.romdrive = malloc(T1000_ROMSIZE);
         if (t1000.romdrive) {
             memset(t1000.romdrive, 0xff, T1000_ROMSIZE);
-            if (fread(t1000.romdrive, 1, T1000_ROMSIZE, f) != T1000_ROMSIZE)
+            if (fread(t1000.romdrive, 1, T1000_ROMSIZE, fp) != T1000_ROMSIZE)
                 fatal("machine_xt_t1000_init(): Error reading DOS ROM data\n");
         }
-        fclose(f);
+        fclose(fp);
     }
     mem_mapping_add(&t1000.rom_mapping, 0xa0000, 0x10000,
                     t1000_read_rom, t1000_read_romw, t1000_read_roml,
@@ -971,62 +986,62 @@ t1000_syskey(uint8_t andmask, uint8_t ormask, uint8_t xormask)
 static void
 t1000_configsys_load(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
     memset(t1000.t1000_nvram, 0x1a, sizeof(t1000.t1000_nvram));
-    f = plat_fopen(nvr_path("t1000_config.nvr"), "rb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1000_config.nvr"), "rb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1000_nvram);
-        if (fread(t1000.t1000_nvram, 1, size, f) != size)
+        if (fread(t1000.t1000_nvram, 1, size, fp) != size)
             fatal("t1000_configsys_load(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 t1000_configsys_save(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
-    f = plat_fopen(nvr_path("t1000_config.nvr"), "wb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1000_config.nvr"), "wb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1000_nvram);
-        if (fwrite(t1000.t1000_nvram, 1, size, f) != size)
+        if (fwrite(t1000.t1000_nvram, 1, size, fp) != size)
             fatal("t1000_configsys_save(): Error writing data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 t1200_state_load(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
     memset(t1000.t1200_nvram, 0, sizeof(t1000.t1200_nvram));
-    f = plat_fopen(nvr_path("t1200_state.nvr"), "rb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1200_state.nvr"), "rb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1200_nvram);
-        if (fread(t1000.t1200_nvram, 1, size, f) != size)
+        if (fread(t1000.t1200_nvram, 1, size, fp) != size)
             fatal("t1200_state_load(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 t1200_state_save(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
-    f = plat_fopen(nvr_path("t1200_state.nvr"), "wb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1200_state.nvr"), "wb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1200_nvram);
-        if (fwrite(t1000.t1200_nvram, 1, size, f) != size)
+        if (fwrite(t1000.t1200_nvram, 1, size, fp) != size)
             fatal("t1200_state_save(): Error writing data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
@@ -1034,13 +1049,13 @@ t1200_state_save(void)
 static void
 t1000_emsboard_load(void)
 {
-    FILE *f;
+    FILE *fp;
 
     if (mem_size > 512) {
-        f = plat_fopen(nvr_path("t1000_ems.nvr"), "rb");
-        if (f != NULL) {
-            (void) !fread(&ram[512 * 1024], 1024, (mem_size - 512), f);
-            fclose(f);
+        fp = plat_fopen(nvr_path("t1000_ems.nvr"), "rb");
+        if (fp != NULL) {
+            (void) !fread(&ram[512 * 1024], 1024, (mem_size - 512), fp);
+            fclose(fp);
         }
     }
 }
@@ -1048,13 +1063,13 @@ t1000_emsboard_load(void)
 static void
 t1000_emsboard_save(void)
 {
-    FILE *f;
+    FILE *fp;
 
     if (mem_size > 512) {
-        f = plat_fopen(nvr_path("t1000_ems.nvr"), "wb");
-        if (f != NULL) {
-            fwrite(&ram[512 * 1024], 1024, (mem_size - 512), f);
-            fclose(f);
+        fp = plat_fopen(nvr_path("t1000_ems.nvr"), "wb");
+        if (fp != NULL) {
+            fwrite(&ram[512 * 1024], 1024, (mem_size - 512), fp);
+            fclose(fp);
         }
     }
 }

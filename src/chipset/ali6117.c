@@ -33,6 +33,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/chipset.h>
+#include <86box/plat_fallthrough.h>
 
 typedef struct ali6117_t {
     uint32_t local;
@@ -233,7 +234,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x12:
                     val &= 0xf7;
-                    /* FALL-THROUGH */
+                    fallthrough;
 
                 case 0x14:
                 case 0x15:
@@ -388,7 +389,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali6117_reg_read(uint16_t addr, void *priv)
 {
-    ali6117_t *dev = (ali6117_t *) priv;
+    const ali6117_t *dev = (ali6117_t *) priv;
     uint8_t    ret;
 
     if (addr == 0x22)

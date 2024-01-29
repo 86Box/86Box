@@ -61,7 +61,7 @@ cartridge_log(const char *fmt, ...)
 static uint8_t
 cart_read(uint32_t addr, void *priv)
 {
-    cart_t *dev = (cart_t *) priv;
+    const cart_t *dev = (cart_t *) priv;
 
     return dev->buf[addr - dev->base];
 }
@@ -90,16 +90,16 @@ cart_image_close(int drive)
 static void
 cart_image_load(int drive, char *fn)
 {
-    FILE    *f;
+    FILE    *fp;
     uint32_t size;
     uint32_t base = 0x00000000;
 
     cart_image_close(drive);
 
-    f = fopen(fn, "rb");
-    if (fseek(f, 0, SEEK_END) == -1)
+    fp = fopen(fn, "rb");
+    if (fseek(fp, 0, SEEK_END) == -1)
         fatal("cart_image_load(): Error seeking to the end of the file\n");
-    size = ftell(f);
+    size = ftell(fp);
     if (size < 0x1200) {
         cartridge_log("cart_image_load(): File size %i is too small\n", size);
         cart_load_error(drive, fn);
@@ -107,23 +107,23 @@ cart_image_load(int drive, char *fn)
     }
     if (size & 0x00000fff) {
         size -= 0x00000200;
-        fseek(f, 0x000001ce, SEEK_SET);
-        (void) !fread(&base, 1, 2, f);
+        fseek(fp, 0x000001ce, SEEK_SET);
+        (void) !fread(&base, 1, 2, fp);
         base <<= 4;
-        fseek(f, 0x00000200, SEEK_SET);
+        fseek(fp, 0x00000200, SEEK_SET);
         carts[drive].buf = (uint8_t *) malloc(size);
         memset(carts[drive].buf, 0x00, size);
-        (void) !fread(carts[drive].buf, 1, size, f);
-        fclose(f);
+        (void) !fread(carts[drive].buf, 1, size, fp);
+        fclose(fp);
     } else {
         base = drive ? 0xe0000 : 0xd0000;
         if (size == 32768)
             base += 0x8000;
-        fseek(f, 0x00000000, SEEK_SET);
+        fseek(fp, 0x00000000, SEEK_SET);
         carts[drive].buf = (uint8_t *) malloc(size);
         memset(carts[drive].buf, 0x00, size);
-        (void) !fread(carts[drive].buf, 1, size, f);
-        fclose(f);
+        (void) !fread(carts[drive].buf, 1, size, fp);
+        fclose(fp);
     }
 
     cartridge_log("cart_image_load(): %s at %08X-%08X\n", fn, base, base + size - 1);
@@ -136,15 +136,15 @@ cart_image_load(int drive, char *fn)
 static void
 cart_load_common(int drive, char *fn, uint8_t hard_reset)
 {
-    FILE *f;
+    FILE *fp;
 
     cartridge_log("Cartridge: loading drive %d with '%s'\n", drive, fn);
 
     if (!fn)
         return;
-    f = plat_fopen(fn, "rb");
-    if (f) {
-        fclose(f);
+    fp = plat_fopen(fn, "rb");
+    if (fp) {
+        fclose(fp);
         strcpy(cart_fns[drive], fn);
         cart_image_load(drive, cart_fns[drive]);
         /* On the real PCjr, inserting a cartridge causes a reset

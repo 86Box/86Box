@@ -6,15 +6,16 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the Phoenix 486 Jumper Readout
+ *          Implementation of the Phoenix 486 Jumper Readout.
  *
  *
  *
- * Authors: Tiseno100
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Tiseno100,
  *
- *          Copyright 2020 Tiseno100
+ *          Copyright 2020-2023 Miran Grca.
+ *          Copyright 2020-2023 Tiseno100.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -78,7 +79,8 @@ phoenix_486_jumper_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static uint8_t
 phoenix_486_jumper_read(UNUSED(uint16_t addr), void *priv)
 {
-    phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) priv;
+    const phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) priv;
+
     phoenix_486_jumper_log("Phoenix 486 Jumper: Read %02x\n", dev->jumper);
     return dev->jumper;
 }

@@ -25,83 +25,91 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/snd_ac97.h>
+#include <86box/plat_fallthrough.h>
 
 static const struct {
-    const uint32_t vendor_id, min_rate, max_rate, misc_flags; /* definitions for misc_flags in snd_ac97.h */
-    const uint16_t reset_flags, extid_flags,                  /* definitions in snd_ac97.h */
-        powerdown_mask;                                       /* bits [7:0] => register 26 bits [15:8]; bits [11:8] => register 2A bits [14:11] */
-    const ac97_vendor_reg_t *vendor_regs;                     /* bits [11:8] of index are the page number if applicable (registers [60:6F]) */
-    const device_t          *device;
+    const device_t *device;
+
+    /* Definitions for *_flags and vendor_regs in snd_ac97.h */
+    uint32_t min_rate;
+    uint32_t max_rate;
+    uint32_t misc_flags;
+    uint16_t reset_flags;
+    uint16_t extid_flags;
+    uint8_t  pcsr_mask;  /* register 26 bits [15:8] */
+    uint8_t  eascr_mask; /* register 2A bits [14:11] */
+
+    const ac97_vendor_reg_t *vendor_regs;
 } ac97_codecs[] = {
   // clang-format off
-    [AC97_CODEC_AD1881] = {
-    .vendor_id = AC97_VENDOR_ID('A', 'D', 'S', 0x40),
+    {
+    .device = &ad1881_device,
     .min_rate = 7000,
     .max_rate = 48000,
     .misc_flags = AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
     .reset_flags = (1 << AC97_3D_SHIFT), /* datasheet contradicts itself on AC97_HPOUT */
     .extid_flags = AC97_VRA,
-    .powerdown_mask = 0x0bf,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0x74, 0x0000, 0xff07}, {0x76, 0x0404, 0xdde5}, {0x78, 48000, 0x0000}, {0x7a, 48000, 0x0000}, {0}},
-    .device = &ad1881_device
+    .pcsr_mask = 0xbf,
+    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x74, 0x0000, 0xff07}, {0, 0x76, 0x0404, 0xdde5}, {0, 0x78, 48000, 0x0000}, {0, 0x7a, 48000, 0x0000}, {0}}
     },
-    [AC97_CODEC_AK4540] = {
-    .vendor_id = AC97_VENDOR_ID('A', 'K', 'M', 0x00),
+    {
+    .device = &ak4540_device,
     .misc_flags = AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .powerdown_mask = 0x01f,
-    .device = &ak4540_device
+    .pcsr_mask = 0x1f
     },
-    [AC97_CODEC_ALC100] = {
-    .vendor_id = AC97_VENDOR_ID('A', 'L', 'C', 0x20),
+    {
+    .device = &alc100_device,
     .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
     .reset_flags = (22 << AC97_3D_SHIFT),
     .extid_flags = AC97_AMAP,
-    .powerdown_mask = 0x0bf,
-    .device = &alc100_device
+    .pcsr_mask = 0xbf
     },
-    [AC97_CODEC_CS4297] = {
-    .vendor_id = AC97_VENDOR_ID('C', 'R', 'Y', 0x03),
+    {
+    .device = &cs4297_device,
     .misc_flags = AC97_MASTER_6B | AC97_AUXOUT | AC97_AUXOUT_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
     .reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B,
     .extid_flags = 0,
-    .powerdown_mask = 0x07f,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0x5a, 0x0301, 0x0000}, {0}},
-    .device = &cs4297_device
+    .pcsr_mask = 0x7f,
+    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0301, 0x0000}, {0}}
     },
-    [AC97_CODEC_CS4297A] = {
-    .vendor_id = AC97_VENDOR_ID('C', 'R', 'Y', 0x11),
+    {
+    .device = &cs4297a_device,
     .misc_flags = AC97_MASTER_6B | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
     .reset_flags = AC97_HPOUT | AC97_DAC_20B | AC97_ADC_18B | (6 << AC97_3D_SHIFT),
     .extid_flags = AC97_AMAP,
-    .powerdown_mask = 0x0ff,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0x5e, 0x0000, 0x01b0}, {0x60, 0x0023, 0x0001}, {0x68, 0x0000, 0xdfff}, {0}},
-    .device = &cs4297a_device
+    .pcsr_mask = 0xff,
+    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5e, 0x0000, 0x01b0}, {0, 0x60, 0x0023, 0x0001}, {0, 0x68, 0x0000, 0xdfff}, {0}}
     },
-    [AC97_CODEC_STAC9708] = {
-    .vendor_id = AC97_VENDOR_ID(0x83, 0x84, 0x76, 0x08),
+    {
+    .device = &stac9708_device,
     .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
     .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
     .extid_flags = AC97_SDAC,
-    .powerdown_mask = 0x2ff,
-    .vendor_regs = (const ac97_vendor_reg_t []) {{0x6c, 0x0000, 0x0003}, {0x74, 0x0000, 0x0003}, {0}},
-    .device = &stac9708_device
+    .pcsr_mask = 0xff,
+    .eascr_mask = 0x02,
+    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x74, 0x0000, 0x0003}, {0}}
     },
-    [AC97_CODEC_STAC9721] = {
-    .vendor_id = AC97_VENDOR_ID(0x83, 0x84, 0x76, 0x09),
+    {
+    .device = &stac9721_device,
     .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
     .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
     .extid_flags = AC97_AMAP,
-    .powerdown_mask = 0x0ff,
-    .vendor_regs = (const ac97_vendor_reg_t []) {{0x6c, 0x0000, 0x0000}, {0x6e, 0x0000, 0x0003}, {0x70, 0x0000, 0xffff}, {0x72, 0x0000, 0x0006}, {0x74, 0x0000, 0x0003}, {0x76, 0x0000, 0xffff}, {0x78, 0x0000, 0x3802}, {0}},
-    .device = &stac9721_device
+    .pcsr_mask = 0xff,
+    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0000}, {0, 0x6e, 0x0000, 0x0003}, {0, 0x70, 0x0000, 0xffff}, {0, 0x72, 0x0000, 0x0006}, {0, 0x74, 0x0000, 0x0003}, {0, 0x76, 0x0000, 0xffff}, {0, 0x78, 0x0000, 0x3802}, {0}}
     },
-    [AC97_CODEC_WM9701A] = {
-    .vendor_id = AC97_VENDOR_ID('W', 'M', 'L', 0x00),
+    {
+    .device = &tr28023_device,
+    .misc_flags = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_POP | AC97_MS | AC97_LPBK,
+    .reset_flags = 0,
+    .extid_flags = 0,
+    .pcsr_mask = 0x3f
+    },
+    {
+    .device = &wm9701a_device,
     .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
     .reset_flags = AC97_DAC_18B | AC97_ADC_18B,
     .extid_flags = 0,
-    .powerdown_mask = 0x03f,
-    .device = &wm9701a_device
+    .pcsr_mask = 0x3f
     }
   // clang-format on
 };
@@ -163,7 +171,7 @@ ac97_codec_writew(ac97_codec_t *dev, uint8_t reg, uint16_t val)
     ac97_codec_log("AC97 Codec %d: writew(%02X, %04X)\n", dev->codec_id, reg, val);
 
     reg &= 0x7e;
-    uint16_t i = 0;
+    uint16_t i    = 0;
     uint16_t prev = dev->regs[reg >> 1];
     int      j;
 
@@ -176,7 +184,7 @@ ac97_codec_writew(ac97_codec_t *dev, uint8_t reg, uint16_t val)
             val &= 0xbf3f;
 
             /* Convert 1xxxxx to 011111 where unsupported, per specification. */
-            if (!(dev->misc_flags & AC97_MASTER_6B)) {
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_MASTER_6B)) {
 clamp_5b:
                 if (val & 0x2000)
                     val = (val & ~0x2000) | 0x1f00;
@@ -187,41 +195,41 @@ clamp_5b_r:
             break;
 
         case 0x04: /* Aux Out Volume */
-            if (!(dev->misc_flags & AC97_AUXOUT))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_AUXOUT))
                 return;
             val &= 0xbf3f;
 
             /* Convert 1xxxxx to 011111 where unsupported, per specification. */
-            if (!(dev->misc_flags & AC97_AUXOUT_6B))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_AUXOUT_6B))
                 goto clamp_5b;
             break;
 
         case 0x06: /* Mono Out Volume */
-            if (!(dev->misc_flags & AC97_MONOOUT))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_MONOOUT))
                 return;
             val &= 0x803f;
 
             /* Convert 1xxxxx to 011111 where unsupported, per specification. */
-            if (!(dev->misc_flags & AC97_MONOOUT_6B))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_MONOOUT_6B))
                 goto clamp_5b_r;
             break;
 
         case 0x08: /* Master Tone Control */
-            if (!(dev->reset_flags & AC97_TONECTL))
+            if (!(ac97_codecs[dev->model].reset_flags & AC97_TONECTL))
                 return;
             val &= 0x0f0f;
             break;
 
         case 0x0a: /* PC Beep Volume */
-            if (dev->misc_flags & AC97_PCBEEP)
+            if (ac97_codecs[dev->model].misc_flags & AC97_PCBEEP)
                 i |= 0x801e;
-            if (dev->misc_flags & AC97_PCBEEP_GEN)
+            if (ac97_codecs[dev->model].misc_flags & AC97_PCBEEP_GEN)
                 i |= 0x1fe0;
             val &= i;
             break;
 
         case 0x0c: /* Phone Volume */
-            if (!(dev->misc_flags & AC97_PHONE))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_PHONE))
                 return;
             val &= 0x801f;
             break;
@@ -238,12 +246,12 @@ line_gain:
             break;
 
         case 0x14: /* Video Volume */
-            if (!(dev->misc_flags & AC97_VIDEO))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_VIDEO))
                 return;
             goto line_gain;
 
         case 0x16: /* Aux In Volume */
-            if (!(dev->misc_flags & AC97_AUXIN))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_AUXIN))
                 return;
             goto line_gain;
 
@@ -256,26 +264,26 @@ line_gain:
             break;
 
         case 0x1e: /* Record Gain Mic */
-            if (!(dev->reset_flags & AC97_MICPCM))
+            if (!(ac97_codecs[dev->model].reset_flags & AC97_MICPCM))
                 return;
             val &= 0x800f;
             break;
 
         case 0x20: /* General Purpose */
-            i = AC97_MIX | (dev->misc_flags & (AC97_POP | AC97_MS | AC97_LPBK));
-            if (dev->reset_flags >> AC97_3D_SHIFT)
+            i = AC97_MIX | (ac97_codecs[dev->model].misc_flags & (AC97_POP | AC97_MS | AC97_LPBK));
+            if (ac97_codecs[dev->model].reset_flags >> AC97_3D_SHIFT)
                 i |= AC97_3D;
-            if (dev->reset_flags & AC97_SIMSTEREO)
+            if (ac97_codecs[dev->model].reset_flags & AC97_SIMSTEREO)
                 i |= AC97_ST;
-            if (dev->reset_flags & AC97_LOUDNESS)
+            if (ac97_codecs[dev->model].reset_flags & AC97_LOUDNESS)
                 i |= AC97_LD;
-            if (dev->extid_flags & AC97_DRA)
+            if (ac97_codecs[dev->model].extid_flags & AC97_DRA)
                 i |= AC97_DRSS_MASK;
             val &= i;
             break;
 
-        case 0x22: /* 3D Control */
-            switch (dev->reset_flags >> AC97_3D_SHIFT) {
+        case 0x22:      /* 3D Control */
+            switch (ac97_codecs[dev->model].reset_flags >> AC97_3D_SHIFT) {
                 case 1: /* Analog Devices */
                 case 6: /* Crystal */
                     val &= 0x000f;
@@ -287,7 +295,7 @@ line_gain:
 
                 case 26: /* SigmaTel */
                     i = 0x0003;
-                    if (dev->extid_flags & AC97_SDAC)
+                    if (ac97_codecs[dev->model].extid_flags & AC97_SDAC)
                         i |= 0x000c;
                     val &= i;
                     break;
@@ -298,13 +306,13 @@ line_gain:
             break;
 
         case 0x24: /* Audio Interrupt and Paging Mechanism */
-            if ((dev->extid_flags & AC97_REV_MASK) < AC97_REV_2_3)
+            if ((ac97_codecs[dev->model].extid_flags & AC97_REV_MASK) < AC97_REV_2_3)
                 return;
             val &= 0x000f;
             break;
 
         case 0x26: /* Powerdown Control/Status */
-            i   = dev->powerdown_mask << 8;
+            i   = ac97_codecs[dev->model].pcsr_mask << 8;
             val = (val & i) | (prev & ~i);
 
             /* Update status bits to reflect powerdowns. */
@@ -314,16 +322,16 @@ line_gain:
             break;
 
         case 0x28: /* Extended Audio ID */
-            if (dev->misc_flags & AC97_DSA)
+            if (ac97_codecs[dev->model].misc_flags & AC97_DSA)
                 i |= 0x0030;
             val = (val & i) | (prev & ~i);
             break;
 
         case 0x2a: /* Extended Audio Status/Control */
-            i = dev->extid_flags & (AC97_VRA | AC97_DRA | AC97_SPDIF | AC97_VRM);
-            if (dev->extid_flags & AC97_SPDIF)
+            i = ac97_codecs[dev->model].extid_flags & (AC97_VRA | AC97_DRA | AC97_SPDIF | AC97_VRM);
+            if (ac97_codecs[dev->model].extid_flags & AC97_SPDIF)
                 i |= AC97_SPSA_MASK << AC97_SPSA_SHIFT;
-            i |= (dev->powerdown_mask << 3) & 0x7800; /* multichannel powerdowns */
+            i |= (ac97_codecs[dev->model].eascr_mask << 11) & 0x7800;
             val = (val & i) | (prev & ~i);
 
             /* Reset DAC sample rates to 48 KHz (96 KHz with DRA) if VRA is being cleared. */
@@ -343,57 +351,57 @@ line_gain:
         case 0x32: /* PCM L/R ADC Rate */
 rate:              /* Writable only if VRA/VRM is set. */
             i = (reg >= 0x32) ? AC97_VRM : AC97_VRA;
-            if (!(dev->extid_flags & i))
+            if (!(ac97_codecs[dev->model].extid_flags & i))
                 return;
 
             /* Limit to supported sample rate range. */
-            if (val < dev->min_rate)
-                val = dev->min_rate;
-            else if (val > dev->max_rate)
-                val = dev->max_rate;
+            if (val < ac97_codecs[dev->model].min_rate)
+                val = ac97_codecs[dev->model].min_rate;
+            else if (val > ac97_codecs[dev->model].max_rate)
+                val = ac97_codecs[dev->model].max_rate;
             break;
 
         case 0x2e: /* PCM Surround DAC Rate */
-            if (!(dev->extid_flags & AC97_SDAC))
+            if (!(ac97_codecs[dev->model].extid_flags & AC97_SDAC))
                 return;
             goto rate;
 
         case 0x30: /* PCM LFE DAC Rate */
-            if (!(dev->extid_flags & AC97_LDAC))
+            if (!(ac97_codecs[dev->model].extid_flags & AC97_LDAC))
                 return;
             goto rate;
 
         case 0x34: /* Mic ADC Rate */
-            if (!(dev->reset_flags & AC97_MICPCM))
+            if (!(ac97_codecs[dev->model].reset_flags & AC97_MICPCM))
                 return;
             goto rate;
 
         case 0x36: /* Center/LFE Volume */
-            if (dev->extid_flags & AC97_LDAC)
+            if (ac97_codecs[dev->model].extid_flags & AC97_LDAC)
                 i |= 0xbf00;
-            if (dev->extid_flags & AC97_CDAC)
+            if (ac97_codecs[dev->model].extid_flags & AC97_CDAC)
                 i |= 0x00bf;
             val &= i;
 
             /* Convert 1xxxxx to 011111 where unsupported, per specification. */
-            if (!(dev->misc_flags & AC97_LFE_6B) && (val & 0x2000))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_LFE_6B) && (val & 0x2000))
                 val = (val & ~0x2000) | 0x1f00;
-            if (!(dev->misc_flags & AC97_CENTER_6B))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_CENTER_6B))
                 goto clamp_5b_r;
             break;
 
         case 0x38: /* Surround Volume */
-            if (!(dev->extid_flags & AC97_SDAC))
+            if (!(ac97_codecs[dev->model].extid_flags & AC97_SDAC))
                 return;
             val &= 0xbfbf;
 
             /* Convert 1xxxxx to 011111 where unsupported, per specification. */
-            if (!(dev->misc_flags & AC97_SURR_6B))
+            if (!(ac97_codecs[dev->model].misc_flags & AC97_SURR_6B))
                 goto clamp_5b;
             break;
 
         case 0x3a: /* S/PDIF Control */
-            if (!(dev->extid_flags & AC97_SPDIF))
+            if (!(ac97_codecs[dev->model].extid_flags & AC97_SPDIF))
                 return;
             break;
 
@@ -410,32 +418,28 @@ rate:              /* Writable only if VRA/VRM is set. */
                 /* Get actual previous value. */
                 prev = dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)];
             }
-
-            i <<= 8;
-            /* fall-through */
+            fallthrough;
 
         case 0x5a ... 0x5e: /* Vendor Reserved */
         case 0x70 ... 0x7a:
             /* Stop if no vendor-specific registers are defined. */
-            if (!dev->vendor_regs)
+            if (!ac97_codecs[dev->model].vendor_regs)
                 return;
 
             /* Look for a matching vendor-specific register. */
-            i |= reg;
-            for (j = 0; dev->vendor_regs[j].index; j++) {
+            for (j = 0; ac97_codecs[dev->model].vendor_regs[j].index; j++) {
                 /* If a match was found, inject written bits. */
-                if (dev->vendor_regs[j].index == i) {
-                    val = (val & dev->vendor_regs[j].write_mask) | (prev & ~dev->vendor_regs[j].write_mask);
+                if ((ac97_codecs[dev->model].vendor_regs[j].page == i) && (ac97_codecs[dev->model].vendor_regs[j].index == reg)) {
+                    val = (val & ac97_codecs[dev->model].vendor_regs[j].write_mask) | (prev & ~ac97_codecs[dev->model].vendor_regs[j].write_mask);
                     break;
                 }
             }
 
             /* No match found. */
-            if (!dev->vendor_regs[j].index)
+            if (!ac97_codecs[dev->model].vendor_regs[j].index)
                 return;
 
             /* Redirect a write to page 1+ to the right array, part 2. */
-            i >>= 8;
             if (i > 0) {
                 dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)] = val;
                 return;
@@ -465,52 +469,51 @@ ac97_codec_reset(void *priv)
 
     /* Set default level and gain values. */
     dev->regs[0x02 >> 1] = AC97_MUTE;
-    if (dev->misc_flags & AC97_AUXOUT)
+    if (ac97_codecs[dev->model].misc_flags & AC97_AUXOUT)
         dev->regs[0x04 >> 1] = AC97_MUTE;
-    if (dev->misc_flags & AC97_MONOOUT)
+    if (ac97_codecs[dev->model].misc_flags & AC97_MONOOUT)
         dev->regs[0x06 >> 1] = AC97_MUTE;
-    if (dev->misc_flags & AC97_PHONE)
+    if (ac97_codecs[dev->model].misc_flags & AC97_PHONE)
         dev->regs[0x0c >> 1] = AC97_MUTE | 0x0008;
     dev->regs[0x0e >> 1] = AC97_MUTE | 0x0008;                                               /* mic */
     dev->regs[0x10 >> 1] = dev->regs[0x12 >> 1] = dev->regs[0x18 >> 1] = AC97_MUTE | 0x0808; /* line in, CD, PCM out */
-    if (dev->misc_flags & AC97_VIDEO)
+    if (ac97_codecs[dev->model].misc_flags & AC97_VIDEO)
         dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
-    if (dev->misc_flags & AC97_AUXIN)
+    if (ac97_codecs[dev->model].misc_flags & AC97_AUXIN)
         dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
-    dev->regs[0x1c >> 1] = AC97_MUTE; /* record gain */
-    if (dev->reset_flags & AC97_MICPCM)
+    dev->regs[0x1c >> 1] = AC97_MUTE;     /* record gain */
+    if (ac97_codecs[dev->model].reset_flags & AC97_MICPCM)
         dev->regs[0x1e >> 1] = AC97_MUTE; /* mic record gain */
-    if (dev->misc_flags & AC97_LDAC)
+    if (ac97_codecs[dev->model].misc_flags & AC97_LDAC)
         dev->regs[0x36 >> 1] = AC97_MUTE_L;
-    if (dev->misc_flags & AC97_CDAC)
+    if (ac97_codecs[dev->model].misc_flags & AC97_CDAC)
         dev->regs[0x36 >> 1] |= AC97_MUTE_R;
-    if (dev->misc_flags & AC97_SDAC)
+    if (ac97_codecs[dev->model].misc_flags & AC97_SDAC)
         dev->regs[0x38 >> 1] = AC97_MUTE_L | AC97_MUTE_R;
 
     /* Set flags. */
-    dev->regs[0x00 >> 1] = dev->reset_flags;
-    dev->regs[0x26 >> 1] = 0x000f; /* codec ready */
-    dev->regs[0x28 >> 1] = (dev->codec_id << 14) | dev->extid_flags;
+    dev->regs[0x00 >> 1] = ac97_codecs[dev->model].reset_flags;
+    dev->regs[0x26 >> 1] = 0x000f;        /* codec ready */
+    dev->regs[0x28 >> 1] = (dev->codec_id << 14) | ac97_codecs[dev->model].extid_flags;
     ac97_codec_writew(dev, 0x2a, 0x0000); /* reset variable DAC/ADC sample rates */
-    i = dev->extid_flags & (AC97_CDAC | AC97_SDAC | AC97_LDAC);
+    i = ac97_codecs[dev->model].extid_flags & (AC97_CDAC | AC97_SDAC | AC97_LDAC);
     dev->regs[0x2a >> 1] |= i | (i << 5); /* any additional DACs are ready but powered down */
-    if (dev->extid_flags & AC97_SPDIF)
+    if (ac97_codecs[dev->model].extid_flags & AC97_SPDIF)
         dev->regs[0x2a >> 1] |= AC97_SPCV;
-    if (dev->reset_flags & AC97_MICPCM)
+    if (ac97_codecs[dev->model].reset_flags & AC97_MICPCM)
         dev->regs[0x2a >> 1] |= AC97_MADC | AC97_PRL;
 
     /* Set vendor ID. */
-    dev->regs[0x7c >> 1] = dev->vendor_id >> 16;
-    dev->regs[0x7e >> 1] = dev->vendor_id;
+    dev->regs[0x7c >> 1] = ac97_codecs[dev->model].device->local >> 16;
+    dev->regs[0x7e >> 1] = ac97_codecs[dev->model].device->local;
 
     /* Set vendor-specific registers. */
-    if (dev->vendor_regs) {
-        for (uint16_t j = 0; dev->vendor_regs[j].index; j++) {
-            i = (dev->vendor_regs[j].index >> 8) & 0x000f;
-            if (i > 0)
-                dev->vendor_reg_pages[(i << 3) | (dev->vendor_regs[j].index >> 1)] = dev->vendor_regs[j].value;
+    if (ac97_codecs[dev->model].vendor_regs) {
+        for (i = 0; ac97_codecs[dev->model].vendor_regs[i].index; i++) {
+            if (ac97_codecs[dev->model].vendor_regs[i].page > 0)
+                dev->vendor_reg_pages[(ac97_codecs[dev->model].vendor_regs[i].page << 3) | (ac97_codecs[dev->model].vendor_regs[i].index >> 1)] = ac97_codecs[dev->model].vendor_regs[i].value;
             else
-                dev->regs[dev->vendor_regs[j].index >> 1] = dev->vendor_regs[j].value;
+                dev->regs[ac97_codecs[dev->model].vendor_regs[i].index >> 1] = ac97_codecs[dev->model].vendor_regs[i].value;
         }
     }
 }
@@ -518,8 +521,8 @@ ac97_codec_reset(void *priv)
 void
 ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 {
-    ac97_codec_t *dev = (ac97_codec_t *) priv;
-    uint16_t      val = dev->regs[reg >> 1];
+    const ac97_codec_t *dev = (ac97_codec_t *) priv;
+    uint16_t            val = dev->regs[reg >> 1];
 
     /* Apply full mute and powerdowns. */
     int full_mute = (reg < 0x36);
@@ -557,7 +560,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 uint32_t
 ac97_codec_getrate(void *priv, uint8_t reg)
 {
-    ac97_codec_t *dev = (ac97_codec_t *) priv;
+    const ac97_codec_t *dev = (ac97_codec_t *) priv;
 
     /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
     uint32_t ret = dev->regs[reg >> 1];
@@ -577,15 +580,18 @@ ac97_codec_init(const device_t *info)
     ac97_codec_t *dev = malloc(sizeof(ac97_codec_t));
     memset(dev, 0, sizeof(ac97_codec_t));
 
-    dev->vendor_id      = ac97_codecs[info->local].vendor_id;
-    dev->min_rate       = ac97_codecs[info->local].min_rate;
-    dev->max_rate       = ac97_codecs[info->local].max_rate;
-    dev->reset_flags    = ac97_codecs[info->local].reset_flags;
-    dev->extid_flags    = ac97_codecs[info->local].extid_flags;
-    dev->misc_flags     = ac97_codecs[info->local].misc_flags;
-    dev->powerdown_mask = ac97_codecs[info->local].powerdown_mask;
-    dev->vendor_regs    = ac97_codecs[info->local].vendor_regs;
-    ac97_codec_log("AC97 Codec %d: init(%c%c%c%02X)\n", ac97_codec_id, (dev->vendor_id >> 24) & 0xff, (dev->vendor_id >> 16) & 0xff, (dev->vendor_id >> 8) & 0xff, dev->vendor_id & 0xff);
+    for (; dev->model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0])); dev->model++) {
+        if (ac97_codecs[dev->model].device->local == info->local)
+            break;
+    }
+    if (dev->model >= (sizeof(ac97_codecs) / sizeof(ac97_codecs[0]))) {
+        fatal("AC97 Codec %d: Unknown ID %c%c%c%02X\n", ac97_codec_id, (uint32_t) ((info->local >> 24) & 0xff), (uint32_t) ((info->local >> 16) & 0xff), (uint32_t) ((info->local >> 8) & 0xff), (uint32_t) (info->local & 0xff));
+        free(dev);
+        return NULL;
+    }
+    ac97_codec_log("AC97 Codec %d: init(%c%c%c%02X)\n", ac97_codec_id,
+                   (ac97_codecs[dev->model].device->local >> 24) & 0xff, (ac97_codecs[dev->model].device->local >> 16) & 0xff,
+                   (ac97_codecs[dev->model].device->local >> 8) & 0xff, ac97_codecs[dev->model].device->local & 0xff);
 
     /* Associate this codec to the current controller. */
     if (!ac97_codec || (ac97_codec_count <= 0)) {
@@ -601,20 +607,17 @@ ac97_codec_init(const device_t *info)
     dev->codec_id = ac97_codec_id++;
 
     /* Allocate vendor-specific register pages if required. */
-    if (dev->vendor_regs) {
+    if (ac97_codecs[dev->model].vendor_regs) {
         /* Get the highest vendor-specific register page number. */
-        int i;
-        dev->vendor_reg_page_max = 0;
-        for (uint16_t j = 0; dev->vendor_regs[j].index; j++) {
-            i = (dev->vendor_regs[j].index >> 8) & 0x000f;
-            if (i > dev->vendor_reg_page_max)
-                dev->vendor_reg_page_max = i;
+        for (uint16_t i = 0; ac97_codecs[dev->model].vendor_regs[i].index; i++) {
+            if (ac97_codecs[dev->model].vendor_regs[i].page > dev->vendor_reg_page_max)
+                dev->vendor_reg_page_max = ac97_codecs[dev->model].vendor_regs[i].page;
         }
 
         /* Allocate pages 1+. */
         if (dev->vendor_reg_page_max > 0) {
             ac97_codec_log("AC97 Codec %d: Allocating %d vendor-specific register pages\n", dev->codec_id, dev->vendor_reg_page_max);
-            i                     = 16 * dev->vendor_reg_page_max;
+            int i                 = 16 * dev->vendor_reg_page_max;
             dev->vendor_reg_pages = (uint16_t *) malloc(i);
             memset(dev->vendor_reg_pages, 0, i);
         }
@@ -641,12 +644,13 @@ ac97_codec_close(void *priv)
 }
 
 const device_t *
-ac97_codec_get(int model)
+ac97_codec_get(uint32_t id)
 {
-    if ((model >= 0) && (model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0]))))
-        return ac97_codecs[model].device;
-    else
-        return &cs4297a_device; /* fallback */
+    for (int i = 0; i < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0])); i++) {
+        if (ac97_codecs[i].device->local == id)
+            return ac97_codecs[i].device;
+    }
+    return &tr28023_device; /* fallback */
 }
 
 const device_t ad1881_device = {
@@ -738,6 +742,20 @@ const device_t stac9721_device = {
     .internal_name = "stac9721",
     .flags         = DEVICE_AC97,
     .local         = AC97_CODEC_STAC9721,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t tr28023_device = {
+    .name          = "TriTech TR28023 / Creative CT1297",
+    .internal_name = "tr28023",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_TR28023,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,

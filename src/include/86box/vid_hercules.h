@@ -25,32 +25,34 @@
 typedef struct {
     mem_mapping_t mapping;
 
-    uint8_t crtc[32], charbuffer[4096];
+    uint8_t crtc[32];
+    uint8_t charbuffer[4096];
     int     crtcreg;
 
-    uint8_t ctrl,
-        ctrl2,
-        stat;
+    uint8_t ctrl;
+    uint8_t ctrl2;
+    uint8_t stat;
 
-    uint64_t dispontime,
-        dispofftime;
+    uint64_t   dispontime;
+    uint64_t   dispofftime;
     pc_timer_t timer;
 
-    int firstline,
-        lastline;
+    int firstline;
+    int lastline;
 
-    int linepos,
-        displine;
-    int vc,
-        sc;
-    uint16_t ma,
-        maback;
-    int con, coff,
-        cursoron;
-    int dispon,
-        blink;
-    int vsynctime;
-    int vadj;
+    int      linepos;
+    int      displine;
+    int      vc;
+    int      sc;
+    uint16_t ma;
+    uint16_t maback;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      dispon;
+    int      blink;
+    int      vsynctime;
+    int      vadj;
 
     int lp_ff;
     int fullchange;

@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/sound.h>
 #include <86box/snd_ad1848.h>
+#include <86box/plat_fallthrough.h>
 
 #define CS4231 0x80
 #define CS4236 0x03
@@ -65,8 +66,8 @@ ad1848_updatevolmask(ad1848_t *ad1848)
 static void
 ad1848_updatefreq(ad1848_t *ad1848)
 {
-    double  freq;
-    uint8_t set = 0;
+    double  freq = 0.0;
+    uint8_t set  = 0;
 
     if (ad1848->type >= AD1848_TYPE_CS4235) {
         if (ad1848->xregs[11] & 0x20) {
@@ -111,6 +112,9 @@ ad1848_updatefreq(ad1848_t *ad1848)
                 case 0x20:
                     freq /= 256 * set;
                     break;
+
+                default:
+                    break;
             }
             set = 1;
         }
@@ -142,6 +146,9 @@ ad1848_updatefreq(ad1848_t *ad1848)
                 break;
             case 7:
                 freq /= 2560;
+                break;
+
+            default:
                 break;
         }
     }
@@ -194,11 +201,17 @@ ad1848_read(uint16_t addr, void *priv)
                             ret = ad1848->xregs[ad1848->xindex];
                     }
                     break;
+
+                default:
+                    break;
             }
             break;
 
         case 2:
             ret = ad1848->status;
+            break;
+
+        default:
             break;
     }
 
@@ -229,7 +242,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 10:
                     if (ad1848->type < AD1848_TYPE_CS4235)
                         break;
-                    /* fall-through */
+                    fallthrough;
 
                 case 8:
                     updatefreq = 1;
@@ -359,6 +372,9 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                             case 25:
                                 return;
+
+                            default:
+                                break;
                         }
                         ad1848->xregs[ad1848->xindex] = val;
 
@@ -383,6 +399,9 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     if (ad1848->type != AD1848_TYPE_DEFAULT)
                         return;
                     break;
+
+                default:
+                    break;
             }
             ad1848->regs[ad1848->index] = val;
 
@@ -405,6 +424,9 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
         case 2:
             ad1848->status &= 0xfe;
             ad1848->regs[24] &= 0x0f;
+            break;
+
+        default:
             break;
     }
 }
@@ -561,6 +583,9 @@ ad1848_poll(void *priv)
                 break;
 
                 /* 0xe0 and 0xf0 reserved */
+
+            default:
+                break;
         }
 
         if (ad1848->regs[6] & 0x80)
@@ -595,9 +620,9 @@ ad1848_poll(void *priv)
 void
 ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    ad1848_t *ad1848 = (ad1848_t *) priv;
-    double    c;
-    double    volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
+    const ad1848_t *ad1848 = (ad1848_t *) priv;
+    double          c;
+    double          volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
@@ -606,7 +631,7 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 void
 ad1848_filter_aux2(void *priv, double *out_l, double *out_r)
 {
-    ad1848_t *ad1848 = (ad1848_t *) priv;
+    const ad1848_t *ad1848 = (ad1848_t *) priv;
 
     if (ad1848->regs[4] & 0x80) {
         *out_l = 0.0;

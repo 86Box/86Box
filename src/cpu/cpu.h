@@ -133,17 +133,17 @@ enum {
 #    define LOOKUP_INV -1
 #endif
 
-typedef struct {
+typedef struct fpu_t {
     const char *name;
     const char *internal_name;
     const int   type;
 } FPU;
 
-typedef struct {
+typedef struct cpu_t {
     const char *name;
     uint64_t    cpu_type;
     const FPU  *fpus;
-    int         rspeed;
+    uint32_t    rspeed;
     double      multi;
     uint16_t    voltage;
     uint32_t    edx_reset;
@@ -166,9 +166,9 @@ typedef struct {
 } cpu_family_t;
 
 typedef struct {
-    const char  *family;
-    const int    rspeed;
-    const double multi;
+    const char    *family;
+    const uint32_t rspeed;
+    const double   multi;
 } cpu_legacy_table_t;
 
 typedef struct {
@@ -253,6 +253,12 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t apic_base; /* 0x0000001b - Should the Pentium not also have this? */
+
+    /* Weird long MSR's used by the Hyper-V BIOS. */
+    uint64_t ecx20; /* 0x00000020, really 0x40000020, but we filter out the top 18 bits
+                       like a real Deschutes does. */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecx79;     /* 0x00000079 */
 
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
@@ -280,11 +286,12 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
+    uint64_t ecx186;  /* 0x00000186, 0x00000187 */
+    uint64_t ecx187;  /* 0x00000186, 0x00000187 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx186; /* 0x00000186, 0x00000187 */
-    uint64_t ecx187; /* 0x00000186, 0x00000187 */
-    uint64_t ecx1e0; /* 0x000001e0 */
+    uint64_t debug_ctl; /* 0x000001d9 - Debug Registers Control */
+    uint64_t ecx1e0;    /* 0x000001e0 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
        on the VIA Cyrix III */
@@ -313,9 +320,6 @@ typedef struct {
     /* IBM 486SLC and 486BL MSR's */
     uint64_t ibm_por2; /* 0x00001002 - Processor Operation Register */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx1002ff; /* 0x001002ff - MSR used by some Intel AMI boards */
-
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_efer; /* 0xc0000080 */
 
@@ -337,11 +341,6 @@ typedef struct {
 
     /* K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_l2aar; /* 0xc0000089 */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecxf0f00250; /* 0xf0f00250 - Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
-    uint64_t ecxf0f00258; /* 0xf0f00258 */
-    uint64_t ecxf0f00259; /* 0xf0f00259 */
 } msr_t;
 
 typedef struct {
@@ -393,8 +392,13 @@ typedef struct {
     MMX_REG MM[8];
 
 #ifdef USE_NEW_DYNAREC
+#    if defined(__APPLE__) && defined(__aarch64__)
+    uint64_t old_fp_control;
+    uint64_t new_fp_control;
+#    else
     uint32_t old_fp_control;
     uint32_t new_fp_control;
+#    endif
 #    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
     uint16_t old_fp_control2;
     uint16_t new_fp_control2;
@@ -426,15 +430,15 @@ typedef struct {
 } cpu_state_t;
 
 typedef struct {
-    uint16_t cwd;
-    uint16_t swd;
-    uint16_t tag;
-    uint16_t foo;
-    uint32_t fip;
-    uint32_t fdp;
-    uint16_t fcs;
-    uint16_t fds;
-    floatx80 st_space[8];
+    uint16_t      cwd;
+    uint16_t      swd;
+    uint16_t      tag;
+    uint16_t      foo;
+    uint32_t      fip;
+    uint32_t      fdp;
+    uint16_t      fcs;
+    uint16_t      fds;
+    floatx80      st_space[8];
     unsigned char tos;
     unsigned char align1;
     unsigned char align2;
@@ -444,7 +448,7 @@ typedef struct {
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
-#define smbase cpu_state._smbase
+#define smbase   cpu_state._smbase
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
@@ -454,9 +458,9 @@ typedef struct {
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
 #ifdef USE_NEW_DYNAREC
-#define CPU_STATUS_FLAGS   0xff
+#    define CPU_STATUS_FLAGS 0xff
 #else
-#define CPU_STATUS_FLAGS   0xffff
+#    define CPU_STATUS_FLAGS 0xffff
 #endif
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
@@ -538,8 +542,9 @@ extern int    cpu_multi;
 extern double cpu_dmulti;
 extern double fpu_multi;
 extern double cpu_busspeed;
-extern int    cpu_cyrix_alignment; /*Cyrix 5x86/6x86 only has data misalignment
-                                     penalties when crossing 8-byte boundaries*/
+extern int    cpu_cyrix_alignment; /* Cyrix 5x86/6x86 only has data misalignment
+                                      penalties when crossing 8-byte boundaries. */
+extern int    cpu_cpurst_on_sr;    /* SiS 551x and 5571: Issue CPURST on soft reset. */
 
 extern int is8086;
 extern int is186;
@@ -584,7 +589,6 @@ extern uint64_t cpu_CR4_mask;
 extern uint64_t tsc;
 extern msr_t    msr;
 extern uint8_t  opcode;
-extern int      cgate16;
 extern int      cpl_override;
 extern int      CPUID;
 extern uint64_t xt_cpu_multi;
@@ -615,8 +619,8 @@ extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-#define cr0     cpu_state.CR0.l
-#define msw     cpu_state.CR0.w
+#define cr0                  cpu_state.CR0.l
+#define msw                  cpu_state.CR0.w
 extern uint32_t cr2;
 extern uint32_t cr3;
 extern uint32_t cr4;
@@ -715,15 +719,6 @@ extern uint32_t cpu_fast_off_flags;
 /* Functions. */
 extern int cpu_has_feature(int feature);
 
-#ifdef USE_NEW_DYNAREC
-extern void loadseg_dynarec(uint16_t seg, x86seg *s);
-extern int  loadseg(uint16_t seg, x86seg *s);
-extern void loadcs(uint16_t seg);
-#else
-extern void loadseg(uint16_t seg, x86seg *s);
-extern void loadcs(uint16_t seg);
-#endif
-
 extern char *cpu_current_pc(char *bufp);
 
 extern void cpu_update_waitstates(void);
@@ -743,26 +738,14 @@ extern void codegen_block_end(void);
 extern void codegen_reset(void);
 extern void cpu_set_edx(void);
 extern int  divl(uint32_t val);
-extern void execx86(int cycs);
+extern void execx86(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
-extern void exec386(int cycs);
-extern void exec386_dynarec(int cycs);
+extern void exec386_2386(int32_t cycs);
+extern void exec386(int32_t cycs);
+extern void exec386_dynarec(int32_t cycs);
 extern int  idivl(int32_t val);
-#ifdef USE_NEW_DYNAREC
-extern void loadcscall(uint16_t seg, uint32_t old_pc);
-extern void loadcsjmp(uint16_t seg, uint32_t old_pc);
-extern void pmodeint(int num, int soft);
-extern void pmoderetf(int is32, uint16_t off);
-extern void pmodeiret(int is32);
-#else
-extern void loadcscall(uint16_t seg);
-extern void loadcsjmp(uint16_t seg, uint32_t old_pc);
-extern void pmodeint(int num, int soft);
-extern void pmoderetf(int is32, uint16_t off);
-extern void pmodeiret(int is32);
-#endif
 extern void resetmcr(void);
 extern void resetx86(void);
 extern void refreshread(void);
@@ -772,11 +755,6 @@ extern void hardresetx86(void);
 extern void x86_int(int num);
 extern void x86_int_sw(int num);
 extern int  x86_int_sw_rm(int num);
-extern void x86de(char *s, uint16_t error);
-extern void x86gpf(char *s, uint16_t error);
-extern void x86np(char *s, uint16_t error);
-extern void x86ss(char *s, uint16_t error);
-extern void x86ts(char *s, uint16_t error);
 
 #ifdef ENABLE_808X_LOG
 extern void dumpregs(int __force);
@@ -830,10 +808,12 @@ extern int hlt_reset_pending;
 
 extern cyrix_t cyrix;
 
+extern int prefetch_prefixes;
+
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
 
-extern void (*cpu_exec)(int cycs);
+extern void (*cpu_exec)(int32_t cycs);
 extern uint8_t do_translate;
 extern uint8_t do_translate2;
 
@@ -850,9 +830,15 @@ extern void cpu_fast_off_reset(void);
 extern void smi_raise(void);
 extern void nmi_raise(void);
 
-extern MMX_REG *MMP[8];
+extern MMX_REG  *MMP[8];
 extern uint16_t *MMEP[8];
 
+extern int  cpu_block_end;
+extern int  cpu_override_dynarec;
+
 extern void mmx_init(void);
+extern void prefetch_flush(void);
+
+extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32);
 
 #endif /*EMU_CPU_H*/

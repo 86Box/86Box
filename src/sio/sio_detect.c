@@ -47,7 +47,7 @@ sio_detect_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 sio_detect_read(uint16_t port, void *priv)
 {
-    sio_detect_t *dev = (sio_detect_t *) priv;
+    const sio_detect_t *dev = (sio_detect_t *) priv;
 
     pclog("sio_detect_read : port=%04x = %02X\n", port, dev->regs[port & 1]);
 

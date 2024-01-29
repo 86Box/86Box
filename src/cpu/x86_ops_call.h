@@ -6,9 +6,9 @@
         optype       = CALL;             \
         cgate16 = cgate32 = 0;           \
         if (msw & 1)                     \
-            loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc); \
         else {                           \
-            loadcs(new_seg);             \
+            op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
         }                                \
         optype = 0;                      \
@@ -54,9 +54,9 @@
         optype       = CALL;             \
         cgate16 = cgate32 = 0;           \
         if (msw & 1)                     \
-            loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc); \
         else {                           \
-            loadcs(new_seg);             \
+            op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
         }                                \
         optype = 0;                      \
@@ -103,9 +103,9 @@
         optype       = CALL;            \
         cgate16 = cgate32 = 0;          \
         if (msw & 1)                    \
-            loadcscall(new_seg);        \
+            op_loadcscall(new_seg);        \
         else {                          \
-            loadcs(new_seg);            \
+            op_loadcs(new_seg);          \
             cycles -= timing_call_rm;   \
         }                               \
         optype = 0;                     \
@@ -148,9 +148,9 @@
         optype       = CALL;            \
         cgate16 = cgate32 = 0;          \
         if (msw & 1)                    \
-            loadcscall(new_seg);        \
+            op_loadcscall(new_seg);        \
         else {                          \
-            loadcs(new_seg);            \
+            op_loadcs(new_seg);         \
             cycles -= timing_call_rm;   \
         }                               \
         optype = 0;                     \
@@ -189,8 +189,10 @@
 static int
 opCALL_far_w(uint32_t fetchdat)
 {
-    uint32_t old_cs, old_pc;
-    uint16_t new_cs, new_pc;
+    uint32_t old_cs;
+    uint32_t old_pc;
+    uint16_t new_cs;
+    uint16_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -209,8 +211,10 @@ opCALL_far_w(uint32_t fetchdat)
 static int
 opCALL_far_l(uint32_t fetchdat)
 {
-    uint32_t old_cs, old_pc;
-    uint32_t new_cs, new_pc;
+    uint32_t old_cs;
+    uint32_t old_pc;
+    uint32_t new_cs;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -230,8 +234,10 @@ opCALL_far_l(uint32_t fetchdat)
 static int
 opFF_w_a16(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -356,14 +362,12 @@ opFF_w_a16(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 2, 0, 0, 0, 0);
             PREFETCH_FLUSH();
@@ -392,8 +396,10 @@ opFF_w_a16(uint32_t fetchdat)
 static int
 opFF_w_a32(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -518,14 +524,12 @@ opFF_w_a32(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 2, 0, 0, 0, 1);
             PREFETCH_FLUSH();
@@ -555,8 +559,10 @@ opFF_w_a32(uint32_t fetchdat)
 static int
 opFF_l_a16(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -681,14 +687,12 @@ opFF_l_a16(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 1, 1, 0, 0, 0);
             PREFETCH_FLUSH();
@@ -717,8 +721,10 @@ opFF_l_a16(uint32_t fetchdat)
 static int
 opFF_l_a32(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -845,14 +851,12 @@ opFF_l_a32(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 1, 1, 0, 0, 1);
             PREFETCH_FLUSH();

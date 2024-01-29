@@ -107,7 +107,7 @@
 #define ST11_BIOS_FILE_OLD               "roms/hdd/st506/st11_bios_vers_1.7.bin"
 #define ST11_BIOS_FILE_NEW               "roms/hdd/st506/st11_bios_vers_2.0.bin"
 #define WD1002A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
-#define WD1004A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define WD1004A_WX1_BIOS_FILE            "roms/hdd/st506/western_digital_WD1004A-27X.bin"
 /* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
    if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
    17 sectors per track. */
@@ -623,6 +623,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_FORMAT_TRACK:
         case CMD_FORMAT_BAD_TRACK:
             switch (dev->state) {
@@ -669,6 +670,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_READ:
 #if 0
         case CMD_READ_LONG:
@@ -768,6 +770,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_WRITE:
 #if 0
         case CMD_WRITE_LONG:
@@ -1377,10 +1380,10 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 mem_read(uint32_t addr, void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    uint32_t ptr;
-    uint32_t mask = 0;
-    uint8_t  ret = 0xff;
+    const hdc_t *dev = (hdc_t *) priv;
+    uint32_t     ptr;
+    uint32_t     mask = 0;
+    uint8_t      ret = 0xff;
 
     /* Ignore accesses to anything below the configured address,
        needed because of the emulator's 4k mapping granularity. */
@@ -1529,8 +1532,9 @@ loadhd(hdc_t *dev, int c, int d, UNUSED(const char *fn))
 static void
 set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
-    drive_t *drive;
-    int      e;
+    const drive_t *drive;
+    int            c;
+    int            e;
 
     dev->switches = 0x00;
 
@@ -1543,7 +1547,7 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
             continue;
         }
 
-        for (int c = 0; c < num; c++) {
+        for (c = 0; c < num; c++) {
             /* Does the Xebec also support more than 4 types? */
             if ((drive->spt == hdt[c].spt) && (drive->hpc == hdt[c].hpc) && (drive->tracks == hdt[c].tracks)) {
                 /* Olivetti M24/M240: Move the upper 2 bites up by 2 bits, as the
@@ -1571,10 +1575,10 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 static void *
 st506_init(const device_t *info)
 {
-    char  *fn = NULL;
-    hdc_t *dev;
-    int    i;
-    int    c;
+    const char *fn = NULL;
+    hdc_t      *dev;
+    int         i;
+    int         c;
 
     dev = (hdc_t *) malloc(sizeof(hdc_t));
     memset(dev, 0x00, sizeof(hdc_t));
@@ -1604,7 +1608,7 @@ st506_init(const device_t *info)
 
         case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
             dev->spt = RLL_SECTORS;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case ST506_XT_TYPE_ST11M: /* Seagate ST-11M (MFM) */
             dev->nr_err   = ERR_NOT_AVAILABLE;
@@ -1663,7 +1667,7 @@ st506_init(const device_t *info)
             fn          = WD1004A_WX1_BIOS_FILE;
             /* The switches are read in reverse: 0 = closed, 1 = open.
                Both open means MFM, 17 sectors per track. */
-            dev->switches = 0x10; /* autobios */
+            dev->switches = 0x30; /* autobios */
             dev->base     = device_get_config_hex16("base");
             dev->irq      = device_get_config_int("irq");
             if (dev->irq == 2)
@@ -1778,8 +1782,8 @@ st506_init(const device_t *info)
 static void
 st506_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     for (uint8_t d = 0; d < MFM_NUM; d++) {
         drive = &dev->drives[d];

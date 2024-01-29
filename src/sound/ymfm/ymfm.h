@@ -46,6 +46,8 @@
 #include <string>
 #include <vector>
 
+#define SNPRINTF_BUFFER_SIZE_CALC (256 - (end - &buffer[0]))
+
 namespace ymfm
 {
 
@@ -350,7 +352,7 @@ public:
 		{
 			// create file
 			char name[20];
-			sprintf(name, "wavlog-%02d.wav", m_index);
+                        snprintf(name, sizeof(name), "wavlog-%02d.wav", m_index);
 			FILE *out = fopen(name, "wb");
 
 			// make the wav file header

@@ -57,24 +57,26 @@
 #define TIMER_1SEC 1 /* ID of the one-second timer */
 
 /* Platform Public data, specific. */
-HWND  hwndMain    = NULL; /* application main window */
-HWND  hwndRender  = NULL; /* machine render window */
-HWND  hwndRender2 = NULL; /* machine second screen render window */
-HMENU menuMain;         /* application main menu */
-RECT  oldclip;          /* mouse rect */
-int   sbar_height = 23; /* statusbar height */
-int   tbar_height = 23; /* toolbar height */
-int   minimized   = 0;
-int   infocus       = 1;
-int   button_down   = 0;
-int   rctrl_is_lalt = 0;
-int   user_resize   = 0;
-int   fixed_size_x  = 0;
-int   fixed_size_y  = 0;
+HWND  hwndMain        = NULL; /* application main window */
+HWND  hwndRender      = NULL; /* machine render window */
+HWND  hwndRender2     = NULL; /* machine second screen render window */
+HMENU menuMain;             /* application main menu */
+RECT  oldclip;              /* mouse rect */
+int   sbar_height     = 23; /* statusbar height */
+int   tbar_height     = 23; /* toolbar height */
+int   minimized       = 0;
+int   infocus         = 1;
+int   button_down     = 0;
+int   rctrl_is_lalt   = 0;
+int   user_resize     = 0;
+int   fixed_size_x    = 0;
+int   fixed_size_y    = 0;
 int   kbd_req_capture = 0;
 int   hide_status_bar = 0;
 int   hide_tool_bar   = 0;
 int   dpi             = 96;
+
+int   status_icons_fullscreen = 0; /* unused. */
 
 extern char  openfilestring[512];
 extern WCHAR wopenfilestring[512];
@@ -396,10 +398,14 @@ plat_power_off(void)
 
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
-    // do_stop();
+#if 0
+    do_stop();
+#endif
     cpu_thread_run = 0;
 
-    // exit(-1);
+#if 0
+    exit(-1);
+#endif
 }
 
 #ifdef MTR_ENABLED
@@ -422,7 +428,7 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+input_proc(UNUSED(HWND hwnd), UINT message, UNUSED(WPARAM wParam), LPARAM lParam)
 {
     switch (message) {
         case WM_INPUT:
@@ -476,8 +482,8 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         default:
             return 1;
 #if 0
-            return(CallWindowProc((WNDPROC)input_orig_proc,
-                                  hwnd, message, wParam, lParam));
+        return(CallWindowProc((WNDPROC)input_orig_proc,
+                              hwnd, message, wParam, lParam));
 #endif
     }
 
@@ -499,7 +505,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     int temp_y;
 
     if (input_proc(hwnd, message, wParam, lParam) == 0)
-        return (0);
+        return 0;
 
     switch (message) {
         case WM_CREATE:
@@ -876,7 +882,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     media_menu_proc(hwnd, message, wParam, lParam);
                     break;
             }
-            return (0);
+            return 0;
 
         case WM_ENTERMENULOOP:
             break;
@@ -914,7 +920,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (IsIconic(hwndMain)) {
                 plat_vidapi_enable(0);
                 minimized = 1;
-                return (0);
+                return 0;
             } else if (minimized) {
                 minimized = 0;
                 video_force_resize_set(1);
@@ -970,7 +976,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 plat_vidapi_enable(2);
             }
 
-            return (0);
+            return 0;
 
         case WM_TIMER:
             if (wParam == TIMER_1SEC)
@@ -988,7 +994,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_KEYUP:
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
-            return (0);
+            return 0;
 
         case WM_CLOSE:
             win_notify_dlg_open();
@@ -1137,7 +1143,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
     }
 
-    return (0);
+    return 0;
 }
 
 static LRESULT CALLBACK
@@ -1182,7 +1188,7 @@ SDLSubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 static HRESULT CALLBACK
-TaskDialogProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LONG_PTR lpRefData)
+TaskDialogProcedure(HWND hwnd, UINT message, UNUSED(WPARAM wParam), LPARAM lParam, UNUSED(LONG_PTR lpRefData))
 {
     switch (message) {
         case TDN_HYPERLINK_CLICKED:
@@ -1242,7 +1248,7 @@ ui_init(int nCmdShow)
             tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2121);
             tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2056);
             TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-            return (6);
+            return 6;
         }
 
         /* Load the desired language */
@@ -1251,7 +1257,7 @@ ui_init(int nCmdShow)
         set_language(helper_lang);
 
         win_settings_open(NULL);
-        return (0);
+        return 0;
     }
 
 #ifdef DISCORD
@@ -1286,19 +1292,19 @@ ui_init(int nCmdShow)
     ExtractIconExW(path, 0, &wincl.hIcon, &wincl.hIconSm, 1);
 
     if (!RegisterClassEx(&wincl))
-        return (2);
+        return 2;
     wincl.lpszClassName = SUB_CLASS_NAME;
     wincl.lpfnWndProc   = SubWindowProcedure;
     if (!RegisterClassEx(&wincl))
-        return (2);
+        return 2;
     wincl.lpszClassName = SDL_CLASS_NAME;
     wincl.lpfnWndProc   = SDLMainWindowProcedure;
     if (!RegisterClassEx(&wincl))
-        return (2);
+        return 2;
     wincl.lpszClassName = SDL_SUB_CLASS_NAME;
     wincl.lpfnWndProc   = SDLSubWindowProcedure;
     if (!RegisterClassEx(&wincl))
-        return (2);
+        return 2;
 
     /* Now create our main window. */
     swprintf_s(title, sizeof_w(title), L"%hs - %s %s", vm_name, EMU_NAME_W, EMU_VERSION_FULL_W);
@@ -1378,7 +1384,7 @@ ui_init(int nCmdShow)
     /* Warn the user about unsupported configs. */
     if (cpu_override && ui_msgbox_ex(MBX_WARNING | MBX_QUESTION_OK, (void *) IDS_2146, (void *) IDS_2147, (void *) IDS_2148, (void *) IDS_2120, NULL)) {
         DestroyWindow(hwnd);
-        return (0);
+        return 0;
     }
 
     GetClipCursor(&oldclip);
@@ -1392,7 +1398,7 @@ ui_init(int nCmdShow)
     if (!RegisterRawInputDevices(&ridev, 1, sizeof(ridev))) {
         tdconfig.pszContent = MAKEINTRESOURCE(IDS_2106);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return (4);
+        return 4;
     }
     keyboard_getkeymap();
 
@@ -1401,7 +1407,7 @@ ui_init(int nCmdShow)
     if (haccel == NULL) {
         tdconfig.pszContent = MAKEINTRESOURCE(IDS_2105);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return (3);
+        return 3;
     }
 
     /* Initialize the mouse module. */
@@ -1420,14 +1426,14 @@ ui_init(int nCmdShow)
         tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2121);
         tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2056);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return (6);
+        return 6;
     }
 
     /* Initialize the configured Video API. */
     if (!plat_setvid(vid_api)) {
         tdconfig.pszContent = MAKEINTRESOURCE(IDS_2090);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return (5);
+        return 5;
     }
 
     /* Set up the current window size. */
@@ -1493,7 +1499,7 @@ ui_init(int nCmdShow)
         if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
             /* Signal "exit fullscreen mode". */
             fs_off_signal = 1;
-        } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_down()) {
+        } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_up()) {
             plat_setfullscreen(0);
             fs_off_signal = 0;
         }
@@ -1501,7 +1507,7 @@ ui_init(int nCmdShow)
         if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
             /* Signal "enter fullscreen mode". */
             fs_on_signal = 1;
-        } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_down()) {
+        } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_up()) {
             plat_setfullscreen(1);
             fs_on_signal = 0;
         }
@@ -1640,13 +1646,13 @@ plat_mouse_capture(int on)
 }
 
 void
-ui_init_monitor(int monitor_index)
+ui_init_monitor(UNUSED(int monitor_index))
 {
     // Nothing done here yet
 }
 
 void
-ui_deinit_monitor(int monitor_index)
+ui_deinit_monitor(UNUSED(int monitor_index))
 {
     // Nothing done here yet
 }

@@ -13,11 +13,11 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          John Elliott, <jce@seasip.info>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 Miran Grca.
- *          Copyright 2018-2019 Sarah Walker.
+ *          Copyright 2018-2019 John Elliott.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,12 +51,14 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/m_xt_t1000.h>
+#include <86box/plat_unused.h>
 
 #define T1000_XSIZE 640
 #define T1000_YSIZE 200
 
 /* Mapping of attributes to colours */
-static uint32_t blue, grey;
+static uint32_t blue;
+static uint32_t grey;
 static uint8_t  boldcols[256]; /* Which attributes use the bold font */
 static uint32_t blinkcols[256][2];
 static uint32_t normcols[256][2];
@@ -124,14 +126,14 @@ typedef struct t1000_t {
 } t1000_t;
 
 static void    t1000_recalctimings(t1000_t *t1000);
-static void    t1000_write(uint32_t addr, uint8_t val, void *p);
-static uint8_t t1000_read(uint32_t addr, void *p);
+static void    t1000_write(uint32_t addr, uint8_t val, void *priv);
+static uint8_t t1000_read(uint32_t addr, void *priv);
 static void    t1000_recalcattrs(t1000_t *t1000);
 
 static void
-t1000_out(uint16_t addr, uint8_t val, void *p)
+t1000_out(uint16_t addr, uint8_t val, void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    t1000_t *t1000 = (t1000_t *) priv;
     switch (addr) {
         /* Emulated CRTC, register select */
         case 0x3d0:
@@ -158,21 +160,20 @@ t1000_out(uint16_t addr, uint8_t val, void *p)
             t1000_recalctimings(t1000);
             return;
 
-        /* CGA control register */
-        case 0x3D8:
+        case 0x3D8: /* CGA control register */
+        case 0x3D9: /* CGA colour register */
             cga_out(addr, val, &t1000->cga);
             return;
-        /* CGA colour register */
-        case 0x3D9:
-            cga_out(addr, val, &t1000->cga);
-            return;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-t1000_in(uint16_t addr, void *p)
+t1000_in(uint16_t addr, void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    t1000_t *t1000 = (t1000_t *) priv;
     uint8_t  val;
 
     switch (addr) {
@@ -186,24 +187,29 @@ t1000_in(uint16_t addr, void *p)
                     val |= 0x20; /* LCD / CRT */
                 return val;
             }
+            break;
+
+        default:
+            break;
     }
 
     return cga_in(addr, &t1000->cga);
 }
 
 static void
-t1000_write(uint32_t addr, uint8_t val, void *p)
+t1000_write(uint32_t addr, uint8_t val, void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    t1000_t *t1000 = (t1000_t *) priv;
 
     t1000->vram[addr & 0x3fff] = val;
     cycles -= 4;
 }
 
 static uint8_t
-t1000_read(uint32_t addr, void *p)
+t1000_read(uint32_t addr, void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    const t1000_t *t1000 = (t1000_t *) priv;
+
     cycles -= 4;
 
     return t1000->vram[addr & 0x3fff];
@@ -213,7 +219,8 @@ static void
 t1000_recalctimings(t1000_t *t1000)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     if (!t1000->internal) {
         cga_recalctimings(&t1000->cga);
@@ -231,7 +238,6 @@ static void
 t1000_text_row80(t1000_t *t1000)
 {
     uint32_t cols[2];
-    int      c;
     uint8_t  chr;
     uint8_t  attr;
     int      drawcursor;
@@ -277,12 +283,12 @@ t1000_text_row80(t1000_t *t1000)
             cols[0] = normcols[attr][0];
         }
         if (drawcursor) {
-            for (c = 0; c < 8; c++) {
-                ((uint32_t *) buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
+            for (uint8_t c = 0; c < 8; c++) {
+                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
             }
         } else {
-            for (c = 0; c < 8; c++)
-                ((uint32_t *) buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+            for (uint8_t c = 0; c < 8; c++)
+                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
         }
         ++ma;
     }
@@ -293,8 +299,8 @@ static void
 t1000_text_row40(t1000_t *t1000)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      bold;
@@ -313,7 +319,7 @@ t1000_text_row40(t1000_t *t1000)
     } else {
         cursorline = ((t1000->cga.crtc[10] & 0x0F) <= sc) && ((t1000->cga.crtc[11] & 0x0F) >= sc);
     }
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         chr        = t1000->vram[(addr + 2 * x) & 0x3FFF];
         attr       = t1000->vram[(addr + 2 * x + 1) & 0x3FFF];
         drawcursor = ((ma == ca) && cursorline && (t1000->cga.cgamode & 8) && (t1000->cga.cgablink & 16));
@@ -338,12 +344,12 @@ t1000_text_row40(t1000_t *t1000)
             cols[0] = normcols[attr][0];
         }
         if (drawcursor) {
-            for (c = 0; c < 8; c++) {
-                ((uint32_t *) buffer32->line[t1000->displine])[(x << 4) + c * 2] = ((uint32_t *) buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
+            for (uint8_t c = 0; c < 8; c++) {
+                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
             }
         } else {
-            for (c = 0; c < 8; c++) {
-                ((uint32_t *) buffer32->line[t1000->displine])[(x << 4) + c * 2] = ((uint32_t *) buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+            for (uint8_t c = 0; c < 8; c++) {
+                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
         ++ma;
@@ -354,7 +360,6 @@ t1000_text_row40(t1000_t *t1000)
 static void
 t1000_cgaline6(t1000_t *t1000)
 {
-    int      x, c;
     uint8_t  dat;
     uint32_t ink = 0;
     uint16_t addr;
@@ -365,15 +370,15 @@ t1000_cgaline6(t1000_t *t1000)
 
     addr = ((t1000->displine) & 1) * 0x2000 + (t1000->displine >> 1) * 80 + ((ma & ~1) << 1);
 
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = t1000->vram[addr & 0x3FFF];
         addr++;
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             ink = (dat & 0x80) ? fg : bg;
             if (!(t1000->cga.cgamode & 8))
                 ink = grey;
-            ((uint32_t *) buffer32->line[t1000->displine])[x * 8 + c] = ink;
+            (buffer32->line[t1000->displine])[x * 8 + c] = ink;
             dat                                                       = dat << 1;
         }
     }
@@ -384,19 +389,20 @@ t1000_cgaline6(t1000_t *t1000)
 static void
 t1000_cgaline4(t1000_t *t1000)
 {
-    int      x, c;
-    uint8_t  dat, pattern;
-    uint32_t ink0, ink1;
+    uint8_t  dat;
+    uint8_t  pattern;
+    uint32_t ink0;
+    uint32_t ink1;
     uint16_t addr;
 
     uint16_t ma = (t1000->cga.crtc[13] | (t1000->cga.crtc[12] << 8)) & 0x3fff;
     addr        = ((t1000->displine) & 1) * 0x2000 + (t1000->displine >> 1) * 80 + ((ma & ~1) << 1);
 
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = t1000->vram[addr & 0x3FFF];
         addr++;
 
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             pattern = (dat & 0xC0) >> 6;
             if (!(t1000->cga.cgamode & 8))
                 pattern = 0;
@@ -428,17 +434,17 @@ t1000_cgaline4(t1000_t *t1000)
                     ink0 = ink1 = blue;
                     break;
             }
-            ((uint32_t *) buffer32->line[t1000->displine])[x * 8 + 2 * c]     = ink0;
-            ((uint32_t *) buffer32->line[t1000->displine])[x * 8 + 2 * c + 1] = ink1;
-            dat                                                               = dat << 2;
+            (buffer32->line[t1000->displine])[x * 8 + 2 * c]     = ink0;
+            (buffer32->line[t1000->displine])[x * 8 + 2 * c + 1] = ink1;
+            dat                                                  = dat << 2;
         }
     }
 }
 
 static void
-t1000_poll(void *p)
+t1000_poll(void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    t1000_t *t1000 = (t1000_t *) priv;
 
     if (t1000->video_options != st_video_options || t1000->enabled != st_enabled) {
         t1000->video_options = st_video_options;
@@ -643,7 +649,7 @@ t1000_recalcattrs(t1000_t *t1000)
 }
 
 static void *
-t1000_init(const device_t *info)
+t1000_init(UNUSED(const device_t *info))
 {
     t1000_t *t1000 = malloc(sizeof(t1000_t));
     memset(t1000, 0, sizeof(t1000_t));
@@ -681,18 +687,18 @@ t1000_init(const device_t *info)
 }
 
 static void
-t1000_close(void *p)
+t1000_close(void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    t1000_t *t1000 = (t1000_t *) priv;
 
     free(t1000->vram);
     free(t1000);
 }
 
 static void
-t1000_speed_changed(void *p)
+t1000_speed_changed(void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) p;
+    t1000_t *t1000 = (t1000_t *) priv;
 
     t1000_recalctimings(t1000);
 }

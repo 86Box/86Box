@@ -46,15 +46,6 @@ static int              ptr_x;
 static int              ptr_y;
 static int              ptr_but;
 
-typedef struct {
-    int buttons;
-    int dx;
-    int dy;
-    int dwheel;
-} MOUSESTATE;
-
-static MOUSESTATE ms;
-
 #ifdef ENABLE_VNC_LOG
 int vnc_do_log = ENABLE_VNC_LOG;
 
@@ -82,26 +73,31 @@ vnc_kbdevent(rfbBool down, rfbKeySym k, rfbClientPtr cl)
     vnc_kbinput(down ? 1 : 0, (int) k);
 }
 
-void
-vnc_mouse_poll(void)
+static void
+vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
 {
-    static int b = 0;
-    if (ms.dx != 0 || ms.dy != 0) {
-        mouse_x += ms.dx;
-        mouse_y += ms.dy;
+    int dx;
+    int dy;
+    int b;
 
-        ms.dx = 0;
-        ms.dy = 0;
+    b = 0x00;
+    if (but & 0x01)
+        b |= 0x01;
+    if (but & 0x02)
+        b |= 0x04;
+    if (but & 0x04)
+        b |= 0x02;
+    mouse_set_buttons_ex(b);
+    ptr_but = but;
 
-#if 0
-        pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
-#endif
-    }
+    dx = (x - ptr_x) / 0.96; /* TODO: Figure out the correct scale factor for X and Y. */
+    dy = (y - ptr_y) / 0.96;
 
-    if (b != ms.buttons) {
-        mouse_buttons = ms.buttons;
-        b             = ms.buttons;
-    }
+    /* VNC uses absolute positions within the window, no deltas. */
+    mouse_scale(dx, dy);
+
+    ptr_x = x;
+    ptr_y = y;
 
     mouse_x_abs = (double)ptr_x / (double)allowedX;
     mouse_y_abs = (double)ptr_y / (double)allowedY;
@@ -110,25 +106,6 @@ vnc_mouse_poll(void)
     if (mouse_y_abs > 1.0) mouse_y_abs = 1.0;
     if (mouse_x_abs < 0.0) mouse_x_abs = 0.0;
     if (mouse_y_abs < 0.0) mouse_y_abs = 0.0;
-}
-
-static void
-vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
-{
-    ms.buttons = 0;
-    if (but & 0x01)
-        ms.buttons |= 0x01;
-    if (but & 0x02)
-        ms.buttons |= 0x04;
-    if (but & 0x04)
-        ms.buttons |= 0x02;
-    ptr_but = but;
-
-    /* VNC uses absolute positions within the window, no deltas. */
-    ms.dx += (x - ptr_x) / 0.96; /* TODO: Figure out the correct scale factor for X and Y. */
-    ms.dy += (y - ptr_y) / 0.96;
-    ptr_x = x;
-    ptr_y = y;
 
     rfbDefaultPtrAddEvent(but, x, y, cl);
 }
@@ -165,9 +142,8 @@ vnc_newclient(rfbClientPtr cl)
         /* Reset the mouse. */
         ptr_x   = allowedX / 2;
         ptr_y   = allowedY / 2;
-        mouse_x = mouse_y = mouse_z = 0;
-        mouse_buttons               = 0x00;
-        memset(&ms, 0, sizeof(MOUSESTATE));
+        mouse_clear_coords();
+        mouse_clear_buttons();
 
         /* We now have clients, un-pause the emulator if needed. */
         vnc_log("VNC: unpausing..\n");

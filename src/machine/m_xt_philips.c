@@ -39,9 +39,9 @@
 #include <86box/chipset.h>
 #include <86box/io.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
-typedef struct
-{
+typedef struct philips_t {
     uint8_t reg;
 } philips_t;
 
@@ -80,6 +80,9 @@ philips_write(uint16_t port, uint8_t val, void *priv)
             else
                 cpu_dynamic_switch(0);
             break;
+
+        default:
+            break;
     }
 
     philips_log("Philips XT Mainboard: Write %02x at %02x\n", val, port);
@@ -88,8 +91,8 @@ philips_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 philips_read(uint16_t port, void *priv)
 {
-    philips_t *dev = (philips_t *) priv;
-    uint8_t    ret = 0xff;
+    const philips_t *dev = (philips_t *) priv;
+    uint8_t          ret = 0xff;
 
     switch (port) {
         /* port 0xc0
@@ -99,6 +102,9 @@ philips_read(uint16_t port, void *priv)
          */
         case 0xc0:
             ret = dev->reg;
+            break;
+
+        default:
             break;
     }
 
@@ -116,7 +122,7 @@ philips_close(void *priv)
 }
 
 static void *
-philips_init(const device_t *info)
+philips_init(UNUSED(const device_t *info))
 {
     philips_t *dev = (philips_t *) malloc(sizeof(philips_t));
     memset(dev, 0, sizeof(philips_t));

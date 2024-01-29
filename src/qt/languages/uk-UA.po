@@ -124,6 +124,9 @@ msgstr "&Квадратні пікселі (зберегти відношенн�
 msgid "&Integer scale"
 msgstr "&Цілісночисленне масштабування"
 
+msgid "4:&3 Integer scale"
+msgstr "Цілісночисленне масштабування 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Налаштування E&GA/(S)VGA"
 
@@ -349,6 +352,9 @@ msgstr "Тип ЦП:"
 msgid "Speed:"
 msgstr "Швидкість:"
 
+msgid "Frequency:"
+msgstr "Частота:"
+
 msgid "FPU:"
 msgstr "FPU:"
 
@@ -382,8 +388,8 @@ msgstr "Відеокарта:"
 msgid "Voodoo Graphics"
 msgstr "Прискорювач Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Прискорювач IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Прискорювач IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Прискорювач XGA"
@@ -406,16 +412,16 @@ msgstr "Джойстик 3..."
 msgid "Joystick 4..."
 msgstr "Джойстик 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Звукова карта 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Звукова карта 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Звукова карта 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Звукова карта 4:"
 
 msgid "MIDI Out Device:"
@@ -724,9 +730,6 @@ msgstr "Натисніть F8+F12, щоб звільнити курсор"
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Натисніть F8+F12 або середню кнопку миші, щоб звільнити курсор"
 
-msgid "Unable to initialize FluidSynth"
-msgstr "Неможливо ініціалізувати FluidSynth"
-
 msgid "Bus"
 msgstr "Шина"
 
@@ -811,9 +814,6 @@ msgstr "Розширені образи секторів"
 msgid "Flux images"
 msgstr "Образи Flux"
 
-msgid "Unable to initialize FreeType"
-msgstr "Неможливо ініціалізувати FreeType"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "Неможливо ініціалізувати SDL, потрібно SDL2.dll"
 
@@ -859,8 +859,8 @@ msgstr "Про 86Box"
 msgid "86Box v"
 msgstr "86Box v."
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Емулятор старих комп'ютерів\n\nАвтори: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
 
 msgid "Hardware not available"
 msgstr "Обладнання недоступне"
@@ -877,15 +877,6 @@ msgstr "Переконайтесь, що libpcap встановлений і в�
 msgid "Invalid configuration"
 msgstr "Неприпустима конфігурація"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr "Для емуляції принтера ESC/P потрібно libfreetype."
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -894,15 +885,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " потрібно для автоматичного перетворення файлів PostScript в PDF.\n\nВсі документи, відправлені на загальний принтер PostScript, будуть збережені у вигляді файлів PostScript (.ps)."
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr "Для FluidSynth MIDI-висновку потрібно libfluidsynth."
 
 msgid "Entering fullscreen mode"
 msgstr "Вхід у повноекранний режим"
@@ -1220,8 +1202,28 @@ msgid "(System Default)"
 msgstr "(Системний)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Не вдалося ініціалізувати мережевий драйвер"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Конфігурацію мережі буде змінено на нульовий драйвер"
 
+msgid "Mouse sensitivity:"
+msgstr "Чутливість миші:"
+
+msgid "Select media images from program working directory"
+msgstr "Виберіть медіа-зображення з робочої директорії програми"
+
+msgid "PIT mode:"
+msgstr "Режим PIT:"
+
+msgid "Auto"
+msgstr "Авто"
+
+msgid "Slow"
+msgstr "Повільний"
+
+msgid "Fast"
+msgstr "Швидкий"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Автопауза при втраті фокусу"

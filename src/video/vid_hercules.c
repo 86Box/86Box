@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_hercules.h>
+#include <86box/plat_unused.h>
 
 static video_timings_t timing_hercules = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
@@ -151,8 +152,8 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 hercules_in(uint16_t addr, void *priv)
 {
-    hercules_t *dev = (hercules_t *) priv;
-    uint8_t     ret = 0xff;
+    const hercules_t *dev = (hercules_t *) priv;
+    uint8_t           ret = 0xff;
 
     switch (addr) {
         case 0x03b0:
@@ -192,7 +193,7 @@ hercules_in(uint16_t addr, void *priv)
 }
 
 static void
-hercules_waitstates(void *p)
+hercules_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -493,7 +494,9 @@ hercules_poll(void *priv)
                     else
                         video_blit_memtoscreen(8, dev->firstline + 14, xsize, ysize);
                     frames++;
-                    // if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
+#if 0
+                    if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
+#endif
                     if (dev->ctrl & 0x02) {
                         video_res_x = dev->crtc[1] * 16;
                         video_res_y = dev->crtc[6] * 4;
@@ -527,7 +530,7 @@ hercules_poll(void *priv)
 }
 
 static void *
-hercules_init(const device_t *info)
+hercules_init(UNUSED(const device_t *info))
 {
     hercules_t *dev;
 

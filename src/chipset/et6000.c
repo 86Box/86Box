@@ -121,7 +121,7 @@ et6000_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 et6000_read(uint16_t addr, void *priv)
 {
-    et6000_t *dev = (et6000_t *) priv;
+    const et6000_t *dev = (et6000_t *) priv;
 
     return ((addr == 0x23) && (INDEX >= 0) && (INDEX <= 5)) ? dev->regs[INDEX] : 0xff;
 }

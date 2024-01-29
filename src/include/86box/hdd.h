@@ -148,7 +148,8 @@ typedef struct hard_disk_t {
         uint8_t scsi_id;
     };
     uint8_t bus;
-    uint8_t res;    /* Reserved for bus mode */
+    uint8_t bus_mode;  /* Bit 0 = PIO suported;
+                          Bit 1 = DMA supportd. */
     uint8_t wp; /* Disk has been mounted READ-ONLY */
     uint8_t pad;
     uint8_t pad0;
@@ -158,8 +159,8 @@ typedef struct hard_disk_t {
     char fn[1024];         /* Name of current image file */
     char vhd_parent[1041]; /* Differential VHD parent file */
 
-    uint32_t res0;
-    uint32_t pad1;
+    uint32_t seek_pos;
+    uint32_t seek_len;
     uint32_t base;
     uint32_t spt;
     uint32_t hpc; /* Physical geometry parameters */

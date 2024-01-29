@@ -35,6 +35,11 @@
 #include <86box/chipset.h>
 
 typedef struct ali1531_t {
+    uint8_t pci_slot;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
+
     uint8_t pci_conf[256];
 
     smram_t *smram;
@@ -303,8 +308,8 @@ ali1531_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 ali1531_read(UNUSED(int func), int addr, void *priv)
 {
-    ali1531_t *dev = (ali1531_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1531_t *dev = (ali1531_t *) priv;
+    uint8_t          ret = 0xff;
 
     ret = dev->pci_conf[addr];
 
@@ -374,7 +379,7 @@ ali1531_init(UNUSED(const device_t *info))
     ali1531_t *dev = (ali1531_t *) malloc(sizeof(ali1531_t));
     memset(dev, 0, sizeof(ali1531_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1531_read, ali1531_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1531_read, ali1531_write, dev, &dev->pci_slot);
 
     dev->smram = smram_add();
 

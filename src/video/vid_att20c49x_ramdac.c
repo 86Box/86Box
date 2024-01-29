@@ -10,10 +10,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
@@ -28,8 +26,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-typedef struct
-{
+typedef struct att49x_ramdac_t {
     int     type;
     int     state;
     uint8_t ctrl;
@@ -42,9 +39,9 @@ enum {
 };
 
 static void
-att49x_ramdac_control(uint8_t val, void *p, svga_t *svga)
+att49x_ramdac_control(uint8_t val, void *priv, svga_t *svga)
 {
-    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) p;
+    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) priv;
     ramdac->ctrl            = val;
     switch ((ramdac->ctrl >> 5) & 7) {
         case 0:
@@ -63,6 +60,9 @@ att49x_ramdac_control(uint8_t val, void *p, svga_t *svga)
         case 7:
             svga->bpp = 24;
             break;
+
+        default:
+            break;
     }
     if (ramdac->type == ATT_490 || ramdac->type == ATT_491)
         svga_set_ramdac_type(svga, (val & 2) ? RAMDAC_8BIT : RAMDAC_6BIT);
@@ -70,9 +70,9 @@ att49x_ramdac_control(uint8_t val, void *p, svga_t *svga)
 }
 
 void
-att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
+att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga)
 {
-    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) p;
+    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) priv;
     uint8_t          rs     = (addr & 0x03);
     rs |= ((!!rs2) << 2);
 
@@ -100,13 +100,16 @@ att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
             att49x_ramdac_control(val, ramdac, svga);
             ramdac->state = 0;
             break;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-att49x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
+att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 {
-    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) p;
+    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) priv;
     uint8_t          temp   = 0xff;
     uint8_t          rs     = (addr & 0x03);
     rs |= ((!!rs2) << 2);
@@ -142,6 +145,9 @@ att49x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
         case 0x06:
             temp          = ramdac->ctrl;
             ramdac->state = 0;
+            break;
+
+        default:
             break;
     }
 

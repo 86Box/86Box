@@ -66,6 +66,9 @@ et3000_in(uint16_t addr, void *priv)
 
         case 0x3d5:
             return svga->crtc[svga->crtcreg];
+
+        default:
+            break;
     }
 
     return svga_in(addr, svga);
@@ -124,6 +127,9 @@ et3000_out(uint16_t addr, uint8_t val, void *priv)
                         svga->write_bank = (val & 7) << 16;
                         svga->read_bank  = ((val >> 3) & 7) << 16;
                         break;
+
+                    default:
+                        break;
                 }
             }
             return;
@@ -146,6 +152,9 @@ et3000_out(uint16_t addr, uint8_t val, void *priv)
                     svga_recalctimings(svga);
                 }
             }
+            break;
+
+        default:
             break;
     }
 
@@ -184,11 +193,16 @@ et3000_recalctimings(svga_t *svga)
             case 0x60:
                 svga->render = svga_render_8bpp_highres;
                 break;
+
+            default:
+                break;
         }
     }
 
-    /* pclog("HDISP = %i, HTOTAL = %i, ROWOFFSET = %i, INTERLACE = %i\n",
-          svga->hdisp, svga->htotal, svga->rowoffset, svga->interlace); */
+#if 0
+    pclog("HDISP = %i, HTOTAL = %i, ROWOFFSET = %i, INTERLACE = %i\n",
+          svga->hdisp, svga->htotal, svga->rowoffset, svga->interlace);
+#endif
 
     switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x24] << 1) & 4)) {
         case 0:
@@ -227,9 +241,12 @@ et3000_init(const device_t *info)
             io_sethandler(0x03c0, 32,
                           et3000_in, NULL, NULL, et3000_out, NULL, NULL, dev);
             break;
+
+        default:
+            break;
     }
 
-    rom_init(&dev->bios_rom, (char *) fn,
+    rom_init(&dev->bios_rom, fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.bpp     = 8;

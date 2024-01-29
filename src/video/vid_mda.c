@@ -31,6 +31,7 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_mda.h>
+#include <86box/plat_unused.h>
 
 static int mdacols[256][2][2];
 
@@ -39,9 +40,10 @@ static video_timings_t timing_mda = { .type = VIDEO_ISA, .write_b = 8, .write_w 
 void mda_recalctimings(mda_t *mda);
 
 void
-mda_out(uint16_t addr, uint8_t val, void *p)
+mda_out(uint16_t addr, uint8_t val, void *priv)
 {
-    mda_t *mda = (mda_t *) p;
+    mda_t *mda = (mda_t *) priv;
+
     switch (addr) {
         case 0x3b0:
         case 0x3b2:
@@ -64,13 +66,17 @@ mda_out(uint16_t addr, uint8_t val, void *p)
         case 0x3b8:
             mda->ctrl = val;
             return;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-mda_in(uint16_t addr, void *p)
+mda_in(uint16_t addr, void *priv)
 {
-    mda_t *mda = (mda_t *) p;
+    const mda_t *mda = (mda_t *) priv;
+
     switch (addr) {
         case 0x3b0:
         case 0x3b2:
@@ -84,21 +90,25 @@ mda_in(uint16_t addr, void *p)
             return mda->crtc[mda->crtcreg];
         case 0x3ba:
             return mda->stat | 0xF0;
+
+        default:
+            break;
     }
     return 0xff;
 }
 
 void
-mda_write(uint32_t addr, uint8_t val, void *p)
+mda_write(uint32_t addr, uint8_t val, void *priv)
 {
-    mda_t *mda              = (mda_t *) p;
+    mda_t *mda              = (mda_t *) priv;
     mda->vram[addr & 0xfff] = val;
 }
 
 uint8_t
-mda_read(uint32_t addr, void *p)
+mda_read(uint32_t addr, void *priv)
 {
-    mda_t *mda = (mda_t *) p;
+    const mda_t *mda = (mda_t *) priv;
+
     return mda->vram[addr & 0xfff];
 }
 
@@ -118,9 +128,9 @@ mda_recalctimings(mda_t *mda)
 }
 
 void
-mda_poll(void *p)
+mda_poll(void *priv)
 {
-    mda_t   *mda = (mda_t *) p;
+    mda_t   *mda = (mda_t *) priv;
     uint16_t ca  = (mda->crtc[15] | (mda->crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
@@ -155,9 +165,9 @@ mda_poll(void *p)
                         buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
                 } else {
                     for (c = 0; c < 8; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
+                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr + mda->fontbase][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
                     if ((chr & ~0x1f) == 0xc0)
-                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr][mda->sc] & 1];
+                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr + mda->fontbase][mda->sc] & 1];
                     else
                         buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][0];
                 }
@@ -299,7 +309,7 @@ mda_init(mda_t *mda)
 }
 
 void *
-mda_standalone_init(const device_t *info)
+mda_standalone_init(UNUSED(const device_t *info))
 {
     mda_t *mda = malloc(sizeof(mda_t));
     memset(mda, 0, sizeof(mda_t));
@@ -324,18 +334,18 @@ mda_setcol(int chr, int blink, int fg, uint8_t cga_ink)
 }
 
 void
-mda_close(void *p)
+mda_close(void *priv)
 {
-    mda_t *mda = (mda_t *) p;
+    mda_t *mda = (mda_t *) priv;
 
     free(mda->vram);
     free(mda);
 }
 
 void
-mda_speed_changed(void *p)
+mda_speed_changed(void *priv)
 {
-    mda_t *mda = (mda_t *) p;
+    mda_t *mda = (mda_t *) priv;
 
     mda_recalctimings(mda);
 }
@@ -376,7 +386,7 @@ static const device_config_t mda_config[] = {
 };
 
 const device_t mda_device = {
-    .name          = "MDA",
+    .name          = "IBM MDA",
     .internal_name = "mda",
     .flags         = DEVICE_ISA,
     .local         = 0,

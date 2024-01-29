@@ -53,20 +53,20 @@
  * configuration parameters.
  */
 #pragma pack(push, 1)
-typedef struct {
-    uint8_t aInternalSignature[2];
-    uint8_t cbInformation;
-    uint8_t aHostAdaptertype[6];
-    uint8_t uReserved1;
-    uint8_t fFloppyEnabled       : 1,
-        fFloppySecondary         : 1,
-        fLevelSensitiveInterrupt : 1,
-        uReserved2               : 2,
-        uSystemRAMAreForBIOS     : 3;
-    uint8_t uDMAChannel          : 7,
-        fDMAAutoConfiguration    : 1,
-        uIrqChannel              : 7,
-        fIrqAutoConfiguration    : 1;
+typedef struct AutoSCSIRam_t {
+    uint8_t       aInternalSignature[2];
+    uint8_t       cbInformation;
+    uint8_t       aHostAdaptertype[6];
+    uint8_t       uReserved1;
+    uint8_t       fFloppyEnabled           : 1;
+    uint8_t       fFloppySecondary         : 1;
+    uint8_t       fLevelSensitiveInterrupt : 1;
+    uint8_t       uReserved2               : 2;
+    uint8_t       uSystemRAMAreForBIOS     : 3;
+    uint8_t       uDMAChannel              : 7;
+    uint8_t       fDMAAutoConfiguration    : 1;
+    uint8_t       uIrqChannel              : 7;
+    uint8_t       fIrqAutoConfiguration    : 1;
     uint8_t       uDMATransferRate;
     uint8_t       uSCSIId;
     uint8_t       uSCSIConfiguration;
@@ -142,46 +142,45 @@ typedef struct {
 
 /* Structure for the INQUIRE_EXTENDED_SETUP_INFORMATION. */
 #pragma pack(push, 1)
-typedef struct {
+typedef struct ReplyInquireExtendedSetupInformation_t {
     uint8_t  uBusType;
     uint8_t  uBiosAddress;
     uint16_t u16ScatterGatherLimit;
     uint8_t  cMailbox;
     uint32_t uMailboxAddressBase;
-    uint8_t  uReserved1          : 2,
-        fFastEISA                : 1,
-        uReserved2               : 3,
-        fLevelSensitiveInterrupt : 1,
-        uReserved3               : 1;
+    uint8_t  uReserved1               : 2;
+    uint8_t  fFastEISA                : 1;
+    uint8_t  uReserved2               : 3;
+    uint8_t  fLevelSensitiveInterrupt : 1;
+    uint8_t  uReserved3               : 1;
     uint8_t aFirmwareRevision[3];
-    uint8_t fHostWideSCSI     : 1,
-        fHostDifferentialSCSI : 1,
-        fHostSupportsSCAM     : 1,
-        fHostUltraSCSI        : 1,
-        fHostSmartTermination : 1,
-        uReserved4            : 3;
+    uint8_t fHostWideSCSI          : 1;
+    uint8_t  fHostDifferentialSCSI : 1;
+    uint8_t  fHostSupportsSCAM     : 1;
+    uint8_t  fHostUltraSCSI        : 1;
+    uint8_t  fHostSmartTermination : 1;
+    uint8_t  uReserved4            : 3;
 } ReplyInquireExtendedSetupInformation;
 #pragma pack(pop)
 
 /* Structure for the INQUIRE_PCI_HOST_ADAPTER_INFORMATION reply. */
 #pragma pack(push, 1)
-typedef struct {
+typedef struct BuslogicPCIInformation_t {
     uint8_t IsaIOPort;
     uint8_t IRQ;
-    uint8_t LowByteTerminated : 1,
-        HighByteTerminated    : 1,
-        uReserved             : 2, /* Reserved. */
-        JP1                   : 1, /* Whatever that means. */
-        JP2                   : 1, /* Whatever that means. */
-        JP3                   : 1, /* Whatever that means. */
-        InformationIsValid    : 1;
-    uint8_t uReserved2; /* Reserved. */
+    uint8_t LowByteTerminated  : 1;
+    uint8_t HighByteTerminated : 1;
+    uint8_t uReserved          : 2; /* Reserved. */
+    uint8_t JP1                : 1; /* Whatever that means. */
+    uint8_t JP2                : 1; /* Whatever that means. */
+    uint8_t JP3                : 1; /* Whatever that means. */
+    uint8_t InformationIsValid : 1;
+    uint8_t uReserved2;             /* Reserved. */
 } BuslogicPCIInformation_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct
-{
+typedef struct ESCMD_t {
     /** Data length. */
     uint32_t DataLength;
     /** Data pointer. */
@@ -204,14 +203,14 @@ typedef struct
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct {
+typedef struct MailboxInitExtended_t {
     uint8_t  Count;
     uint32_t Address;
 } MailboxInitExtended_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct {
+typedef struct buslogic_data_t {
     rom_t      bios;
     int        ExtendedLUNCCBFormat;
     int        fAggressiveRoundRobinMode;
@@ -220,11 +219,11 @@ typedef struct {
     int        MMIOBase;
     int        chip;
     int        has_bios;
-    uint32_t   bios_addr,
-        bios_size,
-        bios_mask;
-    uint8_t AutoSCSIROM[32768];
-    uint8_t SCAMData[65536];
+    uint32_t   bios_addr;
+    uint32_t   bios_size;
+    uint32_t   bios_mask;
+    uint8_t    AutoSCSIROM[32768];
+    uint8_t    SCAMData[65536];
 } buslogic_data_t;
 #pragma pack(pop)
 
@@ -325,6 +324,9 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
         case CHIP_BUSLOGIC_PCI_958D_1995_12_30:
             memcpy(&(HALR->structured.autoSCSIData.aHostAdaptertype[1]), "958D", 4);
             break;
+
+        default:
+            break;
     }
 
     HALR->structured.autoSCSIData.fLevelSensitiveInterrupt = (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) ? 1 : 0;
@@ -407,17 +409,17 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
 static void
 BuslogicInitializeAutoSCSIRam(x54x_t *dev)
 {
-    buslogic_data_t *bl   = (buslogic_data_t *) dev->ven_data;
-    HALocalRAM      *HALR = &bl->LocalRAM;
+    buslogic_data_t  *bl   = (buslogic_data_t *) dev->ven_data;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
-    FILE *f;
+    FILE *fp;
 
-    f = nvr_fopen(BuslogicGetNVRFileName(bl), "rb");
-    if (f) {
-        if (fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f) != 64)
+    fp = nvr_fopen(BuslogicGetNVRFileName(bl), "rb");
+    if (fp) {
+        if (fread(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, fp) != 64)
             fatal("BuslogicInitializeAutoSCSIRam(): Error reading data\n");
-        fclose(f);
-        f = NULL;
+        fclose(fp);
+        fp = NULL;
         if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) {
             x54x_io_remove(dev, dev->Base, 4);
             switch (HALR->structured.autoSCSIData.uHostAdapterIoPortAddress) {
@@ -439,9 +441,9 @@ BuslogicInitializeAutoSCSIRam(x54x_t *dev)
 }
 
 static void
-buslogic_cmd_phase1(void *p)
+buslogic_cmd_phase1(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    x54x_t *dev = (x54x_t *) priv;
 
     if ((dev->CmdParam == 2) && (dev->Command == 0x90)) {
         dev->CmdParamLeft = dev->CmdBuf[1];
@@ -463,12 +465,12 @@ buslogic_cmd_phase1(void *p)
 }
 
 static uint8_t
-buslogic_get_host_id(void *p)
+buslogic_get_host_id(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16))
         return dev->HostID;
@@ -477,14 +479,14 @@ buslogic_get_host_id(void *p)
 }
 
 static uint8_t
-buslogic_get_irq(void *p)
+buslogic_get_irq(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     uint8_t bl_irq[7] = { 0, 9, 10, 11, 12, 14, 15 };
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16) || (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30))
         return dev->Irq;
@@ -493,14 +495,14 @@ buslogic_get_irq(void *p)
 }
 
 static uint8_t
-buslogic_get_dma(void *p)
+buslogic_get_dma(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     uint8_t bl_dma[4] = { 0, 5, 6, 7 };
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30)
         return (dev->Base ? 7 : 0);
@@ -511,10 +513,10 @@ buslogic_get_dma(void *p)
 }
 
 static uint8_t
-buslogic_param_len(void *p)
+buslogic_param_len(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     switch (dev->Command) {
         case 0x21:
@@ -577,10 +579,10 @@ BuslogicSCSIBIOSDMATransfer(x54x_t *dev, ESCMD *ESCSICmd, uint8_t TargetID, int 
 
         if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
             buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-            dma_bm_read(Address, (uint8_t *) sd->sc->temp_buffer, TransferLength, transfer_size);
+            dma_bm_read(Address, sd->sc->temp_buffer, TransferLength, transfer_size);
         } else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
             buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-            dma_bm_write(Address, (uint8_t *) sd->sc->temp_buffer, TransferLength, transfer_size);
+            dma_bm_write(Address, sd->sc->temp_buffer, TransferLength, transfer_size);
         }
     }
 }
@@ -666,18 +668,18 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 }
 
 static uint8_t
-buslogic_cmds(void *p)
+buslogic_cmds(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
+    x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
-    FILE                                 *f;
+    FILE                                 *fp;
     uint16_t                              TargetsPresentMask = 0;
     uint32_t                              Offset;
     int                                   i = 0;
-    MailboxInitExtended_t                *MailboxInitE;
+    const MailboxInitExtended_t          *MailboxInitE;
     ReplyInquireExtendedSetupInformation *ReplyIESI;
     BuslogicPCIInformation_t             *ReplyPI;
     int                                   cCharsToTransfer;
@@ -827,6 +829,9 @@ buslogic_cmds(void *p)
                 case CHIP_BUSLOGIC_PCI_958D_1995_12_30:
                     ReplyIESI->uBusType = 'E'; /* PCI style */
                     break;
+
+                default:
+                    break;
             }
             ReplyIESI->uBiosAddress          = 0xd8;
             ReplyIESI->u16ScatterGatherLimit = 8192;
@@ -867,6 +872,7 @@ buslogic_cmds(void *p)
                 dev->Status |= STAT_INVCMD;
                 break;
             }
+            fallthrough;
         case 0x92:
             if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23)) {
                 dev->DataReplyLeft = 0;
@@ -885,11 +891,11 @@ buslogic_cmds(void *p)
                     BuslogicAutoSCSIRamSetDefaults(dev, 3);
                     break;
                 case 1:
-                    f = nvr_fopen(BuslogicGetNVRFileName(bl), "wb");
-                    if (f) {
-                        fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
-                        fclose(f);
-                        f = NULL;
+                    fp = nvr_fopen(BuslogicGetNVRFileName(bl), "wb");
+                    if (fp) {
+                        fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, fp);
+                        fclose(fp);
+                        fp = NULL;
                     }
                     break;
                 default:
@@ -1012,13 +1018,13 @@ buslogic_cmds(void *p)
 }
 
 static void
-buslogic_setup_data(void *p)
+buslogic_setup_data(void *priv)
 {
-    x54x_t                       *dev = (x54x_t *) p;
+    x54x_t                       *dev = (x54x_t *) priv;
     ReplyInquireSetupInformation *ReplyISI;
     buslogic_setup_t             *bl_setup;
-    buslogic_data_t              *bl   = (buslogic_data_t *) dev->ven_data;
-    HALocalRAM                   *HALR = &bl->LocalRAM;
+    const buslogic_data_t        *bl   = (buslogic_data_t *) dev->ven_data;
+    const HALocalRAM             *HALR = &bl->LocalRAM;
 
     ReplyISI = (ReplyInquireSetupInformation *) dev->DataBuf;
     bl_setup = (buslogic_setup_t *) ReplyISI->VendorSpecificData;
@@ -1048,14 +1054,17 @@ buslogic_setup_data(void *p)
         case CHIP_BUSLOGIC_PCI_958D_1995_12_30:
             bl_setup->uHostBusType = 'F';
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-buslogic_is_aggressive_mode(void *p)
+buslogic_is_aggressive_mode(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     buslogic_log("Buslogic: Aggressive mode = %d\n", bl->fAggressiveRoundRobinMode);
 
@@ -1063,10 +1072,10 @@ buslogic_is_aggressive_mode(void *p)
 }
 
 static uint8_t
-buslogic_interrupt_type(void *p)
+buslogic_interrupt_type(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16) || (bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23))
         return 0;
@@ -1075,9 +1084,9 @@ buslogic_interrupt_type(void *p)
 }
 
 static void
-buslogic_reset(void *p)
+buslogic_reset(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
+    x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     bl->ExtendedLUNCCBFormat = 0;
@@ -1108,9 +1117,9 @@ BuslogicBIOSUpdate(buslogic_data_t *bl)
 }
 
 static uint8_t
-BuslogicPCIRead(int func, int addr, void *p)
+BuslogicPCIRead(UNUSED(int func), int addr, void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    const x54x_t *dev = (x54x_t *) priv;
 #ifdef ENABLE_BUSLOGIC_LOG
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 #endif
@@ -1175,28 +1184,28 @@ BuslogicPCIRead(int func, int addr, void *p)
         case 0x31: /* PCI_ROMBAR 15:11 */
             buslogic_log("BT-958D: BIOS BAR 01 = %02X\n", (buslogic_pci_bar[2].addr_regs[1] & bl->bios_mask));
             return buslogic_pci_bar[2].addr_regs[1];
-            break;
         case 0x32: /* PCI_ROMBAR 23:16 */
             buslogic_log("BT-958D: BIOS BAR 02 = %02X\n", buslogic_pci_bar[2].addr_regs[2]);
             return buslogic_pci_bar[2].addr_regs[2];
-            break;
         case 0x33: /* PCI_ROMBAR 31:24 */
             buslogic_log("BT-958D: BIOS BAR 03 = %02X\n", buslogic_pci_bar[2].addr_regs[3]);
             return buslogic_pci_bar[2].addr_regs[3];
-            break;
         case 0x3C:
             return dev->Irq;
         case 0x3D:
             return PCI_INTA;
+
+        default:
+            break;
     }
 
     return 0;
 }
 
 static void
-BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
+BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
+    x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     uint8_t valxor;
@@ -1224,7 +1233,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
         case 0x10:
             val &= 0xe0;
             val |= 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case 0x11:
         case 0x12:
@@ -1248,7 +1257,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 
         case 0x14:
             val &= 0xe0;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case 0x15:
         case 0x16:
@@ -1259,7 +1268,9 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
             /* Then let's set the PCI regs. */
             buslogic_pci_bar[1].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            // bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+#if 0
+            bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffffe0;
+#endif
             /* Give it a 4 kB alignment as that's this emulator's granularity. */
             buslogic_pci_bar[1].addr &= 0xffffc000;
             bl->MMIOBase = buslogic_pci_bar[1].addr & 0xffffc000;
@@ -1292,6 +1303,9 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
             } else
                 dev->Irq = 0;
             return;
+
+        default:
+            break;
     }
 }
 
@@ -1317,7 +1331,7 @@ BuslogicInitializeLocalRAM(buslogic_data_t *bl)
 static uint8_t
 buslogic_mca_read(int port, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -1385,6 +1399,9 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 
             case 0x20: /* [0]=001x xxxx */
                 bl->bios_addr = 0xC4000;
+                break;
+
+            default:
                 break;
         }
     else {
@@ -1491,15 +1508,15 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 buslogic_mca_feedb(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[2] & 0x01);
 }
 
 void
-BuslogicDeviceReset(void *p)
+BuslogicDeviceReset(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) p;
+    x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     x54x_device_reset(dev);
@@ -1512,16 +1529,16 @@ static void *
 buslogic_init(const device_t *info)
 {
     x54x_t          *dev;
-    char            *bios_rom_name;
-    uint16_t         bios_rom_size;
-    uint16_t         bios_rom_mask;
+    const char      *bios_rom_name;
+    uint16_t         bios_rom_size = 0;
+    uint16_t         bios_rom_mask = 0;
     uint8_t          has_autoscsi_rom;
-    char            *autoscsi_rom_name;
-    uint16_t         autoscsi_rom_size;
+    const char      *autoscsi_rom_name = NULL;
+    uint16_t         autoscsi_rom_size = 0;
     uint8_t          has_scam_rom;
-    char            *scam_rom_name;
-    uint16_t         scam_rom_size;
-    FILE            *f;
+    const char      *scam_rom_name = NULL;
+    uint16_t         scam_rom_size = 0;
+    FILE            *fp;
     buslogic_data_t *bl;
     uint32_t         bios_rom_addr;
 
@@ -1684,11 +1701,15 @@ buslogic_init(const device_t *info)
             dev->ha_bps = 20000000.0; /* ultra SCSI */
             dev->max_id = 15;         /* wide SCSI */
             break;
+
+        default:
+            break;
     }
 
-    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI)) {
+    scsi_bus_set_speed(dev->bus, dev->ha_bps);
+
+    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI))
         x54x_io_set(dev, dev->Base, 4);
-    }
 
     memset(bl->AutoSCSIROM, 0xff, 32768);
 
@@ -1702,20 +1723,20 @@ buslogic_init(const device_t *info)
         rom_init(&bl->bios, bios_rom_name, bios_rom_addr, bios_rom_size, bios_rom_mask, 0, MEM_MAPPING_EXTERNAL);
 
         if (has_autoscsi_rom) {
-            f = rom_fopen(autoscsi_rom_name, "rb");
-            if (f) {
-                (void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, f);
-                fclose(f);
-                f = NULL;
+            fp = rom_fopen(autoscsi_rom_name, "rb");
+            if (fp) {
+                (void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, fp);
+                fclose(fp);
+                fp = NULL;
             }
         }
 
         if (has_scam_rom) {
-            f = rom_fopen(scam_rom_name, "rb");
-            if (f) {
-                (void) !fread(bl->SCAMData, 1, scam_rom_size, f);
-                fclose(f);
-                f = NULL;
+            fp = rom_fopen(scam_rom_name, "rb");
+            if (fp) {
+                (void) !fread(bl->SCAMData, 1, scam_rom_size, fp);
+                fclose(fp);
+                fp = NULL;
             }
         }
     } else {
@@ -1725,7 +1746,7 @@ buslogic_init(const device_t *info)
     }
 
     if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) {
-        dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, dev);
+        pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, dev, &dev->pci_slot);
 
         buslogic_pci_bar[0].addr_regs[0] = 1;
         buslogic_pci_bar[1].addr_regs[0] = 0;

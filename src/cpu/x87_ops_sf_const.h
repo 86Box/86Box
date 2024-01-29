@@ -1,14 +1,14 @@
 /* A fast way to find out whether x is one of RC_DOWN or RC_CHOP
    (and not one of RC_RND or RC_UP).
    */
-#define DOWN_OR_CHOP()  (fpu_state.cwd & FPU_CW_RC & FPU_RC_DOWN)
+#define DOWN_OR_CHOP() (fpu_state.cwd & FPU_CW_RC & FPU_RC_DOWN)
 
 static __inline floatx80
 FPU_round_const(const floatx80 a, int adj)
 {
-  floatx80 result = a;
-  result.fraction += adj;
-  return result;
+    floatx80 result = a;
+    result.fraction += adj;
+    return result;
 }
 
 static int

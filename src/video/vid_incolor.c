@@ -30,6 +30,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 /* extended CRTC registers */
 #define INCOLOR_CRTC_XMODE   20 /* xMode register */
@@ -251,6 +252,9 @@ incolor_out(uint16_t port, uint8_t val, void *priv)
             else
                 mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
             return;
+
+        default:
+            break;
     }
 }
 
@@ -352,6 +356,9 @@ incolor_write(uint32_t addr, uint8_t val, void *priv)
                         w = (latch & vmask);
                     else
                         w = ((~latch) & vmask);
+                    break;
+
+                default:
                     break;
             }
 
@@ -748,8 +755,8 @@ text_line(incolor_t *dev, uint16_t ca)
 
     for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8) {
-            chr  = dev->vram[(dev->ma << 1) & 0xfff];
-            attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+            chr  = dev->vram[(dev->ma << 1) & 0x3fff];
+            attr = dev->vram[((dev->ma << 1) + 1) & 0x3fff];
         } else
             chr = attr = 0;
 
@@ -767,6 +774,9 @@ text_line(incolor_t *dev, uint16_t ca)
 
             case 5: /* 48k RAMfont */
                 draw_char_ram48(dev, x, chr, attr);
+                break;
+
+            default:
                 break;
         }
         ++dev->ma;
@@ -849,6 +859,7 @@ incolor_poll(void *priv)
     int        x;
     int        oldvc;
     int        oldsc;
+    int        cw      = INCOLOR_CW;
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
@@ -930,7 +941,7 @@ incolor_poll(void *priv)
                     if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;
                     else
-                        x = dev->crtc[1] * 9;
+                        x = dev->crtc[1] * cw;
                     dev->lastline++;
                     if ((dev->ctrl & 8) && ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
                         xsize = x;
@@ -972,7 +983,7 @@ incolor_poll(void *priv)
 }
 
 static void *
-incolor_init(const device_t *info)
+incolor_init(UNUSED(const device_t *info))
 {
     incolor_t *dev;
     int        c;

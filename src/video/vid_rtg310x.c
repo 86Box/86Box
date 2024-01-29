@@ -29,7 +29,8 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define BIOS_ROM_PATH "roms/video/rtg/realtekrtg3106.BIN"
+#define RTG_3105_BIOS_ROM_PATH "roms/video/rtg/RTG3105I.VBI"
+#define RTG_3106_BIOS_ROM_PATH "roms/video/rtg/realtekrtg3106.BIN"
 
 typedef struct {
     const char *name;
@@ -86,18 +87,18 @@ rtg_in(uint16_t addr, void *priv)
             return svga->crtcreg;
 
         case 0x3d5:
-            if (!(svga->crtc[0x1e] & 0x80) && (svga->crtcreg > 0x18))
-                return 0xff;
             if (svga->crtcreg == 0x1a)
                 return dev->type << 6;
             if (svga->crtcreg == 0x1e) {
+                ret = svga->crtc[0x1e];
+                ret &= ~3;
                 if (dev->vram_size == 1024)
                     ret = 2;
                 else if (dev->vram_size == 512)
                     ret = 1;
                 else
                     ret = 0;
-                return svga->crtc[0x1e] | ret;
+                return ret;
             }
             return svga->crtc[svga->crtcreg];
 
@@ -106,6 +107,9 @@ rtg_in(uint16_t addr, void *priv)
 
         case 0x3d7:
             return dev->bank3d7;
+
+        default:
+            break;
     }
 
     return svga_in(addr, svga);
@@ -140,6 +144,9 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                     case 0x0f:
                         rtg_recalcbanking(dev);
                         return;
+
+                    default:
+                        break;
                 }
             }
             break;
@@ -162,6 +169,9 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                         svga->vram_display_mask = (val & 0x20) ? dev->vram_mask : 0x3ffff;
                         svga->fullchange        = changeframecount;
                         svga_recalctimings(svga);
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -188,6 +198,9 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
             dev->bank3d7 = val;
             rtg_recalcbanking(dev);
             return;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
@@ -196,12 +209,11 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
 static void
 rtg_recalctimings(svga_t *svga)
 {
-    svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+    const rtg_t  *dev  = (rtg_t *) svga->priv;
+
     svga->ma_latch |= ((svga->crtc[0x19] & 0x10) << 16) | ((svga->crtc[0x19] & 0x40) << 17);
 
     svga->interlace = (svga->crtc[0x19] & 1);
-
-    svga->lowres = svga->attrregs[0x10] & 0x40;
 
     /*Clock table not available, currently a guesswork*/
     switch (((svga->miscout >> 2) & 3) | ((svga->gdcreg[0x0c] & 0x20) >> 3)) {
@@ -226,6 +238,9 @@ rtg_recalctimings(svga_t *svga)
         case 7:
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
             break;
+
+        default:
+            break;
     }
 
     switch (svga->gdcreg[0x0c] & 3) {
@@ -238,49 +253,46 @@ rtg_recalctimings(svga_t *svga)
         case 3:
             svga->clock /= 4;
             break;
+
+        default:
+            break;
     }
 
-    if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-        switch (svga->gdcreg[5] & 0x60) {
-            case 0x00:
-                if (svga->seqregs[1] & 8) /*Low res (320)*/
-                    svga->render = svga_render_4bpp_lowres;
-                else {
-                    svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
-                    svga->hdisp++;
-                    svga->hdisp *= 8;
+    if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
+        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+            switch (svga->gdcreg[5] & 0x60) {
+                case 0x00:
+                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                        svga->render = svga_render_4bpp_lowres;
+                    else {
+                        if (svga->hdisp == 1280)
+                            svga->rowoffset >>= 1;
 
-                    if (svga->hdisp == 1280)
-                        svga->rowoffset >>= 1;
-
-                    svga->render = svga_render_4bpp_highres;
-                }
-                break;
-            case 0x20:                    /*4 colours*/
-                if (svga->seqregs[1] & 8) /*Low res (320)*/
-                    svga->render = svga_render_2bpp_lowres;
-                else
-                    svga->render = svga_render_2bpp_highres;
-                break;
-            case 0x40:
-            case 0x60:
-                svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
-                svga->hdisp++;
-                svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
-                if (svga->crtc[0x19] & 2) {
-                    if (svga->hdisp == 1280) {
-                        svga->hdisp >>= 1;
-                    } else
-                        svga->rowoffset <<= 1;
-
-                    svga->render = svga_render_8bpp_highres;
-                } else {
-                    if (svga->lowres)
-                        svga->render = svga_render_8bpp_lowres;
+                        svga->render = svga_render_4bpp_highres;
+                    }
+                    break;
+                case 0x20:                    /*4 colours*/
+                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                        svga->render = svga_render_2bpp_lowres;
                     else
+                        svga->render = svga_render_2bpp_highres;
+                    break;
+                case 0x40:
+                case 0x60:
+                    if (svga->crtc[0x19] & 2) {
+                        if (svga->hdisp == 1280)
+                            svga->hdisp >>= 1;
+                        else if (dev->type == 2)
+                            svga->rowoffset <<= 1;
+
                         svga->render = svga_render_8bpp_highres;
-                }
-                break;
+                    } else
+                        svga->render = svga_render_8bpp_lowres;
+                    break;
+
+                default:
+                    break;
+            }
         }
     }
 }
@@ -295,17 +307,31 @@ rtg_init(const device_t *info)
     memset(dev, 0x00, sizeof(rtg_t));
     dev->name = info->name;
     dev->type = info->local;
-    fn        = BIOS_ROM_PATH;
+    fn = NULL;
 
     switch (dev->type) {
-        case 2: /* ISA RTG3106 */
-            dev->vram_size = device_get_config_int("memory") << 10;
+        case 1: /* ISA RTG3105 */
+            fn        = RTG_3105_BIOS_ROM_PATH;
+            dev->vram_size = device_get_config_int("memory");
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rtg_isa);
-            svga_init(info, &dev->svga, dev, dev->vram_size,
+            svga_init(info, &dev->svga, dev, dev->vram_size << 10,
                       rtg_recalctimings, rtg_in, rtg_out,
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           rtg_in, NULL, NULL, rtg_out, NULL, NULL, dev);
+            break;
+        case 2: /* ISA RTG3106 */
+            fn        = RTG_3106_BIOS_ROM_PATH;
+            dev->vram_size = device_get_config_int("memory");
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rtg_isa);
+            svga_init(info, &dev->svga, dev, dev->vram_size << 10,
+                      rtg_recalctimings, rtg_in, rtg_out,
+                      NULL, NULL);
+            io_sethandler(0x03c0, 32,
+                          rtg_in, NULL, NULL, rtg_out, NULL, NULL, dev);
+            break;
+
+        default:
             break;
     }
 
@@ -314,7 +340,7 @@ rtg_init(const device_t *info)
 
     dev->vram_mask = dev->vram_size - 1;
 
-    rom_init(&dev->bios_rom, (char *) fn,
+    rom_init(&dev->bios_rom, fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     return dev;
@@ -347,12 +373,45 @@ rtg_force_redraw(void *priv)
 }
 
 static int
-rtg_available(void)
+rtg3105_available(void)
 {
-    return rom_present(BIOS_ROM_PATH);
+    return rom_present(RTG_3105_BIOS_ROM_PATH);
 }
 
-static const device_config_t rtg_config[] = {
+static int
+rtg3106_available(void)
+{
+    return rom_present(RTG_3106_BIOS_ROM_PATH);
+}
+
+static const device_config_t rtg3105_config[] = {
+  // clang-format off
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+  // clang-format on
+};
+
+static const device_config_t rtg3106_config[] = {
   // clang-format off
     {
         .name = "memory",
@@ -383,16 +442,30 @@ static const device_config_t rtg_config[] = {
   // clang-format on
 };
 
+const device_t realtek_rtg3105_device = {
+    .name          = "Realtek RTG3105 (ISA)",
+    .internal_name = "rtg3105",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = rtg_init,
+    .close         = rtg_close,
+    .reset         = NULL,
+    { .available = rtg3105_available },
+    .speed_changed = rtg_speed_changed,
+    .force_redraw  = rtg_force_redraw,
+    .config        = rtg3105_config
+};
+
 const device_t realtek_rtg3106_device = {
     .name          = "Realtek RTG3106 (ISA)",
     .internal_name = "rtg3106",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA,
     .local         = 2,
     .init          = rtg_init,
     .close         = rtg_close,
     .reset         = NULL,
-    { .available = rtg_available },
+    { .available = rtg3106_available },
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
-    .config        = rtg_config
+    .config        = rtg3106_config
 };

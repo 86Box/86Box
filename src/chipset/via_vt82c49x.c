@@ -30,6 +30,7 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
+#include <86box/timer.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/port_92.h>
@@ -296,8 +297,8 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 vt82c49x_read(uint16_t addr, void *priv)
 {
-    uint8_t     ret = 0xff;
-    vt82c49x_t *dev = (vt82c49x_t *) priv;
+    uint8_t           ret = 0xff;
+    const vt82c49x_t *dev = (vt82c49x_t *) priv;
 
     switch (addr) {
         case 0xa9:

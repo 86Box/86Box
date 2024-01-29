@@ -39,6 +39,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_ogc.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 /*
  * Current bugs:
@@ -83,9 +84,10 @@ ogc_out(uint16_t addr, uint8_t val, void *priv)
 {
     ogc_t *ogc = (ogc_t *) priv;
 
-    // if (addr >= 0x3c0 && addr <= 0x3cf){
-    // 	addr = addr + 16;
-    // }
+#if 0
+    if (addr >= 0x3c0 && addr <= 0x3cf)
+        addr = addr + 16;
+#endif
 
     switch (addr) {
         case 0x3d4:
@@ -101,6 +103,9 @@ ogc_out(uint16_t addr, uint8_t val, void *priv)
             /* select 1st or 2nd 16k vram block to be used */
             ogc->base = (val & 0x08) ? 0x4000 : 0;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -109,9 +114,10 @@ ogc_in(uint16_t addr, void *priv)
 {
     ogc_t *ogc = (ogc_t *) priv;
 
-    // if (addr >= 0x3c0 && addr <= 0x3cf){
-    // 	addr = addr + 16;
-    // }
+#if 0
+    if (addr >= 0x3c0 && addr <= 0x3cf)
+        addr = addr + 16;
+#endif
 
     uint8_t ret = 0xff;
 
@@ -132,15 +138,18 @@ ogc_in(uint16_t addr, void *priv)
                 ret = ret | 0xe0;
                 if (ogc->mono_display)
                     ret = ret | 0x10;
-                break;
             }
+            break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 void
-ogc_waitstates(void *p)
+ogc_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -512,7 +521,7 @@ ogc_poll(void *priv)
                 if (ogc->cga.cgadispon)
                     ogc->cga.cgastat &= ~1;
 
-                if ((ogc->cga.sc == (ogc->cga.crtc[10] & 31) || ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == ((ogc->cga.crtc[10] & 31) >> 1))))
+                if (ogc->cga.sc == (ogc->cga.crtc[10] & 31) || ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == ((ogc->cga.crtc[10] & 31) >> 1)))
                     ogc->cga.con = 1;
             }
             /* 80-columns */
@@ -572,9 +581,11 @@ ogc_mdaattr_rebuild(void)
  * - Optional EGC expansion board (which handles 640x400x16) not implemented
  */
 void *
-ogc_init(const device_t *info)
+ogc_init(UNUSED(const device_t *info))
 {
-    // int display_type;
+#if 0
+    int display_type;
+#endif
     ogc_t *ogc = (ogc_t *) malloc(sizeof(ogc_t));
 
     memset(ogc, 0x00, sizeof(ogc_t));
@@ -582,8 +593,10 @@ ogc_init(const device_t *info)
 
     loadfont("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", 1);
 
-    /* composite is not working yet */
-    // display_type = device_get_config_int("display_type");
+    /* FIXME: composite is not working yet */
+#if 0
+    display_type = device_get_config_int("display_type");
+#endif
     ogc->cga.composite    = 0; // (display_type != CGA_RGB);
     ogc->cga.revision     = device_get_config_int("composite_type");
     ogc->cga.snow_enabled = device_get_config_int("snow_enabled");

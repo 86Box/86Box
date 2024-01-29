@@ -149,9 +149,9 @@ voodoo_recalc(voodoo_t *voodoo)
 }
 
 static uint16_t
-voodoo_readw(uint32_t addr, void *p)
+voodoo_readw(uint32_t addr, void *priv)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
 
     addr &= 0xffffff;
 
@@ -160,8 +160,8 @@ voodoo_readw(uint32_t addr, void *p)
     if ((addr & 0xc00000) == 0x400000) /*Framebuffer*/
     {
         if (SLI_ENABLED) {
-            voodoo_set_t *set = voodoo->set;
-            int           y   = (addr >> 11) & 0x3ff;
+            const voodoo_set_t *set = voodoo->set;
+            int                 y   = (addr >> 11) & 0x3ff;
 
             if (y & 1)
                 voodoo = set->voodoos[1];
@@ -184,9 +184,9 @@ voodoo_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-voodoo_readl(uint32_t addr, void *p)
+voodoo_readl(uint32_t addr, void *priv)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
     uint32_t  temp   = 0xffffffff;
     int       fifo_size;
     voodoo->rd_count++;
@@ -194,13 +194,12 @@ voodoo_readl(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
-    if (addr & 0x800000) /*Texture*/
-    {
+    if (addr & 0x800000) { /*Texture*/
     } else if (addr & 0x400000) /*Framebuffer*/
     {
         if (SLI_ENABLED) {
-            voodoo_set_t *set = voodoo->set;
-            int           y   = (addr >> 11) & 0x3ff;
+            const voodoo_set_t *set = voodoo->set;
+            int                 y   = (addr >> 11) & 0x3ff;
 
             if (y & 1)
                 voodoo = set->voodoos[1];
@@ -394,9 +393,9 @@ voodoo_readl(uint32_t addr, void *p)
 }
 
 static void
-voodoo_writew(uint32_t addr, uint16_t val, void *p)
+voodoo_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
     voodoo->wr_count++;
     addr &= 0xffffff;
 
@@ -407,9 +406,9 @@ voodoo_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-voodoo_writel(uint32_t addr, uint32_t val, void *p)
+voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
 
     voodoo->wr_count++;
 
@@ -429,7 +428,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
     {
         voodoo_queue_command(voodoo, addr | FIFO_WRITEL_FB, val);
     } else if ((addr & 0x200000) && (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE)) {
-        //                voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, voodoo->cmdfifo_base + (addr & 0x3fffc), val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
+#if 0
+        voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, voodoo->cmdfifo_base + (addr & 0x3fffc), val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
+#endif
         *(uint32_t *) &voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
         voodoo->cmdfifo_depth_wr++;
         if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
@@ -492,7 +493,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
                 if (voodoo->initEnable & 0x01) {
                     voodoo->fbiInit4  = val;
                     voodoo->read_time = pci_nonburst_time + pci_burst_time * ((voodoo->fbiInit4 & 1) ? 2 : 1);
-                    //                        voodoo_log("fbiInit4 write %08x - read_time=%i\n", val, voodoo->read_time);
+#if 0
+                    voodoo_log("fbiInit4 write %08x - read_time=%i\n", val, voodoo->read_time);
+#endif
                 }
                 break;
             case SST_backPorch:
@@ -538,7 +541,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
                     voodoo->fbiInit1   = (val & ~5) | (voodoo->fbiInit1 & 5);
                     voodoo->write_time = pci_nonburst_time + pci_burst_time * ((voodoo->fbiInit1 & 2) ? 1 : 0);
                     voodoo->burst_time = pci_burst_time * ((voodoo->fbiInit1 & 2) ? 2 : 1);
-                    //                        voodoo_log("fbiInit1 write %08x - write_time=%i burst_time=%i\n", val, voodoo->write_time, voodoo->burst_time);
+#if 0
+                    voodoo_log("fbiInit1 write %08x - write_time=%i burst_time=%i\n", val, voodoo->write_time, voodoo->burst_time);
+#endif
                 }
                 break;
             case SST_fbiInit2:
@@ -590,6 +595,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
                             case 0x0b:
                                 voodoo->dac_readdata = 0x79;
                                 break;
+
+                            default:
+                                break;
                         }
                     } else
                         voodoo->dac_readdata = voodoo->dac_data[voodoo->dac_readdata & 7];
@@ -599,7 +607,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
                             voodoo->dac_pll_regs[voodoo->dac_data[4] & 0xf] = (voodoo->dac_pll_regs[voodoo->dac_data[4] & 0xf] & 0xff00) | val;
                         else
                             voodoo->dac_pll_regs[voodoo->dac_data[4] & 0xf] = (voodoo->dac_pll_regs[voodoo->dac_data[4] & 0xf] & 0xff) | (val << 8);
-                        //                                voodoo_log("Write PLL reg %x %04x\n", voodoo->dac_data[4] & 0xf, voodoo->dac_pll_regs[voodoo->dac_data[4] & 0xf]);
+#if 0
+                        voodoo_log("Write PLL reg %x %04x\n", voodoo->dac_data[4] & 0xf, voodoo->dac_pll_regs[voodoo->dac_data[4] & 0xf]);
+#endif
                         voodoo->dac_reg_ff = !voodoo->dac_reg_ff;
                         if (!voodoo->dac_reg_ff)
                             voodoo->dac_data[4]++;
@@ -642,7 +652,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
             case SST_cmdFifoBaseAddr:
                 voodoo->cmdfifo_base = (val & 0x3ff) << 12;
                 voodoo->cmdfifo_end  = ((val >> 16) & 0x3ff) << 12;
-                //                voodoo_log("CMDFIFO base=%08x end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+#if 0
+                voodoo_log("CMDFIFO base=%08x end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+#endif
                 break;
 
             case SST_cmdFifoRdPtr:
@@ -670,32 +682,32 @@ voodoo_writel(uint32_t addr, uint32_t val, void *p)
 }
 
 static uint16_t
-voodoo_snoop_readw(uint32_t addr, void *p)
+voodoo_snoop_readw(uint32_t addr, void *priv)
 {
-    voodoo_set_t *set = (voodoo_set_t *) p;
+    const voodoo_set_t *set = (voodoo_set_t *) priv;
 
     return voodoo_readw(addr, set->voodoos[0]);
 }
 static uint32_t
-voodoo_snoop_readl(uint32_t addr, void *p)
+voodoo_snoop_readl(uint32_t addr, void *priv)
 {
-    voodoo_set_t *set = (voodoo_set_t *) p;
+    const voodoo_set_t *set = (voodoo_set_t *) priv;
 
     return voodoo_readl(addr, set->voodoos[0]);
 }
 
 static void
-voodoo_snoop_writew(uint32_t addr, uint16_t val, void *p)
+voodoo_snoop_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    voodoo_set_t *set = (voodoo_set_t *) p;
+    const voodoo_set_t *set = (voodoo_set_t *) priv;
 
     voodoo_writew(addr, val, set->voodoos[0]);
     voodoo_writew(addr, val, set->voodoos[1]);
 }
 static void
-voodoo_snoop_writel(uint32_t addr, uint32_t val, void *p)
+voodoo_snoop_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    voodoo_set_t *set = (voodoo_set_t *) p;
+    const voodoo_set_t *set = (voodoo_set_t *) priv;
 
     voodoo_writel(addr, val, set->voodoos[0]);
     voodoo_writel(addr, val, set->voodoos[1]);
@@ -747,18 +759,20 @@ voodoo_recalcmapping(voodoo_set_t *set)
 }
 
 uint8_t
-voodoo_pci_read(int func, int addr, void *p)
+voodoo_pci_read(int func, int addr, void *priv)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    const voodoo_t *voodoo = (voodoo_t *) priv;
 
     if (func)
         return 0;
 
-    //        voodoo_log("Voodoo PCI read %08X PC=%08x\n", addr, cpu_state.pc);
+#if 0
+    voodoo_log("Voodoo PCI read %08X PC=%08x\n", addr, cpu_state.pc);
+#endif
 
     switch (addr) {
         case 0x00:
-            return 0x1a; /*3dfx*/
+            return 0x1a; /*3Dfx*/
         case 0x01:
             return 0x12;
 
@@ -801,19 +815,24 @@ voodoo_pci_read(int func, int addr, void *p)
             return (voodoo->initEnable >> 16) & 0xff;
         case 0x43:
             return (voodoo->initEnable >> 24) & 0xff;
+
+        default:
+            break;
     }
     return 0;
 }
 
 void
-voodoo_pci_write(int func, int addr, uint8_t val, void *p)
+voodoo_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
 
     if (func)
         return;
 
-    //        voodoo_log("Voodoo PCI write %04X %02X PC=%08x\n", addr, val, cpu_state.pc);
+#if 0
+    voodoo_log("Voodoo PCI write %04X %02X PC=%08x\n", addr, val, cpu_state.pc);
+#endif
 
     switch (addr) {
         case 0x04:
@@ -840,13 +859,16 @@ voodoo_pci_write(int func, int addr, uint8_t val, void *p)
             voodoo->initEnable = (voodoo->initEnable & ~0xff000000) | (val << 24);
             voodoo_recalcmapping(voodoo->set);
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-voodoo_speed_changed(void *p)
+voodoo_speed_changed(void *priv)
 {
-    voodoo_set_t *voodoo_set = (voodoo_set_t *) p;
+    const voodoo_set_t *voodoo_set = (voodoo_set_t *) priv;
 
     voodoo_pixelclock_update(voodoo_set->voodoos[0]);
     voodoo_set->voodoos[0]->read_time  = pci_nonburst_time + pci_burst_time * ((voodoo_set->voodoos[0]->fbiInit4 & 1) ? 2 : 1);
@@ -858,13 +880,15 @@ voodoo_speed_changed(void *p)
         voodoo_set->voodoos[1]->write_time = pci_nonburst_time + pci_burst_time * ((voodoo_set->voodoos[1]->fbiInit1 & 2) ? 1 : 0);
         voodoo_set->voodoos[1]->burst_time = pci_burst_time * ((voodoo_set->voodoos[1]->fbiInit1 & 2) ? 2 : 1);
     }
-    //        voodoo_log("Voodoo read_time=%i write_time=%i burst_time=%i %08x %08x\n", voodoo->read_time, voodoo->write_time, voodoo->burst_time, voodoo->fbiInit1, voodoo->fbiInit4);
+#if 0
+    voodoo_log("Voodoo read_time=%i write_time=%i burst_time=%i %08x %08x\n", voodoo->read_time, voodoo->write_time, voodoo->burst_time, voodoo->fbiInit1, voodoo->fbiInit4);
+#endif
 }
 
 static void
-voodoo_force_blit(void *p)
+voodoo_force_blit(void *priv)
 {
-    voodoo_set_t *voodoo_set = (voodoo_set_t *) p;
+    const voodoo_set_t *voodoo_set = (voodoo_set_t *) priv;
 
     thread_wait_mutex(voodoo_set->voodoos[0]->force_blit_mutex);
     if (voodoo_set->voodoos[0]->can_blit) {
@@ -910,6 +934,9 @@ voodoo_card_init(void)
         case VOODOO_2:
             voodoo->dual_tmus = 1;
             break;
+
+        default:
+            break;
     }
 
     if (voodoo->type == VOODOO_2) /*generate filter lookup tables*/
@@ -917,7 +944,7 @@ voodoo_card_init(void)
     else
         voodoo_generate_filter_v1(voodoo);
 
-    pci_add_card(PCI_ADD_NORMAL, voodoo_pci_read, voodoo_pci_write, voodoo);
+    pci_add_card(PCI_ADD_NORMAL, voodoo_pci_read, voodoo_pci_write, voodoo, &voodoo->pci_slot);
 
     mem_mapping_add(&voodoo->mapping, 0, 0, NULL, voodoo_readw, voodoo_readl, NULL, voodoo_writew, voodoo_writel, NULL, MEM_MAPPING_EXTERNAL, voodoo);
 
@@ -1157,7 +1184,7 @@ voodoo_2d3d_card_init(int type)
 }
 
 void *
-voodoo_init(const device_t *info)
+voodoo_init(UNUSED(const device_t *info))
 {
     voodoo_set_t *voodoo_set = malloc(sizeof(voodoo_set_t));
     uint32_t      tmuConfig  = 1;
@@ -1198,6 +1225,9 @@ voodoo_init(const device_t *info)
             break;
         case VOODOO_2:
             tmuConfig = 1 | (3 << 6);
+            break;
+
+        default:
             break;
     }
 
@@ -1261,9 +1291,9 @@ voodoo_card_close(voodoo_t *voodoo)
 }
 
 void
-voodoo_close(void *p)
+voodoo_close(void *priv)
 {
-    voodoo_set_t *voodoo_set = (voodoo_set_t *) p;
+    voodoo_set_t *voodoo_set = (voodoo_set_t *) priv;
 
     if (voodoo_set->nr_cards == 2)
         voodoo_card_close(voodoo_set->voodoos[1]);
@@ -1280,7 +1310,7 @@ static const device_config_t voodoo_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "Voodoo Graphics",
+                .description = "3Dfx Voodoo Graphics",
                 .value = VOODOO_1
             },
             {
@@ -1288,7 +1318,7 @@ static const device_config_t voodoo_config[] = {
                 .value = VOODOO_SB50
             },
             {
-                .description = "Voodoo 2",
+                .description = "3Dfx Voodoo 2",
                 .value = VOODOO_2
             },
             {
@@ -1397,7 +1427,7 @@ static const device_config_t voodoo_config[] = {
 };
 
 const device_t voodoo_device = {
-    .name          = "3DFX Voodoo Graphics",
+    .name          = "3Dfx Voodoo Graphics",
     .internal_name = "voodoo",
     .flags         = DEVICE_PCI,
     .local         = 0,

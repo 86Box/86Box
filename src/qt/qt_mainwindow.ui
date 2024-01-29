@@ -68,16 +68,18 @@
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
     </widget>
+    <addaction name="actionAuto_pause"/>
+    <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="menuTablet_tool"/>
+    <addaction name="separator"/>
+    <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
     <addaction name="actionCtrl_Alt_Del"/>
     <addaction name="separator"/>
     <addaction name="actionCtrl_Alt_Esc"/>
-    <addaction name="separator"/>
-    <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -148,6 +150,7 @@
      <addaction name="actionFullScreen_43"/>
      <addaction name="actionFullScreen_keepRatio"/>
      <addaction name="actionFullScreen_int"/>
+     <addaction name="actionFullScreen_int43"/>
     </widget>
     <widget class="QMenu" name="menuEGA_S_VGA_settings">
      <property name="title">
@@ -177,6 +180,7 @@
     </widget>
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
+    <addaction name="actionShow_status_icons_in_fullscreen"/>
     <addaction name="separator"/>
     <addaction name="actionShow_non_primary_monitors"/>
     <addaction name="actionResizable_window"/>
@@ -255,6 +259,7 @@
    </attribute>
    <addaction name="actionPause"/>
    <addaction name="actionHard_Reset"/>
+   <addaction name="separator"/>
    <addaction name="actionACPI_Shutdown"/>
    <addaction name="separator"/>
    <addaction name="actionCtrl_Alt_Del"/>
@@ -262,6 +267,14 @@
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
+  <action name="actionAuto_pause">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Auto-pause on focus loss</string>
+   </property>
+  </action>
   <action name="actionKeyboard_requires_capture">
    <property name="checkable">
     <bool>true</bool>
@@ -585,6 +598,14 @@
     <string>&amp;Integer scale</string>
    </property>
   </action>
+  <action name="actionFullScreen_int43">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:&amp;3 Integer scale</string>
+   </property>
+  </action>
   <action name="actionInverted_VGA_monitor">
    <property name="checkable">
     <bool>true</bool>
@@ -859,6 +880,14 @@
    </property>
    <property name="text">
     <string>Cursor/Puck</string>
+   </property>
+  </action>
+  <action name="actionShow_status_icons_in_fullscreen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show status icons in fullscreen</string>
    </property>
   </action>
   <action name="actionPen">

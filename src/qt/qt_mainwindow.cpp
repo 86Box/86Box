@@ -70,6 +70,7 @@ extern int qt_nvr_save(void);
 #include <QTimer>
 #include <QThread>
 #include <QKeyEvent>
+#include <QShortcut>
 #include <QMessageBox>
 #include <QFocusEvent>
 #include <QApplication>
@@ -114,6 +115,11 @@ extern int qt_nvr_save(void);
 #    include <X11/keysym.h>
 #    undef KeyPress
 #    undef KeyRelease
+#endif
+
+#if defined Q_OS_UNIX && !defined Q_OS_HAIKU && !defined Q_OS_MACOS
+#include <qpa/qplatformwindow.h>
+#include "x11_util.h"
 #endif
 
 #ifdef Q_OS_MACOS
@@ -190,15 +196,6 @@ MainWindow::MainWindow(QWidget *parent)
     auto toolbar_label = new QLabel();
     ui->toolBar->addWidget(toolbar_label);
 
-#ifdef RELEASE_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
-#elif defined ALPHA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
-#elif defined BETA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
-#else
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
-#endif
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
@@ -210,7 +207,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
         QApplication::setOverrideCursor(Qt::ArrowCursor);
-        ui->menuTablet_tool->menuAction()->setVisible(mouse_mode >= 1);
+#ifdef USE_WACOM
+        ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
+#else
+        ui->menuTablet_tool->menuAction()->setVisible(false);
+#endif
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
@@ -252,8 +253,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     emit updateMenuResizeOptions();
 
-    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll, Qt::DirectConnection);
-
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
@@ -269,8 +268,20 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
-        if (mouse_capture && state != Qt::ApplicationState::ApplicationActive)
-            emit setMouseCapture(false);
+        if (state == Qt::ApplicationState::ApplicationActive) {
+            if (auto_paused) {
+                plat_pause(0);
+                auto_paused = 0;
+            }
+        } else {
+            if (mouse_capture)
+                emit setMouseCapture(false);
+
+            if (do_auto_pause && !dopause) {
+                auto_paused = 1;
+                plat_pause(1);
+            }
+        }
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
@@ -294,7 +305,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::resizeContentsMonitor, this, [this](int w, int h, int monitor_index) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
+#ifdef QT_RESIZE_DEBUG
             qDebug() << "Resize";
+#endif
             w = (w / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
 
             int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
@@ -329,9 +342,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
 
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
+#else
+    ui->actionEnable_Discord_integration->setEnabled(discord_loaded);
 #endif
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
@@ -527,12 +543,16 @@ MainWindow::MainWindow(QWidget *parent)
         case FULLSCR_SCALE_INT:
             ui->actionFullScreen_int->setChecked(true);
             break;
+        case FULLSCR_SCALE_INT43:
+            ui->actionFullScreen_int43->setChecked(true);
+            break;
     }
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionFullScreen_stretch);
     actGroup->addAction(ui->actionFullScreen_43);
     actGroup->addAction(ui->actionFullScreen_keepRatio);
     actGroup->addAction(ui->actionFullScreen_int);
+    actGroup->addAction(ui->actionFullScreen_int43);
     switch (video_grayscale) {
         case 0:
             ui->actionRGB_Color->setChecked(true);
@@ -580,6 +600,9 @@ MainWindow::MainWindow(QWidget *parent)
     if (vid_cga_contrast > 0) {
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
+    if (do_auto_pause > 0) {
+        ui->actionAuto_pause->setChecked(true);
+    }
 
 #ifdef Q_OS_MACOS
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
@@ -587,6 +610,15 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
     if (!vnc_enabled)
         video_setblit(qt_blit);
+
+    if (start_in_fullscreen) {
+        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
+            if (start_in_fullscreen) {
+                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
+                start_in_fullscreen = 0;
+            }
+        });
+    }
 
 #ifdef MTR_ENABLED
     {
@@ -628,6 +660,8 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 
     setContextMenuPolicy(Qt::PreventContextMenu);
+    /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
+    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
@@ -673,6 +707,20 @@ MainWindow::MainWindow(QWidget *parent)
     else
 #    endif
     {}
+#endif
+
+#if defined Q_OS_UNIX && !defined Q_OS_MACOS && !defined Q_OS_HAIKU
+    if (QApplication::platformName().contains("xcb")) {
+        QTimer::singleShot(0, this, [this] {
+            auto whandle = windowHandle();
+            if (! whandle) {
+                qWarning() << "No window handle";
+            } else {
+                QPlatformWindow *window = whandle->handle();
+                set_wm_class(window->winId(), vm_name);
+            }
+        });
+    }
 #endif
 }
 
@@ -760,8 +808,15 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             }
             secondaryRenderer->switchRenderer((RendererStack::Renderer) vid_api);
             secondaryRenderer->setMouseTracking(true);
+
+            if (monitor_settings[monitor_index].mon_window_maximized) {
+                if (renderers[monitor_index])
+                    renderers[monitor_index]->onResize(renderers[monitor_index]->width(),
+                    renderers[monitor_index]->height());
+
+                device_force_redraw();
+            }
         }
-        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
     }
 }
 
@@ -812,10 +867,6 @@ MainWindow::showEvent(QShowEvent *event)
         ui->stackedWidget->setFixedSize(window_w, window_h);
         QApplication::processEvents();
         this->adjustSize();
-    }
-    if (start_in_fullscreen) {
-        start_in_fullscreen = 0;
-        QTimer::singleShot(0, ui->actionFullscreen, &QAction::trigger);
     }
 }
 
@@ -887,20 +938,17 @@ MainWindow::on_actionSettings_triggered()
     Settings settings(this);
     settings.setModal(true);
     settings.setWindowModality(Qt::WindowModal);
+    settings.setWindowFlag(Qt::CustomizeWindowHint, true);
+    settings.setWindowFlag(Qt::WindowTitleHint, true);
+    settings.setWindowFlag(Qt::WindowSystemMenuHint, false);
     settings.exec();
 
     switch (settings.result()) {
         case QDialog::Accepted:
-            /*
             pc_reset_hard_close();
             settings.save();
             config_changed = 2;
             pc_reset_hard_init();
-            */
-            settings.save();
-            config_changed = 2;
-            pc_reset_hard();
-
             break;
         case QDialog::Rejected:
             break;
@@ -1249,11 +1297,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #endif
     }
 
-    if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
-        fs_off_signal = true;
-
-    if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
-        fs_on_signal = true;
+    checkFullscreenHotkey();
 
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
@@ -1289,24 +1333,35 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         }
     }
 
-    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
-        ui->actionFullscreen->trigger();
-        fs_off_signal = false;
-    }
-
-    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
-        ui->actionFullscreen->trigger();
-        fs_on_signal = false;
-    }
-
-    if (!send_keyboard_input || event->isAutoRepeat())
-        return;
-
+    if (send_keyboard_input && !event->isAutoRepeat()) {
 #ifdef Q_OS_MACOS
-    processMacKeyboardInput(false, event);
+        processMacKeyboardInput(false, event);
 #else
-    processKeyboardInput(false, event->nativeScanCode());
+        processKeyboardInput(false, event->nativeScanCode());
 #endif
+    }
+
+    checkFullscreenHotkey();
+}
+
+void
+MainWindow::checkFullscreenHotkey()
+{
+    if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
+        /* Signal "exit fullscreen mode". */
+        fs_off_signal = 1;
+    } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_up()) {
+        ui->actionFullscreen->trigger();
+        fs_off_signal = 0;
+    }
+
+    if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
+        /* Signal "enter fullscreen mode". */
+        fs_on_signal = 1;
+    } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_up()) {
+        ui->actionFullscreen->trigger();
+        fs_on_signal = 0;
+    }
 }
 
 QSize
@@ -1332,12 +1387,12 @@ MainWindow::on_actionResizable_window_triggered(bool checked)
 {
     if (checked) {
         vid_resize = 1;
-        setWindowFlag(Qt::WindowMaximizeButtonHint);
+        setWindowFlag(Qt::WindowMaximizeButtonHint, true);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
-                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
+                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, true);
                 renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
             }
         }
@@ -1498,10 +1553,11 @@ MainWindow::on_actionLinear_triggered()
 static void
 update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
 {
-    ui->actionFullScreen_stretch->setChecked(ui->actionFullScreen_stretch == selected);
-    ui->actionFullScreen_43->setChecked(ui->actionFullScreen_43 == selected);
-    ui->actionFullScreen_keepRatio->setChecked(ui->actionFullScreen_keepRatio == selected);
-    ui->actionFullScreen_int->setChecked(ui->actionFullScreen_int == selected);
+    ui->actionFullScreen_stretch->setChecked(selected == ui->actionFullScreen_stretch);
+    ui->actionFullScreen_43->setChecked(selected == ui->actionFullScreen_43);
+    ui->actionFullScreen_keepRatio->setChecked(selected == ui->actionFullScreen_keepRatio);
+    ui->actionFullScreen_int->setChecked(selected == ui->actionFullScreen_int);
+    ui->actionFullScreen_int43->setChecked(selected == ui->actionFullScreen_int43);
 
     {
         auto widget = ui->stackedWidget->currentWidget();
@@ -1510,7 +1566,8 @@ update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
 
     for (int i = 1; i < MONITORS_NUM; i++) {
         if (main_window->renderers[i])
-            main_window->renderers[i]->onResize(main_window->renderers[i]->width(), main_window->renderers[i]->height());
+            main_window->renderers[i]->onResize(main_window->renderers[i]->width(),
+                                                main_window->renderers[i]->height());
     }
 
     device_force_redraw();
@@ -1543,6 +1600,13 @@ MainWindow::on_actionFullScreen_int_triggered()
 {
     video_fullscreen_scale = FULLSCR_SCALE_INT;
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int);
+}
+
+void
+MainWindow::on_actionFullScreen_int43_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_INT43;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43);
 }
 
 static void
@@ -1648,7 +1712,7 @@ MainWindow::on_actionAbout_86Box_triggered()
 #endif
     versioninfo.append(QString(" [%1, %2]").arg(QSysInfo::buildCpuArchitecture(), tr(DYNAREC_STR)));
     msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, versioninfo, tr("86Box v")));
-    msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
+    msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
     auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
@@ -1696,21 +1760,30 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
 }
 
 void
+MainWindow::on_actionAuto_pause_triggered()
+{
+    do_auto_pause ^= 1;
+    ui->actionAuto_pause->setChecked(do_auto_pause > 0 ? true : false);
+}
+
+void
 MainWindow::on_actionRemember_size_and_position_triggered()
 {
     window_remember ^= 1;
-    window_w = ui->stackedWidget->width();
-    window_h = ui->stackedWidget->height();
-    if (!QApplication::platformName().contains("wayland")) {
-        window_x = geometry().x();
-        window_y = geometry().y();
-    }
-    for (int i = 1; i < MONITORS_NUM; i++) {
-        if (window_remember && renderers[i]) {
-            monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
-            monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
-            monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
-            monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+    if (!video_fullscreen) {
+        window_w = ui->stackedWidget->width();
+        window_h = ui->stackedWidget->height();
+        if (!QApplication::platformName().contains("wayland")) {
+            window_x = geometry().x();
+            window_y = geometry().y();
+        }
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (window_remember && renderers[i]) {
+                monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
+                monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
+                monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
+                monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+            }
         }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);
@@ -1978,3 +2051,11 @@ void MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
 }
+
+void MainWindow::on_actionShow_status_icons_in_fullscreen_triggered()
+{
+    status_icons_fullscreen = !status_icons_fullscreen;
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
+    config_save();
+}
+

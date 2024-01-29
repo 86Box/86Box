@@ -51,6 +51,7 @@
 #include <86box/path.h>
 #define GLOBAL
 #include <86box/plat.h>
+#include <86box/plat_dynld.h>
 #include <86box/thread.h>
 #include <86box/ui.h>
 #ifdef USE_VNC
@@ -65,30 +66,31 @@
 #    include <minitrace/minitrace.h>
 #endif
 
-typedef struct {
+typedef struct rc_str_t {
     WCHAR str[1024];
 } rc_str_t;
 
 /* Platform Public data, specific. */
 HINSTANCE    hinstance; /* application instance */
 HANDLE       ghMutex;
-uint32_t     lang_id, lang_sys; /* current and system language ID */
+uint32_t     lang_id;  /* current and system language ID */
+uint32_t     lang_sys; /* current and system language ID */
 DWORD        dwSubLangID;
 int          acp_utf8; /* Windows supports UTF-8 codepage */
 volatile int cpu_thread_run = 1;
 
 /* Local data. */
-static HANDLE    thMain;
-static rc_str_t *lpRCstr2048        = NULL,
-                *lpRCstr4096        = NULL,
-                *lpRCstr4352        = NULL,
-                *lpRCstr4608        = NULL,
-                *lpRCstr5120        = NULL,
-                *lpRCstr5376        = NULL,
-                *lpRCstr5632        = NULL,
-                *lpRCstr5888        = NULL,
-                *lpRCstr6144        = NULL,
-                *lpRCstr7168        = NULL;
+static HANDLE        thMain;
+static rc_str_t     *lpRCstr2048    = NULL;
+static rc_str_t     *lpRCstr4096    = NULL;
+static rc_str_t     *lpRCstr4352    = NULL;
+static rc_str_t     *lpRCstr4608    = NULL;
+static rc_str_t     *lpRCstr5120    = NULL;
+static rc_str_t     *lpRCstr5376    = NULL;
+static rc_str_t     *lpRCstr5632    = NULL;
+static rc_str_t     *lpRCstr5888    = NULL;
+static rc_str_t     *lpRCstr6144    = NULL;
+static rc_str_t     *lpRCstr7168    = NULL;
 static int           vid_api_inited = 0;
 static char         *argbuf;
 static int           first_use = 1;
@@ -302,7 +304,7 @@ plat_get_string(int i)
     else
         str = lpRCstr7168[i - 7168].str;
 
-    return ((wchar_t *) str);
+    return str;
 }
 
 #ifdef MTR_ENABLED
@@ -382,7 +384,9 @@ ProcessCommandLine(char ***argv)
 {
     char **args;
     int    argc_max;
-    int    i, q, argc;
+    int    i;
+    int    q;
+    int    argc;
 
     if (acp_utf8) {
         i      = strlen(GetCommandLineA()) + 1;
@@ -399,7 +403,7 @@ ProcessCommandLine(char ***argv)
     args     = (char **) malloc(sizeof(char *) * argc_max);
     if (args == NULL) {
         free(argbuf);
-        return (0);
+        return 0;
     }
 
     /* parse commandline into argc/argv format */
@@ -423,11 +427,11 @@ ProcessCommandLine(char ***argv)
                 args = realloc(args, sizeof(char *) * argc_max);
                 if (args == NULL) {
                     free(argbuf);
-                    return (0);
+                    return 0;
                 }
             }
 
-            while ((argbuf[i]) && ((q) ? (argbuf[i] != q) : (argbuf[i] != ' ')))
+            while ((argbuf[i]) && (q ? (argbuf[i] != q) : (argbuf[i] != ' ')))
                 i++;
 
             if (argbuf[i]) {
@@ -440,7 +444,7 @@ ProcessCommandLine(char ***argv)
     args[argc] = NULL;
     *argv      = args;
 
-    return (argc);
+    return argc;
 }
 
 /* For the Windows platform, this is the start of the application. */
@@ -448,7 +452,8 @@ int WINAPI
 WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 {
     char **argv = NULL;
-    int    argc, i;
+    int    argc;
+    int    i;
 
     /* Initialize the COM library for the main thread. */
     CoInitializeEx(NULL, COINIT_MULTITHREADED);
@@ -486,7 +491,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
         free(argbuf);
         free(argv);
-        return (1);
+        return 1;
     }
 
     extern int gfxcard[2];
@@ -506,14 +511,16 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     free(argbuf);
     free(argv);
-    return (i);
+    return i;
 }
 
 void
 main_thread(void *param)
 {
-    uint32_t old_time, new_time;
-    int      drawits, frames;
+    uint32_t old_time;
+    uint32_t new_time;
+    int      drawits;
+    int      frames;
 
     framecountx  = 0;
     title_update = 1;
@@ -648,14 +655,15 @@ plat_getcwd(char *bufp, int max)
         free(temp);
     }
 
-    return (0);
+    return 0;
 }
 
 int
 plat_chdir(char *path)
 {
     wchar_t *temp;
-    int      len, ret;
+    int      len;
+    int      ret;
 
     if (acp_utf8)
         return (_chdir(path));
@@ -674,7 +682,8 @@ plat_chdir(char *path)
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
-    wchar_t *pathw, *modew;
+    wchar_t *pathw;
+    wchar_t *modew;
     int      len;
     FILE    *fp;
 
@@ -725,7 +734,7 @@ plat_remove(char *path)
 }
 
 void
-path_normalize(char *path)
+path_normalize(UNUSED(char *path))
 {
     /* No-op */
 }
@@ -734,9 +743,20 @@ path_normalize(char *path)
 void
 path_slash(char *path)
 {
-    if ((path[strlen(path) - 1] != '\\') && (path[strlen(path) - 1] != '/')) {
+    if ((path[strlen(path) - 1] != '\\') && (path[strlen(path) - 1] != '/'))
         strcat(path, "\\");
-    }
+}
+
+/* Return a trailing (back)slash if necessary. */
+const char *
+path_get_slash(char *path)
+{
+    char *ret = "";
+
+    if ((path[strlen(path) - 1] != '\\') && (path[strlen(path) - 1] != '/'))
+        ret =  "\\";
+
+    return ret;
 }
 
 /* Check if the given path is absolute or not. */
@@ -744,9 +764,9 @@ int
 path_abs(char *path)
 {
     if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 /* Return the last element of a pathname. */
@@ -768,8 +788,8 @@ plat_get_basename(const char *path)
 void
 path_get_dirname(char *dest, const char *path)
 {
-    int   c = (int) strlen(path);
-    char *ptr;
+    int         c = (int) strlen(path);
+    const char *ptr;
 
     ptr = (char *) path;
 
@@ -798,7 +818,7 @@ path_get_filename(char *s)
         c--;
     }
 
-    return (s);
+    return s;
 }
 
 char *
@@ -807,7 +827,7 @@ path_get_extension(char *s)
     int c = strlen(s) - 1;
 
     if (c <= 0)
-        return (s);
+        return s;
 
     while (c && s[c] != '.')
         c--;
@@ -854,23 +874,24 @@ plat_dir_check(char *path)
         free(temp);
     }
 
-    return (((dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))) ? 1 : 0);
+    return ((dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) ? 1 : 0);
 }
 
 int
 plat_dir_create(char *path)
 {
-    int      ret, len;
+    int      ret;
+    int      len;
     wchar_t *temp;
 
     if (acp_utf8)
-        return (int) SHCreateDirectoryExA(NULL, path, NULL);
+        return SHCreateDirectoryExA(NULL, path, NULL);
     else {
         len  = mbstoc16s(NULL, path, 0) + 1;
         temp = malloc(len * sizeof(wchar_t));
         mbstoc16s(temp, path, len);
 
-        ret = (int) SHCreateDirectoryExW(NULL, temp, NULL);
+        ret = SHCreateDirectoryExW(NULL, temp, NULL);
 
         free(temp);
 
@@ -929,7 +950,7 @@ plat_init_rom_paths(void)
 }
 
 void
-plat_munmap(void *ptr, size_t size)
+plat_munmap(void *ptr, UNUSED(size_t size))
 {
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
@@ -947,7 +968,8 @@ plat_timer_read(void)
 static LARGE_INTEGER
 plat_get_ticks_common(void)
 {
-    LARGE_INTEGER EndingTime, ElapsedMicroseconds;
+    LARGE_INTEGER EndingTime;
+    LARGE_INTEGER ElapsedMicroseconds;
 
     if (first_use) {
         QueryPerformanceFrequency(&Frequency);
@@ -991,23 +1013,21 @@ plat_delay_ms(uint32_t count)
 int
 plat_vidapi(char *name)
 {
-    int i;
-
     /* Default/System is SDL Hardware. */
     if (!strcasecmp(name, "default") || !strcasecmp(name, "system"))
-        return (1);
+        return 1;
 
     /* If DirectDraw or plain SDL was specified, return SDL Software. */
     if (!strcasecmp(name, "ddraw") || !strcasecmp(name, "sdl"))
-        return (1);
+        return 1;
 
-    for (i = 0; i < RENDERERS_NUM; i++) {
+    for (uint8_t i = 0; i < RENDERERS_NUM; i++) {
         if (vid_apis[i].name && !strcasecmp(vid_apis[i].name, name))
-            return (i);
+            return i;
     }
 
     /* Default value. */
-    return (1);
+    return 1;
 }
 
 /* Return the VIDAPI name for the given number. */
@@ -1038,7 +1058,7 @@ plat_vidapi_name(int api)
             break;
     }
 
-    return (name);
+    return name;
 }
 
 int
@@ -1062,13 +1082,13 @@ plat_setvid(int api)
     i = vid_apis[vid_api].init((void *) hwndRender);
     endblit();
     if (!i)
-        return (0);
+        return 0;
 
     device_force_redraw();
 
     vid_api_inited = 1;
 
-    return (1);
+    return 1;
 }
 
 /* Tell the renderers about a new screen resolution. */
@@ -1110,7 +1130,8 @@ void
 plat_setfullscreen(int on)
 {
     RECT rect;
-    int  temp_x, temp_y;
+    int  temp_x;
+    int  temp_y;
     int  dpi = win_get_dpi(hwndMain);
 
     /* Are we changing from the same state to the same state? */
@@ -1229,7 +1250,7 @@ plat_language_code(char *langcode)
     wchar_t *temp = malloc(len * sizeof(wchar_t));
     mbstoc16s(temp, langcode, len);
 
-    LCID lcid = LocaleNameToLCID((LPWSTR) temp, 0);
+    LCID lcid = LocaleNameToLCID(temp, 0);
 
     free(temp);
     return lcid;
@@ -1248,6 +1269,41 @@ plat_language_code_r(uint32_t lcid, char *outbuf, int len)
     LCIDToLocaleName(lcid, buffer, LOCALE_NAME_MAX_LENGTH, 0);
 
     c16stombs(outbuf, buffer, len);
+}
+
+void
+plat_get_cpu_string(char *outbuf, uint8_t len) {
+    char cpu_string[] = "Unknown";
+    strncpy(outbuf, cpu_string, len);
+}
+
+void
+plat_set_thread_name(void *thread, const char *name)
+{
+    /* SetThreadDescription was added in 14393. Revisit if we ever start requiring 10. */
+    static void *kernel32_handle = NULL;
+    static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
+    static dllimp_t kernel32_imports[] = {
+      // clang-format off
+        { "SetThreadDescription", &pSetThreadDescription },
+        { NULL,                   NULL                   }
+      // clang-format on
+    };
+
+    if (!kernel32_handle) {
+        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
+        if (!kernel32_handle) {
+            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription = NULL;
+        }
+    }
+
+    if (pSetThreadDescription) {
+        size_t len = strlen(name) + 1;
+        wchar_t wname[len + 1];
+        mbstowcs(wname, name, len);
+        pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
+    }
 }
 
 void
@@ -1279,4 +1335,12 @@ void /* plat_ */
 endblit(void)
 {
     ReleaseMutex(ghMutex);
+}
+
+double
+plat_get_dpi(void)
+{
+    UINT dpi = win_get_dpi(hwndRender);
+
+    return ((double) dpi) / 96.0;
 }

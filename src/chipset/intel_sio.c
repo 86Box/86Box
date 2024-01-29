@@ -37,6 +37,10 @@
 
 typedef struct sio_t {
     uint8_t id;
+    uint8_t pci_slot;
+    uint8_t pad;
+    uint8_t pad0;
+
     uint8_t regs[256];
 
     uint16_t timer_base;
@@ -324,8 +328,8 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sio_read(int func, int addr, void *priv)
 {
-    sio_t  *dev = (sio_t *) priv;
-    uint8_t ret;
+    const sio_t  *dev = (sio_t *) priv;
+    uint8_t       ret;
 
     ret = 0xff;
 
@@ -452,7 +456,7 @@ sio_fast_off_count(void *priv)
 static void
 sio_reset(void *priv)
 {
-    sio_t *dev = (sio_t *) priv;
+    const sio_t *dev = (sio_t *) priv;
 
     /* Disable the PIC mouse latch. */
     sio_write(0, 0x4d, 0x40, priv);
@@ -493,7 +497,7 @@ sio_speed_changed(void *priv)
         timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
 
     if (dev->id == 0x03) {
-        te = timer_is_enabled(&dev->fast_off_timer);
+        te = timer_is_on(&dev->fast_off_timer);
 
         timer_stop(&dev->fast_off_timer);
         if (te)
@@ -507,7 +511,7 @@ sio_init(const device_t *info)
     sio_t *dev = (sio_t *) malloc(sizeof(sio_t));
     memset(dev, 0, sizeof(sio_t));
 
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev, &dev->pci_slot);
 
     dev->id = info->local;
 

@@ -15,12 +15,12 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 
 MainMenu MENU DISCARDABLE
 BEGIN
-    POPUP "動作(&A)"
+    POPUP "操作(&A)"
     BEGIN
         MENUITEM "キーボードはキャプチャが必要(&K)", IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "右CTRLを左ALTへ(&R)", IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "右CTRLを左ALTへ変換(&R)", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "ハードリセット(&H)...", IDM_ACTION_HRESET
+        MENUITEM "ハード リセット(&H)...", IDM_ACTION_HRESET
         MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
     MENUITEM "Ctrl+Alt+Esc(&E)", IDM_ACTION_CTRL_ALT_ESC
@@ -34,9 +34,9 @@ BEGIN
         MENUITEM "ステータスバーを隠す(&H)", IDM_VID_HIDE_STATUS_BAR
         MENUITEM "ツールバーを隠す(&T)", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
-        MENUITEM "ウィンドウのサイズをリサイズ可能(&R)", IDM_VID_RESIZE
-        MENUITEM "ウィンドウのサイズと位置を記憶(&E)", IDM_VID_REMEMBER
+        MENUITEM "プライマリ以外のモニターを表示(&S)", IDM_VID_MONITORS
+        MENUITEM "ウィンドウのサイズを変更可能(&R)", IDM_VID_RESIZE
+        MENUITEM "ウィンドウのサイズと位置を保存(&E)", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "レンダラー(&N)"
         BEGIN
@@ -49,8 +49,8 @@ BEGIN
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "ウィンドウのサイズを指定...", IDM_VID_SPECIFY_DIM
-        MENUITEM "4:3アスペクト比を固定(&O)", IDM_VID_FORCE43
+        MENUITEM "ディメンションを指定...", IDM_VID_SPECIFY_DIM
+        MENUITEM "4:3の縦横比を強制表示(&O)", IDM_VID_FORCE43
         POPUP "ウィンドウの表示倍率(&W)"
         BEGIN
             MENUITEM "0.5x(&0)", IDM_VID_SCALE_1X
@@ -71,22 +71,22 @@ BEGIN
         END
         MENUITEM "HiDPIスケーリング(&D)", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "フルスクリーン(&F)\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
-        POPUP "フルスクリーンのスケール(&S)"
+        MENUITEM "全画面表示(&F)\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
+        POPUP "全画面の拡大表示モード(&S)"
         BEGIN
-            MENUITEM "フルスクリーンに拡大(&F)", IDM_VID_FS_FULL
+            MENUITEM "ストレッチ モード(&F)", IDM_VID_FS_FULL
             MENUITEM "4:3(&4)", IDM_VID_FS_43
             MENUITEM "正方形ピクセル(アスペクト比を維持)(&S)", IDM_VID_FS_KEEPRATIO
             MENUITEM "整数倍(&I)", IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGAの設定"
         BEGIN
-            MENUITEM "色を反転(&I)", IDM_VID_INVERT
+            MENUITEM "色反転(&I)", IDM_VID_INVERT
             POPUP "画面タイプ(&T)"
             BEGIN
                 MENUITEM "RGB(カラー)(&C)", IDM_VID_GRAY_RGB
                 MENUITEM "RGB(グレースケール)(&R)", IDM_VID_GRAY_MONO
-                MENUITEM "モニター(琥珀色)(&A)", IDM_VID_GRAY_AMBER
+                MENUITEM "モニター(黄色)(&A)", IDM_VID_GRAY_AMBER
                 MENUITEM "モニター(緑色)(&G)", IDM_VID_GRAY_GREEN
                 MENUITEM "モニター(白色)(&W)", IDM_VID_GRAY_WHITE
             END
@@ -111,10 +111,10 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "環境設定(&P)...", IDM_PREFERENCES
 #ifdef DISCORD
-        MENUITEM "Discordとの連携機能(&D)", IDM_DISCORD
+        MENUITEM "Discord連携機能(&D)", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "音量を調節(&G)...", IDM_SND_GAIN
+        MENUITEM "音量調整(&G)...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
         MENUITEM "トレース開始\tCtrl+T", IDM_ACTION_BEGIN_TRACE
@@ -123,7 +123,7 @@ BEGIN
     END
     POPUP "ヘルプ(&H)"
     BEGIN
-        MENUITEM "ドキュメント(&D)...", IDM_DOCS
+        MENUITEM "文書(&D)...", IDM_DOCS
         MENUITEM "86Boxのバージョン情報(&A)...", IDM_ABOUT
     END
 END
@@ -140,11 +140,11 @@ BEGIN
         MENUITEM "新規イメージ(&N)...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "既存のイメージを開く(&E)...", IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(書き込み禁止)(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "録音(&R)", IDM_CASSETTE_RECORD
+        MENUITEM "記録(&R)", IDM_CASSETTE_RECORD
         MENUITEM "再生(&P)", IDM_CASSETTE_PLAY
-        MENUITEM "冒頭に巻き戻す(&R)", IDM_CASSETTE_REWIND
+        MENUITEM "先頭まで巻き戻す(&R)", IDM_CASSETTE_REWIND
         MENUITEM "最後まで早送り(&F)", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
         MENUITEM "取り出す(&J)", IDM_CASSETTE_EJECT
@@ -168,7 +168,7 @@ BEGIN
         MENUITEM "新規イメージ(&N)...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "既存のイメージを開く(&E)...", IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(書き込み禁止)(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "86Fイメージにエクスポート(&X)...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
@@ -197,7 +197,7 @@ BEGIN
         MENUITEM "新規イメージ(&N)...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "既存のイメージを開く(&E)...", IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(書き込み禁止)(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "取り出す(&J)", IDM_ZIP_EJECT
         MENUITEM "前のイメージを再読み込み(&R)", IDM_ZIP_RELOAD
@@ -211,7 +211,7 @@ BEGIN
         MENUITEM "新規イメージ(&N)...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "既存のイメージを開く(&E)...", IDM_MO_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(書き込み禁止)(&W)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "取り出す(&J)", IDM_MO_EJECT
         MENUITEM "前のイメージを再読み込み(&R)", IDM_MO_RELOAD
@@ -241,49 +241,49 @@ END
 //
 
 #define STR_PREFERENCES   "環境設定"
-#define STR_SND_GAIN      "音量ゲイン"
+#define STR_SND_GAIN      "音量調整"
 #define STR_NEW_FLOPPY    "新規のイメージ"
 #define STR_CONFIG        "設定"
-#define STR_SPECIFY_DIM   "メインウィンドウのサイズ指定"
+#define STR_SPECIFY_DIM   "メイン ウィンドウのサイズ指定"
 
 #define STR_OK            "OK"
 #define STR_CANCEL        "キャンセル"
-#define STR_GLOBAL        "これらの設定をグローバル既定値として保存する(&G)"
+#define STR_GLOBAL        "これらの設定をグローバル既定値として保存(&G)"
 #define STR_DEFAULT       "既定値(&D)"
 #define STR_LANGUAGE      "言語:"
-#define STR_ICONSET       "アイコンセット:"
+#define STR_ICONSET       "アイコン セット:"
 
-#define STR_GAIN          "ゲイン値"
+#define STR_GAIN          "音量"
 
 #define STR_FILE_NAME     "ファイル名:"
-#define STR_DISK_SIZE     "ディスクサイズ:"
-#define STR_RPM_MODE      "回転数モード:"
+#define STR_DISK_SIZE     "ディスク サイズ:"
+#define STR_RPM_MODE      "RPMモード:"
 #define STR_PROGRESS      "進行状況:"
 
 #define STR_WIDTH         "幅:"
 #define STR_HEIGHT        "高さ:"
-#define STR_LOCK_TO_SIZE  "このサイズをロックする"
+#define STR_LOCK_TO_SIZE  "サイズを固定"
 
-#define STR_MACHINE_TYPE  "マシンタイプ:"
+#define STR_MACHINE_TYPE  "マシン タイプ:"
 #define STR_MACHINE       "マシン:"
 #define STR_CONFIGURE     "設定"
 #define STR_CPU_TYPE      "CPUタイプ:"
 #define STR_CPU_SPEED     "速度:"
 #define STR_FPU           "FPU:"
-#define STR_WAIT_STATES   "待機状態:"
+#define STR_WAIT_STATES   "ウェイト ステート:"
 #define STR_MB            "MB"
 #define STR_MEMORY        "メモリ:"
 #define STR_TIME_SYNC     "時刻同期機能"
-#define STR_DISABLED      "無効にする"
-#define STR_ENABLED_LOCAL "有効にする (現地時間)"
-#define STR_ENABLED_UTC   "有効にする (UTC)"
-#define STR_DYNAREC       "動的リコンパイラ"
+#define STR_DISABLED      "無効"
+#define STR_ENABLED_LOCAL "有効(現地時間)"
+#define STR_ENABLED_UTC   "有効(UTC)"
+#define STR_DYNAREC       "動的再コンパイル"
 #define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "ビデオカード:"
-#define STR_VIDEO_2       "ビデオカード 2:"
+#define STR_VIDEO_2       "ビデオカード2:"
 #define STR_VOODOO        "Voodooグラフィック"
-#define STR_IBM8514       "IBM 8514/aグラフィック"
+#define STR_IBM8514       "IBM 8514/Aグラフィック"
 #define STR_XGA           "XGAグラフィック"
 
 #define STR_MOUSE         "マウス:"
@@ -293,25 +293,25 @@ END
 #define STR_JOY3          "ジョイスティック3..."
 #define STR_JOY4          "ジョイスティック4..."
 
-#define STR_SOUND1        "サウンドカード 1:"
-#define STR_SOUND2        "サウンドカード 2:"
-#define STR_SOUND3        "サウンドカード 3:"
-#define STR_SOUND4        "サウンドカード 4:"
+#define STR_SOUND1        "サウンド カード1:"
+#define STR_SOUND2        "サウンド カード2:"
+#define STR_SOUND3        "サウンド カード3:"
+#define STR_SOUND4        "サウンド カード4:"
 #define STR_MIDI_OUT      "MIDI出力デバイス:"
 #define STR_MIDI_IN       "MIDI入力デバイス:"
 #define STR_MPU401        "独立型MPU-401"
-#define STR_FLOAT         "FLOAT32サウンドを使用する"
+#define STR_FLOAT         "FLOAT32サウンドを使用"
 #define STR_FM_DRIVER     "FMシンセドライバー"
-#define STR_FM_DRV_NUKED  "Nuked (高精度化)"
-#define STR_FM_DRV_YMFM   "YMFM (より速く)"
+#define STR_FM_DRV_NUKED  "Nuked(高精度化)"
+#define STR_FM_DRV_YMFM   "YMFM(より速く)"
 
 #define STR_NET_TYPE      "ネットワークタイプ:"
 #define STR_PCAP          "PCapデバイス:"
 #define STR_NET           "ネットワークアダプター:"
-#define STR_NET1          "Network card 1:"
-#define STR_NET2          "Network card 2:"
-#define STR_NET3          "Network card 3:"
-#define STR_NET4          "Network card 4:"
+#define STR_NET1          "ネットワーク カード1:"
+#define STR_NET2          "ネットワーク カード2:"
+#define STR_NET3          "ネットワーク カード3:"
+#define STR_NET4          "ネットワーク カード4:"
 
 #define STR_COM1          "COM1デバイス:"
 #define STR_COM2          "COM2デバイス:"
@@ -321,23 +321,23 @@ END
 #define STR_LPT2          "LPT2デバイス:"
 #define STR_LPT3          "LPT3デバイス:"
 #define STR_LPT4          "LPT4デバイス:"
-#define STR_SERIAL1       "シリアルポート1"
-#define STR_SERIAL2       "シリアルポート2"
-#define STR_SERIAL3       "シリアルポート3"
-#define STR_SERIAL4       "シリアルポート4"
-#define STR_PARALLEL1     "パラレルポート1"
-#define STR_PARALLEL2     "パラレルポート2"
-#define STR_PARALLEL3     "パラレルポート3"
-#define STR_PARALLEL4     "パラレルポート4"
-#define STR_SERIAL_PASS1  "Serial port passthrough 1"
-#define STR_SERIAL_PASS2  "Serial port passthrough 2"
-#define STR_SERIAL_PASS3  "Serial port passthrough 3"
-#define STR_SERIAL_PASS4  "Serial port passthrough 4"
+#define STR_SERIAL1       "シリアル ポート1"
+#define STR_SERIAL2       "シリアル ポート2"
+#define STR_SERIAL3       "シリアル ポート3"
+#define STR_SERIAL4       "シリアル ポート4"
+#define STR_PARALLEL1     "パラレル ポート1"
+#define STR_PARALLEL2     "パラレル ポート2"
+#define STR_PARALLEL3     "パラレル ポート3"
+#define STR_PARALLEL4     "パラレル ポート4"
+#define STR_SERIAL_PASS1  "シリアル ポート パススルー対応1"
+#define STR_SERIAL_PASS2  "シリアル ポート パススルー対応2"
+#define STR_SERIAL_PASS3  "シリアル ポート パススルー対応3"
+#define STR_SERIAL_PASS4  "シリアル ポート パススルー対応4"
 
-#define STR_HDC           "HDコントローラー:"
-#define STR_FDC           "FDコントローラー:"
-#define STR_IDE_TER       "第三のIDEコントローラー"
-#define STR_IDE_QUA       "第四のIDEコントローラー"
+#define STR_HDC           "HDDコントローラー:"
+#define STR_FDC           "FDDコントローラー:"
+#define STR_IDE_TER       "第三IDEコントローラー"
+#define STR_IDE_QUA       "第四IDEコントローラー"
 #define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "コントローラー1:"
 #define STR_SCSI_2        "コントローラー2:"
@@ -345,14 +345,14 @@ END
 #define STR_SCSI_4        "コントローラー4:"
 #define STR_CASSETTE      "カセット"
 
-#define STR_HDD           "ハードディスク:"
+#define STR_HDD           "ハード ディスク:"
 #define STR_NEW           "新規(&N)..."
 #define STR_EXISTING      "既定(&E)..."
 #define STR_REMOVE        "除去(&R)"
 #define STR_BUS           "バス:"
 #define STR_CHANNEL       "チャンネル:"
 #define STR_ID            "ID:"
-#define STR_SPEED         "Speed:"
+#define STR_SPEED         "速度:"
 
 #define STR_SPECIFY       "参照(&S)..."
 #define STR_SECTORS       "セクター:"
@@ -361,11 +361,11 @@ END
 #define STR_SIZE_MB       "サイズ(MB):"
 #define STR_TYPE          "タイプ:"
 #define STR_IMG_FORMAT    "イメージ形式:"
-#define STR_BLOCK_SIZE    "ブロックサイズ:"
+#define STR_BLOCK_SIZE    "ブロック サイズ:"
 
-#define STR_FLOPPY_DRIVES "フロッピードライブ:"
+#define STR_FLOPPY_DRIVES "フロッピー ドライブ:"
 #define STR_TURBO         "高速タイミング"
-#define STR_CHECKBPB      "BPBをチェック"
+#define STR_CHECKBPB      "BPBチェック"
 #define STR_CDROM_DRIVES  "CD-ROMドライブ:"
 #define STR_CD_SPEED      "速度:"
 
@@ -374,7 +374,7 @@ END
 #define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA RTCカード:"
-#define STR_ISAMEM        "ISAメモリー拡張カード"
+#define STR_ISAMEM        "ISAメモリ拡張カード"
 #define STR_ISAMEM_1      "カード1:"
 #define STR_ISAMEM_2      "カード2:"
 #define STR_ISAMEM_3      "カード3:"
@@ -402,39 +402,38 @@ BEGIN
     IDS_2053    "速度"
     IDS_2054    "ZIP %03i %i (%s): %ls"
     IDS_2055    "ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056    "86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=""https://github.com/86Box/roms/releases/latest"">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
+    IDS_2056    "86Boxで使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=""https://github.com/86Box/roms/releases/latest"">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
     IDS_2057    "(空)"
     IDS_2058    "ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0すべてのファイル (*.*)\0*.*\0"
     IDS_2059    "高速"
     IDS_2060    "オン"
     IDS_2061    "オフ"
-    IDS_2062    "すべてのイメージ (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本的なセクターイメージ (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面イメージ (*.86F)\0*.86F\0"
-    IDS_2063    "roms/machinesディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
+    IDS_2062    "すべてのイメージ (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0ベーシック セクター イメージ (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0サーフェス イメージ (*.86F)\0*.86F\0"
+    IDS_2063    "roms/machines ディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
 END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2064    "roms/videoディレクトリにROMがないため、ビデオカード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+    IDS_2064    "roms/video ディレクトリにROMがないため、ビデオカード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
     IDS_2065    "マシン"
-    IDS_2066    "画面表示"
+    IDS_2066    "ディスプレイ"
     IDS_2067    "入力デバイス"
     IDS_2068    "サウンド"
     IDS_2069    "ネットワーク"
-    IDS_2070    "ポート (COM & LPT)"
-    IDS_2071    "ストレージコントローラ"
-    IDS_2072    "ハードディスク"
-    IDS_2073    "フロッピー/CD-ROMドライブ"
-    IDS_2074    "その他のリムーバブルデバイス"
-    IDS_2075    "その他の周辺装置"
-    IDS_2076    "表面イメージ (*.86F)\0*.86F\0"
-    IDS_2077    "クリックするとマウスをキャプチャします"
-    IDS_2078    "F8+F12キーでマウスを解放します"
-    IDS_2079    "F8+F12キーまたは中ボタンでマウスを解放します"
+    IDS_2070    "ポート (COM/LPT)"
+    IDS_2071    "ストレージ コントローラ"
+    IDS_2072    "ハード ディスク"
+    IDS_2073    "フロッピー／CD-ROMドライブ"
+    IDS_2074    "他のリムーバブル デバイス"
+    IDS_2075    "他の周辺デバイス"
+    IDS_2076    "サーフェス イメージ (*.86F)\0*.86F\0"
+    IDS_2077    "左クリックでマウスをキャプチャします"
+    IDS_2078    "F8+F12キーを押してマウスを解放します"
+    IDS_2079    "F8+F12キーまたは中クリックでマウスを解放します"
 END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "FluidSynthが初期化できません"
     IDS_2081    "バス"
     IDS_2082    "ファイル"
     IDS_2083    "C"
@@ -442,32 +441,31 @@ BEGIN
     IDS_2085    "S"
     IDS_2086    "MB"
     IDS_2087    "Speed"
-    IDS_2088    "BPBをチェック"
+    IDS_2088    "BPBチェック"
     IDS_2089    "KB"
     IDS_2090    "ビデオレンダラーが初期化できません。"
     IDS_2091    "既定値"
-    IDS_2092    "%iつの待機状態"
+    IDS_2092    "%iつのウェイト ステート"
     IDS_2093    "タイプ"
     IDS_2094    "PCapのセットアップに失敗しました"
     IDS_2095    "PCapデバイスがありません"
-    IDS_2096    "不正なPCapデバイスです"
+    IDS_2096    "不正なPCapデバイス"
     IDS_2097    "標準ジョイスティック(2ボタン)"
     IDS_2098    "標準ジョイスティック(4ボタン)"
     IDS_2099    "標準ジョイスティック(6ボタン)"
     IDS_2100    "標準ジョイスティック(8ボタン)"
     IDS_2101    "CH Flightstick Pro"
-    IDS_2102    "Microsoft SideWinder Pad"
-    IDS_2103    "Thrustmaster Flight Control System"
+    IDS_2102    "Microsoft SideWinderパッド"
+    IDS_2103    "Thrustmaster飛行制御システム"
     IDS_2104    "なし"
-    IDS_2105    "キーボードアクセラレータを読み込めません。"
-    IDS_2106    "生の入力が登録できません。"
+    IDS_2105    "キーボード アクセラレータを読み込めません。"
+    IDS_2106    "生入力が登録できません。"
     IDS_2107    "%u"
-    IDS_2108    "%u MB (CHS: %i, %i, %i)"
+    IDS_2108    "%u MB (CHS値: %i、%i、%i)"
     IDS_2109    "フロッピー %i (%s): %ls"
-    IDS_2110    "すべてのイメージ (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0アドバンスドセクターイメージ (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本セクターイメージ (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0フラックスイメージ (*.FDI)\0*.FDI\0表面イメージ (*.86F;*.MFM)\0*.86F;*.MFM\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2111    "FreeTypeが初期化できません"
+    IDS_2110    "すべてのイメージ (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0アドバンスド セクター イメージ (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0ベーシック セクター イメージ (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0フラックスイメージ (*.FDI)\0*.FDI\0サーフェス イメージ (*.86F;*.MFM)\0*.86F;*.MFM\0すべてのファイル (*.*)\0*.*\0"
     IDS_2112    "SDLが初期化できません。SDL2.dllが必要です"
-    IDS_2113    "使用中のマシンをハードリセットしますか？"
+    IDS_2113    "使用中のマシンをハードリ セットしますか？"
     IDS_2114    "86Boxを終了しますか？"
     IDS_2115    "Ghostscriptが初期化できません"
     IDS_2116    "光磁気 %i (%ls): %ls"
@@ -477,12 +475,12 @@ BEGIN
     IDS_2120    "終了"
     IDS_2121    "ROMが見つかりません"
     IDS_2122    "設定を保存しますか？"
-    IDS_2123    "保存すると使用中のマシンがハードリセットされます。"
+    IDS_2123    "使用中のマシンがハードリ セットされます。"
     IDS_2124    "保存"
     IDS_2125    "86Boxのバージョン情報"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "古いパソコンのエミュレーター\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
+    IDS_2127    "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
     IDS_2128    "OK"
     IDS_2129    "ハードウェアが利用できません"
 #ifdef _WIN32
@@ -491,102 +489,90 @@ BEGIN
 #define LIB_NAME_PCAP "libpcap"
 #endif
     IDS_2130    LIB_NAME_PCAP "がインストールされてるか、" LIB_NAME_PCAP "に対応したネットワークに接続されてるか確認してください。"
-    IDS_2131    "不正な設定です"
-#ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    "ESC/Pプリンタのエミュレーションには" LIB_NAME_FREETYPE "が必要です。"
+    IDS_2131    "無効な設定"
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2133    "PostScriptファイルをPDFに自動変換するには" LIB_NAME_GS "が必要です。\n\n汎用PostScriptプリンターに送信されたドキュメントは、PostScript(.ps)ファイルとして保存されます。"
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    "FluidSynthのMIDI出力には" LIB_NAME_FLUIDSYNTH "が必要です。"
-    IDS_2135    "フルスクリーンに切り替えています"
+    IDS_2133    "PostScriptファイルをPDFに自動変換するには" LIB_NAME_GS "が必要です。\n\n汎用PostScriptプリンターに送信された文書は、PostScript (.ps) ファイルとして保存されます。"
+    IDS_2135    "全画面モードを入力"
     IDS_2136    "今後、このメッセージを表示しない"
     IDS_2137    "終了しない"
     IDS_2138    "リセット"
     IDS_2139    "リセットしない"
     IDS_2140    "光磁気イメージ (*.IM?;*.MDI)\0*.IM?;*.MDI\0すべてのファイル (*.*)\0*.*\0"
     IDS_2141    "CD-ROMイメージ (*.ISO;*.CUE)\0*.ISO;*.CUE\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2142    "%hs デバイスの設定"
-    IDS_2143    "モニターのスリープモード"
+    IDS_2142    "%hs のデバイス設定"
+    IDS_2143    "モニターのスリープ モード"
     IDS_2144    "OpenGLシェーダー (*.GLSL)\0*.GLSL\0すべてのファイル (*.*)\0*.*\0"
     IDS_2145    "OpenGL設定"
-    IDS_2146    "サポートされていない設定を読み込んでいます"
-    IDS_2147    "選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。ただし、マシンのBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は公式サポートができません。また、バグレポートが無効として閉じられる場合があります。"
+    IDS_2146    "読み込んでいる設定がサポートされません"
+    IDS_2147    "選択したマシンに基づくCPUタイプのフィルター機能は、使用中のマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。しかし、マシンのBIOSや他のソフトウェアと互換性がない場合があります。\n\nこの設定を有効にすることは公式にはサポートされておらず、バグレポートは無効として中止される可能性があります。"
     IDS_2148    "続行"
     IDS_2149    "カセット: %s"
-    IDS_2150    "カセットイメージ (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2150    "カセット イメージ (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0すべてのファイル (*.*)\0*.*\0"
     IDS_2151    "カートリッジ %i: %ls"
-    IDS_2152    "カートリッジイメージ (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2152    "カートリッジ イメージ (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0すべてのファイル (*.*)\0*.*\0"
     IDS_2153    "レンダラーの初期化エラー"
-    IDS_2154    "OpenGL (3.0コア) レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
+    IDS_2154    "OpenGL (3.0コア) レンダラーが初期化できません。別のレンダラーを使用してください。"
     IDS_2155    "実行を再開"
     IDS_2156    "実行を一時停止"
-    IDS_2157    "Ctrl+Alt+DELを押し"
-    IDS_2158    "Ctrl+Alt+Escを押し"
+    IDS_2157    "Ctrl+Alt+DELを押す"
+    IDS_2158    "Ctrl+Alt+Escを押す"
     IDS_2159    "ハードリセット"
     IDS_2160    "ACPIシャットダウン"
     IDS_2161    "設定"
-    IDS_2162    "Type"
-    IDS_2163    "No Dynarec"
-    IDS_2164    "Old Dynarec"
-    IDS_2165    "New Dynarec"
-    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-    IDS_2167    "Failed to initialize network driver"
-    IDS_2168    "The network configuration will be switched to the null driver"
+    IDS_2162    "タイプ"
+    IDS_2163    "動的再コンパイル禁止"
+    IDS_2164    "旧型の動的再コンパイル"
+    IDS_2165    "新型の動的再コンパイル"
+    IDS_2166    "「roms/video」ディレクトリにROMがないため、ビデオカード#2「%hs」は使用できません。2枚目のビデオカードを無効にします。"
+    IDS_2167    "ネットワーク ドライバの初期化に失敗しました。"
+    IDS_2168    "ネットワーク設定がヌル ドライバに切り替えられます"
 END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_4096    "ハードディスク (%s)"
+    IDS_4096    "ハード ディスク (%s)"
     IDS_4097    "%01i:%01i"
     IDS_4098    "%01i"
-    IDS_4099    "MFM/RLLまたはESDIのCD-ROMドライブが存在しません"
+    IDS_4099    "MFM/RLLやESDI CD-ROMドライブが存在しません"
     IDS_4100    "カスタム..."
-    IDS_4101    "カスタム (大型)..."
+    IDS_4101    "カスタム (大容量)..."
     IDS_4102    "新規のディスクを追加"
     IDS_4103    "既定のディスクを追加"
-    IDS_4104    "HDIディスクイメージは4GBを超えることはできません。"
-    IDS_4105    "ディスクイメージは127GBを超えることはできません。"
-    IDS_4106    "ハードディスクイメージ (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0すべてのファイル (*.*)\0*.*\0"
+    IDS_4104    "HDIディスク イメージは4GBを超えることはできません。"
+    IDS_4105    "ディスク イメージは127GBを超えることはできません。"
+    IDS_4106    "ハード ディスク イメージ (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0すべてのファイル (*.*)\0*.*\0"
     IDS_4107    "ファイルの読み込みができません"
     IDS_4108    "ファイルの書き込みができません"
-    IDS_4109    "512以外のセクタサイズを持つHDIまたはHDXイメージはサポートされていません。"
-    IDS_4110    "USBはまだサポートされていません"
-    IDS_4111    "ディスクイメージファイルが既に存在します"
+    IDS_4109    "512以外のセクタ サイズを持つHDIまたはHDXイメージは対応していません。"
+    IDS_4110    "USBはまだ非対応です"
+    IDS_4111    "ディスク イメージ ファイルが既に存在します"
     IDS_4112    "有効なファイル名を指定してください。"
-    IDS_4113    "ディスクイメージが作成されました"
+    IDS_4113    "ディスク イメージが作成されました"
     IDS_4114    "ファイルが存在し、読み取り可能であることを確認してください。"
     IDS_4115    "ファイルが書き込み可能なディレクトリに保存されていることを確認してください。"
-    IDS_4116    "ディスクイメージのサイズが大きすぎます"
+    IDS_4116    "ディスク イメージのサイズが大きすぎます"
     IDS_4117    "新規ドライブをパーティション分割し、フォーマットを必ずしといてください。"
-    IDS_4118    "選択したファイルが上書きされます。使っていいですか？"
-    IDS_4119    "サポートされていないディスクイメージ"
+    IDS_4118    "選択したファイルは上書きされます。よろしいですか？"
+    IDS_4119    "非対応のディスク イメージ"
     IDS_4120    "上書き"
     IDS_4121    "上書きしない"
     IDS_4122    "Rawイメージ (.img)"
     IDS_4123    "HDIイメージ (.hdi)"
     IDS_4124    "HDXイメージ (.hdx)"
-    IDS_4125    "VHD(容量固定)(.vhd)"
-    IDS_4126    "VHD(容量可変)(.vhd)"
-    IDS_4127    "VHD(差分)(.vhd)"
+    IDS_4125    "VHD (容量固定) (.vhd)"
+    IDS_4126    "VHD (容量可変) (.vhd)"
+    IDS_4127    "VHD (差分) (.vhd)"
     IDS_4128    "大型ブロック (2 MB)"
     IDS_4129    "小型ブロック (512 KB)"
     IDS_4130    "VHDファイル (*.VHD)\0*.VHD\0すべてのファイル (*.*)\0*.*\0"
     IDS_4131    "親VHDの選択"
-    IDS_4132    "親イメージがディファレンシングイメージの作成の後に修正した可能性があります。\n\nイメージファイルの移動、コピーまたはこのディスクを作成したプログラムにバグが発生した可能性があります。\n\nタイムスタンプを修正しますか？"
-    IDS_4133    "親ディスクと子ディスクのタイムスタンプが一致しません"
-    IDS_4134    "VHD のタイムスタンプを修正できませんでした。"
+    IDS_4132    "親イメージが差分イメージの作成の後に変更される可能性があります。\n\nイメージ ファイルが移動またはコピーされたか、イメージ ファイルを作成したプログラムにバグが発生した可能性があります。\n\nタイム スタンプを修正しますか？"
+    IDS_4133    "親ディスクと子ディスクのタイム スタンプが一致しません"
+    IDS_4134    "VHD のタイム スタンプを修正できません。"
     IDS_4135    "%01i:%02i"
 
     IDS_4352    "MFM/RLL"
@@ -638,10 +624,10 @@ BEGIN
     IDS_5910    "5.25"" 1 GB"
     IDS_5911    "5.25"" 1.3 GB"
 
-    IDS_6144    "規定の回転数"
-    IDS_6145    "1%低い回転数"
-    IDS_6146    "1.5%低い回転数"
-    IDS_6147    "2%低い回転数"
+    IDS_6144    "既定RPM"
+    IDS_6145    "1%低いRPM"
+    IDS_6146    "1.5%低いRPM"
+    IDS_6147    "2%低いRPM"
 
     IDS_7168    "(システム既定値)"
 END

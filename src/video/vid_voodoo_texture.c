@@ -192,7 +192,9 @@ voodoo_recalc_tex3(voodoo_t *voodoo, int tmu)
     if ((voodoo->params.textureMode[tmu] & TEXTUREMODE_TRILINEAR) && (voodoo->params.tLOD[tmu] & LOD_ODD))
         tex_lod++; /*Skip LOD 0*/
 
-    //        voodoo_texture_log("TMU %i:    %08x\n", tmu, voodoo->params.textureMode[tmu]);
+#if 0
+    voodoo_texture_log("TMU %i:    %08x\n", tmu, voodoo->params.textureMode[tmu]);
+#endif
     for (lod = 0; lod <= LOD_MAX + 1; lod++) {
         if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR) {
             switch (tex_lod) {
@@ -302,18 +304,22 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 
     lod_min = (params->tLOD[tmu] >> 2) & 15;
     lod_max = (params->tLOD[tmu] >> 8) & 15;
-    //        voodoo_texture_log("  add new texture to %i tformat=%i %08x LOD=%i-%i tmu=%i\n", c, voodoo->params.tformat[tmu], params->texBaseAddr[tmu], lod_min, lod_max, tmu);
+#if 0
+    voodoo_texture_log("  add new texture to %i tformat=%i %08x LOD=%i-%i tmu=%i\n", c, voodoo->params.tformat[tmu], params->texBaseAddr[tmu], lod_min, lod_max, tmu);
+#endif
     lod_min = MIN(lod_min, 8);
     lod_max = MIN(lod_max, 8);
     for (int lod = lod_min; lod <= lod_max; lod++) {
-        uint32_t *base     = &voodoo->texture_cache[tmu][c].data[texture_offset[lod]];
-        uint32_t  tex_addr = params->tex_base[tmu][lod] & voodoo->texture_mask;
-        int       x;
-        int       y;
-        int       shift = 8 - params->tex_lod[tmu][lod];
-        rgba_u   *pal;
+        uint32_t     *base     = &voodoo->texture_cache[tmu][c].data[texture_offset[lod]];
+        uint32_t      tex_addr = params->tex_base[tmu][lod] & voodoo->texture_mask;
+        int           x;
+        int           y;
+        int           shift = 8 - params->tex_lod[tmu][lod];
+        const rgba_u *pal;
 
-        // voodoo_texture_log("  LOD %i : %08x - %08x %i %i,%i\n", lod, params->tex_base[tmu][lod] & voodoo->texture_mask, addr, voodoo->params.tformat[tmu], voodoo->params.tex_w_mask[tmu][lod],voodoo->params.tex_h_mask[tmu][lod]);
+#if 0
+        voodoo_texture_log("  LOD %i : %08x - %08x %i %i,%i\n", lod, params->tex_base[tmu][lod] & voodoo->texture_mask, addr, voodoo->params.tformat[tmu], voodoo->params.tex_w_mask[tmu][lod],voodoo->params.tex_h_mask[tmu][lod]);
+#endif
 
         switch (params->tformat[tmu]) {
             case TEX_RGB332:
@@ -566,7 +572,9 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
                     if (addr_end_masked < addr_start_masked)
                         addr_end_masked = voodoo->texture_mask + 1;
                     if (dirty_addr >= addr_start_masked && dirty_addr < addr_end_masked) {
-                        //                                voodoo_texture_log("  Evict texture %i %08x\n", c, voodoo->texture_cache[tmu][c].base);
+#if 0
+                        voodoo_texture_log("  Evict texture %i %08x\n", c, voodoo->texture_cache[tmu][c].base);
+#endif
 
                         if (voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[0] || (voodoo->render_threads == 2 && voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[1]))
                             wait_for_idle = 1;
@@ -585,12 +593,12 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
 }
 
 void
-voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
+voodoo_tex_writel(uint32_t addr, uint32_t val, void *priv)
 {
     int       lod;
     int       s;
     int       t;
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
     int       tmu;
 
     if (addr & 0x400000)

@@ -27,15 +27,17 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_fallthrough.h>
 
-typedef struct
-{
+typedef struct tvp3026_ramdac_t {
     PALETTE  extpal;
     uint32_t extpallook[256];
     uint8_t  cursor64_data[1024];
-    int      hwc_y, hwc_x;
+    int      hwc_y;
+    int      hwc_x;
     uint8_t  ind_idx;
-    uint8_t  dcc, dc_init;
+    uint8_t  dcc;
+    uint8_t  dc_init;
     uint8_t  ccr;
     uint8_t  true_color;
     uint8_t  latch_cntl;
@@ -48,10 +50,16 @@ typedef struct
     uint8_t  mode;
     uint8_t  pll_addr;
     uint8_t  clock_sel;
-    struct
-    {
-        uint8_t m, n, p;
+    struct {
+        uint8_t m;
+        uint8_t n;
+        uint8_t p;
     } pix, mem, loop;
+    uint8_t   gpio_cntl;
+    uint8_t   gpio_data;
+    uint8_t (*gpio_read)(uint8_t cntl, void *priv);
+    void    (*gpio_write)(uint8_t cntl, uint8_t val, void *priv);
+    void     *gpio_priv;
 } tvp3026_ramdac_t;
 
 static void
@@ -83,15 +91,18 @@ tvp3026_set_bpp(tvp3026_ramdac_t *ramdac, svga_t *svga)
             case 0x0f:
                 svga->bpp = 24;
                 break;
+
+            default:
+                break;
         }
     }
     svga_recalctimings(svga);
 }
 
 void
-tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga)
+tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
     uint32_t          o32;
     uint8_t          *cd;
     uint16_t          index;
@@ -103,6 +114,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
     switch (rs) {
         case 0x00: /* Palette Write Index Register (RS value = 0000) */
             ramdac->ind_idx = val;
+            fallthrough;
         case 0x04: /* Ext Palette Write Index Register (RS value = 0100) */
         case 0x03:
         case 0x07: /* Ext Palette Read Index Register (RS value = 0111) */
@@ -146,6 +158,9 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
                     }
                     svga->dac_addr = (svga->dac_addr + 1) & 0xff;
                     svga->dac_pos  = 0;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -201,6 +216,16 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
                     ramdac->misc      = val;
                     svga->ramdac_type = (val & 0x08) ? RAMDAC_8BIT : RAMDAC_6BIT;
                     break;
+                case 0x2a: /* General-Purpose I/O Control */
+                    ramdac->gpio_cntl = val;
+                    if (ramdac->gpio_write)
+                        ramdac->gpio_write(ramdac->gpio_cntl, ramdac->gpio_data, ramdac->gpio_priv);
+                    break;
+                case 0x2b: /* General-Purpose I/O Data */
+                    ramdac->gpio_data = val;
+                    if (ramdac->gpio_write)
+                        ramdac->gpio_write(ramdac->gpio_cntl, ramdac->gpio_data, ramdac->gpio_priv);
+                    break;
                 case 0x2c: /* PLL Address */
                     ramdac->pll_addr = val;
                     break;
@@ -214,6 +239,9 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
                             break;
                         case 2:
                             ramdac->pix.p = val;
+                            break;
+
+                        default:
                             break;
                     }
                     ramdac->pll_addr = ((ramdac->pll_addr + 1) & 3) | (ramdac->pll_addr & 0xfc);
@@ -229,6 +257,9 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
                         case 2:
                             ramdac->mem.p = val;
                             break;
+
+                        default:
+                            break;
                     }
                     ramdac->pll_addr = ((ramdac->pll_addr + 4) & 0x0c) | (ramdac->pll_addr & 0xf3);
                     break;
@@ -243,11 +274,17 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
                         case 2:
                             ramdac->loop.p = val;
                             break;
+
+                        default:
+                            break;
                     }
                     ramdac->pll_addr = ((ramdac->pll_addr + 0x10) & 0x30) | (ramdac->pll_addr & 0xcf);
                     break;
                 case 0x39: /* MCLK/Loop Clock Control */
                     ramdac->mclk = val;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -273,17 +310,20 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
             ramdac->hwc_y        = (ramdac->hwc_y & 0x00ff) | ((val & 0x0f) << 8);
             svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
             break;
+
+        default:
+            break;
     }
 
     return;
 }
 
 uint8_t
-tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
+tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
     uint8_t           temp   = 0xff;
-    uint8_t          *cd;
+    const uint8_t    *cd;
     uint16_t          index;
     uint8_t           rs      = (addr & 0x03);
     uint16_t          da_mask = 0x03ff;
@@ -327,6 +367,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                     else
                         temp = ramdac->extpal[index].b & 0x3f;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x09: /* Direct Cursor Control (RS value = 1001) */
@@ -361,6 +404,16 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                 case 0x1e: /* Miscellaneous Control */
                     temp = ramdac->misc;
                     break;
+                case 0x2a: /* General-Purpose I/O Control */
+                    temp = ramdac->gpio_cntl;
+                    break;
+                case 0x2b: /* General-Purpose I/O Data */
+                    if (ramdac->gpio_read) {
+                        temp = 0xe0 | (ramdac->gpio_cntl & 0x1f); /* keep upper bits untouched */
+                        ramdac->gpio_data = (ramdac->gpio_data & temp) | (ramdac->gpio_read(ramdac->gpio_cntl, ramdac->gpio_priv) & ~temp);
+                    }
+                    temp = ramdac->gpio_data;
+                    break;
                 case 0x2c: /* PLL Address */
                     temp = ramdac->pll_addr;
                     break;
@@ -378,6 +431,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                         case 3:
                             temp = 0x40; /*PLL locked to frequency*/
                             break;
+
+                        default:
+                            break;
                     }
                     break;
                 case 0x2e: /* Memory Clock PLL Data */
@@ -394,6 +450,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                         case 3:
                             temp = 0x40; /*PLL locked to frequency*/
                             break;
+
+                        default:
+                            break;
                     }
                     break;
                 case 0x2f: /* Loop Clock PLL Data */
@@ -407,6 +466,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                         case 2:
                             temp = ramdac->loop.p;
                             break;
+
+                        default:
+                            break;
                     }
                     break;
                 case 0x39: /* MCLK/Loop Clock Control */
@@ -414,6 +476,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                     break;
                 case 0x3f: /* ID */
                     temp = 0x26;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -436,17 +501,45 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
         case 0x0f: /* Cursor Y High Register (RS value = 1111) */
             temp = (ramdac->hwc_y >> 8) & 0xff;
             break;
+
+        default:
+            break;
     }
 
     return temp;
 }
 
 void
-tvp3026_recalctimings(void *p, svga_t *svga)
+tvp3026_recalctimings(void *priv, svga_t *svga)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
+    const tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
 
     svga->interlace = (ramdac->ccr & 0x40);
+    /* TODO: Figure out gamma correction for 15/16 bpp color. */
+    svga->lut_map = !!(svga->bpp >= 15 && (ramdac->true_color & 0xf0) != 0x00);
+}
+
+uint32_t
+tvp3026_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    uint32_t ret = 0x00000000;
+
+    if (svga->lut_map) {
+        if (bpp == 15) {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 2]);
+            uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 7]);
+            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
+        } else {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 3]);
+            uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 8]);
+            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+        }
+    } else
+        ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return ret;
 }
 
 void
@@ -466,7 +559,7 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
     uint32_t          clr2;
     uint32_t          clr3;
     uint32_t         *p;
-    uint8_t          *cd;
+    const uint8_t    *cd;
     tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) svga->ramdac;
 
     clr1 = ramdac->extpallook[1];
@@ -513,6 +606,9 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
                             case 3:
                                 p[x_pos] = clr3;
                                 break;
+
+                            default:
+                                break;
                         }
                         break;
                     case 2: /* XGA */
@@ -526,6 +622,9 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
                             case 3:
                                 p[x_pos] ^= 0xffffff;
                                 break;
+
+                            default:
+                                break;
                         }
                         break;
                     case 3: /* X-Windows */
@@ -536,7 +635,13 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
                             case 3:
                                 p[x_pos] = clr2;
                                 break;
+
+                            default:
+                                break;
                         }
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -550,14 +655,14 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 }
 
 float
-tvp3026_getclock(int clock, void *p)
+tvp3026_getclock(int clock, void *priv)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
-    int               n;
-    int               m;
-    int               pl;
-    float             f_vco;
-    float             f_pll;
+    const tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
+    int                     n;
+    int                     m;
+    int                     pl;
+    float                   f_vco;
+    float                   f_pll;
 
     if (clock == 0)
         return 25175000.0;
@@ -569,10 +674,22 @@ tvp3026_getclock(int clock, void *p)
     n     = ramdac->pix.n & 0x3f;
     m     = ramdac->pix.m & 0x3f;
     pl    = ramdac->pix.p & 0x03;
-    f_vco = 8.0 * 14318184 * (float) (65 - m) / (float) (65 - n);
+    f_vco = 8.0f * 14318184 * (float) (65 - m) / (float) (65 - n);
     f_pll = f_vco / (float) (1 << pl);
 
     return f_pll;
+}
+
+void
+tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv),
+             void (*write)(uint8_t cntl, uint8_t val, void *priv),
+             void *cb_priv, void *priv)
+{
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
+
+    ramdac->gpio_read  = read;
+    ramdac->gpio_write = write;
+    ramdac->gpio_priv  = cb_priv;
 }
 
 void *

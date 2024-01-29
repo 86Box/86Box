@@ -10,10 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ * Authors: John Elliott, <jce@seasip.info>
  *          Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2008-2019 John Elliott.
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
@@ -74,7 +74,7 @@ static video_timings_t timing_genius = { .type = VIDEO_ISA, .write_b = 8, .write
  * Two card-specific registers control text and graphics display:
  *
  *  03B0: Control register.
- * 	   Bit 0: Map all graphics framebuffer into memory.
+ *         Bit 0: Map all graphics framebuffer into memory.
  *         Bit 2: Unknown. Set by GMC /M; cleared by mode set or GMC /T.
  *         Bit 4: Set for CGA-compatible graphics, clear for native graphics.
  *         Bit 5: Set for black on white, clear for white on black.
@@ -138,13 +138,13 @@ static uint8_t genius_pal[4];
 static uint8_t mdaattr[256][2][2];
 
 void    genius_recalctimings(genius_t *genius);
-void    genius_write(uint32_t addr, uint8_t val, void *p);
-uint8_t genius_read(uint32_t addr, void *p);
+void    genius_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t genius_read(uint32_t addr, void *priv);
 
 void
-genius_out(uint16_t addr, uint8_t val, void *p)
+genius_out(uint16_t addr, uint8_t val, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
 
     switch (addr) {
         case 0x3b0: /* Command / control register */
@@ -204,14 +204,17 @@ genius_out(uint16_t addr, uint8_t val, void *p)
         case 0x3d9:
             genius->cga_colour = val;
             return;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-genius_in(uint16_t addr, void *p)
+genius_in(uint16_t addr, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
-    uint8_t   ret    = 0xff;
+    const genius_t *genius = (genius_t *) priv;
+    uint8_t         ret    = 0xff;
 
     switch (addr) {
         case 0x3b0:
@@ -253,6 +256,9 @@ genius_in(uint16_t addr, void *p)
         case 0x3da:
             ret = genius->cga_stat;
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -269,9 +275,9 @@ genius_waitstates(void)
 }
 
 void
-genius_write(uint32_t addr, uint8_t val, void *p)
+genius_write(uint32_t addr, uint8_t val, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
     genius_waitstates();
 
     if (genius->genius_control & 1) {
@@ -293,10 +299,11 @@ genius_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-genius_read(uint32_t addr, void *p)
+genius_read(uint32_t addr, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
-    uint8_t   ret;
+    const genius_t *genius = (genius_t *) priv;
+    uint8_t         ret;
+
     genius_waitstates();
 
     if (genius->genius_control & 1) {
@@ -364,6 +371,9 @@ genius_lines(genius_t *genius)
         case 0x13:
             ret = 492; /* 80x41 */
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -379,7 +389,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     uint8_t        attr;
     uint8_t        sc;
     uint8_t        ctrl;
-    uint8_t       *crtc;
+    const uint8_t *crtc;
     uint8_t        bitmap[2];
     int            blink;
     int            c;
@@ -390,7 +400,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     uint16_t       addr;
     uint16_t       ma       = (genius->mda_crtc[13] | (genius->mda_crtc[12] << 8)) & 0x3fff;
     uint16_t       ca       = (genius->mda_crtc[15] | (genius->mda_crtc[14] << 8)) & 0x3fff;
-    unsigned char *framebuf = genius->vram + 0x10000;
+    const uint8_t *framebuf = genius->vram + 0x10000;
     uint32_t       col;
     uint32_t       dl = genius->displine;
 
@@ -404,13 +414,13 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
         charh = 15 - (genius->genius_charh & 3);
 
 #if 0
-	if (genius->genius_charh & 0x10) {
-		row = ((dl >> 1) / charh);
-		sc  = ((dl >> 1) % charh);
-	} else {
-		row = (dl / charh);
-		sc  = (dl % charh);
-	}
+    if (genius->genius_charh & 0x10) {
+        row = ((dl >> 1) / charh);
+        sc  = ((dl >> 1) % charh);
+    } else {
+        row = (dl / charh);
+        sc  = (dl % charh);
+    }
 #else
         row = (dl / charh);
         sc  = (dl % charh);
@@ -449,10 +459,10 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 
     for (int x = 0; x < w; x++) {
 #if 0
-	if ((genius->genius_charh & 0x10) && ((addr + 2 * x) > 0x0FFF))
-		chr = 0x00;
-	if ((genius->genius_charh & 0x10) && ((addr + 2 * x + 1) > 0x0FFF))
-		attr = 0x00;
+    if ((genius->genius_charh & 0x10) && ((addr + 2 * x) > 0x0FFF))
+        chr = 0x00;
+    if ((genius->genius_charh & 0x10) && ((addr + 2 * x + 1) > 0x0FFF))
+        attr = 0x00;
 #endif
         chr  = framebuf[(addr + 2 * x) & 0x3FFF];
         attr = framebuf[(addr + 2 * x + 1) & 0x3FFF];
@@ -465,6 +475,9 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
                 break;
             case 0x60:
                 drawcursor = drawcursor && (genius->blink & 32);
+                break;
+
+            default:
                 break;
         }
 
@@ -623,9 +636,9 @@ genius_hiresline(genius_t *genius)
 }
 
 void
-genius_poll(void *p)
+genius_poll(void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
     uint8_t   background;
 
     if (!genius->linepos) {
@@ -721,9 +734,8 @@ genius_poll(void *p)
     }
 }
 
-void
-    *
-    genius_init(const device_t *info)
+void *
+genius_init(UNUSED(const device_t *info))
 {
     genius_t *genius = malloc(sizeof(genius_t));
 
@@ -784,9 +796,9 @@ void
 }
 
 void
-genius_close(void *p)
+genius_close(void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
 
     free(genius->vram);
     free(genius);
@@ -799,9 +811,9 @@ genius_available(void)
 }
 
 void
-genius_speed_changed(void *p)
+genius_speed_changed(void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
 
     genius_recalctimings(genius);
 }

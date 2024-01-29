@@ -26,53 +26,54 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/vid_ati_eeprom.h>
+#include <86box/plat_fallthrough.h>
 
 void
 ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
     eeprom->type = type;
     strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
-    f    = nvr_fopen(eeprom->fn, "rb");
+    fp   = nvr_fopen(eeprom->fn, "rb");
     size = eeprom->type ? 512 : 128;
-    if (!f) {
+    if (!fp) {
         memset(eeprom->data, 0xff, size);
         return;
     }
-    if (fread(eeprom->data, 1, size, f) != size)
+    if (fread(eeprom->data, 1, size, fp) != size)
         memset(eeprom->data, 0, size);
-    fclose(f);
+    fclose(fp);
 }
 
 void
 ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
     eeprom->type = 0;
     strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
-    f    = nvr_fopen(eeprom->fn, "rb");
+    fp   = nvr_fopen(eeprom->fn, "rb");
     size = 128;
-    if (!f) { /*The ATI Graphics Ultra bios expects an immediate write to nvram if none is present at boot time otherwise
+    if (!fp) { /*The ATI Graphics Ultra bios expects an immediate write to nvram if none is present at boot time otherwise
             it would hang the machine.*/
         memset(eeprom->data, 0, size);
-        f = nvr_fopen(eeprom->fn, "wb");
-        fwrite(eeprom->data, 1, size, f);
+        fp = nvr_fopen(eeprom->fn, "wb");
+        fwrite(eeprom->data, 1, size, fp);
     }
-    if (fread(eeprom->data, 1, size, f) != size)
+    if (fread(eeprom->data, 1, size, fp) != size)
         memset(eeprom->data, 0, size);
-    fclose(f);
+    fclose(fp);
 }
 
 void
 ati_eeprom_save(ati_eeprom_t *eeprom)
 {
-    FILE *f = nvr_fopen(eeprom->fn, "wb");
-    if (!f)
+    FILE *fp = nvr_fopen(eeprom->fn, "wb");
+    if (!fp)
         return;
-    fwrite(eeprom->data, 1, eeprom->type ? 512 : 128, f);
-    fclose(f);
+    fwrite(eeprom->data, 1, eeprom->type ? 512 : 128, fp);
+    fclose(fp);
 }
 
 void
@@ -93,7 +94,7 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                     if (!dat)
                         break;
                     eeprom->state = EEPROM_OPCODE;
-                /* fall through */
+                    fallthrough;
                 case EEPROM_OPCODE:
                     eeprom->opcode = (eeprom->opcode << 1) | (dat ? 1 : 0);
                     eeprom->count--;
@@ -118,6 +119,9 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 eeprom->count = eeprom->type ? 8 : 6;
                                 eeprom->state = EEPROM_INPUT;
                                 eeprom->dat   = 0;
+                                break;
+
+                            default:
                                 break;
                         }
                     }
@@ -160,6 +164,9 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                     case EEPROM_OP_EWEN:
                                         eeprom->wp = 0;
                                         break;
+
+                                    default:
+                                        break;
                                 }
                                 eeprom->state = EEPROM_IDLE;
                                 eeprom->out   = 1;
@@ -183,8 +190,14 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 eeprom->state = EEPROM_IDLE;
                                 eeprom->out   = 1;
                                 break;
+
+                            default:
+                                break;
                         }
                     }
+                    break;
+
+                default:
                     break;
             }
         }
@@ -199,6 +212,9 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                     if (!eeprom->count) {
                         eeprom->state = EEPROM_IDLE;
                     }
+                    break;
+
+                default:
                     break;
             }
         }

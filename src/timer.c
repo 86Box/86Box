@@ -15,10 +15,13 @@ pc_timer_t *timer_head = NULL;
 /* Are we initialized? */
 int timer_inited = 0;
 
+static void timer_advance_ex(pc_timer_t *timer, int start);
+
 void
 timer_enable(pc_timer_t *timer)
 {
     pc_timer_t *timer_node = timer_head;
+    int ret = 0;
 
     if (!timer_inited || (timer == NULL))
         return;
@@ -29,54 +32,56 @@ timer_enable(pc_timer_t *timer)
     if (timer->next || timer->prev)
         fatal("timer_enable - timer->next\n");
 
-    timer->flags |= TIMER_ENABLED;
-
     /*List currently empty - add to head*/
     if (!timer_head) {
         timer_head  = timer;
         timer->next = timer->prev = NULL;
         timer_target              = timer_head->ts.ts32.integer;
-        return;
-    }
-
-    if (TIMER_LESS_THAN(timer, timer_head)) {
+        ret = 1;
+    } else if (TIMER_LESS_THAN(timer, timer_head)) {
         timer->next      = timer_head;
         timer->prev      = NULL;
         timer_head->prev = timer;
         timer_head       = timer;
         timer_target     = timer_head->ts.ts32.integer;
-        return;
-    }
-
-    if (!timer_head->next) {
+        ret = 1;
+    } else if (!timer_head->next) {
         timer_head->next = timer;
         timer->prev      = timer_head;
-        return;
+        ret = 1;
     }
 
-    pc_timer_t *prev = timer_head;
-    timer_node       = timer_head->next;
+    if (ret == 0) {
+        pc_timer_t *prev = timer_head;
+        timer_node       = timer_head->next;
 
-    while (1) {
-        /*Timer expires before timer_node. Add to list in front of timer_node*/
-        if (TIMER_LESS_THAN(timer, timer_node)) {
-            timer->next      = timer_node;
-            timer->prev      = prev;
-            timer_node->prev = timer;
-            prev->next       = timer;
-            return;
+        while (1) {
+            /*Timer expires before timer_node. Add to list in front of timer_node*/
+            if (TIMER_LESS_THAN(timer, timer_node)) {
+                timer->next      = timer_node;
+                timer->prev      = prev;
+                timer_node->prev = timer;
+                prev->next       = timer;
+                ret = 1;
+                break;
+            }
+
+            /*timer_node is last in the list. Add timer to end of list*/
+            if (!timer_node->next) {
+                timer_node->next = timer;
+                timer->prev      = timer_node;
+                ret = 1;
+                break;
+            }
+
+            prev       = timer_node;
+            timer_node = timer_node->next;
         }
-
-        /*timer_node is last in the list. Add timer to end of list*/
-        if (!timer_node->next) {
-            timer_node->next = timer;
-            timer->prev      = timer_node;
-            return;
-        }
-
-        prev       = timer_node;
-        timer_node = timer_node->next;
     }
+
+    /* Do not mark it as enabled if it has failed every single condition. */
+    if (ret == 1)
+        timer->flags |= TIMER_ENABLED;
 }
 
 void
@@ -121,9 +126,12 @@ timer_process(void)
         timer->flags &= ~TIMER_ENABLED;
 
         if (timer->flags & TIMER_SPLIT)
-            timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
-        else if (timer->callback != NULL) /* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
-            timer->callback(timer->p);
+            timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into
+                                             multiple <= 1 s periods. */
+        else if (timer->callback != NULL) /* Make sure it's not NULL, so that we can
+                                             have a NULL callback when no operation
+                                             is needed. */
+            timer->callback(timer->priv);
     }
 
     timer_target = timer_head->ts.ts32.integer;
@@ -159,12 +167,12 @@ timer_init(void)
 }
 
 void
-timer_add(pc_timer_t *timer, void (*callback)(void *p), void *priv, int start_timer)
+timer_add(pc_timer_t *timer, void (*callback)(void *priv), void *priv, int start_timer)
 {
     memset(timer, 0, sizeof(pc_timer_t));
 
     timer->callback = callback;
-    timer->p        = priv;
+    timer->priv     = priv;
     timer->flags    = 0;
     timer->prev = timer->next = NULL;
     if (start_timer)
@@ -195,7 +203,7 @@ timer_do_period(pc_timer_t *timer, uint64_t period, int start)
         timer_advance_u64(timer, period);
 }
 
-void
+static void
 timer_advance_ex(pc_timer_t *timer, int start)
 {
     if (!timer_inited || (timer == NULL))
@@ -215,7 +223,7 @@ timer_advance_ex(pc_timer_t *timer, int start)
     }
 }
 
-void
+static void
 timer_on(pc_timer_t *timer, double period, int start)
 {
     if (!timer_inited || (timer == NULL))
@@ -232,7 +240,7 @@ timer_on_auto(pc_timer_t *timer, double period)
         return;
 
     if (period > 0.0)
-        timer_on(timer, period, (timer->period == 0.0));
+        timer_on(timer, period, timer->period <= 0.0);
     else
         timer_stop(timer);
 }

@@ -57,6 +57,7 @@
 #include <86box/vid_ogc.h>
 #include <86box/vid_colorplus.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 #define STAT_PARITY       0x80
 #define STAT_RTIMEOUT     0x40
@@ -115,7 +116,7 @@ enum MM58274_ADDR {
 
 static struct tm intclk;
 
-typedef struct {
+typedef struct m24_kbd_t {
     /* Keyboard stuff. */
     int     wantirq;
     uint8_t command;
@@ -123,18 +124,19 @@ typedef struct {
     uint8_t out;
     uint8_t output_port;
     uint8_t id;
-    int     param,
-        param_total;
+    int     param;
+    int     param_total;
     uint8_t params[16];
     uint8_t scan[7];
 
     /* Mouse stuff. */
-    int        mouse_mode;
-    int        x, y, b;
+    int        mouse_input_mode;
+    int        b;
+
     pc_timer_t send_delay_timer;
 } m24_kbd_t;
 
-typedef struct {
+typedef struct m19_vid_t {
     ogc_t       ogc;
     colorplus_t colorplus;
     int         mode;
@@ -439,7 +441,7 @@ mm58274_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 mm58274_read(uint16_t addr, void *priv)
 {
-    nvr_t *nvr = (nvr_t *) priv;
+    const nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
 
@@ -548,7 +550,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                 if (m24_kbd->param == m24_kbd->param_total) {
                     switch (m24_kbd->command) {
                         case 0x11:
-                            m24_kbd->mouse_mode = 0;
+                            m24_kbd->mouse_input_mode = 0;
                             m24_kbd->scan[0]    = m24_kbd->params[0];
                             m24_kbd->scan[1]    = m24_kbd->params[1];
                             m24_kbd->scan[2]    = m24_kbd->params[2];
@@ -559,7 +561,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         case 0x12:
-                            m24_kbd->mouse_mode = 1;
+                            m24_kbd->mouse_input_mode = 1;
                             m24_kbd->scan[0]    = m24_kbd->params[0];
                             m24_kbd->scan[1]    = m24_kbd->params[1];
                             m24_kbd->scan[2]    = m24_kbd->params[2];
@@ -635,6 +637,10 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 
             if (val == 0x02)
                 m24_kbd_adddata(0x00);
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -714,7 +720,7 @@ m24_kbd_reset(void *priv)
     m24_kbd->wantirq = 0;
     keyboard_scan    = 1;
     m24_kbd->param = m24_kbd->param_total = 0;
-    m24_kbd->mouse_mode                   = 0;
+    m24_kbd->mouse_input_mode                   = 0;
     m24_kbd->scan[0]                      = 0x1c;
     m24_kbd->scan[1]                      = 0x53;
     m24_kbd->scan[2]                      = 0x01;
@@ -725,12 +731,14 @@ m24_kbd_reset(void *priv)
 }
 
 static int
-ms_poll(int x, int y, int z, int b, void *priv)
+ms_poll(void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
-
-    m24_kbd->x += x;
-    m24_kbd->y += y;
+    int delta_x;
+    int delta_y;
+    int o_x;
+    int o_y;
+    int b = mouse_get_buttons_ex();
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
         return 0xff;
@@ -759,57 +767,49 @@ ms_poll(int x, int y, int z, int b, void *priv)
         m24_kbd_adddata(m24_kbd->scan[1] | 0x80);
     m24_kbd->b = (m24_kbd->b & ~4) | (b & 4);
 
-    if (m24_kbd->mouse_mode) {
+    if (m24_kbd->mouse_input_mode) {
         if (((key_queue_end - key_queue_start) & 0xf) > 12)
             return 0xff;
 
-        if (!m24_kbd->x && !m24_kbd->y)
+        if (!mouse_moved())
             return 0xff;
 
-        m24_kbd->y = -m24_kbd->y;
+        mouse_subtract_coords(&delta_x, &delta_y, &o_x, &o_y, -127, 127, 1, 0);
 
-        if (m24_kbd->x < -127)
-            m24_kbd->x = -127;
-        if (m24_kbd->x > 127)
-            m24_kbd->x = 127;
-        if (m24_kbd->x < -127)
-            m24_kbd->x = 0x80 | ((-m24_kbd->x) & 0x7f);
+        if ((delta_x == -127) && o_x)
+            delta_x = 0x80 | ((-delta_x) & 0x7f);
 
-        if (m24_kbd->y < -127)
-            m24_kbd->y = -127;
-        if (m24_kbd->y > 127)
-            m24_kbd->y = 127;
-        if (m24_kbd->y < -127)
-            m24_kbd->y = 0x80 | ((-m24_kbd->y) & 0x7f);
+        if ((delta_y == -127) && o_y)
+            delta_y = 0x80 | ((-delta_y) & 0x7f);
 
         m24_kbd_adddata(0xfe);
-        m24_kbd_adddata(m24_kbd->x);
-        m24_kbd_adddata(m24_kbd->y);
-
-        m24_kbd->x = m24_kbd->y = 0;
+        m24_kbd_adddata(delta_x);
+        m24_kbd_adddata(delta_y);
     } else {
-        while (m24_kbd->x < -4) {
+        mouse_subtract_coords(&delta_x, &delta_y, &o_x, &o_y, -127, 127, 1, 0);
+
+        while (delta_x < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->x += 4;
+            delta_x += 4;
             m24_kbd_adddata(m24_kbd->scan[3]);
         }
-        while (m24_kbd->x > 4) {
+        while (delta_x > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->x -= 4;
+            delta_x -= 4;
             m24_kbd_adddata(m24_kbd->scan[4]);
         }
-        while (m24_kbd->y < -4) {
+        while (delta_y < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->y += 4;
+            delta_y += 4;
             m24_kbd_adddata(m24_kbd->scan[5]);
         }
-        while (m24_kbd->y > 4) {
+        while (delta_y > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->y -= 4;
+            delta_y -= 4;
             m24_kbd_adddata(m24_kbd->scan[6]);
         }
     }
@@ -1492,15 +1492,19 @@ m19_vid_init(m19_vid_t *vid)
 {
     device_context(&m19_vid_device);
 
-    /* int display_type; */
+#if 0
+    int display_type;
+#endif
     vid->mode = OLIVETTI_OGC_MODE;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m19_vid);
 
-    /* display_type = device_get_config_int("display_type"); */
+#if 0
+    display_type = device_get_config_int("display_type");
+#endif
 
     /* OGC emulation part begin */
-    loadfont_ex("roms/machines/m19/BIOS.BIN", 1, 90);
+    loadfont("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN", 7);
     /* composite is not working yet */
     vid->ogc.cga.composite    = 0; // (display_type != CGA_RGB);
     vid->ogc.cga.revision     = device_get_config_int("composite_type");
@@ -1508,7 +1512,9 @@ m19_vid_init(m19_vid_t *vid)
 
     vid->ogc.cga.vram = malloc(0x8000);
 
-    /* cga_comp_init(vid->ogc.cga.revision); */
+#if 0
+    cga_comp_init(vid->ogc.cga.revision);
+#endif
 
     vid->ogc.cga.rgb_type = device_get_config_int("rgb_type");
     cga_palette           = (vid->ogc.cga.rgb_type << 1);
@@ -1525,11 +1531,15 @@ m19_vid_init(m19_vid_t *vid)
     /* Plantronics emulation part begin*/
     /* composite is not working yet */
     vid->colorplus.cga.composite = 0; //(display_type != CGA_RGB);
-    /* vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled"); */
+#if 0
+    vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled");
+#endif
 
     vid->colorplus.cga.vram = malloc(0x8000);
 
-    /* vid->colorplus.cga.cgamode = 0x1; */
+#if 0
+    vid->colorplus.cga.cgamode = 0x1;
+#endif
     /* Plantronics emulation part end*/
 
     timer_add(&vid->ogc.cga.timer, ogc_poll, &vid->ogc, 1);
@@ -1602,7 +1612,7 @@ const device_t m19_vid_device = {
 };
 
 static uint8_t
-m24_read(uint16_t port, void *priv)
+m24_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret       = 0x00;
     int     fdd_count = 0;
@@ -1706,13 +1716,16 @@ m24_read(uint16_t port, void *priv)
             /* 1 = 720 kB (3.5"), 0 = 360 kB (5.25") */
             ret |= (fdd_doublestep_40(0) || fdd_doublestep_40(1)) ? 0x1 : 0x0;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static uint8_t
-m240_read(uint16_t port, void *priv)
+m240_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret = 0x00;
     int     fdd_count = 0;
@@ -1760,6 +1773,9 @@ m240_read(uint16_t port, void *priv)
             ret = (fdd_is_hd(0) || fdd_is_hd(1)) ? 0x80 : 0x00;
             ret |= fdd_doublestep_40(1) ? 0x40 : 0x00;
             ret |= fdd_doublestep_40(0) ? 0x20 : 0x00;
+            break;
+
+        default:
             break;
     }
 
@@ -1900,6 +1916,7 @@ machine_xt_m19_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/m19/BIOS.BIN",
                            0x000fc000, 16384, 0);
+    ret &= rom_present("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN");
 
     if (bios_only || !ret)
         return ret;
@@ -1926,7 +1943,7 @@ machine_xt_m19_init(const machine_t *model)
 
     device_add(&keyboard_xt_olivetti_device);
 
-    pit_set_clock(14318184.0);
+    pit_set_clock((uint32_t) 14318184.0);
 
     return ret;
 }

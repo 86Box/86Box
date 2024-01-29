@@ -150,7 +150,7 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lParam))
 {
     HWND h;
     int  c;
@@ -247,7 +247,7 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                                 joystick_state[joystick_nr].button_mapping[c] = SendMessage(h, CB_GETCURSEL, 0, 0);
                                 id += 2;
                             }
-                            for (c = 0; c < joystick_get_button_count(joystick_config_type); c++) {
+                            for (c = 0; c < joystick_get_pov_count(joystick_config_type); c++) {
                                 h                                             = GetDlgItem(hdlg, id);
                                 joystick_state[joystick_nr].pov_mapping[c][0] = get_pov(hdlg, id);
                                 id += 2;

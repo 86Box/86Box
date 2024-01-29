@@ -30,38 +30,60 @@
 #include <86box/snd_ac97.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
-    uint8_t            id, always_run;
+typedef struct ac97_via_sgd_t {
+    uint8_t            id;
+    uint8_t            always_run;
     struct _ac97_via_ *dev;
 
-    uint32_t entry_ptr, sample_ptr, fifo_pos, fifo_end;
+    uint32_t entry_ptr;
+    uint32_t sample_ptr;
+    uint32_t fifo_pos;
+    uint32_t fifo_end;
     int32_t  sample_count;
-    uint8_t  entry_flags, fifo[32], restart;
+    uint8_t  entry_flags;
+    uint8_t  fifo[32];
+    uint8_t  restart;
 
-    int16_t  out_l, out_r;
-    int      vol_l, vol_r, pos;
+    int16_t  out_l;
+    int16_t  out_r;
+    int      vol_l;
+    int      vol_r;
+    int      pos;
     int32_t  buffer[SOUNDBUFLEN * 2];
     uint64_t timer_latch;
 
-    pc_timer_t dma_timer, poll_timer;
+    pc_timer_t dma_timer;
+    pc_timer_t poll_timer;
 } ac97_via_sgd_t;
 
 typedef struct _ac97_via_ {
-    uint16_t audio_sgd_base, audio_codec_base, modem_sgd_base, modem_codec_base;
-    uint8_t  sgd_regs[256], pcm_enabled : 1, fm_enabled : 1, vsr_enabled : 1;
+    uint16_t audio_sgd_base;
+    uint16_t audio_codec_base;
+    uint16_t modem_sgd_base;
+    uint16_t modem_codec_base;
+    uint8_t  sgd_regs[256];
+    uint8_t  pcm_enabled : 1;
+    uint8_t  fm_enabled : 1;
+    uint8_t  vsr_enabled : 1;
     struct {
         union {
             uint8_t regs_codec[2][128];
             uint8_t regs_linear[256];
         };
     } codec_shadow[2];
-    int slot, irq_pin;
+    uint8_t pci_slot;
+    uint8_t irq_state;
+    int irq_pin;
 
     ac97_codec_t  *codec[2][2];
     ac97_via_sgd_t sgd[6];
 
-    int master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
+    int master_vol_l;
+    int master_vol_r;
+    int cd_vol_l;
+    int cd_vol_r;
 } ac97_via_t;
 
 #ifdef ENABLE_AC97_VIA_LOG
@@ -94,15 +116,15 @@ ac97_via_set_slot(void *priv, int slot, int irq_pin)
 
     ac97_via_log("AC97 VIA: set_slot(%d, %d)\n", slot, irq_pin);
 
-    dev->slot    = slot;
-    dev->irq_pin = irq_pin;
+    dev->pci_slot    = slot;
+    dev->irq_pin     = irq_pin;
 }
 
 uint8_t
 ac97_via_read_status(void *priv, uint8_t modem)
 {
-    ac97_via_t *dev = (ac97_via_t *) priv;
-    uint8_t     ret = 0x00;
+    const ac97_via_t *dev = (ac97_via_t *) priv;
+    uint8_t           ret = 0x00;
 
     /* Flag each codec as ready if present. */
     for (uint8_t i = 0; i <= 1; i++) {
@@ -161,12 +183,12 @@ ac97_via_update_irqs(ac97_via_t *dev)
         /* Stop immediately if any flag is set. Doing it this way optimizes
            rising edges for the playback SGD (0 - first to be checked). */
         if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
             return;
         }
     }
 
-    pci_clear_irq(dev->slot, dev->irq_pin);
+    pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
 }
 
 static void
@@ -188,7 +210,7 @@ ac97_via_update_codec(ac97_via_t *dev)
 uint8_t
 ac97_via_sgd_read(uint16_t addr, void *priv)
 {
-    ac97_via_t *dev = (ac97_via_t *) priv;
+    const ac97_via_t *dev = (ac97_via_t *) priv;
 #ifdef ENABLE_AC97_VIA_LOG
     uint8_t modem = (addr & 0xff00) == dev->modem_sgd_base;
 #endif
@@ -350,6 +372,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
             case 0x8 ... 0xf:
                 /* Read-only registers. */
                 return;
+
+            default:
+                break;
         }
     } else {
         /* Process regular registers. */
@@ -404,6 +429,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                 val = dev->sgd_regs[addr] | (val & 0xc0);
 #endif
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -441,10 +469,11 @@ ac97_via_remap_modem_sgd(void *priv, uint16_t new_io_base, uint8_t enable)
 uint8_t
 ac97_via_codec_read(uint16_t addr, void *priv)
 {
-    ac97_via_t *dev   = (ac97_via_t *) priv;
-    uint8_t     modem = (addr & 0xff00) == dev->modem_codec_base;
+    const ac97_via_t *dev   = (ac97_via_t *) priv;
+    uint8_t           modem = (addr & 0xff00) == dev->modem_codec_base;
+    uint8_t           ret = 0xff;
+
     addr &= 0xff;
-    uint8_t ret = 0xff;
 
     ret = dev->codec_shadow[modem].regs_linear[addr];
 
@@ -676,6 +705,9 @@ ac97_via_poll_stereo(void *priv)
                 return;
             }
             break;
+
+        default:
+            break;
     }
 
     /* Feed silence if the FIFO is empty. */
@@ -728,9 +760,9 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 ac97_via_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    ac97_via_t *dev = (ac97_via_t *) priv;
-    double      c;
-    double      volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
+    const ac97_via_t *dev = (ac97_via_t *) priv;
+    double            c;
+    double            volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
@@ -753,7 +785,7 @@ ac97_via_speed_changed(void *priv)
 }
 
 static void *
-ac97_via_init(const device_t *info)
+ac97_via_init(UNUSED(const device_t *info))
 {
     ac97_via_t *dev = malloc(sizeof(ac97_via_t));
     memset(dev, 0, sizeof(ac97_via_t));

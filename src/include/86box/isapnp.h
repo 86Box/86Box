@@ -54,17 +54,21 @@ typedef struct isapnp_device_config_t {
     } dma[2];
 } isapnp_device_config_t;
 
-void *isapnp_add_card(uint8_t *rom, uint16_t rom_size,
-                      void (*config_changed)(uint8_t ld, isapnp_device_config_t *config, void *priv),
-                      void (*csn_changed)(uint8_t csn, void *priv),
-                      uint8_t (*read_vendor_reg)(uint8_t ld, uint8_t reg, void *priv),
-                      void (*write_vendor_reg)(uint8_t ld, uint8_t reg, uint8_t val, void *priv),
-                      void *priv);
-void  isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size);
-void  isapnp_enable_card(void *priv, uint8_t enable);
-void  isapnp_set_csn(void *priv, uint8_t csn);
-void  isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t *config);
-void  isapnp_reset_card(void *priv);
-void  isapnp_reset_device(void *priv, uint8_t ld);
+extern const uint8_t isapnp_init_key[32];
+
+void   *isapnp_add_card(uint8_t *rom, uint16_t rom_size,
+                        void (*config_changed)(uint8_t ld, isapnp_device_config_t *config, void *priv),
+                        void (*csn_changed)(uint8_t csn, void *priv),
+                        uint8_t (*read_vendor_reg)(uint8_t ld, uint8_t reg, void *priv),
+                        void (*write_vendor_reg)(uint8_t ld, uint8_t reg, uint8_t val, void *priv),
+                        void *priv);
+void    isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size);
+void    isapnp_enable_card(void *priv, uint8_t enable);
+void    isapnp_set_csn(void *priv, uint8_t csn);
+uint8_t isapnp_read_reg(void *priv, uint8_t ldn, uint8_t reg);
+void    isapnp_write_reg(void *priv, uint8_t ldn, uint8_t reg, uint8_t val);
+void    isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t *config);
+void    isapnp_reset_card(void *priv);
+void    isapnp_reset_device(void *priv, uint8_t ld);
 
 #endif /*EMU_ISAPNP_H*/

@@ -27,6 +27,7 @@
 #include <86box/timer.h>
 #include <86box/machine.h>
 #include <86box/nvr.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "cpu.h"
 #include <86box/i2c.h>
@@ -105,13 +106,13 @@ lm78_nvram(lm78_t *dev, uint8_t save)
     char  *nvr_path = (char *) malloc(l);
     sprintf(nvr_path, "%s_as99127f.nvr", machine_get_internal_name_ex(machine));
 
-    FILE *f = nvr_fopen(nvr_path, save ? "wb" : "rb");
-    if (f) {
+    FILE *fp = nvr_fopen(nvr_path, save ? "wb" : "rb");
+    if (fp) {
         if (save)
-            fwrite(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
+            fwrite(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, fp);
         else
-            (void) !fread(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
-        fclose(f);
+            (void) !fread(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, fp);
+        fclose(fp);
     }
 
     free(nvr_path);
@@ -136,7 +137,7 @@ lm78_nvram_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
     switch (dev->as99127f.nvram_i2c_state) {
         case 0:
             dev->as99127f.nvram_i2c_state = 1;
-            /* fall-through */
+            fallthrough;
 
         case 1:
             ret = dev->as99127f.regs[0][0x0b] & 0x3f;
@@ -421,8 +422,8 @@ lm78_i2c_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 uint8_t
 lm78_as99127f_read(void *priv, uint8_t reg)
 {
-    lm78_t *dev = (lm78_t *) priv;
-    uint8_t ret = dev->as99127f.regs[1][reg & 0x7f];
+    const lm78_t *dev = (lm78_t *) priv;
+    uint8_t       ret = dev->as99127f.regs[1][reg & 0x7f];
 
     lm78_log("LM78: read(%02X, AS99127F) = %02X\n", reg, ret);
 

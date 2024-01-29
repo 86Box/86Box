@@ -11,18 +11,28 @@ typedef struct mda_t {
     uint8_t crtc[32];
     int     crtcreg;
 
-    uint8_t ctrl, stat;
+    uint8_t ctrl;
+    uint8_t stat;
 
-    uint64_t   dispontime, dispofftime;
+    uint64_t   dispontime;
+    uint64_t   dispofftime;
     pc_timer_t timer;
 
-    int firstline, lastline;
+    int firstline;
+    int lastline;
 
-    int      linepos, displine;
-    int      vc, sc;
-    uint16_t ma, maback;
-    int      con, coff, cursoron;
-    int      dispon, blink;
+    int      fontbase;
+    int      linepos;
+    int      displine;
+    int      vc;
+    int      sc;
+    uint16_t ma;
+    uint16_t maback;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      dispon;
+    int      blink;
     int      vsynctime;
     int      vadj;
     int      monitor_index;
@@ -43,12 +53,12 @@ typedef struct mda_t {
 
 void    mda_init(mda_t *mda);
 void    mda_setcol(int chr, int blink, int fg, uint8_t cga_ink);
-void    mda_out(uint16_t addr, uint8_t val, void *p);
-uint8_t mda_in(uint16_t addr, void *p);
-void    mda_write(uint32_t addr, uint8_t val, void *p);
-uint8_t mda_read(uint32_t addr, void *p);
+void    mda_out(uint16_t addr, uint8_t val, void *priv);
+uint8_t mda_in(uint16_t addr, void *priv);
+void    mda_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t mda_read(uint32_t addr, void *priv);
 void    mda_recalctimings(mda_t *mda);
-void    mda_poll(void *p);
+void    mda_poll(void *priv);
 
 #ifdef EMU_DEVICE_H
 extern const device_t mda_device;

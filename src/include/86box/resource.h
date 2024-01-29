@@ -67,7 +67,7 @@
 #define IDT_CPU_SPEED    1710 /* CPU speed: */
 #define IDT_FPU          1711 /* FPU: */
 #define IDT_WAIT_STATES  1712 /* Wait states: */
-#define IDT_MB           1713 /* MB	== IDC_TEXT_MB */
+#define IDT_MB           1713 /* MB == IDC_TEXT_MB */
 #define IDT_MEMORY       1714 /* Memory: */
 
 /* DLG_CFG_VIDEO */
@@ -79,10 +79,10 @@
 #define IDT_JOYSTICK 1718 /* Joystick: */
 
 /* DLG_CFG_SOUND */
-#define IDT_SOUND1   1719 /* Sound card 1: */
-#define IDT_SOUND2   1720 /* Sound card 2: */
-#define IDT_SOUND3   1721 /* Sound card 3: */
-#define IDT_SOUND4   1722 /* Sound card 4: */
+#define IDT_SOUND1   1719 /* Sound card #1: */
+#define IDT_SOUND2   1720 /* Sound card #2: */
+#define IDT_SOUND3   1721 /* Sound card #3: */
+#define IDT_SOUND4   1722 /* Sound card #4: */
 #define IDT_MIDI_OUT 1723 /* MIDI Out Device: */
 #define IDT_MIDI_IN  1724 /* MIDI In Device: */
 

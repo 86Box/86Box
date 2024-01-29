@@ -30,32 +30,32 @@
 #define NVR_SIZE      256   /* size of NVR */
 
 /* EEPROM map and bit definitions. */
-#define EE0_HOSTID  0x07 /* EE(0) [2:0]				*/
-#define EE0_ALTFLOP 0x80 /* EE(0) [7] FDC at 370h		*/
-#define EE1_IRQCH   0x07 /* EE(1) [3:0]				*/
-#define EE1_DMACH   0x70 /* EE(1) [7:4]				*/
-#define EE2_RMVOK   0x01 /* EE(2) [0] Support removable disks	*/
-#define EE2_HABIOS  0x02 /* EE(2) [1] HA Bios Space Reserved	*/
-#define EE2_INT19   0x04 /* EE(2) [2] HA Bios Controls INT19	*/
-#define EE2_DYNSCAN 0x08 /* EE(2) [3] Dynamically scan bus	*/
-#define EE2_TWODRV  0x10 /* EE(2) [4] Allow more than 2 drives	*/
-#define EE2_SEEKRET 0x20 /* EE(2) [5] Immediate return on seek	*/
-#define EE2_EXT1G   0x80 /* EE(2) [7] Extended Translation >1GB	*/
-#define EE3_SPEED   0x00 /* EE(3) [7:0] DMA Speed		*/
+#define EE0_HOSTID  0x07 /* EE(0) [2:0]                         */
+#define EE0_ALTFLOP 0x80 /* EE(0) [7] FDC at 370h               */
+#define EE1_IRQCH   0x07 /* EE(1) [3:0]                         */
+#define EE1_DMACH   0x70 /* EE(1) [7:4]                         */
+#define EE2_RMVOK   0x01 /* EE(2) [0] Support removable disks   */
+#define EE2_HABIOS  0x02 /* EE(2) [1] HA Bios Space Reserved    */
+#define EE2_INT19   0x04 /* EE(2) [2] HA Bios Controls INT19    */
+#define EE2_DYNSCAN 0x08 /* EE(2) [3] Dynamically scan bus      */
+#define EE2_TWODRV  0x10 /* EE(2) [4] Allow more than 2 drives  */
+#define EE2_SEEKRET 0x20 /* EE(2) [5] Immediate return on seek  */
+#define EE2_EXT1G   0x80 /* EE(2) [7] Extended Translation >1GB */
+#define EE3_SPEED   0x00 /* EE(3) [7:0] DMA Speed               */
 #define SPEED_33    0xFF
 #define SPEED_50    0x00
 #define SPEED_56    0x04
 #define SPEED_67    0x01
 #define SPEED_80    0x02
 #define SPEED_10    0x03
-#define EE4_FLOPTOK 0x80 /* EE(4) [7] Support Flopticals		*/
-#define EE6_PARITY  0x01 /* EE(6) [0] parity check enable	*/
-#define EE6_TERM    0x02 /* EE(6) [1] host term enable		*/
-#define EE6_RSTBUS  0x04 /* EE(6) [2] reset SCSI bus on boot	*/
-#define EEE_SYNC    0x01 /* EE(E) [0] Enable Sync Negotiation	*/
-#define EEE_DISCON  0x02 /* EE(E) [1] Enable Disconnection	*/
-#define EEE_FAST    0x04 /* EE(E) [2] Enable FAST SCSI		*/
-#define EEE_START   0x08 /* EE(E) [3] Enable Start Unit		*/
+#define EE4_FLOPTOK 0x80 /* EE(4) [7] Support Flopticals        */
+#define EE6_PARITY  0x01 /* EE(6) [0] parity check enable       */
+#define EE6_TERM    0x02 /* EE(6) [1] host term enable          */
+#define EE6_RSTBUS  0x04 /* EE(6) [2] reset SCSI bus on boot    */
+#define EEE_SYNC    0x01 /* EE(E) [0] Enable Sync Negotiation   */
+#define EEE_DISCON  0x02 /* EE(E) [1] Enable Disconnection      */
+#define EEE_FAST    0x04 /* EE(E) [2] Enable FAST SCSI          */
+#define EEE_START   0x08 /* EE(E) [3] Enable Start Unit         */
 
 /*
  * Host Adapter I/O ports.
@@ -166,11 +166,11 @@
 #define FOURTEEN_BYTES        0x00 /* Request Sense Buffer size */
 #define NO_AUTO_REQUEST_SENSE 0x01 /* No Request Sense Buffer */
 
-/*    Bytes 4, 5 and 6    Data Length		 - Data transfer byte count */
-/*    Bytes 7, 8 and 9    Data Pointer		 - SGD List or Data Buffer */
-/*    Bytes 10, 11 and 12 Link Pointer		 - Next CCB in Linked List */
-/*    Byte 13   Command Link ID			 - TBD (I don't know yet) */
-/*    Byte 14   Host Status			 - Host Adapter status */
+/*    Bytes 4, 5 and 6    Data Length  - Data transfer byte count */
+/*    Bytes 7, 8 and 9    Data Pointer - SGD List or Data Buffer */
+/*    Bytes 10, 11 and 12 Link Pointer - Next CCB in Linked List */
+/*    Byte 13   Command Link ID        - TBD (I don't know yet) */
+/*    Byte 14   Host Status            - Host Adapter status */
 #define CCB_COMPLETE            0x00 /* CCB completed without error */
 #define CCB_LINKED_COMPLETE     0x0A /* Linked command completed */
 #define CCB_LINKED_COMPLETE_INT 0x0B /* Linked complete with intr */
@@ -256,11 +256,11 @@ typedef struct Mailbox32_t {
       Bytes 18 through 18+n-1, where n=size of CDB  Command Descriptor Block */
 
 typedef struct CCB32_t {
-    uint8_t Opcode;
-    uint8_t Reserved1 : 3,
-        ControlByte   : 2,
-        TagQueued     : 1,
-        QueueTag      : 2;
+    uint8_t  Opcode;
+    uint8_t  Reserved1   : 3;
+    uint8_t  ControlByte : 2;
+    uint8_t  TagQueued   : 1;
+    uint8_t  QueueTag    : 2;
     uint8_t  CdbLength;
     uint8_t  RequestSenseLength;
     uint32_t DataLength;
@@ -269,9 +269,9 @@ typedef struct CCB32_t {
     uint8_t  HostStatus;
     uint8_t  TargetStatus;
     uint8_t  Id;
-    uint8_t  Lun        : 5,
-        LegacyTagEnable : 1,
-        LegacyQueueTag  : 2;
+    uint8_t  Lun             : 5;
+    uint8_t  LegacyTagEnable : 1;
+    uint8_t  LegacyQueueTag   : 2;
     uint8_t  Cdb[12];
     uint8_t  Reserved3[6];
     uint32_t SensePointer;
@@ -296,9 +296,9 @@ typedef struct CCB_t {
 
 typedef struct CCBC_t {
     uint8_t Opcode;
-    uint8_t Pad1    : 3,
-        ControlByte : 2,
-        Pad2        : 3;
+    uint8_t Pad1        : 3;
+    uint8_t ControlByte : 2;
+    uint8_t Pad2        : 3;
     uint8_t CdbLength;
     uint8_t RequestSenseLength;
     uint8_t Pad3[9];
@@ -311,8 +311,8 @@ typedef struct CCBC_t {
 
 typedef union CCBU_t {
     CCB32 new;
-    CCB  old;
-    CCBC common;
+    CCB   old;
+    CCBC  common;
 } CCBU;
 
 typedef struct {
@@ -329,9 +329,9 @@ typedef struct {
 
 typedef struct BIOSCMD_t {
     uint8_t command;
-    uint8_t lun  : 3,
-        reserved : 2,
-        id       : 3;
+    uint8_t lun      : 3;
+    uint8_t reserved : 2;
+    uint8_t id       : 3;
     union {
         struct chs_t {
             uint16_t cyl;
@@ -345,7 +345,7 @@ typedef struct BIOSCMD_t {
             uint8_t lba3; /* LSB */
         } lba;
     } u;
-    uint8_t secount;
+    uint8_t   secount;
     addr24_t  dma_address;
 } BIOSCMD;
 
@@ -366,6 +366,7 @@ typedef struct SGE_t {
 #define X54X_INT_GEOM_WRITABLE 8
 #define X54X_MBX_24BIT         16
 #define X54X_ISAPNP            32
+#define X54X_HAS_SIGNATURE     64
 
 typedef struct x54x_t {
     /* 32 bytes */
@@ -379,7 +380,7 @@ typedef struct x54x_t {
     int8_t DmaChannel;
     int8_t HostID;
 
-    uint8_t callback_phase : 4;
+    uint8_t callback_phase     : 4;
     uint8_t callback_sub_phase : 4;
     uint8_t scsi_cmd_phase;
     uint8_t bus;
@@ -396,11 +397,15 @@ typedef struct x54x_t {
     uint8_t setup_info_len;
     uint8_t max_id;
     uint8_t pci_slot;
+    uint8_t irq_state;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
     uint8_t temp_cdb[12];
 
     /* for multi-threading, keep these volatile */
     volatile uint8_t Status;
-    volatile uint8_t Interrupt; 
+    volatile uint8_t Interrupt;
     volatile uint8_t MailboxIsBIOS;
     volatile uint8_t ToRaise;
     volatile uint8_t flags;
@@ -437,7 +442,7 @@ typedef struct x54x_t {
     volatile int PendingInterrupt;
     volatile int Lock;
     volatile int target_data_len;
-    volatile int pad0;
+    volatile int pad2;
 
     uint32_t Base;
     uint32_t fdc_address;
@@ -478,31 +483,31 @@ typedef struct x54x_t {
     void *ven_data;
 
     /* Pointer to a function that performs vendor-specific operation during the timer callback */
-    void (*ven_callback)(void *p);
+    void (*ven_callback)(void *priv);
     /* Pointer to a function that executes the second parameter phase of the vendor-specific command */
-    void (*ven_cmd_phase1)(void *p);
+    void (*ven_cmd_phase1)(void *priv);
     /* Pointer to a function that gets the host adapter ID in case it has to be read from a non-standard location */
-    uint8_t (*ven_get_host_id)(void *p);
+    uint8_t (*ven_get_host_id)(void *priv);
     /* Pointer to a function that updates the IRQ in the vendor-specific space */
-    uint8_t (*ven_get_irq)(void *p);
+    uint8_t (*ven_get_irq)(void *priv);
     /* Pointer to a function that updates the DMA channel in the vendor-specific space */
-    uint8_t (*ven_get_dma)(void *p);
+    uint8_t (*ven_get_dma)(void *priv);
     /* Pointer to a function that returns whether command is fast */
-    uint8_t (*ven_cmd_is_fast)(void *p);
+    uint8_t (*ven_cmd_is_fast)(void *priv);
     /* Pointer to a function that executes vendor-specific fast path commands */
-    uint8_t (*ven_fast_cmds)(void *p, uint8_t cmd);
+    uint8_t (*ven_fast_cmds)(void *priv, uint8_t cmd);
     /* Pointer to a function that gets the parameter length for vendor-specific commands */
-    uint8_t (*get_ven_param_len)(void *p);
+    uint8_t (*get_ven_param_len)(void *priv);
     /* Pointer to a function that executes vendor-specific commands and returns whether or not to suppress the IRQ */
-    uint8_t (*ven_cmds)(void *p);
+    uint8_t (*ven_cmds)(void *priv);
     /* Pointer to a function that fills in the vendor-specific setup data */
-    void (*get_ven_data)(void *p);
+    void (*get_ven_data)(void *priv);
     /* Pointer to a function that determines if the mode is aggressive */
-    uint8_t (*is_aggressive_mode)(void *p);
+    uint8_t (*is_aggressive_mode)(void *priv);
     /* Pointer to a function that returns interrupt type (0 = edge, 1 = level) */
-    uint8_t (*interrupt_type)(void *p);
+    uint8_t (*interrupt_type)(void *priv);
     /* Pointer to a function that resets vendor-specific data */
-    void (*ven_reset)(void *p);
+    void (*ven_reset)(void *priv);
 
     rom_t bios;     /* BIOS memory descriptor */
     rom_t uppersck; /* BIOS memory descriptor */

@@ -32,13 +32,13 @@ public:
     void  blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
     void  setSendKeyboardInput(bool enabled);
+    void  checkFullscreenHotkey();
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
     void paint(const QImage &image);
     void resizeContents(int w, int h);
     void resizeContentsMonitor(int w, int h, int monitor_index);
-    void pollMouse();
     void statusBarMessage(const QString &msg);
     void updateStatusBarPanes();
     void updateStatusBarActivity(int tag, bool active);
@@ -69,6 +69,7 @@ private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
+    void on_actionAuto_pause_triggered();
     void on_actionPause_triggered();
     void on_actionCtrl_Alt_Del_triggered();
     void on_actionCtrl_Alt_Esc_triggered();
@@ -90,6 +91,7 @@ private slots:
     void on_actionLinear_triggered();
     void on_actionNearest_triggered();
     void on_actionFullScreen_int_triggered();
+    void on_actionFullScreen_int43_triggered();
     void on_actionFullScreen_keepRatio_triggered();
     void on_actionFullScreen_43_triggered();
     void on_actionFullScreen_stretch_triggered();
@@ -142,6 +144,7 @@ private slots:
     void on_actionCursor_Puck_triggered();
 
     void on_actionACPI_Shutdown_triggered();
+    void on_actionShow_status_icons_in_fullscreen_triggered();
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();

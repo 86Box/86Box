@@ -340,7 +340,6 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
 
     # Install libraries that are loaded at runtime and not linked
     install_bundle_library("${GHOSTSCRIPT_LIB}" "libgs.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
-    install_bundle_library("${FLUIDSYNTH_LIB}" "libfluidsynth.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
     install_bundle_library("${VDE_LIB}" "libvdeplug.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
     install_bundle_library("${MOLTENVK_LIB}" "libVulkan.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
 
@@ -372,6 +371,8 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
 endif()
 
 if (UNIX AND NOT APPLE AND NOT HAIKU)
+    target_sources(ui PRIVATE x11_util.c)
+
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11 X11::Xi)
     target_sources(ui PRIVATE evdev_keyboard.cpp xinput2_mouse.cpp)

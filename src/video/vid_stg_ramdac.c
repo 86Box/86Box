@@ -27,6 +27,7 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_unused.h>
 
 typedef struct stg_ramdac_t {
     int     magic_count, index;
@@ -45,10 +46,10 @@ stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
 {
     if (ramdac->command & 0x8) {
         switch (ramdac->regs[3]) {
+            default:
             case 0:
             case 5:
             case 7:
-            default:
                 svga->bpp = 8;
                 break;
             case 1:
@@ -67,8 +68,8 @@ stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
         }
     } else {
         switch (ramdac->command >> 5) {
-            case 0:
             default:
+            case 0:
                 svga->bpp = 8;
                 break;
             case 5:
@@ -87,9 +88,9 @@ stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
 }
 
 void
-stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
+stg_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 {
-    stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
+    stg_ramdac_t *ramdac = (stg_ramdac_t *) priv;
     int           didwrite;
     int           old;
 
@@ -125,6 +126,9 @@ stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
                         stg_ramdac_set_bpp(svga, ramdac);
                     ramdac->index++;
                     break;
+
+                default:
+                    break;
             }
             didwrite            = (ramdac->magic_count >= 4);
             ramdac->magic_count = stg_state_write[ramdac->magic_count & 7];
@@ -136,15 +140,18 @@ stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
         case 0x3c9:
             ramdac->magic_count = 0;
             break;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
 }
 
 uint8_t
-stg_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+stg_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
-    stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
+    stg_ramdac_t *ramdac = (stg_ramdac_t *) priv;
     uint8_t       temp   = 0xff;
 
     switch (addr) {
@@ -185,6 +192,9 @@ stg_ramdac_in(uint16_t addr, void *p, svga_t *svga)
                     }
                     ramdac->index++;
                     break;
+
+                default:
+                    break;
             }
             ramdac->magic_count = stg_state_read[(ramdac->command & 0x10) ? 1 : 0][ramdac->magic_count & 7];
             return temp;
@@ -193,20 +203,23 @@ stg_ramdac_in(uint16_t addr, void *p, svga_t *svga)
         case 0x3c9:
             ramdac->magic_count = 0;
             break;
+
+        default:
+            break;
     }
 
     return svga_in(addr, svga);
 }
 
 float
-stg_getclock(int clock, void *p)
+stg_getclock(int clock, void *priv)
 {
-    stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
-    float         t;
-    int           m;
-    int           n;
-    int           n2;
-    uint16_t     *c;
+    stg_ramdac_t   *ramdac = (stg_ramdac_t *) priv;
+    float           t;
+    int             m;
+    int             n;
+    int             n2;
+    const uint16_t *c;
 
     if (clock == 0)
         return 25175000.0;
@@ -225,7 +238,7 @@ stg_getclock(int clock, void *p)
 }
 
 static void *
-stg_ramdac_init(const device_t *info)
+stg_ramdac_init(UNUSED(const device_t *info))
 {
     stg_ramdac_t *ramdac = (stg_ramdac_t *) malloc(sizeof(stg_ramdac_t));
     memset(ramdac, 0, sizeof(stg_ramdac_t));

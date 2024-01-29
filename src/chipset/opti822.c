@@ -43,6 +43,10 @@
 
 typedef struct opti822_t {
     uint8_t irq_convert;
+    uint8_t pci_slot;
+    uint8_t pad;
+    uint8_t pad0;
+
     uint8_t pci_regs[256];
 } opti822_t;
 
@@ -336,8 +340,8 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 opti822_pci_read(int func, int addr, void *priv)
 {
-    opti822_t *dev = (opti822_t *) priv;
-    uint8_t    ret;
+    const opti822_t *dev = (opti822_t *) priv;
+    uint8_t          ret;
 
     ret = 0xff;
 
@@ -380,9 +384,9 @@ opti822_reset(void *priv)
 }
 
 static void
-opti822_close(void *p)
+opti822_close(void *priv)
 {
-    opti822_t *dev = (opti822_t *) p;
+    opti822_t *dev = (opti822_t *) priv;
 
     free(dev);
 }
@@ -393,7 +397,7 @@ opti822_init(UNUSED(const device_t *info))
     opti822_t *dev = (opti822_t *) malloc(sizeof(opti822_t));
     memset(dev, 0, sizeof(opti822_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, opti822_pci_read, opti822_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, opti822_pci_read, opti822_pci_write, dev, &dev->pci_slot);
 
     opti822_reset(dev);
 

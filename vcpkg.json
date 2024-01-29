@@ -1,6 +1,6 @@
 {
     "name": "86box",
-    "version-string": "4.0",
+    "version-string": "4.1",
     "homepage": "https://86box.net/",
     "documentation": "https://86box.readthedocs.io/",
     "license": "GPL-2.0-or-later",
@@ -8,7 +8,9 @@
         "freetype",
         "libpng",
         "sdl2",
-        "rtmidi"
+        "rtmidi",
+        "libslirp",
+        "fluidsynth"
     ],
     "features": {
         "qt-ui": {
@@ -44,12 +46,6 @@
             "description": "Roland MT-32 emulation",
             "dependencies": [
                 "libmt32emu"
-            ]
-        },
-        "slirp": {
-            "description": "Slirp network support",
-            "dependencies": [
-                "libslirp"
             ]
         },
         "openal": {

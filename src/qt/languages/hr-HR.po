@@ -124,6 +124,9 @@ msgstr "&Kvadratni pikseli (zadrži omjer)"
 msgid "&Integer scale"
 msgstr "&Cijelobrojno skaliranje"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Cijelobrojno skaliranje"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA postavke"
 
@@ -349,6 +352,9 @@ msgstr "Tip procesora:"
 msgid "Speed:"
 msgstr "Brzina:"
 
+msgid "Frequency:"
+msgstr "Frekvencija:"
+
 msgid "FPU:"
 msgstr "FPU uređaj:"
 
@@ -382,8 +388,8 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo grafika"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a grafika"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A grafika"
 
 msgid "XGA Graphics"
 msgstr "XGA grafika"
@@ -406,16 +412,16 @@ msgstr "Palica za igru 3..."
 msgid "Joystick 4..."
 msgstr "Palica za igru 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Zvučna kartica 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Zvučna kartica 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Zvučna kartica 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Zvučna kartica 4:"
 
 msgid "MIDI Out Device:"
@@ -724,9 +730,6 @@ msgstr "Pritisnite F8+F12 za otpustanje miša"
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Pritisnite F8+F12 ili srednji gumb miša za otpuštanje miša"
 
-msgid "Unable to initialize FluidSynth"
-msgstr "Nije moguće inicijalizirati FluidSynth"
-
 msgid "Bus"
 msgstr "Bus"
 
@@ -811,9 +814,6 @@ msgstr "Napredne sektorske slike"
 msgid "Flux images"
 msgstr "Flux slike"
 
-msgid "Unable to initialize FreeType"
-msgstr "Nije moguće inicijalizirati FreeType"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "Nije moguće inicijalizirati SDL, SDL2.dll je potrebno"
 
@@ -859,8 +859,8 @@ msgstr "O programu 86Box"
 msgid "86Box v"
 msgstr "86Box verzija "
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Emulator starih računala\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i drugi.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
 
 msgid "Hardware not available"
 msgstr "Hardver nije dostupan"
@@ -877,15 +877,6 @@ msgstr "Provjerite je li libpcap instaliran i jeste li na mreži, kompadibilnoj 
 msgid "Invalid configuration"
 msgstr "Nevažeća konfiguracija"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr " je potrebno za emuliranje ESC/P pisača."
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -894,15 +885,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " je potrebno za automatsku konverziju PostScript datoteke u PDF datoteke.\n\nSvi dokumenti poslani na generički PostScript pisač bit će spremljeni kao PostScript (.ps) datoteke."
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr " je potrebno za FluidSynth MIDI izlaz."
 
 msgid "Entering fullscreen mode"
 msgstr "Ulazim u cijelozaslonski način"
@@ -1220,8 +1202,28 @@ msgid "(System Default)"
 msgstr "(Zadana postavka operativnog sustava)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Neuspješno pokretanje mrežnog upravljačkog programa"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Konfiguracija mreže bit će prebačena na nulti upravljački program"
 
+msgid "Mouse sensitivity:"
+msgstr "Osjetljivost miša:"
+
+msgid "Select media images from program working directory"
+msgstr "Medijske slike su odabrane iz radnog direktorija programa"
+
+msgid "PIT mode:"
+msgstr "PIT način:"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Slow"
+msgstr "Spori"
+
+msgid "Fast"
+msgstr "Brzi"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatska pauza pri gubitku fokusa"

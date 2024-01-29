@@ -143,9 +143,9 @@ opFPU(il, uint32_t, 16, t, geteal, (double) (int32_t) t, _i32)
 #ifndef FPU_8087
     opFPU(il, uint32_t, 32, t, geteal, (double) (int32_t) t, _i32)
 #endif
-// clang-format on
+    // clang-format on
 
-static int opFADD(uint32_t fetchdat)
+    static int opFADD(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -242,6 +242,7 @@ opFUCOMPP(uint32_t fetchdat)
     return 0;
 }
 
+#    ifndef OPS_286_386
 static int
 opFCOMI(uint32_t fetchdat)
 {
@@ -273,6 +274,7 @@ opFCOMIP(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fcom) : (x87_concurrency.fcom * cpu_multi));
     return 0;
 }
+#    endif
 #endif
 
 static int
@@ -476,6 +478,7 @@ opFUCOMP(uint32_t fetchdat)
     return 0;
 }
 
+#    ifndef OPS_286_386
 static int
 opFUCOMI(uint32_t fetchdat)
 {
@@ -507,4 +510,5 @@ opFUCOMIP(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fucom) : (x87_concurrency.fucom * cpu_multi));
     return 0;
 }
+#    endif
 #endif

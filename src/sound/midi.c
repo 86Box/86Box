@@ -10,12 +10,10 @@
  *
  *
  *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           Miran Grca, <mgrca8@gmail.com>
+ * Authors:  Miran Grca, <mgrca8@gmail.com>
  *           Bit,
  *           DOSBox Team,
  *
- *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2016-2020 Miran Grca.
  *           Copyright 2016-2020 Bit.
  *           Copyright 2008-2020 DOSBox Team.
@@ -102,6 +100,7 @@ static const MIDI_OUT_DEVICE devices[] = {
 #ifdef USE_RTMIDI
     { &rtmidi_output_device  },
 #endif
+    { &opl4_midi_device      },
     { NULL                   }
     // clang-format on
 };
@@ -153,7 +152,7 @@ midi_out_device_has_config(int card)
     return devices[card].device->config ? 1 : 0;
 }
 
-char *
+const char *
 midi_out_device_get_internal_name(int card)
 {
     return device_get_internal_name(devices[card].device);
@@ -176,7 +175,7 @@ midi_out_device_get_from_internal_name(char *s)
 void
 midi_out_device_init(void)
 {
-    if (devices[midi_output_device_current].device)
+    if ((midi_output_device_current > 0) && devices[midi_output_device_current].device)
         device_add(devices[midi_output_device_current].device);
     midi_output_device_last = midi_output_device_current;
 }
@@ -271,7 +270,7 @@ midi_in_device_has_config(int card)
     return midi_in_devices[card].device->config ? 1 : 0;
 }
 
-char *
+const char *
 midi_in_device_get_internal_name(int card)
 {
     return device_get_internal_name(midi_in_devices[card].device);
@@ -294,7 +293,7 @@ midi_in_device_get_from_internal_name(char *s)
 void
 midi_in_device_init(void)
 {
-    if (midi_in_devices[midi_input_device_current].device)
+    if ((midi_input_device_current > 0) && midi_in_devices[midi_input_device_current].device)
         device_add(midi_in_devices[midi_input_device_current].device);
     midi_input_device_last = midi_input_device_current;
 }
@@ -408,7 +407,7 @@ midi_clear_buffer(void)
 }
 
 void
-midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p)
+midi_in_handler(int set, void (*msg)(void *priv, uint8_t *msg, uint32_t len), int (*sysex)(void *priv, uint8_t *buffer, uint32_t len, int abort), void *priv)
 {
     midi_in_handler_t *temp = NULL;
     midi_in_handler_t *next;
@@ -425,7 +424,7 @@ midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (
         memset(temp, 0, sizeof(midi_in_handler_t));
         temp->msg   = msg;
         temp->sysex = sysex;
-        temp->p     = p;
+        temp->priv  = priv;
 
         if (mih_last == NULL)
             mih_first = mih_last = temp;
@@ -440,7 +439,7 @@ midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (
             if (temp == NULL)
                 break;
 
-            if ((temp->msg == msg) && (temp->sysex == sysex) && (temp->p == p)) {
+            if ((temp->msg == msg) && (temp->sysex == sysex) && (temp->priv == priv)) {
                 if (temp->prev != NULL)
                     temp->prev->next = temp->next;
 
@@ -500,7 +499,7 @@ midi_in_msg(uint8_t *msg, uint32_t len)
             break;
 
         if (temp->msg)
-            temp->msg(temp->p, msg, len);
+            temp->msg(temp->priv, msg, len);
 
         temp = temp->next;
 
@@ -548,9 +547,9 @@ midi_do_sysex(void)
             ret = 0;
             if (temp->sysex) {
                 if (temp->cnt == 0)
-                    ret = temp->sysex(temp->p, temp->buf, 0, 0);
+                    ret = temp->sysex(temp->priv, temp->buf, 0, 0);
                 else
-                    ret = temp->sysex(temp->p, temp->buf, temp->len, 0);
+                    ret = temp->sysex(temp->priv, temp->buf, temp->len, 0);
             }
 
             /* If count is 0 and length is 0, then this is just a finishing

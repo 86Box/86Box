@@ -29,6 +29,25 @@
 #include "cpu.h"
 
 int keyboard_scan;
+
+#ifdef _WIN32
+/* Windows: F8+F12 */
+uint16_t key_prefix_1_1 = 0x042;     /* F8 */
+uint16_t key_prefix_1_2 = 0x000;     /* Invalid */
+uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
+uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
+uint16_t key_uncapture_1 = 0x058;    /* F12 */
+uint16_t key_uncapture_2 = 0x000;    /* Invalid */
+#else
+/* WxWidgets cannot do two regular keys.. CTRL+END */
+uint16_t key_prefix_1_1 = 0x01d;     /* Left Ctrl */
+uint16_t key_prefix_1_2 = 0x11d;     /* Right Ctrl */
+uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
+uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
+uint16_t key_uncapture_1 = 0x04f;    /* Numpad End */
+uint16_t key_uncapture_2 = 0x14f;    /* End */
+#endif
+
 void (*keyboard_send)(uint16_t val);
 
 static int recv_key[512]; /* keyboard input buffer */
@@ -87,8 +106,8 @@ fake_shift_needed(uint16_t scan)
 void
 key_process(uint16_t scan, int down)
 {
-    scancode *codes = scan_table;
-    int       c;
+    const scancode *codes = scan_table;
+    int             c;
 
     if (!codes)
         return;
@@ -167,6 +186,12 @@ keyboard_input(int down, uint16_t scan)
                 case 0x138: /* Right Alt */
                     shift |= 0x40;
                     break;
+                case 0x15b: /* Left Windows */
+                    shift |= 0x08;
+                    break;
+                case 0x15c: /* Right Windows */
+                    shift |= 0x80;
+                    break;
 
                 default:
                     break;
@@ -190,6 +215,12 @@ keyboard_input(int down, uint16_t scan)
                     break;
                 case 0x138: /* Right Alt */
                     shift &= ~0x40;
+                    break;
+                case 0x15b: /* Left Windows */
+                    shift &= ~0x08;
+                    break;
+                case 0x15c: /* Right Windows */
+                    shift &= ~0x80;
                     break;
                 case 0x03a: /* Caps Lock */
                     caps_lock ^= 1;
@@ -222,7 +253,7 @@ keyboard_input(int down, uint16_t scan)
 static uint8_t
 keyboard_do_break(uint16_t scan)
 {
-    scancode *codes = scan_table;
+    const scancode *codes = scan_table;
 
     /* TODO: The keyboard controller needs to report the AT flag to us here. */
     if (is286 && ((keyboard_mode & 3) == 3)) {
@@ -266,7 +297,7 @@ keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
 void
 keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
 {
-    scancode *codes = scan_table;
+    const scancode *codes = scan_table;
 
     int i;
 
@@ -320,7 +351,7 @@ keyboard_isfsenter(void)
 }
 
 int
-keyboard_isfsenter_down(void)
+keyboard_isfsenter_up(void)
 {
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x049] && !recv_key[0x149]);
 }
@@ -333,20 +364,20 @@ keyboard_isfsexit(void)
 }
 
 int
-keyboard_isfsexit_down(void)
+keyboard_isfsexit_up(void)
 {
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x051] && !recv_key[0x151]);
 }
 
-/* Do we have F8-F12 in the keyboard buffer? */
+/* Do we have the mouse uncapture combination in the keyboard buffer? */
 int
 keyboard_ismsexit(void)
 {
-#ifdef _WIN32
-    /* Windows: F8+F12 */
-    return (recv_key[0x042] && recv_key[0x058]);
-#else
-    /* WxWidgets cannot do two regular keys.. CTRL+END */
-    return ((recv_key[0x01D] || recv_key[0x11D]) && (recv_key[0x04F] || recv_key[0x14F]));
-#endif
+    if ((key_prefix_2_1 != 0x000) || (key_prefix_2_2 != 0x000))
+        return ((recv_key[key_prefix_1_1] || recv_key[key_prefix_1_2]) &&
+                (recv_key[key_prefix_2_1] || recv_key[key_prefix_2_2]) &&
+                (recv_key[key_uncapture_1] || recv_key[key_uncapture_2]));
+    else
+        return ((recv_key[key_prefix_1_1] || recv_key[key_prefix_1_2]) &&
+                (recv_key[key_uncapture_1] || recv_key[key_uncapture_2]));
 }

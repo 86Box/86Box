@@ -29,6 +29,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 #define ROM_SIGMA_FONT "roms/video/sigma/sigma400_font.rom"
 #define ROM_SIGMA_BIOS "roms/video/sigma/sigma400_bios.rom"
@@ -109,8 +110,8 @@
  * 0x2DC: On write: Resets the NMI.
  * 0x2DD: Memory paging. The memory from 0xC1800 to 0xC1FFF can be either:
  *
- *	> ROM: A 128 character 8x16 font for use in graphics modes
- *	> RAM: Use by the video BIOS to hold its settings.
+ *  > ROM: A 128 character 8x16 font for use in graphics modes
+ *  > RAM: Use by the video BIOS to hold its settings.
  *
  * Reading port 2DD switches to ROM. Bit 7 of the value read gives the
  * previous paging state: bit 7 set if ROM was paged, clear if RAM was
@@ -192,9 +193,9 @@ static video_timings_t timing_sigma = { .type = VIDEO_ISA, .write_b = 8, .write_
 static void sigma_recalctimings(sigma_t *cga);
 
 static void
-sigma_out(uint16_t addr, uint8_t val, void *p)
+sigma_out(uint16_t addr, uint8_t val, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
     uint8_t  old;
 
     if (addr >= 0x3D0 && addr < 0x3E0) {
@@ -256,14 +257,17 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
                 else
                     sigma->plane = val & 3;
                 return;
+
+            default:
+                break;
         }
 }
 
 static uint8_t
-sigma_in(uint16_t addr, void *p)
+sigma_in(uint16_t addr, void *priv)
 {
     uint8_t  result = 0xFF;
-    sigma_t *sigma  = (sigma_t *) p;
+    sigma_t *sigma  = (sigma_t *) priv;
 
     switch (addr) {
         case 0x2D0:
@@ -326,33 +330,37 @@ sigma_in(uint16_t addr, void *p)
                 result = sigma->fake_stat;
             }
             break;
+
+        default:
+            break;
     }
 
     return result;
 }
 
 static void
-sigma_write(uint32_t addr, uint8_t val, void *p)
+sigma_write(uint32_t addr, uint8_t val, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)] = val;
     cycles -= 4;
 }
 
 static uint8_t
-sigma_read(uint32_t addr, void *p)
+sigma_read(uint32_t addr, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    const sigma_t *sigma = (sigma_t *) priv;
 
     cycles -= 4;
+
     return sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)];
 }
 
 static void
-sigma_bwrite(uint32_t addr, uint8_t val, void *p)
+sigma_bwrite(uint32_t addr, uint8_t val, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     addr &= 0x3FFF;
     if ((addr < 0x1800) || sigma->rom_paged || (addr >= 0x2000))
@@ -362,10 +370,10 @@ sigma_bwrite(uint32_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-sigma_bread(uint32_t addr, void *p)
+sigma_bread(uint32_t addr, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
-    uint8_t  result;
+    const sigma_t *sigma = (sigma_t *) priv;
+    uint8_t        result;
 
     addr &= 0x3FFF;
     if (addr >= 0x2000)
@@ -404,13 +412,13 @@ sigma_recalctimings(sigma_t *sigma)
 static void
 sigma_text80(sigma_t *sigma)
 {
-    uint8_t  chr;
-    uint8_t  attr;
-    uint16_t ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
-    uint16_t ma = ((sigma->ma & 0x3FFF) << 1);
-    int      drawcursor;
-    uint32_t cols[4];
-    uint8_t *vram = sigma->vram + (ma << 1);
+    uint8_t        chr;
+    uint8_t        attr;
+    uint16_t       ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
+    uint16_t       ma = ((sigma->ma & 0x3FFF) << 1);
+    int            drawcursor;
+    uint32_t       cols[4];
+    const uint8_t *vram = sigma->vram + (ma << 1);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
@@ -459,13 +467,13 @@ sigma_text80(sigma_t *sigma)
 static void
 sigma_text40(sigma_t *sigma)
 {
-    uint8_t  chr;
-    uint8_t  attr;
-    uint16_t ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
-    uint16_t ma = ((sigma->ma & 0x3FFF) << 1);
-    int      drawcursor;
-    uint32_t cols[4];
-    uint8_t *vram = sigma->vram + ((ma << 1) & 0x3FFF);
+    uint8_t        chr;
+    uint8_t        attr;
+    uint16_t       ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
+    uint16_t       ma = ((sigma->ma & 0x3FFF) << 1);
+    int            drawcursor;
+    uint32_t       cols[4];
+    const uint8_t *vram = sigma->vram + ((ma << 1) & 0x3FFF);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
@@ -508,7 +516,7 @@ sigma_text40(sigma_t *sigma)
 static void
 sigma_gfx400(sigma_t *sigma)
 {
-    unsigned char *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) + (sigma->sc & 3) * 0x2000];
+    const uint8_t *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) + (sigma->sc & 3) * 0x2000];
     uint8_t        plane[4];
     uint8_t        col;
 
@@ -536,7 +544,7 @@ sigma_gfx400(sigma_t *sigma)
 static void
 sigma_gfx200(sigma_t *sigma)
 {
-    unsigned char *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) + (sigma->sc & 2) * 0x1000];
+    const uint8_t *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) + (sigma->sc & 2) * 0x1000];
     uint8_t        plane[4];
     uint8_t        col;
 
@@ -561,7 +569,7 @@ sigma_gfx200(sigma_t *sigma)
 static void
 sigma_gfx4col(sigma_t *sigma)
 {
-    unsigned char *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) + (sigma->sc & 2) * 0x1000];
+    const uint8_t *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) + (sigma->sc & 2) * 0x1000];
     uint8_t        plane[4];
     uint8_t        mask;
     uint8_t        col;
@@ -589,9 +597,9 @@ sigma_gfx4col(sigma_t *sigma)
 }
 
 static void
-sigma_poll(void *p)
+sigma_poll(void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
     int      x;
     int      c;
     int      oldvc;
@@ -772,12 +780,12 @@ sigma_poll(void *p)
     }
 }
 
-static void
-    *
-    sigma_init(const device_t *info)
+static void *
+sigma_init(UNUSED(const device_t *info))
 {
     int      bios_addr;
     sigma_t *sigma = malloc(sizeof(sigma_t));
+
     memset(sigma, 0, sizeof(sigma_t));
 
     bios_addr = device_get_config_hex20("bios_addr");
@@ -833,18 +841,18 @@ sigma_available(void)
 }
 
 static void
-sigma_close(void *p)
+sigma_close(void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     free(sigma->vram);
     free(sigma);
 }
 
 void
-sigma_speed_changed(void *p)
+sigma_speed_changed(void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     sigma_recalctimings(sigma);
 }

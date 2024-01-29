@@ -191,11 +191,11 @@ mm67_chkalrm(nvr_t *nvr, int8_t addr)
 static void
 mm67_tick(nvr_t *nvr)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t  *regs = nvr->regs;
-    int       mon;
-    int       year;
-    int       f = 0;
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    uint8_t        *regs = nvr->regs;
+    int             mon;
+    int             year;
+    int             f = 0;
 
     /* Update and set interrupt if needed. */
     regs[MM67_SEC] = RTC_BCDINC(nvr->regs[MM67_SEC], 1);
@@ -295,8 +295,8 @@ mm67_tick(nvr_t *nvr)
 static void
 mm67_time_get(nvr_t *nvr, struct tm *tm)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t  *regs = nvr->regs;
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    const uint8_t  *regs = nvr->regs;
 
     /* NVR is in BCD data mode. */
     tm->tm_sec  = RTC_DCB(regs[MM67_SEC]);
@@ -325,9 +325,9 @@ mm67_time_get(nvr_t *nvr, struct tm *tm)
 static void
 mm67_time_set(nvr_t *nvr, struct tm *tm)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t  *regs = nvr->regs;
-    int       year;
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    uint8_t        *regs = nvr->regs;
+    int             year;
 
     /* NVR is in BCD data mode. */
     regs[MM67_SEC]  = RTC_BCD(tm->tm_sec);
@@ -608,9 +608,6 @@ isartc_close(void *priv)
     io_removehandler(dev->base_addr, dev->base_addrsz,
                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
-    if (dev->nvr.fn != NULL)
-        free(dev->nvr.fn);
-
     free(dev);
 }
 
@@ -792,7 +789,7 @@ isartc_reset(void)
     device_add(boards[isartc_type].dev);
 }
 
-char *
+const char *
 isartc_get_internal_name(int board)
 {
     return device_get_internal_name(boards[board].dev);

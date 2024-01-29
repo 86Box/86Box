@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Ekran kartı:"
 #define STR_VIDEO_2       "Ekran kartı 2:"
 #define STR_VOODOO        "Voodoo Grafikleri"
-#define STR_IBM8514       "IBM 8514/a Grafikleri"
+#define STR_IBM8514       "IBM 8514/A Grafikleri"
 #define STR_XGA           "XGA Grafikleri"
 
 #define STR_MOUSE         "Fare:"
@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "FluidSynth başlatılamadı"
     IDS_2081    "Veri yolu"
     IDS_2082    "Dosya"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Disket %i (%s): %ls"
     IDS_2110    "Tüm imajlar (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Gelişmiş sektör imajları (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basit sektör imajları (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Yüzey imajları (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2111    "FreeType başlatılamadı"
     IDS_2112    "SDL başlatılamadı, SDL2.dll gerekmektedir"
     IDS_2113    "Emüle edilen makineyi yeniden başlatmak istediğinizden emin misiniz?"
     IDS_2114    "86Box'tan çıkmak istediğinize emin misiniz?"
@@ -482,7 +480,7 @@ BEGIN
     IDS_2125    "86Box Hakkında"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "Bir eski bilgisayar emülatörü\n\nYapanlar: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
+    IDS_2127    "Bir eski bilgisayar emülatörü\n\nYapanlar: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, ve diğerleri.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
     IDS_2128    "Tamam"
     IDS_2129    "Donanım mevcut değil"
 #ifdef _WIN32
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "" LIB_NAME_PCAP " kurulu olduğundan ve " LIB_NAME_PCAP "-uyumlu bir internet ağında bulunduğunuzdan emin olun."
     IDS_2131    "Geçersiz konfigürasyon"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " ESC/P yazıcı emülasyonu için gereklidir."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nGenel PostScript yazıcısına gönderilen tüm dökümanlar PostScript (.ps) dosyaları olarak kaydedilecektir."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " FluidSynth MIDI çıkışı için gereklidir."
     IDS_2135    "Tam ekran moduna geçiliyor"
     IDS_2136    "Bu mesajı bir daha gösterme"
     IDS_2137    "Çıkış yapma"

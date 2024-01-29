@@ -19,15 +19,21 @@
 #include <86box/timer.h>
 #include <86box/i8080.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
-static int completed = 1;
-static int in_rep = 0, repeating = 0, rep_c_flag = 0;
-static int oldc, cycdiff;
+static int completed  = 1;
+static int in_rep     = 0;
+static int repeating  = 0;
+static int rep_c_flag = 0;
+static int oldc;
+static int cycdiff;
 #ifdef UNUSED_8080_VARS
 static int prefetching = 1;
-static int refresh = 0, clear_lock = 0;
+static int refresh     = 0;
+static int clear_lock  = 0;
 
-static uint32_t cpu_src = 0, cpu_dest = 0;
+static uint32_t cpu_src  = 0;
+static uint32_t cpu_dest = 0;
 static uint32_t cpu_data = 0;
 #endif
 
@@ -43,7 +49,7 @@ clock_end(void)
     int diff = cycdiff - cycles;
 
     /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
-    tsc += (uint64_t) diff * ((uint64_t) xt_cpu_multi >> 32ULL); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
+    tsc += (uint64_t) diff * (xt_cpu_multi >> 32ULL); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
     if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
         timer_process();
 }
@@ -237,7 +243,7 @@ setreg_i8080(i8080 *cpu, uint8_t reg, uint8_t val)
 }
 
 void
-interpret_exec8080(i8080 *cpu, uint8_t opcode)
+interpret_exec8080(UNUSED(i8080 *cpu), uint8_t opcode)
 {
     switch (opcode) {
         case 0x00:

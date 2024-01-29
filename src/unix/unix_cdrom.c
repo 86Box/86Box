@@ -10,8 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2018 Miran Grca.
@@ -146,6 +145,8 @@ cdrom_mount(uint8_t id, char *fn)
         cdrom[id].ops->exit(&(cdrom[id]));
     cdrom[id].ops = NULL;
     memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
+    if ((fn != NULL) && (strlen(fn) >= 1) && (fn[strlen(fn) - 1] == '\\'))
+            fn[strlen(fn) - 1] = '/';
     cdrom_image_open(&(cdrom[id]), fn);
     /* Signal media change to the emulated machine. */
     if (cdrom[id].insert)

@@ -8,11 +8,9 @@
  *
  *          Handle the platform-side of CDROM/ZIP/MO drives.
  *
- *
- *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek,
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
@@ -72,7 +70,7 @@ cassette_eject(void)
 }
 
 void
-cartridge_mount(uint8_t id, char *fn, uint8_t wp)
+cartridge_mount(uint8_t id, char *fn, UNUSED(uint8_t wp))
 {
     cart_close(id);
     cart_load(id, fn);
@@ -115,9 +113,9 @@ floppy_eject(uint8_t id)
 }
 
 void
-plat_cdrom_ui_update(uint8_t id, uint8_t reload)
+plat_cdrom_ui_update(uint8_t id, UNUSED(uint8_t reload))
 {
-    cdrom_t *drv = &cdrom[id];
+    const cdrom_t *drv = &cdrom[id];
 
     if (drv->host_drive == 0) {
         ui_sb_update_icon_state(SB_CDROM | id, 1);
@@ -138,6 +136,8 @@ cdrom_mount(uint8_t id, char *fn)
         cdrom[id].ops->exit(&(cdrom[id]));
     cdrom[id].ops = NULL;
     memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
+    if ((fn != NULL) && (strlen(fn) >= 1) && (fn[strlen(fn) - 1] == '/'))
+            fn[strlen(fn) - 1] = '\\';
     cdrom_image_open(&(cdrom[id]), fn);
     /* Signal media change to the emulated machine. */
     if (cdrom[id].insert)

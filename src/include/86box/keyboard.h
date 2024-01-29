@@ -47,7 +47,7 @@ typedef struct kbc_at_port_t {
 
     void *priv;
 
-    void  (*poll)(void *priv);
+    void (*poll)(void *priv);
 } kbc_at_port_t;
 
 /* Used by the AT / PS/2 common device, keyboard, and mouse. */
@@ -79,6 +79,7 @@ typedef struct atkbc_dev_t {
     int     y;
     int     z;
     int     b;
+    int     ignore;
 
     int     *scan;
 
@@ -226,6 +227,7 @@ extern const device_t keyboard_xt_lxt3_device;
 #    endif /*defined(DEV_BRANCH) && defined(USE_LASERXT) */
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
+extern const device_t keyboard_xt_hyundai_device;
 extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
 extern const device_t keyboard_at_siemens_device;
@@ -268,9 +270,9 @@ extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int      keyboard_recv(uint16_t key);
 extern int      keyboard_isfsenter(void);
-extern int      keyboard_isfsenter_down(void);
+extern int      keyboard_isfsenter_up(void);
 extern int      keyboard_isfsexit(void);
-extern int      keyboard_isfsexit_down(void);
+extern int      keyboard_isfsexit_up(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 

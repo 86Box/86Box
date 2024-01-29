@@ -44,22 +44,22 @@ static const double tau = 6.28318531; /* == 2*pi */
 
 static unsigned char chroma_multiplexer[256] = {
     // clang-format off
-	  2,  2,  2,  2, 114,174,  4,  3,   2,  1,133,135,   2,113,150,  4,
-	133,  2,  1, 99, 151,152,  2,  1,   3,  2, 96,136, 151,152,151,152,
-	  2, 56, 62,  4, 111,250,118,  4,   0, 51,207,137,   1,171,209,  5,
-	140, 50, 54,100, 133,202, 57,  4,   2, 50,153,149, 128,198,198,135,
-	 32,  1, 36, 81, 147,158,  1, 42,  33,  1,210,254,  34,109,169, 77,
-	177,  2,  0,165, 189,154,  3, 44,  33,  0, 91,197, 178,142,144,192,
-	  4,  2, 61, 67, 117,151,112, 83,   4,  0,249,255,   3,107,249,117,
-	147,  1, 50,162, 143,141, 52, 54,   3,  0,145,206, 124,123,192,193,
-	 72, 78,  2,  0, 159,208,  4,  0,  53, 58,164,159,  37,159,171,  1,
-	248,117,  4, 98, 212,218,  5,  2,  54, 59, 93,121, 176,181,134,130,
-	  1, 61, 31,  0, 160,255, 34,  1,   1, 58,197,166,   0,177,194,  2,
-	162,111, 34, 96, 205,253, 32,  1,   1, 57,123,125, 119,188,150,112,
-	 78,  4,  0, 75, 166,180, 20, 38,  78,  1,143,246,  42,113,156, 37,
-	252,  4,  1,188, 175,129,  1, 37, 118,  4, 88,249, 202,150,145,200,
-	 61, 59, 60, 60, 228,252,117, 77,  60, 58,248,251,  81,212,254,107,
-	198, 59, 58,169, 250,251, 81, 80, 100, 58,154,250, 251,252,252,252
+      2,  2,  2,  2, 114,174,  4,  3,   2,  1,133,135,   2,113,150,  4,
+    133,  2,  1, 99, 151,152,  2,  1,   3,  2, 96,136, 151,152,151,152,
+      2, 56, 62,  4, 111,250,118,  4,   0, 51,207,137,   1,171,209,  5,
+    140, 50, 54,100, 133,202, 57,  4,   2, 50,153,149, 128,198,198,135,
+     32,  1, 36, 81, 147,158,  1, 42,  33,  1,210,254,  34,109,169, 77,
+    177,  2,  0,165, 189,154,  3, 44,  33,  0, 91,197, 178,142,144,192,
+      4,  2, 61, 67, 117,151,112, 83,   4,  0,249,255,   3,107,249,117,
+    147,  1, 50,162, 143,141, 52, 54,   3,  0,145,206, 124,123,192,193,
+     72, 78,  2,  0, 159,208,  4,  0,  53, 58,164,159,  37,159,171,  1,
+    248,117,  4, 98, 212,218,  5,  2,  54, 59, 93,121, 176,181,134,130,
+      1, 61, 31,  0, 160,255, 34,  1,   1, 58,197,166,   0,177,194,  2,
+    162,111, 34, 96, 205,253, 32,  1,   1, 57,123,125, 119,188,150,112,
+     78,  4,  0, 75, 166,180, 20, 38,  78,  1,143,246,  42,113,156, 37,
+    252,  4,  1,188, 175,129,  1, 37, 118,  4, 88,249, 202,150,145,200,
+     61, 59, 60, 60, 228,252,117, 77,  60, 58,248,251,  81,212,254,107,
+    198, 59, 58,169, 250,251, 81, 80, 100, 58,154,250, 251,252,252,252
     // clang-format on
 };
 
@@ -172,7 +172,7 @@ update_cga16_color(uint8_t cgamode)
     video_sharpness = (int) (sharpness * 256 / 100);
 }
 
-static Bit8u
+static uint8_t
 byte_clamp(int v)
 {
     v >>= 13;
@@ -186,21 +186,20 @@ static int temp[SCALER_MAXWIDTH + 10] = { 0 };
 static int atemp[SCALER_MAXWIDTH + 2] = { 0 };
 static int btemp[SCALER_MAXWIDTH + 2] = { 0 };
 
-Bit32u *
-Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewidth*/, Bit32u *TempLine)
+uint32_t *
+Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doublewidth*/, uint32_t *TempLine)
 {
-    int    x;
-    Bit32u x2;
+    uint32_t x2;
 
     int w = blocks * 4;
 
-    int    *o;
-    Bit32u *rgbi;
-    int    *b;
-    int    *i;
-    Bit32u *srgb;
-    int    *ap;
-    int    *bp;
+    int            *o;
+    const uint32_t *rgbi;
+    const int      *b;
+    int            *i;
+    uint32_t       *srgb;
+    int            *ap;
+    int            *bp;
 
 #define COMPOSITE_CONVERT(I, Q)                                                  \
     do {                                                                         \
@@ -230,21 +229,21 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
     o    = temp;
     rgbi = TempLine;
     b    = &CGA_Composite_Table[border * 68];
-    for (x = 0; x < 4; ++x)
+    for (uint8_t x = 0; x < 4; ++x)
         OUT(b[(x + 3) & 3]);
     OUT(CGA_Composite_Table[(border << 6) | ((*rgbi & 0x0f) << 2) | 3]);
-    for (x = 0; x < w - 1; ++x) {
+    for (int x = 0; x < w - 1; ++x) {
         OUT(CGA_Composite_Table[((rgbi[0] & 0x0f) << 6) | ((rgbi[1] & 0x0f) << 2) | (x & 3)]);
         ++rgbi;
     }
     OUT(CGA_Composite_Table[((*rgbi & 0x0f) << 6) | (border << 2) | 3]);
-    for (x = 0; x < 5; ++x)
+    for (uint8_t x = 0; x < 5; ++x)
         OUT(b[x & 3]);
 
     if ((cgamode & 4) != 0) {
         /* Decode */
         i    = temp + 5;
-        srgb = (Bit32u *) TempLine;
+        srgb = TempLine;
         for (x2 = 0; x2 < blocks * 4; ++x2) {
             int c = (i[0] + i[0]) << 3;
             int d = (i[-1] + i[1]) << 3;
@@ -258,7 +257,7 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
         i  = temp + 4;
         ap = atemp + 1;
         bp = btemp + 1;
-        for (x = -1; x < w + 1; ++x) {
+        for (int x = -1; x < w + 1; ++x) {
             ap[x] = i[-4] - ((i[-2] - i[0] + i[2]) << 1) + i[4];
             bp[x] = (i[-3] - i[-1] + i[1] - i[3]) << 1;
             ++i;
@@ -268,7 +267,7 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
         i     = temp + 5;
         i[-1] = (i[-1] << 3) - ap[-1];
         i[0]  = (i[0] << 3) - ap[0];
-        srgb  = (Bit32u *) TempLine;
+        srgb  = TempLine;
         for (x2 = 0; x2 < blocks; ++x2) {
             int y;
             int a;

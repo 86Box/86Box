@@ -64,7 +64,7 @@
 #define FLAG_IGNORE_DENSEL 512
 #define FLAG_PS2           1024
 
-typedef struct {
+typedef struct fdd_t {
     int type;
     int track;
     int densel;
@@ -451,10 +451,10 @@ fdd_get_densel(int drive)
 void
 fdd_load(int drive, char *fn)
 {
-    int   c = 0;
-    int   size;
-    char *p;
-    FILE *f;
+    int         c = 0;
+    int         size;
+    const char *p;
+    FILE *      fp;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 
@@ -463,12 +463,12 @@ fdd_load(int drive, char *fn)
     p = path_get_extension(fn);
     if (!p)
         return;
-    f = plat_fopen(fn, "rb");
-    if (f) {
-        if (fseek(f, -1, SEEK_END) == -1)
+    fp = plat_fopen(fn, "rb");
+    if (fp) {
+        if (fseek(fp, -1, SEEK_END) == -1)
             fatal("fdd_load(): Error seeking to the end of the file\n");
-        size = ftell(f) + 1;
-        fclose(f);
+        size = ftell(fp) + 1;
+        fclose(fp);
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
                 driveloaders[drive] = c;
@@ -548,8 +548,8 @@ fdd_set_motor_enable(int drive, int motor_enable)
 static void
 fdd_poll(void *priv)
 {
-    int    drive;
-    DRIVE *drv = (DRIVE *) priv;
+    int          drive;
+    const DRIVE *drv = (DRIVE *) priv;
 
     drive = drv->id;
 
@@ -585,6 +585,9 @@ fdd_get_bitcell_period(int rate)
             break;
         case 3: /*Extended density*/
             bit_rate = 1000;
+            break;
+
+        default:
             break;
     }
 

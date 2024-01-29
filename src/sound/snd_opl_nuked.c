@@ -125,9 +125,9 @@ typedef struct chan {
     uint8_t      con;
     uint8_t      alg;
     uint8_t      ksv;
-    uint16_t     cha,
-        chb;
-    uint8_t ch_num;
+    uint16_t     cha;
+    uint16_t     chb;
+    uint8_t      ch_num;
 } chan_t;
 
 typedef struct wrbuf {
@@ -177,12 +177,14 @@ typedef struct chip {
 
 typedef struct {
     nuked_t opl;
-    int8_t  flags, pad;
+    int8_t  flags;
+    int8_t  pad;
 
     uint16_t port;
-    uint8_t  status, timer_ctrl;
-    uint16_t timer_count[2],
-        timer_cur_count[2];
+    uint8_t  status;
+    uint8_t  timer_ctrl;
+    uint16_t timer_count[2];
+    uint16_t timer_cur_count[2];
 
     pc_timer_t timers[2];
 
@@ -543,6 +545,9 @@ env_calc(slot_t *slot)
             case envelope_gen_num_release:
                 reg_rate = slot->reg_rr;
                 break;
+
+            default:
+                break;
         }
 
     slot->pg_reset = reset;
@@ -618,6 +623,9 @@ env_calc(slot_t *slot)
         case envelope_gen_num_release:
             if (!eg_off && !reset && shift > 0)
                 eg_inc = 1 << (shift - 1);
+            break;
+
+        default:
             break;
     }
     slot->eg_rout = (eg_rout + eg_inc) & 0x1ff;
@@ -810,6 +818,9 @@ channel_setup_alg(chan_t *ch)
                 ch->slots[0]->mod = &ch->slots[0]->fbmod;
                 ch->slots[1]->mod = &ch->dev->zeromod;
                 break;
+
+            default:
+                break;
         }
         return;
     }
@@ -867,6 +878,9 @@ channel_setup_alg(chan_t *ch)
                 ch->out[2]              = &ch->slots[1]->out;
                 ch->out[3]              = &ch->dev->zeromod;
                 break;
+
+            default:
+                break;
         }
     } else
         switch (ch->alg & 0x01) {
@@ -886,6 +900,9 @@ channel_setup_alg(chan_t *ch)
                 ch->out[1]        = &ch->slots[1]->out;
                 ch->out[2]        = &ch->dev->zeromod;
                 ch->out[3]        = &ch->dev->zeromod;
+                break;
+
+            default:
                 break;
         }
 }
@@ -1100,7 +1117,7 @@ channel_set_4op(nuked_t *dev, uint8_t data)
 uint16_t
 nuked_write_addr(void *priv, uint16_t port, uint8_t val)
 {
-    nuked_t *dev = (nuked_t *) priv;
+    const nuked_t *dev = (nuked_t *) priv;
     uint16_t addr;
 
     addr = val;
@@ -1128,11 +1145,17 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
                     case 0x05:
                         dev->newm = val & 0x01;
                         break;
+
+                    default:
+                        break;
                 }
             else
                 switch (regm & 0x0f) {
                     case 0x08:
                         dev->nts = (val >> 6) & 0x01;
+                        break;
+
+                    default:
                         break;
                 }
             break;
@@ -1190,6 +1213,9 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
         case 0xf0:
             if (ad_slot[regm & 0x1f] >= 0)
                 slot_write_e0(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
+            break;
+
+        default:
             break;
     }
 }
@@ -1555,17 +1581,17 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
         nuked_write_reg_buffered(&dev->opl, dev->port, val);
 
         switch (dev->port) {
-            case 0x02: /* Timer 1 */
+            case 0x002: /* Timer 1 */
                 dev->timer_count[0] = val;
                 nuked_log("Timer 0 count now: %i\n", dev->timer_count[0]);
                 break;
 
-            case 0x03: /* Timer 2 */
+            case 0x003: /* Timer 2 */
                 dev->timer_count[1] = val;
                 nuked_log("Timer 1 count now: %i\n", dev->timer_count[1]);
                 break;
 
-            case 0x04: /* Timer control */
+            case 0x004: /* Timer control */
                 if (val & CTRL_RESET) {
                     nuked_log("Resetting timer status...\n");
                     dev->status &= ~STAT_TMR_OVER;
@@ -1575,6 +1601,13 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
                     nuked_timer_control(dev, 1, val & CTRL_TMR2_START);
                     nuked_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
                 }
+                break;
+
+            case 0x105:
+                dev->opl.newm = val & 0x01;
+                break;
+
+            default:
                 break;
         }
     } else {
@@ -1627,5 +1660,6 @@ const fm_drv_t nuked_opl_drv = {
     &nuked_drv_update,
     &nuked_drv_reset_buffer,
     &nuked_drv_set_do_cycles,
+    NULL,
     NULL,
 };
