@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Відеокарта:"
 #define STR_VIDEO_2       "Відеокарта 2:"
 #define STR_VOODOO        "Прискорювач Voodoo"
-#define STR_IBM8514       "Прискорювач IBM 8514/a"
+#define STR_IBM8514       "Прискорювач IBM 8514/A"
 #define STR_XGA           "Прискорювач XGA"
 
 #define STR_MOUSE         "Миша:"

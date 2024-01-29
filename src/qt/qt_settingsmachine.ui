@@ -158,7 +158,7 @@
          <item>
           <widget class="QLabel" name="label_7">
            <property name="text">
-            <string>Speed:</string>
+            <string>Frequency:</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>

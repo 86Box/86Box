@@ -3535,7 +3535,7 @@ banshee_force_redraw(void *priv)
 }
 
 const device_t voodoo_banshee_device = {
-    .name          = "3dfx Voodoo Banshee",
+    .name          = "3Dfx Voodoo Banshee",
     .internal_name = "voodoo_banshee_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,

@@ -352,6 +352,9 @@ msgstr "Rodzaj procesora:"
 msgid "Speed:"
 msgstr "Szybkość:"
 
+msgid "Frequency:"
+msgstr "Częstotliwość:"
+
 msgid "FPU:"
 msgstr "Jednostka FPU:"
 
@@ -385,8 +388,8 @@ msgstr "Wideo:"
 msgid "Voodoo Graphics"
 msgstr "Grafika Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Grafika IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Grafika IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Grafika XGA"
@@ -409,16 +412,16 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Karta dźwiękowa 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Karta dźwiękowa 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Karta dźwiękowa 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Karta dźwiękowa 4:"
 
 msgid "MIDI Out Device:"

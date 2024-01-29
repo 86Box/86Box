@@ -352,6 +352,9 @@ msgstr "CPU 类型:"
 msgid "Speed:"
 msgstr "速度:"
 
+msgid "Frequency:"
+msgstr "频率:"
+
 msgid "FPU:"
 msgstr "浮点处理器 (FPU):"
 
@@ -385,8 +388,8 @@ msgstr "显卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a Graphics"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
 msgstr "XGA Graphics"
@@ -409,16 +412,16 @@ msgstr "操纵杆 3..."
 msgid "Joystick 4..."
 msgstr "操纵杆 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "声卡 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "声卡 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "声卡 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "声卡 4:"
 
 msgid "MIDI Out Device:"

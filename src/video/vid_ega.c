@@ -1622,7 +1622,7 @@ static const device_config_t ega_config[] = {
 };
 
 const device_t ega_device = {
-    .name          = "EGA",
+    .name          = "IBM EGA",
     .internal_name = "ega",
     .flags         = DEVICE_ISA,
     .local         = EGA_IBM,

@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Videokarte:"
 #define STR_VIDEO_2       "Videokarte 2:"
 #define STR_VOODOO        "Voodoo-Grafik"
-#define STR_IBM8514       "IBM 8514/a-Grafik"
+#define STR_IBM8514       "IBM 8514/A-Grafik"
 #define STR_XGA           "XGA-Grafik"
 
 #define STR_MOUSE         "Maus:"
