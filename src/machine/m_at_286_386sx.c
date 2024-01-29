@@ -304,6 +304,8 @@ machine_at_award286_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -406,6 +408,8 @@ machine_at_spc4200p_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -449,6 +453,8 @@ machine_at_spc4620p_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -483,6 +489,8 @@ machine_at_deskmaster286_init(const machine_t *model)
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
+        
+    device_add(&ide_isa_device);
 
     return ret;
 }

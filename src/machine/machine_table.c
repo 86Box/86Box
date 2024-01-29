@@ -2737,7 +2737,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FLAGS_NONE, /* Has internal video: Paradise PVGA1A */
         .ram = {
             .min = 640,
             .max = 16384,
@@ -2817,7 +2817,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 640,
             .max = 16384,
@@ -3341,7 +3341,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 512,
             .max = 16384,
@@ -3501,7 +3501,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_IDE,
         .ram = {
             .min = 512,
             .max = 16384,
@@ -3581,7 +3581,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_IDE, /* Has internal video: C&T VGA 411 */
         .ram = {
             .min = 512,
             .max = 2048,
@@ -3661,7 +3661,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 5120,
@@ -3700,8 +3700,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE, /* Has internal video: C&T VGA 411 */
         .ram = {
             .min = 512,
             .max = 16384,
