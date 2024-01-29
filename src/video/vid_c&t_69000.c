@@ -1182,7 +1182,7 @@ uint8_t
 chips_69000_readb_linear(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readb_mmio(addr, chips);
@@ -1268,7 +1268,7 @@ chips_69000_init(const device_t *info)
               NULL,
               chips_69000_in, chips_69000_out,
               NULL,
-              NULL);
+              chips_69000_recalctimings);
 
     io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
