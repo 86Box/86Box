@@ -305,7 +305,7 @@ fdc37c669_reset(void *priv)
     dev->regs[0x21] = 0x3c;
     dev->regs[0x22] = 0x3d;
 
-    if (dev->id == 1) {
+    if (dev->id != 1) {
         fdc_reset(dev->fdc);
         fdc37c669_fdc_handler(dev);
     }
