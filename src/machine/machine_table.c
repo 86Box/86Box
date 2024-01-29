@@ -4781,8 +4781,9 @@ const machine_t machines[] = {
     },
 
     /* 386DX machines */
+    /* Has a Jetkey V3, which identifies as a 'B'. */
     {
-        .name = "[ACC 2168] AMI 386DX clone",
+        .name = "[ACC 2168] Juko AT046DX3",
         .internal_name = "acc386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_ACC_2168,
@@ -4922,7 +4923,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
@@ -4961,7 +4962,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
@@ -5058,7 +5059,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMI Megakey P KBC firmware */
+    /* Has a Lance LT38C41 with AMI Megakey P KBC firmware */
     {
         .name = "[ALi M1429] ECS Panda 386V",
         .internal_name = "ecs386v",
