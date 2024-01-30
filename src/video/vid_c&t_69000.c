@@ -83,9 +83,67 @@ typedef struct chips_69000_t {
     rom_t bios_rom;
 
     void* i2c_ddc, *ddc;
+
+    uint8_t st01;
 } chips_69000_t;
 
 static video_timings_t timing_sis = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 20, .read_w = 20, .read_l = 35 };
+
+/* Multimedia handling. */
+uint8_t
+chips_69000_read_multimedia(chips_69000_t* chips)
+{
+    switch (chips->mm_index) {
+        case 0:
+            /* Report no playback/capture capability. */
+            return 0;
+        default:
+            return chips->mm_regs[chips->mm_index];
+    }
+    return chips->mm_regs[chips->mm_index];
+}
+
+/* Multimedia (write) handling. */
+void
+chips_69000_write_multimedia(chips_69000_t* chips, uint8_t val)
+{
+    switch (chips->mm_index) {
+        case 0:
+            return;
+        default:
+            chips->mm_regs[chips->mm_index] = val;
+            break;
+    }
+    chips->mm_regs[chips->mm_index] = val;
+}
+
+/* Flat panel handling. */
+uint8_t
+chips_69000_read_flat_panel(chips_69000_t* chips)
+{
+    switch (chips->flat_panel_index) {
+        case 0:
+            /* Report no presence of flat panel module. */
+            return 0;
+        default:
+            return chips->flat_panel_regs[chips->flat_panel_index];
+    }
+    return chips->flat_panel_regs[chips->flat_panel_index];
+}
+
+/* Flat panel (write) handling. */
+void
+chips_69000_write_flat_panel(chips_69000_t* chips, uint8_t val)
+{
+    switch (chips->flat_panel_index) {
+        case 0:
+            return;
+        default:
+            chips->flat_panel_regs[chips->flat_panel_index] = val;
+            break;
+    }
+    chips->flat_panel_regs[chips->flat_panel_index] = val;
+}
 
 void
 chips_69000_do_rop_8bpp(uint8_t *dst, uint8_t src, uint8_t rop)
@@ -813,6 +871,18 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
             svga_out(addr, val, svga);
             chips_69000_recalc_banking(chips);
             return;
+#if 1
+        case 0x3D0:
+            chips->flat_panel_index = val;
+            return;
+        case 0x3D1:
+            return chips_69000_write_flat_panel(chips, val);
+        case 0x3D2:
+            chips->mm_index = val;
+            return;
+        case 0x3D3:
+            return chips_69000_write_multimedia(chips, val);
+#endif
         case 0x3D4:
             svga->crtcreg = val & 0xff;
             return;
@@ -850,7 +920,7 @@ chips_69000_in(uint16_t addr, void *p)
 {
     chips_69000_t  *chips  = (chips_69000_t *) p;
     svga_t *svga = &chips->svga;
-    uint8_t temp, index;
+    uint8_t temp = 0, index;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -892,6 +962,16 @@ chips_69000_in(uint16_t addr, void *p)
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
                 temp >>= 2;
             break;
+#if 1
+        case 0x3D0:
+            return chips->flat_panel_index;
+        case 0x3D1:
+            return chips_69000_read_flat_panel(chips);
+        case 0x3D2:
+            return chips->mm_index;
+        case 0x3D3:
+            return chips_69000_read_multimedia(chips);
+#endif
         case 0x3D4:
             temp = svga->crtcreg;
             break;
@@ -1124,6 +1204,8 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
             chips->bitblt_regs_b[addr & 0xFF] = val;
+            if ((addr & 0xFFF) == 0x023)
+                pclog("BitBLT/Draw operation\n");
             break;
         case 0x600 ... 0x60F:
             chips->mem_regs_b[addr & 0xF] = val;
@@ -1275,11 +1357,25 @@ chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p)
     svga_writel_linear(addr & 0x1FFFFF, val, p);
 }
 
+void
+chips_69000_vsync_start(svga_t *svga)
+{
+    /* TODO: PCI interrupts for this. */
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
+    
+}
+
+void
+chips_69000_vblank_start(svga_t *svga)
+{
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
+    /* Needed? */
+}
+
 static void *
 chips_69000_init(const device_t *info)
 {
-    chips_69000_t *chips = malloc(sizeof(chips_69000_t));
-    memset(chips, 0, sizeof(chips_69000_t));
+    chips_69000_t *chips = calloc(1, sizeof(chips_69000_t));
 
     /* Appears to have an odd VBIOS size. */
     if (!info->local) {
@@ -1302,6 +1398,8 @@ chips_69000_init(const device_t *info)
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
     chips->svga.recalctimings_ex = chips_69000_recalctimings;
+    chips->svga.vsync_callback   = chips_69000_vsync_start;
+    chips->svga.vblank_start     = chips_69000_vblank_start;
 
     mem_mapping_add(&chips->linear_mapping, 0, 0, chips_69000_readb_linear, chips_69000_readw_linear, chips_69000_readl_linear, chips_69000_writeb_linear, chips_69000_writew_linear, chips_69000_writel_linear, NULL, MEM_MAPPING_EXTERNAL, chips);
 
@@ -1316,6 +1414,10 @@ chips_69000_init(const device_t *info)
 
     chips->i2c_ddc = i2c_gpio_init("c&t_69000_mga");
     chips->ddc     = ddc_init(i2c_gpio_get_bus(chips->i2c_ddc));
+    
+    chips->flat_panel_regs[0x01] = 1;
+
+    sizeof(chips->bitblt_regs);
 
     return chips;
 }
