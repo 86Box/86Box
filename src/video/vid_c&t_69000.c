@@ -39,6 +39,7 @@
 typedef struct chips_69000_t {
     svga_t        svga;
     uint8_t       pci_conf_status;
+    uint8_t       slot;
     uint8_t       pci_line_interrupt;
     uint8_t       pci_rom_enable;
     uint8_t       read_write_bank;
@@ -543,7 +544,7 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint8_t nonpatte
 void
 chips_69000_recalctimings(svga_t *svga)
 {
-    chips_69000_t *chips = (chips_69000_t *) svga->p;
+    chips_69000_t *chips = (chips_69000_t *) svga->priv;
 
     if (chips->ext_regs[0x81] & 0x10) {
         svga->htotal -= 5;
@@ -581,7 +582,7 @@ chips_69000_recalctimings(svga_t *svga)
         /* Let's care about horizontal blanking end later when it matters. */
 
         svga->ma_latch |= (svga->crtc[0x40] & 0xF) << 16;
-        svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 16;
+        svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
     }
     
     svga->interlace = !!(svga->crtc[0x70] & 0x80);
@@ -613,6 +614,11 @@ chips_69000_recalctimings(svga_t *svga)
             svga->render = svga_render_32bpp_highres;
             svga->rowoffset <<= 2;
             break;
+    }
+
+    if (chips->ext_regs[0x40] & 1) {
+        svga->force_dword_mode = chips->ext_regs[0x40] & 1;
+        svga->rowoffset >>= 2;
     }
 }
 
@@ -701,6 +707,7 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0x40:
             chips->ext_regs[chips->ext_index] = val & 0x3;
             chips_69000_recalc_banking(chips);
+            svga_recalctimings(&chips->svga);
             break;
         case 0x60:
             chips->ext_regs[chips->ext_index] = val & 0x43;
@@ -1181,7 +1188,7 @@ uint8_t
 chips_69000_readb_linear(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readb_mmio(addr, chips);
@@ -1193,7 +1200,7 @@ uint16_t
 chips_69000_readw_linear(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readw_mmio(addr, chips);
@@ -1205,7 +1212,7 @@ uint32_t
 chips_69000_readl_linear(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readl_mmio(addr, chips);
@@ -1217,7 +1224,7 @@ void
 chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writeb_mmio(addr, val, chips);
@@ -1229,7 +1236,7 @@ void
 chips_69000_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writew_mmio(addr, val, chips);
@@ -1241,7 +1248,7 @@ void
 chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p)
 {
     svga_t *svga = (svga_t *) p;
-    chips_69000_t  *chips  = (chips_69000_t *) svga->p;
+    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writel_mmio(addr, val, chips);
@@ -1271,7 +1278,7 @@ chips_69000_init(const device_t *info)
 
     io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
-    pci_add_card(PCI_ADD_VIDEO, chips_69000_pci_read, chips_69000_pci_write, chips);
+    pci_add_card(PCI_ADD_VIDEO, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
 
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
