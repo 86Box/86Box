@@ -610,14 +610,6 @@ chips_69000_recalctimings(svga_t *svga)
                 svga->render = svga_render_32bpp_highres;
                 break;
         }
-
-        if (chips->ext_regs[0x40] & 1) {
-            svga->force_dword_mode = chips->ext_regs[0x40] & 1;
-        } else {
-            svga->force_dword_mode = 0;
-        }
-    } else {
-        svga->force_dword_mode = 0;
     }
 }
 
@@ -638,7 +630,6 @@ chips_69000_recalc_banking(chips_69000_t *chips)
 
     svga->chain2_write = !(svga->seqregs[0x4] & 4);
     svga->chain4       = (svga->seqregs[0x4] & 8) || (chips->ext_regs[0xA] & 0x4);
-    svga->packed_chain4 = !!(chips->ext_regs[0xA] & 0x4);
     svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && !(svga->adv_flags & FLAG_ADDR_BY8);
 
     if (chips->ext_regs[0xA] & 1) {
@@ -1288,6 +1279,8 @@ chips_69000_init(const device_t *info)
     chips->quit            = 0;
     chips->engine_active   = 0;
     chips->on_board        = !!(info->local);
+    
+    chips->svga.packed_chain4 = 1;
 
     timer_add(&chips->decrement_timer, chips_69000_decrement_timer, chips, 0);
     timer_on_auto(&chips->decrement_timer, 1000000. / 2000.);
