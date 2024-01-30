@@ -313,7 +313,12 @@ load_machine(void)
     cpu_f        = NULL;
     p            = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
-        cpu_f = cpu_get_family(p);
+        /* Migrate CPU family changes. */
+        if ((!strcmp(machines[machine].internal_name, "deskpro386") ||
+            !strcmp(machines[machine].internal_name, "deskpro386_05_1988")))
+            cpu_f = cpu_get_family("i386dx_deskpro386");
+        else
+            cpu_f = cpu_get_family(p);
 
         if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
             cpu_f = NULL;
