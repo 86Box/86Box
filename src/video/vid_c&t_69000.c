@@ -10,11 +10,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Cacodemon345
  *
- *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2023-2024 Cacodemon345
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,6 +32,8 @@
 #include <86box/vid_svga_render.h>
 #include <86box/pci.h>
 #include <86box/thread.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <assert.h>
 
 typedef struct chips_69000_t {
@@ -81,6 +81,8 @@ typedef struct chips_69000_t {
     };
 
     rom_t bios_rom;
+
+    void* i2c_ddc, *ddc;
 } chips_69000_t;
 
 static video_timings_t timing_sis = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 20, .read_w = 20, .read_l = 35 };
@@ -666,7 +668,16 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
         case 0x0A:
             return chips->ext_regs[index] & 0x37;
         case 0x63:
-            return 0xFF;
+            {
+                uint8_t val = chips->ext_regs[index];
+                if (!(chips->ext_regs[0x62] & 0x8))
+                    val = (val & ~8) | (i2c_gpio_get_scl(chips->i2c_ddc) << 3);
+                
+                if (!(chips->ext_regs[0x62] & 0x4))
+                    val = (val & ~4) | (i2c_gpio_get_sda(chips->i2c_ddc) << 2);
+
+                return val;
+            }
         case 0x70:
             return 0x3;
         case 0x71:
@@ -711,6 +722,24 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0x62:
             chips->ext_regs[chips->ext_index] = val & 0x9C;
             break;
+        case 0x63:
+            {
+                uint8_t scl = 0, sda = 0;
+                if (chips->ext_regs[0x62] & 0x8)
+                    scl = !!(val & 8);
+                else
+                    scl = i2c_gpio_get_scl(chips->i2c_ddc);
+                
+                if (chips->ext_regs[0x62] & 0x4)
+                    sda = !!(val & 4);
+                else
+                    scl = i2c_gpio_get_sda(chips->i2c_ddc);
+                
+                i2c_gpio_set(chips->i2c_ddc, scl, sda);
+
+                chips->ext_regs[chips->ext_index] = val & 0x9F;
+                break;
+            }
         case 0x67:
             chips->ext_regs[chips->ext_index] = val & 0x2;
             break;
@@ -1285,6 +1314,9 @@ chips_69000_init(const device_t *info)
     timer_add(&chips->decrement_timer, chips_69000_decrement_timer, chips, 0);
     timer_on_auto(&chips->decrement_timer, 1000000. / 2000.);
 
+    chips->i2c_ddc = i2c_gpio_init("c&t_69000_mga");
+    chips->ddc     = ddc_init(i2c_gpio_get_bus(chips->i2c_ddc));
+
     return chips;
 }
 
@@ -1302,6 +1334,8 @@ chips_69000_close(void *p)
     chips->quit = 1;
 //    thread_set_event(chips->fifo_event);
  //   thread_wait(chips->accel_thread);
+    ddc_close(chips->ddc);
+    i2c_gpio_close(chips->i2c_ddc);
     svga_close(&chips->svga);
 
     free(chips);
