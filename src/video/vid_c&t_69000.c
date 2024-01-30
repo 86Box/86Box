@@ -43,7 +43,6 @@ typedef struct chips_69000_t {
     uint8_t       pci_line_interrupt;
     uint8_t       pci_rom_enable;
     uint8_t       read_write_bank;
-    uint8_t       slot;
     atomic_bool   engine_active;
     atomic_bool   quit;
     thread_t     *accel_thread;
@@ -580,46 +579,45 @@ chips_69000_recalctimings(svga_t *svga)
         if (!(chips->ext_regs[0x81] & 0x10))
             svga->htotal += 5;
         
-        /* Let's care about horizontal blanking end later when it matters. */
+        svga->hblank_end_val = ((svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00)) | (svga->crtc[0x3c] & 0b11000000);
+        svga->hblank_end_len = 0x100;
 
         svga->ma_latch |= (svga->crtc[0x40] & 0xF) << 16;
         svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
-    }
-    
-    svga->interlace = !!(svga->crtc[0x70] & 0x80);
 
-    switch (chips->ext_regs[0x81] & 0xF) {
-        case 0b0010:
-            svga->bpp = 8;
-            svga->render = svga_render_8bpp_highres;
-            svga->rowoffset <<= 2;
-            break;
+        svga->interlace = !!(svga->crtc[0x70] & 0x80);
 
-        case 0b0100:
-            svga->bpp = 15;
-            svga->render = svga_render_15bpp_highres;
-            svga->rowoffset <<= 2;
-            break;
-        case 0b0101:
-            svga->bpp = 16;
-            svga->render = svga_render_16bpp_highres;
-            svga->rowoffset <<= 2;
-            break;
-        case 0b0110:
-            svga->bpp = 24;
-            svga->render = svga_render_24bpp_highres;
-            svga->rowoffset <<= 2;
-            break;
-        case 0b0111:
-            svga->bpp = 32;
-            svga->render = svga_render_32bpp_highres;
-            svga->rowoffset <<= 2;
-            break;
-    }
+        switch (chips->ext_regs[0x81] & 0xF) {
+            case 0b0010:
+                svga->bpp = 8;
+                svga->render = svga_render_8bpp_highres;
+                break;
 
-    if (chips->ext_regs[0x40] & 1) {
-        svga->force_dword_mode = chips->ext_regs[0x40] & 1;
-        svga->rowoffset >>= 2;
+            case 0b0100:
+                svga->bpp = 15;
+                svga->render = svga_render_15bpp_highres;
+                break;
+            case 0b0101:
+                svga->bpp = 16;
+                svga->render = svga_render_16bpp_highres;
+                break;
+            case 0b0110:
+                svga->bpp = 24;
+                svga->render = svga_render_24bpp_highres;
+                break;
+            case 0b0111:
+                svga->bpp = 32;
+                svga->render = svga_render_32bpp_highres;
+                break;
+        }
+
+        if (chips->ext_regs[0x40] & 1) {
+            svga->force_dword_mode = chips->ext_regs[0x40] & 1;
+        } else {
+            svga->force_dword_mode = 0;
+        }
+    } else {
+        svga->force_dword_mode = 0;
     }
 }
 
@@ -976,7 +974,7 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 }
             case 0x13:
                 {
-                    mem_mapping_set_addr(&chips->linear_mapping, val << 24, (1 << 24) - 1);
+                    mem_mapping_set_addr(&chips->linear_mapping, val << 24, (1 << 24));
                     break;
                 }
             case 0x3c:
