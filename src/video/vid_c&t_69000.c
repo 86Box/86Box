@@ -725,7 +725,7 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
             break;
         case 0x80:
             chips->ext_regs[chips->ext_index] = val & 0xBF;
-            chips->svga.ramdac_type = (val & 0x80) ? RAMDAC_8BIT : RAMDAC_6BIT;
+            svga_set_ramdac_type(&chips->svga, (val & 0x80) ? RAMDAC_8BIT : RAMDAC_6BIT);
             break;
         case 0x81:
             chips->ext_regs[chips->ext_index] = val & 0x1f;
@@ -769,7 +769,7 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
             }
             break;
         case 0x3c9:
-            if (!(chips->ext_regs[0x09] & 0x01))
+            if (!(chips->ext_regs[0x80] & 0x01))
                 break;
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
                 val <<= 2;
@@ -840,7 +840,7 @@ chips_69000_in(uint16_t addr, void *p)
         case 0x3C5:
             return svga->seqregs[svga->seqaddr];
         case 0x3c9:
-            if (!(chips->ext_regs[0x09] & 0x01)) {
+            if (!(chips->ext_regs[0x80] & 0x01)) {
                 temp = svga_in(addr, svga);
                 break;
             }
