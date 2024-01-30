@@ -43,6 +43,7 @@ typedef struct chips_69000_t {
     uint8_t       pci_line_interrupt;
     uint8_t       pci_rom_enable;
     uint8_t       read_write_bank;
+    uint8_t       slot;
     atomic_bool   engine_active;
     atomic_bool   quit;
     thread_t     *accel_thread;
@@ -1271,7 +1272,7 @@ chips_69000_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_sis);
 
     svga_init(info, &chips->svga, chips, 1 << 21, /*2048kb*/
-              NULL,
+              chips_69000_recalctimings,
               chips_69000_in, chips_69000_out,
               NULL,
               NULL);
