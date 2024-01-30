@@ -7240,7 +7240,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
@@ -9705,9 +9705,10 @@ const machine_t machines[] = {
 
     /* Socket 7 (Single Voltage) machines */
     /* 430FX */
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is an updated version of type 'H'.
+       This also seems to be revision 2.1 with the FDC37C665 SIO. */
     {
-        .name = "[i430FX] ASUS P/I-P54TP4XE",
+        .name = "[i430FX] ASUS P/I-P55TP4XE",
         .internal_name = "p54tp4xe",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -9727,7 +9728,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9747,7 +9748,7 @@ const machine_t machines[] = {
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
-        .name = "[i430FX] ASUS P/I-P54TP4XE (MR BIOS)",
+        .name = "[i430FX] ASUS P/I-P55TP4XE (MR BIOS)",
         .internal_name = "p54tp4xe_mr",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -9767,7 +9768,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9785,7 +9786,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMIKey H KBC firmware. */
+    /* Has AMIKey H KBC firmware. The KBC itself seems to differ between an AMIKEY-2 and a Winbond W83C42. */
     {
         .name = "[i430FX] DataExpert EXP8551",
         .internal_name = "exp8551",
@@ -9807,7 +9808,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9849,7 +9850,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9890,7 +9891,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9932,7 +9933,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9974,7 +9975,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10016,7 +10017,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10056,7 +10057,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10097,7 +10098,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10137,7 +10138,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10155,7 +10156,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has an AMI 'H' KBC firmware (1992). */
+    /* Has an AMI MegaKey 'H' KBC firmware (1992). */
     {
         .name = "[i430FX] QDI FMB",
         .internal_name = "fmb",
@@ -10177,7 +10178,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10197,9 +10198,7 @@ const machine_t machines[] = {
     },
 
     /* 430HX */
-    /* I can't determine what KBC firmware this has, but given that the Acer V35N and
-       V60 have Phoenix MultiKey KBC firmware on the chip, I'm going to assume so
-       does the M3A. */
+    /* Has a Phoenix Multikey KBC in the SM(S)C SIO. */
     {
         .name = "[i430HX] Acer M3A",
         .internal_name = "acerm3a",
@@ -10221,7 +10220,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has internal USB and SCSI */
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -10239,7 +10238,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMIKey F KBC firmware. */
+    /* Has AMIKey-2 or VIA VT82C42N KBC (depending on the revision) with AMIKEY 'F' KBC firmware. */
     {
         .name = "[i430HX] AOpen AP53",
         .internal_name = "ap53",
@@ -10261,7 +10260,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -10301,7 +10300,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -10319,8 +10318,8 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* [TEST] Unable to determine what KBC this has. A list on a Danish site shows
-       the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
+    /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO. 
+       A list on a Danish site shows the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
     {
         .name = "[i430HX] Supermicro P55T2S",
         .internal_name = "p55t2s",
@@ -10342,7 +10341,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 786432,
@@ -10386,7 +10385,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10426,7 +10425,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10468,7 +10467,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10510,7 +10509,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -10550,7 +10549,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -10633,7 +10632,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -10673,7 +10672,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -10713,7 +10712,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10755,7 +10754,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Has internal USB and sound: Yamaha YMF701-S */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10795,7 +10794,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Has internal USB and sound: Yamaha YMF701-S */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10835,7 +10834,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -10875,7 +10874,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -10918,7 +10917,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -10936,7 +10935,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* The base board has AMIKey-2 (updated 'H') KBC firmware. */
+    /* The base board has a Holtek HT6542B with the AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name = "[i430HX] ASUS P/I-P65UP5 (C-P55T2D)",
         .internal_name = "p65up5_cp55t2d",
@@ -10958,7 +10957,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has AMB and internal USB */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -10998,7 +10997,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11018,7 +11017,7 @@ const machine_t machines[] = {
     },
 
     /* 430VX */
-    /* This has the VIA VT82C42N KBC. */
+    /* This has the VIA VT82C42N or Holtek HT6542B KBC. */
     {
         .name = "[i430VX] AOpen AP5VM",
         .internal_name = "ap5vm",
@@ -11040,7 +11039,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11058,7 +11057,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMIKey H KBC firmware (AMIKey-2). */
+    /* Has AMIKey H KBC firmware (AMIKey-2) on a BestKey KBC. */
     {
         .name = "[i430VX] ASUS P/I-P55TVP4",
         .internal_name = "p55tvp4",
@@ -11080,7 +11079,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has AMB and internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11121,7 +11120,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11139,7 +11138,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* [TEST] Has AMIKey 'F' KBC firmware. */
+    /* [TEST] Has AMIKey 'F' KBC firmware on a VIA VT82C42N KBC. */
     {
         .name = "[i430VX] Biostar MB-8500TVX-A",
         .internal_name = "8500tvxa",
@@ -11161,7 +11160,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11282,7 +11281,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11322,7 +11321,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11364,7 +11363,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11404,7 +11403,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11445,7 +11444,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11486,7 +11485,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11528,7 +11527,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Has internal video: C&T B69000 */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11568,7 +11567,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11608,7 +11607,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC, /* Machine has internal USB*/
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11690,7 +11689,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11730,7 +11729,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT, /* Machine has internal USB and sound: Yamaha YMF701-S */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11748,7 +11747,8 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior. */
+    /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
+       A picture shows a VIA VT82C42N KBC though, so it could be a case of that KBC with AMI firmware. */
     {
         .name = "[i430TX] PC Partner MB540N",
         .internal_name = "mb540n",
@@ -11770,7 +11770,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11810,7 +11810,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11850,7 +11850,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11890,7 +11890,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11933,7 +11933,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -11976,7 +11976,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 1048576,
@@ -12018,7 +12018,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -12058,7 +12058,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -12098,7 +12098,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 393216,
@@ -12140,7 +12140,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 1048576,
@@ -12180,7 +12180,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal USB */
         .ram = {
             .min = 8192,
             .max = 786432,
