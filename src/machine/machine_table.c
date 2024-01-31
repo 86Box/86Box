@@ -3361,7 +3361,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name = "[NEAT] Phoenix 286 clone",
+        .name = "[NEAT] Arche AMA-2010",
         .internal_name = "px286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_NEAT,
