@@ -729,18 +729,18 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             val = 0x0;
             break;
     }
-    //if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
-   // && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
-    //    pclog("C&T: Read ext reg 0x%02X, ret = 0x%02X\n", index, val);
+    if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
+    && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
+        pclog("C&T: Read ext reg 0x%02X, ret = 0x%02X\n", index, val);
     return val;
 }
 
 void
 chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
 {
-    //if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
-    //&& (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
-    //    pclog("C&T: Write ext reg 0x%02X, ret = 0x%02X\n", chips->ext_index, val);
+    if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
+    && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
+        pclog("C&T: Write ext reg 0x%02X, ret = 0x%02X\n", chips->ext_index, val);
     switch (chips->ext_index) {
         case 0xA:
             chips->ext_regs[chips->ext_index] = val & 0x37;
@@ -1119,6 +1119,7 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
 uint8_t
 chips_69000_readb_mmio(uint32_t addr, chips_69000_t* chips)
 {
+    pclog("C&T Read 0x%X\n", addr);
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
@@ -1204,6 +1205,7 @@ chips_69000_readl_mmio(uint32_t addr, chips_69000_t* chips)
 void
 chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
 {
+    pclog("C&T Write 0x%X, val = 0x%02X\n", addr, val);
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
@@ -1310,7 +1312,7 @@ chips_69000_writew_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
 }
 
 void
-chips_69000_writel_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
+chips_69000_writel_mmio(uint32_t addr, uint32_t val, chips_69000_t* chips)
 {
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
