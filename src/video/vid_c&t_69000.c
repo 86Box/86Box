@@ -707,46 +707,65 @@ uint8_t
 chips_69000_read_ext_reg(chips_69000_t* chips)
 {
     uint8_t index = chips->ext_index;
+    uint8_t val = chips->ext_regs[index];
     switch (index) {
         case 0x00:
-            return 0x2C;
+            val = 0x2C;
+            break;
         case 0x01:
-            return 0x10;
+            val = 0x10;
+            break;
         case 0x02:
-            return 0xC0;
+            val = 0xC0;
+            break;
         case 0x03:
-            return 0x00;
+            val = 0x00;
+            break;
         case 0x04:
-            return 0x62;
+            val = 0x62;
+            break;
         case 0x05:
+            val = 0x00;
+            break;
         case 0x06:
-            return 0x00;
+            val = chips->linear_mapping.base >> 24;
+            break;
         case 0x08:
-            return 0x02;
+            val = 0x02;
+            break;
         case 0x0A:
-            return chips->ext_regs[index] & 0x37;
+            val = chips->ext_regs[index] & 0x37;
+            break;
         case 0x63:
             {
-                uint8_t val = chips->ext_regs[index];
+                val = chips->ext_regs[index];
                 if (!(chips->ext_regs[0x62] & 0x8))
                     val = (val & ~8) | (i2c_gpio_get_scl(chips->i2c_ddc) << 3);
                 
                 if (!(chips->ext_regs[0x62] & 0x4))
                     val = (val & ~4) | (i2c_gpio_get_sda(chips->i2c_ddc) << 2);
 
-                return val;
+                break;
             }
         case 0x70:
-            return 0x3;
+            val = 0x3;
+            break;
         case 0x71:
-            return 0x0;
+            val = 0x0;
+            break;
     }
-    return chips->ext_regs[index];
+    //if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
+   // && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
+    //    pclog("C&T: Read ext reg 0x%02X, ret = 0x%02X\n", index, val);
+    return val;
 }
 
 void
 chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
 {
+    //if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
+    //&& (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
+    //    pclog("C&T: Write ext reg 0x%02X, ret = 0x%02X\n", chips->ext_index, val);
     switch (chips->ext_index) {
         case 0xA:
             chips->ext_regs[chips->ext_index] = val & 0x37;
@@ -808,6 +827,8 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0x81:
             chips->ext_regs[chips->ext_index] = val & 0x1f;
             svga_recalctimings(&chips->svga);
+            break;
+        case 0xD2:
             break;
         default:
             chips->ext_regs[chips->ext_index] = val;
@@ -1002,11 +1023,13 @@ chips_69000_pci_read(int func, int addr, void *p)
     {
         switch (addr) {
             case 0x00:
+                return 0x2C;
             case 0x01:
-                return (0x102C >> ((addr & 1) * 8)) & 0xFF;
+                return 0x10;
             case 0x02:
+                return 0xC0;
             case 0x03:
-                return (0x00C0 >> ((addr & 1) * 8)) & 0xFF;
+                return 0x00;
             case 0x04:
                 return chips->pci_conf_status;
             case 0x07:
@@ -1074,6 +1097,10 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 }
             case 0x13:
                 {
+                    if (!(chips->pci_conf_status & PCI_COMMAND_MEM)) {
+                        chips->linear_mapping.base = val << 24;
+                        break;
+                    }
                     mem_mapping_set_addr(&chips->linear_mapping, val << 24, (1 << 24));
                     break;
                 }
