@@ -12693,7 +12693,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* The base board hasa Holtek HT6542B with AMIKey-2 (updated 'H') KBC firmware. */
+    /* The base board has a Holtek HT6542B with AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name = "[i440FX] ASUS P/I-P65UP5 (C-P6ND)",
         .internal_name = "p65up5_cp6nd",
