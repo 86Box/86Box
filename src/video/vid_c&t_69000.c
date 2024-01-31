@@ -36,10 +36,55 @@
 #include <86box/vid_ddc.h>
 #include <assert.h>
 
+#pragma pack(push, 1)
+typedef struct chips_69000_bitblt_t
+{
+    /* BR00 - Source and Destination Span Register. */
+    uint16_t source_span;
+    uint16_t destination_span;
+
+    /* BR01 - Pattern/Source Expansion Background Color & Transparency Key Register. */
+    uint32_t pattern_source_key_bg;
+
+    /* BR02 - Pattern/Source Expansion Foreground Color Register. */
+    uint32_t pattern_source_key_fg;
+
+    /* BR03 - Monochrome Source Control Register. */
+    uint8_t monochrome_source_left_clip;
+    uint8_t monochrome_source_right_clip;
+    uint8_t monochrome_source_initial_discard;
+    uint8_t monochrome_source_alignment : 3;
+    uint8_t monochrome_source_expansion_color_reg_select : 1;
+    uint8_t dummy_8 : 4;
+
+    /* BR04 - BitBLT Control Register. */
+    uint32_t bitblt_control;
+
+    /* BR05 - Pattern Address Register. */
+    uint32_t pat_addr;
+
+    /* BR06 - Source Address Register. */
+    uint32_t source_addr;
+
+    /* BR07 - Destination Address Register. */
+    uint32_t destination_addr;
+
+    /* BR08 - Destination Width & Height Register. */
+    uint16_t destination_width;
+    uint16_t destination_height;
+
+    /* BR09 - Source Expansion Background Color & Transparency Key Register. */
+    uint32_t source_key_bg;
+
+    /* BR0A - Source Expansion Foreground Color Register. */
+    uint32_t source_key_fg;
+};
+#pragma pack(pop)
+
 typedef struct chips_69000_t {
     svga_t        svga;
     uint8_t       pci_conf_status;
-    uint8_t       slot;
+    uint8_t       slot, irq_state;
     uint8_t       pci_line_interrupt;
     uint8_t       pci_rom_enable;
     uint8_t       read_write_bank;
@@ -65,10 +110,20 @@ typedef struct chips_69000_t {
         uint8_t mem_regs_b[4 * 4];
     };
     union {
-        uint32_t bitblt_regs[16];
-        uint16_t bitblt_regs_w[16 * 2];
-        uint8_t bitblt_regs_b[16 * 4];
+        uint32_t bitblt_regs[11];
+        uint16_t bitblt_regs_w[11 * 2];
+        uint8_t bitblt_regs_b[11 * 4];
+        struct chips_69000_bitblt_t bitblt;
     };
+
+    struct
+    {
+        struct chips_69000_bitblt_t bitblt;
+
+        uint32_t actual_source_height;
+        uint32_t actual_destination_height;
+        uint8_t bytes_per_pixel;
+    } bitblt_running;
 
     union {
         uint16_t subsys_vid;
@@ -146,6 +201,20 @@ chips_69000_write_flat_panel(chips_69000_t* chips, uint8_t val)
 }
 
 void
+chips_69000_interrupt(chips_69000_t* chips)
+{
+    pci_irq(chips->slot, PCI_INTA, 0, !!((chips->mem_regs[0] & chips->mem_regs[1]) & 0x80004040), &chips->irq_state);
+}
+
+void
+chips_69000_bitblt_interrupt(chips_69000_t* chips)
+{
+    chips->mem_regs[1] |= 1 << 31;
+
+    chips_69000_interrupt(chips);
+}
+
+void
 chips_69000_do_rop_8bpp(uint8_t *dst, uint8_t src, uint8_t rop)
 {
     switch (rop) {
@@ -197,63 +266,6 @@ chips_69000_do_rop_8bpp(uint8_t *dst, uint8_t src, uint8_t rop)
             *dst = 0xFF;
             break;
     }
-}
-
-void
-chips_69000_do_rop_15bpp(uint16_t *dst, uint16_t src, uint8_t rop)
-{
-    uint16_t orig_dst = *dst & 0x8000;
-    switch (rop) {
-        case 0x00:
-            *dst = 0;
-            break;
-        case 0x11:
-            *dst = ~(*dst) & ~src;
-            break;
-        case 0x22:
-            *dst &= ~src;
-            break;
-        case 0x33:
-            *dst = ~src;
-            break;
-        case 0x44:
-            *dst = src & ~(*dst);
-            break;
-        case 0x55:
-            *dst = ~*dst;
-            break;
-        case 0x66:
-            *dst ^= src;
-            break;
-        case 0x77:
-            *dst = ~src | ~(*dst);
-            break;
-        case 0x88:
-            *dst &= src;
-            break;
-        case 0x99:
-            *dst ^= ~src;
-            break;
-        case 0xAA:
-            break; /* No-op. */
-        case 0xBB:
-            *dst |= ~src;
-            break;
-        case 0xCC:
-            *dst = src;
-            break;
-        case 0xDD:
-            *dst = src | ~(*dst);
-            break;
-        case 0xEE:
-            *dst |= src;
-            break;
-        case 0xFF:
-            *dst = ~0;
-            break;
-    }
-    *dst &= 0x7FFF;
-    *dst |= orig_dst;
 }
 
 void
@@ -422,66 +434,6 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
             *dst = 0xFF;
             break;
     }
-}
-
-void
-chips_69000_do_rop_15bpp_patterned(uint16_t *dst, uint16_t src, uint8_t nonpattern_src, uint8_t rop)
-{
-    uint16_t orig_dst = *dst & 0x8000;
-    switch (rop) {
-        case 0x00:
-            *dst = 0;
-            break;
-        case 0x05:
-            *dst = ~(*dst) & ~src;
-            break;
-        case 0x0A:
-            *dst &= ~src;
-            break;
-        case 0x0F:
-            *dst = ~src;
-            break;
-        case 0x50:
-            *dst = src & ~(*dst);
-            break;
-        case 0x55:
-            *dst = ~*dst;
-            break;
-        case 0x5A:
-            *dst ^= src;
-            break;
-        case 0x5F:
-            *dst = ~src | ~(*dst);
-            break;
-        case 0xB8:
-            *dst = (((src ^ *dst) & nonpattern_src) ^ src);
-            break;
-        case 0xA0:
-            *dst &= src;
-            break;
-        case 0xA5:
-            *dst ^= ~src;
-            break;
-        case 0xAA:
-            break; /* No-op. */
-        case 0xAF:
-            *dst |= ~src;
-            break;
-        case 0xF0:
-            *dst = src;
-            break;
-        case 0xF5:
-            *dst = src | ~(*dst);
-            break;
-        case 0xFA:
-            *dst |= src;
-            break;
-        case 0xFF:
-            *dst = 0xFF;
-            break;
-    }
-    *dst &= 0x7FFF;
-    *dst |= orig_dst;
 }
 
 void
@@ -703,6 +655,24 @@ chips_69000_recalc_banking(chips_69000_t *chips)
     }*/
 }
 
+void
+chips_69000_setup_bitblt(chips_69000_t* chips)
+{
+    chips->engine_active = 1;
+    chips->bitblt_running.bitblt = chips->bitblt;
+    chips->bitblt_running.actual_source_height = chips->bitblt.destination_height;
+    chips->bitblt_running.actual_destination_height = chips->bitblt.destination_height;
+
+    if (!chips->bitblt_running.actual_destination_height) {
+        chips->bitblt_running.actual_destination_height = 1;
+    }
+    
+
+    /*Stubbed!*/
+    chips->engine_active = 0;
+    chips_69000_bitblt_interrupt(chips);
+}
+
 uint8_t
 chips_69000_read_ext_reg(chips_69000_t* chips)
 {
@@ -735,6 +705,11 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             break;
         case 0x0A:
             val = chips->ext_regs[index] & 0x37;
+            break;
+        case 0x20:
+            val &= ~1;
+            val |= !!(chips->bitblt.bitblt_control & (1 << 31));
+            /* TODO: Handle BitBLT reset, if required. */
             break;
         case 0x63:
             {
@@ -983,7 +958,6 @@ chips_69000_in(uint16_t addr, void *p)
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
                 temp >>= 2;
             break;
-#if 1
         case 0x3D0:
             return chips->flat_panel_index;
         case 0x3D1:
@@ -992,7 +966,6 @@ chips_69000_in(uint16_t addr, void *p)
             return chips->mm_index;
         case 0x3D3:
             return chips_69000_read_multimedia(chips);
-#endif
         case 0x3D4:
             temp = svga->crtcreg;
             break;
@@ -1146,6 +1119,7 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
 uint8_t
 chips_69000_readb_mmio(uint32_t addr, chips_69000_t* chips)
 {
+    addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
             return chips->bitblt_regs_b[addr & 0xFF];
@@ -1208,6 +1182,7 @@ chips_69000_readb_mmio(uint32_t addr, chips_69000_t* chips)
 uint16_t
 chips_69000_readw_mmio(uint32_t addr, chips_69000_t* chips)
 {
+    addr &= 0xFFF;
     switch (addr & 0xFFF) {
         default:
             return chips_69000_readb_mmio(addr, chips) | (chips_69000_readb_mmio(addr + 1, chips) << 8);
@@ -1218,6 +1193,7 @@ chips_69000_readw_mmio(uint32_t addr, chips_69000_t* chips)
 uint32_t
 chips_69000_readl_mmio(uint32_t addr, chips_69000_t* chips)
 {
+    addr &= 0xFFF;
     switch (addr & 0xFFF) {
         default:
             return chips_69000_readw_mmio(addr, chips) | (chips_69000_readw_mmio(addr + 2, chips) << 16);
@@ -1228,13 +1204,44 @@ chips_69000_readl_mmio(uint32_t addr, chips_69000_t* chips)
 void
 chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
 {
+    addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
             chips->bitblt_regs_b[addr & 0xFF] = val;
-            if ((addr & 0xFFF) == 0x023)
-                pclog("BitBLT/Draw operation\n");
+            if ((addr & 0xFFF) == 0x023) {
+                uint8_t cntr = 0;
+                pclog("BitBLT/Draw operation %hd\n", (uint8_t)cntr++);
+                chips_69000_setup_bitblt(chips);
+            }
             break;
         case 0x600 ... 0x60F:
+            switch (addr & 0xFFF)
+            {
+                case 0x600 ... 0x603:
+                {
+                    chips->mem_regs_b[addr & 0xF] = val;
+                    chips->mem_regs[addr >> 2] &= 0x80004040;
+                    if (addr == 0x605 || addr == 0x607)
+                        chips_69000_interrupt(chips);
+                    break;
+                }
+
+                case 0x604 ... 0x607:
+                {
+                    chips->mem_regs_b[addr & 0xF] &= ~val;
+                    chips->mem_regs[addr >> 2] &= 0x80004040;
+                    if (addr == 0x605 || addr == 0x607)
+                        chips_69000_interrupt(chips);
+                    break;
+                }
+
+                case 0x60c ... 0x60f:
+                {
+                    chips->mem_regs_b[addr & 0xF] = val;
+                    break;
+                }
+                
+            }
             chips->mem_regs_b[addr & 0xF] = val;
             break;
         case 0x768:
@@ -1293,6 +1300,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
 void
 chips_69000_writew_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
 {
+    addr &= 0xFFF;
     switch (addr & 0xFFF) {
         default:
             chips_69000_writeb_mmio(addr, val, chips);
@@ -1304,6 +1312,7 @@ chips_69000_writew_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
 void
 chips_69000_writel_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
 {
+    addr &= 0xFFF;
     switch (addr & 0xFFF) {
         default:
             chips_69000_writew_mmio(addr, val, chips);
@@ -1385,18 +1394,12 @@ chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p)
 }
 
 void
-chips_69000_vsync_start(svga_t *svga)
-{
-    /* TODO: PCI interrupts for this. */
-    chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
-    
-}
-
-void
 chips_69000_vblank_start(svga_t *svga)
 {
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
-    /* Needed? */
+    chips->mem_regs[1] |= 1 << 14;
+    
+    chips_69000_interrupt(chips);
 }
 
 static void *
@@ -1425,7 +1428,6 @@ chips_69000_init(const device_t *info)
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
     chips->svga.recalctimings_ex = chips_69000_recalctimings;
-    chips->svga.vsync_callback   = chips_69000_vsync_start;
     chips->svga.vblank_start     = chips_69000_vblank_start;
 
     mem_mapping_add(&chips->linear_mapping, 0, 0, chips_69000_readb_linear, chips_69000_readw_linear, chips_69000_readl_linear, chips_69000_writeb_linear, chips_69000_writew_linear, chips_69000_writel_linear, NULL, MEM_MAPPING_EXTERNAL, chips);
@@ -1444,7 +1446,7 @@ chips_69000_init(const device_t *info)
     
     chips->flat_panel_regs[0x01] = 1;
 
-    sizeof(chips->bitblt_regs);
+    sizeof(struct chips_69000_bitblt_t);
 
     return chips;
 }
