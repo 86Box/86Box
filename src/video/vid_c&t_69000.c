@@ -130,6 +130,9 @@ typedef struct chips_69000_t {
         int x_dir, y_dir;
 
         uint8_t bytes_per_pixel;
+
+        /* Byte counter for BitBLT port writes. */
+        uint8_t bytes_written;
     } bitblt_running;
 
     union {
@@ -693,7 +696,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     uint16_t pattern_data_16bpp[8][8];
     uint32_t pattern_pixel = 0;
     uint32_t dest_pixel = 0;
-    uint32_t dest_addr = chips->bitblt_running.bitblt.destination_addr + (chips->bitblt_running.y * chips->bitblt.destination_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
+    uint32_t dest_addr = chips->bitblt_running.bitblt.destination_addr + (chips->bitblt_running.y * chips->bitblt_running.bitblt.destination_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
     uint8_t vert_pat_alignment = (chips->bitblt_running.bitblt.bitblt_control >> 20) & 7;
 
     switch (chips->bitblt_running.bytes_per_pixel) {
@@ -723,7 +726,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
             pattern_data = 0;
         else
-            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + (vert_pat_alignment + chips->bitblt_running.count_y), chips);
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + chips->bitblt_running.count_y) & 7), chips);
 
         is_true = !!(pattern_data & (1 << (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.count_x) & 7)));
 
@@ -793,7 +796,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
 
     chips->bitblt_running.actual_destination_width = chips->bitblt_running.bitblt.destination_width / chips->bitblt_running.bytes_per_pixel;
 
-    switch ((chips->bitblt.bitblt_control >> 8) & 3) {
+    switch ((chips->bitblt_running.bitblt.bitblt_control >> 8) & 3) {
         case 0:
             chips->bitblt_running.x = 0;
             chips->bitblt_running.y = 0;
@@ -808,13 +811,13 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             break;
         case 2:
             chips->bitblt_running.x = 0;
-            chips->bitblt_running.y = chips->bitblt_running.bitblt.destination_height - 1;
+            chips->bitblt_running.y = chips->bitblt_running.bitblt.destination_height;
             chips->bitblt_running.x_dir = 1;
             chips->bitblt_running.y_dir = -1;
             break;
         case 3:
             chips->bitblt_running.x = chips->bitblt_running.actual_destination_width - 1;
-            chips->bitblt_running.y = chips->bitblt_running.bitblt.destination_height - 1;
+            chips->bitblt_running.y = chips->bitblt_running.bitblt.destination_height;
             chips->bitblt_running.x_dir = -1;
             chips->bitblt_running.y_dir = -1;
             break;
@@ -865,7 +868,11 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
 
         chips->bitblt_running.y += chips->bitblt_running.y_dir;
         chips->bitblt_running.count_x = 0;
-    } while ((++chips->bitblt_running.count_y) < chips->bitblt_running.actual_destination_height);
+        if (chips->bitblt_running.bitblt.bitblt_control & (1 << 8)) {
+            chips->bitblt_running.x = chips->bitblt_running.actual_destination_width - 1;
+        } else
+            chips->bitblt_running.x = 0;
+    } while ((chips->bitblt_running.count_y++) < chips->bitblt_running.actual_destination_height);
     
     chips_69000_bitblt_interrupt(chips);
 }
