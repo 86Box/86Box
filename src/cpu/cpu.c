@@ -1915,7 +1915,7 @@ cpu_CPUID(void)
         case CPU_i486SX_SLENH:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -1929,7 +1929,7 @@ cpu_CPUID(void)
         case CPU_i486DX_SLENH:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -1945,21 +1945,21 @@ cpu_CPUID(void)
 
         case CPU_ENH_Am486DX:
             if (!EAX) {
-                EAX = 1;
-                EBX = 0x68747541;
+                EAX = 0x00000001;
+                EBX = 0x68747541;/* AuthenticAMD */
                 ECX = 0x444D4163;
                 EDX = 0x69746E65;
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU; /*FPU*/
+                EDX       = CPUID_FPU;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
 
         case CPU_WINCHIP:
             if (!EAX) {
-                EAX = 1;
+                EAX = 0x00000001;
                 if (msr.fcr2 & (1 << 14)) {
                     EBX = msr.fcr3 >> 32;
                     ECX = msr.fcr3 & 0xffffffff;
@@ -1984,7 +1984,7 @@ cpu_CPUID(void)
         case CPU_WINCHIP2:
             switch (EAX) {
                 case 0:
-                    EAX = 1;
+                    EAX = 0x00000001;
                     if (msr.fcr2 & (1 << 14)) {
                         EBX = msr.fcr3 >> 32;
                         ECX = msr.fcr3 & 0xffffffff;
@@ -2041,7 +2041,7 @@ cpu_CPUID(void)
         case CPU_PENTIUM:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -2058,7 +2058,7 @@ cpu_CPUID(void)
         case CPU_K5:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x68747541;
+                EBX = 0x68747541; /* AuthenticAMD */
                 EDX = 0x69746E65;
                 ECX = 0x444D4163;
             } else if (EAX == 1) {
@@ -2070,91 +2070,111 @@ cpu_CPUID(void)
             break;
 
         case CPU_5K86:
-            if (!EAX) {
-                EAX = 0x00000001;
-                EBX = 0x68747541;
-                EDX = 0x69746E65;
-                ECX = 0x444D4163;
-            } else if (EAX == 1) {
-                EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE;
-            } else if (EAX == 0x80000000) {
-                EAX = 0x80000005;
-                EBX = ECX = EDX = 0;
-            } else if (EAX == 0x80000001) {
-                EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE;
-            } else if (EAX == 0x80000002) {
-                EAX = 0x2D444D41;
-                EBX = 0x7428354B;
-                ECX = 0x5020296D;
-                EDX = 0x65636F72;
-            } else if (EAX == 0x80000003) {
-                EAX = 0x726F7373;
-                EBX = ECX = EDX = 0;
-            } else if (EAX == 0x80000004)
-                EAX = EBX = ECX = EDX = 0;
-            else if (EAX == 0x80000005) {
-                EAX = 0;
-                EBX = 0x04800000;
-                ECX = 0x08040120;
-                EDX = 0x10040120;
-            } else
-                EAX = EBX = ECX = EDX = 0;
+            switch (EAX) {
+                case 0:
+                    EAX = 0x00000001;
+                    EBX = 0x68747541; /* AuthenticAMD */
+                    EDX = 0x69746E65;
+                    ECX = 0x444D4163;
+                    break;
+                case 1:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE;
+                    break;
+                case 0x80000000:
+                    EAX = 0x80000005;
+                    EBX = ECX = EDX = 0;
+                    break;
+                case 0x80000001:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE;
+                    break;
+                case 0x80000002:      /* Processor name string */
+                    EAX = 0x2D444D41; /* AMD-K5(tm) Proce */
+                    EBX = 0x7428354B;
+                    ECX = 0x5020296D;
+                    EDX = 0x65636F72;
+                    break;
+                case 0x80000003:      /* Processor name string */
+                    EAX = 0x726F7373; /* ssor */
+                    EBX = ECX = EDX = 0;
+                    break;
+                case 0x80000005:      /* Cache information */
+                    EAX = 0;
+                    EBX = 0x04800000; /* TLBs */
+                    ECX = 0x08040120; /* L1 data cache */
+                    EDX = 0x10040120; /* L1 instruction cache */
+                    break;
+                default:
+                    EAX = EBX = ECX = EDX = 0;
+                    break;
+            }
             break;
 #endif
 
         case CPU_K6:
-            if (!EAX) {
-                EAX = 0x00000001;
-                EBX = 0x68747541;
-                EDX = 0x69746E65;
-                ECX = 0x444D4163;
-            } else if (EAX == 1) {
-                EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
-            } else if (EAX == 0x80000000) {
-                EAX = 0x80000005;
-                EBX = ECX = EDX = 0;
-            } else if (EAX == 0x80000001) {
-                EAX = CPUID + 0x100;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX;
-            } else if (EAX == 0x80000002) {
-                EAX = 0x2D444D41;
-                EBX = 0x6D74364B;
-                ECX = 0x202F7720;
-                EDX = 0x746C756D;
-            } else if (EAX == 0x80000003) {
-                EAX = 0x64656D69;
-                EBX = 0x65206169;
-                ECX = 0x6E657478;
-                EDX = 0x6E6F6973;
-            } else if (EAX == 0x80000004) {
-                EAX = 0x73;
-                EBX = ECX = EDX = 0;
-            } else if (EAX == 0x80000005) {
-                EAX = 0;
-                EBX = 0x02800140;
-                ECX = 0x20020220;
-                EDX = 0x20020220;
-            } else if (EAX == 0x8FFFFFFF) {
-                EAX = 0x4778654E;
-                EBX = 0x72656E65;
-                ECX = 0x6F697461;
-                EDX = 0x444D416E;
-            } else
-                EAX = EBX = ECX = EDX = 0;
+            switch (EAX) {
+                case 0:
+                    EAX = 0x00000001;
+                    EBX = 0x68747541; /* AuthenticAMD */
+                    EDX = 0x69746E65;
+                    ECX = 0x444D4163;
+                    break;
+                case 1:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
+                    break;
+                case 0x80000000:
+                    EAX = 0x80000005;
+                    EBX = ECX = EDX = 0;
+                    break;
+                case 0x80000001:
+                    EAX = CPUID + 0x100;
+                    EBX = ECX = 0;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX;
+                    break;
+                case 0x80000002:      /* Processor name string */
+                    EAX = 0x2D444D41; /* AMD-K6tm w/ mult */
+                    EBX = 0x6D74364B;
+                    ECX = 0x202F7720;
+                    EDX = 0x746C756D;
+                    break;
+                case 0x80000003:      /* Processor name string */
+                    EAX = 0x64656D69; /* imedia extension */
+                    EBX = 0x65206169;
+                    ECX = 0x6E657478;
+                    EDX = 0x6E6F6973;
+                    break;
+                case 0x80000004:      /* Processor name string */
+                    EAX = 0x73;       /* s */
+                    EBX = ECX = EDX = 0;
+                    break;
+                case 0x80000005:      /* Cache information */
+                    EAX = 0;
+                    EBX = 0x02800140; /* TLBs */
+                    ECX = 0x20020220; /* L1 data cache */
+                    EDX = 0x20020220; /* L1 instruction cache */
+                    break;
+                case 0x8FFFFFFF:      /* Easter egg */
+                    EAX = 0x4778654E; /* NexGenerationAMD */
+                    EBX = 0x72656E65;
+                    ECX = 0x6F697461;
+                    EDX = 0x444D416E;
+                    break;
+                default:
+                    EAX = EBX = ECX = EDX = 0;
+                    break;
+            }
             break;
 
         case CPU_K6_2:
         case CPU_K6_2C:
             switch (EAX) {
                 case 0:
-                    EAX = 1;
+                    EAX = 0x00000001;
                     EBX = 0x68747541; /* AuthenticAMD */
                     ECX = 0x444d4163;
                     EDX = 0x69746e65;
@@ -2189,11 +2209,11 @@ cpu_CPUID(void)
                     ECX = 0x00000000;
                     EDX = 0x00000000;
                     break;
-                case 0x80000005: /*Cache information*/
+                case 0x80000005: /* Cache information */
                     EAX = 0;
-                    EBX = 0x02800140; /*TLBs*/
-                    ECX = 0x20020220; /*L1 data cache*/
-                    EDX = 0x20020220; /*L1 instruction cache*/
+                    EBX = 0x02800140; /* TLBs */
+                    ECX = 0x20020220; /* L1 data cache */
+                    EDX = 0x20020220; /* L1 instruction cache */
                     break;
                 default:
                     EAX = EBX = ECX = EDX = 0;
@@ -2204,7 +2224,7 @@ cpu_CPUID(void)
         case CPU_K6_3:
             switch (EAX) {
                 case 0:
-                    EAX = 1;
+                    EAX = 0x00000001;
                     EBX = 0x68747541; /* AuthenticAMD */
                     ECX = 0x444d4163;
                     EDX = 0x69746e65;
@@ -2238,8 +2258,8 @@ cpu_CPUID(void)
                 case 0x80000005: /* Cache information */
                     EAX = 0;
                     EBX = 0x02800140; /* TLBs */
-                    ECX = 0x20020220; /*L1 data cache*/
-                    EDX = 0x20020220; /*L1 instruction cache*/
+                    ECX = 0x20020220; /* L1 data cache */
+                    EDX = 0x20020220; /* L1 instruction cache */
                     break;
                 case 0x80000006: /* L2 Cache information */
                     EAX = EBX = EDX = 0;
@@ -2255,7 +2275,7 @@ cpu_CPUID(void)
         case CPU_K6_3P:
             switch (EAX) {
                 case 0:
-                    EAX = 1;
+                    EAX = 0x00000001;
                     EBX = 0x68747541; /* AuthenticAMD */
                     ECX = 0x444d4163;
                     EDX = 0x69746e65;
@@ -2312,7 +2332,7 @@ cpu_CPUID(void)
         case CPU_PENTIUMMMX:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -2327,7 +2347,7 @@ cpu_CPUID(void)
         case CPU_Cx6x86:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x69727943;
+                EBX = 0x69727943; /* CyrixInstead */
                 EDX = 0x736e4978;
                 ECX = 0x64616574;
             } else if (EAX == 1) {
@@ -2341,7 +2361,7 @@ cpu_CPUID(void)
         case CPU_Cx6x86L:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x69727943;
+                EBX = 0x69727943; /* CyrixInstead */
                 EDX = 0x736e4978;
                 ECX = 0x64616574;
             } else if (EAX == 1) {
@@ -2355,7 +2375,7 @@ cpu_CPUID(void)
         case CPU_CxGX1:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x69727943;
+                EBX = 0x69727943; /* CyrixInstead */
                 EDX = 0x736e4978;
                 ECX = 0x64616574;
             } else if (EAX == 1) {
@@ -2369,7 +2389,7 @@ cpu_CPUID(void)
         case CPU_Cx6x86MX:
             if (!EAX) {
                 EAX = 0x00000001;
-                EBX = 0x69727943;
+                EBX = 0x69727943; /* CyrixInstead */
                 EDX = 0x736e4978;
                 ECX = 0x64616574;
             } else if (EAX == 1) {
@@ -2384,7 +2404,7 @@ cpu_CPUID(void)
         case CPU_PENTIUMPRO:
             if (!EAX) {
                 EAX = 0x00000002;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -2407,7 +2427,7 @@ cpu_CPUID(void)
         case CPU_PENTIUM2:
             if (!EAX) {
                 EAX = 0x00000002;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -2430,7 +2450,7 @@ cpu_CPUID(void)
         case CPU_PENTIUM2D:
             if (!EAX) {
                 EAX = 0x00000002;
-                EBX = 0x756e6547;
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
@@ -2461,7 +2481,7 @@ cpu_CPUID(void)
         case CPU_CYRIX3S:
             switch (EAX) {
                 case 0:
-                    EAX = 1;
+                    EAX = 0x00000001;
                     if (msr.fcr2 & (1 << 14)) {
                         EBX = msr.fcr3 >> 32;
                         ECX = msr.fcr3 & 0xffffffff;
