@@ -78,7 +78,7 @@ typedef struct chips_69000_bitblt_t
 
     /* BR0A - Source Expansion Foreground Color Register. */
     uint32_t source_key_fg;
-};
+} chips_69000_bitblt_t;
 #pragma pack(pop)
 
 typedef struct chips_69000_t {
@@ -122,6 +122,13 @@ typedef struct chips_69000_t {
 
         uint32_t actual_source_height;
         uint32_t actual_destination_height;
+
+        uint32_t actual_destination_width;
+
+        uint32_t count_x, count_y;
+        uint32_t x, y;
+        int x_dir, y_dir;
+
         uint8_t bytes_per_pixel;
     } bitblt_running;
 
@@ -143,6 +150,13 @@ typedef struct chips_69000_t {
 } chips_69000_t;
 
 static video_timings_t timing_sis = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 20, .read_w = 20, .read_l = 35 };
+
+uint8_t chips_69000_readb_linear(uint32_t addr, void *p);
+uint16_t chips_69000_readw_linear(uint32_t addr, void *p);
+uint32_t chips_69000_readl_linear(uint32_t addr, void *p);
+void chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *p);
+void chips_69000_writew_linear(uint32_t addr, uint16_t val, void *p);
+void chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p);
 
 /* Multimedia handling. */
 uint8_t
@@ -209,6 +223,7 @@ chips_69000_interrupt(chips_69000_t* chips)
 void
 chips_69000_bitblt_interrupt(chips_69000_t* chips)
 {
+    chips->engine_active = 0;
     chips->mem_regs[1] |= 1 << 31;
 
     chips_69000_interrupt(chips);
@@ -382,6 +397,10 @@ chips_69000_do_rop_24bpp(uint32_t *dst, uint32_t src, uint8_t rop)
 void
 chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_src, uint8_t rop)
 {
+    if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
+        return chips_69000_do_rop_8bpp(dst, nonpattern_src, rop);
+    }
+
     switch (rop) {
         case 0x00:
             *dst = 0;
@@ -439,6 +458,10 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
 void
 chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint8_t nonpattern_src, uint8_t rop)
 {
+    if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
+        return chips_69000_do_rop_16bpp(dst, nonpattern_src, rop);
+    }
+
     switch (rop) {
         case 0x00:
             *dst = 0;
@@ -497,6 +520,11 @@ void
 chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint8_t nonpattern_src, uint8_t rop)
 {
     uint32_t orig_dst = *dst & 0xFF000000;
+
+    if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
+        return chips_69000_do_rop_24bpp(dst, nonpattern_src, rop);
+    }
+
     switch (rop) {
         case 0x00:
             *dst = 0;
@@ -656,20 +684,189 @@ chips_69000_recalc_banking(chips_69000_t *chips)
 }
 
 void
+chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
+{
+    uint32_t pattern_fg = chips->bitblt_running.bitblt.pattern_source_key_fg;
+    uint32_t pattern_bg = chips->bitblt_running.bitblt.pattern_source_key_bg;
+    uint8_t pattern_data = 0;
+    uint8_t pattern_data_8bpp[8][8];
+    uint16_t pattern_data_16bpp[8][8];
+    uint32_t pattern_pixel = 0;
+    uint32_t dest_pixel = 0;
+    uint32_t dest_addr = chips->bitblt_running.bitblt.destination_addr + (chips->bitblt_running.y * chips->bitblt.destination_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
+    uint8_t vert_pat_alignment = (chips->bitblt_running.bitblt.bitblt_control >> 20) & 7;
+
+    switch (chips->bitblt_running.bytes_per_pixel) {
+        case 1: /* 8 bits-per-pixel. */
+            {
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                break;
+            }
+        case 2: /* 16 bits-per-pixel. */
+            {
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
+                break;
+            }
+        case 3: /* 24 bits-per-pixel. */
+            {
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 2, chips) << 16;
+                break;
+            }
+    }
+
+    /* TODO: Find out from where it actually pulls the exact pattern x and y values. */
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 18)) {
+        uint8_t is_true = 0;
+        if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
+            pattern_data = 0;
+        else
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + (vert_pat_alignment + chips->bitblt_running.count_y), chips);
+
+        is_true = !!(pattern_data & (1 << (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.count_x) & 7)));
+
+        if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 17))) {
+            return;
+        }
+
+        pattern_pixel = is_true ? pattern_fg : pattern_bg;
+
+        pattern_pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
+    }
+
+    switch (chips->bitblt_running.bytes_per_pixel) {
+        case 1: /* 8 bits-per-pixel. */
+            {
+                chips_69000_do_rop_8bpp_patterned((uint8_t*)&dest_pixel, pattern_pixel, pixel, chips->bitblt_running.bitblt.bitblt_control & 0xFF);
+                break;
+            }
+        case 2: /* 16 bits-per-pixel. */
+            {
+                chips_69000_do_rop_16bpp_patterned((uint16_t*)&dest_pixel, pattern_pixel, pixel, chips->bitblt_running.bitblt.bitblt_control & 0xFF);
+                break;
+            }
+        case 3: /* 24 bits-per-pixel. */
+            {
+                chips_69000_do_rop_24bpp_patterned((uint32_t*)&dest_pixel, pattern_pixel, pixel, chips->bitblt_running.bitblt.bitblt_control & 0xFF);
+                break;
+            }
+    }
+
+    switch (chips->bitblt_running.bytes_per_pixel) {
+        case 1: /* 8 bits-per-pixel. */
+            {
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                break;
+            }
+        case 2: /* 16 bits-per-pixel. */
+            {
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
+                break;
+            }
+        case 3: /* 24 bits-per-pixel. */
+            {
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 2, (dest_pixel >> 16) & 0xFF, chips);
+                break;
+            }
+    }
+}
+
+void
 chips_69000_setup_bitblt(chips_69000_t* chips)
 {
     chips->engine_active = 1;
     chips->bitblt_running.bitblt = chips->bitblt;
     chips->bitblt_running.actual_source_height = chips->bitblt.destination_height;
     chips->bitblt_running.actual_destination_height = chips->bitblt.destination_height;
+    chips->bitblt_running.count_x = chips->bitblt_running.count_y = 0;
 
-    if (!chips->bitblt_running.actual_destination_height) {
-        chips->bitblt_running.actual_destination_height = 1;
+    if (chips->bitblt.bitblt_control & (1 << 23)) {
+        chips->bitblt_running.bytes_per_pixel = 1 + ((chips->bitblt.bitblt_control >> 24) & 3);
+    } else {
+        chips->bitblt_running.bytes_per_pixel = 1 + ((chips->ext_regs[0x20] >> 4) & 3);
     }
-    
 
-    /*Stubbed!*/
-    chips->engine_active = 0;
+    chips->bitblt_running.actual_destination_width = chips->bitblt_running.bitblt.destination_width / chips->bitblt_running.bytes_per_pixel;
+
+    switch ((chips->bitblt.bitblt_control >> 8) & 3) {
+        case 0:
+            chips->bitblt_running.x = 0;
+            chips->bitblt_running.y = 0;
+            chips->bitblt_running.x_dir = 1;
+            chips->bitblt_running.y_dir = 1;
+            break;
+        case 1:
+            chips->bitblt_running.x = chips->bitblt_running.actual_destination_width - 1;
+            chips->bitblt_running.y = 0;
+            chips->bitblt_running.x_dir = -1;
+            chips->bitblt_running.y_dir = 1;
+            break;
+        case 2:
+            chips->bitblt_running.x = 0;
+            chips->bitblt_running.y = chips->bitblt_running.bitblt.destination_height - 1;
+            chips->bitblt_running.x_dir = 1;
+            chips->bitblt_running.y_dir = -1;
+            break;
+        case 3:
+            chips->bitblt_running.x = chips->bitblt_running.actual_destination_width - 1;
+            chips->bitblt_running.y = chips->bitblt_running.bitblt.destination_height - 1;
+            chips->bitblt_running.x_dir = -1;
+            chips->bitblt_running.y_dir = -1;
+            break;
+    }
+
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
+        return;
+    }
+
+    /* Drawing is pointless if monochrome pattern is enabled, monochrome write-masking is enabled and solid pattern is enabled. */
+    if ((chips->bitblt_running.bitblt.bitblt_control & (1 << 17))
+        && (chips->bitblt_running.bitblt.bitblt_control & (1 << 18))
+        && (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))) {
+            chips_69000_bitblt_interrupt(chips);
+            return;
+        }
+
+    do {
+        do {
+            uint32_t pixel = 0;
+            uint32_t source_addr = chips->bitblt_running.bitblt.source_addr + (chips->bitblt_running.y * chips->bitblt.source_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
+            
+            switch (chips->bitblt_running.bytes_per_pixel) {
+                case 1: /* 8 bits-per-pixel. */
+                    {
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        break;
+                    }
+                case 2: /* 16 bits-per-pixel. */
+                    {
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
+                        break;
+                    }
+                case 3: /* 24 bits-per-pixel. */
+                    {
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
+                        pixel |= chips_69000_readb_linear(source_addr + 2, chips) << 16;
+                        break;
+                    }
+            }
+
+            chips_69000_process_pixel(chips, pixel);
+
+            chips->bitblt_running.x += chips->bitblt_running.x_dir;
+        } while ((chips->bitblt_running.count_x++) < chips->bitblt_running.actual_destination_width);
+
+        chips->bitblt_running.y += chips->bitblt_running.y_dir;
+        chips->bitblt_running.count_x = 0;
+    } while ((chips->bitblt_running.count_y++) < chips->bitblt_running.actual_destination_height);
+    
     chips_69000_bitblt_interrupt(chips);
 }
 
@@ -708,7 +905,7 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             break;
         case 0x20:
             val &= ~1;
-            val |= !!(chips->bitblt.bitblt_control & (1 << 31));
+            val |= !!chips->engine_active;
             /* TODO: Handle BitBLT reset, if required. */
             break;
         case 0x63:
@@ -729,18 +926,18 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             val = 0x0;
             break;
     }
-    if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
-    && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
-        pclog("C&T: Read ext reg 0x%02X, ret = 0x%02X\n", index, val);
+    // if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
+    // && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
+    //     pclog("C&T: Read ext reg 0x%02X, ret = 0x%02X\n", index, val);
     return val;
 }
 
 void
 chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
 {
-    if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
-    && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
-        pclog("C&T: Write ext reg 0x%02X, ret = 0x%02X\n", chips->ext_index, val);
+    // if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
+    // && (chips->ext_index < 0xE0 || chips->ext_index > 0xEB))
+    //     pclog("C&T: Write ext reg 0x%02X, ret = 0x%02X\n", chips->ext_index, val);
     switch (chips->ext_index) {
         case 0xA:
             chips->ext_regs[chips->ext_index] = val & 0x37;
@@ -1119,10 +1316,13 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
 uint8_t
 chips_69000_readb_mmio(uint32_t addr, chips_69000_t* chips)
 {
-    pclog("C&T Read 0x%X\n", addr);
+    //pclog("C&T Read 0x%X\n", addr);
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
+            if (addr == 0x10) {
+                return (chips->bitblt_regs_b[addr & 0xFF] & 0x7F) | (chips->engine_active ? 0x80 : 0x00);
+            }
             return chips->bitblt_regs_b[addr & 0xFF];
         case 0x600 ... 0x60F:
             return chips->mem_regs_b[addr & 0xF];
@@ -1205,12 +1405,12 @@ chips_69000_readl_mmio(uint32_t addr, chips_69000_t* chips)
 void
 chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
 {
-    pclog("C&T Write 0x%X, val = 0x%02X\n", addr, val);
+    //pclog("C&T Write 0x%X, val = 0x%02X\n", addr, val);
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
             chips->bitblt_regs_b[addr & 0xFF] = val;
-            if ((addr & 0xFFF) == 0x023) {
+            if ((addr & 0xFFF) == 0x023 && chips->bitblt_regs[0x8] != 0) {
                 uint8_t cntr = 0;
                 pclog("BitBLT/Draw operation %hd\n", (uint8_t)cntr++);
                 chips_69000_setup_bitblt(chips);
