@@ -437,7 +437,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Micoms XL-7 Turbo",
+        .name = "[8088] AMI XT clone",
         .internal_name = "amixt",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
