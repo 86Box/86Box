@@ -10570,7 +10570,7 @@ const machine_t machines[] = {
     /* Has Megakey 'R' KBC */
     {
         .name = "[SiS 5511] AMI Atlas PCI-II",
-        .internal_name = "AMIS727",
+        .internal_name = "amis727",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_SIS_5511,
         .init = machine_at_amis727_init,
