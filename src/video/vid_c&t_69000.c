@@ -133,6 +133,7 @@ typedef struct chips_69000_t {
 
         /* Byte counter for BitBLT port writes. */
         uint8_t bytes_written;
+        uint8_t bytes_port[4];
     } bitblt_running;
 
     union {
@@ -721,14 +722,15 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     }
 
     /* TODO: Find out from where it actually pulls the exact pattern x and y values. */
+    /* Also: is horizontal pattern alignment a requirement? */
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 18)) {
         uint8_t is_true = 0;
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
             pattern_data = 0;
         else
-            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + chips->bitblt_running.count_y) & 7), chips);
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + chips->bitblt_running.y) & 7), chips);
 
-        is_true = !!(pattern_data & (1 << (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.count_x) & 7)));
+        is_true = !!(pattern_data & (1 << (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)));
 
         if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 17))) {
             return;
@@ -737,6 +739,12 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         pattern_pixel = is_true ? pattern_fg : pattern_bg;
 
         pattern_pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
+    } else {
+        if (chips->bitblt_running.bytes_per_pixel == 1) {
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
+                                                        + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7), chips);
+        }
     }
 
     switch (chips->bitblt_running.bytes_per_pixel) {
@@ -787,6 +795,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.actual_source_height = chips->bitblt.destination_height;
     chips->bitblt_running.actual_destination_height = chips->bitblt.destination_height;
     chips->bitblt_running.count_x = chips->bitblt_running.count_y = 0;
+    chips->bitblt_running.bytes_written = 0;
 
     if (chips->bitblt.bitblt_control & (1 << 23)) {
         chips->bitblt_running.bytes_per_pixel = 1 + ((chips->bitblt.bitblt_control >> 24) & 3);
@@ -875,6 +884,43 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     } while ((chips->bitblt_running.count_y++) < chips->bitblt_running.actual_destination_height);
     
     chips_69000_bitblt_interrupt(chips);
+}
+
+void
+chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
+
+    if (!chips->engine_active)
+        return;
+
+    chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
+    if (chips->bitblt_running.bytes_written == chips->bitblt_running.bytes_per_pixel) {
+        uint32_t source_pixel = chips->bitblt_running.bytes_port[0];
+        chips->bitblt_running.bytes_written = 0;
+        if (chips->bitblt_running.bytes_per_pixel == 1)
+            source_pixel = (chips->bitblt_running.bytes_port[1] << 8);
+        if (chips->bitblt_running.bytes_per_pixel == 2)
+            source_pixel = (chips->bitblt_running.bytes_port[2] << 16);
+
+        chips_69000_process_pixel(chips, source_pixel);
+        chips->bitblt_running.x += chips->bitblt_running.x_dir;
+        chips->bitblt_running.count_x++;
+
+        if (chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
+            chips->bitblt_running.y += chips->bitblt_running.y_dir;
+            chips->bitblt_running.count_y++;
+
+            chips->bitblt_running.count_x = 0;
+            if (chips->bitblt_running.bitblt.bitblt_control & (1 << 8)) {
+                chips->bitblt_running.x = chips->bitblt_running.actual_destination_width - 1;
+            } else
+                chips->bitblt_running.x = 0;
+            
+            if (chips->bitblt_running.count_y > chips->bitblt_running.actual_destination_height) {
+                chips_69000_bitblt_interrupt(chips);
+                return;
+            }
+        }
+    }
 }
 
 uint8_t
@@ -1413,6 +1459,10 @@ void
 chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
 {
     //pclog("C&T Write 0x%X, val = 0x%02X\n", addr, val);
+    if (addr & 0x10000) {
+        chips_69000_bitblt_write(chips, val);
+        return;
+    }
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
@@ -1509,6 +1559,11 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
 void
 chips_69000_writew_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
 {
+    if (addr & 0x10000) {
+        chips_69000_bitblt_write(chips, val & 0xFF);
+        chips_69000_bitblt_write(chips, (val >> 8) & 0xFF);
+        return;
+    }
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         default:
@@ -1521,6 +1576,13 @@ chips_69000_writew_mmio(uint32_t addr, uint16_t val, chips_69000_t* chips)
 void
 chips_69000_writel_mmio(uint32_t addr, uint32_t val, chips_69000_t* chips)
 {
+    if (addr & 0x10000) {
+        chips_69000_bitblt_write(chips, val & 0xFF);
+        chips_69000_bitblt_write(chips, (val >> 8) & 0xFF);
+        chips_69000_bitblt_write(chips, (val >> 16) & 0xFF);
+        chips_69000_bitblt_write(chips, (val >> 24) & 0xFF);
+        return;
+    }
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         default:
