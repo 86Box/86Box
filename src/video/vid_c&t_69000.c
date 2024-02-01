@@ -861,11 +861,11 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             chips_69000_process_pixel(chips, pixel);
 
             chips->bitblt_running.x += chips->bitblt_running.x_dir;
-        } while ((chips->bitblt_running.count_x++) < chips->bitblt_running.actual_destination_width);
+        } while ((++chips->bitblt_running.count_x) < chips->bitblt_running.actual_destination_width);
 
         chips->bitblt_running.y += chips->bitblt_running.y_dir;
         chips->bitblt_running.count_x = 0;
-    } while ((chips->bitblt_running.count_y++) < chips->bitblt_running.actual_destination_height);
+    } while ((++chips->bitblt_running.count_y) < chips->bitblt_running.actual_destination_height);
     
     chips_69000_bitblt_interrupt(chips);
 }
