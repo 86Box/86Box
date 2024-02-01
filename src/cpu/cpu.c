@@ -55,30 +55,31 @@
 #define CCR3_NMI_EN   (1 << 1)
 
 enum {
-    CPUID_FPU       = (1 << 0),
-    CPUID_VME       = (1 << 1),
-    CPUID_DE        = (1 << 2),
-    CPUID_PSE       = (1 << 3),
-    CPUID_TSC       = (1 << 4),
-    CPUID_MSR       = (1 << 5),
-    CPUID_PAE       = (1 << 6),
-    CPUID_MCE       = (1 << 7),
-    CPUID_CMPXCHG8B = (1 << 8),
-    CPUID_APIC      = (1 << 9),
-    CPUID_AMDPGE    = (1 << 9),
-    CPUID_AMDSEP    = (1 << 10),
-    CPUID_SEP       = (1 << 11),
-    CPUID_MTRR      = (1 << 12),
-    CPUID_PGE       = (1 << 13),
-    CPUID_MCA       = (1 << 14),
-    CPUID_CMOV      = (1 << 15),
-    CPUID_MMX       = (1 << 23),
-    CPUID_FXSR      = (1 << 24)
+    CPUID_FPU       = (1 << 0),  /* On-chip Floating Point Unit */
+    CPUID_VME       = (1 << 1),  /* Virtual 8086 mode extensions */
+    CPUID_DE        = (1 << 2),  /* Debugging extensions */
+    CPUID_PSE       = (1 << 3),  /* Page Size Extension */
+    CPUID_TSC       = (1 << 4),  /* Time Stamp Counter */
+    CPUID_MSR       = (1 << 5),  /* Model-specific registers */
+    CPUID_PAE       = (1 << 6),  /* Physical Address Extension */
+    CPUID_MCE       = (1 << 7),  /* Machine Check Exception */
+    CPUID_CMPXCHG8B = (1 << 8),  /* CMPXCHG8B instruction */
+    CPUID_APIC      = (1 << 9),  /* On-chip APIC */
+    CPUID_AMDPGE    = (1 << 9),  /* Global Page Enable (AMD K5 Model 0 only) */
+    CPUID_AMDSEP    = (1 << 10), /* SYSCALL and SYSRET instructions (AMD K6 only) */
+    CPUID_SEP       = (1 << 11), /* SYSENTER and SYSEXIT instructions (SYSCALL and SYSRET if EAX=80000001h) */
+    CPUID_MTRR      = (1 << 12), /* Memory type range registers */
+    CPUID_PGE       = (1 << 13), /* Page Global Enable */
+    CPUID_MCA       = (1 << 14), /* Machine Check Architecture */
+    CPUID_CMOV      = (1 << 15), /* Conditional move instructions */
+    CPUID_PAT       = (1 << 16), /* Page Attribute Table */
+    CPUID_MMX       = (1 << 23), /* MMX technology */
+    CPUID_FXSR      = (1 << 24)  /* FXSAVE and FXRSTOR instructions */
 };
 
-/*Addition flags returned by CPUID function 0x80000001*/
-#define CPUID_3DNOW  (1UL << 31UL)
-#define CPUID_3DNOWE (1UL << 30UL)
+/* Additional flags returned by CPUID function 0x80000001 */
+#define CPUID_3DNOWE (1UL << 30UL) /* Extended 3DNow! instructions */
+#define CPUID_3DNOW  (1UL << 31UL) /* 3DNow! instructions */
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
@@ -2560,14 +2561,17 @@ cpu_RDMSR(void)
         case CPU_IBM486BL:
             EAX = EDX = 0;
             switch (ECX) {
+                /* Processor Operation Register */
                 case 0x1000:
                     EAX = msr.ibm_por & ((cpu_s->cpu_type > CPU_IBM386SLC) ? 0xffeff : 0xfeff);
                     break;
 
+                /* Cache Region Control Register */
                 case 0x1001:
                     EAX = msr.ibm_crcr & 0xffffffffff;
                     break;
 
+                /* Processor Operation Register */
                 case 0x1002:
                     if ((cpu_s->cpu_type > CPU_IBM386SLC) && cpu_s->multi)
                         EAX = msr.ibm_por2 & 0x3f000000;
@@ -2579,26 +2583,33 @@ cpu_RDMSR(void)
         case CPU_WINCHIP2:
             EAX = EDX = 0;
             switch (ECX) {
+                /* TR1 - Test Register 1 */
                 case 0x02:
                     EAX = msr.tr1;
                     break;
+                /* TR12 - Test Register 12 */
                 case 0x0e:
                     EAX = msr.tr12;
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
+                /* Performance Monitor - Control and Event Select */
                 case 0x11:
                     EAX = msr.cesr;
                     break;
+                /* Feature Control Register */
                 case 0x107:
                     EAX = msr.fcr;
                     break;
+                /* Feature Control Register 2 */
                 case 0x108:
                     EAX = msr.fcr2 & 0xffffffff;
                     EDX = msr.fcr2 >> 32;
                     break;
+                /* Feature Control Register 4 */
                 case 0x10a:
                     EAX = cpu_multi & 3;
                     break;
@@ -2608,13 +2619,17 @@ cpu_RDMSR(void)
         case CPU_CYRIX3S:
             EAX = EDX = 0;
             switch (ECX) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
+                /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
                     EAX = 0xc4000000;
                     EDX = 0;
@@ -2641,29 +2656,18 @@ cpu_RDMSR(void)
                     if (cpu_busspeed >= 84000000)
                         EAX |= (1 << 19);
                     break;
+                /* Feature Control Register */
                 case 0x1107:
                     EAX = msr.fcr;
                     break;
+                /* Feature Control Register 2 */
                 case 0x1108:
                     EAX = msr.fcr2 & 0xffffffff;
                     EDX = msr.fcr2 >> 32;
                     break;
-                case 0x200:
-                case 0x201:
-                case 0x202:
-                case 0x203:
-                case 0x204:
-                case 0x205:
-                case 0x206:
-                case 0x207:
-                case 0x208:
-                case 0x209:
-                case 0x20a:
-                case 0x20b:
-                case 0x20c:
-                case 0x20d:
-                case 0x20e:
-                case 0x20f:
+                /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
+                   ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
+                case 0x200 ... 0x20f:
                     if (ECX & 1) {
                         EAX = msr.mtrr_physmask[(ECX - 0x200) >> 1] & 0xffffffff;
                         EDX = msr.mtrr_physmask[(ECX - 0x200) >> 1] >> 32;
@@ -2672,29 +2676,27 @@ cpu_RDMSR(void)
                         EDX = msr.mtrr_physbase[(ECX - 0x200) >> 1] >> 32;
                     }
                     break;
+                /* MTRRfix64K_00000 */
                 case 0x250:
                     EAX = msr.mtrr_fix64k_8000 & 0xffffffff;
                     EDX = msr.mtrr_fix64k_8000 >> 32;
                     break;
+                /* MTRRfix16K_80000 */
                 case 0x258:
                     EAX = msr.mtrr_fix16k_8000 & 0xffffffff;
                     EDX = msr.mtrr_fix16k_8000 >> 32;
                     break;
+                /* MTRRfix16K_A0000 */
                 case 0x259:
                     EAX = msr.mtrr_fix16k_a000 & 0xffffffff;
                     EDX = msr.mtrr_fix16k_a000 >> 32;
                     break;
-                case 0x268:
-                case 0x269:
-                case 0x26a:
-                case 0x26b:
-                case 0x26c:
-                case 0x26d:
-                case 0x26e:
-                case 0x26f:
+                /* MTRRfix4K_C0000 ... MTRRfix4K_F8000 */
+                case 0x268 ... 0x26f:
                     EAX = msr.mtrr_fix4k[ECX - 0x268] & 0xffffffff;
                     EDX = msr.mtrr_fix4k[ECX - 0x268] >> 32;
                     break;
+                /* MTRRdefType */
                 case 0x2ff:
                     EAX = msr.mtrr_deftype & 0xffffffff;
                     EDX = msr.mtrr_deftype >> 32;
@@ -2714,35 +2716,44 @@ cpu_RDMSR(void)
         case CPU_K6_3P:
             EAX = EDX = 0;
             switch (ECX) {
+                /* Machine Check Address Register */
                 case 0x00000000:
+                /* Machine Check Type Register */
                 case 0x00000001:
                     break;
+                /* Test Register 12 */
                 case 0x0000000e:
                     EAX = msr.tr12;
                     break;
+                /* Time Stamp Counter */
                 case 0x00000010:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
+                /* Hardware Configuration Register */
                 case 0x00000083:
                     EAX = msr.amd_hwcr & 0xffffffff;
                     EDX = msr.amd_hwcr >> 32;
                     break;
+                /* Extended Feature Enable Register */
                 case 0xc0000080:
                     EAX = msr.amd_efer & 0xffffffff;
                     EDX = msr.amd_efer >> 32;
                     break;
+                /* SYSCALL Target Address Register */
                 case 0xc0000081:
                     if (cpu_s->cpu_type < CPU_K6_2)
                         goto amd_k_invalid_rdmsr;
 
-                    EAX = msr.star & 0xffffffff;
-                    EDX = msr.star >> 32;
+                    EAX = msr.amd_star & 0xffffffff;
+                    EDX = msr.amd_star >> 32;
                     break;
+                /* Write-Handling Control Register */
                 case 0xc0000082:
                     EAX = msr.amd_whcr & 0xffffffff;
                     EDX = msr.amd_whcr >> 32;
                     break;
+                /* UC/WC Cacheability Control Register */
                 case 0xc0000085:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_rdmsr;
@@ -2750,6 +2761,7 @@ cpu_RDMSR(void)
                     EAX = msr.amd_uwccr & 0xffffffff;
                     EDX = msr.amd_uwccr >> 32;
                     break;
+                /* Enhanced Power Management Register */
                 case 0xc0000086:
                     if (cpu_s->cpu_type < CPU_K6_2P)
                         goto amd_k_invalid_rdmsr;
@@ -2757,6 +2769,7 @@ cpu_RDMSR(void)
                     EAX = msr.amd_epmr & 0xffffffff;
                     EDX = msr.amd_epmr >> 32;
                     break;
+                /* Processor State Observability Register */
                 case 0xc0000087:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_rdmsr;
@@ -2764,6 +2777,7 @@ cpu_RDMSR(void)
                     EAX = msr.amd_psor & 0xffffffff;
                     EDX = msr.amd_psor >> 32;
                     break;
+                /* Page Flush/Invalidate Register */
                 case 0xc0000088:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_rdmsr;
@@ -2771,6 +2785,7 @@ cpu_RDMSR(void)
                     EAX = msr.amd_pfir & 0xffffffff;
                     EDX = msr.amd_pfir >> 32;
                     break;
+                /* Level-2 Cache Array Access Register */
                 case 0xc0000089:
                     if (cpu_s->cpu_type < CPU_K6_3)
                         goto amd_k_invalid_rdmsr;
@@ -2790,9 +2805,12 @@ amd_k_invalid_rdmsr:
         case CPU_PENTIUMMMX:
             EAX = EDX = 0;
             switch (ECX) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
@@ -2807,9 +2825,12 @@ amd_k_invalid_rdmsr:
         case CPU_CxGX1:
         case CPU_Cx6x86MX:
             switch (ECX) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
@@ -2826,13 +2847,17 @@ amd_k_invalid_rdmsr:
             /* Per RichardG's probing of a real Deschutes using my RDMSR tool,
                we have discovered that the top 18 bits are filtered out. */
             switch (ECX & 0x00003fff) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
+                /* IA32_PLATFORM_ID - Platform ID */
                 case 0x17:
                     if (cpu_s->cpu_type != CPU_PENTIUM2D)
                         goto i686_invalid_rdmsr;
@@ -2842,16 +2867,18 @@ amd_k_invalid_rdmsr:
                     else if (cpu_f->package == CPU_PKG_SOCKET370)
                         EDX |= 0x100000;
                     break;
+                /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1B:
                     EAX = msr.apic_base & 0xffffffff;
                     EDX = msr.apic_base >> 32;
                     cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
                     break;
-                /* Unknown (undocumented?) MSR used by the Hyper-V BIOS. */
+                /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
                 case 0x20:
                     EAX = msr.ecx20 & 0xffffffff;
                     EDX = msr.ecx20 >> 32;
                     break;
+                /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
                     EAX = 0xc4000000;
                     EDX = 0;
@@ -2886,56 +2913,58 @@ amd_k_invalid_rdmsr:
                             EAX |= (1 << 19);
                     }
                     break;
+                /* BIOS_UPDT_TRIG - BIOS Update Trigger */
                 case 0x79:
                     EAX = msr.bios_updt & 0xffffffff;
                     EDX = msr.bios_updt >> 32;
                     break;
-                case 0x88:
-                case 0x89:
-                case 0x8a:
-                case 0x8b:
+                /* BBL_CR_D0 ... BBL_CR_D3 - Chunk 0..3 Data Register
+                   8Bh: BIOS_SIGN - BIOS Update Signature */
+                case 0x88 ... 0x8b:
                     EAX = msr.bbl_cr_dx[ECX - 0x88] & 0xffffffff;
                     EDX = msr.bbl_cr_dx[ECX - 0x88] >> 32;
                     break;
-                case 0xc1:
-                case 0xc2:
-                case 0xc3:
-                case 0xc4:
-                case 0xc5:
-                case 0xc6:
-                case 0xc7:
-                case 0xc8:
+                /* PERFCTR0 ... PERFCTR7 - Performance Counter Register 0..7 */
+                case 0xc1 ... 0xc8:
                     EAX = msr.ia32_pmc[ECX - 0xC1] & 0xffffffff;
                     EDX = msr.ia32_pmc[ECX - 0xC1] >> 32;
                     break;
+                /* MTRRcap */
                 case 0xfe:
                     EAX = msr.mtrr_cap & 0xffffffff;
                     EDX = msr.mtrr_cap >> 32;
                     break;
+                /* BBL_CR_ADDR - L2 Cache Address Register */
                 case 0x116:
                     EAX = msr.bbl_cr_addr & 0xffffffff;
                     EDX = msr.bbl_cr_addr >> 32;
                     break;
+                /* BBL_CR_DECC - L2 Cache Date ECC Register */
                 case 0x118:
                     EAX = msr.bbl_cr_decc & 0xffffffff;
                     EDX = msr.bbl_cr_decc >> 32;
                     break;
+                /* BBL_CR_CTL - L2 Cache Control Register */
                 case 0x119:
                     EAX = msr.bbl_cr_ctl & 0xffffffff;
                     EDX = msr.bbl_cr_ctl >> 32;
                     break;
+                /* BBL_CR_TRIG - L2 Cache Trigger Register */
                 case 0x11a:
                     EAX = msr.bbl_cr_trig & 0xffffffff;
                     EDX = msr.bbl_cr_trig >> 32;
                     break;
+                /* BBL_CR_BUSY - L2 Cache Busy Register */
                 case 0x11b:
                     EAX = msr.bbl_cr_busy & 0xffffffff;
                     EDX = msr.bbl_cr_busy >> 32;
                     break;
+                /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
                     EAX = msr.bbl_cr_ctl3 & 0xffffffff;
                     EDX = msr.bbl_cr_ctl3 >> 32;
                     break;
+                /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_rdmsr;
@@ -2944,6 +2973,7 @@ amd_k_invalid_rdmsr:
                     EAX |= msr.sysenter_cs;
                     EDX = 0x00000000;
                     break;
+                /* SYSENTER_ESP - SYSENTER target ESP */
                 case 0x175:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_rdmsr;
@@ -2951,6 +2981,7 @@ amd_k_invalid_rdmsr:
                     EAX = msr.sysenter_esp;
                     EDX = 0x00000000;
                     break;
+                /* SYSENTER_EIP - SYSENTER target EIP */
                 case 0x176:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_rdmsr;
@@ -2958,48 +2989,42 @@ amd_k_invalid_rdmsr:
                     EAX = msr.sysenter_eip;
                     EDX = 0x00000000;
                     break;
+                /* MCG_CAP - Machine Check Global Capability */
                 case 0x179:
                     EAX = 0x00000105;
                     EDX = 0x00000000;
                     break;
+                /* MCG_STATUS - Machine Check Global Status */
                 case 0x17a:
                     break;
+                /* MCG_CTL - Machine Check Global Control */
                 case 0x17b:
                     EAX = msr.mcg_ctl & 0xffffffff;
                     EDX = msr.mcg_ctl >> 32;
                     break;
+                /* EVNTSEL0 - Performance Counter Event Select 0 */
                 case 0x186:
                     EAX = msr.evntsel0 & 0xffffffff;
                     EDX = msr.evntsel0 >> 32;
                     break;
+                /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
                     EAX = msr.evntsel1 & 0xffffffff;
                     EDX = msr.evntsel1 >> 32;
                     break;
+                /* DEBUGCTLMSR - Debugging Control Register */
                 case 0x1d9:
                     EAX = msr.debug_ctl & 0xffffffff;
                     EDX = msr.debug_ctl >> 32;
                     break;
+                /* ROB_CR_BKUPTMPDR6 */
                 case 0x1e0:
                     EAX = msr.rob_cr_bkuptmpdr6 & 0xffffffff;
                     EDX = msr.rob_cr_bkuptmpdr6 >> 32;
                     break;
-                case 0x200:
-                case 0x201:
-                case 0x202:
-                case 0x203:
-                case 0x204:
-                case 0x205:
-                case 0x206:
-                case 0x207:
-                case 0x208:
-                case 0x209:
-                case 0x20a:
-                case 0x20b:
-                case 0x20c:
-                case 0x20d:
-                case 0x20e:
-                case 0x20f:
+                /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
+                   ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
+                case 0x200 ... 0x20f:
                     if (ECX & 1) {
                         EAX = msr.mtrr_physmask[(ECX - 0x200) >> 1] & 0xffffffff;
                         EDX = msr.mtrr_physmask[(ECX - 0x200) >> 1] >> 32;
@@ -3008,56 +3033,71 @@ amd_k_invalid_rdmsr:
                         EDX = msr.mtrr_physbase[(ECX - 0x200) >> 1] >> 32;
                     }
                     break;
+                /* MTRRfix64K_00000 */
                 case 0x250:
                     EAX = msr.mtrr_fix64k_8000 & 0xffffffff;
                     EDX = msr.mtrr_fix64k_8000 >> 32;
                     break;
+                /* MTRRfix16K_80000 */
                 case 0x258:
                     EAX = msr.mtrr_fix16k_8000 & 0xffffffff;
                     EDX = msr.mtrr_fix16k_8000 >> 32;
                     break;
+                /* MTRRfix16K_A0000 */
                 case 0x259:
                     EAX = msr.mtrr_fix16k_a000 & 0xffffffff;
                     EDX = msr.mtrr_fix16k_a000 >> 32;
                     break;
-                case 0x268:
-                case 0x269:
-                case 0x26a:
-                case 0x26b:
-                case 0x26c:
-                case 0x26d:
-                case 0x26e:
-                case 0x26f:
+                /* MTRRfix4K_C0000 ... MTRRfix4K_F8000 */
+                case 0x268 ... 0x26f:
                     EAX = msr.mtrr_fix4k[ECX - 0x268] & 0xffffffff;
                     EDX = msr.mtrr_fix4k[ECX - 0x268] >> 32;
                     break;
+                /* Page Attribute Table */
                 case 0x277:
                     EAX = msr.pat & 0xffffffff;
                     EDX = msr.pat >> 32;
                     break;
+                /* MTRRdefType */
                 case 0x2ff:
                     EAX = msr.mtrr_deftype & 0xffffffff;
                     EDX = msr.mtrr_deftype >> 32;
                     break;
+                /* MC0_CTL - Machine Check 0 Control */
                 case 0x400:
+                /* MC1_CTL - Machine Check 1 Control */
                 case 0x404:
+                /* MC2_CTL - Machine Check 2 Control */
                 case 0x408:
+                /* MC4_CTL - Machine Check 4 Control */
                 case 0x40c:
+                /* MC3_CTL - Machine Check 3 Control */
                 case 0x410:
                     EAX = msr.mca_ctl[(ECX - 0x400) >> 2] & 0xffffffff;
                     EDX = msr.mca_ctl[(ECX - 0x400) >> 2] >> 32;
                     break;
+                /* MC0_STATUS - Machine Check 0 Status */
                 case 0x401:
+                /* MC0_ADDR - Machine Check 0 Address */
                 case 0x402:
+                /* MC1_STATUS - Machine Check 1 Status */
                 case 0x405:
+                /* MC1_ADDR - Machine Check 1 Address */
                 case 0x406:
-                case 0x407:
+                /* MC2_STATUS - Machine Check 2 Status */
                 case 0x409:
+                /* MC2_ADDR - Machine Check 2 Address */
+                case 0x40a:
+                /* MC4_STATUS - Machine Check 4 Status */
                 case 0x40d:
+                /* MC4_ADDR - Machine Check 4 Address */
                 case 0x40e:
+                /* MC3_STATUS - Machine Check 3 Status */
                 case 0x411:
+                /* MC3_ADDR - Machine Check 3 Address */
                 case 0x412:
                     break;
+                /* Unknown */
                 case 0x570:
                     EAX = msr.ecx570 & 0xffffffff;
                     EDX = msr.ecx570 >> 32;
@@ -3086,13 +3126,16 @@ cpu_WRMSR(void)
         case CPU_IBM486BL:
         case CPU_IBM486SLC:
             switch (ECX) {
+                /* Processor Operation Register */
                 case 0x1000:
                     msr.ibm_por           = EAX & ((cpu_s->cpu_type > CPU_IBM386SLC) ? 0xffeff : 0xfeff);
                     cpu_cache_int_enabled = (EAX & (1 << 7));
                     break;
+                /* Cache Region Control Register */
                 case 0x1001:
                     msr.ibm_crcr = EAX & 0xffffffffff;
                     break;
+                /* Processor Operation Register */
                 case 0x1002:
                     if ((cpu_s->cpu_type > CPU_IBM386SLC) && cpu_s->multi)
                         msr.ibm_por2 = EAX & 0x3f000000;
@@ -3103,18 +3146,23 @@ cpu_WRMSR(void)
         case CPU_WINCHIP:
         case CPU_WINCHIP2:
             switch (ECX) {
+                /* TR1 - Test Register 1 */
                 case 0x02:
                     msr.tr1 = EAX & 2;
                     break;
+                /* TR12 - Test Register 12 */
                 case 0x0e:
                     msr.tr12 = EAX & 0x228;
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Performance Monitor - Control and Event Select */
                 case 0x11:
                     msr.cesr = EAX & 0xff00ff;
                     break;
+                /* Feature Control Register */
                 case 0x107:
                     msr.fcr = EAX;
                     if (EAX & (1 << 9))
@@ -3134,9 +3182,11 @@ cpu_WRMSR(void)
                     else
                         CPUID = cpu_s->cpuid_model;
                     break;
+                /* Feature Control Register 2 */
                 case 0x108:
                     msr.fcr2 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Feature Control Register 3 */
                 case 0x109:
                     msr.fcr3 = EAX | ((uint64_t) EDX << 32);
                     break;
@@ -3145,12 +3195,16 @@ cpu_WRMSR(void)
 
         case CPU_CYRIX3S:
             switch (ECX) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Feature Control Register */
                 case 0x1107:
                     msr.fcr = EAX;
                     if (EAX & (1 << 1))
@@ -3162,52 +3216,39 @@ cpu_WRMSR(void)
                     else
                         cpu_CR4_mask &= ~CR4_PGE;
                     break;
+                /* Feature Control Register 2 */
                 case 0x1108:
                     msr.fcr2 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Feature Control Register 3 */
                 case 0x1109:
                     msr.fcr3 = EAX | ((uint64_t) EDX << 32);
                     break;
-                case 0x200:
-                case 0x201:
-                case 0x202:
-                case 0x203:
-                case 0x204:
-                case 0x205:
-                case 0x206:
-                case 0x207:
-                case 0x208:
-                case 0x209:
-                case 0x20a:
-                case 0x20b:
-                case 0x20c:
-                case 0x20d:
-                case 0x20e:
-                case 0x20f:
+                /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
+                   ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
+                case 0x200 ... 0x20f:
                     if (ECX & 1)
                         msr.mtrr_physmask[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     else
                         msr.mtrr_physbase[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRfix64K_00000 */
                 case 0x250:
                     msr.mtrr_fix64k_8000 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRfix16K_80000 */
                 case 0x258:
                     msr.mtrr_fix16k_8000 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRfix16K_A0000 */
                 case 0x259:
                     msr.mtrr_fix16k_a000 = EAX | ((uint64_t) EDX << 32);
                     break;
-                case 0x268:
-                case 0x269:
-                case 0x26A:
-                case 0x26B:
-                case 0x26C:
-                case 0x26D:
-                case 0x26E:
-                case 0x26F:
+                /* MTRRfix4K_C0000 ... MTRRfix4K_F8000 */
+                case 0x268 ... 0x26f:
                     msr.mtrr_fix4k[ECX - 0x268] = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRdefType */
                 case 0x2ff:
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
                     break;
@@ -3225,18 +3266,24 @@ cpu_WRMSR(void)
         case CPU_K6_2P:
         case CPU_K6_3P:
             switch (ECX) {
+                /* Machine Check Address Register */
                 case 0x00:
+                /* Machine Check Type Register */
                 case 0x01:
                     break;
+                /* Test Register 12 */
                 case 0x0e:
                     msr.tr12 = EAX & 0x228;
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Hardware Configuration Register */
                 case 0x83:
                     msr.amd_hwcr = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Extended Feature Enable Register */
                 case 0xc0000080:
                     temp = EAX | ((uint64_t) EDX << 32);
                     if (temp & ~1ULL)
@@ -3244,39 +3291,46 @@ cpu_WRMSR(void)
                     else
                         msr.amd_efer = temp;
                     break;
+                /* SYSCALL Target Address Register */
                 case 0xc0000081:
                     if (cpu_s->cpu_type < CPU_K6_2)
                         goto amd_k_invalid_wrmsr;
 
-                    msr.star = EAX | ((uint64_t) EDX << 32);
+                    msr.amd_star = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Write-Handling Control Register */
                 case 0xc0000082:
                     msr.amd_whcr = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* UC/WC Cacheability Control Register */
                 case 0xc0000085:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_wrmsr;
 
                     msr.amd_uwccr = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Enhanced Power Management Register */
                 case 0xc0000086:
                     if (cpu_s->cpu_type < CPU_K6_2P)
                         goto amd_k_invalid_wrmsr;
 
                     msr.amd_epmr = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Processor State Observability Register */
                 case 0xc0000087:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_wrmsr;
 
                     msr.amd_psor = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Page Flush/Invalidate Register */
                 case 0xc0000088:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_wrmsr;
 
                     msr.amd_pfir = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Level-2 Cache Array Access Register */
                 case 0xc0000089:
                     if (cpu_s->cpu_type < CPU_K6_3)
                         goto amd_k_invalid_wrmsr;
@@ -3295,12 +3349,16 @@ amd_k_invalid_wrmsr:
         case CPU_PENTIUMMMX:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             switch (ECX) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BIOS Update Signature */
                 case 0x8b:
                     cpu_log("WRMSR: Invalid MSR: 0x8B\n");
                     x86gpf(NULL, 0); /* Needed for Vista to correctly break on Pentium */
@@ -3315,9 +3373,12 @@ amd_k_invalid_wrmsr:
         case CPU_Cx6x86MX:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             switch (ECX) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
@@ -3331,171 +3392,189 @@ amd_k_invalid_wrmsr:
             /* Per RichardG's probing of a real Deschutes using my RDMSR tool,
                we have discovered that the top 18 bits are filtered out. */
             switch (ECX & 0x00003fff) {
+                /* Machine Check Exception Address */
                 case 0x00:
+                /* Machine Check Exception Type */
                 case 0x01:
                     if (EAX || EDX)
                         x86gpf(NULL, 0);
                     break;
+                /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
 #if 0
                     msr.apic_base = EAX | ((uint64_t) EDX << 32);
 #endif
                     break;
-                /* Unknown (undocumented?) MSR used by the Hyper-V BIOS. */
+                /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
                 case 0x20:
                     msr.ecx20 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
                     break;
+                /* BIOS_UPDT_TRIG - BIOS Update Trigger */
                 case 0x79:
                     msr.bios_updt = EAX | ((uint64_t) EDX << 32);
                     break;
-                case 0x88:
-                case 0x89:
-                case 0x8a:
-                case 0x8b:
+                /* BBL_CR_D0 ... BBL_CR_D3 - Chunk 0..3 Data Register
+                   8Bh: BIOS_SIGN - BIOS Update Signature */
+                case 0x88 ... 0x8b:
                     msr.bbl_cr_dx[ECX - 0x88] = EAX | ((uint64_t) EDX << 32);
                     break;
-                case 0xc1:
-                case 0xc2:
-                case 0xc3:
-                case 0xc4:
-                case 0xc5:
-                case 0xc6:
-                case 0xc7:
-                case 0xc8:
+                /* PERFCTR0 ... PERFCTR7 - Performance Counter Register 0..7 */
+                case 0xc1 ... 0xc8:
                     msr.ia32_pmc[ECX - 0xC1] = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRcap */
                 case 0xfe:
                     msr.mtrr_cap = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BBL_CR_ADDR - L2 Cache Address Register */
                 case 0x116:
                     msr.bbl_cr_addr = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BBL_CR_DECC - L2 Cache Date ECC Register */
                 case 0x118:
                     msr.bbl_cr_decc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BBL_CR_CTL - L2 Cache Control Register */
                 case 0x119:
                     msr.bbl_cr_ctl = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BBL_CR_TRIG - L2 Cache Trigger Register */
                 case 0x11a:
                     msr.bbl_cr_trig = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BBL_CR_BUSY - L2 Cache Busy Register */
                 case 0x11b:
                     msr.bbl_cr_busy = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
                     msr.bbl_cr_ctl3 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_wrmsr;
 
                     msr.sysenter_cs = EAX & 0xFFFF;
                     break;
+                /* SYSENTER_ESP - SYSENTER target ESP */
                 case 0x175:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_wrmsr;
 
                     msr.sysenter_esp = EAX;
                     break;
+                /* SYSENTER_EIP - SYSENTER target EIP */
                 case 0x176:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_wrmsr;
 
                     msr.sysenter_eip = EAX;
                     break;
+                /* MCG_CAP - Machine Check Global Capability */
                 case 0x179:
                     break;
+                /* MCG_STATUS - Machine Check Global Status */
                 case 0x17a:
                     if (EAX || EDX)
                         x86gpf(NULL, 0);
                     break;
+                /* MCG_CTL - Machine Check Global Control */
                 case 0x17b:
                     msr.mcg_ctl = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* EVNTSEL0 - Performance Counter Event Select 0 */
                 case 0x186:
                     msr.evntsel0 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
                     msr.evntsel1 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* DEBUGCTLMSR - Debugging Control Register */
                 case 0x1d9:
                     msr.debug_ctl = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* ROB_CR_BKUPTMPDR6 */
                 case 0x1e0:
                     msr.rob_cr_bkuptmpdr6 = EAX | ((uint64_t) EDX << 32);
                     break;
-                case 0x200:
-                case 0x201:
-                case 0x202:
-                case 0x203:
-                case 0x204:
-                case 0x205:
-                case 0x206:
-                case 0x207:
-                case 0x208:
-                case 0x209:
-                case 0x20a:
-                case 0x20b:
-                case 0x20c:
-                case 0x20d:
-                case 0x20e:
-                case 0x20f:
+                /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
+                   ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
+                case 0x200 ... 0x20f:
                     if (ECX & 1)
                         msr.mtrr_physmask[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     else
                         msr.mtrr_physbase[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRfix64K_00000 */
                 case 0x250:
                     msr.mtrr_fix64k_8000 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRfix16K_80000 */
                 case 0x258:
                     msr.mtrr_fix16k_8000 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRfix16K_A0000 */
                 case 0x259:
                     msr.mtrr_fix16k_a000 = EAX | ((uint64_t) EDX << 32);
                     break;
-                case 0x268:
-                case 0x269:
-                case 0x26a:
-                case 0x26b:
-                case 0x26c:
-                case 0x26d:
-                case 0x26e:
-                case 0x26f:
+                /* MTRRfix4K_C0000 ... MTRRfix4K_F8000 */
+                case 0x268 ... 0x26f:
                     msr.mtrr_fix4k[ECX - 0x268] = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Page Attribute Table */
                 case 0x277:
                     msr.pat = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MTRRdefType */
                 case 0x2ff:
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MC0_CTL - Machine Check 0 Control */
                 case 0x400:
+                /* MC1_CTL - Machine Check 1 Control */
                 case 0x404:
+                /* MC2_CTL - Machine Check 2 Control */
                 case 0x408:
+                /* MC4_CTL - Machine Check 4 Control */
                 case 0x40c:
+                /* MC3_CTL - Machine Check 3 Control */
                 case 0x410:
                     msr.mca_ctl[(ECX - 0x400) >> 2] = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* MC0_STATUS - Machine Check 0 Status */
                 case 0x401:
+                /* MC0_ADDR - Machine Check 0 Address */
                 case 0x402:
+                /* MC1_STATUS - Machine Check 1 Status */
                 case 0x405:
+                /* MC1_ADDR - Machine Check 1 Address */
                 case 0x406:
-                case 0x407:
+                /* MC2_STATUS - Machine Check 2 Status */
                 case 0x409:
+                /* MC2_ADDR - Machine Check 2 Address */
+                case 0x40a:
+                /* MC4_STATUS - Machine Check 4 Status */
                 case 0x40d:
+                /* MC4_ADDR - Machine Check 4 Address */
                 case 0x40e:
+                /* MC3_STATUS - Machine Check 3 Status */
                 case 0x411:
+                /* MC3_ADDR - Machine Check 3 Address */
                 case 0x412:
                     if (EAX || EDX)
                         x86gpf(NULL, 0);
                     break;
+                /* Unknown */
                 case 0x570:
                     msr.ecx570 = EAX | ((uint64_t) EDX << 32);
                     break;
