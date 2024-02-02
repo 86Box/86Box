@@ -108,7 +108,7 @@ EnumerateSerialDevices()
 }
 
 void
-DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *settings, bool atRuntime)
+DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *settings, bool atRuntime)
 {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
