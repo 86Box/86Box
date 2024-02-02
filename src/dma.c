@@ -959,15 +959,16 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
            and at least 0x0898 for 25 MHz, everything below 0x06e0
            is assumed to be 16 MHz. Given that for some reason, this
            does not occur on 86Box, we have to work around it here,
-           we return 0x0528 for 16 MHz, because it's the next in the
-           mathematical sequence (it equals 0x06e0 - (0x0898 - 0x06e0)). */
+           we return 0x0580 for 16 MHz, because it logically follows
+           in the sequence (0x06e0 = 0x0898 * (20 / 25), and
+           0x0580 = 0x06e0 * (16 / 20)). */
         case 0x0081:
             if (cpu_busspeed >= 25000000)
                 ret = 0x98;
             else if (cpu_busspeed >= 20000000)
                 ret = 0xe0;
             else
-                ret = 0x28;
+                ret = 0x80;
             break;
         case 0x0082:
             if (cpu_busspeed >= 25000000)
