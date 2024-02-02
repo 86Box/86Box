@@ -460,7 +460,7 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
 }
 
 void
-chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint8_t nonpattern_src, uint8_t rop)
+chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpattern_src, uint8_t rop)
 {
     if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
         return chips_69000_do_rop_16bpp(dst, nonpattern_src, rop);
@@ -521,7 +521,7 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint8_t nonpatte
 }
 
 void
-chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint8_t nonpattern_src, uint8_t rop)
+chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint32_t nonpattern_src, uint8_t rop)
 {
     uint32_t orig_dst = *dst & 0xFF000000;
 
@@ -832,10 +832,6 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             break;
     }
 
-    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
-        return;
-    }
-
     /* Drawing is pointless if monochrome pattern is enabled, monochrome write-masking is enabled and solid pattern is enabled. */
     if ((chips->bitblt_running.bitblt.bitblt_control & (1 << 17))
         && (chips->bitblt_running.bitblt.bitblt_control & (1 << 18))
@@ -843,6 +839,10 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             chips_69000_bitblt_interrupt(chips);
             return;
         }
+
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
+        return;
+    }
 
     do {
         do {
@@ -896,16 +896,15 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     if (chips->bitblt_running.bytes_written == chips->bitblt_running.bytes_per_pixel) {
         uint32_t source_pixel = chips->bitblt_running.bytes_port[0];
         chips->bitblt_running.bytes_written = 0;
-        if (chips->bitblt_running.bytes_per_pixel == 1)
-            source_pixel = (chips->bitblt_running.bytes_port[1] << 8);
         if (chips->bitblt_running.bytes_per_pixel == 2)
-            source_pixel = (chips->bitblt_running.bytes_port[2] << 16);
+            source_pixel |= (chips->bitblt_running.bytes_port[1] << 8);
+        if (chips->bitblt_running.bytes_per_pixel == 3)
+            source_pixel |= (chips->bitblt_running.bytes_port[2] << 16);
 
         chips_69000_process_pixel(chips, source_pixel);
         chips->bitblt_running.x += chips->bitblt_running.x_dir;
-        chips->bitblt_running.count_x++;
 
-        if (chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
+        if (++chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width - 1) {
             chips->bitblt_running.y += chips->bitblt_running.y_dir;
             chips->bitblt_running.count_y++;
 
