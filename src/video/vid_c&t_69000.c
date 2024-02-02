@@ -1373,7 +1373,7 @@ chips_69000_readb_mmio(uint32_t addr, chips_69000_t* chips)
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
         case 0x00 ... 0x28:
-            if (addr == 0x10) {
+            if (addr == 0x13) {
                 return (chips->bitblt_regs_b[addr & 0xFF] & 0x7F) | (chips->engine_active ? 0x80 : 0x00);
             }
             return chips->bitblt_regs_b[addr & 0xFF];
