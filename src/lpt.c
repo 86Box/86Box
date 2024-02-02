@@ -166,6 +166,15 @@ lpt_read(uint16_t port, void *priv)
 }
 
 uint8_t
+lpt_read_port(int port, uint16_t reg)
+{
+    lpt_port_t *dev = &(lpt_ports[port]);
+    uint8_t ret = lpt_read(reg, dev);
+
+    return ret;
+}
+
+uint8_t
 lpt_read_status(int port)
 {
     lpt_port_t *dev = &(lpt_ports[port]);
