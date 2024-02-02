@@ -85,7 +85,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lPara
                 bios      = config->bios;
                 h         = GetDlgItem(hdlg, id);
 
-                switch (config->type) {
+                switch (config->type & CONFIG_TYPE_MASK) {
                     case CONFIG_BINARY:
                         val_int = config_get_int((char *) config_device.name,
                                                  (char *) config->name, config->default_int);
@@ -235,7 +235,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lPara
                     const device_config_selection_t *selection = config->selection;
                     h                                          = GetDlgItem(hdlg, id);
 
-                    switch (config->type) {
+                    switch (config->type & CONFIG_TYPE_MASK) {
                         case CONFIG_BINARY:
                             val_int = config_get_int((char *) config_device.name,
                                                      (char *) config->name, config->default_int);
@@ -371,7 +371,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lPara
                     selection = config->selection;
                     h         = GetDlgItem(hdlg, id);
 
-                    switch (config->type) {
+                    switch (config->type & CONFIG_TYPE_MASK) {
                         case CONFIG_BINARY:
                             config_set_int((char *) config_device.name,
                                            (char *) config->name, SendMessage(h, BM_GETCHECK, 0, 0));
@@ -456,7 +456,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lPara
             } else {
                 id = IDC_CONFIG_BASE;
                 while (config->type != -1) {
-                    switch (config->type) {
+                    switch (config->type & CONFIG_TYPE_MASK) {
                         case CONFIG_BINARY:
                             id++;
                             break;
@@ -539,7 +539,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
         data++;
 
     while (config->type != -1) {
-        switch (config->type) {
+        switch (config->type & CONFIG_TYPE_MASK) {
             case CONFIG_BINARY:
                 item     = (DLGITEMTEMPLATE *) data;
                 item->x  = 10;

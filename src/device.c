@@ -192,8 +192,10 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
         memcpy(&device_current, &device_prev, sizeof(device_context_t));
         device_priv[c] = priv;
         devices_instances[c] = inst;
-    } else
+    } else {
         device_priv[c] = p;
+        devices_instances[c] = inst;
+    }
 
     return priv;
 }

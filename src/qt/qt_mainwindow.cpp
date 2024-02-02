@@ -210,6 +210,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
+        int c = 0;
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
         ui->menuDevice_settings->clear();
         for (int i = 0; i < 256; i++) {
@@ -217,14 +218,17 @@ MainWindow::MainWindow(QWidget *parent)
             if (!devices[i] || (devices[i] && !(devices[i]->flags & DEVICE_RTCONFIG)))
                 continue;
 
+            c++;
             device_set_context(&ctx, devices[i], devices_instances[i]);
 
-            auto action = ui->menuDevice_settings->addAction(QString(ctx.name), [this, ctx, i] {
-                DeviceConfig::ConfigureDevice(devices[i], devices_instances[i], this, true);
-                devices[i]->reload_config(device_priv[i]);
-                endblit();
+            QAction* action = new QAction(ui->menuDevice_settings);
+            action->setText(QString(ctx.name));
+            connect(action, &QAction::triggered, this, [this, ctx, i] {
+                DeviceConfig::ConfigureDevice(devices[i], devices_instances[i], this, device_priv[i]);
             });
+            ui->menuDevice_settings->addAction(action);
         }
+        ui->menuDevice_settings->menuAction()->setVisible(!!c);
         QApplication::setOverrideCursor(Qt::ArrowCursor);
 #ifdef USE_WACOM
         ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);

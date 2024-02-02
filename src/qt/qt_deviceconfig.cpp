@@ -108,7 +108,7 @@ EnumerateSerialDevices()
 }
 
 void
-DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *settings, bool atRuntime)
+DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *settings, void* devicePriv)
 {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
@@ -116,6 +116,8 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
     int q;
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
+    if (devicePriv)
+        startblit();
 
     auto device_label = new QLabel(device->name);
     dc.ui->formLayout->addRow(device_label);
@@ -125,7 +127,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
     dc.ui->formLayout->addRow(line);
     const auto *config = device->config;
     while (config->type != -1) {
-        if (atRuntime && !(config->type & CONFIG_RUNTIME))
+        if (devicePriv && !(config->type & CONFIG_RUNTIME))
             continue;
         switch (config->type & CONFIG_TYPE_MASK) {
             case CONFIG_BINARY:
@@ -298,17 +300,17 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
         }
         ++config;
     }
-    if (atRuntime)
+    if (devicePriv)
         endblit();
 
     dc.setFixedSize(dc.minimumSizeHint());
     int res = dc.exec();
     if (res == QDialog::Accepted) {
-        if (atRuntime)
+        if (devicePriv)
             startblit();
         config = device->config;
         while (config->type != -1) {
-            if (atRuntime && !(config->type & CONFIG_RUNTIME))
+            if (devicePriv && !(config->type & CONFIG_RUNTIME))
                 continue;
             switch (config->type & CONFIG_TYPE_MASK) {
                 case CONFIG_BINARY:
@@ -375,7 +377,14 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
             }
             config++;
         }
-        // Endblit will be called in qt_mainwindow.cpp.
+
+        /* The :: prefix is intentional. */
+        if (devicePriv) {
+            ::device_context(device);
+            device->reload_config(devicePriv);
+            ::device_context_restore();
+            endblit();
+        }
     }
 }
 
