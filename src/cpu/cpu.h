@@ -809,6 +809,7 @@ extern int hlt_reset_pending;
 extern cyrix_t cyrix;
 
 extern int prefetch_prefixes;
+extern int cpu_use_exec;
 
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
