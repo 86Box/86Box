@@ -22,7 +22,7 @@ public:
     explicit DeviceConfig(QWidget *parent = nullptr);
     ~DeviceConfig();
 
-    static void    ConfigureDevice(const _device_ *device, int instance = 0, Settings *settings = nullptr);
+    static void    ConfigureDevice(const _device_ *device, int instance = 0, Settings *settings = nullptr, bool atRuntime = false);
     static QString DeviceName(const _device_ *device, const char *internalName, int bus);
 
 private:

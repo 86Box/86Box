@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -87,7 +87,14 @@
     <property name="title">
      <string>&amp;Tools</string>
     </property>
+    <widget class="QMenu" name="menuDevice_settings">
+     <property name="title">
+      <string>Device settings...</string>
+     </property>
+     <addaction name="separator"/>
+    </widget>
     <addaction name="actionSettings"/>
+    <addaction name="menuDevice_settings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
     <addaction name="separator"/>
     <addaction name="actionEnable_Discord_integration"/>

@@ -29,6 +29,7 @@
 #include "qt_soundgain.hpp"
 #include "qt_progsettings.hpp"
 #include "qt_mcadevicelist.hpp"
+#include "qt_deviceconfig.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -53,6 +54,10 @@ extern "C" {
 #endif
 extern atomic_int acpi_pwrbut_pressed;
 extern int acpi_enabled;
+
+extern device_t *devices[256];
+extern int       devices_instances[256];
+extern void     *device_priv[256];
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -206,6 +211,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        ui->menuDevice_settings->clear();
+        for (int i = 0; i < 256; i++) {
+            device_context_t ctx;
+            if (!devices[i] || (devices[i] && !(devices[i]->flags & DEVICE_RTCONFIG)))
+                continue;
+
+            device_set_context(&ctx, devices[i], devices_instances[i]);
+
+            auto action = ui->menuDevice_settings->addAction(QString(ctx.name), [this, ctx, i] {
+                DeviceConfig::ConfigureDevice(devices[i], devices_instances[i], nullptr, true);
+                devices[i]->reload_config(device_priv[i]);
+                endblit();
+            });
+        }
         QApplication::setOverrideCursor(Qt::ArrowCursor);
 #ifdef USE_WACOM
         ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);

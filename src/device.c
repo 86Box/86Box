@@ -58,8 +58,11 @@
 
 #define DEVICE_MAX 256 /* max # of devices */
 
-static device_t        *devices[DEVICE_MAX];
-static void            *device_priv[DEVICE_MAX];
+/* Only intended to be accessed by UI code for runtime configuration. */
+device_t *devices[DEVICE_MAX];
+int       devices_instances[DEVICE_MAX];
+void     *device_priv[DEVICE_MAX];
+
 static device_context_t device_current;
 static device_context_t device_prev;
 
@@ -188,6 +191,7 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
 
         memcpy(&device_current, &device_prev, sizeof(device_context_t));
         device_priv[c] = priv;
+        devices_instances[c] = inst;
     } else
         device_priv[c] = p;
 
@@ -315,6 +319,7 @@ device_close_all(void)
             if (devices[c]->close != NULL)
                 devices[c]->close(device_priv[c]);
             devices[c] = device_priv[c] = NULL;
+            devices_instances[c] = 0;
         }
     }
 }

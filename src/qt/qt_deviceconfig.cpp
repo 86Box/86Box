@@ -36,6 +36,7 @@ extern "C" {
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
+#include <86box/plat.h>
 #include <86box/midi_rtmidi.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -50,6 +51,8 @@ extern "C" {
 #ifdef Q_OS_WINDOWS
 #include <windows.h>
 #endif
+
+extern void *device_priv[256];
 
 DeviceConfig::DeviceConfig(QWidget *parent)
     : QDialog(parent)
@@ -105,13 +108,12 @@ EnumerateSerialDevices()
 }
 
 void
-DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *settings)
+DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *settings, bool atRuntime)
 {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
     int p;
     int q;
-
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
 
@@ -123,7 +125,9 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     dc.ui->formLayout->addRow(line);
     const auto *config = device->config;
     while (config->type != -1) {
-        switch (config->type) {
+        if (atRuntime && !(config->type & CONFIG_RUNTIME))
+            continue;
+        switch (config->type & CONFIG_TYPE_MASK) {
             case CONFIG_BINARY:
                 {
                     auto  value = config_get_int(device_context.name, const_cast<char *>(config->name), config->default_int);
@@ -294,13 +298,19 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
         }
         ++config;
     }
+    if (atRuntime)
+        endblit();
 
     dc.setFixedSize(dc.minimumSizeHint());
     int res = dc.exec();
     if (res == QDialog::Accepted) {
+        if (atRuntime)
+            startblit();
         config = device->config;
         while (config->type != -1) {
-            switch (config->type) {
+            if (atRuntime && !(config->type & CONFIG_RUNTIME))
+                continue;
+            switch (config->type & CONFIG_TYPE_MASK) {
                 case CONFIG_BINARY:
                     {
                         auto *cbox = dc.findChild<QCheckBox *>(config->name);
@@ -365,6 +375,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
             }
             config++;
         }
+        // Endblit will be called in qt_mainwindow.cpp.
     }
 }
 
