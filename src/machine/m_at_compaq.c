@@ -795,11 +795,6 @@ machine_at_compaq_init(const machine_t *model, int type)
             break;
 
         case COMPAQ_PORTABLEIII:
-            if (gfxcard[0] == VID_INTERNAL)
-                device_add(&compaq_plasma_device);
-            machine_at_init(model);
-            break;
-
         case COMPAQ_PORTABLEIII386:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
@@ -810,8 +805,6 @@ machine_at_compaq_init(const machine_t *model, int type)
 
         case COMPAQ_DESKPRO386:
         case COMPAQ_DESKPRO386_05_1988:
-            if (hdc_current == 1)
-                device_add(&ide_isa_device);
             device_add(&compaq_386_device);
             machine_at_common_init(model);
             device_add(&keyboard_at_compaq_device);
