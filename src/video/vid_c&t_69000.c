@@ -133,6 +133,7 @@ typedef struct chips_69000_t {
 
         /* Byte counter for BitBLT port writes. */
         uint8_t bytes_written;
+        uint32_t bytes_counter;
         uint8_t bytes_port[4];
     } bitblt_running;
 
@@ -418,6 +419,18 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
         case 0x0F:
             *dst = ~src;
             break;
+        case 0x1A:
+            *dst = src ^ (*dst | (src & nonpattern_src));
+            break;
+        case 0x2A:
+            *dst = *dst & (~(nonpattern_src & src));
+            break;
+        case 0x3A:
+            *dst = nonpattern_src ^ (src | (*dst ^ nonpattern_src));
+            break;
+        case 0x4A:
+            *dst = *dst ^ (src & (nonpattern_src | *dst));
+            break;
         case 0x50:
             *dst = src & ~(*dst);
             break;
@@ -429,6 +442,18 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
             break;
         case 0x5F:
             *dst = ~src | ~(*dst);
+            break;
+        case 0x6A:
+            *dst = *dst ^ (src & nonpattern_src);
+            break;
+        case 0x7A:
+            *dst = *dst ^ (src & (nonpattern_src | (~*dst)));
+            break;
+        case 0x8A:
+            *dst = *dst & (nonpattern_src | (~src));
+            break;
+        case 0x9A:
+            *dst = *dst ^ (src & (~nonpattern_src));
             break;
         case 0xB8:
             *dst = (((src ^ *dst) & nonpattern_src) ^ src);
@@ -443,6 +468,18 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
             break; /* No-op. */
         case 0xAF:
             *dst |= ~src;
+            break;
+        case 0xBA:
+            *dst |= (src & ~nonpattern_src);
+            break;
+        case 0xCA:
+            *dst ^= (src & (nonpattern_src ^ *dst));
+            break;
+        case 0xDA:
+            *dst ^= src & (~(nonpattern_src & *dst));
+            break;
+        case 0xEA:
+            *dst |= src & nonpattern_src;
             break;
         case 0xF0:
             *dst = src;
@@ -479,6 +516,18 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpatt
         case 0x0F:
             *dst = ~src;
             break;
+        case 0x1A:
+            *dst = src ^ (*dst | (src & nonpattern_src));
+            break;
+        case 0x2A:
+            *dst = *dst & (~(nonpattern_src & src));
+            break;
+        case 0x3A:
+            *dst = nonpattern_src ^ (src | (*dst ^ nonpattern_src));
+            break;
+        case 0x4A:
+            *dst = *dst ^ (src & (nonpattern_src | *dst));
+            break;
         case 0x50:
             *dst = src & ~(*dst);
             break;
@@ -490,6 +539,18 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpatt
             break;
         case 0x5F:
             *dst = ~src | ~(*dst);
+            break;
+        case 0x6A:
+            *dst = *dst ^ (src & nonpattern_src);
+            break;
+        case 0x7A:
+            *dst = *dst ^ (src & (nonpattern_src | (~*dst)));
+            break;
+        case 0x8A:
+            *dst = *dst & (nonpattern_src | (~src));
+            break;
+        case 0x9A:
+            *dst = *dst ^ (src & (~nonpattern_src));
             break;
         case 0xB8:
             *dst = (((src ^ *dst) & nonpattern_src) ^ src);
@@ -504,6 +565,18 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpatt
             break; /* No-op. */
         case 0xAF:
             *dst |= ~src;
+            break;
+        case 0xBA:
+            *dst |= (src & ~nonpattern_src);
+            break;
+        case 0xCA:
+            *dst ^= (src & (nonpattern_src ^ *dst));
+            break;
+        case 0xDA:
+            *dst ^= src & (~(nonpattern_src & *dst));
+            break;
+        case 0xEA:
+            *dst |= src & nonpattern_src;
             break;
         case 0xF0:
             *dst = src;
@@ -542,6 +615,18 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint32_t nonpatt
         case 0x0F:
             *dst = ~src;
             break;
+        case 0x1A:
+            *dst = src ^ (*dst | (src & nonpattern_src));
+            break;
+        case 0x2A:
+            *dst = *dst & (~(nonpattern_src & src));
+            break;
+        case 0x3A:
+            *dst = nonpattern_src ^ (src | (*dst ^ nonpattern_src));
+            break;
+        case 0x4A:
+            *dst = *dst ^ (src & (nonpattern_src | *dst));
+            break;
         case 0x50:
             *dst = src & ~(*dst);
             break;
@@ -553,6 +638,18 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint32_t nonpatt
             break;
         case 0x5F:
             *dst = ~src | ~(*dst);
+            break;
+        case 0x6A:
+            *dst = *dst ^ (src & nonpattern_src);
+            break;
+        case 0x7A:
+            *dst = *dst ^ (src & (nonpattern_src | (~*dst)));
+            break;
+        case 0x8A:
+            *dst = *dst & (nonpattern_src | (~src));
+            break;
+        case 0x9A:
+            *dst = *dst ^ (src & (~nonpattern_src));
             break;
         case 0xB8:
             *dst = (((src ^ *dst) & nonpattern_src) ^ src);
@@ -567,6 +664,18 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint32_t nonpatt
             break; /* No-op. */
         case 0xAF:
             *dst |= ~src;
+            break;
+        case 0xBA:
+            *dst |= (src & ~nonpattern_src);
+            break;
+        case 0xCA:
+            *dst ^= (src & (nonpattern_src ^ *dst));
+            break;
+        case 0xDA:
+            *dst ^= src & (~(nonpattern_src & *dst));
+            break;
+        case 0xEA:
+            *dst |= src & nonpattern_src;
             break;
         case 0xF0:
             *dst = src;
@@ -796,6 +905,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.actual_destination_height = chips->bitblt.destination_height;
     chips->bitblt_running.count_x = chips->bitblt_running.count_y = 0;
     chips->bitblt_running.bytes_written = 0;
+    chips->bitblt_running.bytes_counter = 0;
 
     if (chips->bitblt.bitblt_control & (1 << 23)) {
         chips->bitblt_running.bytes_per_pixel = 1 + ((chips->bitblt.bitblt_control >> 24) & 3);
@@ -892,6 +1002,10 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     if (!chips->engine_active)
         return;
 
+
+    chips->bitblt_running.bytes_counter++;
+    if (chips->bitblt_running.bytes_counter <= (chips->bitblt_running.bitblt.source_addr & 7))
+        return;
     chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
     if (chips->bitblt_running.bytes_written == chips->bitblt_running.bytes_per_pixel) {
         uint32_t source_pixel = chips->bitblt_running.bytes_port[0];
