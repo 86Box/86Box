@@ -124,11 +124,11 @@ extern void      serial_set_next_inst(int ni);
 extern void      serial_standalone_init(void);
 extern void      serial_set_clock_src(serial_t *dev, double clock_src);
 extern void      serial_reset_port(serial_t *dev);
+extern uint8_t   serial_read(uint16_t addr, void *priv);
 extern void      serial_device_timeout(void *priv);
-
-extern void serial_set_cts(serial_t *dev, uint8_t enabled);
-extern void serial_set_dsr(serial_t *dev, uint8_t enabled);
-extern void serial_set_dcd(serial_t *dev, uint8_t enabled);
+extern void      serial_set_cts(serial_t *dev, uint8_t enabled);
+extern void      serial_set_dsr(serial_t *dev, uint8_t enabled);
+extern void      serial_set_dcd(serial_t *dev, uint8_t enabled);
 
 extern const device_t ns8250_device;
 extern const device_t ns8250_pcjr_device;

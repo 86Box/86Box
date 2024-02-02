@@ -554,7 +554,7 @@ machine_at_wd76c10_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&paradise_wd90c11_megapc_device);
