@@ -692,7 +692,7 @@ nvr_read(uint16_t addr, void *priv)
 {
     nvr_t         *nvr   = (nvr_t *) priv;
     const local_t *local = (local_t *) nvr->data;
-    uint8_t        ret;
+    uint8_t        ret = 0xff;
     uint8_t        addr_id = (addr & 0x0e) >> 1;
     uint16_t       i;
     uint16_t       checksum = 0x0000;
@@ -810,7 +810,8 @@ nvr_read(uint16_t addr, void *priv)
                 break;
 
             default:
-                ret = nvr->regs[local->addr[addr_id]];
+                if (!(local->lock[local->addr[addr_id]] & 0x02))
+                    ret = nvr->regs[local->addr[addr_id]];
                 break;
         }
     else {
