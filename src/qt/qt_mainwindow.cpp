@@ -220,7 +220,7 @@ MainWindow::MainWindow(QWidget *parent)
             device_set_context(&ctx, devices[i], devices_instances[i]);
 
             auto action = ui->menuDevice_settings->addAction(QString(ctx.name), [this, ctx, i] {
-                DeviceConfig::ConfigureDevice(devices[i], devices_instances[i], nullptr, true);
+                DeviceConfig::ConfigureDevice(devices[i], devices_instances[i], this, true);
                 devices[i]->reload_config(device_priv[i]);
                 endblit();
             });
