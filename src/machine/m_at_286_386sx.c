@@ -304,6 +304,8 @@ machine_at_award286_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -406,6 +408,8 @@ machine_at_spc4200p_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -449,6 +453,8 @@ machine_at_spc4620p_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -483,6 +489,8 @@ machine_at_deskmaster286_init(const machine_t *model)
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
+        
+    device_add(&ide_isa_device);
 
     return ret;
 }
@@ -546,7 +554,7 @@ machine_at_wd76c10_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&paradise_wd90c11_megapc_device);
@@ -711,7 +719,7 @@ machine_at_sbc350a_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&fdc37c665_ide_device);
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
@@ -735,7 +743,27 @@ machine_at_flytech386_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&tvga8900d_device);
 
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_325ax_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/325ax/M27C512.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&fdc_at_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }
@@ -751,11 +779,11 @@ machine_at_mr1217_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&ali1217_device);
     device_add(&fdc_at_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }

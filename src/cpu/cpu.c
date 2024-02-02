@@ -182,6 +182,7 @@ int cpu_16bitbus;
 int cpu_64bitbus;
 int cpu_cyrix_alignment;
 int cpu_cpurst_on_sr;
+int cpu_use_exec = 0;
 int CPUID;
 
 int is186;
@@ -1784,16 +1785,20 @@ cpu_set(void)
             x87_concurrency = x87_concurrency_486;
     }
 
+    cpu_use_exec = 0;
+
     if (is386) {
 #if defined(USE_DYNAREC) && !defined(USE_GDBSTUB)
-        if (cpu_use_dynarec)
+        if (cpu_use_dynarec) {
             cpu_exec = exec386_dynarec;
-        else
+            cpu_use_exec = 1;
+        } else
 #endif
             /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
-            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC))
+            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC)) {
                 cpu_exec = exec386;
-            else
+                cpu_use_exec = 1;
+            } else
                 cpu_exec = exec386_2386;
     } else if (cpu_s->cpu_type >= CPU_286)
         cpu_exec = exec386_2386;

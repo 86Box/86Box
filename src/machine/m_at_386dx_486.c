@@ -93,7 +93,7 @@ machine_at_asus386_init(const machine_t *model)
 static void
 machine_at_sis401_common_init(const machine_t *model)
 {
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
     device_add(&sis_85c401_device);
     device_add(&keyboard_at_ami_device);
 
@@ -144,7 +144,7 @@ machine_at_av4_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
     device_add(&sis_85c460_device);
     device_add(&keyboard_at_ami_device);
 
@@ -424,7 +424,7 @@ machine_at_acerv10_init(const machine_t *model)
 
     device_add(&sis_85c461_device);
     device_add(&keyboard_ps2_acer_pci_device);
-    device_add(&ide_isa_2ch_device);
+    device_add(&ide_isa_device);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -461,7 +461,7 @@ machine_at_decpclpv_init(const machine_t *model)
 static void
 machine_at_ali1429_common_init(const machine_t *model, int is_green)
 {
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     if (is_green)
         device_add(&ali1429g_device);
@@ -517,7 +517,7 @@ machine_at_opti495_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti495_device);
 
@@ -532,7 +532,7 @@ machine_at_opti495_init(const machine_t *model)
 static void
 machine_at_opti495_ami_common_init(const machine_t *model)
 {
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti495_device);
 
@@ -774,7 +774,6 @@ machine_at_ami471_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&ide_vlb_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;
@@ -792,8 +791,7 @@ machine_at_vli486sv2g_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&ide_vlb_2ch_device);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }
@@ -810,7 +808,6 @@ machine_at_dtk486_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&ide_vlb_device);
     device_add(&keyboard_at_device);
 
     return ret;
@@ -846,7 +843,6 @@ machine_at_win471_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&ide_vlb_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;
@@ -897,7 +893,6 @@ machine_at_vi15g_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&ide_vlb_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;
@@ -1140,7 +1135,7 @@ machine_at_alfredo_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1342,7 +1337,6 @@ machine_at_pci400cb_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1994_nvr_device);
-    device_add(&ide_isa_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1374,7 +1368,6 @@ machine_at_g486ip_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1992_nvr_device);
-    device_add(&ide_isa_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1647,7 +1640,7 @@ machine_at_tf486_init(const machine_t *model)
 
     device_add(&ali1489_device);
     device_add(&w83977ef_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_at_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;

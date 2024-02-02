@@ -398,6 +398,7 @@ extern void mem_mapping_disable(mem_mapping_t *);
 extern void mem_mapping_enable(mem_mapping_t *);
 extern void mem_mapping_recalc(uint64_t base, uint64_t size);
 
+extern void mem_set_wp(uint64_t base, uint64_t size, uint8_t flags, uint8_t wp);
 extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
 
 extern uint8_t  mem_readb_phys(uint32_t addr);
