@@ -8767,7 +8767,7 @@ const machine_t machines[] = {
         .internal_name = "586mc1",
         .type = MACHINE_TYPE_SOCKET4,
         .chipset = MACHINE_CHIPSET_INTEL_430LX,
-        .init = machine_at_586mc1_init,
+        .init = machine_at_586is_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -9132,13 +9132,13 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMI MegaKey KBC firmware. */
+    /* Has AMI 'H' KBC firmware. */
     {
         .name = "[i430NX] Gigabyte GA-586IP",
-        .internal_name = "430nx",
+        .internal_name = "586ip",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_INTEL_430NX,
-        .init = machine_at_430nx_init,
+        .init = machine_at_586ip_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,

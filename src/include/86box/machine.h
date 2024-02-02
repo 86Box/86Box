@@ -607,7 +607,7 @@ extern int machine_at_opti560l_init(const machine_t *);
 extern int machine_at_ambradp60_init(const machine_t *);
 extern int machine_at_valuepointp60_init(const machine_t *);
 extern int machine_at_revenge_init(const machine_t *);
-extern int machine_at_586mc1_init(const machine_t *);
+extern int machine_at_586is_init(const machine_t *);
 extern int machine_at_pb520r_init(const machine_t *);
 
 extern int machine_at_excalibur_init(const machine_t *);
@@ -621,7 +621,7 @@ extern int machine_at_p5sp4_init(const machine_t *);
 extern int machine_at_plato_init(const machine_t *);
 extern int machine_at_dellplato_init(const machine_t *);
 extern int machine_at_ambradp90_init(const machine_t *);
-extern int machine_at_430nx_init(const machine_t *);
+extern int machine_at_586ip_init(const machine_t *);
 extern int machine_at_tek932_init(const machine_t *);
 
 extern int machine_at_acerv30_init(const machine_t *);
