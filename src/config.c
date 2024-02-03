@@ -1915,11 +1915,6 @@ save_machine(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Machine");
     const char   *p;
-    int           c;
-    int           i = 0;
-    int           legacy_mfg;
-    int           legacy_cpu = -1;
-    int           closest_legacy_cpu = -1;
 
     p = machine_get_internal_name();
     ini_section_set_string(cat, "machine", p);
@@ -1935,57 +1930,6 @@ save_machine(void)
     /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");
     ini_section_delete_var(cat, "cpu");
-
-    /* Look for a machine entry on the legacy table. */
-    c = 0;
-    while (cpu_legacy_table[c].machine) {
-        if (!strcmp(p, cpu_legacy_table[c].machine))
-            break;
-        c++;
-    }
-    if (cpu_legacy_table[c].machine) {
-        /* Look for a corresponding CPU entry. */
-        const cpu_legacy_table_t *legacy_table_entry;
-        for (legacy_mfg = 0; legacy_mfg < 4; legacy_mfg++) {
-            if (!cpu_legacy_table[c].tables[legacy_mfg])
-                continue;
-
-            i = 0;
-            while (cpu_legacy_table[c].tables[legacy_mfg][i].family) {
-                legacy_table_entry = &cpu_legacy_table[c].tables[legacy_mfg][i];
-
-                /* Match the family name, speed and multiplier. */
-                if (!strcmp(cpu_f->internal_name, legacy_table_entry->family)) {
-                    if ((legacy_table_entry->rspeed == cpu_f->cpus[cpu].rspeed) &&
-                        (legacy_table_entry->multi == cpu_f->cpus[cpu].multi)) {
-                        /* Exact speed/multiplier match. */
-                        legacy_cpu = i;
-                        break;
-                    } else if ((legacy_table_entry->rspeed >= cpu_f->cpus[cpu].rspeed) &&
-                               (closest_legacy_cpu == -1))
-                        /* Closest speed match. */
-                        closest_legacy_cpu = i;
-                }
-
-                i++;
-            }
-
-            /* Use the closest speed match if no exact match was found. */
-            if ((legacy_cpu == -1) && (closest_legacy_cpu > -1)) {
-                legacy_cpu = closest_legacy_cpu;
-                break;
-            } else if (legacy_cpu > -1) /* exact match found */
-                break;
-        }
-
-        /* Set legacy values if a match was found. */
-        if (legacy_cpu > -1) {
-            if (legacy_mfg)
-                ini_section_set_int(cat, "cpu_manufacturer", legacy_mfg);
-            if (legacy_cpu)
-                ini_section_set_int(cat, "cpu", legacy_cpu);
-        }
-    }
 
     if (cpu_waitstates == 0)
         ini_section_delete_var(cat, "cpu_waitstates");
