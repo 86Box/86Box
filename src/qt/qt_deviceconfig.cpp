@@ -378,7 +378,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
             config++;
         }
 
-        /* The :: prefix is intentional. */
+        /* The :: prefix is there to access global functions instead of local ones named identically. */
         if (devicePriv) {
             ::device_context(device);
             device->reload_config(devicePriv);
