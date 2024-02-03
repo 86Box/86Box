@@ -949,16 +949,47 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
     uint8_t convert[8] = CHANNELS;
     uint8_t ret        = 0xff;
 
-    addr &= 0x0f;
-    ret = dmaregs[2][addr];
+    if (((addr & 0xfffc) == 0x80) && (CS == 0xf000) &&
+        ((cpu_state.pc & 0xfffffff8) == 0x00007278) &&
+        !strcmp(machine_get_internal_name(), "megapc"))  switch (addr) {
+        /* The Amstrad MegaPC Quadtel BIOS times a sequence of:
+               mov ax,di
+               div bx
+           And expects this value to be at least 0x06e0 for 20 MHz,
+           and at least 0x0898 for 25 MHz, everything below 0x06e0
+           is assumed to be 16 MHz. Given that for some reason, this
+           does not occur on 86Box, we have to work around it here,
+           we return 0x0580 for 16 MHz, because it logically follows
+           in the sequence (0x06e0 = 0x0898 * (20 / 25), and
+           0x0580 = 0x06e0 * (16 / 20)). */
+        case 0x0081:
+            if (cpu_busspeed >= 25000000)
+                ret = 0x98;
+            else if (cpu_busspeed >= 20000000)
+                ret = 0xe0;
+            else
+                ret = 0x80;
+            break;
+        case 0x0082:
+            if (cpu_busspeed >= 25000000)
+                ret = 0x08;
+            else if (cpu_busspeed >= 20000000)
+                ret = 0x06;
+            else
+                ret = 0x05;
+            break;
+    } else {
+        addr &= 0x0f;
+        ret = dmaregs[2][addr];
 
-    if (addr >= 8)
-        addr = convert[addr & 0x07] | 4;
-    else
-        addr = convert[addr & 0x07];
+        if (addr >= 8)
+            addr = convert[addr & 0x07] | 4;
+        else
+            addr = convert[addr & 0x07];
 
-    if (addr < 8)
-        ret = dma[addr].page_l;
+        if (addr < 8)
+            ret = dma[addr].page_l;
+    }
 
     return ret;
 }
