@@ -8764,7 +8764,7 @@ const machine_t machines[] = {
     /* Has AMI MegaKey 'H' KBC firmware. */
     {
         .name = "[i430LX] Gigabyte GA-586IS",
-        .internal_name = "586mc1",
+        .internal_name = "586is",
         .type = MACHINE_TYPE_SOCKET4,
         .chipset = MACHINE_CHIPSET_INTEL_430LX,
         .init = machine_at_586is_init,

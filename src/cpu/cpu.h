@@ -115,13 +115,6 @@ enum {
     CPU_PKG_EBGA368       = (1 << 26)
 };
 
-#define MANU_INTEL           0
-#define MANU_AMD             1
-#define MANU_CYRIX           2
-#define MANU_IDT             3
-#define MANU_NEC             4
-#define MANU_IBM             5
-
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
 #define CPU_ALTERNATE_XTAL   4
@@ -164,17 +157,6 @@ typedef struct {
     const char    *internal_name;
     const CPU     *cpus;
 } cpu_family_t;
-
-typedef struct {
-    const char    *family;
-    const uint32_t rspeed;
-    const double   multi;
-} cpu_legacy_table_t;
-
-typedef struct {
-    const char                *machine;
-    const cpu_legacy_table_t **tables;
-} cpu_legacy_machine_t;
 
 #define C_FLAG     0x0001
 #define P_FLAG     0x0004
@@ -528,7 +510,6 @@ extern cpu_state_t cpu_state;
 extern fpu_state_t fpu_state;
 
 extern const cpu_family_t         cpu_families[];
-extern const cpu_legacy_machine_t cpu_legacy_table[];
 extern cpu_family_t              *cpu_f;
 extern CPU                       *cpu_s;
 extern int                        cpu_override;
