@@ -249,9 +249,25 @@ typedef struct {
     uint64_t amd_l2aar; /* 0xc0000089 - K6-III and later */
 
     /* Pentium/Pentium MMX MSRs */
-    uint32_t tr1;  /* 0x00000002 - also on WinChip C6/2 */
-    uint32_t tr12; /* 0x0000000e - also on WinChip C6/2 */
-    uint32_t cesr; /* 0x00000011 - also on WinChip C6/2 */
+    uint64_t mcar;         /* 0x00000000 - also on K5 and (R/W) K6 */
+    uint64_t mctr;         /* 0x00000001 - also on K5 and (R/W) K6 */
+    uint32_t tr1;          /* 0x00000002 - also on WinChip C6/2 */
+    uint32_t tr2;          /* 0x00000004 - reserved on PMMX */
+    uint32_t tr3;          /* 0x00000005 */
+    uint32_t tr4;          /* 0x00000006 */
+    uint32_t tr5;          /* 0x00000007 */
+    uint32_t tr6;          /* 0x00000008 */
+    uint32_t tr7;          /* 0x00000009 */
+    uint32_t tr9;          /* 0x0000000b */
+    uint32_t tr10;         /* 0x0000000c */
+    uint32_t tr11;         /* 0x0000000d */
+    uint32_t tr12;         /* 0x0000000e - also on WinChip C6/2 and K6 */
+    uint32_t cesr;         /* 0x00000011 - also on WinChip C6/2 and Cx6x86MX */
+    uint64_t pmc[2];       /* 0x00000012, 0x00000013 - also on WinChip C6/2 and Cx6x86MX */
+    uint32_t fp_last_xcpt; /* 0x8000001b - undocumented */
+    uint32_t probe_ctl;    /* 0x8000001d - undocumented */
+    uint32_t ecx8000001e;  /* 0x8000001e - undocumented */
+    uint32_t ecx8000001f;  /* 0x8000001f - undocumented */
 
     /* Pentium Pro/II MSRs */
     uint64_t apic_base; /* 0x0000001b */
@@ -559,7 +575,6 @@ extern double   bus_timing;
 extern double   isa_timing;
 extern double   pci_timing;
 extern double   agp_timing;
-extern uint64_t pmc[2];
 extern uint16_t temp_seg_data[4];
 extern uint16_t cs_msr;
 extern uint32_t esp_msr;

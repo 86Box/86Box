@@ -248,8 +248,7 @@ uint32_t cache_index = 0;
 uint8_t  _cache[2048];
 
 uint64_t cpu_CR4_mask;
-uint64_t tsc    = 0;
-uint64_t pmc[2] = { 0, 0 };
+uint64_t tsc = 0;
 
 double cpu_dmulti;
 double cpu_busspeed;
@@ -2824,16 +2823,158 @@ amd_k_invalid_rdmsr:
         case CPU_PENTIUM:
         case CPU_PENTIUMMMX:
             EAX = EDX = 0;
-            switch (ECX) {
+            /* Filter out the upper 27 bits when ECX value is over 0x80000000, as per:
+               Ralf Brown, Pentium Model-Specific Registers and What They Reveal.
+               https://www.cs.cmu.edu/~ralf/papers/highmsr.html
+               But leave the bit 31 intact to be able to handle both low and high
+               MSRs in a single switch block. */
+            switch (ECX & (ECX > 0x7fffffff ? 0x8000001f : 0x7fffffff)) {
                 /* Machine Check Exception Address */
-                case 0x00:
+                case 0x00000000:
+                case 0x80000000:
+                    EAX = msr.mcar & 0xffffffff;
+                    EDX = msr.mcar >> 32;
+                    break;
                 /* Machine Check Exception Type */
-                case 0x01:
+                case 0x00000001:
+                case 0x80000001:
+                    EAX = msr.mctr & 0xffffffff;
+                    EDX = msr.mctr >> 32;
+                    msr.mctr &= ~0x1; /* clear the machine check pending bit */
+                    break;
+                /* TR1 - Parity Reversal Test Register */
+                case 0x00000002:
+                case 0x80000002:
+                    EAX = msr.tr1;
+                    break;
+                /* TR2 - Instruction Cache End Bit */
+                case 0x00000004:
+                case 0x80000004:
+                    if (cpu_s->cpu_type == CPU_PENTIUMMMX)
+                        goto pentium_invalid_rdmsr;
+                    EAX = msr.tr2;
+                    break;
+                /* TR3 - Cache Test Data */
+                case 0x00000005:
+                case 0x80000005:
+                    EAX = msr.tr3;
+                    break;
+                /* TR4 - Cache Test Tag */
+                case 0x00000006:
+                case 0x80000006:
+                    EAX = msr.tr4;
+                    break;
+                /* TR5 - Cache Test Control */
+                case 0x00000007:
+                case 0x80000007:
+                    EAX = msr.tr5;
+                    break;
+                /* TR6 - TLB Test Command */
+                case 0x00000008:
+                case 0x80000008:
+                    EAX = msr.tr6;
+                    break;
+                /* TR7 - TLB Test Data */
+                case 0x00000009:
+                case 0x80000009:
+                    EAX = msr.tr7;
+                    break;
+                /* TR9 - Branch Target Buffer Tag */
+                case 0x0000000b:
+                case 0x8000000b:
+                    EAX = msr.tr9;
+                    break;
+                /* TR10 - Branch Target Buffer Target */
+                case 0x0000000c:
+                case 0x8000000c:
+                    EAX = msr.tr10;
+                    break;
+                /* TR11 - Branch Target Buffer Control */
+                case 0x0000000d:
+                case 0x8000000d:
+                    EAX = msr.tr11;
+                    break;
+                /* TR12 - New Feature Control */
+                case 0x0000000e:
+                case 0x8000000e:
+                    EAX = msr.tr12;
                     break;
                 /* Time Stamp Counter */
-                case 0x10:
+                case 0x00000010:
+                case 0x80000010:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
+                    break;
+                /* Performance Monitor - Control and Event Select */
+                case 0x00000011:
+                case 0x80000011:
+                    EAX = msr.cesr;
+                    break;
+                /* Performance Monitor - Event Counter 0 */
+                case 0x00000012:
+                case 0x80000012:
+                    EAX = msr.pmc[0] & 0xffffffff;
+                    EDX = msr.pmc[0] >> 32;
+                    break;
+                /* Performance Monitor - Event Counter 1 */
+                case 0x00000013:
+                case 0x80000013:
+                    EAX = msr.pmc[1] & 0xffffffff;
+                    EDX = msr.pmc[1] >> 32;
+                    break;
+                /* Unknown */
+                case 0x00000014:
+                case 0x80000014:
+                    if ((CPUID & 0xfff) <= 0x520)
+                        goto pentium_invalid_rdmsr;
+                    break;
+                /* Unknown, possibly paging-related; initial value is 0004h,
+                   becomes 0008h once paging is enabled */
+                case 0x80000018:
+                        EAX = ((cr0 & (1 << 31)) ? 0x00000008 : 0x00000004);
+                    break;
+                /* Floating point - last prefetched opcode
+                   bits 10-8: low three bits of first byte of FP instruction
+                   bits 7-0: second byte of floating-point instruction */
+                case 0x80000019:
+                    EAX = 0;
+                    break;
+                /* Floating point - last executed non-control opcode */
+                case 0x8000001a:
+                    EAX = 0;
+                    break;
+                /* Floating point - last non-control exception opcode - part
+                   of FSTENV/FSAVE'd environment */
+                case 0x8000001b:
+                    EAX = msr.fp_last_xcpt;
+                    break;
+                /* Unknown */
+                case 0x8000001c:
+                    EAX = 0x00000004;
+                    break;
+                /* Probe Mode Control */
+                case 0x8000001d:
+                    EAX = msr.probe_ctl;
+                    break;
+                /* Unknown, possibly scratchpad register */
+                case 0x8000001e:
+                    EAX = msr.ecx8000001e;
+                    break;
+                /* Unknown, possibly scratchpad register */
+                case 0x8000001f:
+                    EAX = msr.ecx8000001f;
+                    break;
+                /* Reserved/Unimplemented */
+                case 0x80000003:
+                case 0x8000000a:
+                case 0x8000000f:
+                case 0x80000015 ... 0x80000017:
+                    EAX = (ECX & 0x1f) * 2;
+                    break;
+                default:
+pentium_invalid_rdmsr:
+                    cpu_log("RDMSR: Invalid MSR: %08X\n", ECX);
+                    x86gpf(NULL, 0);
                     break;
             }
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
@@ -3368,20 +3509,150 @@ amd_k_invalid_wrmsr:
         case CPU_PENTIUM:
         case CPU_PENTIUMMMX:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
-            switch (ECX) {
+            /* Filter out the upper 27 bits when ECX value is over 0x80000000, as per:
+               Ralf Brown, Pentium Model-Specific Registers and What They Reveal.
+               https://www.cs.cmu.edu/~ralf/papers/highmsr.html
+               But leave the bit 31 intact to be able to handle both low and high
+               MSRs in a single switch block. */
+            switch (ECX & (ECX > 0x7fffffff ? 0x8000001f : 0x7fffffff)) {
                 /* Machine Check Exception Address */
-                case 0x00:
+                case 0x00000000:
+                case 0x80000000:
                 /* Machine Check Exception Type */
-                case 0x01:
+                case 0x00000001:
+                case 0x80000001:
+                    break;
+                /* TR1 - Parity Reversal Test Register */
+                case 0x00000002:
+                case 0x80000002:
+                    msr.tr1 = EAX & 0x3fff;
+                    break;
+                /* TR2 - Instruction Cache End Bit */
+                case 0x00000004:
+                case 0x80000004:
+                    if (cpu_s->cpu_type == CPU_PENTIUMMMX)
+                        goto pentium_invalid_wrmsr;
+                    msr.tr2 = EAX & 0xf;
+                    break;
+                /* TR3 - Cache Test Data */
+                case 0x00000005:
+                case 0x80000005:
+                    msr.tr3 = EAX;
+                    break;
+                /* TR4 - Cache Test Tag */
+                case 0x00000006:
+                case 0x80000006:
+                    msr.tr4 = EAX & ((cpu_s->cpu_type == CPU_PENTIUMMMX) ? 0xffffff1f : 0xffffff07);
+                    break;
+                /* TR5 - Cache Test Control */
+                case 0x00000007:
+                case 0x80000007:
+                    msr.tr5 = EAX & ((cpu_s->cpu_type == CPU_PENTIUMMMX) ? 0x87fff : 0x7fff);
+                    break;
+                /* TR6 - TLB Test Command */
+                case 0x00000008:
+                case 0x80000008:
+                    msr.tr6 = EAX & 0xffffff07;
+                    break;
+                /* TR7 - TLB Test Data */
+                case 0x00000009:
+                case 0x80000009:
+                    msr.tr7 = EAX & ((cpu_s->cpu_type == CPU_PENTIUMMMX) ? 0xfffffc7f : 0xffffff9c);
+                    break;
+                /* TR9 - Branch Target Buffer Tag */
+                case 0x0000000b:
+                case 0x8000000b:
+                    msr.tr9 = EAX & ((cpu_s->cpu_type == CPU_PENTIUMMMX) ? 0xffffffff : 0xffffffc3);
+                    break;
+                /* TR10 - Branch Target Buffer Target */
+                case 0x0000000c:
+                case 0x8000000c:
+                    msr.tr10 = EAX;
+                    break;
+                /* TR11 - Branch Target Buffer Control */
+                case 0x0000000d:
+                case 0x8000000d:
+                    msr.tr11 = EAX & ((cpu_s->cpu_type >= CPU_PENTIUMMMX) ? 0x3001fcf : 0xfcf);
+                    break;
+                /* TR12 - New Feature Control */
+                case 0x0000000e:
+                case 0x8000000e:
+                    if (cpu_s->cpu_type == CPU_PENTIUMMMX)
+                        temp = EAX & 0x38034f;
+                    else if ((CPUID & 0xfff) >= 0x52b)
+                        temp = EAX & 0x20435f;
+                    else if ((CPUID & 0xfff) >= 0x520)
+                        temp = EAX & 0x20035f;
+                    else
+                        temp = EAX & 0x20030f;
+                    msr.tr12 = temp;
                     break;
                 /* Time Stamp Counter */
-                case 0x10:
+                case 0x00000010:
+                case 0x80000010:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
-                /* BIOS Update Signature */
-                case 0x8b:
-                    cpu_log("WRMSR: Invalid MSR: 0x8B\n");
-                    x86gpf(NULL, 0); /* Needed for Vista to correctly break on Pentium */
+                /* Performance Monitor - Control and Event Select */
+                case 0x00000011:
+                case 0x80000011:
+                    msr.cesr = EAX & 0x3ff03ff;
+                    break;
+                /* Performance Monitor - Event Counter 0 */
+                case 0x00000012:
+                case 0x80000012:
+                    msr.pmc[0] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Performance Monitor - Event Counter 1 */
+                case 0x00000013:
+                case 0x80000013:
+                    msr.pmc[1] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Unknown */
+                case 0x00000014:
+                case 0x80000014:
+                    if ((CPUID & 0xfff) <= 0x520)
+                        goto pentium_invalid_wrmsr;
+                    break;
+                /* Unknown, possibly paging-related; initial value is 0004h,
+                   becomes 0008h once paging is enabled */
+                case 0x80000018:
+                /* Floating point - last prefetched opcode
+                   bits 10-8: low three bits of first byte of FP instruction
+                   bits 7-0: second byte of floating-point instruction */
+                case 0x80000019:
+                /* Floating point - last executed non-control opcode */
+                case 0x8000001a:
+                    break;
+                /* Floating point - last non-control exception opcode - part
+                   of FSTENV/FSAVE'd environment */
+                case 0x8000001b:
+                    EAX = msr.fp_last_xcpt & 0x7ff;
+                    break;
+                /* Unknown */
+                case 0x8000001c:
+                    break;
+                /* Probe Mode Control */
+                case 0x8000001d:
+                    EAX = msr.probe_ctl & 0x7;
+                    break;
+                /* Unknown, possibly scratchpad register */
+                case 0x8000001e:
+                    msr.ecx8000001e = EAX;
+                    break;
+                /* Unknown, possibly scratchpad register */
+                case 0x8000001f:
+                    msr.ecx8000001f = EAX;
+                    break;
+                /* Reserved/Unimplemented */
+                case 0x80000003:
+                case 0x8000000a:
+                case 0x8000000f:
+                case 0x80000015 ... 0x80000017:
+                    break;
+                default:
+pentium_invalid_wrmsr:
+                    cpu_log("WRMSR: Invalid MSR: %08X\n", ECX);
+                    x86gpf(NULL, 0);
                     break;
             }
             break;
