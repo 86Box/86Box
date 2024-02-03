@@ -1033,7 +1033,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             } else
                 chips->bitblt_running.x = 0;
             
-            if (chips->bitblt_running.count_y > chips->bitblt_running.actual_destination_height) {
+            if (chips->bitblt_running.count_y >= chips->bitblt_running.actual_destination_height) {
                 chips_69000_bitblt_interrupt(chips);
                 return;
             }
