@@ -1002,7 +1002,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     if (!chips->engine_active)
         return;
 
-
     chips->bitblt_running.bytes_counter++;
     if (chips->bitblt_running.bytes_counter <= (chips->bitblt_running.bitblt.source_addr & 7))
         return;
@@ -1021,8 +1020,12 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
         if (++chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
             if (chips->bitblt_running.bitblt.destination_width & 7)
                 chips->bitblt_running.bitblt.source_addr = 8 - (chips->bitblt_running.bitblt.destination_width & 7);
+            else
+                chips->bitblt_running.bitblt.source_addr = 0;
+
             chips->bitblt_running.y += chips->bitblt_running.y_dir;
             chips->bitblt_running.count_y++;
+            chips->bitblt_running.bytes_counter = 0;
 
             chips->bitblt_running.count_x = 0;
             if (chips->bitblt_running.bitblt.bitblt_control & (1 << 8)) {
