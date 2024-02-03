@@ -854,6 +854,43 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                                                         + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
                                                         + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7), chips);
         }
+        if (chips->bitblt_running.bytes_per_pixel == 2) {
+            pattern_pixel = chips_69000_readw_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
+        }
+        if (chips->bitblt_running.bytes_per_pixel == 3) {
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (3 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
+
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (3 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
+
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (3 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
+        }
+    }
+
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 14)) {
+        switch ((chips->bitblt_running.bitblt.bitblt_control >> 15) & 3) {
+            case 1:
+            case 3:
+            {
+                uint32_t color_key = (chips->bitblt_running.bitblt.monochrome_source_expansion_color_reg_select)
+                ? chips->bitblt_running.bitblt.source_key_bg
+                : chips->bitblt_running.bitblt.pattern_source_key_bg;
+                color_key &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
+
+                if (!!(color_key == dest_pixel) == !!(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
+                    return;
+                }
+                
+                break;
+            }
+        }
     }
 
     switch (chips->bitblt_running.bytes_per_pixel) {
@@ -872,6 +909,25 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                 chips_69000_do_rop_24bpp_patterned((uint32_t*)&dest_pixel, pattern_pixel, pixel, chips->bitblt_running.bitblt.bitblt_control & 0xFF);
                 break;
             }
+    }
+
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 14)) {
+        switch ((chips->bitblt_running.bitblt.bitblt_control >> 15) & 3) {
+            case 0:
+            case 2:
+            {
+                uint32_t color_key = (chips->bitblt_running.bitblt.monochrome_source_expansion_color_reg_select)
+                ? chips->bitblt_running.bitblt.source_key_bg
+                : chips->bitblt_running.bitblt.pattern_source_key_bg;
+                color_key &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
+
+                if (!!(color_key == dest_pixel) == !!(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
+                    return;
+                }
+                
+                break;
+            }
+        }
     }
 
     switch (chips->bitblt_running.bytes_per_pixel) {
