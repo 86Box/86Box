@@ -244,19 +244,70 @@ load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
     const char   *p;
+    const char   *migrate_from = NULL;
     int           c;
     int           i;
+    int           j;
     int           speed;
     double        multi;
 
     p = ini_section_get_string(cat, "machine", NULL);
-    if (p != NULL)
-        machine = machine_get_machine_from_internal_name(p);
-    else
+    if (p != NULL) {
+        migrate_from = p;
+        /* Migrate renamed machines. */
+        if (!strcmp(p, "430nx"))
+            machine = machine_get_machine_from_internal_name("586ip");
+        else if (!strcmp(p, "586mc1"))
+            machine = machine_get_machine_from_internal_name("586is");
+        else {
+            machine      = machine_get_machine_from_internal_name(p);
+            migrate_from = NULL;
+        }
+    } else
         machine = 0;
 
     if (machine >= machine_count())
         machine = machine_count() - 1;
+
+    /* Copy NVR files when migrating a machine to a new internal name. */
+    if (migrate_from) {
+        char old_fn[256];
+        strcpy(old_fn, migrate_from);
+        strcat(old_fn, ".");
+        c = strlen(old_fn);
+        char new_fn[256];
+        strcpy(new_fn, machines[machine].internal_name);
+        strcat(new_fn, ".");
+        i = strlen(new_fn);
+
+        /* Iterate through NVR files. */
+        DIR *dirp = opendir(nvr_path("."));
+        if (dirp) {
+            struct dirent *entry;
+            while ((entry = readdir(dirp))) {
+                /* Check if this file corresponds to the old name. */
+                if (strncmp(entry->d_name, old_fn, c))
+                    continue;
+
+                /* Add extension to the new name. */
+                strcpy(&new_fn[i], &entry->d_name[c]);
+
+                /* Only copy if a file with the new name doesn't already exist. */
+                FILE *g = nvr_fopen(new_fn, "rb");
+                if (!g) {
+                    FILE *f = nvr_fopen(entry->d_name, "rb");
+                    g       = nvr_fopen(new_fn, "wb");
+
+                    uint8_t buf[4096];
+                    while ((j = fread(buf, 1, sizeof(buf), f)))
+                        fwrite(buf, 1, j, g);
+
+                    fclose(f);
+                }
+                fclose(g);
+            }
+        }
+    }
 
     cpu_override = ini_section_get_int(cat, "cpu_override", 0);
     cpu_f        = NULL;
