@@ -1018,7 +1018,9 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
         chips_69000_process_pixel(chips, source_pixel);
         chips->bitblt_running.x += chips->bitblt_running.x_dir;
 
-        if (++chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width - 1) {
+        if (++chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
+            if (chips->bitblt_running.bitblt.destination_width & 7)
+                chips->bitblt_running.bitblt.source_addr = 8 - (chips->bitblt_running.bitblt.destination_width & 7);
             chips->bitblt_running.y += chips->bitblt_running.y_dir;
             chips->bitblt_running.count_y++;
 
