@@ -772,6 +772,7 @@ static void
 load_storage_controllers(void)
 {
     ini_section_t cat = ini_find_section(config, "Storage controllers");
+    ini_section_t migration_cat;
     char         *p;
     char          temp[512];
     int           c;
@@ -805,17 +806,16 @@ load_storage_controllers(void)
         }
         free_p = 1;
     }
-    if (!strcmp(p, "mfm_xt"))
-        hdc_current = hdc_get_from_internal_name("st506_xt");
-    else if (!strcmp(p, "mfm_xt_dtc5150x"))
-        hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
-    else if (!strcmp(p, "mfm_at"))
-        hdc_current = hdc_get_from_internal_name("st506_at");
-    else if (!strcmp(p, "vlb_isa"))
-        hdc_current = hdc_get_from_internal_name("ide_vlb");
-    else if (!strcmp(p, "vlb_isa_2ch"))
-        hdc_current = hdc_get_from_internal_name("ide_vlb_2ch");
-    else
+    /* Migrate renamed and merged cards. */
+    if (!strcmp(p, "xtide_plus")) {
+        hdc_current = hdc_get_from_internal_name("xtide");
+        migration_cat = ini_find_or_create_section(config, "PC/XT XTIDE");
+        ini_section_set_string(migration_cat, "bios", "xt_plus");
+    } else if (!strcmp(p, "xtide_at_386")) {
+        hdc_current = hdc_get_from_internal_name("xtide_at");
+        migration_cat = ini_find_or_create_section(config, "PC/AT XTIDE");
+        ini_section_set_string(migration_cat, "bios", "at_386");
+    } else
         hdc_current = hdc_get_from_internal_name(p);
 
     if (free_p) {
