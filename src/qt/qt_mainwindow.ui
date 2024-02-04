@@ -731,7 +731,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Open&amp;GL (3.0 Core)</string>
+    <string>Open&amp;GL 3.0</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>3</number>
