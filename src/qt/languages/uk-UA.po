@@ -49,8 +49,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -385,8 +385,8 @@ msgstr "Динамічний рекомпілятор"
 msgid "Video:"
 msgstr "Відеокарта:"
 
-msgid "Voodoo Graphics"
-msgstr "Прискорювач Voodoo"
+msgid "3Dfx Voodoo Graphics"
+msgstr "Прискорювач 3Dfx Voodoo"
 
 msgid "IBM 8514/A Graphics"
 msgstr "Прискорювач IBM 8514/A"
@@ -857,7 +857,7 @@ msgid "About 86Box"
 msgstr "Про 86Box"
 
 msgid "86Box v"
-msgstr "86Box v."
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
@@ -940,8 +940,8 @@ msgstr "Образи картриджів"
 msgid "Error initializing renderer"
 msgstr "Помилка ініціалізації рендерера"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Неможливо ініціалізувати рендерер OpenGL (3.0). Будь ласка, використовуйте інший рендерер."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Неможливо ініціалізувати рендерер OpenGL 3.0. Будь ласка, використовуйте інший рендерер."
 
 msgid "Resume execution"
 msgstr "Відновити виконання"

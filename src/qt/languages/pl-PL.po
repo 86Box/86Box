@@ -49,8 +49,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -385,8 +385,8 @@ msgstr "Dynamiczny rekompilator"
 msgid "Video:"
 msgstr "Wideo:"
 
-msgid "Voodoo Graphics"
-msgstr "Grafika Voodoo"
+msgid "3Dfx Voodoo Graphics"
+msgstr "Grafika 3Dfx Voodoo"
 
 msgid "IBM 8514/A Graphics"
 msgstr "Grafika IBM 8514/A"
@@ -940,8 +940,8 @@ msgstr "Obrazy kartrydżu"
 msgid "Error initializing renderer"
 msgstr "Błąd inicjalizacji renderera"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Nie można zainicjować renderera OpenGL (3.0 Core). Użyj innego."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Nie można zainicjować renderera OpenGL 3.0. Użyj innego."
 
 msgid "Resume execution"
 msgstr "Wznów wykonywanie"

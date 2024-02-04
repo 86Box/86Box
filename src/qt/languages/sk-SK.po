@@ -49,8 +49,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -385,8 +385,8 @@ msgstr "Dynamický prekladač"
 msgid "Video:"
 msgstr "Grafika:"
 
-msgid "Voodoo Graphics"
-msgstr "Použiť grafický akcelerátor Voodoo"
+msgid "3Dfx Voodoo Graphics"
+msgstr "Použiť grafický akcelerátor 3Dfx Voodoo"
 
 msgid "IBM 8514/A Graphics"
 msgstr "Grafika IBM 8514/A"
@@ -940,8 +940,8 @@ msgstr "Obrazy cartridge"
 msgid "Error initializing renderer"
 msgstr "Chyba pri inicializácii vykresľovača"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Vykresľovač OpenGL (3.0 Core) sa nepodarilo inicializovať. Použite iný renderer."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Vykresľovač OpenGL 3.0 sa nepodarilo inicializovať. Použite iný renderer."
 
 msgid "Resume execution"
 msgstr "Obnoviť"

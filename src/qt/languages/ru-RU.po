@@ -55,8 +55,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -403,6 +403,9 @@ msgstr "FPU:"
 msgid "Wait states:"
 msgstr "Циклы ожидания:"
 
+msgid "PIT Mode:"
+msgstr "Режим PIT:"
+
 msgid "MB"
 msgstr "МБ"
 
@@ -430,14 +433,14 @@ msgstr "Видеокарта 1:"
 msgid "Video #2:"
 msgstr "Видеокарта 2:"
 
-msgid "Voodoo Graphics"
-msgstr "Ускоритель Voodoo"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo Graphics"
 
 msgid "IBM 8514/A Graphics"
-msgstr "Ускоритель IBM 8514/A"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
-msgstr "Ускоритель XGA"
+msgstr "XGA Graphics"
 
 msgid "Mouse:"
 msgstr "Мышь:"
@@ -712,6 +715,9 @@ msgstr "Устройство ISABugger"
 msgid "POST card"
 msgstr "Карта POST"
 
+msgid "86Box Unit Tester"
+msgstr "Модульный Тестер 86Box"
+
 msgid "FONT_SIZE"
 msgstr "9"
 
@@ -947,7 +953,7 @@ msgid "About 86Box"
 msgstr "О 86Box"
 
 msgid "86Box v"
-msgstr "86Box v."
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Эмулятор старых компьютеров\n\nАвторы: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nВыпускается под лицензией GNU General Public License версии 2 или более поздней. Дополнительную информацию см. в файле LICENSE."
@@ -1030,8 +1036,8 @@ msgstr "Образы картриджей"
 msgid "Error initializing renderer"
 msgstr "Ошибка инициализации рендерера"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Невозможно инициализировать рендерер OpenGL 3.0. Пожалуйста, используйте другой рендерер."
 
 msgid "Resume execution"
 msgstr "Возобновить выполнение"

@@ -31,6 +31,12 @@ msgstr "&Hide status bar"
 msgid "Hide &toolbar"
 msgstr "Hide &toolbar"
 
+msgid "Show status icons in fullscreen"
+msgstr "Show status icons in fullscreen"
+
+msgid "Show non-primary monitors"
+msgstr "Show non-primary monitors"
+
 msgid "&Resizeable window"
 msgstr "&Resizeable window"
 
@@ -49,11 +55,35 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
+
+msgid "Renderer options..."
+msgstr "Renderer options..."
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "OpenGL 3.0 renderer options"
+
+msgid "Render behavior"
+msgstr "Render behavior"
+
+msgid "Synchronize with video"
+msgstr "Synchronize with video"
+
+msgid "Use target framerate:"
+msgstr "Use target framerate:"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "Shaders"
+msgstr "Shaders"
+
+msgid "No shader selected"
+msgstr "No shader selected"
 
 msgid "Specify dimensions..."
 msgstr "Specify dimensions..."
@@ -127,6 +157,9 @@ msgstr "&Integer scale"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Integer scale"
 
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Apply fullscreen stretch mode when maximized"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA settings"
 
@@ -193,6 +226,9 @@ msgstr "Enable &Discord integration"
 msgid "Sound &gain..."
 msgstr "Sound &gain..."
 
+msgid "Open screenshots folder..."
+msgstr "Open screenshots folder..."
+
 msgid "Begin trace\tCtrl+T"
 msgstr "Begin trace\tCtrl+T"
 
@@ -232,6 +268,9 @@ msgstr "&Fast forward to the end"
 msgid "E&ject"
 msgstr "E&ject"
 
+msgid "Eject %s"
+msgstr "Eject %s"
+
 msgid "&Image..."
 msgstr "&Image..."
 
@@ -240,6 +279,9 @@ msgstr "E&xport to 86F..."
 
 msgid "&Mute"
 msgstr "&Mute"
+
+msgid "&Unmute"
+msgstr "&Unmute"
 
 msgid "E&mpty"
 msgstr "E&mpty"
@@ -361,6 +403,9 @@ msgstr "FPU:"
 msgid "Wait states:"
 msgstr "Wait states:"
 
+msgid "PIT Mode:"
+msgstr "PIT Mode:"
+
 msgid "MB"
 msgstr "MB"
 
@@ -383,10 +428,13 @@ msgid "Dynamic Recompiler"
 msgstr "Dynamic Recompiler"
 
 msgid "Video:"
-msgstr "Video:"
+msgstr "Video card 1:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo Graphics"
+msgid "Video #2:"
+msgstr "Video card 2:"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo Graphics"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A Graphics"
@@ -413,16 +461,16 @@ msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
 msgid "Sound card #1:"
-msgstr "Sound card #1:"
+msgstr "Sound card 1:"
 
 msgid "Sound card #2:"
-msgstr "Sound card #2:"
+msgstr "Sound card 2:"
 
 msgid "Sound card #3:"
-msgstr "Sound card #3:"
+msgstr "Sound card 3:"
 
 msgid "Sound card #4:"
-msgstr "Sound card #4:"
+msgstr "Sound card 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI Out Device:"
@@ -453,6 +501,30 @@ msgstr "PCap device:"
 
 msgid "Network adapter:"
 msgstr "Network adapter:"
+
+msgid "Network Card #1"
+msgstr "Network card 1:"
+
+msgid "Network Card #2"
+msgstr "Network card 2:"
+
+msgid "Network Card #3"
+msgstr "Network card 3:"
+
+msgid "Network Card #4"
+msgstr "Network card 4:"
+
+msgid "Mode"
+msgstr "Mode:"
+
+msgid "Interface"
+msgstr "Interface:"
+
+msgid "Adapter"
+msgstr "Adapter:"
+
+msgid "VDE Socket"
+msgstr "VDE Socket:"
 
 msgid "COM1 Device:"
 msgstr "COM1 Device:"
@@ -489,6 +561,18 @@ msgstr "Serial port 3"
 
 msgid "Serial port 4"
 msgstr "Serial port 4"
+
+msgid "Serial port passthrough 1"
+msgstr "Serial port passthrough 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Serial port passthrough 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Serial port passthrough 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Serial port passthrough 4"
 
 msgid "Parallel port 1"
 msgstr "Parallel port 1"
@@ -541,8 +625,14 @@ msgstr "&New..."
 msgid "&Existing..."
 msgstr "&Existing..."
 
+msgid "Browse..."
+msgstr "Browse..."
+
 msgid "&Remove"
 msgstr "&Remove"
+
+msgid "Remove"
+msgstr "Remove"
 
 msgid "Bus:"
 msgstr "Bus:"
@@ -625,6 +715,9 @@ msgstr "ISABugger device"
 msgid "POST card"
 msgstr "POST card"
 
+msgid "86Box Unit Tester"
+msgstr "86Box Unit Tester"
+
 msgid "FONT_SIZE"
 msgstr "9"
 
@@ -660,6 +753,9 @@ msgstr "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://
 
 msgid "(empty)"
 msgstr "(empty)"
+
+msgid "Clear image history"
+msgstr "Clear image history"
 
 msgid "All files"
 msgstr "All files"
@@ -940,8 +1036,8 @@ msgstr "Cartridge images"
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "OpenGL 3.0 renderer could not be initialized. Use another renderer."
 
 msgid "Resume execution"
 msgstr "Resume execution"

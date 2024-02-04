@@ -49,8 +49,8 @@ msgstr "SDL (ハードウェア)(&H)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (OpenGL)(&O)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0コア)(&G)"
+msgid "Open&GL 3.0"
+msgstr "OpenGL 3.0(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
@@ -385,8 +385,8 @@ msgstr "動的再コンパイル"
 msgid "Video:"
 msgstr "ビデオカード:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodooグラフィック"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodooグラフィック"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/Aグラフィック"
@@ -940,8 +940,8 @@ msgstr "カートリッジイメージ"
 msgid "Error initializing renderer"
 msgstr "レンダラーの初期化エラー"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0コア) レンダラーが初期化できません。別のレンダラーを使用してください。"
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "OpenGL 3.0 レンダラーが初期化できません。別のレンダラーを使用してください。"
 
 msgid "Resume execution"
 msgstr "実行を再開"
