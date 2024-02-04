@@ -62,7 +62,7 @@
    <item row="1" column="0" colspan="2">
     <widget class="QComboBox" name="comboBoxVideo">
      <property name="maxVisibleItems">
-      <number>35</number>
+      <number>30</number>
      </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
