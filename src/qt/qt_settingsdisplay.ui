@@ -62,7 +62,7 @@
    <item row="1" column="0" colspan="2">
     <widget class="QComboBox" name="comboBoxVideo">
      <property name="maxVisibleItems">
-      <number>30</number>
+      <number>35</number>
      </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -102,7 +102,7 @@
    <item row="4" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxVoodoo">
      <property name="text">
-      <string>Voodoo Graphics</string>
+      <string>3Dfx Voodoo Graphics</string>
      </property>
     </widget>
    </item>
