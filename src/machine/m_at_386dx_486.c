@@ -921,6 +921,29 @@ machine_at_greenb_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_4gpv5_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/4gpv5/4GPV5.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&contaq_82c596a_device);
+
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
+
 static void
 machine_at_sis_85c496_common_init(UNUSED(const machine_t *model))
 {
