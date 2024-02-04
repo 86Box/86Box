@@ -2590,13 +2590,20 @@ cpu_RDMSR(void)
 
                 /* Cache Region Control Register */
                 case 0x1001:
-                    EAX = msr.ibm_crcr & 0xffffffffff;
+                    EAX = msr.ibm_crcr & 0xffffffff;
+                    EDX = (msr.ibm_crcr >> 32) & 0x0000ffff;
                     break;
 
                 /* Processor Operation Register */
                 case 0x1002:
                     if ((cpu_s->cpu_type > CPU_IBM386SLC) && cpu_s->multi)
                         EAX = msr.ibm_por2 & 0x3f000000;
+                    break;
+
+                /* Processor Control Register */
+                case 0x1004:
+                    if (cpu_s->cpu_type > CPU_IBM486SLC)
+                        EAX = msr.ibm_pcr & 0x00d6001a;
                     break;
             }
             break;
@@ -2780,12 +2787,20 @@ cpu_RDMSR(void)
         case CPU_K6_3:
         case CPU_K6_2P:
         case CPU_K6_3P:
-            EAX = EDX = 0;
+            EAX = 0;
+            /* EDX is left unchanged when reading this MSR! */
+            if (ECX != 0x82)
+                EDX = 0;
             switch (ECX) {
                 /* Machine Check Address Register */
                 case 0x00000000:
+                    EAX = msr.mcar & 0xffffffff;
+                    EDX = msr.mcar >> 32;
+                    break;
                 /* Machine Check Type Register */
                 case 0x00000001:
+                    EAX = msr.mctr & 0xffffffff;
+                    EDX = msr.mctr >> 32;
                     break;
                 /* Test Register 12 */
                 case 0x0000000e:
@@ -2796,10 +2811,31 @@ cpu_RDMSR(void)
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
+                /* Array Access Register */
+                case 0x00000082:
+                    if (cpu_s->cpu_type > CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
+                    EAX = msr.amd_aar & 0xffffffff;
+                    /* EDX is left unchanged! */
+                    break;
                 /* Hardware Configuration Register */
                 case 0x00000083:
                     EAX = msr.amd_hwcr & 0xffffffff;
                     EDX = msr.amd_hwcr >> 32;
+                    break;
+                /* Write Allocate Top-of-Memory and Control Register */
+                case 0x00000085:
+                    if (cpu_s->cpu_type != CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
+                    EAX = msr.amd_watmcr & 0xffffffff;
+                    EDX = msr.amd_watmcr >> 32;
+                    break;
+                /* Write Allocate Programmable Memory Range Register */
+                case 0x00000086:
+                    if (cpu_s->cpu_type != CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
+                    EAX = msr.amd_wapmrr & 0xffffffff;
+                    EDX = msr.amd_wapmrr >> 32;
                     break;
                 /* Extended Feature Enable Register */
                 case 0xc0000080:
@@ -3033,15 +3069,36 @@ pentium_invalid_rdmsr:
         case CPU_CxGX1:
         case CPU_Cx6x86MX:
             switch (ECX) {
-                /* Machine Check Exception Address */
-                case 0x00:
-                /* Machine Check Exception Type */
-                case 0x01:
+                /* Test Data */
+                case 0x03:
+                    EAX = msr.tr3;
+                    break;
+                /* Test Address */
+                case 0x04:
+                    EAX = msr.tr4;
+                    break;
+                /* Test Command/Status */
+                case 0x05:
+                    EAX = msr.tr5;
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
+                    break;
+                /* Performance Monitor - Control and Event Select */
+                case 0x11:
+                    EAX = msr.cesr;
+                    break;
+                /* Performance Monitor - Event Counter 0 */
+                case 0x12:
+                    EAX = msr.pmc[0] & 0xffffffff;
+                    EDX = msr.pmc[0] >> 32;
+                    break;
+                /* Performance Monitor - Event Counter 1 */
+                case 0x13:
+                    EAX = msr.pmc[1] & 0xffffffff;
+                    EDX = msr.pmc[1] >> 32;
                     break;
             }
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
@@ -3331,8 +3388,8 @@ cpu_WRMSR(void)
 
     switch (cpu_s->cpu_type) {
         case CPU_IBM386SLC:
-        case CPU_IBM486BL:
         case CPU_IBM486SLC:
+        case CPU_IBM486BL:
             switch (ECX) {
                 /* Processor Operation Register */
                 case 0x1000:
@@ -3341,12 +3398,17 @@ cpu_WRMSR(void)
                     break;
                 /* Cache Region Control Register */
                 case 0x1001:
-                    msr.ibm_crcr = EAX & 0xffffffffff;
+                    msr.ibm_crcr = EAX | ((uint64_t) (EDX & 0x0000ffff) << 32);
                     break;
                 /* Processor Operation Register */
                 case 0x1002:
                     if ((cpu_s->cpu_type > CPU_IBM386SLC) && cpu_s->multi)
                         msr.ibm_por2 = EAX & 0x3f000000;
+                    break;
+                /* Processor Control Register */
+                case 0x1004:
+                    if (cpu_s->cpu_type > CPU_IBM486SLC)
+                        msr.ibm_pcr = EAX & 0x00d6001a;
                     break;
             }
             break;
@@ -3521,21 +3583,44 @@ cpu_WRMSR(void)
         case CPU_K6_3P:
             switch (ECX) {
                 /* Machine Check Address Register */
-                case 0x00:
+                case 0x00000000:
+                    if (cpu_s->cpu_type > CPU_5K86)
+                        msr.mcar = EAX | ((uint64_t) EDX << 32);
+                    break;
                 /* Machine Check Type Register */
-                case 0x01:
+                case 0x00000001:
+                    if (cpu_s->cpu_type > CPU_5K86)
+                        msr.mctr = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Test Register 12 */
-                case 0x0e:
-                    msr.tr12 = EAX & 0x228;
+                case 0x0000000e:
+                    msr.tr12 = EAX & 0x8;
                     break;
                 /* Time Stamp Counter */
-                case 0x10:
+                case 0x00000010:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Array Access Register */
+                case 0x00000082:
+                    if (cpu_s->cpu_type > CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
+                    msr.amd_aar = EAX | ((uint64_t) EDX << 32);
+                    break;
                 /* Hardware Configuration Register */
-                case 0x83:
+                case 0x00000083:
                     msr.amd_hwcr = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Write Allocate Top-of-Memory and Control Register */
+                case 0x00000085:
+                    if (cpu_s->cpu_type != CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
+                    msr.amd_watmcr = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Write Allocate Programmable Memory Range Register */
+                case 0x00000086:
+                    if (cpu_s->cpu_type != CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
+                    msr.amd_wapmrr = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Extended Feature Enable Register */
                 case 0xc0000080:
@@ -3757,14 +3842,30 @@ pentium_invalid_wrmsr:
         case CPU_Cx6x86MX:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             switch (ECX) {
-                /* Machine Check Exception Address */
-                case 0x00:
-                /* Machine Check Exception Type */
-                case 0x01:
-                    break;
+                /* Test Data */
+                case 0x03:
+                    msr.tr3 = EAX;
+                /* Test Address */
+                case 0x04:
+                    msr.tr4 = EAX;
+                /* Test Command/Status */
+                case 0x05:
+                    msr.tr5 = EAX & 0x008f0f3b;
                 /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Performance Monitor - Control and Event Select */
+                case 0x11:
+                    msr.cesr = EAX & 0x7ff07ff;
+                    break;
+                /* Performance Monitor - Event Counter 0 */
+                case 0x12:
+                    msr.pmc[0] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Performance Monitor - Event Counter 1 */
+                case 0x13:
+                    msr.pmc[1] = EAX | ((uint64_t) EDX << 32);
                     break;
             }
             break;

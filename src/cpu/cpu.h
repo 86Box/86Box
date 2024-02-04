@@ -230,6 +230,7 @@ typedef struct {
     uint64_t ibm_por;  /* 0x00001000 - 386SLC and later */
     uint64_t ibm_crcr; /* 0x00001001 - 386SLC and later */
     uint64_t ibm_por2; /* 0x00001002 - 486SLC and later */
+    uint64_t ibm_pcr;  /* 0x00001004 - 486BL3 */
 
     /* IDT WinChip C6/2/VIA Cyrix III MSRs */
     uint32_t fcr;      /* 0x00000107 (IDT), 0x00001107 (VIA) */
@@ -239,11 +240,14 @@ typedef struct {
     uint32_t mcr_ctrl; /* 0x00000120 (IDT) */
 
     /* AMD K5/K6 MSRs */
-    uint64_t amd_hwcr; /* 0x00000083 - all K5 and K6 */
+    uint64_t amd_aar;    /* 0x00000082 - all K5 */
+    uint64_t amd_hwcr;   /* 0x00000083 - all K5 and all K6 */
+    uint64_t amd_watmcr; /* 0x00000085 - K5 Model 1 and later */
+    uint64_t amd_wapmrr; /* 0x00000086 - K5 Model 1 and later */
 
-    uint64_t amd_efer;  /* 0xc0000080 - all K5 and K6 */
+    uint64_t amd_efer;  /* 0xc0000080 - all K5 and all K6 */
     uint64_t amd_star;  /* 0xc0000081 - K6-2 and later */
-    uint64_t amd_whcr;  /* 0xc0000082 - all K5 and K6 */
+    uint64_t amd_whcr;  /* 0xc0000082 - all K5 and all K6 */
     uint64_t amd_uwccr; /* 0xc0000085 - K6-2C and later */
     uint64_t amd_epmr;  /* 0xc0000086 - K6-III+/2+ only */
     uint64_t amd_psor;  /* 0xc0000087 - K6-2C and later */
