@@ -286,11 +286,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
             return;
 
         case 0x3cf:
-            if ((svga->gdcaddr & 15) == 5) {
-                svga->chain4 &= ~0x02;
-                if (val & 0x40)
-                    svga->chain4 |= (svga->seqregs[0x0e] & 0x02);
-            } else if ((svga->gdcaddr & 15) == 6) {
+            if ((svga->gdcaddr & 15) == 6) {
                 if (!(svga->crtc[0x36] & 0x10) && !(val & 0x08)) {
                     svga->write_bank = (dev->banking & 0x0f) * 0x10000;
                     svga->read_bank  = ((dev->banking >> 4) & 0x0f) * 0x10000;
