@@ -232,9 +232,11 @@ typedef struct {
     uint64_t ibm_por2; /* 0x00001002 - 486SLC and later */
 
     /* IDT WinChip C6/2/VIA Cyrix III MSRs */
-    uint32_t fcr;  /* 0x00000107 (IDT), 0x00001107 (VIA) */
-    uint64_t fcr2; /* 0x00000108 (IDT), 0x00001108 (VIA) */
-    uint64_t fcr3; /* 0x00000108 (IDT), 0x00001108 (VIA) */
+    uint32_t fcr;      /* 0x00000107 (IDT), 0x00001107 (VIA) */
+    uint64_t fcr2;     /* 0x00000108 (IDT), 0x00001108 (VIA) */
+    uint64_t fcr3;     /* 0x00000108 (IDT), 0x00001108 (VIA) */
+    uint64_t mcr[8];   /* 0x00000110 - 0x00000117 (IDT) */
+    uint32_t mcr_ctrl; /* 0x00000120 (IDT) */
 
     /* AMD K5/K6 MSRs */
     uint64_t amd_hwcr; /* 0x00000083 - all K5 and K6 */

@@ -2538,9 +2538,12 @@ cpu_ven_reset(void)
     switch (cpu_s->cpu_type) {
         case CPU_WINCHIP:
         case CPU_WINCHIP2:
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
-            if (cpu_s->cpu_type == CPU_WINCHIP2)
-                msr.fcr |= (1 << 18) | (1 << 20);
+            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+            msr.mcr_ctrl = 0xf8000000;
+            if (cpu_s->cpu_type == CPU_WINCHIP2) {
+                msr.fcr      |= (1 << 18) | (1 << 20);
+                msr.mcr_ctrl |= (1 << 17);
+            }
             break;
 
         case CPU_K6_2P:
@@ -2602,11 +2605,11 @@ cpu_RDMSR(void)
         case CPU_WINCHIP2:
             EAX = EDX = 0;
             switch (ECX) {
-                /* TR1 - Test Register 1 */
+                /* Pentium Processor Parity Reversal Register */
                 case 0x02:
                     EAX = msr.tr1;
                     break;
-                /* TR12 - Test Register 12 */
+                /* Pentium Processor New Feature Control */
                 case 0x0e:
                     EAX = msr.tr12;
                     break;
@@ -2618,6 +2621,16 @@ cpu_RDMSR(void)
                 /* Performance Monitor - Control and Event Select */
                 case 0x11:
                     EAX = msr.cesr;
+                    break;
+                /* Performance Monitor - Event Counter 0 */
+                case 0x12:
+                    EAX = msr.pmc[0] & 0xffffffff;
+                    EDX = msr.pmc[0] >> 32;
+                    break;
+                /* Performance Monitor - Event Counter 1 */
+                case 0x13:
+                    EAX = msr.pmc[1] & 0xffffffff;
+                    EDX = msr.pmc[1] >> 32;
                     break;
                 /* Feature Control Register */
                 case 0x107:
@@ -2631,6 +2644,17 @@ cpu_RDMSR(void)
                 /* Feature Control Register 4 */
                 case 0x10a:
                     EAX = cpu_multi & 3;
+                    break;
+                /* Memory Configuration Register Control */
+                case 0x120:
+                    EAX = msr.mcr_ctrl;
+                    break;
+                /* Unknown */
+                case 0x131:
+                case 0x142 ... 0x145:
+                case 0x147:
+                case 0x150:
+                case 0x151:
                     break;
             }
             break;
@@ -2674,6 +2698,29 @@ cpu_RDMSR(void)
                         EAX |= ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
                     if (cpu_busspeed >= 84000000)
                         EAX |= (1 << 19);
+                    break;
+                /* PERFCTR0 - Performance Counter Register 0 - aliased to TSC */
+                case 0xc1:
+                    EAX = tsc & 0xffffffff;
+                    EDX = (tsc >> 32) & 0xff;
+                    break;
+                /* PERFCTR1 - Performance Counter Register 1 */
+                case 0xc2:
+                    EAX = msr.ia32_pmc[1] & 0xffffffff;
+                    EDX = msr.ia32_pmc[1] >> 32;
+                    break;
+                /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
+                case 0x11e:
+                    EAX = 0x800000; /* L2 cache disabled */
+                    break;
+                /* EVNTSEL0 - Performance Counter Event Select 0 - hardcoded */
+                case 0x186:
+                    EAX = 0x470079;
+                    break;
+                /* EVNTSEL1 - Performance Counter Event Select 1 */
+                case 0x187:
+                    EAX = msr.evntsel1 & 0xffffffff;
+                    EDX = msr.evntsel1 >> 32;
                     break;
                 /* Feature Control Register */
                 case 0x1107:
@@ -3307,13 +3354,13 @@ cpu_WRMSR(void)
         case CPU_WINCHIP:
         case CPU_WINCHIP2:
             switch (ECX) {
-                /* TR1 - Test Register 1 */
+                /* Pentium Processor Parity Reversal Register */
                 case 0x02:
                     msr.tr1 = EAX & 2;
                     break;
-                /* TR12 - Test Register 12 */
+                /* Pentium Processor New Feature Control */
                 case 0x0e:
-                    msr.tr12 = EAX & 0x228;
+                    msr.tr12 = EAX & 0x248;
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
@@ -3322,6 +3369,14 @@ cpu_WRMSR(void)
                 /* Performance Monitor - Control and Event Select */
                 case 0x11:
                     msr.cesr = EAX & 0xff00ff;
+                    break;
+                /* Performance Monitor - Event Counter 0 */
+                case 0x12:
+                    msr.pmc[0] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Performance Monitor - Event Counter 1 */
+                case 0x13:
+                    msr.pmc[1] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Feature Control Register */
                 case 0x107:
@@ -3351,6 +3406,28 @@ cpu_WRMSR(void)
                 case 0x109:
                     msr.fcr3 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Memory Configuration Register 0..7 */
+                case 0x110 ... 0x117:
+                    temp = ECX - 0x110;
+                    if (cpu_s->cpu_type == CPU_WINCHIP2) {
+                        if (EAX & 0x1f)
+                            msr.mcr_ctrl |= (1 << (temp + 9));
+                        else
+                            msr.mcr_ctrl &= ~(1 << (temp + 9));
+                    }
+                    msr.mcr[temp] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Memory Configuration Register Control */
+                case 0x120:
+                    msr.mcr_ctrl = EAX & ((cpu_s->cpu_type == CPU_WINCHIP2) ? 0x1df : 0x1f);
+                    break;
+                /* Unknown */
+                case 0x131:
+                case 0x142 ... 0x145:
+                case 0x147:
+                case 0x150:
+                case 0x151:
+                    break;
             }
             break;
 
@@ -3364,6 +3441,22 @@ cpu_WRMSR(void)
                 /* Time Stamp Counter */
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* PERFCTR0 - Performance Counter Register 0 - aliased to TSC */
+                case 0xc1:
+                    break;
+                /* PERFCTR0 - Performance Counter Register 1 */
+                case 0xc2:
+                    msr.ia32_pmc[1] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
+                case 0x11e:
+                /* EVNTSEL0 - Performance Counter Event Select 0 - hardcoded */
+                case 0x186:
+                    break;
+                /* EVNTSEL1 - Performance Counter Event Select 1 */
+                case 0x187:
+                    msr.evntsel1 = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Feature Control Register */
                 case 0x1107:
