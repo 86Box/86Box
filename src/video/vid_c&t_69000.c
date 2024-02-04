@@ -34,6 +34,7 @@
 #include <86box/thread.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/plat_unused.h>
 #include <assert.h>
 
 #pragma pack(push, 1)
@@ -134,7 +135,11 @@ typedef struct chips_69000_t {
         /* Byte counter for BitBLT port writes. */
         uint8_t bytes_written;
         uint32_t bytes_counter;
-        uint8_t bytes_port[4];
+        uint8_t bytes_port[8];
+
+        /* Monochrome sources. */
+        uint8_t mono_is_first_quadword;
+        uint8_t mono_bit_cntr;
     } bitblt_running;
 
     union {
@@ -953,6 +958,153 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
 }
 
 void
+chips_69000_process_mono_data(UNUSED(chips_69000_t* chips), uint64_t val)
+{
+    /* Notes:
+        Reserved value of 0b000 for monochrome source alignment makes it use Destination Scanline Width.
+
+        TODO:
+        Actually implement this.
+
+        Figure out how alignment works. The example provided is unclear about non-quadword alignment.
+        (Outside of the one xf86-video-chips already documents).
+        Maybe it merely advances the source address pointer by alignment after consuming a byte.
+
+        Edit: It actually consumes all 8 bytes of the quadword before incrementing the pitch.
+        Which begs the next question: Are those 8 bytes for same-scanline drawing or for y-incremented drawing?
+        And is 4-byte-or-less alignment relevant for our purposes? The Monochrome Source Register only talks about quadwords, nothing else.
+    */
+
+    uint64_t i         = 0;
+    uint8_t  is_true   = 0;
+    int      orig_x    = chips->bitblt_running.x;
+    int      orig_y    = chips->bitblt_running.y;
+    uint32_t source_fg = chips->bitblt_running.bitblt.pattern_source_key_fg;
+    uint32_t source_bg = chips->bitblt_running.bitblt.pattern_source_key_bg;
+
+    int orig_count_x = chips->bitblt_running.count_x;
+    int orig_count_y = chips->bitblt_running.count_y;
+
+    chips->bitblt_running.count_x = chips->bitblt_running.count_y = 0;
+
+    if (chips->bitblt_running.bitblt.monochrome_source_expansion_color_reg_select) {
+        source_fg = chips->bitblt_running.bitblt.source_key_fg;
+        source_bg = chips->bitblt_running.bitblt.source_key_bg;
+    }
+
+    for (i = 0; i < 64; i++) {
+        uint32_t pixel = 0x0;
+        if (chips->bitblt_running.mono_is_first_quadword && (i < chips->bitblt_running.bitblt.monochrome_source_initial_discard))
+            goto increment;
+
+        if (i < chips->bitblt_running.bitblt.monochrome_source_left_clip)
+            goto increment;
+
+        if (i >= (64 - chips->bitblt_running.bitblt.monochrome_source_right_clip))
+            goto increment;
+
+        is_true = !!(val & (1 << (i)));
+
+        if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 13))) {
+            goto increment;
+        }
+
+        pixel = is_true ? source_fg : source_bg;
+        pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
+
+        chips->bitblt_running.x = orig_x + (chips->bitblt_running.count_x);
+        chips->bitblt_running.y = orig_y + chips->bitblt_running.count_y;
+
+        if ((orig_count_x + (chips->bitblt_running.count_x)) < chips->bitblt_running.actual_destination_width
+            && (orig_count_y + chips->bitblt_running.count_y) < chips->bitblt_running.actual_destination_height)
+            chips_69000_process_pixel(chips, pixel);
+
+increment:
+        chips->bitblt_running.count_x++;
+        if (chips->bitblt_running.count_x == 8) {
+            chips->bitblt_running.count_x = 0;
+            chips->bitblt_running.count_y++;
+        }
+    }
+    chips->bitblt_running.x = orig_x;
+    chips->bitblt_running.y = orig_y;
+    chips->bitblt_running.count_x = orig_count_x;
+    chips->bitblt_running.count_y = orig_count_y;
+    chips->bitblt_running.x += chips->bitblt_running.x_dir * 8;
+    chips->bitblt_running.count_x += 8;
+    chips->bitblt_running.mono_is_first_quadword = 0;
+    if (chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
+        chips->bitblt_running.count_y += 8;
+        chips->bitblt_running.y += chips->bitblt_running.y_dir * 8;
+        chips->bitblt_running.count_x = 0;
+        if (chips->bitblt_running.count_y > chips->bitblt_running.actual_destination_height)
+            chips_69000_bitblt_interrupt(chips);
+    }
+}
+
+void
+chips_69000_process_mono_data_non_qword(UNUSED(chips_69000_t* chips), uint8_t val)
+{
+    uint64_t i         = 0;
+    uint8_t  is_true   = 0;
+    int      orig_x    = chips->bitblt_running.x;
+    int      orig_y    = chips->bitblt_running.y;
+    uint32_t source_fg = chips->bitblt_running.bitblt.pattern_source_key_fg;
+    uint32_t source_bg = chips->bitblt_running.bitblt.pattern_source_key_bg;
+
+    if (chips->bitblt_running.bitblt.monochrome_source_expansion_color_reg_select) {
+        source_fg = chips->bitblt_running.bitblt.source_key_fg;
+        source_bg = chips->bitblt_running.bitblt.source_key_bg;
+    }
+
+    for (i = chips->bitblt_running.mono_bit_cntr; i < (chips->bitblt_running.mono_bit_cntr + 8); i++) {
+        uint32_t pixel = 0x0;
+        if (chips->bitblt_running.mono_is_first_quadword && (i < chips->bitblt_running.bitblt.monochrome_source_initial_discard))
+            continue;
+
+        if (i < chips->bitblt_running.bitblt.monochrome_source_left_clip)
+            continue;
+
+        if (i >= (64 - chips->bitblt_running.bitblt.monochrome_source_right_clip))
+            continue;
+
+        is_true = !!(val & (1 << (8 - (i & 7))));
+
+        if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 13))) {
+            continue;
+        }
+
+        pixel = is_true ? source_fg : source_bg;
+        pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
+
+        chips->bitblt_running.x = orig_x + (i & 7);
+
+        //if ((chips->bitblt_running.count_x + (i & 7)) < chips->bitblt_running.actual_destination_width)
+            chips_69000_process_pixel(chips, pixel);
+    }
+    chips->bitblt_running.mono_bit_cntr += 8;
+    chips->bitblt_running.x = orig_x;
+    chips->bitblt_running.y = orig_y;
+    chips->bitblt_running.x += chips->bitblt_running.x_dir * 8;
+    chips->bitblt_running.count_x += 8;
+    if (chips->bitblt_running.mono_bit_cntr >= 64) {
+        chips->bitblt_running.mono_is_first_quadword = 0;
+        chips->bitblt_running.mono_bit_cntr = 0;
+    }
+    if (chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
+        chips->bitblt_running.count_y += 1;
+        chips->bitblt_running.y += chips->bitblt_running.y_dir * 1;
+        chips->bitblt_running.count_x = 0;
+        if (chips->bitblt_running.bitblt.bitblt_control & (1 << 8)) {
+            chips->bitblt_running.x = chips->bitblt_running.actual_destination_width - 1;
+        } else
+            chips->bitblt_running.x = 0;
+        if (chips->bitblt_running.count_y >= chips->bitblt_running.actual_destination_height)
+            chips_69000_bitblt_interrupt(chips);
+    }
+}
+
+void
 chips_69000_setup_bitblt(chips_69000_t* chips)
 {
     chips->engine_active = 1;
@@ -962,6 +1114,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.count_x = chips->bitblt_running.count_y = 0;
     chips->bitblt_running.bytes_written = 0;
     chips->bitblt_running.bytes_counter = 0;
+    chips->bitblt_running.mono_is_first_quadword = 1;
+    chips->bitblt_running.mono_bit_cntr = 0;
+    int orig_cycles = cycles;
 
     if (chips->bitblt.bitblt_control & (1 << 23)) {
         chips->bitblt_running.bytes_per_pixel = 1 + ((chips->bitblt.bitblt_control >> 24) & 3);
@@ -1010,6 +1165,10 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         return;
     }
 
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
+        pclog("C&T: Monochrome blit\n");
+    }
+
     do {
         do {
             uint32_t pixel = 0;
@@ -1048,7 +1207,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         } else
             chips->bitblt_running.x = 0;
     } while ((chips->bitblt_running.count_y++) < chips->bitblt_running.actual_destination_height);
-    
+    cycles = orig_cycles;
     chips_69000_bitblt_interrupt(chips);
 }
 
@@ -1057,6 +1216,27 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
 
     if (!chips->engine_active)
         return;
+
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
+        chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
+        if (chips->bitblt_running.bitblt.monochrome_source_alignment == 4
+        && chips->bitblt_running.bytes_written == 4) {
+            chips->bitblt_running.bytes_written = 0;
+            chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
+        } else if (chips->bitblt_running.bytes_written == 8) {
+            chips->bitblt_running.bytes_written = 0;
+            uint64_t mono_data = chips->bitblt_running.bytes_port[0];
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[1] << 8ull;
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[2] << 16ull;
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[3] << 24ull;
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[4] << 32ull;
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[5] << 40ull;
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[6] << 48ull;
+            mono_data |= (uint64_t)chips->bitblt_running.bytes_port[7] << 56ull;
+            chips_69000_process_mono_data(chips, mono_data);
+        }
+        return;
+    }
 
     chips->bitblt_running.bytes_counter++;
     if (chips->bitblt_running.bytes_counter <= (chips->bitblt_running.bitblt.source_addr & 7))
@@ -1291,7 +1471,6 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
             svga_out(addr, val, svga);
             chips_69000_recalc_banking(chips);
             return;
-#if 1
         case 0x3D0:
             chips->flat_panel_index = val;
             return;
@@ -1302,7 +1481,6 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
             return;
         case 0x3D3:
             return chips_69000_write_multimedia(chips, val);
-#endif
         case 0x3D4:
             svga->crtcreg = val & 0xff;
             return;
@@ -1751,6 +1929,9 @@ void
 chips_69000_writel_mmio(uint32_t addr, uint32_t val, chips_69000_t* chips)
 {
     if (addr & 0x10000) {
+        if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
+            pclog("BitBLT mono 0x%08X\n", val);
+        }
         chips_69000_bitblt_write(chips, val & 0xFF);
         chips_69000_bitblt_write(chips, (val >> 8) & 0xFF);
         chips_69000_bitblt_write(chips, (val >> 16) & 0xFF);
