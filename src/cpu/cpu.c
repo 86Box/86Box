@@ -2713,8 +2713,8 @@ cpu_RDMSR(void)
                     break;
                 /* PERFCTR1 - Performance Counter Register 1 */
                 case 0xc2:
-                    EAX = msr.ia32_pmc[1] & 0xffffffff;
-                    EDX = msr.ia32_pmc[1] >> 32;
+                    EAX = msr.perfctr[1] & 0xffffffff;
+                    EDX = msr.perfctr[1] >> 32;
                     break;
                 /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
@@ -2726,8 +2726,8 @@ cpu_RDMSR(void)
                     break;
                 /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
-                    EAX = msr.evntsel1 & 0xffffffff;
-                    EDX = msr.evntsel1 >> 32;
+                    EAX = msr.evntsel[1] & 0xffffffff;
+                    EDX = msr.evntsel[1] >> 32;
                     break;
                 /* Feature Control Register */
                 case 0x1107:
@@ -3124,13 +3124,16 @@ pentium_invalid_rdmsr:
                     break;
                 /* IA32_PLATFORM_ID - Platform ID */
                 case 0x17:
-                    if (cpu_s->cpu_type != CPU_PENTIUM2D)
+                    if (cpu_s->cpu_type < CPU_PENTIUM2D)
                         goto i686_invalid_rdmsr;
 
                     if (cpu_f->package == CPU_PKG_SLOT2)
-                        EDX |= 0x80000;
+                        EDX |= (1 << 19);
                     else if (cpu_f->package == CPU_PKG_SOCKET370)
-                        EDX |= 0x100000;
+                        EDX |= (1 << 20);
+                    break;
+                /* Unknown */
+                case 0x18:
                     break;
                 /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1B:
@@ -3142,6 +3145,11 @@ pentium_invalid_rdmsr:
                 case 0x20:
                     EAX = msr.ecx20 & 0xffffffff;
                     EDX = msr.ecx20 >> 32;
+                    break;
+                /* Unknown */
+                case 0x21:
+                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
+                        goto i686_invalid_rdmsr;
                     break;
                 /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
@@ -3178,6 +3186,21 @@ pentium_invalid_rdmsr:
                             EAX |= (1 << 19);
                     }
                     break;
+                /* Unknown */
+                case 0x32:
+                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
+                        goto i686_invalid_rdmsr;
+                    break;
+                /* TEST_CTL - Test Control Register */
+                case 0x33:
+                    EAX = msr.test_ctl;
+                    break;
+                /* Unknown */
+                case 0x34:
+                case 0x3a:
+                case 0x3b:
+                case 0x50 ... 0x54:
+                    break;
                 /* BIOS_UPDT_TRIG - BIOS Update Trigger */
                 case 0x79:
                     EAX = msr.bios_updt & 0xffffffff;
@@ -3189,10 +3212,15 @@ pentium_invalid_rdmsr:
                     EAX = msr.bbl_cr_dx[ECX - 0x88] & 0xffffffff;
                     EDX = msr.bbl_cr_dx[ECX - 0x88] >> 32;
                     break;
-                /* PERFCTR0 ... PERFCTR7 - Performance Counter Register 0..7 */
-                case 0xc1 ... 0xc8:
-                    EAX = msr.ia32_pmc[ECX - 0xC1] & 0xffffffff;
-                    EDX = msr.ia32_pmc[ECX - 0xC1] >> 32;
+                /* Unknown */
+                case 0xae:
+                    break;
+                /* PERFCTR0 - Performance Counter Register 0 */
+                case 0xc1:
+                /* PERFCTR1 - Performance Counter Register 1 */
+                case 0xc2:
+                    EAX = msr.perfctr[ECX - 0xC1] & 0xffffffff;
+                    EDX = msr.perfctr[ECX - 0xC1] >> 32;
                     break;
                 /* MTRRcap */
                 case 0xfe:
@@ -3228,6 +3256,13 @@ pentium_invalid_rdmsr:
                 case 0x11e:
                     EAX = msr.bbl_cr_ctl3 & 0xffffffff;
                     EDX = msr.bbl_cr_ctl3 >> 32;
+                    break;
+                /* Unknown */
+                case 0x131:
+                case 0x14e ... 0x151:
+                case 0x154:
+                case 0x15b:
+                case 0x15f:
                     break;
                 /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
@@ -3269,23 +3304,30 @@ pentium_invalid_rdmsr:
                     break;
                 /* EVNTSEL0 - Performance Counter Event Select 0 */
                 case 0x186:
-                    EAX = msr.evntsel0 & 0xffffffff;
-                    EDX = msr.evntsel0 >> 32;
-                    break;
                 /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
-                    EAX = msr.evntsel1 & 0xffffffff;
-                    EDX = msr.evntsel1 >> 32;
+                    EAX = msr.evntsel[ECX - 0x186] & 0xffffffff;
+                    EDX = msr.evntsel[ECX - 0x186] >> 32;
+                    break;
+                /* Unknown */
+                case 0x1d3:
                     break;
                 /* DEBUGCTLMSR - Debugging Control Register */
                 case 0x1d9:
-                    EAX = msr.debug_ctl & 0xffffffff;
-                    EDX = msr.debug_ctl >> 32;
+                    EAX = msr.debug_ctl;
+                    break;
+                /* LASTBRANCHFROMIP - address from which a branch was last taken */
+                case 0x1db:
+                /* LASTBRANCHTOIP - destination address of the last taken branch instruction */
+                case 0x1dc:
+                /* LASTINTFROMIP - address at which an interrupt last occurred */
+                case 0x1dd:
+                /* LASTINTTOIP - address to which the last interrupt caused a branch */
+                case 0x1de:
                     break;
                 /* ROB_CR_BKUPTMPDR6 */
                 case 0x1e0:
-                    EAX = msr.rob_cr_bkuptmpdr6 & 0xffffffff;
-                    EDX = msr.rob_cr_bkuptmpdr6 >> 32;
+                    EAX = msr.rob_cr_bkuptmpdr6;
                     break;
                 /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
                    ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
@@ -3320,8 +3362,15 @@ pentium_invalid_rdmsr:
                     break;
                 /* Page Attribute Table */
                 case 0x277:
+                    if (cpu_s->cpu_type < CPU_PENTIUM2D)
+                        goto i686_invalid_rdmsr;
                     EAX = msr.pat & 0xffffffff;
                     EDX = msr.pat >> 32;
+                    break;
+                /* Unknown */
+                case 0x280:
+                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
+                        goto i686_invalid_rdmsr;
                     break;
                 /* MTRRdefType */
                 case 0x2ff:
@@ -3366,6 +3415,12 @@ pentium_invalid_rdmsr:
                 case 0x570:
                     EAX = msr.ecx570 & 0xffffffff;
                     EDX = msr.ecx570 >> 32;
+                    break;
+                /* Unknown, possibly debug registers? */
+                case 0x1000 ... 0x1007:
+                /* Unknown, possibly control registers? */
+                case 0x2000:
+                case 0x2002 ... 0x2004:
                     break;
                 default:
 i686_invalid_rdmsr:
@@ -3509,7 +3564,7 @@ cpu_WRMSR(void)
                     break;
                 /* PERFCTR0 - Performance Counter Register 1 */
                 case 0xc2:
-                    msr.ia32_pmc[1] = EAX | ((uint64_t) EDX << 32);
+                    msr.perfctr[1] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
@@ -3518,7 +3573,7 @@ cpu_WRMSR(void)
                     break;
                 /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
-                    msr.evntsel1 = EAX | ((uint64_t) EDX << 32);
+                    msr.evntsel[1] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Feature Control Register */
                 case 0x1107:
@@ -3888,6 +3943,9 @@ pentium_invalid_wrmsr:
                 case 0x10:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Unknown */
+                case 0x18:
+                    break;
                 /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
@@ -3899,8 +3957,28 @@ pentium_invalid_wrmsr:
                 case 0x20:
                     msr.ecx20 = EAX | ((uint64_t) EDX << 32);
                     break;
+                /* Unknown */
+                case 0x21:
+                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
+                        goto i686_invalid_wrmsr;
+                    break;
                 /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
+                    break;
+                /* Unknown */
+                case 0x32:
+                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
+                        goto i686_invalid_wrmsr;
+                    break;
+                /* TEST_CTL - Test Control Register */
+                case 0x33:
+                    msr.test_ctl = EAX;
+                    break;
+                /* Unknown */
+                case 0x34:
+                case 0x3a:
+                case 0x3b:
+                case 0x50 ... 0x54:
                     break;
                 /* BIOS_UPDT_TRIG - BIOS Update Trigger */
                 case 0x79:
@@ -3911,9 +3989,14 @@ pentium_invalid_wrmsr:
                 case 0x88 ... 0x8b:
                     msr.bbl_cr_dx[ECX - 0x88] = EAX | ((uint64_t) EDX << 32);
                     break;
-                /* PERFCTR0 ... PERFCTR7 - Performance Counter Register 0..7 */
-                case 0xc1 ... 0xc8:
-                    msr.ia32_pmc[ECX - 0xC1] = EAX | ((uint64_t) EDX << 32);
+                /* Unknown */
+                case 0xae:
+                    break;
+                /* PERFCTR0 - Performance Counter Register 0 */
+                case 0xc1:
+                /* PERFCTR1 - Performance Counter Register 1 */
+                case 0xc2:
+                    msr.perfctr[ECX - 0xC1] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* MTRRcap */
                 case 0xfe:
@@ -3942,6 +4025,13 @@ pentium_invalid_wrmsr:
                 /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
                     msr.bbl_cr_ctl3 = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Unknown */
+                case 0x131:
+                case 0x14e ... 0x151:
+                case 0x154:
+                case 0x15b:
+                case 0x15f:
                     break;
                 /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
@@ -3978,19 +4068,19 @@ pentium_invalid_wrmsr:
                     break;
                 /* EVNTSEL0 - Performance Counter Event Select 0 */
                 case 0x186:
-                    msr.evntsel0 = EAX | ((uint64_t) EDX << 32);
-                    break;
                 /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
-                    msr.evntsel1 = EAX | ((uint64_t) EDX << 32);
+                    msr.evntsel[ECX - 0x186] = EAX | ((uint64_t) EDX << 32);
+                    break;
+                case 0x1d3:
                     break;
                 /* DEBUGCTLMSR - Debugging Control Register */
                 case 0x1d9:
-                    msr.debug_ctl = EAX | ((uint64_t) EDX << 32);
+                    msr.debug_ctl = EAX;
                     break;
                 /* ROB_CR_BKUPTMPDR6 */
                 case 0x1e0:
-                    msr.rob_cr_bkuptmpdr6 = EAX | ((uint64_t) EDX << 32);
+                    msr.rob_cr_bkuptmpdr6 = EAX;
                     break;
                 /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
                    ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
@@ -4018,7 +4108,14 @@ pentium_invalid_wrmsr:
                     break;
                 /* Page Attribute Table */
                 case 0x277:
+                    if (cpu_s->cpu_type < CPU_PENTIUM2D)
+                        goto i686_invalid_wrmsr;
                     msr.pat = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Unknown */
+                case 0x280:
+                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
+                        goto i686_invalid_wrmsr;
                     break;
                 /* MTRRdefType */
                 case 0x2ff:
@@ -4062,6 +4159,12 @@ pentium_invalid_wrmsr:
                 /* Unknown */
                 case 0x570:
                     msr.ecx570 = EAX | ((uint64_t) EDX << 32);
+                    break;
+                /* Unknown, possibly debug registers? */
+                case 0x1000 ... 0x1007:
+                /* Unknown, possibly control registers? */
+                case 0x2000:
+                case 0x2002 ... 0x2004:
                     break;
                 default:
 i686_invalid_wrmsr:

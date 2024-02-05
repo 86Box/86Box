@@ -277,10 +277,11 @@ typedef struct {
 
     /* Pentium Pro/II MSRs */
     uint64_t apic_base; /* 0x0000001b */
+    uint32_t test_ctl;  /* 0x00000033 */
     uint64_t bios_updt; /* 0x00000079 */
 
     uint64_t bbl_cr_dx[4]; /* 0x00000088 - 0x0000008b */
-    uint64_t ia32_pmc[8];  /* 0x000000c1 - 0x000000c8 */
+    uint64_t perfctr[2];  /* 0x000000c1, 0x000000c2 */
     uint64_t mtrr_cap;     /* 0x000000fe */
 
     uint64_t bbl_cr_addr; /* 0x00000116 */
@@ -295,10 +296,10 @@ typedef struct {
     uint32_t sysenter_eip; /* 0x00000176 - Pentium II and later */
 
     uint64_t mcg_ctl;           /* 0x0000017b */
-    uint64_t evntsel0;          /* 0x00000186 */
-    uint64_t evntsel1;          /* 0x00000187 */
-    uint64_t debug_ctl;         /* 0x000001d9 */
-    uint64_t rob_cr_bkuptmpdr6; /* 0x000001e0 */
+    uint64_t evntsel[2];        /* 0x00000186, 0x00000187 */
+
+    uint32_t debug_ctl;         /* 0x000001d9 */
+    uint32_t rob_cr_bkuptmpdr6; /* 0x000001e0 */
 
     /* MTTR-related MSRs also present on the VIA Cyrix III */
     uint64_t mtrr_physbase[8]; /* 0x00000200 - 0x0000020f (ECX & 0) */
