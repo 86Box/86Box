@@ -405,10 +405,10 @@ chips_69000_do_rop_24bpp(uint32_t *dst, uint32_t src, uint8_t rop)
 }
 
 void
-chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_src, uint8_t rop)
+chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t pattern, uint8_t src, uint8_t rop)
 {
     if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
-        return chips_69000_do_rop_8bpp(dst, nonpattern_src, rop);
+        return chips_69000_do_rop_8bpp(dst, src, rop);
     }
 
     switch (rop) {
@@ -416,84 +416,84 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
             *dst = 0;
             break;
         case 0x05:
-            *dst = ~(*dst) & ~src;
+            *dst = ~(*dst) & ~pattern;
             break;
         case 0x0A:
-            *dst &= ~src;
+            *dst &= ~pattern;
             break;
         case 0x0F:
-            *dst = ~src;
+            *dst = ~pattern;
             break;
         case 0x1A:
-            *dst = src ^ (*dst | (src & nonpattern_src));
+            *dst = pattern ^ (*dst | (pattern & src));
             break;
         case 0x2A:
-            *dst = *dst & (~(nonpattern_src & src));
+            *dst = *dst & (~(src & pattern));
             break;
         case 0x3A:
-            *dst = nonpattern_src ^ (src | (*dst ^ nonpattern_src));
+            *dst = src ^ (pattern | (*dst ^ src));
             break;
         case 0x4A:
-            *dst = *dst ^ (src & (nonpattern_src | *dst));
+            *dst = *dst ^ (pattern & (src | *dst));
             break;
         case 0x50:
-            *dst = src & ~(*dst);
+            *dst = pattern & ~(*dst);
             break;
         case 0x55:
             *dst = ~*dst;
             break;
         case 0x5A:
-            *dst ^= src;
+            *dst ^= pattern;
             break;
         case 0x5F:
-            *dst = ~src | ~(*dst);
+            *dst = ~pattern | ~(*dst);
             break;
         case 0x6A:
-            *dst = *dst ^ (src & nonpattern_src);
+            *dst = *dst ^ (pattern & src);
             break;
         case 0x7A:
-            *dst = *dst ^ (src & (nonpattern_src | (~*dst)));
+            *dst = *dst ^ (pattern & (src | (~*dst)));
             break;
         case 0x8A:
-            *dst = *dst & (nonpattern_src | (~src));
+            *dst = *dst & (src | (~pattern));
             break;
         case 0x9A:
-            *dst = *dst ^ (src & (~nonpattern_src));
+            *dst = *dst ^ (pattern & (~src));
             break;
         case 0xB8:
-            *dst = (((src ^ *dst) & nonpattern_src) ^ src);
+            *dst = (((pattern ^ *dst) & src) ^ pattern);
             break;
         case 0xA0:
-            *dst &= src;
+            *dst &= pattern;
             break;
         case 0xA5:
-            *dst ^= ~src;
+            *dst ^= ~pattern;
             break;
         case 0xAA:
             break; /* No-op. */
         case 0xAF:
-            *dst |= ~src;
+            *dst |= ~pattern;
             break;
         case 0xBA:
-            *dst |= (src & ~nonpattern_src);
+            *dst |= (pattern & ~src);
             break;
         case 0xCA:
-            *dst ^= (src & (nonpattern_src ^ *dst));
+            *dst ^= (pattern & (src ^ *dst));
             break;
         case 0xDA:
-            *dst ^= src & (~(nonpattern_src & *dst));
+            *dst ^= pattern & (~(src & *dst));
             break;
         case 0xEA:
-            *dst |= src & nonpattern_src;
+            *dst |= pattern & src;
             break;
         case 0xF0:
-            *dst = src;
+            *dst = pattern;
             break;
         case 0xF5:
-            *dst = src | ~(*dst);
+            *dst = pattern | ~(*dst);
             break;
         case 0xFA:
-            *dst |= src;
+            *dst |= pattern;
             break;
         case 0xFF:
             *dst = 0xFF;
@@ -502,10 +502,10 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t src, uint8_t nonpattern_
 }
 
 void
-chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpattern_src, uint8_t rop)
+chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t pattern, uint16_t src, uint8_t rop)
 {
     if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
-        return chips_69000_do_rop_16bpp(dst, nonpattern_src, rop);
+        return chips_69000_do_rop_16bpp(dst, src, rop);
     }
 
     switch (rop) {
@@ -513,84 +513,84 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpatt
             *dst = 0;
             break;
         case 0x05:
-            *dst = ~(*dst) & ~src;
+            *dst = ~(*dst) & ~pattern;
             break;
         case 0x0A:
-            *dst &= ~src;
+            *dst &= ~pattern;
             break;
         case 0x0F:
-            *dst = ~src;
+            *dst = ~pattern;
             break;
         case 0x1A:
-            *dst = src ^ (*dst | (src & nonpattern_src));
+            *dst = pattern ^ (*dst | (pattern & src));
             break;
         case 0x2A:
-            *dst = *dst & (~(nonpattern_src & src));
+            *dst = *dst & (~(src & pattern));
             break;
         case 0x3A:
-            *dst = nonpattern_src ^ (src | (*dst ^ nonpattern_src));
+            *dst = src ^ (pattern | (*dst ^ src));
             break;
         case 0x4A:
-            *dst = *dst ^ (src & (nonpattern_src | *dst));
+            *dst = *dst ^ (pattern & (src | *dst));
             break;
         case 0x50:
-            *dst = src & ~(*dst);
+            *dst = pattern & ~(*dst);
             break;
         case 0x55:
             *dst = ~*dst;
             break;
         case 0x5A:
-            *dst ^= src;
+            *dst ^= pattern;
             break;
         case 0x5F:
-            *dst = ~src | ~(*dst);
+            *dst = ~pattern | ~(*dst);
             break;
         case 0x6A:
-            *dst = *dst ^ (src & nonpattern_src);
+            *dst = *dst ^ (pattern & src);
             break;
         case 0x7A:
-            *dst = *dst ^ (src & (nonpattern_src | (~*dst)));
+            *dst = *dst ^ (pattern & (src | (~*dst)));
             break;
         case 0x8A:
-            *dst = *dst & (nonpattern_src | (~src));
+            *dst = *dst & (src | (~pattern));
             break;
         case 0x9A:
-            *dst = *dst ^ (src & (~nonpattern_src));
+            *dst = *dst ^ (pattern & (~src));
             break;
         case 0xB8:
-            *dst = (((src ^ *dst) & nonpattern_src) ^ src);
+            *dst = (((pattern ^ *dst) & src) ^ pattern);
             break;
         case 0xA0:
-            *dst &= src;
+            *dst &= pattern;
             break;
         case 0xA5:
-            *dst ^= ~src;
+            *dst ^= ~pattern;
             break;
         case 0xAA:
             break; /* No-op. */
         case 0xAF:
-            *dst |= ~src;
+            *dst |= ~pattern;
             break;
         case 0xBA:
-            *dst |= (src & ~nonpattern_src);
+            *dst |= (pattern & ~src);
             break;
         case 0xCA:
-            *dst ^= (src & (nonpattern_src ^ *dst));
+            *dst ^= (pattern & (src ^ *dst));
             break;
         case 0xDA:
-            *dst ^= src & (~(nonpattern_src & *dst));
+            *dst ^= pattern & (~(src & *dst));
             break;
         case 0xEA:
-            *dst |= src & nonpattern_src;
+            *dst |= pattern & src;
             break;
         case 0xF0:
-            *dst = src;
+            *dst = pattern;
             break;
         case 0xF5:
-            *dst = src | ~(*dst);
+            *dst = pattern | ~(*dst);
             break;
         case 0xFA:
-            *dst |= src;
+            *dst |= pattern;
             break;
         case 0xFF:
             *dst = 0xFF;
@@ -599,12 +599,12 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t src, uint16_t nonpatt
 }
 
 void
-chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint32_t nonpattern_src, uint8_t rop)
+chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src, uint8_t rop)
 {
     uint32_t orig_dst = *dst & 0xFF000000;
 
     if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
-        return chips_69000_do_rop_24bpp(dst, nonpattern_src, rop);
+        return chips_69000_do_rop_24bpp(dst, src, rop);
     }
 
     switch (rop) {
@@ -612,84 +612,84 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t src, uint32_t nonpatt
             *dst = 0;
             break;
         case 0x05:
-            *dst = ~(*dst) & ~src;
+            *dst = ~(*dst) & ~pattern;
             break;
         case 0x0A:
-            *dst &= ~src;
+            *dst &= ~pattern;
             break;
         case 0x0F:
-            *dst = ~src;
+            *dst = ~pattern;
             break;
         case 0x1A:
-            *dst = src ^ (*dst | (src & nonpattern_src));
+            *dst = pattern ^ (*dst | (pattern & src));
             break;
         case 0x2A:
-            *dst = *dst & (~(nonpattern_src & src));
+            *dst = *dst & (~(src & pattern));
             break;
         case 0x3A:
-            *dst = nonpattern_src ^ (src | (*dst ^ nonpattern_src));
+            *dst = src ^ (pattern | (*dst ^ src));
             break;
         case 0x4A:
-            *dst = *dst ^ (src & (nonpattern_src | *dst));
+            *dst = *dst ^ (pattern & (src | *dst));
             break;
         case 0x50:
-            *dst = src & ~(*dst);
+            *dst = pattern & ~(*dst);
             break;
         case 0x55:
             *dst = ~*dst;
             break;
         case 0x5A:
-            *dst ^= src;
+            *dst ^= pattern;
             break;
         case 0x5F:
-            *dst = ~src | ~(*dst);
+            *dst = ~pattern | ~(*dst);
             break;
         case 0x6A:
-            *dst = *dst ^ (src & nonpattern_src);
+            *dst = *dst ^ (pattern & src);
             break;
         case 0x7A:
-            *dst = *dst ^ (src & (nonpattern_src | (~*dst)));
+            *dst = *dst ^ (pattern & (src | (~*dst)));
             break;
         case 0x8A:
-            *dst = *dst & (nonpattern_src | (~src));
+            *dst = *dst & (src | (~pattern));
             break;
         case 0x9A:
-            *dst = *dst ^ (src & (~nonpattern_src));
+            *dst = *dst ^ (pattern & (~src));
             break;
         case 0xB8:
-            *dst = (((src ^ *dst) & nonpattern_src) ^ src);
+            *dst = (((pattern ^ *dst) & src) ^ pattern);
             break;
         case 0xA0:
-            *dst &= src;
+            *dst &= pattern;
             break;
         case 0xA5:
-            *dst ^= ~src;
+            *dst ^= ~pattern;
             break;
         case 0xAA:
             break; /* No-op. */
         case 0xAF:
-            *dst |= ~src;
+            *dst |= ~pattern;
             break;
         case 0xBA:
-            *dst |= (src & ~nonpattern_src);
+            *dst |= (pattern & ~src);
             break;
         case 0xCA:
-            *dst ^= (src & (nonpattern_src ^ *dst));
+            *dst ^= (pattern & (src ^ *dst));
             break;
         case 0xDA:
-            *dst ^= src & (~(nonpattern_src & *dst));
+            *dst ^= pattern & (~(src & *dst));
             break;
         case 0xEA:
-            *dst |= src & nonpattern_src;
+            *dst |= pattern & src;
             break;
         case 0xF0:
-            *dst = src;
+            *dst = pattern;
             break;
         case 0xF5:
-            *dst = src | ~(*dst);
+            *dst = pattern | ~(*dst);
             break;
         case 0xFA:
-            *dst |= src;
+            *dst |= pattern;
             break;
         case 0xFF:
             *dst = 0xFF;
@@ -1048,7 +1048,6 @@ chips_69000_process_mono_data_non_qword(UNUSED(chips_69000_t* chips), uint8_t va
     uint64_t i         = 0;
     uint8_t  is_true   = 0;
     int      orig_x    = chips->bitblt_running.x;
-    int      orig_y    = chips->bitblt_running.y;
     uint32_t source_fg = chips->bitblt_running.bitblt.pattern_source_key_fg;
     uint32_t source_bg = chips->bitblt_running.bitblt.pattern_source_key_bg;
 
@@ -1059,6 +1058,7 @@ chips_69000_process_mono_data_non_qword(UNUSED(chips_69000_t* chips), uint8_t va
 
     for (i = chips->bitblt_running.mono_bit_cntr; i < (chips->bitblt_running.mono_bit_cntr + 8); i++) {
         uint32_t pixel = 0x0;
+
         if (chips->bitblt_running.mono_is_first_quadword && (i < chips->bitblt_running.bitblt.monochrome_source_initial_discard))
             continue;
 
@@ -1068,7 +1068,7 @@ chips_69000_process_mono_data_non_qword(UNUSED(chips_69000_t* chips), uint8_t va
         if (i >= (64 - chips->bitblt_running.bitblt.monochrome_source_right_clip))
             continue;
 
-        is_true = !!(val & (1 << (8 - (i & 7))));
+        is_true = !!(val & (1 << (7 - (i & 7))));
 
         if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 13))) {
             continue;
@@ -1077,14 +1077,13 @@ chips_69000_process_mono_data_non_qword(UNUSED(chips_69000_t* chips), uint8_t va
         pixel = is_true ? source_fg : source_bg;
         pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
 
-        chips->bitblt_running.x = orig_x + (i & 7);
+        chips->bitblt_running.x = (orig_x + (i & 7) * chips->bitblt_running.x_dir);
 
-        if ((chips->bitblt_running.count_x + (i & 7)) <= chips->bitblt_running.actual_destination_width)
+        if ((chips->bitblt_running.count_x + (i & 7)) < chips->bitblt_running.actual_destination_width)
             chips_69000_process_pixel(chips, pixel);
     }
     chips->bitblt_running.mono_bit_cntr += 8;
     chips->bitblt_running.x = orig_x;
-    chips->bitblt_running.y = orig_y;
     chips->bitblt_running.x += chips->bitblt_running.x_dir * 8;
     chips->bitblt_running.count_x += 8;
     if (chips->bitblt_running.mono_bit_cntr >= 64) {
@@ -1147,11 +1146,15 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
 
     /* Drawing is pointless if monochrome pattern is enabled, monochrome write-masking is enabled and solid pattern is enabled. */
     if ((chips->bitblt_running.bitblt.bitblt_control & (1 << 17))
-        && (chips->bitblt_running.bitblt.bitblt_control & (1 << 18))
-        && (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))) {
-            chips_69000_bitblt_interrupt(chips);
-            return;
-        }
+    && (chips->bitblt_running.bitblt.bitblt_control & (1 << 18))
+    && (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))) {
+        chips_69000_bitblt_interrupt(chips);
+        return;
+    }
+    
+    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
+        return;
+    }
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
         pclog("C&T: Monochrome blit (monochrome_source_alignment = %d, "
@@ -1164,10 +1167,6 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         chips->bitblt_running.bitblt.monochrome_source_initial_discard,
         chips->bitblt_running.bitblt.destination_width,
         chips->bitblt_running.bitblt.destination_height);
-    }
-
-    if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
-        return;
     }
 
     do {
@@ -1212,8 +1211,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
 void
 chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
 
-    if (!chips->engine_active)
+    if (!chips->engine_active) {
         return;
+    }
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
@@ -1928,8 +1928,8 @@ void
 chips_69000_writel_mmio(uint32_t addr, uint32_t val, chips_69000_t* chips)
 {
     if (addr & 0x10000) {
-        if ((chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) && chips->bitblt_running.bitblt.destination_width > 8) {
-            pclog("BitBLT mono 0x%08X\n", val);
+        if ((chips->bitblt_running.bitblt.bitblt_control & (1 << 12))) {
+            //pclog("BitBLT mono 0x%08X\n", val);
         }
         chips_69000_bitblt_write(chips, val & 0xFF);
         chips_69000_bitblt_write(chips, (val >> 8) & 0xFF);
