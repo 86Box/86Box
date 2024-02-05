@@ -135,6 +135,7 @@ typedef struct chips_69000_t {
         /* Byte counter for BitBLT port writes. */
         uint8_t bytes_written;
         uint32_t bytes_counter;
+        uint32_t bytes_in_line_written;
         uint8_t bytes_port[8];
 
         /* Monochrome sources. */
@@ -1112,6 +1113,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.bytes_counter = 0;
     chips->bitblt_running.mono_is_first_quadword = 1;
     chips->bitblt_running.mono_bit_cntr = 0;
+    chips->bitblt_running.bytes_in_line_written = 0;
     int orig_cycles = cycles;
 
     if (chips->bitblt.bitblt_control & (1 << 23)) {
@@ -1153,6 +1155,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     }
     
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
+        if (!(chips->bitblt_running.bitblt.bitblt_control & (1 << 12))) {
+            pclog("source_span = %d, dest_span = %d\n", chips->bitblt_running.bitblt.source_span, chips->bitblt_running.bitblt.destination_span);
+        }
         return;
     }
 
@@ -1253,11 +1258,13 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             source_pixel |= (chips->bitblt_running.bytes_port[1] << 8);
         if (chips->bitblt_running.bytes_per_pixel == 3)
             source_pixel |= (chips->bitblt_running.bytes_port[2] << 16);
+        
+        chips->bitblt_running.bytes_in_line_written += chips->bitblt_running.bytes_per_pixel;
 
         chips_69000_process_pixel(chips, source_pixel);
         chips->bitblt_running.x += chips->bitblt_running.x_dir;
 
-        if (++chips->bitblt_running.count_x >= chips->bitblt_running.actual_destination_width) {
+        if (chips->bitblt_running.bytes_in_line_written >= chips->bitblt_running.bitblt.destination_width) {
             if (chips->bitblt_running.bitblt.destination_width & 7)
                 chips->bitblt_running.bitblt.source_addr = 8 - (chips->bitblt_running.bitblt.destination_width & 7);
             else
@@ -1266,6 +1273,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             chips->bitblt_running.y += chips->bitblt_running.y_dir;
             chips->bitblt_running.count_y++;
             chips->bitblt_running.bytes_counter = 0;
+            chips->bitblt_running.bytes_in_line_written = 0;
 
             chips->bitblt_running.count_x = 0;
             chips->bitblt_running.x = 0;
