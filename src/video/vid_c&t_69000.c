@@ -137,7 +137,6 @@ typedef struct chips_69000_t {
         uint8_t bytes_skip;
         uint32_t bytes_counter;
         uint32_t bytes_in_line_written;
-        uint32_t bytes_in_line_counter;
         uint8_t bytes_port[8];
 
         /* Monochrome sources. */
@@ -1103,6 +1102,8 @@ chips_69000_process_mono_data_non_qword(UNUSED(chips_69000_t* chips), uint8_t va
     }
 }
 
+void chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data);
+
 void
 chips_69000_setup_bitblt(chips_69000_t* chips)
 {
@@ -1161,7 +1162,6 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         if (!(chips->bitblt_running.bitblt.bitblt_control & (1 << 12))) {
             //pclog("source_span = %d, dest_span = %d\n", chips->bitblt_running.bitblt.source_span, chips->bitblt_running.bitblt.destination_span);
             //pclog("destination_width = %d (qword aligned = %d), skip left = %d\n", chips->bitblt_running.bitblt.destination_width, (chips->bitblt_running.bitblt.destination_width + 7) & ~7, chips->bitblt_running.bitblt.source_addr);
-            chips->bitblt_running.bytes_in_line_counter = (chips->bitblt_running.bitblt.source_addr + chips->bitblt_running.bitblt.destination_width + 7) & ~7;
             if ((chips->bitblt_running.bitblt.source_addr + (chips->bitblt_running.bitblt.destination_width)) > ((chips->bitblt_running.bitblt.destination_width + 7) & ~7))
                 chips->bitblt_running.bytes_skip = 8 + (((chips->bitblt_running.bitblt.destination_width + 7) & ~7) - chips->bitblt_running.bitblt.destination_width);
         }
@@ -1182,9 +1182,49 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         chips->bitblt_running.bitblt.destination_height);
 
         while (chips->engine_active) {
-            chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
+            switch (chips->bitblt_running.bitblt.monochrome_source_alignment) {
+                case 0: /* Source-span aligned. */
+                    {
+                        /* TODO: This is handled purely on a best case basis. */
+                        uint32_t orig_count_y = chips->bitblt_running.count_y;
+                        uint32_t orig_source_addr = chips->bitblt_running.bitblt.source_addr;
+                        while (orig_count_y == chips->bitblt_running.count_y) {
+                            uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
+                            orig_source_addr++;
+                            chips_69000_bitblt_write(chips, data & 0xFF);
+                            if ((source_addr + chips->bitblt_running.bitblt.source_span) == orig_source_addr)
+                                break;
+                        }
 
-            source_addr += chips->bitblt_running.x_dir;
+                        source_addr = chips->bitblt_running.bitblt.source_addr + chips->bitblt_running.bitblt.source_span;
+                        chips->bitblt_running.bitblt.source_addr = source_addr;
+                        break;
+                    }
+                case 4: /* Doubleword-aligned*/
+                    {
+                        uint32_t data = chips_69000_readl_linear(source_addr, chips);
+                        chips_69000_bitblt_write(chips, data & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 24) & 0xFF);
+                        source_addr += 4;
+                        break;
+                    }
+                case 5: /* Quadword-aligned*/
+                    {
+                        uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
+                        chips_69000_bitblt_write(chips, data & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 24) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 32ull) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 40ull) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 48ull) & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 56ull) & 0xFF);
+                        source_addr += 8;
+                        break;
+                    }
+            }
         }
     }
 
@@ -1236,7 +1276,16 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
-        if (chips->bitblt_running.bitblt.monochrome_source_alignment == 4
+        if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0) {
+            chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
+            chips->bitblt_running.bytes_written &= 7;
+        } else if (chips->bitblt_running.bitblt.monochrome_source_alignment == 3
+        && chips->bitblt_running.bytes_written == 2) {
+            chips->bitblt_running.bytes_written = 0;
+            chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
+            if (chips->bitblt_running.actual_destination_width > 8)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[1]);
+        } else if (chips->bitblt_running.bitblt.monochrome_source_alignment == 4
         && chips->bitblt_running.bytes_written == 4) {
             chips->bitblt_running.bytes_written = 0;
             chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
@@ -1246,6 +1295,23 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
                 chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[2]);
             if (chips->bitblt_running.actual_destination_width > 24)
                 chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[3]);
+        } else if (chips->bitblt_running.bitblt.monochrome_source_alignment == 5 && chips->bitblt_running.bytes_written == 8) {
+            chips->bitblt_running.bytes_written = 0;
+            chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
+            if (chips->bitblt_running.actual_destination_width > 8)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[1]);
+            if (chips->bitblt_running.actual_destination_width > 16)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[2]);
+            if (chips->bitblt_running.actual_destination_width > 24)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[3]);
+            if (chips->bitblt_running.actual_destination_width > 32)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[4]);
+            if (chips->bitblt_running.actual_destination_width > 40)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[5]);
+            if (chips->bitblt_running.actual_destination_width > 48)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[6]);
+            if (chips->bitblt_running.actual_destination_width > 52)
+                chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[7]);
         } else if (chips->bitblt_running.bytes_written == 8) {
             chips->bitblt_running.bytes_written = 0;
             uint64_t mono_data = chips->bitblt_running.bytes_port[0];
