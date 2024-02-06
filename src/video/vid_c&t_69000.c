@@ -1160,8 +1160,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
         if (!(chips->bitblt_running.bitblt.bitblt_control & (1 << 12))) {
-            //pclog("source_span = %d, dest_span = %d\n", chips->bitblt_running.bitblt.source_span, chips->bitblt_running.bitblt.destination_span);
-            //pclog("destination_width = %d (qword aligned = %d), skip left = %d\n", chips->bitblt_running.bitblt.destination_width, (chips->bitblt_running.bitblt.destination_width + 7) & ~7, chips->bitblt_running.bitblt.source_addr);
+            /* Yes, the NT 4.0 and Linux drivers will send this many amount of bytes to the video adapter on quadword-boundary-crossing image blits.
+               This weird calculation is intended and deliberate.
+            */
             if ((chips->bitblt_running.bitblt.source_addr + (chips->bitblt_running.bitblt.destination_width)) > ((chips->bitblt_running.bitblt.destination_width + 7) & ~7))
                 chips->bitblt_running.bytes_skip = 8 + (((chips->bitblt_running.bitblt.destination_width + 7) & ~7) - chips->bitblt_running.bitblt.destination_width);
         }
