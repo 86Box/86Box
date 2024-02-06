@@ -3273,7 +3273,8 @@ s3_recalctimings(svga_t *svga)
             svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
         }
 
-        svga->hblankstart = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
+
         if (s3->chip >= S3_VISION964) {
             /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
                      The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
@@ -3400,6 +3401,7 @@ s3_recalctimings(svga_t *svga)
                                 svga->hblankstart <<= 1;
                                 svga->hblank_end_val <<= 1;
                                 break;
+                            case S3_SPEA_MERCURY_P64V:
                             case S3_ELSAWIN2KPROX:
                                 switch (s3->width) {
                                     case 1280:
@@ -3411,22 +3413,15 @@ s3_recalctimings(svga_t *svga)
                                         break;
                                 }
                                 break;
-                            case S3_SPEA_MERCURY_P64V:
                             case S3_MIROVIDEO40SV_ERGO_968:
                                 switch (s3->width) {
                                     case 1152:
                                     case 1280:
-                                    case 1600:
                                         svga->hdisp <<= 1;
                                         svga->hblankstart <<= 1;
                                         svga->hblank_end_val <<= 1;
                                         break;
                                     default:
-                                        if (svga->attrregs[0x10] & 0x40) {
-                                            svga->hdisp <<= 1;
-                                            svga->hblankstart <<= 1;
-                                            svga->hblank_end_val <<= 1;
-                                        }
                                         break;
                                 }
                                 break;
@@ -3622,16 +3617,6 @@ s3_recalctimings(svga_t *svga)
                                         break;
                                 }
                                 break;
-
-                            case S3_MIROVIDEO40SV_ERGO_968:
-                            case S3_SPEA_MERCURY_P64V:
-                                if (svga->attrregs[0x10] & 0x40) {
-                                    svga->hdisp <<= 1;
-                                    svga->hblankstart <<= 1;
-                                    svga->hblank_end_val <<= 1;
-                                }
-                                break;
-
                             default:
                                 break;
                         }
@@ -3826,16 +3811,6 @@ s3_recalctimings(svga_t *svga)
                                         break;
                                 }
                                 break;
-
-                            case S3_MIROVIDEO40SV_ERGO_968:
-                            case S3_SPEA_MERCURY_P64V:
-                                if (svga->attrregs[0x10] & 0x40) {
-                                    svga->hdisp <<= 1;
-                                    svga->hblankstart <<= 1;
-                                    svga->hblank_end_val <<= 1;
-                                }
-                                break;
-
                             default:
                                 break;
                         }
@@ -4068,16 +4043,6 @@ s3_recalctimings(svga_t *svga)
                                         break;
                                 }
                                 break;
-
-                            case S3_MIROVIDEO40SV_ERGO_968:
-                            case S3_SPEA_MERCURY_P64V:
-                                if (svga->attrregs[0x10] & 0x40) {
-                                    svga->hdisp <<= 1;
-                                    svga->hblankstart <<= 1;
-                                    svga->hblank_end_val <<= 1;
-                                }
-                                break;
-
                             default:
                                 break;
                         }
@@ -4224,7 +4189,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
     } else {
-        svga->hblankstart = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
 
         /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
                  The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
