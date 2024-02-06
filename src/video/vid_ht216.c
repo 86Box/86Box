@@ -454,14 +454,10 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x46e8:
-            if ((ht216->id == 0x7152) && ht216->isabus)
-                io_removehandler(0x0105, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
             io_removehandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
             mem_mapping_disable(&svga->mapping);
             mem_mapping_disable(&ht216->linear_mapping);
             if (val & 8) {
-                if ((ht216->id == 0x7152) && ht216->isabus)
-                    io_sethandler(0x0105, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
                 io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
                 mem_mapping_enable(&svga->mapping);
                 ht216_remap(ht216);

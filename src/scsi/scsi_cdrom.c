@@ -3613,6 +3613,14 @@ atapi_out:
                     dev->sony_vendor = 1;
 
                     len = (cdb[7] << 8) | cdb[8];
+                    if (!len) {
+                        scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                        scsi_cdrom_log("CD-ROM %i: PlayBack Control Sony All done - callback set\n", dev->id);
+                        dev->packet_status = PHASE_COMPLETE;
+                        dev->callback      = 20.0 * CDROM_TIME;
+                        scsi_cdrom_set_callback(dev);
+                        break;
+                    }
                     scsi_cdrom_buf_alloc(dev, 65536);
 
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);
