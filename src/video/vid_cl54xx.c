@@ -817,6 +817,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                         if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)
                             svga->set_reset_disabled = svga->seqregs[7] & 1;
                         gd54xx_set_svga_fast(gd54xx);
+                        gd54xx_recalc_banking(gd54xx);
                         svga_recalctimings(svga);
                         break;
                     case 0x17:
@@ -1642,7 +1643,7 @@ gd54xx_recalc_banking(gd54xx_t *gd54xx)
             svga->extra_banks[1] = svga->extra_banks[0] + 0x8000;
     }
 
-    svga->write_bank = svga->read_bank = svga->extra_banks[0];
+    svga->write_bank = svga->read_bank = svga->packed_chain4 ? svga->extra_banks[0] : 0;
 }
 
 static void
