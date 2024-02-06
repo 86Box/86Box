@@ -1278,7 +1278,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
         if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0) {
             chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
-            chips->bitblt_running.bytes_written &= 7;
+            chips->bitblt_running.bytes_written = 0;
         } else if (chips->bitblt_running.bitblt.monochrome_source_alignment == 3
         && chips->bitblt_running.bytes_written == 2) {
             chips->bitblt_running.bytes_written = 0;
