@@ -1766,6 +1766,8 @@ gd54xx_recalctimings(svga_t *svga)
         svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00) |
                                (((svga->crtc[0x1a] >> 4) & 3) << 6);
 
+        svga->hblank_end_mask = 0x0000007f;
+
         if (svga->crtc[0x1b] & 0x20) {
             svga->hblankstart = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
             svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
@@ -1773,9 +1775,6 @@ gd54xx_recalctimings(svga_t *svga)
             /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
 	    if (!svga->scrblank && svga->attr_palette_enable)
                 svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
-
-            /* No overscan in this mode. */
-            svga->hblank_overscan = 0;
 
             svga->monitor->mon_overscan_y = 0;
             svga->monitor->mon_overscan_x = 0;
@@ -1801,8 +1800,7 @@ gd54xx_recalctimings(svga_t *svga)
             svga->render = svga_render_8bpp_highres;
             if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
                 svga->hdisp <<= 1;
-                svga->hblankstart <<= 1;
-                svga->hblank_end_val <<= 1;
+                svga->dots_per_clock <<= 1;
             }
         }
     } else if (svga->gdcreg[5] & 0x40)

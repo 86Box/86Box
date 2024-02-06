@@ -641,10 +641,17 @@ svga_recalctimings(svga_t *svga)
     svga->render     = svga_render_blank;
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-        if (svga->seqregs[1] & 8)
-            svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
-        else
-            svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
+            if (svga->seqregs[1] & 8)
+                svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
+            else
+                svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+        } else {
+            if (svga->seqregs[1] & 8)
+                svga->hdisp *= 16;
+            else
+                svga->hdisp *= 8;
+        }
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
             if (svga->seqregs[1] & 8) {                              /*40 column*/
@@ -740,19 +747,24 @@ svga_recalctimings(svga_t *svga)
 
     svga->hblankstart    = svga->crtc[2] + 1;
     svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00);
+    svga->hblank_end_mask = 0x0000003f;
 
     svga_log("htotal = %i, hblankstart = %i, hblank_end_val = %02X\n",
              svga->htotal, svga->hblankstart, svga->hblank_end_val);
 
-    svga->hblank_end_len  = 0x00000040;
-    svga->hblank_overscan = 1;
-
     if (!svga->scrblank && svga->attr_palette_enable) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-        if (svga->seqregs[1] & 8)
-            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
-        else
-            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 8 : 9);
+        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
+            if (svga->seqregs[1] & 8)
+                svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+            else
+                svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 8 : 9);
+        } else {
+            if (svga->seqregs[1] & 8)
+                svga->dots_per_clock = 16;
+            else
+                svga->dots_per_clock = 8;
+        }
     } else
         svga->dots_per_clock = 1;
 
@@ -768,18 +780,31 @@ svga_recalctimings(svga_t *svga)
         xga_recalctimings(svga);
 
     if (!svga->hoverride) {
-        svga->hblankend = (svga->hblankstart & ~(svga->hblank_end_len - 1)) | svga->hblank_end_val;
-        if (svga->hblankend <= svga->hblankstart)
-            svga->hblankend += svga->hblank_end_len;
-        svga->hblankend += svga->hblank_ext;
-
+        uint32_t dot = svga->hblankstart;
+        uint32_t adj_dot = svga->hblankstart;
+        /* Verified with both the Voodoo 3 and the S3 cards: compare 7 bits if bit 7 is set,
+           otherwise compare 6 bits. */
+        uint32_t eff_mask = (svga->hblank_end_val & ~0x0000003f) ? svga->hblank_end_mask : 0x0000003f;
         svga->hblank_sub = 0;
-        if (svga->hblankend > svga->htotal) {
-            svga->hblankend &= (svga->hblank_end_len - 1);
-            svga->hblank_sub = svga->hblankend + svga->hblank_overscan;
 
-            svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+        svga_log("Blank: %04i-%04i, Total: %04i, Mask: %02X\n", svga->hblankstart, svga->hblank_end_val,
+                 svga->htotal, eff_mask);
+
+        while (1) {
+            if (dot == svga->htotal)
+                dot = 0;
+
+            if (adj_dot >= svga->htotal)
+                svga->hblank_sub++;
+
+            if ((dot & eff_mask) == (svga->hblank_end_val & eff_mask))
+                break;
+
+            dot++;
+            adj_dot++;
         }
+
+        svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
     }
 
     if (svga->hdisp >= 2048)
@@ -1278,7 +1303,6 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->ramdac_type = RAMDAC_6BIT;
 
     svga->map8            = svga->pallook;
-    svga->hblank_overscan = 1; /* Do at least 1 character of overscan after horizontal blanking. */
 
     return 0;
 }

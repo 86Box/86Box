@@ -556,16 +556,19 @@ banshee_recalctimings(svga_t *svga)
      if (banshee->vidProcCfg & VIDPROCCFG_VIDPROC_ENABLE) {
         /* Video processing mode - assume timings akin to Cirrus' special blanking mode,
            that is, no overscan and relying on display end to blank. */
-        svga->hblankstart    = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) +
-                               (((svga->crtc[0x1a] & 0x04) >> 2) << 8) + 1;
+        if (banshee->vgaInit0 & 0x40) {
+            svga->hblankstart     = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) +
+                                   (((svga->crtc[0x1a] & 0x04) >> 2) << 8) + 1;
+            svga->hblank_end_mask = 0x0000007f;
+        } else {
+            svga->hblankstart     = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
+            svga->hblank_end_mask = 0x0000003f;
+        }
         svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
 
         /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
         if (!svga->scrblank && svga->attr_palette_enable)
             svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
-
-        /* No overscan in this mode. */
-        svga->hblank_overscan = 0;
 
         svga->monitor->mon_overscan_y = 0;
         svga->monitor->mon_overscan_x = 0;
@@ -575,9 +578,16 @@ banshee_recalctimings(svga_t *svga)
 
         svga->linedbl     = 0;
      } else {
-        svga->hblankstart    = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
-        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                               (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
+        if (banshee->vgaInit0 & 0x40) {
+            svga->hblankstart     = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+            svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                    (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
+            svga->hblank_end_mask = 0x0000007f;
+        } else {
+            svga->hblankstart     =  svga->crtc[2] + 1;
+            svga->hblank_end_val  =  (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+            svga->hblank_end_mask =  0x0000003f;
+        }
     }
 
     /*6 R/W Vertical Retrace Start bit 10 0x10
@@ -642,9 +652,10 @@ banshee_recalctimings(svga_t *svga)
 
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
-            svga->htotal *= 2;
-            svga->hblankstart *= 2;
-            svga->hblank_end_val *= 2;
+            // svga->htotal *= 2;
+            // svga->hblankstart *= 2;
+            // svga->hblank_end_val *= 2;
+            svga->dots_per_clock *= 2;
         }
 
         svga->interlace = !!(banshee->vidProcCfg & VIDPROCCFG_INTERLACE);

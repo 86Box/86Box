@@ -2485,6 +2485,9 @@ ati8514_recalctimings(svga_t *svga)
 {
     const mach_t *mach = (mach_t *) svga->ext8514;
     ibm8514_t    *dev  = (ibm8514_t *) svga->dev8514;
+    uint32_t      dot;
+    uint32_t      adj_dot;
+    uint32_t      eff_mask;
 
     mach_log("ON0=%d, ON1=%d, vgahdisp=%d.\n", dev->on[0], dev->on[1], svga->hdisp);
     if (dev->on[0] || dev->on[1]) {
@@ -2528,19 +2531,26 @@ ati8514_recalctimings(svga_t *svga)
         svga->map8 = dev->pallook;
         svga->render8514 = ibm8514_render_8bpp;
 
-        dev->hblankend = (dev->h_blankstart & ~0x3f) | dev->h_blank_end_val;
-        if (dev->hblankend <= dev->h_blankstart)
-            dev->hblankend += 0x40;
-
-        dev->hblankend += dev->hblank_ext;
-
+        dot = svga->hblankstart;
+        adj_dot = svga->hblankstart;
+        eff_mask = 0x0000003f;
         dev->hblank_sub = 0;
-        if (dev->hblankend > dev->h_total) {
-            dev->hblankend &= 0x3f;
-            dev->hblank_sub = dev->hblankend + 1;
 
-            dev->h_disp -= dev->hblank_sub;
+        while (1) {
+            if (dot == dev->h_total)
+                dot = 0;
+
+            if (adj_dot >= dev->h_total)
+                dev->hblank_sub++;
+
+            if ((dot & 0x0000003f) == (svga->hblank_end_val & 0x0000003f))
+                break;
+
+            dot++;
+            adj_dot++;
         }
+
+        dev->h_disp -= dev->hblank_sub);
     } else {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
             if (svga->seqregs[1] & 8) {                              /*40 column*/
@@ -2582,8 +2592,7 @@ mach_recalctimings(svga_t *svga)
     if ((mach->regs[0xb6] & 0x18) >= 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
-        svga->hblankstart <<= 1;
-        svga->hblank_end_val <<= 1;
+        svga->dots_per_clock <<= 1;
         svga->rowoffset <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
@@ -2601,8 +2610,7 @@ mach_recalctimings(svga_t *svga)
         if ((mach->regs[0xb6] & 0x18) == 8) {
             svga->hdisp <<= 1;
             svga->htotal <<= 1;
-            svga->hblankstart <<= 1;
-            svga->hblank_end_val <<= 1;
+            svga->dots_per_clock <<= 1;
             svga->ati_4color = 1;
         } else
             svga->ati_4color = 0;

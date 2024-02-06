@@ -118,16 +118,16 @@ typedef struct svga_t {
     int vram_display_mask;
     int vidclock;
     int dots_per_clock;
-    int hblank_ext;
     int hwcursor_on;
     int dac_hwcursor_on;
     int overlay_on;
     int set_override;
     int hblankstart;
     int hblankend;
-    int hblank_sub;
     int hblank_end_val;
     int hblank_end_len;
+    int hblank_end_mask;
+    int hblank_sub;
     int packed_4bpp;
     int ati_4color;
 
