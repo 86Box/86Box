@@ -100,7 +100,7 @@
          <item>
           <widget class="QLabel" name="label_8">
            <property name="text">
-            <string>PIT Mode:</string>
+            <string>PIT mode:</string>
            </property>
           </widget>
          </item>

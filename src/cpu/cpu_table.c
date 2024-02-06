@@ -1043,6 +1043,17 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
+    .package = CPU_PKG_386DX_DESKPRO386,
+    .manufacturer = "Intel",
+    .name = "i386DX",
+    .internal_name = "i386dx_deskpro386",
+    .cpus = (const CPU[]) {
+        {"16",    CPU_386DX,      fpus_80286,  16000000, 1, 5000, 0x0308, 0, 0, 0, 3,3,3,3, 2},
+        {"20",    CPU_386DX,      fpus_80386,  20000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
+        {"25",    CPU_386DX,      fpus_80386,  25000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
+        {"", 0}
+    }
+    }, {
     .package = CPU_PKG_386DX,
     .manufacturer = "Intel",
     .name = "RapidCAD",
