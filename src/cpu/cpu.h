@@ -104,13 +104,14 @@ enum {
     CPU_PKG_SOCKET1          = (1 << 15),
     CPU_PKG_SOCKET3          = (1 << 16),
     CPU_PKG_SOCKET3_PC330    = (1 << 17),
-    CPU_PKG_STPC             = (1 << 18),
-    CPU_PKG_SOCKET4          = (1 << 19),
-    CPU_PKG_SOCKET5_7        = (1 << 20),
-    CPU_PKG_SOCKET8          = (1 << 21),
-    CPU_PKG_SLOT1            = (1 << 22),
-    CPU_PKG_SLOT2            = (1 << 23),
-    CPU_PKG_SOCKET370        = (1 << 24)
+    CPU_PKG_SOCKET6          = (1 << 18),
+    CPU_PKG_STPC             = (1 << 19),
+    CPU_PKG_SOCKET4          = (1 << 20),
+    CPU_PKG_SOCKET5_7        = (1 << 21),
+    CPU_PKG_SOCKET8          = (1 << 22),
+    CPU_PKG_SLOT1            = (1 << 23),
+    CPU_PKG_SLOT2            = (1 << 24),
+    CPU_PKG_SOCKET370        = (1 << 25)
 };
 
 #define CPU_SUPPORTS_DYNAREC 1

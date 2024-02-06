@@ -1278,7 +1278,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. They are functionally identical*/
+    .package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330 | CPU_PKG_SOCKET6, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. They are functionally identical*/
     .manufacturer = "Intel",
     .name = "iDX4",
     .internal_name = "idx4",
@@ -1288,7 +1288,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330,
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330 | CPU_PKG_SOCKET6,
     .manufacturer = "Intel",
     .name = "Pentium OverDrive",
     .internal_name = "pentium_p24t",
