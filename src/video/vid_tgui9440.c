@@ -76,7 +76,8 @@
 #include <86box/vid_svga_render.h>
 
 #define ROM_TGUI_9400CXI          "roms/video/tgui9440/9400CXI.VBI"
-#define ROM_TGUI_9440             "roms/video/tgui9440/BIOS.BIN"
+#define ROM_TGUI_9440_VLB         "roms/video/tgui9440/trident_9440_vlb.bin"
+#define ROM_TGUI_9440_PCI         "roms/video/tgui9440/BIOS.BIN"
 #define ROM_TGUI_96xx             "roms/video/tgui9660/Union.VBI"
 
 #define EXT_CTRL_16BIT            0x01
@@ -891,7 +892,6 @@ tgui_recalcmapping(tgui_t *tgui)
         }
     } else {
         mem_mapping_disable(&tgui->linear_mapping);
-        mem_mapping_disable(&tgui->accel_mapping);
         switch (svga->gdcreg[6] & 0xC) {
             case 0x0: /*128k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
@@ -899,12 +899,6 @@ tgui_recalcmapping(tgui_t *tgui)
                 break;
             case 0x4: /*64k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
-                if ((svga->crtc[0x36] & 0x03) == 0x01)
-                    mem_mapping_set_addr(&tgui->accel_mapping, 0xb4000, 0x4000);
-                else if ((svga->crtc[0x36] & 0x03) == 0x02)
-                    mem_mapping_set_addr(&tgui->accel_mapping, 0xbc000, 0x4000);
-                else if ((svga->crtc[0x36] & 0x03) == 0x03)
-                    mem_mapping_set_addr(&tgui->accel_mapping, tgui->ge_base, 0x4000);
                 svga->banked_mask = 0xffff;
                 break;
             case 0x8: /*32k at B0000*/
@@ -919,6 +913,18 @@ tgui_recalcmapping(tgui_t *tgui)
             default:
                 break;
         }
+
+        if (tgui->pci && tgui->linear_base) /*Assume that, with PCI, linear addressing is always enabled.*/
+            mem_mapping_set_addr(&tgui->linear_mapping, tgui->linear_base, tgui->linear_size);
+
+        if ((svga->crtc[0x36] & 0x03) == 0x01)
+            mem_mapping_set_addr(&tgui->accel_mapping, 0xb4000, 0x4000);
+        else if ((svga->crtc[0x36] & 0x03) == 0x02)
+            mem_mapping_set_addr(&tgui->accel_mapping, 0xbc000, 0x4000);
+        else if ((svga->crtc[0x36] & 0x03) == 0x03)
+            mem_mapping_set_addr(&tgui->accel_mapping, tgui->ge_base, 0x4000);
+        else
+            mem_mapping_disable(&tgui->accel_mapping);
     }
 
     if (tgui->type >= TGUI_9440) {
@@ -982,7 +988,7 @@ tgui_pci_read(UNUSED(int func), int addr, void *priv)
             return (tgui->type == TGUI_9440) ? 0x94 : 0x96;
 
         case PCI_REG_COMMAND:
-            return tgui->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+            return tgui->pci_regs[PCI_REG_COMMAND] | 0x80; /*Respond to IO and memory accesses*/
 
         case 0x07:
             return 1 << 1; /*Medium DEVSEL timing*/
@@ -1043,11 +1049,12 @@ tgui_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 
     switch (addr) {
         case PCI_REG_COMMAND:
-            tgui->pci_regs[PCI_REG_COMMAND] = (val & 0x23);
-            if (val & PCI_COMMAND_IO) {
+            tgui->pci_regs[PCI_REG_COMMAND] = val & 0x23;
+            if (val & PCI_COMMAND_IO)
                 tgui_set_io(tgui);
-            } else
+            else
                 tgui_remove_io(tgui);
+
             tgui_recalcmapping(tgui);
             break;
 
@@ -3141,7 +3148,10 @@ tgui_init(const device_t *info)
             bios_fn = ROM_TGUI_9400CXI;
             break;
         case TGUI_9440:
-            bios_fn = (info->local & ONBOARD) ? NULL : ROM_TGUI_9440;
+            if (tgui->pci)
+                bios_fn = (info->local & ONBOARD) ? NULL : ROM_TGUI_9440_PCI;
+            else
+                bios_fn = ROM_TGUI_9440_VLB;
             break;
         case TGUI_9660:
         case TGUI_9680:
@@ -3193,7 +3203,7 @@ tgui_init(const device_t *info)
             pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui, &tgui->pci_slot);
     }
 
-    tgui->pci_regs[PCI_REG_COMMAND] = 7;
+    tgui->pci_regs[PCI_REG_COMMAND] = 0x83;
 
     if (tgui->has_bios) {
         tgui->pci_regs[0x30] = 0x00;
@@ -3218,9 +3228,15 @@ tgui9400cxi_available(void)
 }
 
 static int
-tgui9440_available(void)
+tgui9440_vlb_available(void)
 {
-    return rom_present(ROM_TGUI_9440);
+    return rom_present(ROM_TGUI_9440_VLB);
+}
+
+static int
+tgui9440_pci_available(void)
+{
+    return rom_present(ROM_TGUI_9440_PCI);
 }
 
 static int
@@ -3338,7 +3354,7 @@ const device_t tgui9440_vlb_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_available },
+    { .available = tgui9440_vlb_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3352,7 +3368,7 @@ const device_t tgui9440_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_available },
+    { .available = tgui9440_pci_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config

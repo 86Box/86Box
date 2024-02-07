@@ -734,19 +734,25 @@ ide_get_sector(ide_t *ide)
 static void
 ide_next_sector(ide_t *ide)
 {
+    uint32_t sector = ide->tf->sector;
+    uint32_t head   = ide->tf->head;
+
     if (ide->tf->lba)
         ide->lba_addr++;
     else {
-        ide->tf->sector++;
-        if ((ide->tf->sector == 0) || (ide->tf->sector == (ide->cfg_spt + 1))) {
-            ide->tf->sector = 1;
-            ide->tf->head++;
-            if ((ide->tf->head == 0) || (ide->head == ide->cfg_hpc)) {
-                ide->tf->head = 0;
+        sector++;
+        if ((sector == 0) || (sector == (ide->cfg_spt + 1))) {
+            sector = 1;
+            head++;
+            if (head == ide->cfg_hpc) {
+                head = 0;
                 ide->tf->cylinder++;
             }
         }
     }
+
+    ide->tf->sector = sector & 0xff;
+    ide->tf->head   = head & 0x0f;
 }
 
 static void
@@ -1389,8 +1395,15 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
         } else {
             /* Currently active device is 1, simply reset the status and the active device. */
             dev_reset(ide);
-            ide->tf->atastat = DRDY_STAT | DSC_STAT;
+            if (ide->type == IDE_ATAPI) {
+                /* Non-early ATAPI devices have DRDY clear after SRST. */
+                ide->tf->atastat = 0;
+                if (IDE_ATAPI_IS_EARLY)
+                    ide->tf->atastat |= DRDY_STAT;
+            } else
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
             ide->tf->error   = 1;
+            ide_other->tf->error   = 1;    /* Assert PDIAG-. */
             dev->cur_dev &= ~1;
             ch = dev->cur_dev;
 
@@ -1771,7 +1784,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                 ide->tf->error   = ABRT_ERR;
                 ide_irq_raise(ide);
             }
-            return;
+            break;
 
         default:
             break;
@@ -1788,7 +1801,7 @@ ide_read_data(ide_t *ide, int length)
     double xfer_us;
 
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-    ide_log("ide_read_data(): ch = %i, board = %i, type = %i\n", ch,
+    ide_log("ide_read_data(): ch = %i, board = %i, type = %i\n", ide->channel,
             ide->board, ide->type);
 #endif
 
@@ -1868,7 +1881,8 @@ ide_status(ide_t *ide, ide_t *ide_other, int ch)
         /* On real hardware, a slave with a present master always
            returns a status of 0x00.
            Confirmed by the ATA-3 and ATA-4 specifications. */
-        ret = 0x00;
+        // ret = 0x00;
+        ret = 0x01;
     } else {
         ret = ide->tf->atastat;
         if (ide->type == IDE_ATAPI)
@@ -1948,8 +1962,8 @@ ide_readb(uint16_t addr, void *priv)
             else
                 ret = ide->tf->cylinder >> 8;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-            pclog("Cylinder high @ board %i, channel %i: ide->type = %i, "
-                  "ret = %02X\n", ide->board, ide->channel, ide->type, ret);
+            ide_log("Cylinder high @ board %i, channel %i: ide->type = %i, "
+                    "ret = %02X\n", ide->board, ide->channel, ide->type, ret);
 #endif
             break;
 
@@ -2070,7 +2084,11 @@ ide_board_callback(void *priv)
 
     ide_log("ide_board_callback(%i)\n", dev->cur_dev >> 1);
 
-    for (uint8_t i = 0; i < 2; i++) {
+    dev->cur_dev &= ~1;
+
+    /* Reset the devices in reverse so if there's a slave without a master,
+       its copy of the master's task file gets reset first. */
+    for (int8_t i = 1; i >= 0; i--) {
         ide = dev->ide[i];
         if (ide->type == IDE_ATAPI) {
             ide->tf->atastat = 0;
@@ -2078,9 +2096,9 @@ ide_board_callback(void *priv)
                 ide->tf->atastat |= DRDY_STAT | DSC_STAT;
         } else
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
-    }
 
-    dev->cur_dev &= ~1;
+        ide->reset = 0;
+    }
 
     ide = dev->ide[0];
     if (dev->diag) {
@@ -2287,6 +2305,9 @@ ide_callback(void *priv)
 
         case WIN_WRITE:
         case WIN_WRITE_NORETRY:
+#ifdef ENABLE_IDE_LOG
+            off64_t sector = ide_get_sector(ide);
+#endif
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
@@ -2305,6 +2326,7 @@ ide_callback(void *priv)
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
                 }
             }
+            ide_log("Write: %02X, %i, %08X, %" PRIi64 "\n", err, ide->hdd_num, ide->lba_addr, sector);
             break;
 
         case WIN_WRITE_DMA:
@@ -2446,6 +2468,7 @@ ide_callback(void *priv)
             else {
                 ide->blocksize     = ide->tf->secount;
                 ide->tf->atastat   = DRDY_STAT | DSC_STAT;
+
                 ide_irq_raise(ide);
             }
             break;
@@ -2959,6 +2982,22 @@ ide_board_reset(int board)
 
     for (int d = min; d < max; d++)
         ide_drive_reset(d);
+}
+
+void
+ide_drives_set_shadow(void)
+{
+    for (uint8_t d = 0; d < IDE_NUM; d++) {
+        if (ide_drives[d] == NULL)
+            continue;
+
+        if ((d & 1) && (ide_drives[d]->type == IDE_NONE) && (ide_drives[d ^ 1]->type != IDE_NONE)) {
+            ide_drives[d]->type = ide_drives[d ^ 1]->type | IDE_SHADOW;
+            if (ide_drives[d]->tf != NULL)
+                free(ide_drives[d]->tf);
+            ide_drives[d]->tf = ide_drives[d ^ 1]->tf;
+        }
+    }
 }
 
 /* Reset a standalone IDE unit. */

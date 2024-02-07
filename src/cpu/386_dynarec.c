@@ -48,6 +48,7 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
@@ -268,6 +269,12 @@ exec386_dynarec_int(void)
     cpu_block_end = 0;
     x86_was_reset = 0;
 
+    if (trap == 2) {
+        /* Handle the T bit in the new TSS first. */
+        CPU_BLOCK_END();
+        goto block_ended;
+    }
+
     while (!cpu_block_end) {
 #    ifndef USE_NEW_DYNAREC
         oldcs  = CS;
@@ -321,13 +328,14 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
     }
 
+block_ended:
     if (!cpu_state.abrt && trap) {
+        dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
         trap = 0;
 #    ifndef USE_NEW_DYNAREC
         oldcs = CS;
 #    endif
         cpu_state.oldpc = cpu_state.pc;
-        dr[6] |= 0x4000;
         x86_int(1);
     }
 
@@ -542,7 +550,7 @@ exec386_dynarec_dyn(void)
 #    endif
                 CPU_BLOCK_END();
 
-            if (cpu_state.flags & T_FLAG)
+            if ((cpu_state.flags & T_FLAG) || (trap == 2))
                 CPU_BLOCK_END();
             if (smi_line)
                 CPU_BLOCK_END();
@@ -711,7 +719,7 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (!CACHE_ON()) /*Interpret block*/
+            if ((!CACHE_ON()) || cpu_override_dynarec) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {

@@ -222,7 +222,11 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
             if (dev->ide < IDE_BUS_MAX) {
                 config->io[1].base = config->io[0].base + 0x206; /* status port apparently fixed */
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+                ide_pnp_config_changed(0, config, (void *) (int64_t) dev->ide);
+#else
                 ide_pnp_config_changed(0, config, (void *) (int) dev->ide);
+#endif
             }
             break;
 

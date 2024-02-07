@@ -431,6 +431,9 @@ et4000w32p_recalctimings(svga_t *svga)
     et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
 
     svga->ma_latch |= (svga->crtc[0x33] & 0x7) << 16;
+
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+
     if (svga->crtc[0x35] & 0x01)
         svga->vblankstart += 0x400;
     if (svga->crtc[0x35] & 0x02)
@@ -445,8 +448,10 @@ et4000w32p_recalctimings(svga_t *svga)
         svga->rowoffset += 0x100;
     if (svga->crtc[0x3F] & 0x01)
         svga->htotal += 256;
-    if (svga->attrregs[0x16] & 0x20)
+    if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
+        svga->dots_per_clock <<= 1;
+    }
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
@@ -468,30 +473,6 @@ et4000w32p_recalctimings(svga_t *svga)
                     default:
                         break;
                 }
-            }
-        }
-    }
-
-    if (svga->adv_flags & FLAG_NOSKEW) {
-        /* On the Cardex ET4000/W32p-based cards, adjust text mode clocks by 1. */
-        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /* Text mode */
-            svga->ma_latch--;
-
-            if (svga->seqregs[1] & 8) /*40 column*/
-                svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
-            else
-                svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-        } else {
-            /* Also adjust the graphics mode clocks in some cases. */
-            if ((svga->gdcreg[5] & 0x40) && (svga->bpp != 32)) {
-                if ((svga->bpp == 15) || (svga->bpp == 16) || (svga->bpp == 24))
-                    svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
-                else
-                    svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-            } else if ((svga->gdcreg[5] & 0x40) == 0) {
-                svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-                if (svga->hdisp == 648 || svga->hdisp == 808 || svga->hdisp == 1032)
-                    svga->hdisp -= 8;
             }
         }
     }
@@ -518,8 +499,10 @@ et4000w32p_recalctimings(svga_t *svga)
     switch (svga->bpp) {
         case 15:
         case 16:
-            if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))
+            if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
                 svga->hdisp >>= 1;
+                svga->dots_per_clock >>= 1;
+            }
             if (et4000->type <= ET4000W32P_REVC) {
                 if (et4000->type == ET4000W32P_REVC) {
                     if (svga->hdisp != 1024)
@@ -530,6 +513,7 @@ et4000w32p_recalctimings(svga_t *svga)
             break;
         case 24:
             svga->hdisp /= 3;
+            svga->dots_per_clock /= 3;
             if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
             if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {
@@ -549,10 +533,6 @@ et4000w32p_recalctimings(svga_t *svga)
             else
                 svga->render = svga_render_text_80;
         } else {
-            if (svga->adv_flags & FLAG_NOSKEW) {
-                svga->ma_latch--;
-            }
-
             switch (svga->gdcreg[5] & 0x60) {
                 case 0x00:
                     if (et4000->rev == 5)
@@ -2616,6 +2596,9 @@ et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
 {
     const et4000w32p_t *et4000 = (et4000w32p_t *) priv;
 
+    if (func > 0)
+        return 0xff;
+
     addr &= 0xff;
 
     switch (addr) {
@@ -2675,6 +2658,9 @@ et4000w32p_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
     svga_t       *svga   = &et4000->svga;
+
+    if (func > 0)
+        return;
 
     addr &= 0xff;
 
@@ -2799,7 +2785,6 @@ et4000w32p_init(const device_t *info)
             et4000->svga.ramdac    = device_add(&stg_ramdac_device);
             et4000->svga.clock_gen = et4000->svga.ramdac;
             et4000->svga.getclock  = stg_getclock;
-            et4000->svga.adv_flags |= FLAG_NOSKEW;
             break;
 
         case ET4000W32P_REVC:
@@ -2824,7 +2809,6 @@ et4000w32p_init(const device_t *info)
             et4000->svga.ramdac    = device_add(&stg_ramdac_device);
             et4000->svga.clock_gen = et4000->svga.ramdac;
             et4000->svga.getclock  = stg_getclock;
-            et4000->svga.adv_flags |= FLAG_NOSKEW;
             break;
 
         case ET4000W32P_CARDEX:
@@ -2837,7 +2821,6 @@ et4000w32p_init(const device_t *info)
             et4000->svga.ramdac    = device_add(&stg_ramdac_device);
             et4000->svga.clock_gen = et4000->svga.ramdac;
             et4000->svga.getclock  = stg_getclock;
-            et4000->svga.adv_flags |= FLAG_NOSKEW;
             break;
 
         case ET4000W32P_DIAMOND:

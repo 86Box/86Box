@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "显卡:"
 #define STR_VIDEO_2       "显卡 2:"
 #define STR_VOODOO        "Voodoo 显卡"
-#define STR_IBM8514       "IBM 8514/a 显卡"
+#define STR_IBM8514       "IBM 8514/A 显卡"
 #define STR_XGA           "XGA 显卡"
 
 #define STR_MOUSE         "鼠标:"

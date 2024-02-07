@@ -723,7 +723,8 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
 
                     /* Since the UI doesn't have a power button at the moment, pause emulation,
                        then trigger a resume event so that the system resumes after unpausing. */
-                    plat_pause(1);
+                    plat_pause(2);    /* 2 means do not wait for pause as
+                                         we're already in the CPU thread. */
                     timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
                 }
             }
@@ -1667,6 +1668,10 @@ acpi_reset(void *priv)
         dev->regs.pmsts |= 0x8100;
         acpi_power_on = 0;
     }
+
+    /* The Gateway Tomahawk requires the LID polarity bit to be set. */
+    if (!strcmp(machine_get_internal_name(), "tomahawk"))
+        dev->regs.glbctl |= 0x02000000;
 
     acpi_rtc_status = 0;
 

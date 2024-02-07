@@ -1,4 +1,4 @@
-name: MSYS2 Makefile
+name: MSYS2 Makefile (Windows, Legacy)
 
 on:
 
@@ -16,7 +16,9 @@ on:
 
 jobs:
   msys2:
-    name: "Windows MSYS2 Makefile (Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
+    # Negative condition disables the job
+    if: false
+    name: "Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
 
     runs-on: windows-2022
 

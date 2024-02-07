@@ -51,6 +51,7 @@
 #include <86box/path.h>
 #define GLOBAL
 #include <86box/plat.h>
+#include <86box/plat_dynld.h>
 #include <86box/thread.h>
 #include <86box/ui.h>
 #ifdef USE_VNC
@@ -1274,6 +1275,35 @@ void
 plat_get_cpu_string(char *outbuf, uint8_t len) {
     char cpu_string[] = "Unknown";
     strncpy(outbuf, cpu_string, len);
+}
+
+void
+plat_set_thread_name(void *thread, const char *name)
+{
+    /* SetThreadDescription was added in 14393. Revisit if we ever start requiring 10. */
+    static void *kernel32_handle = NULL;
+    static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
+    static dllimp_t kernel32_imports[] = {
+      // clang-format off
+        { "SetThreadDescription", &pSetThreadDescription },
+        { NULL,                   NULL                   }
+      // clang-format on
+    };
+
+    if (!kernel32_handle) {
+        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
+        if (!kernel32_handle) {
+            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription = NULL;
+        }
+    }
+
+    if (pSetThreadDescription) {
+        size_t len = strlen(name) + 1;
+        wchar_t wname[len + 1];
+        mbstowcs(wname, name, len);
+        pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
+    }
 }
 
 void

@@ -55,6 +55,11 @@ typedef struct tvp3026_ramdac_t {
         uint8_t n;
         uint8_t p;
     } pix, mem, loop;
+    uint8_t   gpio_cntl;
+    uint8_t   gpio_data;
+    uint8_t (*gpio_read)(uint8_t cntl, void *priv);
+    void    (*gpio_write)(uint8_t cntl, uint8_t val, void *priv);
+    void     *gpio_priv;
 } tvp3026_ramdac_t;
 
 static void
@@ -210,6 +215,16 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
                 case 0x1e: /* Miscellaneous Control */
                     ramdac->misc      = val;
                     svga->ramdac_type = (val & 0x08) ? RAMDAC_8BIT : RAMDAC_6BIT;
+                    break;
+                case 0x2a: /* General-Purpose I/O Control */
+                    ramdac->gpio_cntl = val;
+                    if (ramdac->gpio_write)
+                        ramdac->gpio_write(ramdac->gpio_cntl, ramdac->gpio_data, ramdac->gpio_priv);
+                    break;
+                case 0x2b: /* General-Purpose I/O Data */
+                    ramdac->gpio_data = val;
+                    if (ramdac->gpio_write)
+                        ramdac->gpio_write(ramdac->gpio_cntl, ramdac->gpio_data, ramdac->gpio_priv);
                     break;
                 case 0x2c: /* PLL Address */
                     ramdac->pll_addr = val;
@@ -389,6 +404,16 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
                 case 0x1e: /* Miscellaneous Control */
                     temp = ramdac->misc;
                     break;
+                case 0x2a: /* General-Purpose I/O Control */
+                    temp = ramdac->gpio_cntl;
+                    break;
+                case 0x2b: /* General-Purpose I/O Data */
+                    if (ramdac->gpio_read) {
+                        temp = 0xe0 | (ramdac->gpio_cntl & 0x1f); /* keep upper bits untouched */
+                        ramdac->gpio_data = (ramdac->gpio_data & temp) | (ramdac->gpio_read(ramdac->gpio_cntl, ramdac->gpio_priv) & ~temp);
+                    }
+                    temp = ramdac->gpio_data;
+                    break;
                 case 0x2c: /* PLL Address */
                     temp = ramdac->pll_addr;
                     break;
@@ -490,6 +515,90 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
     const tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
 
     svga->interlace = (ramdac->ccr & 0x40);
+    /* TODO: Figure out gamma correction for 15/16 bpp color. */
+    svga->lut_map = !!(svga->bpp >= 15 && (ramdac->true_color & 0xf0) != 0x00);
+
+    switch (ramdac->mcr) {
+        case 0x41:
+        case 0x4a:
+        case 0x61:
+            svga->hdisp <<= 1;
+            svga->dots_per_clock <<= 1;
+            break;
+        case 0x42:
+        case 0x4b:
+        case 0x62:
+            svga->hdisp <<= 2;
+            svga->dots_per_clock <<= 2;
+            break;
+        case 0x43:
+        case 0x4c:
+        case 0x63:
+            svga->hdisp <<= 3;
+            svga->dots_per_clock <<= 3;
+            break;
+        case 0x44:
+        case 0x64:
+            svga->hdisp <<= 4;
+            svga->dots_per_clock <<= 4;
+            break;
+        case 0x5b:
+            switch (ramdac->true_color) {
+                case 0x16:
+                case 0x17:
+                    svga->hdisp = (svga->hdisp << 2) / 3;
+                    svga->dots_per_clock = (svga->dots_per_clock << 2) / 3;
+                    break;
+                case 0x1e:
+                case 0x1f:
+                    svga->hdisp = (svga->hdisp * 5) >> 2;
+                    svga->dots_per_clock = (svga->dots_per_clock * 5) >> 2;
+                    break;
+            }
+            break;
+        case 0x5c:
+            switch (ramdac->true_color) {
+                case 0x06:
+                case 0x07:
+                    svga->hdisp <<= 1;
+                    svga->dots_per_clock <<= 1;
+                    break;
+                case 0x16:
+                case 0x17:
+                    svga->hdisp = (svga->hdisp << 3) / 3;
+                    svga->dots_per_clock = (svga->dots_per_clock << 3) / 3;
+                    break;
+                case 0x1e:
+                case 0x1f:
+                    svga->hdisp = (svga->hdisp * 5) >> 1;
+                    svga->dots_per_clock = (svga->dots_per_clock * 5) >> 1;
+                    break;
+            }
+            break;
+    }
+}
+
+uint32_t
+tvp3026_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    uint32_t ret = 0x00000000;
+
+    if (svga->lut_map) {
+        if (bpp == 15) {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 2]);
+            uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 7]);
+            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
+        } else {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 3]);
+            uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 8]);
+            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+        }
+    } else
+        ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return ret;
 }
 
 void
@@ -628,6 +737,18 @@ tvp3026_getclock(int clock, void *priv)
     f_pll = f_vco / (float) (1 << pl);
 
     return f_pll;
+}
+
+void
+tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv),
+             void (*write)(uint8_t cntl, uint8_t val, void *priv),
+             void *cb_priv, void *priv)
+{
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
+
+    ramdac->gpio_read  = read;
+    ramdac->gpio_write = write;
+    ramdac->gpio_priv  = cb_priv;
 }
 
 void *

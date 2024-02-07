@@ -990,7 +990,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 if (dev->current_cdb[0] == 0x42)
                     dev->callback += 40.0;
                 /* Account for seek time. */
-                bytes_per_second = 176.0 * 1024.0;
+                /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
+                bytes_per_second = 176400.0;
                 bytes_per_second *= (double) dev->drv->cur_speed;
                 break;
             case 0xc6 ... 0xc7:
@@ -1011,7 +1012,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     case CDROM_TYPE_SONY_CDU561_18k:
                     case CDROM_TYPE_SONY_CDU76S_100:
                     case CDROM_TYPE_TEXEL_DMXX24_100:
-                        bytes_per_second = 176.0 * 1024.0;
+                        /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
+                        bytes_per_second = 176400.0;
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }
@@ -1023,7 +1025,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     case CDROM_TYPE_SONY_CDU76S_100:
                     case CDROM_TYPE_PIONEER_DRM604X_2403:
                     case CDROM_TYPE_TEXEL_DMXX24_100:
-                        bytes_per_second = 176.0 * 1024.0;
+                        /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
+                        bytes_per_second = 176400.0;
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }
@@ -1037,7 +1040,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     case CDROM_TYPE_TEXEL_DMXX24_100:
                         if (dev->current_cdb[0] == 0xc2)
                             dev->callback += 40.0;
-                        bytes_per_second = 176.0 * 1024.0;
+                        /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
+                        bytes_per_second = 176400.0;
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }
@@ -1049,7 +1053,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     case CDROM_TYPE_NEC_77_106:
                     case CDROM_TYPE_NEC_211_100:
                     case CDROM_TYPE_NEC_464_105:
-                        bytes_per_second = 176.0 * 1024.0;
+                        /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
+                        bytes_per_second = 176400.0;
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }
@@ -1751,7 +1756,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     int           used_len;
     int           alloc_length;
     int           msf;
-    int           pos = 0;
+    int           pos = dev->drv->seek_pos;
     int           size_idx;
     int           idx = 0;
     uint32_t      feature;
@@ -3608,6 +3613,14 @@ atapi_out:
                     dev->sony_vendor = 1;
 
                     len = (cdb[7] << 8) | cdb[8];
+                    if (!len) {
+                        scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                        scsi_cdrom_log("CD-ROM %i: PlayBack Control Sony All done - callback set\n", dev->id);
+                        dev->packet_status = PHASE_COMPLETE;
+                        dev->callback      = 20.0 * CDROM_TIME;
+                        scsi_cdrom_set_callback(dev);
+                        break;
+                    }
                     scsi_cdrom_buf_alloc(dev, 65536);
 
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);

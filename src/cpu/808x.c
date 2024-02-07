@@ -563,8 +563,9 @@ reset_808x(int hard)
         _opseg[3] = &cpu_state.seg_ds;
 
         pfq_size = (is8086) ? 6 : 4;
-        pfq_clear();
     }
+
+    pfq_clear();
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;
@@ -1222,34 +1223,48 @@ static void
 add(int bits)
 {
     int size_mask = (1 << bits) - 1;
+    int special_case = 0;
+    uint32_t temp_src = cpu_src;
+
+    if ((cpu_alu_op == 2) && !(cpu_src & size_mask) && (cpu_state.flags & C_FLAG))
+        special_case = 1;
 
     cpu_data = cpu_dest + cpu_src;
+    if ((cpu_alu_op == 2) && (cpu_state.flags & C_FLAG))
+        cpu_src--;
     set_apzs(bits);
     set_of_add(bits);
 
     /* Anything - FF with carry on is basically anything + 0x100: value stays
        unchanged but carry goes on. */
-    if ((cpu_alu_op == 2) && !(cpu_src & size_mask) && (cpu_state.flags & C_FLAG))
+    if (special_case)
         cpu_state.flags |= C_FLAG;
     else
-        set_cf((cpu_src & size_mask) > (cpu_data & size_mask));
+        set_cf((temp_src & size_mask) > (cpu_data & size_mask));
 }
 
 static void
 sub(int bits)
 {
     int size_mask = (1 << bits) - 1;
+    int special_case = 0;
+    uint32_t temp_src = cpu_src;
+
+    if ((cpu_alu_op == 3) && !(cpu_src & size_mask) && (cpu_state.flags & C_FLAG))
+        special_case = 1;
 
     cpu_data = cpu_dest - cpu_src;
+    if ((cpu_alu_op == 3) && (cpu_state.flags & C_FLAG))
+        cpu_src--;
     set_apzs(bits);
     set_of_sub(bits);
 
     /* Anything - FF with carry on is basically anything - 0x100: value stays
        unchanged but carry goes on. */
-    if ((cpu_alu_op == 3) && !(cpu_src & size_mask) && (cpu_state.flags & C_FLAG))
+    if (special_case)
         cpu_state.flags |= C_FLAG;
     else
-        set_cf((cpu_src & size_mask) > (cpu_dest & size_mask));
+        set_cf((temp_src & size_mask) > (cpu_dest & size_mask));
 }
 
 static void

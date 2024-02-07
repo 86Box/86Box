@@ -352,6 +352,9 @@ msgstr "CPU 類型:"
 msgid "Speed:"
 msgstr "速度:"
 
+msgid "Frequency:"
+msgstr "頻率:"
+
 msgid "FPU:"
 msgstr "浮點處理器 (FPU):"
 
@@ -368,7 +371,7 @@ msgid "Time synchronization"
 msgstr "時間同步"
 
 msgid "Disabled"
-msgstr "禁用"
+msgstr "停用"
 
 msgid "Enabled (local time)"
 msgstr "啟用 (本地時間)"
@@ -385,8 +388,8 @@ msgstr "顯示卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a Graphics"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
 msgstr "XGA Graphics"
@@ -409,16 +412,16 @@ msgstr "搖桿 3..."
 msgid "Joystick 4..."
 msgstr "搖桿 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "音效卡 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "音效卡 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "音效卡 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "音效卡 4:"
 
 msgid "MIDI Out Device:"
@@ -917,7 +920,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "正在載入一個不受支援的設定"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "此模擬電腦禁用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
+msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
 
 msgid "Continue"
 msgstr "繼續"

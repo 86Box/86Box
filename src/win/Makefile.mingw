@@ -64,9 +64,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef LASERXT
   LASERXT := y
  endif
- ifndef MGA
-  MGA := y
- endif
  ifndef OLIVETTI
   OLIVETTI := y
  endif
@@ -127,9 +124,6 @@ else
  endif
  ifndef LASERXT
   LASERXT := n
- endif
- ifndef MGA
-  MGA := n
  endif
  ifndef OLIVETTI
   OLIVETTI := n
@@ -496,11 +490,6 @@ ifeq ($(DEV_BRANCH), y)
   DEVBROBJ += m_xt_laserxt.o
  endif
 
- ifeq ($(MGA), y)
-  OPTS     += -DUSE_MGA
-  DEVBROBJ += vid_mga.o
- endif
-
  ifeq ($(OPEN_AT), y)
   OPTS += -DUSE_OPEN_AT
  endif
@@ -628,7 +617,9 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
           mouse_wacom_tablet.o \
-          phoenix_486_jumper.o serial_passthrough.o
+          nec_mate_unk.o phoenix_486_jumper.o \
+          serial_passthrough.o \
+          unittester.o
 
 SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
@@ -658,6 +649,7 @@ HDDOBJ := hdd.o \
           hdc_xta.o \
           hdc_esdi_at.o hdc_esdi_mca.o \
           hdc_xtide.o hdc_ide.o \
+          hdc_ide_ali5213.o \
           hdc_ide_opti611.o \
           hdc_ide_cmd640.o hdc_ide_cmd646.o \
           hdc_ide_sff8038i.o
@@ -765,6 +757,7 @@ VIDOBJ := agpgart.o video.o \
           vid_s3.o vid_s3_virge.o \
           vid_ibm_rgb528_ramdac.o vid_sdac_ramdac.o \
           vid_ogc.o \
+          vid_mga.o \
           vid_nga.o \
           vid_tvp3026_ramdac.o \
           vid_xga.o

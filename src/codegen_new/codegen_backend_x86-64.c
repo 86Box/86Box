@@ -73,7 +73,7 @@ static void
 build_load_routine(codeblock_t *block, int size, int is_float)
 {
     uint8_t *branch_offset;
-    uint8_t *misaligned_offset;
+    uint8_t *misaligned_offset = NULL;
 
     /*In - ESI = address
       Out - ECX = data, ESI = abrt*/
@@ -161,7 +161,7 @@ static void
 build_store_routine(codeblock_t *block, int size, int is_float)
 {
     uint8_t *branch_offset;
-    uint8_t *misaligned_offset;
+    uint8_t *misaligned_offset = NULL;
 
     /*In - ECX = data, ESI = address
       Out - ESI = abrt

@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Ekran kartı:"
 #define STR_VIDEO_2       "Ekran kartı 2:"
 #define STR_VOODOO        "Voodoo Grafikleri"
-#define STR_IBM8514       "IBM 8514/a Grafikleri"
+#define STR_IBM8514       "IBM 8514/A Grafikleri"
 #define STR_XGA           "XGA Grafikleri"
 
 #define STR_MOUSE         "Fare:"

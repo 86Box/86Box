@@ -2124,7 +2124,6 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x66:
             softresetx86();
-            cpu_set_edx();
             break;
 
         default:

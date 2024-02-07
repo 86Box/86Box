@@ -181,6 +181,8 @@ int cpu_multi;
 int cpu_16bitbus;
 int cpu_64bitbus;
 int cpu_cyrix_alignment;
+int cpu_cpurst_on_sr;
+int cpu_use_exec = 0;
 int CPUID;
 
 int is186;
@@ -742,6 +744,7 @@ cpu_set(void)
 
     timing_misaligned   = 0;
     cpu_cyrix_alignment = 0;
+    cpu_cpurst_on_sr    = 0;
     cpu_CR4_mask        = 0;
 
     switch (cpu_s->cpu_type) {
@@ -1782,16 +1785,20 @@ cpu_set(void)
             x87_concurrency = x87_concurrency_486;
     }
 
+    cpu_use_exec = 0;
+
     if (is386) {
 #if defined(USE_DYNAREC) && !defined(USE_GDBSTUB)
-        if (cpu_use_dynarec)
+        if (cpu_use_dynarec) {
             cpu_exec = exec386_dynarec;
-        else
+            cpu_use_exec = 1;
+        } else
 #endif
             /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
-            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC))
+            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC)) {
                 cpu_exec = exec386;
-            else
+                cpu_use_exec = 1;
+            } else
                 cpu_exec = exec386_2386;
     } else if (cpu_s->cpu_type >= CPU_286)
         cpu_exec = exec386_2386;
@@ -2370,14 +2377,20 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
-                                     Instruction TLB: 4 MB pages, fully associative, 2 entries
-                                     Data TLB: 4 KB pages, 4-way set associative, 64 entries */
+                /* if (!strcmp(machine_get_internal_name(), "ap61")) {
+                    EAX = 0x00000001;
+                    EDX = 0x00000000;
+                } else */ {
+                    EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
+                                         Instruction TLB: 4 MB pages, fully associative, 2 entries
+                                         Data TLB: 4 KB pages, 4-way set associative, 64 entries */
+                    EDX       = 0x06040a42; /* 2nd-level cache: 256 KB, 4-way set associative, 32-byte line size
+                                               1st-level data cache: 8 KB, 2-way set associative, 32-byte line size
+                                               Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                               1st-level instruction cache:8 KB, 4-way set associative, 32-byte line size */
+                }
+
                 EBX = ECX = 0;
-                EDX       = 0x06040a42; /* 2nd-level cache: 256 KB, 4-way set associative, 32-byte line size
-                                           1st-level data cache: 8 KB, 2-way set associative, 32-byte line size
-                                           Data TLB: 4 MB pages, 4-way set associative, 8 entries
-                                           1st-level instruction cache:8 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2791,7 +2804,9 @@ amd_k_invalid_rdmsr:
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             EAX = EDX = 0;
-            switch (ECX) {
+            /* Per RichardG's probing of a real Deschutes using my RDMSR tool,
+               we have discovered that the top 18 bits are filtered out. */
+            switch (ECX & 0x00003fff) {
                 case 0x00:
                 case 0x01:
                     break;
@@ -2812,6 +2827,11 @@ amd_k_invalid_rdmsr:
                     EAX = msr.apic_base & 0xffffffff;
                     EDX = msr.apic_base >> 32;
                     cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
+                    break;
+                /* Unknown (undocumented?) MSR used by the Hyper-V BIOS. */
+                case 0x20:
+                    EAX = msr.ecx20 & 0xffffffff;
+                    EDX = msr.ecx20 >> 32;
                     break;
                 case 0x2a:
                     EAX = 0xc4000000;
@@ -3013,22 +3033,6 @@ amd_k_invalid_rdmsr:
                 case 0x570:
                     EAX = msr.ecx570 & 0xffffffff;
                     EDX = msr.ecx570 >> 32;
-                    break;
-                case 0x1002ff:
-                    EAX = msr.ecx1002ff & 0xffffffff;
-                    EDX = msr.ecx1002ff >> 32;
-                    break;
-                case 0xf0f00250:
-                    EAX = msr.ecxf0f00250 & 0xffffffff;
-                    EDX = msr.ecxf0f00250 >> 32;
-                    break;
-                case 0xf0f00258:
-                    EAX = msr.ecxf0f00258 & 0xffffffff;
-                    EDX = msr.ecxf0f00258 >> 32;
-                    break;
-                case 0xf0f00259:
-                    EAX = msr.ecxf0f00259 & 0xffffffff;
-                    EDX = msr.ecxf0f00259 >> 32;
                     break;
                 default:
 i686_invalid_rdmsr:
@@ -3291,7 +3295,9 @@ amd_k_invalid_wrmsr:
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
-            switch (ECX) {
+            /* Per RichardG's probing of a real Deschutes using my RDMSR tool,
+               we have discovered that the top 18 bits are filtered out. */
+            switch (ECX & 0x00003fff) {
                 case 0x00:
                 case 0x01:
                     if (EAX || EDX)
@@ -3305,6 +3311,10 @@ amd_k_invalid_wrmsr:
 #if 0
                     msr.apic_base = EAX | ((uint64_t) EDX << 32);
 #endif
+                    break;
+                /* Unknown (undocumented?) MSR used by the Hyper-V BIOS. */
+                case 0x20:
+                    msr.ecx20 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x2a:
                     break;
@@ -3449,18 +3459,6 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x570:
                     msr.ecx570 = EAX | ((uint64_t) EDX << 32);
-                    break;
-                case 0x1002ff:
-                    msr.ecx1002ff = EAX | ((uint64_t) EDX << 32);
-                    break;
-                case 0xf0f00250:
-                    msr.ecxf0f00250 = EAX | ((uint64_t) EDX << 32);
-                    break;
-                case 0xf0f00258:
-                    msr.ecxf0f00258 = EAX | ((uint64_t) EDX << 32);
-                    break;
-                case 0xf0f00259:
-                    msr.ecxf0f00259 = EAX | ((uint64_t) EDX << 32);
                     break;
                 default:
 i686_invalid_wrmsr:

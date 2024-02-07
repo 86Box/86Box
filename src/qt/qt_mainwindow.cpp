@@ -196,15 +196,6 @@ MainWindow::MainWindow(QWidget *parent)
     auto toolbar_label = new QLabel();
     ui->toolBar->addWidget(toolbar_label);
 
-#ifdef RELEASE_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
-#elif defined ALPHA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
-#elif defined BETA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
-#else
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
-#endif
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
@@ -817,6 +808,14 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             }
             secondaryRenderer->switchRenderer((RendererStack::Renderer) vid_api);
             secondaryRenderer->setMouseTracking(true);
+
+            if (monitor_settings[monitor_index].mon_window_maximized) {
+                if (renderers[monitor_index])
+                    renderers[monitor_index]->onResize(renderers[monitor_index]->width(),
+                    renderers[monitor_index]->height());
+
+                device_force_redraw();
+            }
         }
     }
 }
@@ -1388,12 +1387,12 @@ MainWindow::on_actionResizable_window_triggered(bool checked)
 {
     if (checked) {
         vid_resize = 1;
-        setWindowFlag(Qt::WindowMaximizeButtonHint);
+        setWindowFlag(Qt::WindowMaximizeButtonHint, true);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
-                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
+                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, true);
                 renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
             }
         }

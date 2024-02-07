@@ -1,0 +1,163 @@
+name: CMake (Windows, vcpkg/LLVM)
+
+on:
+
+  push:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  pull_request:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/**
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+jobs:
+
+  llvm-windows:
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.target.name }}"
+    if: 0
+
+    runs-on: windows-2022
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+      VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+#          - name: Regular
+#            preset: regular
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
+        ui:
+          - name: Win32 GUI
+            qt: off
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+        target:
+          - name: x86
+            triplet: x86-windows-static
+            toolchain: ./cmake/llvm-win32-i686.cmake
+            vcvars: x64_x86
+          - name: x64
+            triplet: x64-windows-static
+            toolchain: ./cmake/llvm-win32-x86_64.cmake
+            vcvars: x64
+#          - name: ARM
+#            triplet: arm-windows-static
+#            toolchain: ./cmake/llvm-win32-arm.cmake
+#            vcvars: x64_arm
+          - name: ARM64
+            triplet: arm64-windows-static
+            toolchain: ./cmake/llvm-win32-aarch64.cmake
+            vcvars: x64_arm64
+        exclude:
+          - dynarec: 
+              new: off
+            target:
+              name: ARM64
+
+    steps:
+      - name: Prepare VS environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.target.vcvars }}
+
+      - name: Add LLVM to path
+        run: echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
+
+      - name: Download Ninja
+        run: >
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip && 
+          Expand-Archive ninja-win.zip -DestinationPath .
+
+      - name: Setup NuGet Credentials
+        run: >
+          & (C:/vcpkg/vcpkg --vcpkg-root "${{ env.VCPKG_ROOT }}" fetch nuget | tail -n 2)
+          sources add
+          -source "https://nuget.pkg.github.com/86Box/index.json"
+          -storepasswordincleartext
+          -name "GitHub"
+          -username "86Box"
+          -password "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Fix MSVC atomic headers
+        run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
+
+      - name: Configure CMake
+        run: >
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }} -D QT=${{ matrix.ui.qt }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
+          -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
+          -D VCPKG_HOST_TRIPLET=x64-windows
+          -D VCPKG_USE_HOST_TOOLS=ON
+
+      - name: Fix Qt
+        if: matrix.ui.qt == 'on'
+        run: |
+         $qtTargetsPath = "${{ github.workspace }}/build/vcpkg_installed/${{ matrix.target.triplet }}/share/Qt6/Qt6Targets.cmake"
+         (Get-Content $qtTargetsPath) -replace "^.*-Zc:__cplusplus;-permissive-.*$","#$&" | Set-Content $qtTargetsPath
+
+      - name: Reconfigure CMake
+        if: matrix.ui.qt == 'on'
+        run: |
+          cmake clean build
+
+      - name: Build
+        run: |
+          .sonar/build-wrapper-win-x86/build-wrapper-win-x86-64.exe --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          .sonar/sonar-scanner-5.0.1.3006-windows/bin/sonar-scanner.bat --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
+      - name: Generate package
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
+          path: build/artifacts/**

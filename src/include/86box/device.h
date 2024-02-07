@@ -41,23 +41,41 @@
 #ifndef EMU_DEVICE_H
 #define EMU_DEVICE_H
 
-#define CONFIG_END         -1
-#define CONFIG_STRING       0
-#define CONFIG_INT          1
-#define CONFIG_BINARY       2
-#define CONFIG_SELECTION    3
-#define CONFIG_MIDI_OUT     4
-#define CONFIG_FNAME        5
-#define CONFIG_SPINNER      6
-#define CONFIG_HEX16        7
-#define CONFIG_HEX20        8
-#define CONFIG_MAC          9
-#define CONFIG_MIDI_IN     10
-#define CONFIG_BIOS        11
-#define CONFIG_SERPORT     12
+#define CONFIG_END         -1                          /* N/A */
 
-#define CONFIG_ONBOARD    256      /* only avaialble on the on-board variant */
-#define CONFIG_STANDALONE 257      /* not available on the on-board variant */
+#define CONFIG_SHIFT        4
+
+#define CONFIG_TYPE_INT     (0 << CONFIG_SHIFT)
+#define CONFIG_TYPE_STRING  (1 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX16   (2 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX20   (3 << CONFIG_SHIFT)
+#define CONFIG_TYPE_MAC     (4 << CONFIG_SHIFT)
+
+#define CONFIG_INT          (0 | CONFIG_TYPE_INT)      /* config_get_int() */
+#define CONFIG_BINARY       (1 | CONFIG_TYPE_INT)      /* config_get_int() */
+#define CONFIG_SELECTION    (2 | CONFIG_TYPE_INT)      /* config_get_int() */
+#define CONFIG_MIDI_OUT     (3 | CONFIG_TYPE_INT)      /* config_get_int() */
+#define CONFIG_SPINNER      (4 | CONFIG_TYPE_INT)      /* config_get_int() */
+#define CONFIG_MIDI_IN      (5 | CONFIG_TYPE_INT)      /* config_get_int() */
+
+#define CONFIG_STRING       (0 | CONFIG_TYPE_STRING)     /* config_get_string() */
+#define CONFIG_FNAME        (1 | CONFIG_TYPE_STRING)     /* config_get_string() */
+#define CONFIG_SERPORT      (2 | CONFIG_TYPE_STRING)     /* config_get_string() */
+#define CONFIG_BIOS         (3 | CONFIG_TYPE_STRING)     /* config_get_string() */
+
+#define CONFIG_HEX16        (0 | CONFIG_TYPE_HEX16)      /* config_get_hex16() */
+
+#define CONFIG_HEX20        (0 | CONFIG_TYPE_HEX20)      /* config_get_hex20() */
+
+#define CONFIG_MAC          (0 | CONFIG_TYPE_MAC)        /* N/A */
+
+#define CONFIG_SUBTYPE_MASK (CONFIG_IS_STRING - 1)
+
+#define CONFIG_DEP          (16 << CONFIG_SHIFT)
+#define CONFIG_TYPE_MASK    (CONFIG_DEP - 1)
+
+// #define CONFIG_ONBOARD    256      /* only avaialble on the on-board variant */
+// #define CONFIG_STANDALONE 257      /* not available on the on-board variant */
 
 enum {
     DEVICE_PCJR      = 2,          /* requires an IBM PCjr */
@@ -100,22 +118,20 @@ enum {
 #define BIOS_INTERLEAVED_INVERT          8
 #define BIOS_HIGH_BIT_INVERT             16
 
+#define device_common_config_t                      \
+    const char                     *name;           \
+    const char                     *description;    \
+    int                             type;           \
+    const char                     *default_string; \
+    int                             default_int;    \
+    const char                     *file_filter;    \
+    const device_config_spinner_t   spinner;        \
+    const device_config_selection_t selection[32]
+
 typedef struct device_config_selection_t {
     const char *description;
     int         value;
 } device_config_selection_t;
-
-typedef struct device_config_bios_t {
-    const char  *name;
-    const char  *internal_name;
-    int          bios_type;
-    int          files_no;
-    uint32_t     local;
-    uint32_t     size;
-    void        *dev1;
-    void        *dev2;
-    const char  *files[9];
-} device_config_bios_t;
 
 typedef struct device_config_spinner_t {
     int16_t min;
@@ -123,15 +139,28 @@ typedef struct device_config_spinner_t {
     int16_t step;
 } device_config_spinner_t;
 
-typedef struct device_config_t {
-    const char                     *name;
-    const char                     *description;
-    int                             type;
-    const char                     *default_string;
-    int                             default_int;
-    const char                     *file_filter;
-    const device_config_spinner_t   spinner;
-    const device_config_selection_t selection[32];
+typedef struct _device_dep_config_ {
+    device_common_config_t;
+} device_dep_config_t;
+
+typedef struct device_config_bios_t {
+    const char *name;
+    const char *internal_name;
+    int         bios_type;
+    int         files_no;
+    uint32_t    local;
+    uint32_t    size;
+    void       *dev1;
+    void       *dev2;
+    const char *files[9];
+    /* Configuration options that depend on the device variant.
+       To prevent excessive nesting, there is no CONFIG_BIOS
+       option a dep_config struct  */
+    const device_dep_config_t *dep_config;
+} device_config_bios_t;
+
+typedef struct _device_config_ {
+    device_common_config_t;
     const device_config_bios_t      bios[32];
 } device_config_t;
 
@@ -201,6 +230,8 @@ extern int   device_has_config(const device_t *dev);
 extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, int file_no);
 
 extern int device_is_valid(const device_t *, int m);
+
+extern const device_t* device_context_get_device(void);
 
 extern int         device_get_config_int(const char *name);
 extern int         device_get_config_int_ex(const char *s, int dflt_int);

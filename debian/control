@@ -1,18 +1,21 @@
 Source: 86box
 Section: otherosfs
 Priority: optional
-Maintainer: Mariusz Kurek <mariuszkurek@protonmail.com>
+Maintainer: Jasmine Iwanek <jriwanek@gmail.com>
 Build-Depends: cmake (>= 3.21),
                debhelper-compat (= 13),
                libevdev-dev,
+               libfluidsynth-dev,
                libfreetype-dev,
                libopenal-dev,
                libqt5opengl5-dev,
                librtmidi-dev,
                libsdl2-dev,
                libslirp-dev,
+               libxkbcommon-x11-dev,
                ninja-build,
-               qttools5-dev
+               qttools5-dev,
+               qtbase5-private-dev
 Standards-Version: 4.6.0
 Homepage: https://86box.net/
 #Vcs-Browser: https://salsa.debian.org/debian/86box
@@ -26,4 +29,6 @@ Depends: ${shlibs:Depends},
          sse2-support [i386]
 Recommends: libpcap0.8-dev
 Description: An emulator for classic IBM PC clones
-#TODO: insert long description, indented with spaces
+             86Box is a low level x86 emulator that runs older operating systems and software
+             designed for IBM PC systems and compatibles from 1981 through
+             fairly recent system designs based on the PCI bus.

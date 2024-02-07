@@ -86,41 +86,33 @@ enum {
 };
 
 enum {
-    CPU_PKG_8088          = (1 << 0),
-    CPU_PKG_8088_EUROPC   = (1 << 1),
-    CPU_PKG_8086          = (1 << 2),
-    CPU_PKG_188           = (1 << 3),
-    CPU_PKG_186           = (1 << 4),
-    CPU_PKG_286           = (1 << 5),
-    CPU_PKG_386SX         = (1 << 6),
-    CPU_PKG_386DX         = (1 << 7),
-    CPU_PKG_M6117         = (1 << 8),
-    CPU_PKG_386SLC_IBM    = (1 << 9),
-    CPU_PKG_486SLC        = (1 << 10),
-    CPU_PKG_486SLC_IBM    = (1 << 11),
-    CPU_PKG_486BL         = (1 << 12),
-    CPU_PKG_486DLC        = (1 << 13),
-    CPU_PKG_SOCKET1       = (1 << 14),
-    CPU_PKG_SOCKET3       = (1 << 15),
-    CPU_PKG_SOCKET3_PC330 = (1 << 16),
-    CPU_PKG_STPC          = (1 << 17),
-    CPU_PKG_SOCKET4       = (1 << 18),
-    CPU_PKG_SOCKET5_7     = (1 << 19),
-    CPU_PKG_SOCKET8       = (1 << 20),
-    CPU_PKG_SLOT1         = (1 << 21),
-    CPU_PKG_SLOT2         = (1 << 22),
-    CPU_PKG_SLOTA         = (1 << 23),
-    CPU_PKG_SOCKET370     = (1 << 24),
-    CPU_PKG_SOCKETA       = (1 << 25),
-    CPU_PKG_EBGA368       = (1 << 26)
+    CPU_PKG_8088             = (1 << 0),
+    CPU_PKG_8088_EUROPC      = (1 << 1),
+    CPU_PKG_8086             = (1 << 2),
+    CPU_PKG_188              = (1 << 3),
+    CPU_PKG_186              = (1 << 4),
+    CPU_PKG_286              = (1 << 5),
+    CPU_PKG_386SX            = (1 << 6),
+    CPU_PKG_386DX            = (1 << 7),
+    CPU_PKG_386DX_DESKPRO386 = (1 << 8),
+    CPU_PKG_M6117            = (1 << 9),
+    CPU_PKG_386SLC_IBM       = (1 << 10),
+    CPU_PKG_486SLC           = (1 << 11),
+    CPU_PKG_486SLC_IBM       = (1 << 12),
+    CPU_PKG_486BL            = (1 << 13),
+    CPU_PKG_486DLC           = (1 << 14),
+    CPU_PKG_SOCKET1          = (1 << 15),
+    CPU_PKG_SOCKET3          = (1 << 16),
+    CPU_PKG_SOCKET3_PC330    = (1 << 17),
+    CPU_PKG_SOCKET6          = (1 << 18),
+    CPU_PKG_STPC             = (1 << 19),
+    CPU_PKG_SOCKET4          = (1 << 20),
+    CPU_PKG_SOCKET5_7        = (1 << 21),
+    CPU_PKG_SOCKET8          = (1 << 22),
+    CPU_PKG_SLOT1            = (1 << 23),
+    CPU_PKG_SLOT2            = (1 << 24),
+    CPU_PKG_SOCKET370        = (1 << 25)
 };
-
-#define MANU_INTEL           0
-#define MANU_AMD             1
-#define MANU_CYRIX           2
-#define MANU_IDT             3
-#define MANU_NEC             4
-#define MANU_IBM             5
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
@@ -164,17 +156,6 @@ typedef struct {
     const char    *internal_name;
     const CPU     *cpus;
 } cpu_family_t;
-
-typedef struct {
-    const char    *family;
-    const uint32_t rspeed;
-    const double   multi;
-} cpu_legacy_table_t;
-
-typedef struct {
-    const char                *machine;
-    const cpu_legacy_table_t **tables;
-} cpu_legacy_machine_t;
 
 #define C_FLAG     0x0001
 #define P_FLAG     0x0004
@@ -253,6 +234,12 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t apic_base; /* 0x0000001b - Should the Pentium not also have this? */
+
+    /* Weird long MSR's used by the Hyper-V BIOS. */
+    uint64_t ecx20; /* 0x00000020, really 0x40000020, but we filter out the top 18 bits
+                       like a real Deschutes does. */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecx79;     /* 0x00000079 */
 
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
@@ -314,9 +301,6 @@ typedef struct {
     /* IBM 486SLC and 486BL MSR's */
     uint64_t ibm_por2; /* 0x00001002 - Processor Operation Register */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx1002ff; /* 0x001002ff - MSR used by some Intel AMI boards */
-
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_efer; /* 0xc0000080 */
 
@@ -338,11 +322,6 @@ typedef struct {
 
     /* K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_l2aar; /* 0xc0000089 */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecxf0f00250; /* 0xf0f00250 - Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
-    uint64_t ecxf0f00258; /* 0xf0f00258 */
-    uint64_t ecxf0f00259; /* 0xf0f00259 */
 } msr_t;
 
 typedef struct {
@@ -530,7 +509,6 @@ extern cpu_state_t cpu_state;
 extern fpu_state_t fpu_state;
 
 extern const cpu_family_t         cpu_families[];
-extern const cpu_legacy_machine_t cpu_legacy_table[];
 extern cpu_family_t              *cpu_f;
 extern CPU                       *cpu_s;
 extern int                        cpu_override;
@@ -544,8 +522,9 @@ extern int    cpu_multi;
 extern double cpu_dmulti;
 extern double fpu_multi;
 extern double cpu_busspeed;
-extern int    cpu_cyrix_alignment; /*Cyrix 5x86/6x86 only has data misalignment
-                                     penalties when crossing 8-byte boundaries*/
+extern int    cpu_cyrix_alignment; /* Cyrix 5x86/6x86 only has data misalignment
+                                      penalties when crossing 8-byte boundaries. */
+extern int    cpu_cpurst_on_sr;    /* SiS 551x and 5571: Issue CPURST on soft reset. */
 
 extern int is8086;
 extern int is186;
@@ -810,6 +789,7 @@ extern int hlt_reset_pending;
 extern cyrix_t cyrix;
 
 extern int prefetch_prefixes;
+extern int cpu_use_exec;
 
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
@@ -833,6 +813,9 @@ extern void nmi_raise(void);
 
 extern MMX_REG  *MMP[8];
 extern uint16_t *MMEP[8];
+
+extern int  cpu_block_end;
+extern int  cpu_override_dynarec;
 
 extern void mmx_init(void);
 extern void prefetch_flush(void);

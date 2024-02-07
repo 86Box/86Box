@@ -190,9 +190,9 @@ updateJoystickConfig(int type, int joystick_nr, QWidget *parent)
         for (int c = 0; c < joystick_get_button_count(type); c++) {
             joystick_state[joystick_nr].button_mapping[c] = jc.selectedButton(c);
         }
-        for (int c = 0; c < joystick_get_button_count(type); c++) {
+        for (int c = 0; c < joystick_get_pov_count(type) * 2; c += 2) {
             joystick_state[joystick_nr].pov_mapping[c][0] = get_pov(jc, c, joystick_nr);
-            joystick_state[joystick_nr].pov_mapping[c][1] = get_pov(jc, c, joystick_nr);
+            joystick_state[joystick_nr].pov_mapping[c][1] = get_pov(jc, c + 1, joystick_nr);
         }
     }
 }

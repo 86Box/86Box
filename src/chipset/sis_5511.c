@@ -262,7 +262,7 @@ sis_5511_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x7a: /* DRAM Bank Register 2-1 */
         case 0x7c: /* DRAM Bank Register 3-0 */
         case 0x7e: /* DRAM Bank Register 3-1 */
-            spd_write_drbs(dev->regs, 0x70, 0x7e, 0x82);
+            spd_write_drbs(dev->pci_conf, 0x70, 0x7e, 0x82);
             break;
  
         case 0x71: /* DRAM Bank Register 0-0 */
@@ -579,16 +579,19 @@ sis_5513_ide_write(int addr, uint8_t val, sis_5511_t *dev)
             break;
 
         case 0x40: /* IDE Primary Channel/Master Drive Data Recovery Time Control */
-        case 0x41: /* IDE Primary Channel/Master Drive DataActive Time Control */
         case 0x42: /* IDE Primary Channel/Slave Drive Data Recovery Time Control */
-        case 0x43: /* IDE Primary Channel/Slave Drive Data Active Time Control */
         case 0x44: /* IDE Secondary Channel/Master Drive Data Recovery Time Control */
-        case 0x45: /* IDE Secondary Channel/Master Drive Data Active Time Control */
         case 0x46: /* IDE Secondary Channel/Slave Drive Data Recovery Time Control */
-        case 0x47: /* IDE Secondary Channel/Slave Drive Data Active Time Control */
         case 0x48: /* IDE Command Recovery Time Control */
+            dev->pci_conf_sb[1][addr] = val & 0x0f;
+            break;
+
+        case 0x41: /* IDE Primary Channel/Master Drive DataActive Time Control */
+        case 0x43: /* IDE Primary Channel/Slave Drive Data Active Time Control */
+        case 0x45: /* IDE Secondary Channel/Master Drive Data Active Time Control */
+        case 0x47: /* IDE Secondary Channel/Slave Drive Data Active Time Control */
         case 0x49: /* IDE Command Active Time Control */
-            dev->pci_conf_sb[1][addr] = val;
+            dev->pci_conf_sb[1][addr] = val & 0x07;
             break;
 
         case 0x4a: /* IDE General Control Register 0 */
@@ -659,7 +662,11 @@ sis_5513_read(int func, int addr, void *priv)
 
         sis_5511_log("SiS 5513 P2I: [R] dev->pci_conf_sb[0][%02X] = %02X\n", addr, ret);
     } else if (func == 0x01) {
-        ret = dev->pci_conf_sb[func][addr];
+        if (addr == 0x3d)
+            ret = (((dev->pci_conf_sb[0x01][0x4b] & 0xc0) == 0xc0) ||
+                   (dev->pci_conf_sb[0x01][0x09] & 0x05)) ? PCI_INTA : 0x00;
+        else
+            ret = dev->pci_conf_sb[func][addr];
 
         sis_5511_log("SiS 5513 IDE: [R] dev->pci_conf_sb[1][%02X] = %02X\n", addr, ret);
     }
@@ -785,7 +792,9 @@ sis_5511_reset(void *priv)
     dev->pci_conf[0x74] = dev->pci_conf[0x76] = 0x04;
     dev->pci_conf[0x78] = dev->pci_conf[0x7a] = 0x04;
     dev->pci_conf[0x7c] = dev->pci_conf[0x7e] = 0x04;
+    dev->pci_conf[0x71] = dev->pci_conf[0x75] = 0x00;
     dev->pci_conf[0x73] = dev->pci_conf[0x77] = 0x80;
+    dev->pci_conf[0x79] = dev->pci_conf[0x7d] = 0x00;
     dev->pci_conf[0x7b] = dev->pci_conf[0x7f] = 0x80;
     dev->pci_conf[0x80] = dev->pci_conf[0x81] = 0x00;
     dev->pci_conf[0x82] = dev->pci_conf[0x83] = 0x00;
@@ -820,13 +829,13 @@ sis_5511_reset(void *priv)
     dev->pci_conf_sb[0][0x40] = 0x00;
     dev->pci_conf_sb[0][0x41] = dev->pci_conf_sb[0][0x42] = 0x80;
     dev->pci_conf_sb[0][0x43] = dev->pci_conf_sb[0][0x44] = 0x80;
-    dev->pci_conf_sb[0][0x48] = dev->pci_conf_sb[0][0x49] = 0x80;
-    dev->pci_conf_sb[0][0x4a] = dev->pci_conf_sb[0][0x4b] = 0x80;
-    dev->pci_conf_sb[0][0x60] = dev->pci_conf_sb[0][0x51] = 0x80;
+    dev->pci_conf_sb[0][0x48] = dev->pci_conf_sb[0][0x49] = 0x00;
+    dev->pci_conf_sb[0][0x4a] = dev->pci_conf_sb[0][0x4b] = 0x00;
+    dev->pci_conf_sb[0][0x60] = dev->pci_conf_sb[0][0x61] = 0x80;
     dev->pci_conf_sb[0][0x62] = 0x00;
     dev->pci_conf_sb[0][0x63] = 0x80;
     dev->pci_conf_sb[0][0x64] = 0x00;
-    dev->pci_conf_sb[0][0x65] = 0x80;
+    dev->pci_conf_sb[0][0x65] = 0x00;
     dev->pci_conf_sb[0][0x66] = dev->pci_conf_sb[0][0x67] = 0x00;
     dev->pci_conf_sb[0][0x68] = dev->pci_conf_sb[0][0x69] = 0x00;
     dev->pci_conf_sb[0][0x6a] = 0x04;
@@ -873,6 +882,23 @@ sis_5511_reset(void *priv)
     dev->pci_conf_sb[1][0x20] = 0x01;
     dev->pci_conf_sb[1][0x21] = 0xf0;
     dev->pci_conf_sb[1][0x22] = dev->pci_conf_sb[1][0x23] = 0x00;
+    dev->pci_conf_sb[1][0x24] = dev->pci_conf_sb[1][0x25] = 0x00;
+    dev->pci_conf_sb[1][0x26] = dev->pci_conf_sb[1][0x27] = 0x00;
+    dev->pci_conf_sb[1][0x28] = dev->pci_conf_sb[1][0x29] = 0x00;
+    dev->pci_conf_sb[1][0x2a] = dev->pci_conf_sb[1][0x2b] = 0x00;
+    dev->pci_conf_sb[1][0x2c] = dev->pci_conf_sb[1][0x2d] = 0x00;
+    dev->pci_conf_sb[1][0x2e] = dev->pci_conf_sb[1][0x2f] = 0x00;
+    dev->pci_conf_sb[1][0x30] = dev->pci_conf_sb[1][0x31] = 0x00;
+    dev->pci_conf_sb[1][0x32] = dev->pci_conf_sb[1][0x33] = 0x00;
+    dev->pci_conf_sb[1][0x40] = dev->pci_conf_sb[1][0x41] = 0x00;
+    dev->pci_conf_sb[1][0x42] = dev->pci_conf_sb[1][0x43] = 0x00;
+    dev->pci_conf_sb[1][0x44] = dev->pci_conf_sb[1][0x45] = 0x00;
+    dev->pci_conf_sb[1][0x46] = dev->pci_conf_sb[1][0x47] = 0x00;
+    dev->pci_conf_sb[1][0x48] = dev->pci_conf_sb[1][0x49] = 0x00;
+    dev->pci_conf_sb[1][0x4a] = 0x06;
+    dev->pci_conf_sb[1][0x4b] = 0x00;
+    dev->pci_conf_sb[1][0x4c] = dev->pci_conf_sb[1][0x4d] = 0x00;
+    dev->pci_conf_sb[1][0x4e] = dev->pci_conf_sb[1][0x4f] = 0x00;
 
     sis_5513_ide_irq_handler(dev);
     sis_5513_ide_handler(dev);
@@ -895,8 +921,6 @@ sis_5511_init(UNUSED(const device_t *info))
 {
     sis_5511_t *dev = (sis_5511_t *) calloc(1, sizeof(sis_5511_t));
     uint8_t pit_is_fast = (((pit_mode == -1) && is486) || (pit_mode == 1));
-
-    memset(dev, 0, sizeof(sis_5511_t));
 
     /* Device 0: SiS 5511 */
     pci_add_card(PCI_ADD_NORTHBRIDGE, sis_5511_read, sis_5511_write, dev, &dev->nb_slot);
