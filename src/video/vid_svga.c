@@ -573,10 +573,10 @@ svga_recalctimings(svga_t *svga)
     double           _dispontime;
     double           _dispofftime;
     double           disptime;
-    double           crtcconst8514;
-    double           _dispontime8514;
-    double           _dispofftime8514;
-    double           disptime8514;
+    double           crtcconst8514 = 0.0;
+    double           _dispontime8514 = 0.0;
+    double           _dispofftime8514 = 0.0;
+    double           disptime8514 = 0.0;
 #ifdef ENABLE_SVGA_LOG
     int              vsyncend;
     int              vblankend;
@@ -998,7 +998,6 @@ void
 svga_poll(void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
     xga_t     *xga  = (xga_t *) svga->xga;
     uint32_t   x;
     uint32_t   blink_delay;
