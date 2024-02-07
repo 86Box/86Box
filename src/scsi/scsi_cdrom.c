@@ -1864,7 +1864,9 @@ begin:
                     cdrom_audio_pause_resume(dev->drv, 0x00);
                     dev->drv->audio_op = 0x01;
                     scsi_cdrom_command_complete(dev);
-                    break;
+                    if ((dev->packet_status == PHASE_COMPLETE) || (dev->packet_status == PHASE_ERROR))
+                        scsi_cdrom_buf_free(dev);
+                    return;
             }
             fallthrough;
         case GPCMD_SET_SPEED:
