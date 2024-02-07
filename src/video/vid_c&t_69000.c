@@ -35,6 +35,7 @@
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 #include <assert.h>
 
 #pragma pack(push, 1)
@@ -352,7 +353,6 @@ chips_69000_do_rop_16bpp(uint16_t *dst, uint16_t src, uint8_t rop)
 void
 chips_69000_do_rop_24bpp(uint32_t *dst, uint32_t src, uint8_t rop)
 {
-    uint32_t orig_dst = *dst & 0xFF000000;
     switch (rop) {
         case 0x00:
             *dst = 0;
@@ -402,8 +402,6 @@ chips_69000_do_rop_24bpp(uint32_t *dst, uint32_t src, uint8_t rop)
             *dst = 0xFF;
             break;
     }
-    *dst &= 0xFFFFFF;
-    *dst |= orig_dst;
 }
 
 void
@@ -868,15 +866,15 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         }
         if (chips->bitblt_running.bytes_per_pixel == 3) {
             pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
-                                                        + (3 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
                                                         + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
             pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
-                                                        + (3 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
                                                         + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
 
             pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
-                                                        + (3 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
                                                         + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
     }
@@ -962,21 +960,6 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
 void
 chips_69000_process_mono_data(UNUSED(chips_69000_t* chips), uint64_t val)
 {
-    /* Notes:
-        Reserved value of 0b000 for monochrome source alignment makes it use Destination Scanline Width.
-
-        TODO:
-        Actually implement this.
-
-        Figure out how alignment works. The example provided is unclear about non-quadword alignment.
-        (Outside of the one xf86-video-chips already documents).
-        Maybe it merely advances the source address pointer by alignment after consuming a byte.
-
-        Edit: It actually consumes all 8 bytes of the quadword before incrementing the pitch.
-        Which begs the next question: Are those 8 bytes for same-scanline drawing or for y-incremented drawing?
-        And is 4-byte-or-less alignment relevant for our purposes? The Monochrome Source Register only talks about quadwords, nothing else.
-    */
-
     uint64_t i         = 0;
     uint8_t  is_true   = 0;
     int      orig_x    = chips->bitblt_running.x;
@@ -1276,6 +1259,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
+        int orig_cycles = cycles;
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
         if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0) {
             chips_69000_process_mono_data_non_qword(chips, chips->bitblt_running.bytes_port[0]);
@@ -1325,6 +1309,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             mono_data |= (uint64_t)chips->bitblt_running.bytes_port[7] << 56ull;
             chips_69000_process_mono_data(chips, mono_data);
         }
+        cycles = orig_cycles;
         return;
     }
 
@@ -1334,16 +1319,18 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
     chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
     if (chips->bitblt_running.bytes_written == chips->bitblt_running.bytes_per_pixel) {
+        int orig_cycles = cycles;
         uint32_t source_pixel = chips->bitblt_running.bytes_port[0];
         chips->bitblt_running.bytes_written = 0;
-        if (chips->bitblt_running.bytes_per_pixel == 2)
+        if (chips->bitblt_running.bytes_per_pixel >= 2)
             source_pixel |= (chips->bitblt_running.bytes_port[1] << 8);
-        if (chips->bitblt_running.bytes_per_pixel == 3)
+        if (chips->bitblt_running.bytes_per_pixel >= 3)
             source_pixel |= (chips->bitblt_running.bytes_port[2] << 16);
         
         chips->bitblt_running.bytes_in_line_written += chips->bitblt_running.bytes_per_pixel;
 
         chips_69000_process_pixel(chips, source_pixel);
+        cycles = orig_cycles;
         chips->bitblt_running.x += chips->bitblt_running.x_dir;
 
         if (chips->bitblt_running.bytes_in_line_written >= chips->bitblt_running.bitblt.destination_width) {
@@ -1504,6 +1491,7 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0xA0:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.ena = ((val & 7) == 0b101) || ((val & 7) == 0b1);
+            chips->svga.hwcursor.cur_xsize = chips->svga.hwcursor.cur_ysize = ((val & 7) == 0b1) ? 32 : 64;
             break;
         case 0xA2:
             chips->ext_regs[chips->ext_index] = val;
@@ -1528,6 +1516,12 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0xA7:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.y = chips->ext_regs[0xA6] | (val & 7) << 8;
+            break;
+        case 0xC8:
+        case 0xC9:
+        case 0xCB:
+            chips->ext_regs[chips->ext_index] = val;
+            svga_recalctimings(&chips->svga);
             break;
         case 0xD2:
             break;
@@ -1575,6 +1569,14 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
                 val <<= 2;
             svga->fullchange = svga->monitor->mon_changeframecount;
             switch (svga->dac_pos) {
+                case 0:
+                    svga->dac_r = val;
+                    svga->dac_pos++;
+                    break;
+                case 1:
+                    svga->dac_g = val;
+                    svga->dac_pos++;
+                    break;
                 case 2:
                     index                 = svga->dac_addr & 7;
                     chips->cursor_palette[index].r = svga->dac_r;
@@ -2153,44 +2155,49 @@ chips_69000_hwcursor_draw(svga_t *svga, int displine)
 {
     chips_69000_t    *chips  = (chips_69000_t *) svga->priv;
     uint64_t          dat[2];
-    int               offset = svga->hwcursor_latch.x;
+    int               offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
 
+#if 0
     if ((chips->ext_regs[0xA0] & 7) == 1) {
+        uint32_t oddaddr = (displine - svga->hwcursor_latch.y) & 1;
+        uint32_t dat_32[2];
         if (svga->interlace && svga->hwcursor_oddeven)
-            svga->hwcursor_latch.addr += (svga->hwcursor_on & 1) ? 8 : 4;
+            svga->hwcursor_latch.addr += oddaddr ? 8 : 4;
 
-        dat[0] = *(uint32_t *) (&svga->vram[svga->hwcursor_latch.addr]);
-        dat[1] = *(uint32_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]);
-        svga->hwcursor_latch.addr += (svga->hwcursor_on & 1) ? 8 : 4;
+        dat_32[1] = bswap32(*(uint32_t *) (&svga->vram[svga->hwcursor_latch.addr]));
+        dat_32[0] = bswap32(*(uint32_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]));
+        svga->hwcursor_latch.addr += oddaddr ? 4 : 8;
 
         for (uint8_t x = 0; x < 32; x++) {
-            if (!(dat[1] & (1ULL << 31)))
-                svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[0] & (1ULL << 31)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[4]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[5]);
-            else if (dat[0] & (1ULL << 31))
+            if (!(dat_32[1] & (1ULL << 31)))
+                svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat_32[0] & (1ULL << 31)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[4]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[5]);
+            else if (dat_32[0] & (1ULL << 31))
                 svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
 
             offset++;
-            dat[0] <<= 1;
-            dat[1] <<= 1;
+            dat_32[0] <<= 1;
+            dat_32[1] <<= 1;
         }
 
         if (svga->interlace && !svga->hwcursor_oddeven)
-            svga->hwcursor_latch.addr += (svga->hwcursor_on & 1) ? 8 : 4;
+            svga->hwcursor_latch.addr += oddaddr ? 8 : 4;
 
         return;
     }
+#endif
 
     if (svga->interlace && svga->hwcursor_oddeven)
-        svga->hwcursor_latch.addr += (chips->ext_regs[0xA0] & 7) == 1 ? 8 : 16;
+        svga->hwcursor_latch.addr += 16;
 
-    dat[0] = *(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr]);
-    dat[1] = *(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]);
+    dat[1] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr]));
+    dat[0] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]));
     svga->hwcursor_latch.addr += 16;
     switch (chips->ext_regs[0xa0] & 7) {
+        case 0b1:
         case 0b101:
             for (uint8_t x = 0; x < 64; x++) {
                 if (!(dat[1] & (1ULL << 63)))
-                    svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[1]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[0]);
+                    svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[4]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[5]);
                 else if (dat[0] & (1ULL << 63))
                     svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
 
@@ -2206,6 +2213,51 @@ chips_69000_hwcursor_draw(svga_t *svga, int displine)
 
     if (svga->interlace && !svga->hwcursor_oddeven)
         svga->hwcursor_latch.addr += 16;
+}
+
+static float
+chips_69000_getclock(int clock, void *priv)
+{
+    const chips_69000_t *chips = (chips_69000_t *) priv;
+
+    if (clock == 0)
+        return 25175000.0;
+    if (clock == 1)
+        return 28322000.0;
+
+    int m  = chips->ext_regs[0xc8];
+    int n  = chips->ext_regs[0xc9];
+    int pl = (chips->ext_regs[0xcb] >> 4) & 7;
+
+    float fvco = 14318181.0 * ((float)(m + 2) / (float)(n + 2));
+    if (chips->ext_regs[0xcb] & 4)
+        fvco *= 4.0;
+    float fo   = fvco / (float)(1 << pl);
+
+    return fo;
+}
+
+uint32_t
+chips_69000_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    uint32_t ret = 0x00000000;
+
+    if (svga->lut_map) {
+        if (bpp == 15) {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 2]);
+            uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 7]);
+            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
+        } else {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 3]);
+            uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 8]);
+            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+        }
+    } else
+        ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return ret;
 }
 
 static void *
@@ -2236,6 +2288,8 @@ chips_69000_init(const device_t *info)
     chips->svga.recalctimings_ex = chips_69000_recalctimings;
     chips->svga.vblank_start     = chips_69000_vblank_start;
     chips->svga.hwcursor_draw    = chips_69000_hwcursor_draw;
+    chips->svga.getclock         = chips_69000_getclock;
+    chips->svga.conv_16to32      = chips_69000_conv_16to32;
 
     mem_mapping_add(&chips->linear_mapping, 0, 0, chips_69000_readb_linear, chips_69000_readw_linear, chips_69000_readl_linear, chips_69000_writeb_linear, chips_69000_writew_linear, chips_69000_writel_linear, NULL, MEM_MAPPING_EXTERNAL, chips);
 
