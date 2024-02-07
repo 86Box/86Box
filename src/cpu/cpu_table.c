@@ -1360,7 +1360,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3,
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET6,
     .manufacturer = "AMD",
     .name = "Am486DX4",
     .internal_name = "am486dx4",
@@ -1372,7 +1372,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3,
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET6,
     .manufacturer = "AMD",
     .name = "Am486DX2 (Enhanced)",
     .internal_name = "am486dx2_slenh",
@@ -1382,7 +1382,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3,
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET6,
     .manufacturer = "AMD",
     .name = "Am486DX4 (Enhanced)",
     .internal_name = "am486dx4_slenh",
@@ -1393,7 +1393,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3,
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET6,
     .manufacturer = "AMD",
     .name = "Am5x86",
     .internal_name = "am5x86",
@@ -1436,7 +1436,17 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3,
+    .package = CPU_PKG_SOCKET6,
+    .manufacturer = "Cyrix",
+    .name = "Cx486DX2",
+    .internal_name = "cx486dx2v",
+    .cpus = (const CPU[]) {
+        {"66",        CPU_Cx486DX, fpus_internal,   66666666, 2.0, 5000,  0x430,      0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+        {"80",        CPU_Cx486DX, fpus_internal,   80000000, 2.0, 5000,  0x430,      0, 0x311b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
+        {"", 0}
+    }
+    }, {
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET6,
     .manufacturer = "Cyrix",
     .name = "Cx486DX4",
     .internal_name = "cx486dx4",
@@ -1446,7 +1456,7 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3,
+    .package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET6,
     .manufacturer = "Cyrix",
     .name = "Cx5x86",
     .internal_name = "cx5x86",
