@@ -226,101 +226,97 @@ typedef union {
 } MMX_REG;
 
 typedef struct {
-    /* IDT WinChip and WinChip 2 MSR's */
-    uint32_t tr1;  /* 0x00000002, 0x0000000e */
-    uint32_t tr12; /* 0x00000002, 0x0000000e */
-    uint32_t cesr; /* 0x00000011 */
+    /* IBM 386SLC/486SLC/486BL MSRs */
+    uint64_t ibm_por;  /* 0x00001000 - 386SLC and later */
+    uint64_t ibm_crcr; /* 0x00001001 - 386SLC and later */
+    uint64_t ibm_por2; /* 0x00001002 - 486SLC and later */
+    uint64_t ibm_pcr;  /* 0x00001004 - 486BL3 */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t apic_base; /* 0x0000001b - Should the Pentium not also have this? */
+    /* IDT WinChip C6/2/VIA Cyrix III MSRs */
+    uint32_t fcr;      /* 0x00000107 (IDT), 0x00001107 (VIA) */
+    uint64_t fcr2;     /* 0x00000108 (IDT), 0x00001108 (VIA) */
+    uint64_t fcr3;     /* 0x00000108 (IDT), 0x00001108 (VIA) */
+    uint64_t mcr[8];   /* 0x00000110 - 0x00000117 (IDT) */
+    uint32_t mcr_ctrl; /* 0x00000120 (IDT) */
 
-    /* Weird long MSR's used by the Hyper-V BIOS. */
-    uint64_t ecx20; /* 0x00000020, really 0x40000020, but we filter out the top 18 bits
-                       like a real Deschutes does. */
+    /* AMD K5/K6 MSRs */
+    uint64_t amd_aar;    /* 0x00000082 - all K5 */
+    uint64_t amd_hwcr;   /* 0x00000083 - all K5 and all K6 */
+    uint64_t amd_watmcr; /* 0x00000085 - K5 Model 1 and later */
+    uint64_t amd_wapmrr; /* 0x00000086 - K5 Model 1 and later */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx79;     /* 0x00000079 */
+    uint64_t amd_efer;  /* 0xc0000080 - all K5 and all K6 */
+    uint64_t amd_star;  /* 0xc0000081 - K6-2 and later */
+    uint64_t amd_whcr;  /* 0xc0000082 - all K5 and all K6 */
+    uint64_t amd_uwccr; /* 0xc0000085 - K6-2C and later */
+    uint64_t amd_epmr;  /* 0xc0000086 - K6-III+/2+ only */
+    uint64_t amd_psor;  /* 0xc0000087 - K6-2C and later */
+    uint64_t amd_pfir;  /* 0xc0000088 - K6-2C and later */
+    uint64_t amd_l2aar; /* 0xc0000089 - K6-III and later */
 
-    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t ecx83; /* 0x00000083 - AMD K5 and K6 MSR's. */
+    /* Pentium/Pentium MMX MSRs */
+    uint64_t mcar;         /* 0x00000000 - also on K5 and (R/W) K6 */
+    uint64_t mctr;         /* 0x00000001 - also on K5 and (R/W) K6 */
+    uint32_t tr1;          /* 0x00000002 - also on WinChip C6/2 */
+    uint32_t tr2;          /* 0x00000004 - reserved on PMMX */
+    uint32_t tr3;          /* 0x00000005 */
+    uint32_t tr4;          /* 0x00000006 */
+    uint32_t tr5;          /* 0x00000007 */
+    uint32_t tr6;          /* 0x00000008 */
+    uint32_t tr7;          /* 0x00000009 */
+    uint32_t tr9;          /* 0x0000000b */
+    uint32_t tr10;         /* 0x0000000c */
+    uint32_t tr11;         /* 0x0000000d */
+    uint32_t tr12;         /* 0x0000000e - also on WinChip C6/2 and K6 */
+    uint32_t cesr;         /* 0x00000011 - also on WinChip C6/2 and Cx6x86MX */
+    uint64_t pmc[2];       /* 0x00000012, 0x00000013 - also on WinChip C6/2 and Cx6x86MX */
+    uint32_t fp_last_xcpt; /* 0x8000001b - undocumented */
+    uint32_t probe_ctl;    /* 0x8000001d - undocumented */
+    uint32_t ecx8000001e;  /* 0x8000001e - undocumented */
+    uint32_t ecx8000001f;  /* 0x8000001f - undocumented */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx8x[4];    /* 0x00000088 - 0x0000008b */
-    uint64_t ia32_pmc[8]; /* 0x000000c1 - 0x000000c8 */
-    uint64_t mtrr_cap;    /* 0x000000fe */
+    /* Pentium Pro/II MSRs */
+    uint64_t apic_base; /* 0x0000001b */
+    uint32_t test_ctl;  /* 0x00000033 */
+    uint64_t bios_updt; /* 0x00000079 */
 
-    /* IDT WinChip and WinChip 2 MSR's that are also on the VIA Cyrix III */
-    uint32_t fcr;  /* 0x00000107 (IDT), 0x00001107 (VIA) */
-    uint64_t fcr2; /* 0x00000108 (IDT), 0x00001108 (VIA) */
-    uint64_t fcr3; /* 0x00000108 (IDT), 0x00001108 (VIA) */
+    uint64_t bbl_cr_dx[4]; /* 0x00000088 - 0x0000008b */
+    uint64_t perfctr[2];  /* 0x000000c1, 0x000000c2 */
+    uint64_t mtrr_cap;     /* 0x000000fe */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx116;    /* 0x00000116 */
-    uint64_t ecx11x[4]; /* 0x00000118 - 0x0000011b */
-    uint64_t ecx11e;    /* 0x0000011e */
+    uint64_t bbl_cr_addr; /* 0x00000116 */
+    uint64_t bbl_cr_decc; /* 0x00000118 */
+    uint64_t bbl_cr_ctl;  /* 0x00000119 */
+    uint64_t bbl_cr_trig; /* 0x0000011a */
+    uint64_t bbl_cr_busy; /* 0x0000011b */
+    uint64_t bbl_cr_ctl3; /* 0x0000011e */
 
-    /* Pentium II Klamath and Pentium II Deschutes MSR's */
-    uint16_t sysenter_cs;  /* 0x00000174 - SYSENTER/SYSEXIT MSR's */
-    uint32_t sysenter_esp; /* 0x00000175 - SYSENTER/SYSEXIT MSR's */
-    uint32_t sysenter_eip; /* 0x00000176 - SYSENTER/SYSEXIT MSR's */
+    uint16_t sysenter_cs;  /* 0x00000174 - Pentium II and later */
+    uint32_t sysenter_esp; /* 0x00000175 - Pentium II and later */
+    uint32_t sysenter_eip; /* 0x00000176 - Pentium II and later */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
-    uint64_t ecx186;  /* 0x00000186, 0x00000187 */
-    uint64_t ecx187;  /* 0x00000186, 0x00000187 */
+    uint64_t mcg_ctl;           /* 0x0000017b */
+    uint64_t evntsel[2];        /* 0x00000186, 0x00000187 */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t debug_ctl; /* 0x000001d9 - Debug Registers Control */
-    uint64_t ecx1e0;    /* 0x000001e0 */
+    uint32_t debug_ctl;         /* 0x000001d9 */
+    uint32_t rob_cr_bkuptmpdr6; /* 0x000001e0 */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
-       on the VIA Cyrix III */
-    uint64_t mtrr_physbase[8]; /* 0x00000200 - 0x0000020f */
+    /* MTTR-related MSRs also present on the VIA Cyrix III */
+    uint64_t mtrr_physbase[8]; /* 0x00000200 - 0x0000020f (ECX & 0) */
     uint64_t mtrr_physmask[8]; /* 0x00000200 - 0x0000020f (ECX & 1) */
     uint64_t mtrr_fix64k_8000; /* 0x00000250 */
     uint64_t mtrr_fix16k_8000; /* 0x00000258 */
     uint64_t mtrr_fix16k_a000; /* 0x00000259 */
     uint64_t mtrr_fix4k[8];    /* 0x00000268 - 0x0000026f */
+    uint64_t mtrr_deftype;     /* 0x000002ff */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t pat; /* 0x00000277 */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
-       on the VIA Cyrix III */
-    uint64_t mtrr_deftype; /* 0x000002ff */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
+    uint64_t pat;        /* 0x00000277 - Pentium II Deschutes and later */
+    uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 */
     uint64_t ecx570;     /* 0x00000570 */
 
-    /* IBM 386SLC, 486SLC, and 486BL MSR's */
-    uint64_t ibm_por;  /* 0x00001000 - Processor Operation Register */
-    uint64_t ibm_crcr; /* 0x00001001 - Cache Region Control Register */
-
-    /* IBM 486SLC and 486BL MSR's */
-    uint64_t ibm_por2; /* 0x00001002 - Processor Operation Register */
-
-    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t amd_efer; /* 0xc0000080 */
-
-    /* AMD K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t star; /* 0xc0000081 */
-
-    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t amd_whcr; /* 0xc0000082 */
-
-    /* AMD K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t amd_uwccr; /* 0xc0000085 */
-
-    /* AMD K6-2P and K6-3P MSR's */
-    uint64_t amd_epmr; /* 0xc0000086 */
-
-    /* AMD K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t amd_psor; /* 0xc0000087, 0xc0000088 */
-    uint64_t amd_pfir; /* 0xc0000087, 0xc0000088 */
-
-    /* K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t amd_l2aar; /* 0xc0000089 */
+    /* Other/Unclassified MSRs */
+    uint64_t ecx20; /* 0x00000020, really 0x40000020, but we filter out the top 18 bits
+                       like a real Deschutes does. */
 } msr_t;
 
 typedef struct {
@@ -586,7 +582,6 @@ extern double   bus_timing;
 extern double   isa_timing;
 extern double   pci_timing;
 extern double   agp_timing;
-extern uint64_t pmc[2];
 extern uint16_t temp_seg_data[4];
 extern uint16_t cs_msr;
 extern uint32_t esp_msr;

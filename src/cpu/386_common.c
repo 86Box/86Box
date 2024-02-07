@@ -128,9 +128,9 @@ uint32_t addr64a_2[8];
 static pc_timer_t *cpu_fast_off_timer  = NULL;
 static double      cpu_fast_off_period = 0.0;
 
-#define AMD_SYSCALL_EIP (msr.star & 0xFFFFFFFF)
-#define AMD_SYSCALL_SB  ((msr.star >> 32) & 0xFFFF)
-#define AMD_SYSRET_SB   ((msr.star >> 48) & 0xFFFF)
+#define AMD_SYSCALL_EIP (msr.amd_star & 0xFFFFFFFF)
+#define AMD_SYSCALL_SB  ((msr.amd_star >> 32) & 0xFFFF)
+#define AMD_SYSRET_SB   ((msr.amd_star >> 48) & 0xFFFF)
 
 /* These #define's and enum have been borrowed from Bochs. */
 /* SMM feature masks */
