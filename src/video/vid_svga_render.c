@@ -717,7 +717,7 @@ void svga_render_8bpp_lowres(svga_t *svga) { svga_render_indexed_gfx(svga, false
 void svga_render_8bpp_highres(svga_t *svga) { svga_render_indexed_gfx(svga, true, true); }
 
 void
-svga_render_8bpp_incompatible_highres(svga_t *svga)
+svga_render_8bpp_clone_highres(svga_t *svga)
 {
     int       x;
     uint32_t *p;
