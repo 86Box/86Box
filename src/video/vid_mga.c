@@ -976,11 +976,10 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
 
-        svga->dots_per_clock = 8;
-        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                               (((mystique->crtcext_regs[1] & 0x40) >> 6) << 6);
-
-        svga->hblank_overscan = 0;
+        svga->dots_per_clock  = 8;
+        svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                (((mystique->crtcext_regs[1] & 0x40) >> 6) << 6);
+        svga->hblank_end_mask = 0x0000007f;
 
         if (mystique->type != MGA_2164W && mystique->type != MGA_2064W)
             svga->lut_map = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);

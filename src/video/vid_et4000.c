@@ -668,8 +668,7 @@ et4000_recalctimings(svga_t *svga)
         svga->htotal += 256;
     if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
-        svga->hblankstart <<= 1;
-        svga->hblank_end_val <<= 1;
+        svga->dots_per_clock <<= 1;
     }
 
     switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4)) {

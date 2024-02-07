@@ -925,7 +925,7 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
                 if (!(port & 1)) {
                     if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
                         dev->hsync_width = val;
-                        dev->hblank_end_val = (dev->hblankstart + (dev->hsync_start & 0x1f) - 1) & 0x3f;
+                        dev->hblank_end_val = (dev->hblankstart + (dev->hsync_width & 0x1f) - 1) & 0x3f;
                     }
                 }
                 ibm8514_log("IBM 8514/A: H_SYNC_WID write 0EE8 = %d\n", val + 1);
@@ -3832,6 +3832,25 @@ bitblt:
 }
 
 void
+ibm8514_render_blank(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if ((dev->displine + svga->y_add) < 0)
+        return;
+
+    if (dev->firstline_draw == 2000)
+        dev->firstline_draw = dev->displine;
+    dev->lastline_draw = dev->displine;
+
+    uint32_t *line_ptr   = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
+    uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
+
+    if (dev->h_disp > 0)
+        memset(line_ptr, 0, line_width);
+}
+
+void
 ibm8514_render_8bpp(svga_t *svga)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
@@ -4106,148 +4125,153 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
 }
 
 void
-ibm8514_poll(void *priv, svga_t *svga)
+ibm8514_poll(void *priv)
 {
-    ibm8514_t *dev = (ibm8514_t *) priv;
+    svga_t *svga = (svga_t *)priv;
+    ibm8514_t *dev = (ibm8514_t *)svga->dev8514;
     uint32_t x;
     int      wx;
     int      wy;
 
-    if (!dev->linepos) {
-        if ((dev->displine == dev->hwcursor_latch.y) && dev->hwcursor_latch.ena) {
-            dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - dev->hwcursor_latch.yoff;
-            dev->hwcursor_oddeven = 0;
-        }
-
-        if ((dev->displine == (dev->hwcursor_latch.y + 1)) && dev->hwcursor_latch.ena && dev->interlace) {
-            dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - (dev->hwcursor_latch.yoff + 1);
-            dev->hwcursor_oddeven = 1;
-        }
-
-        timer_advance_u64(&svga->timer, svga->dispofftime);
-        svga->cgastat |= 1;
-        dev->linepos = 1;
-
-        if (dev->dispon) {
-            dev->hdisp_on = 1;
-
-            dev->ma &= dev->vram_mask;
-
-            if (dev->firstline == 2000) {
-                dev->firstline = dev->displine;
-                video_wait_for_buffer_monitor(svga->monitor_index);
+    ibm8514_log("IBM 8514/A poll.\n");
+    if (dev->on[0] || dev->on[1]) {
+        ibm8514_log("ON!\n");
+        if (!dev->linepos) {
+            if ((dev->displine == dev->hwcursor_latch.y) && dev->hwcursor_latch.ena) {
+                dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - dev->hwcursor_latch.yoff;
+                dev->hwcursor_oddeven = 0;
             }
 
-            if (dev->hwcursor_on)
-                dev->changedvram[dev->ma >> 12] = dev->changedvram[(dev->ma >> 12) + 1] = dev->interlace ? 3 : 2;
+            if ((dev->displine == (dev->hwcursor_latch.y + 1)) && dev->hwcursor_latch.ena && dev->interlace) {
+                dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - (dev->hwcursor_latch.yoff + 1);
+                dev->hwcursor_oddeven = 1;
+            }
 
-            svga->render8514(svga);
+            timer_advance_u64(&svga->timer8514, dev->dispofftime);
+            svga->cgastat |= 1;
+            dev->linepos = 1;
 
-            svga->x_add = (overscan_x >> 1);
-            ibm8514_render_overscan_left(dev, svga);
-            ibm8514_render_overscan_right(dev, svga);
-            svga->x_add = (overscan_x >> 1);
+            if (dev->dispon) {
+                dev->hdisp_on = 1;
 
-            if (dev->hwcursor_on) {
-                if (svga->hwcursor_draw)
-                    svga->hwcursor_draw(svga, dev->displine + svga->y_add);
-                dev->hwcursor_on--;
-                if (dev->hwcursor_on && dev->interlace)
+                dev->ma &= dev->vram_mask;
+
+                if (dev->firstline == 2000) {
+                    dev->firstline = dev->displine;
+                    video_wait_for_buffer_monitor(svga->monitor_index);
+                }
+
+                if (dev->hwcursor_on)
+                    dev->changedvram[dev->ma >> 12] = dev->changedvram[(dev->ma >> 12) + 1] = dev->interlace ? 3 : 2;
+
+                svga->render8514(svga);
+
+                svga->x_add = (overscan_x >> 1);
+                ibm8514_render_overscan_left(dev, svga);
+                ibm8514_render_overscan_right(dev, svga);
+                svga->x_add = (overscan_x >> 1);
+
+                if (dev->hwcursor_on) {
+                    if (svga->hwcursor_draw)
+                        svga->hwcursor_draw(svga, dev->displine + svga->y_add);
                     dev->hwcursor_on--;
+                    if (dev->hwcursor_on && dev->interlace)
+                        dev->hwcursor_on--;
+                }
+
+                if (dev->lastline < dev->displine)
+                    dev->lastline = dev->displine;
             }
 
-            if (dev->lastline < dev->displine)
-                dev->lastline = dev->displine;
-        }
-
-        dev->displine++;
-        if (dev->interlace)
             dev->displine++;
-        if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
-            svga->cgastat &= ~8;
-        svga->vslines++;
-        if (dev->displine > 1500)
-            dev->displine = 0;
-    } else {
-        timer_advance_u64(&svga->timer, svga->dispontime);
-        if (dev->dispon)
-            svga->cgastat &= ~1;
-        dev->hdisp_on = 0;
+            if (dev->interlace)
+                dev->displine++;
+            if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
+                svga->cgastat &= ~8;
+            svga->vslines++;
+            if (dev->displine > 1500)
+                dev->displine = 0;
+        } else {
+            timer_advance_u64(&svga->timer8514, dev->dispontime);
+            if (dev->dispon)
+                svga->cgastat &= ~1;
+            dev->hdisp_on = 0;
 
-        dev->linepos = 0;
-        if (dev->dispon) {
-            if (dev->sc == dev->rowcount) {
-                dev->sc = 0;
-                dev->maback += (dev->rowoffset << 3);
-                if (dev->interlace)
+            dev->linepos = 0;
+            if (dev->dispon) {
+                if (dev->sc == dev->rowcount) {
+                    dev->sc = 0;
                     dev->maback += (dev->rowoffset << 3);
+                    if (dev->interlace)
+                        dev->maback += (dev->rowoffset << 3);
 
-                dev->maback &= dev->vram_mask;
-                dev->ma = dev->maback;
-            } else {
-                dev->sc++;
-                dev->sc &= 0x1f;
-                dev->ma = dev->maback;
-            }
-        }
-
-        dev->vc++;
-        dev->vc &= 0x7ff;
-
-        if (dev->vc == dev->dispend) {
-            dev->dispon = 0;
-
-            for (x = 0; x < ((dev->vram_mask + 1) >> 12); x++) {
-                if (dev->changedvram[x])
-                    dev->changedvram[x]--;
+                    dev->maback &= dev->vram_mask;
+                    dev->ma = dev->maback;
+                } else {
+                    dev->sc++;
+                    dev->sc &= 0x1f;
+                    dev->ma = dev->maback;
+                }
             }
 
-            if (svga->fullchange)
-                svga->fullchange--;
-        }
-        if (dev->vc == dev->v_syncstart) {
-            dev->dispon = 0;
-            svga->cgastat |= 8;
-            x           = dev->h_disp;
+            dev->vc++;
+            dev->vc &= 0x7ff;
 
-            if (dev->interlace && !dev->oddeven)
-                dev->lastline++;
-            if (dev->interlace && dev->oddeven)
-                dev->firstline--;
+            if (dev->vc == dev->dispend) {
+                dev->dispon = 0;
 
-            wx = x;
-            wy = dev->lastline - dev->firstline;
-            svga_doblit(wx, wy, svga);
+                for (x = 0; x < ((dev->vram_mask + 1) >> 12); x++) {
+                    if (dev->changedvram[x])
+                        dev->changedvram[x]--;
+                }
 
-            dev->firstline = 2000;
-            dev->lastline  = 0;
+                if (svga->fullchange)
+                    svga->fullchange--;
+            }
+            if (dev->vc == dev->v_syncstart) {
+                dev->dispon = 0;
+                svga->cgastat |= 8;
+                x           = dev->h_disp;
 
-            dev->firstline_draw = 2000;
-            dev->lastline_draw  = 0;
+                if (dev->interlace && !dev->oddeven)
+                    dev->lastline++;
+                if (dev->interlace && dev->oddeven)
+                    dev->firstline--;
 
-            dev->oddeven ^= 1;
+                wx = x;
+                wy = dev->lastline - dev->firstline;
+                svga_doblit(wx, wy, svga);
 
-            svga->monitor->mon_changeframecount = dev->interlace ? 3 : 2;
-            svga->vslines    = 0;
+                dev->firstline = 2000;
+                dev->lastline  = 0;
 
-            if (dev->interlace && dev->oddeven)
-                dev->ma = dev->maback = (dev->rowoffset << 1);
-            else
-                dev->ma = dev->maback = 0;
+                dev->firstline_draw = 2000;
+                dev->lastline_draw  = 0;
 
-            dev->ma     = (dev->ma << 2);
-            dev->maback = (dev->maback << 2);
-        }
-        if (dev->vc == dev->v_total) {
-            dev->vc       = 0;
-            dev->sc       = 0;
-            dev->dispon   = 1;
-            dev->displine = (dev->interlace && dev->oddeven) ? 1 : 0;
+                dev->oddeven ^= 1;
 
-            svga->x_add = (overscan_x >> 1);
+                svga->monitor->mon_changeframecount = dev->interlace ? 3 : 2;
+                svga->vslines    = 0;
 
-            dev->hwcursor_on    = 0;
-            dev->hwcursor_latch = dev->hwcursor;
+                if (dev->interlace && dev->oddeven)
+                    dev->ma = dev->maback = (dev->rowoffset << 1);
+                else
+                    dev->ma = dev->maback = 0;
+
+                dev->ma     = (dev->ma << 2);
+                dev->maback = (dev->maback << 2);
+            }
+            if (dev->vc == dev->v_total) {
+                dev->vc       = 0;
+                dev->sc       = 0;
+                dev->dispon   = 1;
+                dev->displine = (dev->interlace && dev->oddeven) ? 1 : 0;
+
+                svga->x_add = (overscan_x >> 1);
+
+                dev->hwcursor_on    = 0;
+                dev->hwcursor_latch = dev->hwcursor;
+            }
         }
     }
 }
@@ -4257,6 +4281,7 @@ ibm8514_recalctimings(svga_t *svga)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
+    svga->render8514 = ibm8514_render_blank;
 #ifdef ATI_8514_ULTRA
     if (dev->extensions) {
         if (svga->ext8514 != NULL)
@@ -4283,14 +4308,14 @@ ibm8514_recalctimings(svga_t *svga)
                     dev->h_disp = 1024;
                     dev->dispend = 768;
                 }
-                svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             } else {
                 dev->pitch = 640;
                 if (!dev->h_disp) {
                     dev->h_disp = 640;
                     dev->dispend = 480;
                 }
-                svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
             }
 
             if (dev->interlace) {
@@ -4428,6 +4453,8 @@ ibm8514_init(const device_t *info)
         mca_add(ibm8514_mca_read, ibm8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
     }
 #endif
+
+    timer_add(&svga->timer8514, ibm8514_poll, svga, 0);
 
     return svga;
 }

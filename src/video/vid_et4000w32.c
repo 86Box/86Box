@@ -450,8 +450,7 @@ et4000w32p_recalctimings(svga_t *svga)
         svga->htotal += 256;
     if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
-        svga->hblankstart <<= 1;
-        svga->hblank_end_val <<= 1;
+        svga->dots_per_clock <<= 1;
     }
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
@@ -502,8 +501,7 @@ et4000w32p_recalctimings(svga_t *svga)
         case 16:
             if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
                 svga->hdisp >>= 1;
-                svga->hblankstart >>= 1;
-                svga->hblank_end_val >>= 1;
+                svga->dots_per_clock >>= 1;
             }
             if (et4000->type <= ET4000W32P_REVC) {
                 if (et4000->type == ET4000W32P_REVC) {
@@ -515,8 +513,7 @@ et4000w32p_recalctimings(svga_t *svga)
             break;
         case 24:
             svga->hdisp /= 3;
-            svga->hblankstart /= 3;
-            svga->hblank_end_val /= 3;
+            svga->dots_per_clock /= 3;
             if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
             if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {

@@ -118,16 +118,16 @@ typedef struct svga_t {
     int vram_display_mask;
     int vidclock;
     int dots_per_clock;
-    int hblank_ext;
     int hwcursor_on;
     int dac_hwcursor_on;
     int overlay_on;
     int set_override;
     int hblankstart;
     int hblankend;
-    int hblank_sub;
     int hblank_end_val;
     int hblank_end_len;
+    int hblank_end_mask;
+    int hblank_sub;
     int packed_4bpp;
     int ati_4color;
 
@@ -166,8 +166,10 @@ typedef struct svga_t {
     latch_t  latch;
 
     pc_timer_t timer;
+    pc_timer_t timer8514;
 
     double clock;
+    double clock8514;
 
     hwcursor_t hwcursor;
     hwcursor_t hwcursor_latch;
@@ -287,7 +289,7 @@ typedef struct svga_t {
 
 extern int vga_on;
 
-extern void    ibm8514_poll(void *priv, svga_t *svga);
+extern void    ibm8514_poll(void *priv);
 extern void    ibm8514_recalctimings(svga_t *svga);
 extern uint8_t ibm8514_ramdac_in(uint16_t port, void *priv);
 extern void    ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv);

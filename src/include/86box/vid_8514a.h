@@ -64,6 +64,9 @@ typedef struct ibm8514_t {
     int       hwcursor_on;
     int       modechange;
 
+    uint64_t  dispontime;
+    uint64_t  dispofftime;
+
     struct {
         uint16_t subsys_cntl;
         uint16_t setup_md;

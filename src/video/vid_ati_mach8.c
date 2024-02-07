@@ -2527,20 +2527,6 @@ ati8514_recalctimings(svga_t *svga)
         mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, advfunc_cntl=%x, shadow=%x.\n", dev->accel.advfunc_cntl & 4, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset, dev->accel.advfunc_cntl & 4, mach->shadow_set & 3);
         svga->map8 = dev->pallook;
         svga->render8514 = ibm8514_render_8bpp;
-
-        dev->hblankend = (dev->h_blankstart & ~0x3f) | dev->h_blank_end_val;
-        if (dev->hblankend <= dev->h_blankstart)
-            dev->hblankend += 0x40;
-
-        dev->hblankend += dev->hblank_ext;
-
-        dev->hblank_sub = 0;
-        if (dev->hblankend > dev->h_total) {
-            dev->hblankend &= 0x3f;
-            dev->hblank_sub = dev->hblankend + 1;
-
-            dev->h_disp -= dev->hblank_sub;
-        }
     } else {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
             if (svga->seqregs[1] & 8) {                              /*40 column*/
@@ -2582,8 +2568,7 @@ mach_recalctimings(svga_t *svga)
     if ((mach->regs[0xb6] & 0x18) >= 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
-        svga->hblankstart <<= 1;
-        svga->hblank_end_val <<= 1;
+        svga->dots_per_clock <<= 1;
         svga->rowoffset <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
@@ -2601,12 +2586,13 @@ mach_recalctimings(svga_t *svga)
         if ((mach->regs[0xb6] & 0x18) == 8) {
             svga->hdisp <<= 1;
             svga->htotal <<= 1;
-            svga->hblankstart <<= 1;
-            svga->hblank_end_val <<= 1;
+            svga->dots_per_clock <<= 1;
             svga->ati_4color = 1;
         } else
             svga->ati_4color = 0;
     }
+
+    svga->render8514 = ibm8514_render_blank;
     mach_log("ON[0]=%d, ON[1]=%d, exton[0]=%d, exton[1]=%d, vendormode0=%d, vendormode1=%d.\n", dev->on[0], dev->on[1], mach->ext_on[0], mach->ext_on[1], dev->vendor_mode[0], dev->vendor_mode[1]);
     if (dev->on[0] || dev->on[1]) {
         mach_log("8514/A ON.\n");
@@ -2631,14 +2617,14 @@ mach_recalctimings(svga_t *svga)
         if ((dev->local & 0xff) >= 0x02) {
             if ((dev->accel.advfunc_cntl ^ dev->modechange) & 0x04) {
                 if ((mach->shadow_set ^ mach->compat_mode) & 0x03)
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
                 else
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             } else {
                 if ((mach->shadow_set ^ mach->compat_mode) & 0x03)
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
                 else
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
             }
 
             if (dev->interlace) {
@@ -2698,13 +2684,13 @@ mach_recalctimings(svga_t *svga)
             }
             switch (mach->regs[0xb8] & 0xc0) {
                 case 0x40:
-                    svga->clock *= 2;
+                    svga->clock8514 *= 2;
                     break;
                 case 0x80:
-                    svga->clock *= 3;
+                    svga->clock8514 *= 3;
                     break;
                 case 0xc0:
-                    svga->clock *= 4;
+                    svga->clock8514 *= 4;
                     break;
 
                 default:
@@ -2713,21 +2699,20 @@ mach_recalctimings(svga_t *svga)
         } else {
             if ((dev->accel.advfunc_cntl ^ dev->modechange) & 0x04) {
                 if ((mach->shadow_set ^ mach->compat_mode) & 0x03)
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
                 else
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             } else {
                 if ((mach->shadow_set ^ mach->compat_mode) & 0x03)
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
                 else
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+                    svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
 
                 if (((mach->shadow_set & 0x03) != 0x02) || !(dev->accel.advfunc_cntl & 0x04)) { /*Shadow set of 2 and bit 2 of port 0x4ae8 mean 1024x768+*/
                     if (!(mach->accel.clock_sel & 0x01)) {
                         dev->h_disp = 640;
                         dev->dispend = 480;
                     }
-                    dev->interlace = 0;
                 }
             }
 
@@ -2746,7 +2731,7 @@ mach_recalctimings(svga_t *svga)
             svga->map8 = dev->pallook;
             svga->render8514 = ibm8514_render_8bpp;
             if (mach->regs[0xb8] & 0x40)
-                svga->clock *= 2;
+                svga->clock8514 *= 2;
         }
     }
 
@@ -3662,7 +3647,7 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             if (!(port & 1)) {
                 if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
                     dev->hsync_width = val;
-                    dev->hblank_end_val = (dev->hblankstart + (dev->hsync_start & 0x1f) - 1) & 0x3f;
+                    dev->hblank_end_val = (dev->hblankstart + (dev->hsync_width & 0x1f) - 1) & 0x3f;
                 }
             }
             mach_log("ATI 8514/A: H_SYNC_WID write 0EE8 = %d\n", val + 1);
@@ -6071,6 +6056,8 @@ mach8_init(const device_t *info)
             ati_eeprom_load(&mach->eeprom, "mach32.nvr", 1);
     } else
         ati_eeprom_load_mach8(&mach->eeprom, "mach8.nvr");
+
+    timer_add(&svga->timer8514, ibm8514_poll, svga, 0);
 
     return mach;
 }
