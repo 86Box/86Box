@@ -207,6 +207,8 @@ chips_69000_read_flat_panel(chips_69000_t* chips)
         case 0:
             /* Report no presence of flat panel module. */
             return 0;
+        case 1:
+            return 1;
         default:
             return chips->flat_panel_regs[chips->flat_panel_index];
     }
@@ -744,6 +746,10 @@ chips_69000_recalctimings(svga_t *svga)
         svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
 
         svga->interlace = !!(svga->crtc[0x70] & 0x80);
+
+        if (svga->dispend == 2002 && svga->hdisp == 1024) {
+            svga->dispend = 1280;
+        }
 
         switch (chips->ext_regs[0x81] & 0xF) {
             case 0b0010:
@@ -1412,6 +1418,9 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             break;
         case 0x71:
             val = 0x0;
+            break;
+        case 0xD0:
+            val |= 1;
             break;
     }
     // if (chips->ext_index != 0x4E && chips->ext_index != 0x4F
@@ -2189,13 +2198,21 @@ chips_69000_hwcursor_draw(svga_t *svga, int displine)
     if (svga->interlace && svga->hwcursor_oddeven)
         svga->hwcursor_latch.addr += 16;
 
-    dat[1] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr]));
-    dat[0] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]));
-    svga->hwcursor_latch.addr += 16;
+    if ((svga->hwcursor_on & 1) && (chips->ext_regs[0xa0] & 7) == 0b1) {
+        dat[1] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr - 16]));
+        dat[0] = bswap64(*(uint64_t *) (&svga->vram[(svga->hwcursor_latch.addr - 16) + 8]));
+        dat[1] <<= 32ULL;
+        dat[0] <<= 32ULL;
+    }
+    else {
+        dat[1] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr]));
+        dat[0] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]));
+        svga->hwcursor_latch.addr += 16;
+    }
     switch (chips->ext_regs[0xa0] & 7) {
         case 0b1:
         case 0b101:
-            for (uint8_t x = 0; x < 64; x++) {
+            for (uint8_t x = 0; x < (((chips->ext_regs[0xa0] & 7) == 0b1) ? 32 : 64); x++) {
                 if (!(dat[1] & (1ULL << 63)))
                     svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[4]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[5]);
                 else if (dat[0] & (1ULL << 63))
