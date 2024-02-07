@@ -75,6 +75,7 @@ extern void svga_render_ABGR8888_highres(svga_t *svga);
 extern void svga_render_RGBA8888_lowres(svga_t *svga);
 extern void svga_render_RGBA8888_highres(svga_t *svga);
 
+extern void ibm8514_render_blank(svga_t *svga);
 extern void ibm8514_render_8bpp(svga_t *svga);
 extern void ibm8514_render_15bpp(svga_t *svga);
 extern void ibm8514_render_16bpp(svga_t *svga);

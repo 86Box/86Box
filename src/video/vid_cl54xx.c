@@ -1643,10 +1643,6 @@ gd54xx_recalc_banking(gd54xx_t *gd54xx)
             svga->extra_banks[1] = svga->extra_banks[0] + 0x8000;
     }
 
-    if (!(svga->gdcreg[5] & 0x40) || !(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
-        svga->extra_banks[0] = 0;
-        svga->extra_banks[1] = 0x8000;
-    }
     svga->write_bank = svga->read_bank = svga->extra_banks[0];
 }
 
