@@ -747,8 +747,8 @@ chips_69000_recalctimings(svga_t *svga)
 
         svga->interlace = !!(svga->crtc[0x70] & 0x80);
 
-        if (svga->dispend == 2002 && svga->hdisp == 1024) {
-            svga->dispend = 1280;
+        if (svga->hdisp == 1280 && svga->dispend == 1024) {
+            svga->interlace = 0;
         }
 
         switch (chips->ext_regs[0x81] & 0xF) {
@@ -1541,8 +1541,10 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0xA7:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.y = chips->ext_regs[0xA6] | (val & 7) << 8;
-            if (chips->ext_regs[0xA7] & 0x80)
-                chips->svga.hwcursor.y = -chips->svga.hwcursor.y;
+            if (chips->ext_regs[0xA7] & 0x80){
+                chips->svga.hwcursor.yoff = chips->svga.hwcursor.y;
+                chips->svga.hwcursor.y = 0;
+            }
             break;
         case 0xC8:
         case 0xC9:
