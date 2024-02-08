@@ -1128,6 +1128,8 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         case 1:
             chips->bitblt_running.x_dir = -1;
             chips->bitblt_running.y_dir = 1;
+            chips->bitblt_running.bitblt.source_addr -= (chips->bitblt_running.bytes_per_pixel - 1);
+            chips->bitblt_running.bitblt.destination_addr -= (chips->bitblt_running.bytes_per_pixel - 1);
             break;
         case 2:
             chips->bitblt_running.x_dir = 1;
@@ -1136,6 +1138,8 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         case 3:
             chips->bitblt_running.x_dir = -1;
             chips->bitblt_running.y_dir = -1;
+            chips->bitblt_running.bitblt.source_addr -= (chips->bitblt_running.bytes_per_pixel - 1);
+            chips->bitblt_running.bitblt.destination_addr -= (chips->bitblt_running.bytes_per_pixel - 1);
             break;
     }
 
@@ -1517,18 +1521,26 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0xA4:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.x = val | (chips->ext_regs[0xA5] & 7) << 8;
+            if (chips->ext_regs[0xA5] & 0x80)
+                chips->svga.hwcursor.x = -chips->svga.hwcursor.x;
             break;
         case 0xA5:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.x = chips->ext_regs[0xA4] | (val & 7) << 8;
+            if (chips->ext_regs[0xA5] & 0x80)
+                chips->svga.hwcursor.x = -chips->svga.hwcursor.x;
             break;
         case 0xA6:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.y = val | (chips->ext_regs[0xA7] & 7) << 8;
+            if (chips->ext_regs[0xA7] & 0x80)
+                chips->svga.hwcursor.y = -chips->svga.hwcursor.y;
             break;
         case 0xA7:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.y = chips->ext_regs[0xA6] | (val & 7) << 8;
+            if (chips->ext_regs[0xA7] & 0x80)
+                chips->svga.hwcursor.y = -chips->svga.hwcursor.y;
             break;
         case 0xC8:
         case 0xC9:
@@ -2213,9 +2225,9 @@ chips_69000_hwcursor_draw(svga_t *svga, int displine)
         case 0b101:
             for (uint8_t x = 0; x < (((chips->ext_regs[0xa0] & 7) == 0b1) ? 32 : 64); x++) {
                 if (!(dat[1] & (1ULL << 63)))
-                    svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[5]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[4]);
+                    svga->monitor->target_buffer->line[displine & 2047][(offset + svga->x_add) & 2047] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[5]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[4]);
                 else if (dat[0] & (1ULL << 63))
-                    svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
+                    svga->monitor->target_buffer->line[displine & 2047][(offset + svga->x_add) & 2047] ^= 0xffffff;
 
                 offset++;
                 dat[0] <<= 1;
