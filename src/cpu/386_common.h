@@ -225,19 +225,37 @@ int checkio(uint32_t port, int mask);
 static __inline uint8_t
 fastreadb(uint32_t a)
 {
-    return readmembl_2386(a);
+    uint8_t ret;
+    read_type = 1;
+    ret = readmembl_2386(a);
+    read_type = 4;
+    if (cpu_state.abrt)
+        return 0;
+    return ret;
 }
 
 static __inline uint16_t
 fastreadw(uint32_t a)
 {
-    return readmemwl_2386(a);
+    uint16_t ret;
+    read_type = 1;
+    ret = readmemwl_2386(a);
+    read_type = 4;
+    if (cpu_state.abrt)
+        return 0;
+    return ret;
 }
 
 static __inline uint32_t
 fastreadl(uint32_t a)
 {
-    return readmemll_2386(a);
+    uint32_t ret;
+    read_type = 1;
+    ret = readmemll_2386(a);
+    read_type = 4;
+    if (cpu_state.abrt)
+        return 0;
+    return ret;
 }
 #else
 static __inline uint8_t
@@ -342,31 +360,41 @@ extern int opcode_length[256];
 static __inline uint16_t
 fastreadw_fetch(uint32_t a)
 {
-    uint16_t val;
+    uint16_t ret;
 
     if ((a & 0xFFF) > 0xFFE) {
-        val = fastreadb(a);
-        if (opcode_length[val & 0xff] > 1)
-            val |= ((uint16_t) fastreadb(a + 1) << 8);
-        return val;
+        ret = fastreadb(a);
+        if (!cpu_state.abrt && (opcode_length[ret & 0xff] > 1))
+            ret |= ((uint16_t) fastreadb(a + 1) << 8);
+    } else if (cpu_state.abrt)
+        ret = 0;
+    else {
+        read_type = 1;
+        ret = readmemwl_2386(a);
+        read_type = 4;
     }
 
-    return readmemwl_2386(a);
+    return ret;
 }
 
 static __inline uint32_t
 fastreadl_fetch(uint32_t a)
 {
-    uint32_t val;
+    uint32_t ret;
 
     if (cpu_16bitbus || ((a & 0xFFF) > 0xFFC)) {
-        val = fastreadw_fetch(a);
-        if (opcode_length[val & 0xff] > 2)
-            val |= ((uint32_t) fastreadw(a + 2) << 16);
-        return val;
+        ret = fastreadw_fetch(a);
+        if (!cpu_state.abrt && (opcode_length[ret & 0xff] > 2))
+            ret |= ((uint32_t) fastreadw(a + 2) << 16);
+    } else if (cpu_state.abrt)
+        ret = 0;
+    else {
+        read_type = 1;
+        ret = readmemll_2386(a);
+        read_type = 4;
     }
 
-    return readmemll_2386(a);
+    return ret;
 }
 #else
 static __inline uint16_t

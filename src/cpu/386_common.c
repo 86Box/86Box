@@ -1412,7 +1412,7 @@ x86_int(int num)
     cpu_state.pc = cpu_state.oldpc;
 
     if (msw & 1)
-        is486 ? pmodeint(num, 0) : pmodeint_2386(num, 0);
+        cpu_use_exec ? pmodeint(num, 0) : pmodeint_2386(num, 0);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1445,7 +1445,7 @@ x86_int(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
+            cpu_use_exec ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
         }
     }
 
@@ -1462,7 +1462,7 @@ x86_int_sw(int num)
     cycles -= timing_int;
 
     if (msw & 1)
-        is486 ? pmodeint(num, 1) : pmodeint_2386(num, 1);
+        cpu_use_exec ? pmodeint(num, 1) : pmodeint_2386(num, 1);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1487,7 +1487,7 @@ x86_int_sw(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
+            cpu_use_exec ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
             cycles -= timing_int_rm;
         }
     }
@@ -1529,7 +1529,7 @@ x86_int_sw_rm(int num)
     cpu_state.eflags &= ~VIF_FLAG;
     cpu_state.flags &= ~T_FLAG;
     cpu_state.pc = new_pc;
-    is486 ? loadcs(new_cs) : loadcs_2386(new_cs);
+    cpu_use_exec ? loadcs(new_cs) : loadcs_2386(new_cs);
 #ifndef USE_NEW_DYNAREC
     oxpc = cpu_state.pc;
 #endif

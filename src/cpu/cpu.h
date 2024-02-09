@@ -174,6 +174,7 @@ typedef struct {
 #define VIP_FLAG   0x0010 /* in EFLAGS */
 #define VID_FLAG   0x0020 /* in EFLAGS */
 
+#define EM_FLAG    0x00004 /* in CR0 */
 #define WP_FLAG    0x10000 /* in CR0 */
 
 #define CR4_VME    (1 << 0) /* Virtual 8086 Mode Extensions */

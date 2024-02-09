@@ -726,6 +726,22 @@ opHLT(uint32_t fetchdat)
     return 0;
 }
 
+#ifdef OPS_286_386
+static int
+opLOCK(uint32_t fetchdat)
+{
+    fetchdat = fastreadl(cs + cpu_state.pc);
+    if (cpu_state.abrt)
+        return 0;
+    cpu_state.pc++;
+
+    ILLEGAL_ON((fetchdat & 0xff) == 0x90);
+
+    CLOCK_CYCLES(4);
+    PREFETCH_PREFIX();
+    return x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+}
+#else
 static int
 opLOCK(uint32_t fetchdat)
 {
@@ -740,6 +756,7 @@ opLOCK(uint32_t fetchdat)
     PREFETCH_PREFIX();
     return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
+#endif
 
 static int
 opBOUND_w_a16(uint32_t fetchdat)

@@ -39,52 +39,43 @@
 #include <86box/rom.h>
 #include <86box/gdbstub.h>
 
-/* Set trap for data address breakpoints. */
-void
-mem_debug_check_addr(uint32_t addr, int write)
-{
-    int i = 0;
-    int set_trap = 0;
+/* As below, 1 = exec, 4 = read. */
+int    read_type = 4;
 
-    if (!(dr[7] & 0xFF))
+/* Set trap for data address breakpoints - 1 = exec, 2 = write, 4 = read. */
+void
+mem_debug_check_addr(uint32_t addr, int flags)
+{
+    uint32_t bp_addr;
+    uint32_t bp_mask;
+    uint32_t len_type_pair;
+    int bp_enabled;
+    uint8_t match_flags[4] = { 0, 2, 0, 6 };
+    char *bp_types[5] = { "N/A 0", "EXEC ", "WRITE", "N/A 3", "READ " };
+
+    if (cpu_state.abrt || ((flags == 1) && (cpu_state.eflags & RF_FLAG)))
         return;
 
-    for (i = 0; i < 4; i++) {
-        uint32_t dr_addr = dr[i];
-        int breakpoint_enabled = !!(dr[7] & (0x3 << (2 * i)));
-        int len_type_pair = ((dr[7] >> 16) & (0xF << (4 * i))) >> (4 * i);
-        if (!breakpoint_enabled)
-            continue;
-        if (!write && (len_type_pair & 3) != 3)
-            continue;
-        if ((len_type_pair & 3) != 1)
-            continue;
-        
-        switch ((len_type_pair >> 2) & 3)
-        {
-            case 0x00:
-                if (dr_addr == addr) {
-                    set_trap = 1;
-                    dr[6] |= (1 << i);
-                }
-                break;
-            case 0x01:
-                if ((dr_addr & ~1) == addr || ((dr_addr & ~1) + 1) == (addr + 1)) {
-                    set_trap = 1;
-                    dr[6] |= (1 << i);
-                }
-                break;
-            case 0x03:
-                dr_addr &= ~3;
-                if (addr >= dr_addr && addr < (dr_addr + 4)) {
-                    set_trap = 1;
-                    dr[6] |= (1 << i);
-                }
-                break;
+    if (dr[7] & 0x000000ff)  for (uint8_t i = 0; i < 4; i++) {
+        bp_addr = dr[i];
+        bp_enabled = (dr[7] >> (i << 1)) & 0x03;
+        len_type_pair = (dr[7] >> (16 + (i << 2))) & 0x0f;
+        bp_mask = ~((len_type_pair >> 2) & 0x03);
+
+        if ((flags & match_flags[len_type_pair & 0x03]) && ((bp_addr & bp_mask) == (addr & bp_mask))) {
+            /*
+               From the Intel i386 documemntation:
+
+               (Note that the processor sets Bn regardless of whether Gn or
+               Ln is set. If more than one breakpoint condition occurs at one time and if
+               the breakpoint trap occurs due to an enabled condition other than n, Bn may
+               be set, even though neither Gn nor Ln is set.)
+             */
+            dr[6] |= (1 << i);
+            if (bp_enabled)
+                trap |= (read_type == 1) ? 8 : 4;
         }
     }
-    if (set_trap)
-        trap |= 4;
 }
 
 uint8_t
@@ -291,7 +282,7 @@ readmembl_2386(uint32_t addr)
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
 
-    mem_debug_check_addr(addr, 0);
+    mem_debug_check_addr(addr, read_type);
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
 
@@ -319,7 +310,7 @@ writemembl_2386(uint32_t addr, uint8_t val)
     mem_mapping_t *map;
     uint64_t       a;
 
-    mem_debug_check_addr(addr, 1);
+    mem_debug_check_addr(addr, 2);
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
 
     addr64           = (uint64_t) addr;
@@ -397,8 +388,8 @@ readmemwl_2386(uint32_t addr)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
-    mem_debug_check_addr(addr, 0);
-    mem_debug_check_addr(addr + 1, 0);
+    mem_debug_check_addr(addr, read_type);
+    mem_debug_check_addr(addr + 1, read_type);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
@@ -419,7 +410,8 @@ readmemwl_2386(uint32_t addr)
                 }
             }
 
-            return readmembl_no_mmut(addr, addr64a[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, addr64a[1])) << 8);
+            return readmembl_no_mmut_2386(addr, addr64a[0]) |
+                   (((uint16_t) readmembl_no_mmut_2386(addr + 1, addr64a[1])) << 8);
         }
     }
 
@@ -454,8 +446,8 @@ writememwl_2386(uint32_t addr, uint16_t val)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
-    mem_debug_check_addr(addr, 1);
-    mem_debug_check_addr(addr + 1, 1);
+    mem_debug_check_addr(addr, 2);
+    mem_debug_check_addr(addr + 1, 2);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
@@ -482,8 +474,8 @@ writememwl_2386(uint32_t addr, uint16_t val)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            writemembl_no_mmut(addr, addr64a[0], val);
-            writemembl_no_mmut(addr + 1, addr64a[1], val >> 8);
+            writemembl_no_mmut_2386(addr, addr64a[0], val);
+            writemembl_no_mmut_2386(addr + 1, addr64a[1], val >> 8);
             return;
         }
     }
@@ -531,7 +523,8 @@ readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
                     return 0xffff;
             }
 
-            return readmembl_no_mmut(addr, a64[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, a64[1])) << 8);
+            return readmembl_no_mmut_2386(addr, a64[0]) |
+                   (((uint16_t) readmembl_no_mmut_2386(addr + 1, a64[1])) << 8);
         }
     }
 
@@ -574,8 +567,8 @@ writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val)
                     return;
             }
 
-            writemembl_no_mmut(addr, a64[0], val);
-            writemembl_no_mmut(addr + 1, a64[1], val >> 8);
+            writemembl_no_mmut_2386(addr, a64[0], val);
+            writemembl_no_mmut_2386(addr + 1, a64[1], val >> 8);
             return;
         }
     }
@@ -611,7 +604,7 @@ readmemll_2386(uint32_t addr)
 
     for (i = 0; i < 4; i++) {
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 0);
+        mem_debug_check_addr(addr + i, read_type);
     }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 4);
 
@@ -619,8 +612,8 @@ readmemll_2386(uint32_t addr)
 
     high_page = 0;
 
-    if (addr & 3) {
-        if (!cpu_cyrix_alignment || (addr & 7) > 4)
+    if (cpu_16bitbus || (addr & 3)) {
+        if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
             if (cr0 >> 31) {
@@ -647,7 +640,8 @@ readmemll_2386(uint32_t addr)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            return readmemwl_no_mmut(addr, addr64a) | (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64a[2]))) << 16);
+            return readmemwl_no_mmut_2386(addr, addr64a) |
+                   (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64a[2]))) << 16);
         }
     }
 
@@ -684,7 +678,7 @@ writememll_2386(uint32_t addr, uint32_t val)
 
     for (i = 0; i < 4; i++) {
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 1);
+        mem_debug_check_addr(addr + i, 2);
     }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 4);
 
@@ -692,8 +686,8 @@ writememll_2386(uint32_t addr, uint32_t val)
 
     high_page = 0;
 
-    if (addr & 3) {
-        if (!cpu_cyrix_alignment || (addr & 7) > 4)
+    if (cpu_16bitbus || (addr & 3)) {
+        if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
             if (cr0 >> 31) {
@@ -724,8 +718,8 @@ writememll_2386(uint32_t addr, uint32_t val)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            writememwl_no_mmut(addr, &(addr64a[0]), val);
-            writememwl_no_mmut(addr + 2, &(addr64a[2]), val >> 16);
+            writememwl_no_mmut_2386(addr, &(addr64a[0]), val);
+            writememwl_no_mmut_2386(addr + 2, &(addr64a[2]), val >> 16);
             return;
         }
     }
@@ -770,8 +764,8 @@ readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
 
     mem_logical_addr = addr;
 
-    if (addr & 3) {
-        if (!cpu_cyrix_alignment || (addr & 7) > 4)
+    if (cpu_16bitbus || (addr & 3)) {
+        if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
             if (cr0 >> 31) {
@@ -779,7 +773,8 @@ readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
                     return 0xffffffff;
             }
 
-            return readmemwl_no_mmut(addr, a64) | ((uint32_t) (readmemwl_no_mmut(addr + 2, &(a64[2]))) << 16);
+            return readmemwl_no_mmut_2386(addr, a64) |
+                   ((uint32_t) (readmemwl_no_mmut_2386(addr + 2, &(a64[2]))) << 16);
         }
     }
 
@@ -815,8 +810,8 @@ writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
 
     mem_logical_addr = addr;
 
-    if (addr & 3) {
-        if (!cpu_cyrix_alignment || (addr & 7) > 4)
+    if (cpu_16bitbus || (addr & 3)) {
+        if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
             if (cr0 >> 31) {
@@ -824,8 +819,8 @@ writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
                     return;
             }
 
-            writememwl_no_mmut(addr, &(a64[0]), val);
-            writememwl_no_mmut(addr + 2, &(a64[2]), val >> 16);
+            writememwl_no_mmut_2386(addr, &(a64[0]), val);
+            writememwl_no_mmut_2386(addr + 2, &(a64[2]), val >> 16);
             return;
         }
     }
@@ -867,7 +862,7 @@ readmemql_2386(uint32_t addr)
 
     for (i = 0; i < 8; i++) {
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 0);
+        mem_debug_check_addr(addr + i, read_type);
     }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 8);
 
@@ -902,7 +897,8 @@ readmemql_2386(uint32_t addr)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            return readmemll_no_mmut(addr, addr64a) | (((uint64_t) readmemll_no_mmut(addr + 4, &(addr64a[4]))) << 32);
+            return readmemll_no_mmut_2386(addr, addr64a) |
+                   (((uint64_t) readmemll_no_mmut_2386(addr + 4, &(addr64a[4]))) << 32);
         }
     }
 
@@ -932,7 +928,7 @@ writememql_2386(uint32_t addr, uint64_t val)
 
     for (i = 0; i < 8; i++) {
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 1);
+        mem_debug_check_addr(addr + i, 2);
     }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 8);
 
@@ -971,8 +967,8 @@ writememql_2386(uint32_t addr, uint64_t val)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            writememll_no_mmut(addr, addr64a, val);
-            writememll_no_mmut(addr + 4, &(addr64a[4]), val >> 32);
+            writememll_no_mmut_2386(addr, addr64a, val);
+            writememll_no_mmut_2386(addr + 4, &(addr64a[4]), val >> 32);
             return;
         }
     }
@@ -1019,7 +1015,7 @@ do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write)
     uint32_t last_addr = addr + (num - 1);
     uint64_t a = 0x0000000000000000ULL;
 
-    mem_debug_check_addr(addr, write);
+    mem_debug_check_addr(addr, write ? 2 : read_type);
 
     for (i = 0; i < num; i++)
 	a64[i] = (uint64_t) addr;
