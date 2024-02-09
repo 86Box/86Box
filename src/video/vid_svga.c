@@ -1406,15 +1406,10 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
     }
 
     if (memory_map_mode <= 1) {
-        if (svga->adv_flags & FLAG_EXTRA_BANKS) {
-            if ((svga->gdcreg[5] & 0x40) || svga->packed_chain4)
-                addr = (addr & 0x17fff) + svga->extra_banks[(addr >> 15) & 1];
-        } else {
-            if (write)
-                addr += svga->write_bank;
-            else
-                addr += svga->read_bank;
-        }
+        if (write)
+            addr += svga->write_bank;
+        else
+            addr += svga->read_bank;
     }
 
     return addr;
