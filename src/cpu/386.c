@@ -297,7 +297,6 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -320,7 +319,6 @@ block_ended:
 #endif
                     }
                 }
-according to the manual. */
             } else if (trap) {
                 flags_rebuild();
                 if (trap & 2) dr[6] |= 0x8000;
