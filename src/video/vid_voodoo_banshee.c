@@ -557,14 +557,14 @@ banshee_recalctimings(svga_t *svga)
         /* Video processing mode - assume timings akin to Cirrus' special blanking mode,
            that is, no overscan and relying on display end to blank. */
         if (banshee->vgaInit0 & 0x40) {
-            svga->hblankstart     = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) +
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ +
                                    (((svga->crtc[0x1a] & 0x04) >> 2) << 8) + 1;
             svga->hblank_end_mask = 0x0000007f;
         } else {
-            svga->hblankstart     = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ + 1;
             svga->hblank_end_mask = 0x0000003f;
         }
-        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
         if (!svga->scrblank && svga->attr_palette_enable)

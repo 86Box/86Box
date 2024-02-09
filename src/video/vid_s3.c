@@ -3262,9 +3262,9 @@ s3_recalctimings(svga_t *svga)
 
     if (svga->crtc[0x33] & 0x20) {
         /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
-        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1] +
-                            ((svga->crtc[3] >> 5) & 3) + 1;
-        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
+                            ((svga->crtc[3] >> 5) & 3)*/ + 1;
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         svga->monitor->mon_overscan_y = 0;
         svga->monitor->mon_overscan_x = 0;
@@ -4108,11 +4108,11 @@ s3_trio64v_recalctimings(svga_t *svga)
             break;
     }
 
-    if ((svga->crtc[0x33] & 0x20) ||((svga->crtc[0x67] & 0xc) == 0xc)) {
+    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
         /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
-        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1] +
-                            ((svga->crtc[3] >> 5) & 3) + 1;
-        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
+                            ((svga->crtc[3] >> 5) & 3)*/ + 1;
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         svga->monitor->mon_overscan_y = 0;
         svga->monitor->mon_overscan_x = 0;
@@ -4204,15 +4204,11 @@ s3_trio64v_recalctimings(svga_t *svga)
                 svga->render = svga_render_8bpp_highres;
                 break;
             case 3: /*KRGB-16 (1.5.5.5)*/
-                svga->htotal >>= 1;
-                svga->hblankstart >>= 1;
-                svga->hblank_end_val >>= 1;
+                svga->multiplier = 0.5;
                 svga->render = svga_render_15bpp_highres;
                 break;
             case 5: /*RGB-16 (5.6.5)*/
-                svga->htotal >>= 1;
-                svga->hblankstart >>= 1;
-                svga->hblank_end_val >>= 1;
+                svga->multiplier = 0.5;
                 svga->render = svga_render_16bpp_highres;
                 break;
             case 6: /*RGB-24 (8.8.8)*/

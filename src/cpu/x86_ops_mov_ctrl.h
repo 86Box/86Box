@@ -124,7 +124,7 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
             cr0 = cpu_state.regs[cpu_rm].l;
-            if ((cpu_s->cpu_type != CPU_386DX) || (fpu_type == FPU_387))
+            if (cpu_16bitbus)
                 cr0 |= 0x10;
             if (!(cr0 & 0x80000000))
                 mmu_perm = 4;
@@ -181,7 +181,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
             cr0 = cpu_state.regs[cpu_rm].l;
-            if ((cpu_s->cpu_type != CPU_386DX) || (fpu_type == FPU_387))
+            if (cpu_16bitbus)
                 cr0 |= 0x10;
             if (!(cr0 & 0x80000000))
                 mmu_perm = 4;

@@ -773,6 +773,8 @@ svga_recalctimings(svga_t *svga)
     } else
         svga->dots_per_clock = 1;
 
+    svga->multiplier = 1.0;
+
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
 
@@ -813,26 +815,26 @@ svga_recalctimings(svga_t *svga)
 
         if (ibm8514_active && (svga->dev8514 != NULL)) {
             if (dev->on[0] || dev->on[1]) {
-		        uint32_t dot8514 = dev->h_blankstart;
-		        uint32_t adj_dot8514 = dev->h_blankstart;
-		        uint32_t eff_mask8514 = 0x0000003f;
-		        dev->hblank_sub = 0;
+                uint32_t dot8514 = dev->h_blankstart;
+                uint32_t adj_dot8514 = dev->h_blankstart;
+                uint32_t eff_mask8514 = 0x0000003f;
+                dev->hblank_sub = 0;
 
-		        while (1) {
-		            if (dot8514 == dev->h_total)
-		                dot = 0;
+                while (1) {
+                    if (dot8514 == dev->h_total)
+                        dot = 0;
 
-		            if (adj_dot8514 >= dev->h_total)
-		                dev->hblank_sub++;
+                    if (adj_dot8514 >= dev->h_total)
+                        dev->hblank_sub++;
 
-		            if ((dot8514 & eff_mask8514) == (dev->h_blank_end_val & eff_mask8514))
-		                break;
+                    if ((dot8514 & eff_mask8514) == (dev->h_blank_end_val & eff_mask8514))
+                        break;
 
-		            dot8514++;
-		            adj_dot8514++;
-		        }
+                    dot8514++;
+                    adj_dot8514++;
+                }
 
-		        dev->h_disp -= dev->hblank_sub;
+                dev->h_disp -= dev->hblank_sub;
             }
         }
     }
@@ -889,7 +891,7 @@ svga_recalctimings(svga_t *svga)
              svga->htotal, hdispstart, hdispend, hsyncstart, hsyncend,
              svga->hblankstart, svga->hblankend);
 
-    disptime    = svga->htotal;
+    disptime    = svga->htotal * svga->multiplier;
     _dispontime = svga->hdisp_time;
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {

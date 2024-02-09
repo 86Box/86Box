@@ -1762,11 +1762,11 @@ gd54xx_recalctimings(svga_t *svga)
         svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00) |
                                (((svga->crtc[0x1a] >> 4) & 3) << 6);
 
-        svga->hblank_end_mask = 0x0000007f;
+        svga->hblank_end_mask = 0x000000ff;
 
         if (svga->crtc[0x1b] & 0x20) {
-            svga->hblankstart = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
-            svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+            svga->hblankstart = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ + 1;
+            svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
             /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
 	    if (!svga->scrblank && svga->attr_palette_enable)

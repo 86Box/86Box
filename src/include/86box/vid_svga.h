@@ -171,6 +171,8 @@ typedef struct svga_t {
     double clock;
     double clock8514;
 
+    double multiplier;
+
     hwcursor_t hwcursor;
     hwcursor_t hwcursor_latch;
     hwcursor_t dac_hwcursor;
