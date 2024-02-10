@@ -730,12 +730,49 @@ opHLT(uint32_t fetchdat)
 static int
 opLOCK(uint32_t fetchdat)
 {
-    fetchdat = fastreadl(cs + cpu_state.pc);
+    int legal;
+    fetch_dat_t fetch_dat;
+    fetchdat = fastreadl_fetch(cs + cpu_state.pc);
     if (cpu_state.abrt)
         return 0;
     cpu_state.pc++;
 
-    ILLEGAL_ON((fetchdat & 0xff) == 0x90);
+    fetch_dat.fd = fetchdat;
+
+    legal = lock_legal[fetch_dat.b[0]];
+    if (legal == 1)
+        legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+    else if (legal == 2) {
+        legal = lock_legal[fetch_dat.b[1]];
+        if (legal == 1)
+            legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
+        else if (legal == 3) {
+            legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
+        }
+    } else if (legal == 3)  switch(fetch_dat.b[0]) {
+        case 0x80 ... 0x83:
+            legal = lock_legal_80[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+        case 0xf6 ... 0xf7:
+            legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+        case 0xfe ... 0xff:
+            legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+        default:
+            legal = 0;
+            break;
+    }
+
+    ILLEGAL_ON(legal == 0);
 
     CLOCK_CYCLES(4);
     PREFETCH_PREFIX();

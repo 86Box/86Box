@@ -51,7 +51,6 @@ mem_debug_check_addr(uint32_t addr, int flags)
     uint32_t len_type_pair;
     int bp_enabled;
     uint8_t match_flags[4] = { 0, 2, 0, 6 };
-    char *bp_types[5] = { "N/A 0", "EXEC ", "WRITE", "N/A 3", "READ " };
 
     if (cpu_state.abrt || ((flags == 1) && (cpu_state.eflags & RF_FLAG)))
         return;
