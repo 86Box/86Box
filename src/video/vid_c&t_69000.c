@@ -141,7 +141,7 @@ typedef struct chips_69000_t {
         uint8_t mono_bytes_to_skip;
         uint32_t bytes_counter;
         uint32_t bytes_in_line_written;
-        uint8_t bytes_port[8];
+        uint8_t bytes_port[256];
     } bitblt_running;
 
     union {
@@ -1835,7 +1835,7 @@ chips_69000_readb_mmio(uint32_t addr, chips_69000_t* chips)
 {
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
-        case 0x00 ... 0x28:
+        case 0x00 ... 0x2B:
             if (addr == 0x13) {
                 return (chips->bitblt_regs_b[addr & 0xFF] & 0x7F) | (chips->engine_active ? 0x80 : 0x00);
             }
@@ -1932,7 +1932,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
     }
     addr &= 0xFFF;
     switch (addr & 0xFFF) {
-        case 0x00 ... 0x28:
+        case 0x00 ... 0x2B:
             chips->bitblt_regs_b[addr & 0xFF] = val;
             if ((addr & 0xFFF) == 0x023 && chips->bitblt_regs[0x8] != 0) {
                 chips_69000_setup_bitblt(chips);
