@@ -777,6 +777,8 @@ chips_69000_recalctimings(svga_t *svga)
                 svga->render = svga_render_32bpp_highres;
                 break;
         }
+    } else {
+        svga->bpp = 8;
     }
 }
 
