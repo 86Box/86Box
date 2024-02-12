@@ -752,6 +752,9 @@ chips_69000_recalctimings(svga_t *svga)
         }
 
         switch (chips->ext_regs[0x81] & 0xF) {
+            default:
+                svga->bpp = 8;
+                break;
             case 0b0010:
                 svga->bpp = 8;
                 svga->render = svga_render_8bpp_highres;
@@ -1478,6 +1481,10 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0x81:
             chips->ext_regs[chips->ext_index] = val & 0x1f;
             svga_recalctimings(&chips->svga);
+            break;
+        case 0x82:
+            chips->ext_regs[chips->ext_index] = val & 0xf;
+            chips->svga.lut_map = !!(val & 0x8);
             break;
         case 0xA0:
             chips->ext_regs[chips->ext_index] = val;
