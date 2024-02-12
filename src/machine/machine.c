@@ -44,6 +44,8 @@
 
 int bios_only = 0;
 int machine;
+
+machine_pc98_t machine_pc98;
 // int AT, PCI;
 
 #ifdef ENABLE_MACHINE_LOG
