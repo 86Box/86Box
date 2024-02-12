@@ -136,10 +136,8 @@ typedef struct chips_69000_t {
         /* Byte counter for BitBLT port writes. */
         uint8_t bytes_written;
         uint8_t bytes_skip;
-        uint8_t mono_bytes_skip;
         uint32_t mono_bytes_pitch;
         uint8_t mono_bits_skip_left;
-        uint8_t mono_bytes_to_skip;
         uint32_t bytes_counter;
         uint32_t bytes_in_line_written;
         uint8_t bytes_port[256];
@@ -1008,7 +1006,6 @@ advance:
         chips->bitblt_running.y += chips->bitblt_running.y_dir * 1;
         chips->bitblt_running.count_x = 0;
         chips->bitblt_running.x = 0;
-        chips->bitblt_running.mono_bytes_to_skip = chips->bitblt_running.mono_bytes_skip;
         chips->bitblt_running.mono_bits_skip_left = chips->bitblt_running.bitblt.monochrome_source_left_clip;
         if (chips->bitblt_running.count_y >= (chips->bitblt_running.actual_destination_height))
             chips_69000_bitblt_interrupt(chips);
@@ -1031,9 +1028,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.bytes_counter = 0;
     chips->bitblt_running.bytes_in_line_written = 0;
     chips->bitblt_running.bytes_skip = 0;
-    chips->bitblt_running.mono_bytes_skip = 0;
     chips->bitblt_running.mono_bytes_pitch = 0;
-    chips->bitblt_running.mono_bytes_to_skip = 0;
     chips->bitblt_running.mono_bits_skip_left = 0;
     int orig_cycles = cycles;
 
@@ -1104,10 +1099,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             if ((chips->bitblt_running.bitblt.source_addr + (chips->bitblt_running.bitblt.destination_width)) > ((chips->bitblt_running.bitblt.destination_width + 7) & ~7))
                 chips->bitblt_running.bytes_skip = 8 + (((chips->bitblt_running.bitblt.destination_width + 7) & ~7) - chips->bitblt_running.bitblt.destination_width);
         } else {
-            chips->bitblt_running.mono_bytes_skip = 0;
             chips->bitblt_running.mono_bits_skip_left = chips->bitblt_running.bitblt.monochrome_source_left_clip;
 
-            if (!chips->bitblt_running.mono_bytes_skip && chips->bitblt_running.bitblt.monochrome_source_alignment == 0) {
+            if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0) {
                 chips->bitblt_running.mono_bytes_pitch = ((chips->bitblt_running.actual_destination_width + chips->bitblt_running.bitblt.monochrome_source_left_clip + 63) & ~63) / 8;
             }
         }
@@ -1227,10 +1221,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
         int orig_cycles = cycles;
-        if (chips->bitblt_running.mono_bytes_to_skip) {
-            chips->bitblt_running.mono_bytes_to_skip--;
-            return;
-        }
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
         if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && chips->bitblt_running.mono_bytes_pitch && chips->bitblt_running.mono_bytes_pitch == chips->bitblt_running.bytes_written) {
             int orig_count_y = chips->bitblt_running.count_y;
