@@ -80,6 +80,7 @@ machine_init_ex(int m)
         machine_snd              = NULL;
 
         is_vpc                   = 0;
+        machine_pc98.init        = 0;
 
         standalone_gameport_type = NULL;
         gameport_instance_id     = 0;

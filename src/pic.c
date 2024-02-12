@@ -233,7 +233,7 @@ pic_update_pending_at(void)
 {
     if (!(pic.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
- 
+
         if (pic2.int_pending)
             pic.irr |= (1 << pic2.icw3);
         else
@@ -643,7 +643,11 @@ pic_init(void)
     pic_reset_hard();
 
     shadow = 0;
-    io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+    if (machine_pc98.init) {
+        io_sethandler_interleaved(0x0000, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+        io_sethandler_interleaved(0x0002, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+    } else
+        io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 }
 
 void
@@ -658,8 +662,14 @@ pic_init_pcjr(void)
 void
 pic2_init(void)
 {
-    io_sethandler(0x00a0, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
-    pic.slaves[2] = &pic2;
+    if (machine_pc98.init) {
+        io_sethandler_interleaved(0x0008, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+        io_sethandler_interleaved(0x000a, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+        pic.slaves[7] = &pic2;
+    } else {
+        io_sethandler(0x00a0, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+        pic.slaves[2] = &pic2;
+    }
 }
 
 void

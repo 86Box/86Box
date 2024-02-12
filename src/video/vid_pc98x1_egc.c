@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_pc98x1_egc.h>
+#include <86box/vid_pc98x1_disp.h>
 #include <86box/plat_unused.h>
 
 /***********************************************************/
@@ -956,6 +957,82 @@ static const uint16_t egc_maskword[16][4] = {
     {0x0000, 0xffff, 0xffff, 0xffff}, {0xffff, 0xffff, 0xffff, 0xffff}
 };
 
+
+void
+egc_mem_writeb(egc_t *dev, uint32_t addr1, uint8_t value)
+{
+    uint32_t addr = addr1 & 0x7fff;
+    uint32_t ext = addr1 & 1;
+    egcquad_t data;
+
+    if ((dev->ope & 0x0300) == 0x0200) {
+        dev->patreg.b[0][ext] = dev->vram_b[addr];
+        dev->patreg.b[1][ext] = dev->vram_r[addr];
+        dev->patreg.b[2][ext] = dev->vram_g[addr];
+        dev->patreg.b[3][ext] = dev->vram_e[addr];
+    }
+    data.q = egc_opeb(dev, addr, value);
+    if (dev->mask2.b[ext]) {
+        if (!(dev->access & 1)) {
+            dev->vram_b[addr] &= ~dev->mask2.b[ext];
+            dev->vram_b[addr] |= data.b[0][ext] & dev->mask2.b[ext];
+        }
+        if (!(dev->access & 2)) {
+            dev->vram_r[addr] &= ~dev->mask2.b[ext];
+            dev->vram_r[addr] |= data.b[1][ext] & dev->mask2.b[ext];
+        }
+        if (!(dev->access & 4)) {
+            dev->vram_g[addr] &= ~dev->mask2.b[ext];
+            dev->vram_g[addr] |= data.b[2][ext] & dev->mask2.b[ext];
+        }
+        if (!(dev->access & 8)) {
+            dev->vram_e[addr] &= ~dev->mask2.b[ext];
+            dev->vram_e[addr] |= data.b[3][ext] & dev->mask2.b[ext];
+        }
+    }
+}
+
+void
+egc_mem_writew(egc_t *dev, uint32_t addr1, uint16_t value)
+{
+    uint32_t addr = addr1 & 0x7fff;
+    egcquad_t data;
+
+    if (!(addr & 1)) {
+        if ((dev->ope & 0x0300) == 0x0200) {
+            dev->patreg.w[0] = *(uint16_t *)(&dev->vram_b[addr]);
+            dev->patreg.w[1] = *(uint16_t *)(&dev->vram_r[addr]);
+            dev->patreg.w[2] = *(uint16_t *)(&dev->vram_g[addr]);
+            dev->patreg.w[3] = *(uint16_t *)(&dev->vram_e[addr]);
+        }
+        data.q = egc_opew(dev, addr, value);
+        if (dev->mask2.w) {
+            if (!(dev->access & 1)) {
+                *(uint16_t *)(&dev->vram_b[addr]) &= ~dev->mask2.w;
+                *(uint16_t *)(&dev->vram_b[addr]) |= data.w[0] & dev->mask2.w;
+            }
+            if (!(dev->access & 2)) {
+                *(uint16_t *)(&dev->vram_r[addr]) &= ~dev->mask2.w;
+                *(uint16_t *)(&dev->vram_r[addr]) |= data.w[1] & dev->mask2.w;
+            }
+            if (!(dev->access & 4)) {
+                *(uint16_t *)(&dev->vram_g[addr]) &= ~dev->mask2.w;
+                *(uint16_t *)(&dev->vram_g[addr]) |= data.w[2] & dev->mask2.w;
+            }
+            if (!(dev->access & 8)) {
+                *(uint16_t *)(&dev->vram_e[addr]) &= ~dev->mask2.w;
+                *(uint16_t *)(&dev->vram_e[addr]) |= data.w[3] & dev->mask2.w;
+            }
+        }
+    } else if (!(dev->sft & 0x1000)) {
+        egc_mem_writeb(s, addr1, value & 0xff);
+        egc_mem_writeb(s, addr1 + 1, (value >> 8) & 0xff);
+    } else {
+        egc_mem_writeb(s, addr1, (value >> 8) & 0xff);
+        egc_mem_writeb(s, addr1 + 1, value & 0xff);
+    }
+}
+
 uint8_t
 egc_mem_readb(egc_t *dev, uint32_t addr1)
 {
@@ -1048,81 +1125,6 @@ egc_mem_readw(egc_t *dev, uint32_t addr1)
     }
 }
 
-void
-egc_mem_writeb(egc_t *dev, uint32_t addr1, uint8_t value)
-{
-    uint32_t addr = addr1 & 0x7fff;
-    uint32_t ext = addr1 & 1;
-    egcquad_t data;
-
-    if ((dev->ope & 0x0300) == 0x0200) {
-        dev->patreg.b[0][ext] = dev->vram_b[addr];
-        dev->patreg.b[1][ext] = dev->vram_r[addr];
-        dev->patreg.b[2][ext] = dev->vram_g[addr];
-        dev->patreg.b[3][ext] = dev->vram_e[addr];
-    }
-    data.q = egc_opeb(dev, addr, value);
-    if (dev->mask2.b[ext]) {
-        if (!(dev->access & 1)) {
-            dev->vram_b[addr] &= ~dev->mask2.b[ext];
-            dev->vram_b[addr] |= data.b[0][ext] & dev->mask2.b[ext];
-        }
-        if (!(dev->access & 2)) {
-            dev->vram_r[addr] &= ~dev->mask2.b[ext];
-            dev->vram_r[addr] |= data.b[1][ext] & dev->mask2.b[ext];
-        }
-        if (!(dev->access & 4)) {
-            dev->vram_g[addr] &= ~dev->mask2.b[ext];
-            dev->vram_g[addr] |= data.b[2][ext] & dev->mask2.b[ext];
-        }
-        if (!(dev->access & 8)) {
-            dev->vram_e[addr] &= ~dev->mask2.b[ext];
-            dev->vram_e[addr] |= data.b[3][ext] & dev->mask2.b[ext];
-        }
-    }
-}
-
-void
-egc_mem_writew(egc_t *dev, uint32_t addr1, uint16_t value)
-{
-    uint32_t addr = addr1 & 0x7fff;
-    egcquad_t data;
-
-    if (!(addr & 1)) {
-        if ((dev->ope & 0x0300) == 0x0200) {
-            dev->patreg.w[0] = *(uint16_t *)(&dev->vram_b[addr]);
-            dev->patreg.w[1] = *(uint16_t *)(&dev->vram_r[addr]);
-            dev->patreg.w[2] = *(uint16_t *)(&dev->vram_g[addr]);
-            dev->patreg.w[3] = *(uint16_t *)(&dev->vram_e[addr]);
-        }
-        data.q = egc_opew(dev, addr, value);
-        if (dev->mask2.w) {
-            if (!(dev->access & 1)) {
-                *(uint16_t *)(&dev->vram_b[addr]) &= ~dev->mask2.w;
-                *(uint16_t *)(&dev->vram_b[addr]) |= data.w[0] & dev->mask2.w;
-            }
-            if (!(dev->access & 2)) {
-                *(uint16_t *)(&dev->vram_r[addr]) &= ~dev->mask2.w;
-                *(uint16_t *)(&dev->vram_r[addr]) |= data.w[1] & dev->mask2.w;
-            }
-            if (!(dev->access & 4)) {
-                *(uint16_t *)(&dev->vram_g[addr]) &= ~dev->mask2.w;
-                *(uint16_t *)(&dev->vram_g[addr]) |= data.w[2] & dev->mask2.w;
-            }
-            if (!(dev->access & 8)) {
-                *(uint16_t *)(&dev->vram_e[addr]) &= ~dev->mask2.w;
-                *(uint16_t *)(&dev->vram_e[addr]) |= data.w[3] & dev->mask2.w;
-            }
-        }
-    } else if (!(dev->sft & 0x1000)) {
-        egc_mem_writeb(s, addr1, value & 0xff);
-        egc_mem_writeb(s, addr1 + 1, (value >> 8) & 0xff);
-    } else {
-        egc_mem_writeb(s, addr1, (value >> 8) & 0xff);
-        egc_mem_writeb(s, addr1 + 1, value & 0xff);
-    }
-}
-
 /* i/o */
 
 void
@@ -1130,7 +1132,7 @@ egc_ioport_writeb(uint16_t addr, uint8_t value, void *priv)
 {
     /* ioport 0x4a0 - 0x4af */
     egc_t *dev = (egc_t *)priv;
-    pc98x1_vid_t *vid = (pc98x1_vid_t *)dev->vid;
+    pc98x1_vid_t *vid = (pc98x1_vid_t *)dev->priv;
 
     if (!((vid->grcg_mode & GRCG_CG_MODE) && vid->mode2[MODE2_EGC]))
         return;
@@ -1220,7 +1222,7 @@ egc_ioport_writew(uint16_t addr, uint16_t value, void *priv)
 {
     /* ioport 0x4a0 - 0x4af */
     egc_t *dev = (egc_t *)priv;
-    pc98x1_vid_t *vid = (pc98x1_vid_t *)dev->vid;
+    pc98x1_vid_t *vid = (pc98x1_vid_t *)dev->priv;
 
     if (!((vid->grcg_mode & GRCG_CG_MODE) && vid->mode2[MODE2_EGC]))
         return;
@@ -1277,10 +1279,6 @@ egc_set_vram(egc_t *dev, uint8_t *vram_ptr)
 void
 egc_reset(egc_t *dev)
 {
-    pc98x1_vid_t *vid = (pc98x1_vid_t *)dev->vid;
-    memset(dev, 0, sizeof(egc_t));
-
-    dev->priv = vid;
     dev->access = 0xfff0;
     dev->fgbg = 0x00ff;
     dev->mask.w = 0xffff;

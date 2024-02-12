@@ -336,6 +336,15 @@ typedef struct _machine_ {
 #endif
 } machine_t;
 
+/*ToDo: preliminary, to improve.*/
+typedef struct _machine_pc98_ {
+    char *font_rom;
+    char *hdd_rom;
+    char *pci_rom;
+    char *sound_rom;
+    int   init;
+} machine_pc98_t;
+
 /* Global variables. */
 extern const machine_filter_t machine_types[];
 extern const machine_filter_t machine_chipsets[];
@@ -343,6 +352,7 @@ extern const machine_t        machines[];
 extern int                    bios_only;
 extern int                    machine;
 extern void *                 machine_snd;
+extern machine_pc98_t         machine_pc98;
 
 /* Core functions. */
 extern int         machine_count(void);

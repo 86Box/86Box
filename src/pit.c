@@ -1048,7 +1048,11 @@ pit_set_clock(uint32_t clock)
         else
             cpuclock = (double) clock;
 
-        PITCONSTD    = (cpuclock / 1193182.0);
+        if (machine_pc98.init)
+            PITCONSTD    = (cpuclock / 2457600.0);
+        else
+            PITCONSTD    = (cpuclock / 1193182.0);
+
         PITCONST     = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
 #ifdef IMPRECISE_CGACONST
         CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
@@ -1102,7 +1106,11 @@ pit_set_clock(uint32_t clock)
             PITCONST  = (24ULL << 32LL);
             CGACONST  = (16ULL << 32LL);
         } else if (cpuclock != 14318184.0) {
-            PITCONSTD = (cpuclock / 1193182.0);
+            if (machine_pc98.init)
+                PITCONSTD = (cpuclock / 2457600.0);
+            else
+                PITCONSTD = (cpuclock / 1193182.0);
+
             PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
 #ifdef IMPRECISE_CGACONST
             CGACONST  = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));

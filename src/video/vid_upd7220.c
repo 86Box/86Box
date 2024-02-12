@@ -31,9 +31,8 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_upd7220.h>
+#include <86box/vid_pc98x1_disp.h>
 #include <86box/plat_unused.h>
-
-static video_timings_t timing_upd7220 = { .type = 0, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 /***********************************************************/
 /* NEC uPD7220 GDC (based on Neko Project 2) */
@@ -54,11 +53,45 @@ static const int gdc_vectdir[16][4] = {
     { 0,-1,-1,-1}, {-1,-1,-1, 0}, {-1, 0,-1, 1}, {-1, 1, 0, 1}
 };
 
+void
+upd7220_recalctimings(upd7220_t *dev)
+{
+    pc98x1_vid_t *vid = (pc98x1_vid_t *) dev->priv;
+    double        crtcconst;
+    double        _dispontime;
+    double        _dispofftime;
+
+    if (vid->mode2[MODE2_256COLOR] && vid->mode2[MODE2_480LINE])
+        vid->clock = (uint64_t)(cpuclock / 25175000.0 * (double) (1ULL << 32));
+    else
+        vid->clock = (uint64_t)(cpuclock / 21052600.0 * (double) (1ULL << 32));
+
+    vid->width = MIN(96, dev->sync[1] + 2);
+    vid->height = MIN(512, ((dev->sync[7] & 0x03) << 8) | (dev->sync[6]));
+
+    vid->hblank = ((dev->sync[2] & 0x1f) + (dev->sync[4] & 0x3f) + 2) * 8;
+    vid->htotal = ((dev->sync[3] >> 2) + 1) * 8;
+
+    crtcconst = vid->clock * 8.0;
+    _dispontime = vid->htotal - vid->hblank;
+    _dispofftime = vid->hblank;
+
+    _dispontime *= crtcconst;
+    _dispofftime *= crtcconst;
+
+    vid->dispontime  = (uint64_t) (_dispontime);
+    vid->dispofftime = (uint64_t) (_dispofftime);
+    if (vid->dispontime < TIMER_USEC)
+        vid->dispontime = TIMER_USEC;
+    if (vid->dispofftime < TIMER_USEC)
+        vid->dispofftime = TIMER_USEC;
+}
+
 static void
 upd7220_draw_pset(upd7220_t *dev, int x, int y)
 {
     uint16_t dot = dev->pattern & 1;
-    uint32_t addr = y * 80 + (x >> 3) + 0x8000;
+    uint32_t addr = (y * 80) + (x >> 3) + 0x8000;
     uint8_t bit = 0x80 >> (x & 7);
     uint8_t cur = dev->vram_read(dev->priv, addr);
 
@@ -444,6 +477,7 @@ upd7220_cmd_reset(upd7220_t *dev)
     dev->statreg = 0;
     dev->cmdreg = -1;
     dev->dirty = 0xff;
+    upd7220_recalctimings(dev);
 }
 
 static void
@@ -455,6 +489,7 @@ upd7220_cmd_sync(upd7220_t *dev)
         dev->sync[i] = dev->params[i];
 
     dev->cmdreg = -1;
+    upd7220_recalctimings(dev);
 }
 
 static void
@@ -981,7 +1016,7 @@ upd7220_statreg_read(uint16_t addr, void *priv)
 {
     /* ioport 0x60(chr), 0xa0(gfx) */
     upd7220_t  *dev = (upd7220_t *) priv;
-    pc98x1_vid_t *vid = (pc98x1_vid_t *)dev->vid;
+    pc98x1_vid_t *vid = (pc98x1_vid_t *) dev->priv;
     uint8_t value = dev->statreg | vid->vsync;
 
 #if 0

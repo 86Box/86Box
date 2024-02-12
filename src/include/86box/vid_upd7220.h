@@ -19,16 +19,62 @@
 #ifndef VIDEO_UPD7220_H
 #    define VIDEO_UPD7220_H
 
-#define TVRAM_SIZE      0x4000
-#define VRAM16_SIZE     0x40000
-#define VRAM256_SIZE    0x80000
-#define EMS_SIZE        0x10000
-
 #define GDC_BUFFERS     1024
 #define GDC_TABLEMAX    0x1000
 
+enum {
+    GDC_CMD_RESET    = 0x00,
+    GDC_CMD_SYNC     = 0x0e,
+    GDC_CMD_SLAVE    = 0x6e,
+    GDC_CMD_MASTER   = 0x6f,
+    GDC_CMD_START    = 0x6b,
+    GDC_CMD_BCTRL    = 0x0c,
+    GDC_CMD_ZOOM     = 0x46,
+    GDC_CMD_SCROLL   = 0x70,
+    GDC_CMD_CSRFORM  = 0x4b,
+    GDC_CMD_PITCH    = 0x47,
+    GDC_CMD_LPEN     = 0xc0,
+    GDC_CMD_VECTW    = 0x4c,
+    GDC_CMD_VECTE    = 0x6c,
+    GDC_CMD_TEXTW    = 0x78,
+    GDC_CMD_TEXTE    = 0x68,
+    GDC_CMD_CSRW     = 0x49,
+    GDC_CMD_CSRR     = 0xe0,
+    GDC_CMD_MASK     = 0x4a,
+    GDC_CMD_WRITE    = 0x20,
+    GDC_CMD_READ     = 0xa0,
+    GDC_CMD_DMAR     = 0xa4,
+    GDC_CMD_DMAW     = 0x24,
+    /* unknown command (3 params) */
+    GDC_CMD_UNK_5A   = 0x5a,
+};
+
+enum {
+    GDC_STAT_DRDY    = 0x01,
+    GDC_STAT_FULL    = 0x02,
+    GDC_STAT_EMPTY   = 0x04,
+    GDC_STAT_DRAW    = 0x08,
+    GDC_STAT_DMA     = 0x10,
+    GDC_STAT_VSYNC   = 0x20,
+    GDC_STAT_HBLANK  = 0x40,
+    GDC_STAT_LPEN    = 0x80,
+};
+
+enum {
+    GDC_DIRTY_VRAM   = 0x01,
+    GDC_DIRTY_START  = 0x02,
+    GDC_DIRTY_SCROLL = 0x04,
+    GDC_DIRTY_CURSOR = 0x08,
+    GDC_DIRTY_GFX    = GDC_DIRTY_VRAM | GDC_DIRTY_SCROLL,
+    GDC_DIRTY_CHR    = GDC_DIRTY_GFX | GDC_DIRTY_CURSOR,
+};
+
+
 #define GDC_VTICKS   18
 #define GDC_VSTICKS  2
+
+#define GDC_MULBIT   15
+#define GDC_TABLEBIT 12
 
 typedef struct upd7220_t {
     void *priv;
@@ -71,49 +117,15 @@ typedef struct upd7220_t {
     uint16_t pattern;
 } upd7220_t;
 
-extern void upd7220_init(upd7220_t *dev, void *priv,
-                         uint8_t (*vram_read)(uint32_t addr, void *priv),
-                         void (*vram_write)(uint32_t addr, uint8_t val, void *priv));
+extern void    upd7220_init(upd7220_t *dev, void *priv,
+                            uint8_t (*vram_read)(uint32_t addr, void *priv),
+                            void (*vram_write)(uint32_t addr, uint8_t val, void *priv));
 
-void    upd7220_param_write(uint16_t addr, uint8_t value, void *priv);
-uint8_t upd7220_statreg_read(uint16_t addr, void *priv);
-void    upd7220_cmdreg_write(uint16_t addr, uint8_t value, void *priv);
-uint8_t upd7220_data_read(uint16_t addr, void *priv);
-void    upd7220_reset(upd7220_t *dev);
-
-#    ifdef EMU_DEVICE_H
-extern const device_t ati68860_ramdac_device;
-extern const device_t ati68875_ramdac_device;
-extern const device_t att490_ramdac_device;
-extern const device_t att491_ramdac_device;
-extern const device_t att492_ramdac_device;
-extern const device_t att498_ramdac_device;
-extern const device_t av9194_device;
-extern const device_t bt484_ramdac_device;
-extern const device_t att20c504_ramdac_device;
-extern const device_t bt485_ramdac_device;
-extern const device_t att20c505_ramdac_device;
-extern const device_t bt485a_ramdac_device;
-extern const device_t gendac_ramdac_device;
-extern const device_t ibm_rgb528_ramdac_device;
-extern const device_t ics2494an_305_device;
-extern const device_t ati18810_device;
-extern const device_t ati18811_0_device;
-extern const device_t ati18811_1_device;
-extern const device_t ics2595_device;
-extern const device_t icd2061_device;
-extern const device_t ics9161_device;
-extern const device_t sc11483_ramdac_device;
-extern const device_t sc11487_ramdac_device;
-extern const device_t sc11486_ramdac_device;
-extern const device_t sc11484_nors2_ramdac_device;
-extern const device_t sc1502x_ramdac_device;
-extern const device_t sdac_ramdac_device;
-extern const device_t stg_ramdac_device;
-extern const device_t tkd8001_ramdac_device;
-extern const device_t tseng_ics5301_ramdac_device;
-extern const device_t tseng_ics5341_ramdac_device;
-extern const device_t tvp3026_ramdac_device;
-#    endif
+extern void    upd7220_recalctimings(upd7220_t *dev);
+extern void    upd7220_param_write(uint16_t addr, uint8_t value, void *priv);
+extern uint8_t upd7220_statreg_read(uint16_t addr, void *priv);
+extern void    upd7220_cmdreg_write(uint16_t addr, uint8_t value, void *priv);
+extern uint8_t upd7220_data_read(uint16_t addr, void *priv);
+extern void    upd7220_reset(upd7220_t *dev);
 
 #endif /*VIDEO_UPD7220_H*/
