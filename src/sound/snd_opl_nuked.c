@@ -1661,5 +1661,4 @@ const fm_drv_t nuked_opl_drv = {
     &nuked_drv_reset_buffer,
     &nuked_drv_set_do_cycles,
     NULL,
-    NULL,
 };
