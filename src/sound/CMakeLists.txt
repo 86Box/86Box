@@ -127,7 +127,7 @@ endif()
 
 if(OPL4ML)
     target_compile_definitions(snd PRIVATE USE_OPL4ML)
-    target_sources(snd PRIVATE target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
+    target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
 
 add_subdirectory(resid-fp)
