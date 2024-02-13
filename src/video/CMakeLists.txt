@@ -36,6 +36,10 @@ if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
 
+if(MGA2_VMEM_SIZES)
+    target_compile_definitions(vid PRIVATE USE_MGA2_VMEM_SIZES)
+endif()
+
 add_library(voodoo OBJECT vid_voodoo.c vid_voodoo_banshee.c
     vid_voodoo_banshee_blitter.c vid_voodoo_blitter.c vid_voodoo_display.c
     vid_voodoo_fb.c vid_voodoo_fifo.c vid_voodoo_reg.c vid_voodoo_render.c

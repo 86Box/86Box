@@ -6382,7 +6382,15 @@ mystique_init(const device_t *info)
         rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&mystique->bios_rom.mapping);
 
-    mystique->vram_size   = device_get_config_int("memory");
+#if defined(DEV_BRANCH) && defined(USE_MGA2_VMEM_SIZES)
+    mystique->vram_size = device_get_config_int("memory");
+#else
+    if (mystique->type >= MGA_2164W)
+        mystique->vram_size = 16;
+    else
+        mystique->vram_size = device_get_config_int("memory");
+#endif
+
     mystique->vram_mask   = (mystique->vram_size << 20) - 1;
     mystique->vram_mask_w = mystique->vram_mask >> 1;
     mystique->vram_mask_l = mystique->vram_mask >> 2;
@@ -6601,6 +6609,7 @@ static const device_config_t mystique_config[] = {
   // clang-format on
 };
 
+#if defined(DEV_BRANCH) && defined(USE_MGA2_VMEM_SIZES)
 static const device_config_t millennium_ii_config[] = {
   // clang-format off
     {
@@ -6632,6 +6641,7 @@ static const device_config_t millennium_ii_config[] = {
     }
   // clang-format on
 };
+#endif
 
 const device_t millennium_device = {
     .name          = "Matrox Millennium",
@@ -6686,7 +6696,11 @@ const device_t millennium_ii_device = {
     { .available = millennium_ii_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
+#if defined(DEV_BRANCH) && defined(USE_MGA2_VMEM_SIZES)
     .config        = millennium_ii_config
+#else
+    .config        = NULL
+#endif
 };
 
 const device_t productiva_g100_device = {
@@ -6700,5 +6714,9 @@ const device_t productiva_g100_device = {
     { .available = matrox_g100_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
+#if defined(DEV_BRANCH) && defined(USE_MGA2_VMEM_SIZES)
     .config        = millennium_ii_config
+#else
+    .config        = NULL
+#endif
 };
