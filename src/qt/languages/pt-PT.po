@@ -814,9 +814,6 @@ msgstr "Imagens avançadas de sector"
 msgid "Flux images"
 msgstr "Imagens de fluxo"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Não foi possível inicializar o SDL. O ficheiro SDL2.dll é necessário!"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Tem a certeza de que quer um reinício completo da máquina emulada?"
 

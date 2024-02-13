@@ -139,8 +139,6 @@ load_general(void)
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
 
-    status_icons_fullscreen = !!ini_section_get_int(cat, "status_icons_fullscreen", 0);
-
     window_remember = ini_section_get_int(cat, "window_remember", 0);
 
     if (!window_remember && !(vid_resize & 2))
@@ -1858,11 +1856,6 @@ save_general(void)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
     else
         ini_section_delete_var(cat, "open_dir_usr_path");
-
-    if (status_icons_fullscreen)
-        ini_section_set_int(cat, "status_icons_fullscreen", status_icons_fullscreen);
-    else
-        ini_section_delete_var(cat, "status_icons_fullscreen");
 
     if (video_framerate != -1)
         ini_section_set_int(cat, "video_gl_framerate", video_framerate);

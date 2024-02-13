@@ -814,9 +814,6 @@ msgstr "Rozšírené sektorové obrazy"
 msgid "Flux images"
 msgstr "Obrazy magnetického toku"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Nastala chyba pri inicializácii knižnice SDL, je potreba SDL2.dll"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Naozaj chcete resetovať emulovaný počítač?"
 

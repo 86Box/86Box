@@ -76,8 +76,6 @@ int   hide_status_bar = 0;
 int   hide_tool_bar   = 0;
 int   dpi             = 96;
 
-int   status_icons_fullscreen = 0; /* unused. */
-
 extern char  openfilestring[512];
 extern WCHAR wopenfilestring[512];
 

@@ -602,7 +602,6 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2094] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
     translatedstrings[IDS_2095] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
     translatedstrings[IDS_2096] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
-    translatedstrings[IDS_2112] = QCoreApplication::translate("", "Unable to initialize SDL, libsdl2 is required").toStdWString();
     translatedstrings[IDS_2130] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
     translatedstrings[IDS_2115] = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
     translatedstrings[IDS_2063] = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();

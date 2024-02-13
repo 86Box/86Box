@@ -6541,6 +6541,7 @@ mystique_220_available(void)
     return rom_present(ROM_MYSTIQUE_220);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_MGA2)
 static int
 millennium_ii_available(void)
 {
@@ -6552,6 +6553,7 @@ matrox_g100_available(void)
 {
     return rom_present(ROM_G100);
 }
+#endif
 
 static void
 mystique_speed_changed(void *priv)
@@ -6601,6 +6603,7 @@ static const device_config_t mystique_config[] = {
   // clang-format on
 };
 
+#if defined(DEV_BRANCH) && defined(USE_MGA2)
 static const device_config_t millennium_ii_config[] = {
   // clang-format off
     {
@@ -6632,6 +6635,7 @@ static const device_config_t millennium_ii_config[] = {
     }
   // clang-format on
 };
+#endif
 
 const device_t millennium_device = {
     .name          = "Matrox Millennium",
@@ -6675,6 +6679,7 @@ const device_t mystique_220_device = {
     .config        = mystique_config
 };
 
+#if defined(DEV_BRANCH) && defined(USE_MGA2)
 const device_t millennium_ii_device = {
     .name          = "Matrox Millennium II",
     .internal_name = "millennium_ii",
@@ -6702,3 +6707,4 @@ const device_t productiva_g100_device = {
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
 };
+#endif

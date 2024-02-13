@@ -814,9 +814,6 @@ msgstr "Розширені образи секторів"
 msgid "Flux images"
 msgstr "Образи Flux"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Неможливо ініціалізувати SDL, потрібно SDL2.dll"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Ви впевнені, що хочете виконати холодне перезавантаження емульованої машини?"
 

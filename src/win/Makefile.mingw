@@ -64,6 +64,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef LASERXT
   LASERXT := y
  endif
+ ifndef MGA2
+  MGA2 := y
+ endif
  ifndef OLIVETTI
   OLIVETTI := y
  endif
@@ -124,6 +127,9 @@ else
  endif
  ifndef LASERXT
   LASERXT := n
+ endif
+ ifndef MGA2
+  MGA2 := n
  endif
  ifndef OLIVETTI
   OLIVETTI := n
@@ -488,6 +494,10 @@ ifeq ($(DEV_BRANCH), y)
  ifeq ($(LASERXT), y)
   OPTS     += -DUSE_LASERXT
   DEVBROBJ += m_xt_laserxt.o
+ endif
+
+ ifeq ($(MGA2), y)
+  OPTS += -DUSE_MGA2
  endif
 
  ifeq ($(OPEN_AT), y)

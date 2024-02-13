@@ -31,9 +31,6 @@ msgstr "&Скрыть строку состояния"
 msgid "Hide &toolbar"
 msgstr "С&крыть панель инструментов"
 
-msgid "Show status icons in fullscreen"
-msgstr "Показывать значки состояния в полноэкранном режиме"
-
 msgid "Show non-primary monitors"
 msgstr "&Показывать неосновные мониторы"
 
@@ -906,9 +903,6 @@ msgstr "Расширенные образы секторов"
 
 msgid "Flux images"
 msgstr "Образы Flux"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Невозможно инициализировать SDL, требуется SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Вы уверены, что хотите выполнить холодную перезагрузку эмулируемой машины?"
