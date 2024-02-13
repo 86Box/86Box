@@ -161,7 +161,8 @@ typedef struct chips_69000_t {
     uint8_t st01;
 } chips_69000_t;
 
-static video_timings_t timing_sis = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 20, .read_w = 20, .read_l = 35 };
+/* TODO: Probe timings on real hardware. */
+static video_timings_t timing_chips = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
 
 uint8_t chips_69000_readb_linear(uint32_t addr, void *p);
 uint16_t chips_69000_readw_linear(uint32_t addr, void *p);
@@ -1567,7 +1568,6 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
 
-    // if (!(addr == 0x3CC || addr == 0x3C9)) pclog("SiS SVGA out: 0x%X, 0x%X\n", addr, val);
     switch (addr) {
         case 0x3c0:
             if (!(chips->ext_regs[0x09] & 0x02))
@@ -1675,7 +1675,6 @@ chips_69000_in(uint16_t addr, void *p)
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
 
-    // if (!(addr == 0x3CC || addr == 0x3C9)) pclog("SiS SVGA in: 0x%X\n", addr);
     switch (addr) {
         case 0x3C5:
             return svga->seqregs[svga->seqaddr];
@@ -2343,7 +2342,7 @@ chips_69000_init(const device_t *info)
         mem_mapping_disable(&chips->bios_rom.mapping);
     }
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_sis);
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_chips);
 
     svga_init(info, &chips->svga, chips, 1 << 21, /*2048kb*/
               chips_69000_recalctimings,
@@ -2421,7 +2420,7 @@ chips_69000_force_redraw(void *p)
 }
 
 const device_t chips_69000_device = {
-    .name          = "Chips & Technologies 69000",
+    .name          = "Chips & Technologies B69000",
     .internal_name = "c&t_69000",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -2435,7 +2434,7 @@ const device_t chips_69000_device = {
 };
 
 const device_t chips_69000_onboard_device = {
-    .name          = "Chips & Technologies 69000 (onboard)",
+    .name          = "Chips & Technologies B69000 (onboard)",
     .internal_name = "c&t_69000_onboard",
     .flags         = DEVICE_PCI,
     .local         = 1,
