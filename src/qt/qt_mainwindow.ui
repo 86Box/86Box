@@ -117,7 +117,6 @@
      <addaction name="actionHardware_Renderer_OpenGL_ES"/>
      <addaction name="actionOpenGL_3_0_Core"/>
      <addaction name="actionVulkan"/>
-     <addaction name="actionDirect3D_9"/>
      <addaction name="actionVNC"/>
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
@@ -829,17 +828,6 @@
   <action name="actionMCA_devices">
    <property name="text">
     <string>MCA devices...</string>
-   </property>
-  </action>
-  <action name="actionDirect3D_9">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Direct3D 9</string>
-   </property>
-   <property name="vid_api" stdset="0">
-    <number>5</number>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">

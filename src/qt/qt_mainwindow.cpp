@@ -157,8 +157,6 @@ keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 static BMessageFilter *filter;
 #endif
 
-std::atomic<bool> blitDummied { false };
-
 extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
@@ -369,14 +367,9 @@ MainWindow::MainWindow(QWidget *parent)
         ui->actionVulkan->setVisible(false);
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
-#if !defined Q_OS_WINDOWS
-    ui->actionDirect3D_9->setVisible(false);
-    if (vid_api == 5)
-        vid_api = 0;
-#endif
 
 #ifndef USE_VNC
-    if (vid_api == 6)
+    if (vid_api == 5)
         vid_api = 0;
     ui->actionVNC->setVisible(false);
 #endif
@@ -410,14 +403,13 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
     actGroup->addAction(ui->actionVulkan);
-    actGroup->addAction(ui->actionDirect3D_9);
     actGroup->addAction(ui->actionVNC);
     actGroup->setExclusive(true);
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction *action) {
         vid_api = action->property("vid_api").toInt();
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 6) {
+        if (vnc_enabled && vid_api != 5) {
             startblit();
             vnc_enabled = 0;
             vnc_close();
@@ -442,11 +434,8 @@ MainWindow::MainWindow(QWidget *parent)
             case 4:
                 newVidApi = RendererStack::Renderer::Vulkan;
                 break;
-            case 5:
-                newVidApi = RendererStack::Renderer::Direct3D9;
-                break;
 #ifdef USE_VNC
-            case 6:
+            case 5:
                 {
                     newVidApi = RendererStack::Renderer::Software;
                     startblit();
@@ -612,7 +601,7 @@ MainWindow::MainWindow(QWidget *parent)
         video_setblit(qt_blit);
 
     if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
+        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
             if (start_in_fullscreen) {
                 QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
                 start_in_fullscreen = 0;
@@ -1156,8 +1145,6 @@ MainWindow::on_actionFullscreen_triggered()
 {
     if (video_fullscreen > 0) {
         showNormal();
-        if (vid_api == 5)
-            QTimer::singleShot(0, this, [this]() { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
         ui->menubar->show();
         if (!hide_status_bar)
             ui->statusbar->show();
@@ -1193,8 +1180,6 @@ MainWindow::on_actionFullscreen_triggered()
         ui->toolBar->hide();
         ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
-        if (vid_api == 5)
-            QTimer::singleShot(0, this, [this]() { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
     }
     ui->stackedWidget->onResize(width(), height());
 }
@@ -1316,7 +1301,7 @@ void
 MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 {
     if (monitor_index >= 1) {
-        if (!blitDummied && renderers[monitor_index] && renderers[monitor_index]->isVisible())
+        if (renderers[monitor_index] && renderers[monitor_index]->isVisible())
             renderers[monitor_index]->blit(x, y, w, h);
         else
             video_blit_complete_monitor(monitor_index);
@@ -1976,8 +1961,6 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
 {
     show_second_monitors = (int) ui->actionShow_non_primary_monitors->isChecked();
 
-    blitDummied = true;
-
     if (show_second_monitors) {
         for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
             auto &secondaryRenderer = renderers[monitor_index];
@@ -2007,8 +1990,6 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
             }
         }
     }
-
-    blitDummied = false;
 }
 
 void
