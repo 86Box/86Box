@@ -28,10 +28,6 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_ibm_rgb528_ramdac.c vid_sdac_ramdac.c vid_ogc.c vid_mga.c vid_nga.c
     vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c vid_xga.c)
 
-if(MGA2)
-    target_compile_definitions(vid PRIVATE USE_MGA2)
-endif()
-
 if(VGAWONDER)
     target_compile_definitions(vid PRIVATE USE_VGAWONDER)
 endif()
