@@ -814,9 +814,6 @@ msgstr "アドバンスドセクターイメージ"
 msgid "Flux images"
 msgstr "Fluxイメージ"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "SDLが初期化できません。SDL2.dllが必要です"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "使用中のマシンをハード リセットしますか？"
 

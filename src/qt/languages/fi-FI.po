@@ -814,9 +814,6 @@ msgstr "Kehittyneet sektorilevykuvat"
 msgid "Flux images"
 msgstr "Flux-levykuvat"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
 

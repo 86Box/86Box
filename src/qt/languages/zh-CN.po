@@ -814,9 +814,6 @@ msgstr "高级扇区映像"
 msgid "Flux images"
 msgstr "Flux 映像"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "无法初始化 SDL，需要 SDL2.dll"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "确定要硬重置模拟器吗？"
 

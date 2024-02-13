@@ -97,7 +97,6 @@
 #define IDS_2108    2108     // "%u MB (CHS: %i, %i, %i)"
 #define IDS_2109    2109     // "Floppy %i (%s): %ls"
 #define IDS_2110    2110     // "All floppy images (*.0??;*.."
-#define IDS_2112    2112     // "Unable to initialize SDL..."
 #define IDS_2113    2113     // "Are you sure you want to..."
 #define IDS_2114    2114     // "Are you sure you want to..."
 #define IDS_2115    2115     // "Unable to initialize Ghostscript..."

@@ -464,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Disketová mechanika %i (%s): %ls"
     IDS_2110    "Všechny obrazy (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Rozšířené sektorové obrazy (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Základní sektorové obrazy (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Obrazy magnetického toku (*.FDI)\0*.FDI\0Obrazy povrchu (*.86F;*.MFM)\0*.86F;*.MFM\0Všechny soubory (*.*)\0*.*\0"
-    IDS_2112    "Nastala chyba při inicializaci knihovny SDL, je potřeba SDL2.dll"
     IDS_2113    "Opravdu chcete resetovat emulovaný počítač?"
     IDS_2114    "Opravdu chcete ukončit 86Box?"
     IDS_2115    "Nastala chyba při inicializaci knihovny Ghostscript"

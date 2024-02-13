@@ -814,9 +814,6 @@ msgstr "어드밴스드 섹터 이미지"
 msgid "Flux images"
 msgstr "플럭스 이미지"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "SDL을 초기화할 수 없습니다. SDL2.dll이 필요합니다"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "실행중인 머신을 재시작하시겠습니까?"
 

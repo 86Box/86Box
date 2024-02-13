@@ -464,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Disket %i (%s): %ls"
     IDS_2110    "Tüm imajlar (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Gelişmiş sektör imajları (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basit sektör imajları (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Yüzey imajları (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2112    "SDL başlatılamadı, SDL2.dll gerekmektedir"
     IDS_2113    "Emüle edilen makineyi yeniden başlatmak istediğinizden emin misiniz?"
     IDS_2114    "86Box'tan çıkmak istediğinize emin misiniz?"
     IDS_2115    "Ghostscript başlatılamadı"

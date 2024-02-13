@@ -262,8 +262,6 @@ plat_get_string(int i)
             return L"No PCap devices found";
         case IDS_2096:
             return L"Invalid PCap device";
-        case IDS_2112:
-            return L"Unable to initialize SDL, libsdl2 is required";
         case IDS_2133:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
         case IDS_2130:

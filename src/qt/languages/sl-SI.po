@@ -814,9 +814,6 @@ msgstr "Napredne sektorske slike"
 msgid "Flux images"
 msgstr "Tokovne slike"
 
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
-
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Ste prepričani, da želite ponovno zagnati emulirani sistem?"
 
