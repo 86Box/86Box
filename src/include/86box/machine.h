@@ -338,7 +338,6 @@ typedef struct _machine_ {
 
 /*ToDo: preliminary, to improve.*/
 typedef struct _machine_pc98_ {
-    char *font_rom;
     char *hdd_rom;
     char *pci_rom;
     char *sound_rom;
@@ -408,6 +407,7 @@ extern uint32_t machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
 /* Initialization functions for boards and systems. */
 extern void machine_common_init(const machine_t *);
+extern void machine_pc98_common_init(const machine_t *);
 
 /* m_amstrad.c */
 extern int machine_pc1512_init(const machine_t *);

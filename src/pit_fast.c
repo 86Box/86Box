@@ -691,12 +691,45 @@ pitf_init(const device_t *info)
     return dev;
 }
 
+static void *
+pitf_pc98_init(const device_t *info)
+{
+    pitf_t *dev = (pitf_t *) malloc(sizeof(pitf_t));
+    pitf_reset(dev);
+
+    dev->flags = info->local;
+
+    for (int i = 0; i < 3; i++) {
+        ctrf_t *ctr = &dev->counters[i];
+        timer_add(&ctr->timer, pitf_timer_over, (void *) ctr, 0);
+    }
+
+    io_sethandler_interleaved(0x0071, 0x0004, pitf_read, NULL, NULL, pitf_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x3fd9, 0x0004, pitf_read, NULL, NULL, pitf_write, NULL, NULL, dev);
+
+    return dev;
+}
+
 const device_t i8253_fast_device = {
     .name          = "Intel 8253/8253-5 Programmable Interval Timer",
     .internal_name = "i8253_fast",
     .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8253,
     .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t i8253_fast_pc98_device = {
+    .name          = "Intel 8253/8253-5 Programmable Interval Timer (NEC PC-98x1)",
+    .internal_name = "i8253_pc98_fast",
+    .flags         = DEVICE_CBUS | DEVICE_PIT,
+    .local         = PIT_8253,
+    .init          = pitf_pc98_init,
     .close         = pitf_close,
     .reset         = NULL,
     { .available = NULL },

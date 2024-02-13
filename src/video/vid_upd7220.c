@@ -994,69 +994,61 @@ upd7220_process_cmd(upd7220_t *dev)
 }
 
 /* i/o */
-
 void
-upd7220_param_write(uint16_t addr, uint8_t value, void *priv)
+upd7220_write(uint16_t addr, uint8_t value, void *priv)
 {
-    /* ioport 0x60(chr), 0xa0(gfx) */
     upd7220_t  *dev = (upd7220_t *) priv;
 
-    if (dev->cmdreg != -1) {
-        if (dev->params_count < 16)
-            dev->params[dev->params_count++] = value;
+    /* ioport 0x62(chr), 0xa2(gfx) */
+    if (addr & 1) {
+        if (dev->cmdreg != -1)
+            upd7220_process_cmd(dev);
 
+        dev->cmdreg = value;
+        dev->params_count = 0;
         upd7220_check_cmd(dev);
-        if (dev->cmdreg == -1)
-            dev->params_count = 0;
+    } else {
+        /* ioport 0x60(chr), 0xa0(gfx) */
+        if (dev->cmdreg != -1) {
+            if (dev->params_count < 16)
+                dev->params[dev->params_count++] = value;
+
+            upd7220_check_cmd(dev);
+            if (dev->cmdreg == -1)
+                dev->params_count = 0;
+        }
     }
 }
 
 uint8_t
-upd7220_statreg_read(uint16_t addr, void *priv)
+upd7220_read(uint16_t addr, void *priv)
 {
-    /* ioport 0x60(chr), 0xa0(gfx) */
     upd7220_t  *dev = (upd7220_t *) priv;
     pc98x1_vid_t *vid = (pc98x1_vid_t *) dev->priv;
-    uint8_t value = dev->statreg | vid->vsync;
+    uint8_t value;
 
+    /* ioport 0x62(chr), 0xa2(gfx) */
+    if (addr & 1)
+        value = upd7220_fifo_read(dev);
+    else {
+        /* ioport 0x60(chr), 0xa0(gfx) */
+        value = dev->statreg | vid->vsync;
 #if 0
-    if (dev->params_count == 0)
+        if (dev->params_count == 0)
 #endif
-        value |= GDC_STAT_EMPTY;
+            value |= GDC_STAT_EMPTY;
 
-    if (dev->params_count == 16)
-        value |= GDC_STAT_FULL;
+        if (dev->params_count == 16)
+            value |= GDC_STAT_FULL;
 
-    if (dev->data_count > 0)
-        value |= GDC_STAT_DRDY;
+        if (dev->data_count > 0)
+            value |= GDC_STAT_DRDY;
 
-    dev->statreg &= ~(GDC_STAT_DMA | GDC_STAT_DRAW);
-    /* toggle hblank bit */
-    dev->statreg ^= GDC_STAT_HBLANK;
+        dev->statreg &= ~(GDC_STAT_DMA | GDC_STAT_DRAW);
+        /* toggle hblank bit */
+        dev->statreg ^= GDC_STAT_HBLANK;
+    }
     return value;
-}
-
-void
-upd7220_cmdreg_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0x62(chr), 0xa2(gfx) */
-    upd7220_t  *dev = (upd7220_t *) priv;
-
-    if (dev->cmdreg != -1)
-        upd7220_process_cmd(dev);
-
-    dev->cmdreg = value;
-    dev->params_count = 0;
-    upd7220_check_cmd(dev);
-}
-
-uint8_t
-upd7220_data_read(uint16_t addr, void *priv)
-{
-    /* ioport 0x62(chr), 0xa2(gfx) */
-    upd7220_t  *dev = (upd7220_t *) priv;
-
-    return upd7220_fifo_read(dev);
 }
 
 void

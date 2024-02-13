@@ -885,12 +885,43 @@ pit_init(const device_t *info)
     return dev;
 }
 
+static void *
+pit_pc98_init(const device_t *info)
+{
+    pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
+    pit_reset(dev);
+
+    timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
+    timer_set_delay_u64(&dev->callback_timer, PITCONST >> 1ULL);
+
+    dev->flags = info->local;
+
+    io_sethandler_interleaved(0x0071, 0x0004, pit_read, NULL, NULL, pit_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x3fd9, 0x0004, pit_read, NULL, NULL, pit_write, NULL, NULL, dev);
+
+    return dev;
+}
+
 const device_t i8253_device = {
     .name          = "Intel 8253/8253-5 Programmable Interval Timer",
     .internal_name = "i8253",
     .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8253,
     .init          = pit_init,
+    .close         = pit_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t i8253_pc98_device = {
+    .name          = "Intel 8253/8253-5 Programmable Interval Timer (NEC PC-98x1)",
+    .internal_name = "i8253_pc98",
+    .flags         = DEVICE_CBUS | DEVICE_PIT,
+    .local         = PIT_8253,
+    .init          = pit_pc98_init,
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },

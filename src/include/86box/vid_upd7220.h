@@ -122,10 +122,8 @@ extern void    upd7220_init(upd7220_t *dev, void *priv,
                             void (*vram_write)(uint32_t addr, uint8_t val, void *priv));
 
 extern void    upd7220_recalctimings(upd7220_t *dev);
-extern void    upd7220_param_write(uint16_t addr, uint8_t value, void *priv);
-extern uint8_t upd7220_statreg_read(uint16_t addr, void *priv);
-extern void    upd7220_cmdreg_write(uint16_t addr, uint8_t value, void *priv);
-extern uint8_t upd7220_data_read(uint16_t addr, void *priv);
+extern void    upd7220_write(uint16_t addr, uint8_t value, void *priv);
+extern uint8_t upd7220_read(uint16_t addr, void *priv);
 extern void    upd7220_reset(upd7220_t *dev);
 
 #endif /*VIDEO_UPD7220_H*/

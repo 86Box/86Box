@@ -37,6 +37,7 @@ dma_t   dma[8];
 uint8_t dma_e;
 uint8_t dma_m;
 
+static int      dma_pc98 = 0;
 static uint8_t  dmaregs[3][16];
 static int      dma_wp[2];
 static uint8_t  dma_stat;
@@ -455,9 +456,13 @@ dma_sg_int_status_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 static uint8_t
 dma_read(uint16_t addr, UNUSED(void *priv))
 {
-    int     channel = (addr >> 1) & 3;
+    int channel;
     uint8_t temp;
 
+    if (dma_pc98)
+        addr >>= 1;
+
+    channel = (addr >> 1) & 3;
     switch (addr & 0xf) {
         case 0:
         case 2:
@@ -499,7 +504,12 @@ dma_read(uint16_t addr, UNUSED(void *priv))
 static void
 dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
-    int channel = (addr >> 1) & 3;
+    int channel;
+
+    if (dma_pc98)
+        addr >>= 1;
+
+    channel = (addr >> 1) & 3;
 
     dmaregs[0][addr & 0xf] = val;
     switch (addr & 0xf) {
@@ -943,6 +953,27 @@ dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
     }
 }
 
+static void
+pc98x1_dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    addr = ((addr >> 1) + 1) & 0x03;
+    dmaregs[2][addr] = val;
+
+    if (addr < 8) {
+        dma[addr].page_l = val;
+
+        if (addr > 4) {
+            dma[addr].page = val & 0xfe;
+            dma[addr].ab   = (dma[addr].ab & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
+            dma[addr].ac   = (dma[addr].ac & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
+        } else {
+            dma[addr].page = dma_at ? val : val & 0xf;
+            dma[addr].ab   = (dma[addr].ab & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
+            dma[addr].ac   = (dma[addr].ac & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
+        }
+    }
+}
+
 static uint8_t
 dma_page_read(uint16_t addr, UNUSED(void *priv))
 {
@@ -992,6 +1023,28 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
     }
 
     return ret;
+}
+
+static uint8_t
+pc98x1_dma_page_read(uint16_t addr, UNUSED(void *priv))
+{
+    uint8_t ret        = 0xff;
+
+    addr = ((addr >> 1) + 1) & 0x03;
+    ret = dmaregs[2][addr];
+
+    if (addr < 8)
+        ret = dma[addr].page_l;
+
+    return ret;
+}
+
+static void
+pc98x1_dma_auto_increment_bank_write(UNUSED(uint16_t addr), uint8_t val, UNUSED(void *priv))
+{
+    uint8_t bounds[4] = {0, 0x0f, 0, 0xff};
+
+    dma[val & 3].bound = bounds[(val >> 2) & 3];
 }
 
 static void
@@ -1168,6 +1221,17 @@ dma_init(void)
                   dma_read, NULL, NULL, dma_write, NULL, NULL, NULL);
     io_sethandler(0x0080, 8,
                   dma_page_read, NULL, NULL, dma_page_write, NULL, NULL, NULL);
+    dma_ps2.is_ps2 = 0;
+}
+
+void
+dma_pc98_init(void)
+{
+    dma_pc98 = 1;
+    io_sethandler_interleaved(0x0001, 8, dma_read, NULL, NULL, dma_write, NULL, NULL, NULL);
+    io_sethandler_interleaved(0x0011, 8, dma_read, NULL, NULL, dma_write, NULL, NULL, NULL);
+    io_sethandler_interleaved(0x0021, 4, pc98x1_dma_page_read, NULL, NULL, pc98x1_dma_page_write, NULL, NULL, NULL);
+    io_sethandler(0x0029, 1, NULL, NULL, NULL, pc98x1_dma_auto_increment_bank_write, NULL, NULL, NULL);
     dma_ps2.is_ps2 = 0;
 }
 
@@ -1432,6 +1496,9 @@ dma_channel_read(int channel)
                 dma_retreat(dma_c);
             else
                 dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac - 1) & 0xffff);
+
+            if (dma_pc98 && dma_c->bound)
+                dma_c->page_l = ((dma_c->page_l - 1) & dma_c->bound) | (dma_c->page_l & (~dma_c->bound));
         } else {
             if (dma_ps2.is_ps2)
                 dma_c->ac++;
@@ -1439,6 +1506,9 @@ dma_channel_read(int channel)
                 dma_advance(dma_c);
             else
                 dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac + 1) & 0xffff);
+
+            if (dma_pc98 && dma_c->bound)
+                dma_c->page_l = ((dma_c->page_l + 1) & dma_c->bound) | (dma_c->page_l & (~dma_c->bound));
         }
     } else {
         temp = _dma_readw(dma_c->ac, dma_c);
@@ -1519,6 +1589,9 @@ dma_channel_write(int channel, uint16_t val)
                 dma_retreat(dma_c);
             else
                 dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac - 1) & 0xffff);
+
+            if (dma_pc98 && dma_c->bound)
+                dma_c->page_l = ((dma_c->page_l - 1) & dma_c->bound) | (dma_c->page_l & (~dma_c->bound));
         } else {
             if (dma_ps2.is_ps2)
                 dma_c->ac++;
@@ -1526,6 +1599,9 @@ dma_channel_write(int channel, uint16_t val)
                 dma_advance(dma_c);
             else
                 dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac + 1) & 0xffff);
+
+            if (dma_pc98 && dma_c->bound)
+                dma_c->page_l = ((dma_c->page_l + 1) & dma_c->bound) | (dma_c->page_l & (~dma_c->bound));
         }
     } else {
         _dma_writew(dma_c->ac, val, dma_c);

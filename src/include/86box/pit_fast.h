@@ -75,6 +75,7 @@ extern const pit_intf_t pit_fast_intf;
 
 #ifdef EMU_DEVICE_H
 extern const device_t i8253_fast_device;
+extern const device_t i8253_fast_pc98_device;
 extern const device_t i8254_fast_device;
 extern const device_t i8254_sec_fast_device;
 extern const device_t i8254_ext_io_fast_device;
