@@ -820,8 +820,6 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     uint32_t pattern_fg = chips->bitblt_running.bitblt.pattern_source_key_fg;
     uint32_t pattern_bg = chips->bitblt_running.bitblt.pattern_source_key_bg;
     uint8_t pattern_data = 0;
-    uint8_t pattern_data_8bpp[8][8];
-    uint16_t pattern_data_16bpp[8][8];
     uint32_t pattern_pixel = 0;
     uint32_t dest_pixel = 0;
     uint32_t dest_addr = chips->bitblt_running.bitblt.destination_addr + (chips->bitblt_running.y * chips->bitblt_running.bitblt.destination_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
@@ -1243,7 +1241,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
         if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && chips->bitblt_running.mono_bytes_pitch && chips->bitblt_running.mono_bytes_pitch == chips->bitblt_running.bytes_written) {
             int orig_count_y = chips->bitblt_running.count_y;
             int i = 0, j = 0;
-            uint8_t val = chips->bitblt_running.bytes_port[0];
             chips->bitblt_running.bytes_written = 0;
 
             for (j = 0; j < chips->bitblt_running.mono_bytes_pitch; j++) {
