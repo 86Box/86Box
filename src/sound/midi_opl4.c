@@ -437,6 +437,7 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
     const YRW801_WAVE_DATA       *wave_data[2];
     VOICE_DATA                   *voice[2];
     uint8_t                       i = 0, voices = 0;
+    uint32_t                      j = 0;
 
     while (opl4_midi->gen_in_progress) { }
 
