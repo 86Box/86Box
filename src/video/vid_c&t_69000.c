@@ -15,6 +15,7 @@
  *          Copyright 2023-2024 Cacodemon345
  */
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -90,8 +91,8 @@ typedef struct chips_69000_t {
     uint8_t       pci_line_interrupt;
     uint8_t       pci_rom_enable;
     uint8_t       read_write_bank;
-    atomic_bool   engine_active;
-    atomic_bool   quit;
+    bool          engine_active;
+    bool          quit;
     thread_t     *accel_thread;
     event_t      *fifo_event, *fifo_data_event;
     pc_timer_t    decrement_timer;
@@ -1095,8 +1096,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         chips->bitblt_running.bitblt.destination_height);
     }
 #endif
-    
+
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 10)) {
+        chips->bitblt_running.bitblt.source_addr &= 7;
         if (!(chips->bitblt_running.bitblt.bitblt_control & (1 << 12))) {
             /* Yes, the NT 4.0 and Linux drivers will send this many amount of bytes to the video adapter on quadword-boundary-crossing image blits.
                This weird calculation is intended and deliberate.
@@ -1121,6 +1123,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             switch (chips->bitblt_running.bitblt.monochrome_source_alignment) {
                 case 0: /* Source-span aligned. */
                     {
+                        /* Note: This value means quadword-alignment when BitBLT port is the source. */
                         /* TODO: This is handled purely on a best case basis. */
                         uint32_t orig_count_y = chips->bitblt_running.count_y;
                         uint32_t orig_source_addr = chips->bitblt_running.bitblt.source_addr;
@@ -1142,11 +1145,20 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                         chips->bitblt_running.bitblt.source_addr = source_addr;
                         break;
                     }
+                case 1: /* Bit-aligned */
                 case 2: /* Byte-aligned */
                     {
                         uint32_t data = chips_69000_readb_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         source_addr += 1;
+                        break;
+                    }
+                case 3: /* Word-aligned*/
+                    {
+                        uint32_t data = chips_69000_readw_linear(source_addr, chips);
+                        chips_69000_bitblt_write(chips, data & 0xFF);
+                        chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
+                        source_addr += 2;
                         break;
                     }
                 case 4: /* Doubleword-aligned*/
@@ -1243,7 +1255,9 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
                 }
             }
         }
-        else if ((chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && !chips->bitblt_running.mono_bytes_pitch) || chips->bitblt_running.bitblt.monochrome_source_alignment == 2) {
+        else if ((chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && !chips->bitblt_running.mono_bytes_pitch)
+        || chips->bitblt_running.bitblt.monochrome_source_alignment == 2
+        || chips->bitblt_running.bitblt.monochrome_source_alignment == 1) {
             int orig_count_y = chips->bitblt_running.count_y;
             int i = 0;
             uint8_t val = chips->bitblt_running.bytes_port[0];
@@ -1251,7 +1265,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
 
             for (i = 0; i < 8; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (7 - i))));
-                if (orig_count_y != chips->bitblt_running.count_y) {
+                if (orig_count_y != chips->bitblt_running.count_y && chips->bitblt_running.bitblt.monochrome_source_alignment != 1) {
                     cycles = orig_cycles;
                     return;
                 }
@@ -1313,7 +1327,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
 
     chips->bitblt_running.bytes_counter++;
-    if (chips->bitblt_running.bytes_counter <= (chips->bitblt_running.bitblt.source_addr & 7)) {
+    if (chips->bitblt_running.bytes_counter <= (chips->bitblt_running.bitblt.source_addr)) {
         return;
     }
     chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
@@ -2308,6 +2322,16 @@ chips_69000_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
     return ret;
 }
 
+static int
+chips_69000_line_compare(svga_t* svga)
+{
+    /* Line compare glitches out at 1600x1200 and above. Disable it. */
+    if (svga->dispend >= 1200)
+        return 0;
+    
+    return 1;
+}
+
 static void *
 chips_69000_init(const device_t *info)
 {
@@ -2338,6 +2362,7 @@ chips_69000_init(const device_t *info)
     chips->svga.hwcursor_draw    = chips_69000_hwcursor_draw;
     chips->svga.getclock         = chips_69000_getclock;
     chips->svga.conv_16to32      = chips_69000_conv_16to32;
+    chips->svga.line_compare     = chips_69000_line_compare;
 
     mem_mapping_add(&chips->linear_mapping, 0, 0, chips_69000_readb_linear, chips_69000_readw_linear, chips_69000_readl_linear, chips_69000_writeb_linear, chips_69000_writew_linear, chips_69000_writel_linear, NULL, MEM_MAPPING_EXTERNAL, chips);
 
