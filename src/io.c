@@ -121,7 +121,7 @@ io_sethandler_common(uint16_t base, int size,
     io_t *p;
     io_t *q = NULL;
 
-    for (int c = 0; c < size; c += step) {
+    for (int c = 0; c < (size * step); c += step) {
         p = io_last[base + c];
         q = (io_t *) malloc(sizeof(io_t));
         memset(q, 0, sizeof(io_t));
@@ -161,7 +161,7 @@ io_removehandler_common(uint16_t base, int size,
     io_t *p;
     io_t *q;
 
-    for (int c = 0; c < size; c += step) {
+    for (int c = 0; c < (size * step); c += step) {
         p = io[base + c];
         if (!p)
             continue;

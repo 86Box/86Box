@@ -59,6 +59,7 @@ typedef struct dma_t {
     uint8_t  ext_mode;
     uint8_t  page_l;
     uint8_t  page_h;
+    uint8_t  bound;
     uint8_t  pad;
     uint16_t cb;
     uint16_t io_addr;
@@ -81,6 +82,7 @@ extern uint8_t dma_e;
 extern uint8_t dma_m;
 
 extern void dma_init(void);
+extern void dma_pc98_init(void);
 extern void dma16_init(void);
 extern void ps2_dma_init(void);
 extern void dma_reset(void);

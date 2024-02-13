@@ -65,7 +65,7 @@ enum {
 
 /* vsync */
 static void
-pc98x1_vsync_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_vsync_write(UNUSED(uint16_t addr), uint8_t value, void *priv)
 {
     /* ioport 0x64 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
@@ -75,106 +75,79 @@ pc98x1_vsync_write(uint16_t addr, uint8_t value, void *priv)
 
 /* crtc */
 static void
-pc98x1_crtc_pl_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_crtc_write(uint16_t addr, uint8_t value, void *priv)
 {
-    /* ioport 0x70 */
+    /* ioport 0x70-0x7a */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
 
-    if (dev->pl != value) {
-        dev->pl = value;
-        dev->dirty |= DIRTY_TVRAM;
-    }
-}
-
-static void
-pc98x1_crtc_bl_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0x72 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->bl != value) {
-        dev->bl = value;
-        dev->dirty |= DIRTY_TVRAM;
-    }
-}
-
-static void
-pc98x1_crtc_cl_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0x74 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->cl != value) {
-        dev->cl = value;
-        dev->dirty |= DIRTY_TVRAM;
-    }
-}
-
-static void
-pc98x1_crtc_ssl_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0x76 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->ssl != value) {
-        dev->ssl = value;
-        dev->dirty |= DIRTY_TVRAM;
-    }
-}
-
-static void
-pc98x1_crtc_sur_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0x78 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->sur != value) {
-        dev->sur = value;
-        dev->dirty |= DIRTY_TVRAM;
-    }
-}
-
-static void
-pc98x1_crtc_sdr_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0x7a */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->sdr != value) {
-        dev->sdr = value;
-        dev->dirty |= DIRTY_TVRAM;
+    switch (addr & 7) {
+        case 0:
+            if (dev->pl != value) {
+                dev->pl = value;
+                dev->dirty |= DIRTY_TVRAM;
+            }
+            break;
+        case 1:
+            if (dev->bl != value) {
+                dev->bl = value;
+                dev->dirty |= DIRTY_TVRAM;
+            }
+            break;
+        case 2:
+            if (dev->cl != value) {
+                dev->cl = value;
+                dev->dirty |= DIRTY_TVRAM;
+            }
+            break;
+        case 3:
+            if (dev->ssl != value) {
+                dev->ssl = value;
+                dev->dirty |= DIRTY_TVRAM;
+            }
+            break;
+        case 4:
+            if (dev->sur != value) {
+                dev->sur = value;
+                dev->dirty |= DIRTY_TVRAM;
+            }
+            break;
+        case 5:
+            if (dev->sdr != value) {
+                dev->sdr = value;
+                dev->dirty |= DIRTY_TVRAM;
+            }
+            break;
+        default:
+            break;
     }
 }
 
 /* grcg */
 static void
-pc98x1_grcg_mode_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_grcg_write(uint16_t addr, uint8_t value, void *priv)
 {
-    /* ioport 0x7c */
+    /* ioport 0x7c-7e */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
 
-    dev->grcg_mode = value;
-    dev->grcg_tile_cnt = 0;
+    if (addr & 1) {
+        dev->grcg_tile_b[dev->grcg_tile_cnt] = value;
+        dev->grcg_tile_cnt = (dev->grcg_tile_cnt + 1) & 3;
+    } else {
+        dev->grcg_mode = value;
+        dev->grcg_tile_cnt = 0;
+    }
 }
 
 static void
-pc98x1_grcg_tile_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_grcg_writew(uint16_t addr, uint16_t value, void *priv)
 {
     /* ioport 0x7e */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
 
-    dev->grcg_tile_b[dev->grcg_tile_cnt] = value;
-    dev->grcg_tile_cnt = (dev->grcg_tile_cnt + 1) & 3;
-}
-
-static void
-pc98x1_grcg_tile_writew(uint16_t addr, uint16_t value, void *priv)
-{
-    /* ioport 0x7e */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    dev->grcg_tile_w[dev->grcg_tile_cnt] = (value & 0xff) | (value << 8);
-    dev->grcg_tile_cnt = (dev->grcg_tile_cnt + 1) & 3;
+    if (addr & 1) {
+        dev->grcg_tile_w[dev->grcg_tile_cnt] = (value & 0xff) | (value << 8);
+        dev->grcg_tile_cnt = (dev->grcg_tile_cnt + 1) & 3;
+    }
 }
 
 static void
@@ -286,76 +259,66 @@ pc98x1_cgwindow_set_addr(pc98x1_vid_t *dev)
 }
 
 static void
-pc98x1_cgwindow_code2_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_cgwindow_write(uint16_t addr, uint8_t value, void *priv)
 {
-    /* ioport 0xa1 */
+    /* ioport 0xa1-a5 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
 
-    dev->font_code = (value << 8) | (dev->font_code & 0xff);
-    pc98x1_cgwindow_set_addr(dev);
+    switch (addr & 3) {
+        case 0:
+            dev->font_code = (value << 8) | (dev->font_code & 0xff);
+            pc98x1_cgwindow_set_addr(dev);
+            break;
+        case 1:
+            dev->font_code = (dev->font_code & 0xff00) | value;
+            pc98x1_cgwindow_set_addr(dev);
+            break;
+        case 2:
+            dev->font_line = value;
+            pc98x1_cgwindow_set_addr(dev);
+            break;
+        default:
+            break;
+    }
 }
 
 static uint8_t
-pc98x1_cgwindow_code2_read(uint16_t addr, void *priv)
+pc98x1_cgwindow_read(uint16_t addr, void *priv)
 {
-    /* ioport 0xa1 */
+    /* ioport 0xa1-a5 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
+    uint8_t temp = 0xff;
 
-    return (dev->font_code >> 8) & 0xff;
+    switch (addr & 3) {
+        case 0:
+            temp = (dev->font_code >> 8) & 0xff;
+            break;
+        case 1:
+            temp = dev->font_code & 0xff;
+            break;
+        case 2:
+            temp = dev->font_line;
+            break;
+        default:
+            break;
+    }
+
+    return temp;
 }
 
 static void
-pc98x1_cgwindow_code1_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0xa3 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    dev->font_code = (dev->font_code & 0xff00) | value;
-    pc98x1_cgwindow_set_addr(dev);
-}
-
-static uint8_t
-pc98x1_cgwindow_code1_read(uint16_t addr, void *priv)
-{
-    /* ioport 0xa3 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    return dev->font_code & 0xff;
-}
-
-static void
-pc98x1_cgwindow_line_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0xa5 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    dev->font_line = value;
-    pc98x1_cgwindow_set_addr(dev);
-}
-
-static uint8_t
-pc98x1_cgwindow_line_read(uint8_t addr, void *priv)
-{
-    /* ioport 0xa5 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    return dev->font_line;
-}
-
-static void
-pc98x1_cgwindow_pattern_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_cgwindow_pattern_write(UNUSED(uint16_t addr), uint8_t value, void *priv)
 {
     /* ioport 0xa9 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
     uint16_t lr = ((~dev->font_line) & 0x20) << 6;
 
-    if ((dev->font_code & 0x7e) == 0x56) {
+    if ((dev->font_code & 0x7e) == 0x56)
         dev->font[((dev->font_code & 0x7f7f) << 4) + lr + (dev->font_line & 0x0f)] = value;
-    }
 }
 
 static uint8_t
-pc98x1_cgwindow_pattern_read(uint16_t addr, void *priv)
+pc98x1_cgwindow_pattern_read(UNUSED(uint16_t addr), void *priv)
 {
     /* ioport 0xa9 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
@@ -444,124 +407,123 @@ pc98x1_cgwindow_readl(pc98x1_vid_t *dev, uint32_t addr)
 
 /* mode flip-flop */
 static void
-pc98x1_mode_flipflop1_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_mode_flipflop1_2_write(uint16_t addr, uint8_t value, void *priv)
 {
-    // ioport 0x68
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-    int num = (value >> 1) & 7;
+    int num = 0;
+    uint8_t val = 0;
 
-    if (dev->mode1[num] != (value & 1)) {
+    /* ioport 0x6a */
+    if (addr & 1) {
+        val = value & 1;
+        num = (val >> 1) & 0x7f;
         switch (num) {
-        case MODE1_ATRSEL:
-        case MODE1_COLUMN:
-            dev->dirty |= DIRTY_TVRAM;
-            break;
-        case MODE1_200LINE:
-            dev->dirty |= DIRTY_VRAM0 | DIRTY_VRAM1;
-            break;
-        case MODE1_DISP:
-            dev->dirty |= DIRTY_DISPLAY;
-            break;
+            case 0x00:
+                /* select 8/16 color */
+                if (dev->mode2[num] != val) {
+                    if (!dev->mode2[MODE2_256COLOR])
+                        dev->dirty |= DIRTY_PALETTE;
+
+                    dev->mode2[num] = val;
+                }
+                break;
+            case 0x02:
+                /* select grcg/egc mode */
+                if (dev->mode2[MODE2_WRITE_MASK])
+                    dev->mode2[num] = val;
+                break;
+            case 0x10:
+                /* select 16/256 color */
+                if (dev->mode2[MODE2_WRITE_MASK]) {
+                    if (dev->mode2[num] != val) {
+                        dev->dirty |= (DIRTY_PALETTE | DIRTY_VRAM0 | DIRTY_VRAM1);
+                        dev->mode2[num] = val;
+                    }
+                }
+                break;
+            case 0x34:
+                /* select 400/480 lines */
+                if (dev->mode2[MODE2_WRITE_MASK]) {
+                    if (dev->mode2[num] != val) {
+                        dev->dirty |= (DIRTY_VRAM0 | DIRTY_VRAM1);
+                        dev->mode2[num] = val;
+                    }
+                }
+                break;
+            case 0x11: case 0x12: case 0x13: case 0x15: case 0x16:
+            case 0x30: case 0x31: case 0x33: case 0x65:
+                if (dev->mode2[MODE2_WRITE_MASK])
+                    dev->mode2[num] = val;
+                break;
+            default:
+                dev->mode2[num] = val;
+                break;
         }
-        dev->mode1[num] = value & 1;
+    } else {
+        /* ioport 0x68 */
+        num = (value >> 1) & 7;
+
+        if (dev->mode1[num] != (value & 1)) {
+            switch (num) {
+                case MODE1_ATRSEL:
+                case MODE1_COLUMN:
+                    dev->dirty |= DIRTY_TVRAM;
+                    break;
+                case MODE1_200LINE:
+                    dev->dirty |= DIRTY_VRAM0 | DIRTY_VRAM1;
+                    break;
+                case MODE1_DISP:
+                    dev->dirty |= DIRTY_DISPLAY;
+                    break;
+                default:
+                    break;
+            }
+            dev->mode1[num] = value & 1;
+        }
     }
 }
 
 static uint8_t
-pc98x1_mode_flipflop1_read(uint16_t addr, void *priv)
+pc98x1_mode_flipflop1_2_read(uint16_t addr, void *priv)
 {
-    /* ioport 0x68 */
+
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
+    uint8_t temp;
     uint8_t value = 0;
 
-    if (dev->mode1[MODE1_ATRSEL])
-        value |= 0x01;
-
-    if (dev->mode1[MODE1_GRAPHIC])
-        value |= 0x04;
-
-    if (dev->mode1[MODE1_COLUMN])
-        value |= 0x08;
-
-    if (dev->mode1[MODE1_MEMSW])
-        value |= 0x40;
-
-    if (dev->mode1[MODE1_KAC])
-        value |= 0x80;
-
-    return value | 0x32;
-}
-
-static void
-pc98x1_mode_flipflop2_write(uint16_t addr, uint8_t value1, void *priv)
-{
     /* ioport 0x6a */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-    uint8_t value = value1 & 1;
-    int num = (value1 >> 1) & 0x7f;
+    if (addr & 1) {
+        if (dev->mode3[MODE3_LINE_CONNECT])
+            value |= 0x01;
 
-    switch (num) {
-        case 0x00:
-            /* select 8/16 color */
-            if (dev->mode2[num] != value) {
-                if (!dev->mode2[MODE2_256COLOR])
-                    dev->dirty |= DIRTY_PALETTE;
+        if (dev->mode3[MODE3_WRITE_MASK])
+            value |= 0x10;
 
-                dev->mode2[num] = value;
-            }
-            break;
-        case 0x02:
-            /* select grcg/egc mode */
-            if (dev->mode2[MODE2_WRITE_MASK])
-                dev->mode2[num] = value;
-            break;
-        case 0x10:
-            /* select 16/256 color */
-            if (dev->mode2[MODE2_WRITE_MASK]) {
-                if (dev->mode2[num] != value) {
-                    dev->dirty |= (DIRTY_PALETTE | DIRTY_VRAM0 | DIRTY_VRAM1);
-                    dev->mode2[num] = value;
-                }
-            }
-            break;
-        case 0x34:
-            /* select 400/480 lines */
-            if (dev->mode2[MODE2_WRITE_MASK]) {
-                if (dev->mode2[num] != value) {
-                    dev->dirty |= (DIRTY_VRAM0 | DIRTY_VRAM1);
-                    dev->mode2[num] = value;
-                }
-            }
-            break;
-        case 0x11: case 0x12: case 0x13: case 0x15: case 0x16:
-        case 0x30: case 0x31: case 0x33: case 0x65:
-            if (dev->mode2[MODE2_WRITE_MASK])
-                dev->mode2[num] = value;
-            break;
-        default:
-            dev->mode2[num] = value;
-            break;
+        temp = value | 0xee;
+    } else {
+        /* ioport 0x68 */
+        if (dev->mode1[MODE1_ATRSEL])
+            value |= 0x01;
+
+        if (dev->mode1[MODE1_GRAPHIC])
+            value |= 0x04;
+
+        if (dev->mode1[MODE1_COLUMN])
+            value |= 0x08;
+
+        if (dev->mode1[MODE1_MEMSW])
+            value |= 0x40;
+
+        if (dev->mode1[MODE1_KAC])
+            value |= 0x80;
+
+        temp = value | 0x32;
     }
-}
-
-static uint8_t
-pc98x1_mode_flipflop2_read(uint16_t addr, void *priv)
-{
-    /* ioport 0x6a */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-    uint8_t value = 0;
-
-    if (dev->mode3[MODE3_LINE_CONNECT])
-        value |= 0x01;
-
-    if (dev->mode3[MODE3_WRITE_MASK])
-        value |= 0x10;
-
-    return value | 0xee;
+    return temp;
 }
 
 static void
-pc98x1_mode_flipflop3_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_mode_flipflop3_write(UNUSED(uint16_t addr), uint8_t value, void *priv)
 {
     /* ioport 0x6e */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
@@ -578,7 +540,7 @@ pc98x1_mode_flipflop3_write(uint16_t addr, uint8_t value, void *priv)
 }
 
 static uint8_t
-pc98x1_mode_flipflop3_read(uint16_t addr, void *priv)
+pc98x1_mode_flipflop3_read(UNUSED(uint16_t addr), void *priv)
 {
     /* ioport 0x6e */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
@@ -597,7 +559,7 @@ pc98x1_mode_flipflop3_read(uint16_t addr, void *priv)
 }
 
 static void
-pc98x1_mode_select_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_mode_select_write(UNUSED(uint16_t addr), uint8_t value, void *priv)
 {
     /* ioport 0x9a0 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
@@ -606,7 +568,7 @@ pc98x1_mode_select_write(uint16_t addr, uint8_t value, void *priv)
 }
 
 static uint8_t
-pc98x1_mode_status_read(uint16_t addr, void *priv)
+pc98x1_mode_status_read(UNUSED(uint16_t addr), void *priv)
 {
     /* ioport 0x9a0 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
@@ -653,225 +615,197 @@ pc98x1_mode_status_read(uint16_t addr, void *priv)
 
 /* vram bank */
 static void
-pc98x1_vram_disp_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_vram_bank_write(uint16_t addr, uint8_t value, void *priv)
 {
-    /* ioport 0xa4 */
+    /* ioport 0xa4-a6 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
 
-    if (value & 1) {
-        if (dev->bank_disp != DIRTY_VRAM1) {
-            dev->vram16_disp_b = dev->vram16 + 0x20000;
-            dev->vram16_disp_r = dev->vram16 + 0x28000;
-            dev->vram16_disp_g = dev->vram16 + 0x30000;
-            dev->vram16_disp_e = dev->vram16 + 0x38000;
-            dev->vram256_disp = dev->vram256 + 0x40000;
-            dev->bank_disp = DIRTY_VRAM1;
-            dev->dirty |= DIRTY_DISPLAY;
+    if (addr & 1) {
+        if (value & 1) {
+            dev->vram16_draw_b = dev->vram16 + 0x20000;
+            dev->vram16_draw_r = dev->vram16 + 0x28000;
+            dev->vram16_draw_g = dev->vram16 + 0x30000;
+            dev->vram16_draw_e = dev->vram16 + 0x38000;
+            dev->bank_draw = DIRTY_VRAM1;
+        } else {
+            dev->vram16_draw_b = dev->vram16 + 0x00000;
+            dev->vram16_draw_r = dev->vram16 + 0x08000;
+            dev->vram16_draw_g = dev->vram16 + 0x10000;
+            dev->vram16_draw_e = dev->vram16 + 0x18000;
+            dev->bank_draw = DIRTY_VRAM0;
         }
+        egc_set_vram(&dev->egc, dev->vram16_draw_b);
     } else {
-        if (dev->bank_disp != DIRTY_VRAM0) {
-            dev->vram16_disp_b = dev->vram16 + 0x00000;
-            dev->vram16_disp_r = dev->vram16 + 0x08000;
-            dev->vram16_disp_g = dev->vram16 + 0x10000;
-            dev->vram16_disp_e = dev->vram16 + 0x18000;
-            dev->vram256_disp = dev->vram256 + 0x00000;
-            dev->bank_disp = DIRTY_VRAM0;
-            dev->dirty |= DIRTY_DISPLAY;
+        if (value & 1) {
+            if (dev->bank_disp != DIRTY_VRAM1) {
+                dev->vram16_disp_b = dev->vram16 + 0x20000;
+                dev->vram16_disp_r = dev->vram16 + 0x28000;
+                dev->vram16_disp_g = dev->vram16 + 0x30000;
+                dev->vram16_disp_e = dev->vram16 + 0x38000;
+                dev->vram256_disp = dev->vram256 + 0x40000;
+                dev->bank_disp = DIRTY_VRAM1;
+                dev->dirty |= DIRTY_DISPLAY;
+            }
+        } else {
+            if (dev->bank_disp != DIRTY_VRAM0) {
+                dev->vram16_disp_b = dev->vram16 + 0x00000;
+                dev->vram16_disp_r = dev->vram16 + 0x08000;
+                dev->vram16_disp_g = dev->vram16 + 0x10000;
+                dev->vram16_disp_e = dev->vram16 + 0x18000;
+                dev->vram256_disp = dev->vram256 + 0x00000;
+                dev->bank_disp = DIRTY_VRAM0;
+                dev->dirty |= DIRTY_DISPLAY;
+            }
         }
     }
 }
 
 static uint8_t
-pc98x1_vram_disp_read(uint16_t addr, void *priv)
+pc98x1_vram_bank_read(uint16_t addr, void *priv)
 {
-    /* ioport 0xa4 */
+    /* ioport 0xa4-a6 */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
+    uint8_t temp;
 
-    if (dev->bank_disp == DIRTY_VRAM0) {
-        /*return 0;*/
-        return 0xfe;
-    }
-    /*return 1;*/
-    return 0xff;
-}
-
-static void
-pc98x1_vram_draw_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0xa6 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (value & 1) {
-        dev->vram16_draw_b = dev->vram16 + 0x20000;
-        dev->vram16_draw_r = dev->vram16 + 0x28000;
-        dev->vram16_draw_g = dev->vram16 + 0x30000;
-        dev->vram16_draw_e = dev->vram16 + 0x38000;
-        dev->bank_draw = DIRTY_VRAM1;
+    if (addr & 1) {
+        if (dev->bank_draw == DIRTY_VRAM0) {
+            /*return 0;*/
+            temp = 0xfe;
+        } else {
+            /*return 1;*/
+            temp = 0xff;
+        }
     } else {
-        dev->vram16_draw_b = dev->vram16 + 0x00000;
-        dev->vram16_draw_r = dev->vram16 + 0x08000;
-        dev->vram16_draw_g = dev->vram16 + 0x10000;
-        dev->vram16_draw_e = dev->vram16 + 0x18000;
-        dev->bank_draw = DIRTY_VRAM0;
+        if (dev->bank_disp == DIRTY_VRAM0) {
+            /*return 0;*/
+            temp = 0xfe;
+        } else {
+            /*return 1;*/
+            temp = 0xff;
+        }
     }
-    egc_set_vram(&dev->egc, dev->vram16_draw_b);
-}
-
-static uint8_t
-pc98x1_vram_draw_read(uint16_t addr, void *priv)
-{
-    /* ioport 0xa6 */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->bank_draw == DIRTY_VRAM0) {
-        /*return 0;*/
-        return 0xfe;
-    }
-    /*return 1;*/
-    return 0xff;
+    return temp;
 }
 
 /* palette */
 static void
-pc98x1_palette_a8_write(uint16_t addr, uint8_t value, void *priv)
+pc98x1_palette_write(uint16_t addr, uint8_t value, void *priv)
 {
-    /* ioport 0xa8 */
+    /* ioport 0xa8-ae */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
 
-    if (dev->mode2[MODE2_256COLOR] || dev->mode2[MODE2_16COLOR])
-        dev->anapal_select = value;
-    else {
-        if (dev->digipal[0] != value) {
-            dev->digipal[0] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
+    switch (addr & 3) {
+        case 0:
+            if (dev->mode2[MODE2_256COLOR] || dev->mode2[MODE2_16COLOR])
+                dev->anapal_select = value;
+            else {
+                if (dev->digipal[0] != value) {
+                    dev->digipal[0] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            }
+            break;
+        case 1:
+            if (dev->mode2[MODE2_256COLOR]) {
+                if (dev->anapal[PALETTE_G][dev->anapal_select] != value) {
+                    dev->anapal[PALETTE_G][dev->anapal_select] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            } else if (dev->mode2[MODE2_16COLOR]) {
+                if (dev->anapal[PALETTE_G][dev->anapal_select & 0x0f] != (value & 0x0f)) {
+                    dev->anapal[PALETTE_G][dev->anapal_select & 0x0f] = value & 0x0f;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            } else {
+                if (dev->digipal[1] != value) {
+                    dev->digipal[1] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            }
+            break;
+        case 2:
+            if (dev->mode2[MODE2_256COLOR]) {
+                if (dev->anapal[PALETTE_R][dev->anapal_select] != value) {
+                    dev->anapal[PALETTE_R][dev->anapal_select] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            } else if (dev->mode2[MODE2_16COLOR]) {
+                if (dev->anapal[PALETTE_R][dev->anapal_select & 0x0f] != (value & 0x0f)) {
+                    dev->anapal[PALETTE_R][dev->anapal_select & 0x0f] = value & 0x0f;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            } else {
+                if (dev->digipal[2] != value) {
+                    dev->digipal[2] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            }
+            break;
+        case 3:
+            if (dev->mode2[MODE2_256COLOR]) {
+                if (dev->anapal[PALETTE_B][dev->anapal_select] != value) {
+                    dev->anapal[PALETTE_B][dev->anapal_select] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            } else if (dev->mode2[MODE2_16COLOR]) {
+                if (dev->anapal[PALETTE_B][dev->anapal_select & 0x0f] != (value & 0x0f)) {
+                    dev->anapal[PALETTE_B][dev->anapal_select & 0x0f] = value & 0x0f;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            } else {
+                if (dev->digipal[3] != value) {
+                    dev->digipal[3] = value;
+                    dev->dirty |= DIRTY_PALETTE;
+                }
+            }
+            break;
+        default:
+            break;
     }
 }
 
 static uint8_t
-pc98x1_palette_a8_read(uint16_t addr, void *priv)
+pc98x1_palette_read(uint16_t addr, void *priv)
 {
-    /* ioport 0xa8 */
-   pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->mode2[MODE2_256COLOR] || dev->mode2[MODE2_16COLOR])
-        return dev->anapal_select;
-
-    return dev->digipal[0];
-}
-
-static void
-pc98x1_palette_aa_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0xaa */
+    /* ioport 0xa8-ae */
     pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
+    uint8_t temp = 0xff;
 
-    if (dev->mode2[MODE2_256COLOR]) {
-        if (dev->anapal[PALETTE_G][dev->anapal_select] != value) {
-            dev->anapal[PALETTE_G][dev->anapal_select] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    } else if (dev->mode2[MODE2_16COLOR]) {
-        if (dev->anapal[PALETTE_G][dev->anapal_select & 0x0f] != (value & 0x0f)) {
-            dev->anapal[PALETTE_G][dev->anapal_select & 0x0f] = value & 0x0f;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    } else {
-        if (dev->digipal[1] != value) {
-            dev->digipal[1] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
+    switch (addr & 3) {
+        case 0:
+            if (dev->mode2[MODE2_256COLOR] || dev->mode2[MODE2_16COLOR])
+                temp =  dev->anapal_select;
+            else
+                temp = dev->digipal[0];
+            break;
+        case 1:
+            if (dev->mode2[MODE2_256COLOR])
+                temp = dev->anapal[PALETTE_G][dev->anapal_select];
+            else if (dev->mode2[MODE2_16COLOR])
+                temp = dev->anapal[PALETTE_G][dev->anapal_select & 0x0f];
+            else
+                temp = dev->digipal[1];
+            break;
+        case 2:
+            if (dev->mode2[MODE2_256COLOR])
+                temp = dev->anapal[PALETTE_R][dev->anapal_select];
+            else if (dev->mode2[MODE2_16COLOR])
+                temp = dev->anapal[PALETTE_R][dev->anapal_select & 0x0f];
+            else
+                temp = dev->digipal[2];
+            break;
+        case 3:
+            if (dev->mode2[MODE2_256COLOR])
+                temp = dev->anapal[PALETTE_B][dev->anapal_select];
+            else if (dev->mode2[MODE2_16COLOR])
+                temp = dev->anapal[PALETTE_B][dev->anapal_select & 0x0f];
+            else
+                temp = dev->digipal[3];
+            break;
+        default:
+            break;
     }
-}
-
-static uint8_t
-pc98x1_palette_aa_read(uint16_t addr, void *priv)
-{
-    /* ioport 0xaa */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->mode2[MODE2_256COLOR])
-        return dev->anapal[PALETTE_G][dev->anapal_select];
-    else if (dev->mode2[MODE2_16COLOR])
-        return dev->anapal[PALETTE_G][dev->anapal_select & 0x0f];
-
-    return dev->digipal[1];
-}
-
-static void
-pc98x1_palette_ac_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0xac */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->mode2[MODE2_256COLOR]) {
-        if (dev->anapal[PALETTE_R][dev->anapal_select] != value) {
-            dev->anapal[PALETTE_R][dev->anapal_select] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    } else if (dev->mode2[MODE2_16COLOR]) {
-        if (dev->anapal[PALETTE_R][dev->anapal_select & 0x0f] != (value & 0x0f)) {
-            dev->anapal[PALETTE_R][dev->anapal_select & 0x0f] = value & 0x0f;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    } else {
-        if (dev->digipal[2] != value) {
-            dev->digipal[2] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    }
-}
-
-static uint8_t
-pc98x1_palette_ac_read(uint16_t addr, void *priv)
-{
-    /* ioport 0xac */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->mode2[MODE2_256COLOR])
-        return dev->anapal[PALETTE_R][dev->anapal_select];
-    else if (dev->mode2[MODE2_16COLOR])
-        return dev->anapal[PALETTE_R][dev->anapal_select & 0x0f];
-
-    return dev->digipal[2];
-}
-
-static void
-pc98x1_palette_ae_write(uint16_t addr, uint8_t value, void *priv)
-{
-    /* ioport 0xae */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->mode2[MODE2_256COLOR]) {
-        if (dev->anapal[PALETTE_B][dev->anapal_select] != value) {
-            dev->anapal[PALETTE_B][dev->anapal_select] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    } else if (dev->mode2[MODE2_16COLOR]) {
-        if (dev->anapal[PALETTE_B][dev->anapal_select & 0x0f] != (value & 0x0f)) {
-            dev->anapal[PALETTE_B][dev->anapal_select & 0x0f] = value & 0x0f;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    } else {
-        if (dev->digipal[3] != value) {
-            dev->digipal[3] = value;
-            dev->dirty |= DIRTY_PALETTE;
-        }
-    }
-}
-
-static uint8_t
-pc98x1_palette_ae_read(uint16_t addr, void *priv)
-{
-    /* ioport 0xae */
-    pc98x1_vid_t *dev = (pc98x1_vid_t *)priv;
-
-    if (dev->mode2[MODE2_256COLOR])
-        return dev->anapal[PALETTE_B][dev->anapal_select];
-    else if (dev->mode2[MODE2_16COLOR])
-        return dev->anapal[PALETTE_B][dev->anapal_select & 0x0f];
-
-    return dev->digipal[3];
+    return temp;
 }
 
 /* horizontal frequency */
@@ -1861,11 +1795,10 @@ pc98x1_kanji_copy(uint8_t *dst, uint8_t *src, int from, int to)
     }
 }
 
-static void
-pc98x1_font_init(pc98x1_vid_t *dev)
+void
+pc98x1_font_init(pc98x1_vid_t *dev, char *s)
 {
     FILE *fp;
-    char *s;
     uint8_t *buf = NULL;
     uint8_t *p, *q;
     int i, j;
@@ -1892,7 +1825,6 @@ pc98x1_font_init(pc98x1_vid_t *dev)
         memset(q + 0x580, 0, 0x0d60 - 0x580);
         memset(q + 0xd80, 0, 0x1000 - 0xd80);
     }
-    s = machine_pc98.font_rom; //"roms/machines/pc98x1/font.rom";
     fp = rom_fopen(s, "rb");
     if (fp == NULL)
         return;
@@ -2001,7 +1933,6 @@ static void *
 pc98x1_vid_init(UNUSED(const device_t *info))
 {
     pc98x1_vid_t *dev = (pc98x1_vid_t *)calloc(1, sizeof(pc98x1_vid_t))
-    pc98x1_font_init(dev); /*To be improved further and its code to be moved onto loadfont()*/
 
     for (int i = 0; i < 16; i++)
         dev->tvram[0x3fe0 + (i << 1)] = memsw_default[i];
@@ -2017,46 +1948,30 @@ pc98x1_vid_init(UNUSED(const device_t *info))
     mem_mapping_add(&dev->vram_e0000_mapping, 0xe0000, 0x08000, pc98x1_vram_e0000_readb, pc98x1_vram_e0000_readw, pc98x1_vram_e0000_readl, pc98x1_vram_e0000_writeb, pc98x1_vram_e0000_writew, pc98x1_vram_e0000_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
     mem_mapping_add(&dev->vram_f00000_mapping, 0xf00000, 0xa0000, pc98x1_vram_f00000_readb, pc98x1_vram_f00000_readw, pc98x1_vram_f00000_readl, pc98x1_vram_f00000_writeb, pc98x1_vram_f00000_writew, pc98x1_vram_f00000_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
 
-    io_sethandler_interleaved(0x0060, 0x0001, upd7220_statreg_read, NULL, NULL, upd7220_param_write, NULL, NULL, &dev->gdc_chr);
-    io_sethandler_interleaved(0x0062, 0x0001, upd7220_data_read, NULL, NULL, upd7220_cmdreg_write, NULL, NULL, &dev->gdc_chr);
+    io_sethandler_interleaved(0x0060, 0x0001, upd7220_read, NULL, NULL, upd7220_write, NULL, NULL, &dev->gdc_chr);
+    io_sethandler(0x0064, 0x0001, NULL, NULL, NULL, pc98x1_vsync_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x0064, 0x0001, NULL, NULL, NULL, pc98x1_vsync_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x0068, 0x0001, pc98x1_mode_flipflop1_2_read, NULL, NULL, pc98x1_mode_flipflop1_2_write, NULL, NULL, dev);
+    io_sethandler(0x006e, 0x0001, pc98x1_mode_flipflop3_read, NULL, NULL, pc98x1_mode_flipflop3_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x0068, 0x0001, pc98x1_mode_flipflop1_read, NULL, NULL, pc98x1_mode_flipflop1_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x006a, 0x0001, pc98x1_mode_flipflop2_read, NULL, NULL, pc98x1_mode_flipflop2_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x006e, 0x0001, pc98x1_mode_flipflop3_read, NULL, NULL, pc98x1_mode_flipflop3_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x0070, 0x0005, NULL, NULL, NULL, pc98x1_crtc_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x0070, 0x0001, NULL, NULL, NULL, pc98x1_crtc_pl_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x0072, 0x0001, NULL, NULL, NULL, pc98x1_crtc_bl_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x0074, 0x0001, NULL, NULL, NULL, pc98x1_crtc_cl_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x0076, 0x0001, NULL, NULL, NULL, pc98x1_crtc_ssl_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x0078, 0x0001, NULL, NULL, NULL, pc98x1_crtc_sur_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x007a, 0x0001, NULL, NULL, NULL, pc98x1_crtc_sdr_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x007c, 0x0001, NULL, NULL, NULL, pc98x1_grcg_write, pc98x1_grcg_writew, NULL, dev);
 
-    io_sethandler_interleaved(0x007c, 0x0001, NULL, NULL, NULL, pc98x1_grcg_mode_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x007e, 0x0001, NULL, NULL, NULL, pc98x1_grcg_tile_write, pc98x1_grcg_tile_writew, NULL, dev);
+    io_sethandler_interleaved(0x00a0, 0x0002, upd7220_read, NULL, NULL, upd7220_write, NULL, NULL, &dev->gdc_gfx);
 
-    io_sethandler_interleaved(0x00a0, 0x0001, upd7220_statreg_read, NULL, NULL, upd7220_param_write, NULL, NULL, &dev->gdc_gfx);
-    io_sethandler_interleaved(0x00a2, 0x0001, upd7220_data_read, NULL, NULL, upd7220_cmdreg_write, NULL, NULL, &dev->gdc_gfx);
+    io_sethandler_interleaved(0x00a1, 0x0003, pc98x1_cgwindow_read, NULL, NULL, pc98x1_cgwindow_write, NULL, NULL, dev);
+    io_sethandler(0x00a9, 0x0001, pc98x1_cgwindow_pattern_read, NULL, NULL, pc98x1_cgwindow_pattern_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x00a1, 0x0001, pc98x1_cgwindow_code2_read, NULL, NULL, pc98x1_cgwindow_code2_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00a3, 0x0001, pc98x1_cgwindow_code1_read, NULL, NULL, pc98x1_cgwindow_code1_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00a5, 0x0001, pc98x1_cgwindow_line_read, NULL, NULL, pc98x1_cgwindow_line_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00a9, 0x0001, pc98x1_cgwindow_pattern_read, NULL, NULL, pc98x1_cgwindow_pattern_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x00a4, 0x0001, pc98x1_vram_bank_read, NULL, NULL, pc98x1_vram_bank_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x00a4, 0x0001, pc98x1_vram_disp_read, NULL, NULL, pc98x1_vram_disp_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00a6, 0x0001, pc98x1_vram_draw_read, NULL, NULL, pc98x1_vram_draw_write, NULL, NULL, dev);
+    io_sethandler_interleaved(0x00a8, 0x0004, pc98x1_palette_read, NULL, NULL, pc98x1_palette_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x00a8, 0x0001, pc98x1_palette_a8_read, NULL, NULL, pc98x1_palette_a8_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00aa, 0x0001, pc98x1_palette_aa_read, NULL, NULL, pc98x1_palette_aa_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00ac, 0x0001, pc98x1_palette_ac_read, NULL, NULL, pc98x1_palette_ac_write, NULL, NULL, dev);
-    io_sethandler_interleaved(0x00ae, 0x0001, pc98x1_palette_ae_read, NULL, NULL, pc98x1_palette_ae_write, NULL, NULL, dev);
+    io_sethandler(0x04a0, 0x0010, NULL, NULL, NULL, egc_ioport_writeb, egc_ioport_writew, NULL, &dev->egc);
 
-    io_sethandler_interleaved(0x04a0, 0x0010, NULL, NULL, NULL, egc_ioport_writeb, egc_ioport_writew, NULL, &dev->egc);
+    io_sethandler(0x09a0, 0x0001, pc98x1_mode_status_read, NULL, NULL, pc98x1_mode_select_write, NULL, NULL, dev);
 
-    io_sethandler_interleaved(0x09a0, 0x0001, pc98x1_mode_status_read, NULL, NULL, pc98x1_mode_select_write, NULL, NULL, dev);
-
-    io_sethandler_interleaved(0x09a8, 0x0001, pc98x1_horiz_freq_read, NULL, NULL, pc98x1_horiz_freq_write, NULL, NULL, dev);
+    io_sethandler(0x09a8, 0x0001, pc98x1_horiz_freq_read, NULL, NULL, pc98x1_horiz_freq_write, NULL, NULL, dev);
 
     pc98x1_vid_reset(dev);
 
@@ -2086,7 +2001,7 @@ pc98x1_speed_changed(void *priv)
 const device_t pc98x1_vid_device = {
     .name = "NEC PC-98x1 Built-in Video",
     .internal_name = "pc98x1_vid",
-    .flags = 0,
+    .flags = DEVICE_CBUS,
     .local = 0,
     .init = pc98x1_vid_init,
     .close = pc98x1_vid_close,

@@ -142,8 +142,10 @@ typedef struct pc98x1_vid_t {
     double clock;
 } pc98x1_vid_t;
 
-#    ifdef EMU_DEVICE_H
+extern void pc98x1_font_init(pc98x1_vid_t *dev, char *s);
+
+#ifdef EMU_DEVICE_H
 extern const device_t pc98x1_vid_device;
-#    endif // EMU_DEVICE_H
+#endif // EMU_DEVICE_H
 
 #endif /*VIDEO_PC98X1_EGC_H*/

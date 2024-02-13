@@ -81,6 +81,10 @@ extern void pic_init_pcjr(void);
 extern void pic2_init(void);
 extern void pic_reset(void);
 
+extern void pic_pc98_init(void);
+extern void pic2_pc98_init(void);
+extern void pic_pc98_reset(void);
+
 extern uint8_t pic_read_icw(uint8_t pic_id, uint8_t icw);
 extern uint8_t pic_read_ocw(uint8_t pic_id, uint8_t ocw);
 extern int     picint_is_level(int irq);

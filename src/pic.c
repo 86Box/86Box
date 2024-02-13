@@ -280,6 +280,32 @@ pic_reset(void)
 }
 
 void
+pic_pc98_reset(void)
+{
+    memset(&pic, 0, sizeof(pic_t));
+    memset(&pic2, 0, sizeof(pic_t));
+
+    pic.is_master = 1;
+    pic.interrupt = pic2.interrupt = 0x17;
+
+    pic.slaves[7] = &pic2;
+
+    if (tmr_inited)
+        timer_on_auto(&pic_timer, 0.0);
+    memset(&pic_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&pic_timer, pic_callback, &pic, 0);
+    tmr_inited = 1;
+
+    update_pending = pic_update_pending_at;
+    pic.at = pic2.at = 0;
+
+    smi_irq_mask = smi_irq_status = 0x0000;
+
+    shadow  = 0;
+    pic_pci = 0;
+}
+
+void
 pic_set_shadow(int sh)
 {
     shadow = sh;
@@ -637,17 +663,32 @@ pic_reset_hard(void)
     }
 }
 
+static void
+pic_pc98_reset_hard(void)
+{
+    pic_pc98_reset();
+
+    /* Explicitly reset the latches. */
+    kbd_latch = mouse_latch = 0;
+    latched_irqs = 0x0000;
+}
+
 void
 pic_init(void)
 {
     pic_reset_hard();
 
     shadow = 0;
-    if (machine_pc98.init) {
-        io_sethandler_interleaved(0x0000, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
-        io_sethandler_interleaved(0x0002, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
-    } else
-        io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+    io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+}
+
+void
+pic_pc98_init(void)
+{
+    pic_pc98_reset_hard();
+
+    shadow = 0;
+    io_sethandler_interleaved(0x0000, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 }
 
 void
@@ -662,14 +703,15 @@ pic_init_pcjr(void)
 void
 pic2_init(void)
 {
-    if (machine_pc98.init) {
-        io_sethandler_interleaved(0x0008, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
-        io_sethandler_interleaved(0x000a, 0x0001, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
-        pic.slaves[7] = &pic2;
-    } else {
-        io_sethandler(0x00a0, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
-        pic.slaves[2] = &pic2;
-    }
+    io_sethandler(0x00a0, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    pic.slaves[2] = &pic2;
+}
+
+void
+pic2_pc98_init(void)
+{
+    io_sethandler_interleaved(0x0008, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    pic.slaves[7] = &pic2;
 }
 
 void

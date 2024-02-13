@@ -135,6 +135,7 @@ extern uint8_t pit_read_reg(void *priv, uint8_t reg);
 
 #ifdef EMU_DEVICE_H
 extern const device_t i8253_device;
+extern const device_t i8253_pc98_device;
 extern const device_t i8254_device;
 extern const device_t i8254_sec_device;
 extern const device_t i8254_ext_io_device;
