@@ -579,6 +579,7 @@ extern const device_t wy700_device;
 
 /* Chips & Technologies */
 extern const device_t chips_69000_device;
+extern const device_t chips_69000_onboard_device;
 
 #endif
 
