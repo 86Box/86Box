@@ -11567,7 +11567,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Has internal video: C&T B69000 */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
