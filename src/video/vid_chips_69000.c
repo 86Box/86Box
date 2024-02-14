@@ -1528,17 +1528,15 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
         case 0xA6:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.y = val | (chips->ext_regs[0xA7] & 7) << 8;
-            if (chips->ext_regs[0xA7] & 0x80) {
-                chips->svga.hwcursor.yoff = chips->svga.hwcursor.y;
-                chips->svga.hwcursor.y = 0;
+            if ((chips->ext_regs[0xA7] & 0x80) && chips->svga.hwcursor.y) {
+                chips->svga.hwcursor.y = -chips->svga.hwcursor.y;
             }
             break;
         case 0xA7:
             chips->ext_regs[chips->ext_index] = val;
             chips->svga.hwcursor.y = chips->ext_regs[0xA6] | (val & 7) << 8;
-            if (chips->ext_regs[0xA7] & 0x80){
-                chips->svga.hwcursor.yoff = chips->svga.hwcursor.y;
-                chips->svga.hwcursor.y = 0;
+            if ((chips->ext_regs[0xA7] & 0x80) && chips->svga.hwcursor.y) {
+                chips->svga.hwcursor.y = -chips->svga.hwcursor.y;
             }
             break;
         case 0xC8:
