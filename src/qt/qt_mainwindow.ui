@@ -845,7 +845,7 @@
     <string>VNC</string>
    </property>
    <property name="vid_api" stdset="0">
-    <number>6</number>
+    <number>5</number>
    </property>
   </action>
   <action name="actionOpen_screenshots_folder">
