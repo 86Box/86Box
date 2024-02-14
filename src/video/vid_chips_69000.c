@@ -1988,7 +1988,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
                 case 0x600 ... 0x603:
                 {
                     chips->mem_regs_b[addr & 0xF] = val;
-                    chips->mem_regs[addr >> 2] &= 0x80004040;
+                    chips->mem_regs[(addr >> 2) & 0x3] &= 0x80004040;
                     if (addr == 0x605 || addr == 0x607)
                         chips_69000_interrupt(chips);
                     break;
@@ -1997,7 +1997,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
                 case 0x604 ... 0x607:
                 {
                     chips->mem_regs_b[addr & 0xF] &= ~val;
-                    chips->mem_regs[addr >> 2] &= 0x80004040;
+                    chips->mem_regs[(addr >> 2) & 0x3] &= 0x80004040;
                     if (addr == 0x605 || addr == 0x607)
                         chips_69000_interrupt(chips);
                     break;
