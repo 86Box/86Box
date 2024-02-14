@@ -2334,10 +2334,12 @@ chips_69000_init(const device_t *info)
     chips_69000_t *chips = calloc(1, sizeof(chips_69000_t));
 
     /* Appears to have an odd VBIOS size. */
+#if defined(DEV_BRANCH) && defined(USE_CHIPS_69000_NON_ONBOARD)
     if (!info->local) {
         rom_init(&chips->bios_rom, "roms/video/chips/69000.ROM", 0xc0000, 0x40000, 0x3ffff, 0x0000, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&chips->bios_rom.mapping);
     }
+#endif
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_chips);
 
@@ -2371,7 +2373,7 @@ chips_69000_init(const device_t *info)
     timer_add(&chips->decrement_timer, chips_69000_decrement_timer, chips, 0);
     timer_on_auto(&chips->decrement_timer, 1000000. / 2000.);
 
-    chips->i2c_ddc = i2c_gpio_init("c&t_69000_mga");
+    chips->i2c_ddc = i2c_gpio_init("c&t_69000_ddc");
     chips->ddc     = ddc_init(i2c_gpio_get_bus(chips->i2c_ddc));
     
     chips->flat_panel_regs[0x01] = 1;
@@ -2416,6 +2418,7 @@ chips_69000_force_redraw(void *p)
     chips->svga.fullchange = changeframecount;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_CHIPS_69000_NON_ONBOARD)
 const device_t chips_69000_device = {
     .name          = "Chips & Technologies B69000",
     .internal_name = "c&t_69000",
@@ -2429,6 +2432,7 @@ const device_t chips_69000_device = {
     .force_redraw  = chips_69000_force_redraw,
     .config        = NULL
 };
+#endif
 
 const device_t chips_69000_onboard_device = {
     .name          = "Chips & Technologies B69000 (onboard)",

@@ -580,7 +580,9 @@ extern const device_t velocity_200_agp_device;
 extern const device_t wy700_device;
 
 /* Chips & Technologies */
+#if defined(DEV_BRANCH) && defined(USE_CHIPS_69000_NON_ONBOARD)
 extern const device_t chips_69000_device;
+#endif
 extern const device_t chips_69000_onboard_device;
 
 #endif

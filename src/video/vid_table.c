@@ -207,7 +207,9 @@ video_cards[] = {
     { &s3_virge_357_pci_device                         },
     { &s3_diamond_stealth_4000_pci_device              },
     { &s3_trio3d2x_pci_device                          },
+#if defined(DEV_BRANCH) && defined(USE_CHIPS_69000_NON_ONBOARD)
     { &chips_69000_device                              },
+#endif
     { &millennium_device                               },
 #if defined(DEV_BRANCH) && defined(USE_MGA2)
     { &millennium_ii_device                            },
