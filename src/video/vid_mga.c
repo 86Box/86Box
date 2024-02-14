@@ -1137,7 +1137,7 @@ mystique_recalc_mapping(mystique_t *mystique)
         switch (svga->gdcreg[6] & 0x0C) {
             case 0x0: /*128k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
-                svga->banked_mask = 0x1ffff;
+                svga->banked_mask = 0xffff;
                 break;
             case 0x4: /*64k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
@@ -2812,12 +2812,20 @@ mystique_readb_linear(uint32_t addr, void *priv)
     const svga_t *svga = (svga_t *) priv;
     mystique_t *mystique = (mystique_t *) svga->priv;
 
-    if (mystique->type < MGA_1064SG) {
-        if (!svga->fast)
-            return svga_read_linear(addr, priv);
-    }
-
     cycles -= svga->monitor->mon_video_timing_read_b;
+
+    if ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) {
+        addr &= svga->decode_mask;
+        if (addr >= svga->vram_max)
+            return 0xff;
+
+        return svga->vram[addr & svga->vram_mask];
+    } else if (svga->chain4 && !svga->force_old_addr) {
+        addr      = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
+    } else if (svga->chain2_read) {
+        addr &= ~1;
+        addr <<= 2;
+    }
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2860,14 +2868,16 @@ mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv)
     svga_t *svga = (svga_t *) priv;
     mystique_t *mystique = (mystique_t *) svga->priv;
 
-    if (mystique->type < MGA_1064SG) {
-        if (!svga->fast) {
-            svga_write_linear(addr, val, priv);
-            return;
-        }
-    }
-
     cycles -= svga->monitor->mon_video_timing_write_b;
+
+    if (((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && (svga->writemode < 4)) {
+        addr &= ~3;
+    } else if (svga->chain4 && (svga->writemode < 4)) {
+        addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
+    } else if (svga->chain2_write) {
+        addr &= ~1;
+        addr <<= 2;
+    }
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -6401,8 +6411,8 @@ mystique_init(const device_t *info)
         mystique->svga.clock_gen         = mystique->svga.ramdac;
         mystique->svga.getclock          = tvp3026_getclock;
         mystique->svga.conv_16to32       = tvp3026_conv_16to32;
-        if (mystique->vram_size >= 16)
-            mystique->svga.decode_mask = mystique->svga.vram_mask;
+        if (mystique->type == MGA_2164W)
+            mystique->svga.decode_mask = 0xffffff;
         tvp3026_gpio(mystique_tvp3026_gpio_read, mystique_tvp3026_gpio_write, mystique, mystique->svga.ramdac);
     } else {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
@@ -6413,8 +6423,8 @@ mystique_init(const device_t *info)
                   NULL);
         mystique->svga.clock_gen = mystique;
         mystique->svga.getclock  = mystique_getclock;
-        if (mystique->vram_size >= 16)
-            mystique->svga.decode_mask = mystique->svga.vram_mask;
+        if (mystique->type == MGA_G100)
+            mystique->svga.decode_mask = 0xffffff;
     }
 
     io_sethandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
@@ -6541,13 +6551,13 @@ mystique_220_available(void)
     return rom_present(ROM_MYSTIQUE_220);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
 static int
 millennium_ii_available(void)
 {
     return rom_present(ROM_MILLENNIUM_II);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_MGA2)
 static int
 matrox_g100_available(void)
 {
@@ -6603,7 +6613,6 @@ static const device_config_t mystique_config[] = {
   // clang-format on
 };
 
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
 static const device_config_t millennium_ii_config[] = {
   // clang-format off
     {
@@ -6635,7 +6644,6 @@ static const device_config_t millennium_ii_config[] = {
     }
   // clang-format on
 };
-#endif
 
 const device_t millennium_device = {
     .name          = "Matrox Millennium",
@@ -6679,7 +6687,6 @@ const device_t mystique_220_device = {
     .config        = mystique_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
 const device_t millennium_ii_device = {
     .name          = "Matrox Millennium II",
     .internal_name = "millennium_ii",
@@ -6694,6 +6701,7 @@ const device_t millennium_ii_device = {
     .config        = millennium_ii_config
 };
 
+#if defined(DEV_BRANCH) && defined(USE_MGA2)
 const device_t productiva_g100_device = {
     .name          = "Matrox Productiva G100",
     .internal_name = "productiva_g100",

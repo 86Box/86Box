@@ -209,9 +209,7 @@ video_cards[] = {
     { &s3_trio3d2x_pci_device                          },
     { &chips_69000_device                              },
     { &millennium_device                               },
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
     { &millennium_ii_device                            },
-#endif
     { &mystique_device                                 },
     { &mystique_220_device                             },
     { &tgui9440_pci_device                             },
