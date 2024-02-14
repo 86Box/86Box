@@ -73,6 +73,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef OPEN_AT
   OPEN_AT := y
  endif
+ ifndef OPL4ML
+  OPL4ML := y
+ endif
  ifndef PAS16
   PAS16 := y
  endif
@@ -136,6 +139,9 @@ else
  endif
  ifndef OPEN_AT
   OPEN_AT := n
+ endif
+ ifndef OPL4ML
+  OPL4ML := n
  endif
  ifndef PAS16
   PAS16 := n
@@ -504,6 +510,11 @@ ifeq ($(DEV_BRANCH), y)
   OPTS += -DUSE_OPEN_AT
  endif
 
+ ifeq ($(OPL4ML), y)
+  OPTS     += -DUSE_OPL4ML
+  DEVBROBJ += midi_opl4.o midi_opl4_yrw801.o
+ endif
+
  ifeq ($(PAS16), y)
   OPTS     += -DUSE_PAS16
   DEVBROBJ += snd_pas16.o
@@ -708,8 +719,6 @@ SNDOBJ := sound.o \
           wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
           wave8580_PST.o wave.o \
           midi.o \
-          midi_opl4.o \
-          midi_opl4_yrw801.o \
           snd_speaker.o \
           snd_pssj.o \
           snd_ps1.o \
@@ -744,10 +753,11 @@ VIDOBJ := agpgart.o video.o \
           vid_vga.o \
           vid_ati_eeprom.o \
           vid_ati18800.o vid_ati28800.o \
-	  vid_ati_mach8.o \
+          vid_ati_mach8.o \
           vid_ati68875_ramdac.o \
           vid_ati_mach64.o vid_ati68860_ramdac.o \
           vid_bt48x_ramdac.o \
+          vid_chips_69000.o \
           vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
           vid_cl54xx.o \
           vid_et3000.o \
