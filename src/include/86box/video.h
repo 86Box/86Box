@@ -440,9 +440,7 @@ extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
-#    if defined(DEV_BRANCH) && defined(USE_MGA2)
 extern const device_t productiva_g100_device;
-#    endif
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
