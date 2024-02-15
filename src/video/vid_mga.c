@@ -794,7 +794,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 }
             }
 
-           if (mystique->crtcext_idx == 4) {
+            if (mystique->crtcext_idx == 4) {
                 if (svga->gdcreg[6] & 0xc) {
                     /*64k banks*/
                     if (mystique->type >= MGA_2164W) {
@@ -815,6 +815,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
+            svga_recalctimings(svga);
             break;
 
         default:
@@ -2814,17 +2815,11 @@ mystique_readb_linear(uint32_t addr, void *priv)
 
     cycles -= svga->monitor->mon_video_timing_read_b;
 
-    if ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) {
-        addr &= svga->decode_mask;
-        if (addr >= svga->vram_max)
-            return 0xff;
-
-        return svga->vram[addr & svga->vram_mask];
-    } else if (svga->chain4 && !svga->force_old_addr) {
-        addr      = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
-    } else if (svga->chain2_read) {
-        addr &= ~1;
-        addr <<= 2;
+    if (!svga->fast) {
+        if (svga->chain2_read) {
+            addr &= ~1;
+            addr <<= 2;
+        }
     }
 
     addr &= svga->decode_mask;
@@ -2870,13 +2865,11 @@ mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 
     cycles -= svga->monitor->mon_video_timing_write_b;
 
-    if (((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && (svga->writemode < 4)) {
-        addr &= ~3;
-    } else if (svga->chain4 && (svga->writemode < 4)) {
-        addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
-    } else if (svga->chain2_write) {
-        addr &= ~1;
-        addr <<= 2;
+    if (!svga->fast) {
+        if (svga->chain2_write) {
+            addr &= ~1;
+            addr <<= 2;
+        }
     }
 
     addr &= svga->decode_mask;
@@ -5835,8 +5828,13 @@ blit_iload_highv(mystique_t *mystique)
 static void
 mystique_start_blit(mystique_t *mystique)
 {
+    svga_t *svga = &mystique->svga;
     uint64_t start_time = plat_timer_read();
     uint64_t end_time;
+
+    /*Make sure we don't get any artifacts.*/
+    svga->chain2_write = 0;
+    svga->chain2_read = 0;
 
     mystique->dwgreg.dwgctrl_running = mystique->dwgreg.dwgctrl;
     mystique->maccess_running        = mystique->maccess;
@@ -5969,15 +5967,6 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
     mystique_t *mystique = (mystique_t *) priv;
     uint8_t     ret      = 0x00;
 
-    if (mystique->type >= MGA_1164SG)
-    {
-        /* Mystique 220, Millennium II and later Matrox cards swap MGABASE1 and 2. */
-        if (addr >= 0x10 && addr <= 0x13)
-            addr += 0x4;
-        else if (addr >= 0x14 && addr <= 0x17)
-            addr -= 0x4;
-    }
-
     if ((addr >= 0x30) && (addr <= 0x33) && !(mystique->pci_regs[0x43] & 0x40))
         ret = 0x00;
     else
@@ -6032,25 +6021,46 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
 
             case 0x10:
                 ret = 0x00;
-                break; /*Control aperture*/
+                break; /*Control aperture for Millennium and Mystique, LFB for Mystique 220 and later*/
             case 0x11:
-                ret = (mystique->ctrl_base >> 8) & 0xc0;
+                if (mystique->type >= MGA_1164SG)
+                    ret = 0x00;
+                else
+                    ret = (mystique->ctrl_base >> 8) & 0xc0;
                 break;
             case 0x12:
-                ret = mystique->ctrl_base >> 16;
+                if (mystique->type >= MGA_1164SG)
+                    ret = (mystique->type >= MGA_2164W) ? 0x00 : ((mystique->lfb_base >> 16) & 0x80);
+                else
+                    ret = mystique->ctrl_base >> 16;
                 break;
             case 0x13:
-                ret = mystique->ctrl_base >> 24;
+                if (mystique->type >= MGA_1164SG)
+                    ret = mystique->lfb_base >> 24;
+                else
+                    ret = mystique->ctrl_base >> 24;
                 break;
 
             case 0x14:
                 ret = 0x00;
-                break; /*Linear frame buffer*/
+                break; /*LFB for Millennium and Mystique, Control aperture for Mystique 220 and later*/
+            case 0x15:
+                if (mystique->type >= MGA_1164SG)
+                    ret = (mystique->ctrl_base >> 8) & 0xc0;
+                else
+                    ret = 0x00;
+                break;
             case 0x16:
-                ret = (mystique->type >= MGA_2164W) ? 0x00 : ((mystique->lfb_base >> 16) & 0x80);
+                if (mystique->type >= MGA_1164SG)
+                    ret = mystique->ctrl_base >> 16;
+                else
+                    ret = (mystique->lfb_base >> 16) & 0x80;
                 break;
             case 0x17:
-                ret = mystique->lfb_base >> 24;
+                if (mystique->type >= MGA_1164SG)
+                    ret = mystique->ctrl_base >> 24;
+                else
+                    ret = mystique->lfb_base >> 24;
                 break;
 
             case 0x18:
@@ -6090,7 +6100,7 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
                 break;
 
             case 0x34:
-                ret = mystique->type == MGA_G100 ? 0xdc : 0x00;
+                ret = (mystique->type == MGA_G100) ? 0xdc : 0x00;
                 break;
 
             case 0x3c:
@@ -6193,15 +6203,6 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
-    if (mystique->type >= MGA_1164SG)
-    {
-        /* Mystique 220, Millennium II and later Matrox cards swap MGABASE1 and 2. */
-        if (addr >= 0x10 && addr <= 0x13)
-            addr += 0x4;
-        else if (addr >= 0x14 && addr <= 0x17)
-            addr -= 0x4;
-    }
-
     switch (addr) {
         case PCI_REG_COMMAND:
             mystique->pci_regs[PCI_REG_COMMAND] = (val & 0x27) | 0x80;
@@ -6217,27 +6218,61 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x11:
-            mystique->ctrl_base = (mystique->ctrl_base & 0xffff0000) | ((val & 0xc0) << 8);
-            mystique_recalc_mapping(mystique);
+            if (mystique->type >= MGA_1164SG)
+                break;
+            else {
+                mystique->ctrl_base = (mystique->ctrl_base & 0xffff0000) | ((val & 0xc0) << 8);
+                mystique_recalc_mapping(mystique);
+            }
             break;
         case 0x12:
-            mystique->ctrl_base = (mystique->ctrl_base & 0xff00c000) | (val << 16);
-            mystique_recalc_mapping(mystique);
+            if (mystique->type >= MGA_1164SG) {
+                if (mystique->type >= MGA_2164W)
+                    break;
+                mystique->lfb_base = (mystique->lfb_base & 0xff000000) | ((val & 0x80) << 16);
+                mystique_recalc_mapping(mystique);
+            } else {
+                mystique->ctrl_base = (mystique->ctrl_base & 0xff00c000) | (val << 16);
+                mystique_recalc_mapping(mystique);
+            }
             break;
         case 0x13:
-            mystique->ctrl_base = (mystique->ctrl_base & 0x00ffc000) | (val << 24);
-            mystique_recalc_mapping(mystique);
+            if (mystique->type >= MGA_1164SG) {
+                if (mystique->type >= MGA_2164W)
+                    mystique->lfb_base = val << 24;
+                else
+                    mystique->lfb_base = (mystique->lfb_base & 0x00800000) | (val << 24);
+
+                mystique_recalc_mapping(mystique);
+            } else {
+                mystique->ctrl_base = (mystique->ctrl_base & 0x00ffc000) | (val << 24);
+                mystique_recalc_mapping(mystique);
+            }
             break;
 
+        case 0x15:
+            if (mystique->type >= MGA_1164SG) {
+                mystique->ctrl_base = (mystique->ctrl_base & 0xffff0000) | ((val & 0xc0) << 8);
+                mystique_recalc_mapping(mystique);
+            }
+            break;
         case 0x16:
-            if (mystique->type >= MGA_2164W)
-                break;
-            mystique->lfb_base = (mystique->lfb_base & 0xff000000) | ((val & 0x80) << 16);
-            mystique_recalc_mapping(mystique);
+            if (mystique->type >= MGA_1164SG) {
+                mystique->ctrl_base = (mystique->ctrl_base & 0xff00c000) | (val << 16);
+                mystique_recalc_mapping(mystique);
+            } else {
+                mystique->lfb_base = (mystique->lfb_base & 0xff000000) | ((val & 0x80) << 16);
+                mystique_recalc_mapping(mystique);
+            }
             break;
         case 0x17:
-            mystique->lfb_base = (mystique->lfb_base & ((mystique->type >= MGA_2164W) ? 0x00000000 : 0x00800000)) | (val << 24);
-            mystique_recalc_mapping(mystique);
+            if (mystique->type >= MGA_1164SG) {
+                mystique->ctrl_base = (mystique->ctrl_base & 0x00ffc000) | (val << 24);
+                mystique_recalc_mapping(mystique);
+            } else {
+                mystique->lfb_base = (mystique->lfb_base & 0x00800000) | (val << 24);
+                mystique_recalc_mapping(mystique);
+            }
             break;
 
         case 0x1a:
@@ -6258,8 +6293,8 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (addr == 0x30)
                 mystique->pci_regs[addr] &= 1;
             if (mystique->pci_regs[0x30] & 0x01) {
-                uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
+                uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
+                mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             } else
                 mem_mapping_disable(&mystique->bios_rom.mapping);
             return;
@@ -6282,8 +6317,8 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (addr == 0x43) {
                 if (val & 0x40) {
                     if (mystique->pci_regs[0x30] & 0x01) {
-                        uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                        mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
+                        uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
+                        mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
                     } else
                         mem_mapping_disable(&mystique->bios_rom.mapping);
                 } else
@@ -6557,13 +6592,11 @@ millennium_ii_available(void)
     return rom_present(ROM_MILLENNIUM_II);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
 static int
 matrox_g100_available(void)
 {
     return rom_present(ROM_G100);
 }
-#endif
 
 static void
 mystique_speed_changed(void *priv)
@@ -6701,7 +6734,6 @@ const device_t millennium_ii_device = {
     .config        = millennium_ii_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
 const device_t productiva_g100_device = {
     .name          = "Matrox Productiva G100",
     .internal_name = "productiva_g100",
@@ -6715,4 +6747,3 @@ const device_t productiva_g100_device = {
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
 };
-#endif

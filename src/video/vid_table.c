@@ -260,9 +260,7 @@ video_cards[] = {
     { &s3_virge_357_agp_device                         },
     { &s3_diamond_stealth_4000_agp_device              },
     { &s3_trio3d2x_agp_device                          },
-#if defined(DEV_BRANCH) && defined(USE_MGA2)
     { &productiva_g100_device, VIDEO_FLAG_TYPE_SPECIAL },
-#endif
     { &velocity_100_agp_device                         },
     { &velocity_200_agp_device                         },
     { &voodoo_3_1000_agp_device                        },
