@@ -1835,7 +1835,7 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 chips->pci_rom_enable = val & 0x1;
                 mem_mapping_disable(&chips->bios_rom.mapping);
                 if (chips->pci_rom_enable & 1) {
-                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x40000);
+                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
                 }
                 break;
             case 0x32:
@@ -1843,7 +1843,7 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 chips->rom_addr &= ~0xFF;
                 chips->rom_addr |= val & 0xFC;
                 if (chips->pci_rom_enable & 1) {
-                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x40000);
+                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
                 }
                 break;
             case 0x33:
@@ -1851,7 +1851,7 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 chips->rom_addr &= ~0xFF00;
                 chips->rom_addr |= (val << 8);
                 if (chips->pci_rom_enable & 1) {
-                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x40000);
+                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
                 }
                 break;
             case 0x6C:
@@ -2333,7 +2333,7 @@ chips_69000_init(const device_t *info)
 
     /* Appears to have an odd VBIOS size. */
     if (!info->local) {
-        rom_init(&chips->bios_rom, "roms/video/chips/69000.ROM", 0xc0000, 0x40000, 0x3ffff, 0x0000, MEM_MAPPING_EXTERNAL);
+        rom_init(&chips->bios_rom, "roms/video/chips/69000.ROM", 0xc0000, 0x10000, 0xffff, 0x0000, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&chips->bios_rom.mapping);
     }
 
