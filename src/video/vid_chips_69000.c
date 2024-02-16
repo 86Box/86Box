@@ -475,6 +475,9 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t pattern, uint8_t src, ui
             break;
         case 0xAA:
             break; /* No-op. */
+        case 0xAC:
+            *dst = src ^ (pattern & (*dst ^ src));
+            break;
         case 0xAF:
             *dst |= ~pattern;
             break;
@@ -483,6 +486,9 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t pattern, uint8_t src, ui
             break;
         case 0xCA:
             *dst ^= (pattern & (src ^ *dst));
+            break;
+        case 0xE2:
+            *dst ^= (src & (pattern ^ *dst));
             break;
         case 0xDA:
             *dst ^= pattern & (~(src & *dst));
@@ -502,6 +508,9 @@ chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t pattern, uint8_t src, ui
         case 0xFF:
             *dst = 0xFF;
             break;
+        default:
+            pclog("Unknown ROP 0x%X\n", rop);
+            break;
     }
 }
 
@@ -513,6 +522,9 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t pattern, uint16_t src
     }
 
     switch (rop) {
+        default:
+            pclog("Unknown ROP 0x%X\n", rop);
+            break;
         case 0x00:
             *dst = 0;
             break;
@@ -572,6 +584,9 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t pattern, uint16_t src
             break;
         case 0xAA:
             break; /* No-op. */
+        case 0xAC:
+            *dst = src ^ (pattern & (*dst ^ src));
+            break;
         case 0xAF:
             *dst |= ~pattern;
             break;
@@ -580,6 +595,9 @@ chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t pattern, uint16_t src
             break;
         case 0xCA:
             *dst ^= (pattern & (src ^ *dst));
+            break;
+        case 0xE2:
+            *dst ^= (src & (pattern ^ *dst));
             break;
         case 0xDA:
             *dst ^= pattern & (~(src & *dst));
@@ -612,6 +630,9 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src
     }
 
     switch (rop) {
+        default:
+            pclog("Unknown ROP 0x%X\n", rop);
+            break;
         case 0x00:
             *dst = 0;
             break;
@@ -671,6 +692,9 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src
             break;
         case 0xAA:
             break; /* No-op. */
+        case 0xAC:
+            *dst = src ^ (pattern & (*dst ^ src));
+            break;
         case 0xAF:
             *dst |= ~pattern;
             break;
@@ -682,6 +706,9 @@ chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src
             break;
         case 0xDA:
             *dst ^= pattern & (~(src & *dst));
+            break;
+        case 0xE2:
+            *dst ^= (src & (pattern ^ *dst));
             break;
         case 0xEA:
             *dst |= pattern & src;
@@ -853,7 +880,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
             pattern_data = 0;
         else
-            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + chips->bitblt_running.y) & 7), chips);
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
 
         is_true = !!(pattern_data & (1 << (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)));
 
@@ -1107,6 +1134,9 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         } else {
             chips->bitblt_running.mono_bits_skip_left = chips->bitblt_running.bitblt.monochrome_source_left_clip;
 
+            if (chips->bitblt_running.bitblt.monochrome_source_alignment == 5)
+                chips->bitblt_running.bitblt.monochrome_source_alignment = 0;
+
             if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0) {
                 chips->bitblt_running.mono_bytes_pitch = ((chips->bitblt_running.actual_destination_width + chips->bitblt_running.bitblt.monochrome_source_left_clip + 63) & ~63) / 8;
             }
@@ -1238,7 +1268,14 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
         int orig_cycles = cycles;
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
-        if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && chips->bitblt_running.mono_bytes_pitch && chips->bitblt_running.mono_bytes_pitch == chips->bitblt_running.bytes_written) {
+        if (chips->bitblt_running.bitblt.monochrome_source_alignment == 1) {
+            uint8_t val = chips->bitblt_running.bytes_port[0];
+            int i = 0;
+            chips->bitblt_running.bytes_written = 0;
+            for (i = 0; i < 8; i++) {
+                chips_69000_process_mono_bit(chips, !!(val & (1 << (7 - i))));
+            }
+        } else if (chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && chips->bitblt_running.mono_bytes_pitch && chips->bitblt_running.mono_bytes_pitch == chips->bitblt_running.bytes_written) {
             int orig_count_y = chips->bitblt_running.count_y;
             int i = 0, j = 0;
             chips->bitblt_running.bytes_written = 0;
@@ -1254,8 +1291,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             }
         }
         else if ((chips->bitblt_running.bitblt.monochrome_source_alignment == 0 && !chips->bitblt_running.mono_bytes_pitch)
-        || chips->bitblt_running.bitblt.monochrome_source_alignment == 2
-        || chips->bitblt_running.bitblt.monochrome_source_alignment == 1) {
+        || chips->bitblt_running.bitblt.monochrome_source_alignment == 2) {
             int orig_count_y = chips->bitblt_running.count_y;
             int i = 0;
             uint8_t val = chips->bitblt_running.bytes_port[0];
@@ -2202,6 +2238,7 @@ chips_69000_vblank_start(svga_t *svga)
 {
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
     chips->mem_regs[1] |= 1 << 14;
+    chips->svga.crtc[0x40] &= ~0x80;
     
     chips_69000_interrupt(chips);
 }
