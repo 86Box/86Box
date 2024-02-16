@@ -2202,6 +2202,7 @@ chips_69000_vblank_start(svga_t *svga)
 {
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
     chips->mem_regs[1] |= 1 << 14;
+    chips->svga.crtc[0x40] &= ~0x80;
     
     chips_69000_interrupt(chips);
 }
