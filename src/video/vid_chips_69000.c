@@ -1081,7 +1081,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         return;
     }
 
-#if 1
+#if 0
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
         pclog("C&T: Monochrome blit (monochrome_source_alignment = %d, "
         "monochrome left clip = %d, "
