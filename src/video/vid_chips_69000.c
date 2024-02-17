@@ -818,7 +818,9 @@ chips_69000_recalctimings(svga_t *svga)
                 //svga->htotal = ((chips->flat_panel_regs[0x23] | ((chips->flat_panel_regs[0x26] & 0xF) << 8)) + 5) << 3;
                 //svga->hblank_end_val = svga->htotal - 1;
                 svga->hoverride = 1;
-            }
+            } else
+                svga->hoverride = 0;
+
             if (svga->dispend > (((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1))) {
                 svga->dispend = svga->vsyncstart = svga->vblankstart = ((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1);
             }
