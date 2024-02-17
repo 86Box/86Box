@@ -205,11 +205,6 @@ chips_69000_read_flat_panel(chips_69000_t* chips)
 {
     switch (chips->flat_panel_index) {
         case 0:
-            /* Report no presence of flat panel module. */
-            return 0;
-        case 1:
-            return 1;
-        case 0x10:
             return 1;
         default:
             return chips->flat_panel_regs[chips->flat_panel_index];
@@ -223,6 +218,13 @@ chips_69000_write_flat_panel(chips_69000_t* chips, uint8_t val)
 {
     switch (chips->flat_panel_index) {
         case 0:
+            return;
+        case 1:
+        case 0x20 ... 0x33:
+        case 0x35:
+        case 0x36:
+            chips->flat_panel_regs[chips->flat_panel_index] = val;
+            svga_recalctimings(&chips->svga);
             return;
         default:
             chips->flat_panel_regs[chips->flat_panel_index] = val;
@@ -735,6 +737,8 @@ chips_69000_recalctimings(svga_t *svga)
 {
     chips_69000_t *chips = (chips_69000_t *) svga->priv;
 
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->priv);
+
     if (chips->ext_regs[0x81] & 0x10) {
         svga->htotal -= 5;
     }
@@ -769,7 +773,7 @@ chips_69000_recalctimings(svga_t *svga)
             svga->htotal += 5;
         
         svga->hblank_end_val = ((svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00)) | (svga->crtc[0x3c] & 0b11000000);
-        svga->hblank_end_len = 0x100;
+        svga->hblank_end_mask = 0xff;
 
         svga->ma_latch |= (svga->crtc[0x40] & 0xF) << 16;
         svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
@@ -806,8 +810,32 @@ chips_69000_recalctimings(svga_t *svga)
                 svga->render = svga_render_32bpp_highres;
                 break;
         }
+#if 1
+        if (chips->flat_panel_regs[0x01] & 0x2) {
+            /* TODO: Fix horizontal parameter calculations. */
+            if (svga->hdisp > (((chips->flat_panel_regs[0x20] | ((chips->flat_panel_regs[0x25] & 0xF) << 8)) + 1) << 3)) {
+                svga->hdisp = ((chips->flat_panel_regs[0x20] | ((chips->flat_panel_regs[0x25] & 0xF) << 8)) + 1) << 3;
+                //svga->htotal = ((chips->flat_panel_regs[0x23] | ((chips->flat_panel_regs[0x26] & 0xF) << 8)) + 5) << 3;
+                //svga->hblank_end_val = svga->htotal - 1;
+            }
+            if (svga->dispend > (((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1))) {
+                svga->dispend = svga->vsyncstart = svga->vblankstart = ((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1);
+            }
+            //svga->hdisp = ((chips->flat_panel_regs[0x20] | ((chips->flat_panel_regs[0x25] & 0xF) << 8)) + 1) << 3;
+            //svga->htotal = ((chips->flat_panel_regs[0x23] | ((chips->flat_panel_regs[0x26] & 0xF) << 8)) + 5) << 3;
+            //svga->hblank_end_val = svga->htotal - 1;
+            //svga->dispend = svga->vsyncstart = svga->vblankstart = ((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1);
+            //svga->vsyncstart = ((chips->flat_panel_regs[0x31] | ((chips->flat_panel_regs[0x35] & 0xF0) << 4)) + 1);
+            //svga->vtotal = ((chips->flat_panel_regs[0x33] | ((chips->flat_panel_regs[0x36] & 0xF) << 8)) + 2);
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((chips->flat_panel_regs[0x03] >> 2) & 3, svga->priv);
+            svga->hoverride = 1;
+        } else {
+            svga->hoverride = 0;
+        }
+#endif
     } else {
         svga->bpp = 8;
+        svga->hoverride = 0;
     }
 }
 
@@ -1790,7 +1818,9 @@ chips_69000_pci_read(int func, int addr, void *p)
             case 0x03:
                 return 0x00;
             case 0x04:
-                return chips->pci_conf_status;
+                return (chips->pci_conf_status & 0b11100011) | 0x80;
+            case 0x06:
+                return 0x80;
             case 0x07:
                 return 0x02;
             case 0x08:
@@ -1840,14 +1870,12 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 {
                     chips->pci_conf_status = val;
                     io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
-                    mem_mapping_disable(&chips->bios_rom.mapping);
                     mem_mapping_disable(&chips->linear_mapping);
                     mem_mapping_disable(&chips->svga.mapping);
                     if (chips->pci_conf_status & PCI_COMMAND_IO) {
                         io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
                     }
                     if (chips->pci_conf_status & PCI_COMMAND_MEM) {
-                        if (!chips->on_board) mem_mapping_enable(&chips->bios_rom.mapping);
                         mem_mapping_enable(&chips->svga.mapping);
                         if (chips->linear_mapping.base)
                             mem_mapping_enable(&chips->linear_mapping);
@@ -2320,12 +2348,14 @@ chips_69000_getclock(int clock, void *priv)
 
     int m  = chips->ext_regs[0xc8];
     int n  = chips->ext_regs[0xc9];
-    int pl = (chips->ext_regs[0xcb] >> 4) & 7;
+    int pl = ((chips->ext_regs[0xcb] >> 4) & 7);
 
     float fvco = 14318181.0 * ((float)(m + 2) / (float)(n + 2));
     if (chips->ext_regs[0xcb] & 4)
         fvco *= 4.0;
     float fo   = fvco / (float)(1 << pl);
+
+    pclog("freq = %f\n", fo);
 
     return fo;
 }
@@ -2356,9 +2386,10 @@ chips_69000_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
 static int
 chips_69000_line_compare(svga_t* svga)
 {
-    /* Line compare glitches out at 1600x1200 and above. Disable it. */
-    if (svga->dispend >= 1200)
+    const chips_69000_t *chips = (chips_69000_t *) svga->priv;
+    if (chips->ext_regs[0x81] & 0xF) {
         return 0;
+    }
     
     return 1;
 }
