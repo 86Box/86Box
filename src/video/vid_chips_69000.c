@@ -910,7 +910,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         else
             pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
 
-        is_true = !!(pattern_data & (1 << (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)));
+        is_true = !!(pattern_data & (1 << (7 - ((chips->bitblt_running.bitblt.destination_addr + chips->bitblt_running.x) & 7))));
 
         if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 17))) {
             return;
