@@ -5941,7 +5941,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 4096,
             .max = 36864,
@@ -6668,7 +6668,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags = MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_APM, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram = {
             .min = 1024,
             .max = 65536,
@@ -6802,7 +6802,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &tgui9440_onboard_pci_device,
+        .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -7160,7 +7160,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM, /* Has onboard video: C&T F65545 */
         .ram = {
             .min = 1024,
             .max = 32768,
@@ -7843,7 +7843,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 2048,
             .max = 261120,
@@ -8003,7 +8003,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 262144,
@@ -8204,7 +8204,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCIV,
+        .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -8245,7 +8245,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCIV,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram = {
             .min = 1024,
             .max = 131072,
@@ -8330,7 +8330,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ST STPC Atlas */
         .ram = {
             .min = 32768,
             .max = 163840,
@@ -8371,7 +8371,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
         .ram = {
             .min = 32768,
             .max = 163840,
@@ -8412,7 +8412,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
         .ram = {
             .min = 32768,
             .max = 131072,
