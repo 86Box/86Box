@@ -67,14 +67,9 @@
 #include <86box/ui.h>
 #include <86box/timer.h>
 #include <86box/network.h>
-#include <86box/net_3c501.h>
-#include <86box/net_3c503.h>
 #include <86box/net_ne2000.h>
 #include <86box/net_pcnet.h>
-#include <86box/net_plip.h>
 #include <86box/net_wd8003.h>
-#include <86box/net_tulip.h>
-#include <86box/net_rtl8139.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN

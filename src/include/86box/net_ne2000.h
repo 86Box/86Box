@@ -48,13 +48,4 @@ enum {
     NE2K_RTL8029AS     = 8  /* 32-bit PCI Realtek 8029AS */
 };
 
-extern const device_t ne1000_device;
-extern const device_t ne1000_compat_device;
-extern const device_t ne2000_device;
-extern const device_t ne2000_compat_device;
-extern const device_t ethernext_mc_device;
-extern const device_t rtl8019as_device;
-extern const device_t de220p_device;
-extern const device_t rtl8029as_device;
-
 #endif /*NET_NE2000_H*/

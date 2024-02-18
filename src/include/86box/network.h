@@ -192,12 +192,63 @@ extern int             network_card_available(int);
 extern int             network_card_has_config(int);
 extern const char     *network_card_get_internal_name(int);
 extern int             network_card_get_from_internal_name(char *);
+#ifdef EMU_DEVICE_H
 extern const device_t *network_card_getdevice(int);
+#endif
 
 extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
 extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
 extern int network_rx_put(netcard_t *card, uint8_t *bufp, int len);
 extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
+
+#ifdef EMU_DEVICE_H
+/* 3Com Etherlink */
+extern const device_t threec501_device;
+extern const device_t threec503_device;
+
+/* Novell NE2000 and compatibles */
+extern const device_t ne1000_device;
+extern const device_t ne1000_compat_device;
+extern const device_t ne2000_device;
+extern const device_t ne2000_compat_device;
+extern const device_t ethernext_mc_device;
+extern const device_t rtl8019as_device;
+extern const device_t de220p_device;
+extern const device_t rtl8029as_device;
+
+/* AMD PCnet*/
+extern const device_t pcnet_am79c960_device;
+extern const device_t pcnet_am79c960_eb_device;
+extern const device_t pcnet_am79c960_vlb_device;
+extern const device_t pcnet_am79c961_device;
+extern const device_t pcnet_am79c970a_device;
+extern const device_t pcnet_am79c973_device;
+extern const device_t pcnet_am79c973_onboard_device;
+
+/* PLIP */
+#ifdef EMU_LPT_H
+extern const lpt_device_t lpt_plip_device;
+#endif
+extern const device_t     plip_device;
+
+/* Realtek RTL8139C+ */
+extern const device_t rtl8139c_plus_device;
+
+/* DEC Tulip */
+extern const device_t dec_tulip_device;
+extern const device_t dec_tulip_21140_device;
+extern const device_t dec_tulip_21140_vpc_device;
+extern const device_t dec_tulip_21040_device;
+
+/* WD 80x3 */
+extern const device_t wd8003e_device;
+extern const device_t wd8003eb_device;
+extern const device_t wd8013ebt_device;
+extern const device_t wd8003eta_device;
+extern const device_t wd8003ea_device;
+extern const device_t wd8013epa_device;
+#endif
+
 #ifdef __cplusplus
 }
 #endif
