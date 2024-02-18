@@ -24,6 +24,10 @@
 #define MAX_PLAT_JOYSTICKS  8
 #define MAX_JOYSTICKS       4
 
+#define MAX_JOY_AXES    8
+#define MAX_JOY_BUTTONS 32
+#define MAX_JOY_POVS    4
+
 #define JS_TYPE_NONE               0
 #define JS_TYPE_2AXIS_4BUTTON      1
 #define JS_TYPE_2AXIS_6BUTTON      2
@@ -46,24 +50,24 @@
 typedef struct plat_joystick_t {
     char name[260];
 
-    int a[8];
-    int b[32];
-    int p[4];
+    int a[MAX_JOY_AXES];
+    int b[MAX_JOY_BUTTONS];
+    int p[MAX_JOY_POVS];
 
     struct {
         char name[260];
         int  id;
-    } axis[8];
+    } axis[MAX_JOY_AXES];
 
     struct {
         char name[260];
         int  id;
-    } button[32];
+    } button[MAX_JOY_BUTTONS];
 
     struct {
         char name[260];
         int  id;
-    } pov[4];
+    } pov[MAX_JOY_POVS];
 
     int nr_axes;
     int nr_buttons;
@@ -71,14 +75,14 @@ typedef struct plat_joystick_t {
 } plat_joystick_t;
 
 typedef struct joystick_t {
-    int axis[8];
-    int button[32];
-    int pov[4];
+    int axis[MAX_JOY_AXES];
+    int button[MAX_JOY_BUTTONS];
+    int pov[MAX_JOY_POVS];
 
     int plat_joystick_nr;
-    int axis_mapping[8];
-    int button_mapping[32];
-    int pov_mapping[4][2];
+    int axis_mapping[MAX_JOY_AXES];
+    int button_mapping[MAX_JOY_BUTTONS];
+    int pov_mapping[MAX_JOY_POVS][2];
 } joystick_t;
 
 typedef struct joystick_if_t {
@@ -96,9 +100,9 @@ typedef struct joystick_if_t {
     int         button_count;
     int         pov_count;
     int         max_joysticks;
-    const char *axis_names[8];
-    const char *button_names[32];
-    const char *pov_names[4];
+    const char *axis_names[MAX_JOY_AXES];
+    const char *button_names[MAX_JOY_BUTTONS];
+    const char *pov_names[MAX_JOY_POVS];
 } joystick_if_t;
 
 #ifdef __cplusplus

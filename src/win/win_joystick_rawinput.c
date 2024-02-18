@@ -88,14 +88,14 @@ typedef struct {
         USHORT bitsize;
         LONG   max;
         LONG   min;
-    } axis[8];
+    } axis[MAX_JOY_AXES];
 
     struct raw_pov_t {
         USAGE  usage;
         USHORT link;
         LONG   max;
         LONG   min;
-    } pov[4];
+    } pov[MAX_JOY_POVS];
 } raw_joystick_t;
 
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
@@ -108,7 +108,7 @@ raw_joystick_t raw_joystick_state[MAX_PLAT_JOYSTICKS];
 void
 joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
 {
-    if (joy->nr_buttons >= 32)
+    if (joy->nr_buttons >= MAX_JOY_BUTTONS)
         return;
     if (usage < 1 || usage > 128)
         return;
@@ -121,7 +121,7 @@ joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
 void
 joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
 {
-    if (joy->nr_axes >= 8)
+    if (joy->nr_axes >= MAX_JOY_AXES)
         return;
 
     switch (prop->Range.UsageMin) {
@@ -206,7 +206,7 @@ joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS
 void
 joystick_add_pov(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
 {
-    if (joy->nr_povs >= 4)
+    if (joy->nr_povs >= MAX_JOY_POVS)
         return;
 
     sprintf(joy->pov[joy->nr_povs].name, "POV %d", joy->nr_povs + 1);

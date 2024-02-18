@@ -84,7 +84,7 @@ DIEnumDeviceObjectsCallback(
     plat_joystick_t *state = (plat_joystick_t *) pvRef;
 
     if (lpddoi->guidType == GUID_XAxis || lpddoi->guidType == GUID_YAxis || lpddoi->guidType == GUID_ZAxis || lpddoi->guidType == GUID_RxAxis || lpddoi->guidType == GUID_RyAxis || lpddoi->guidType == GUID_RzAxis) {
-        if (state->nr_axes < 8) {
+        if (state->nr_axes < MAX_JOY_AXES) {
             memcpy(state->axis[state->nr_axes].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
             joystick_log("Axis %i : %s  %x %x\n", state->nr_axes, state->axis[state->nr_axes].name, lpddoi->dwOfs, lpddoi->dwType);
             if (lpddoi->guidType == GUID_XAxis)
@@ -106,13 +106,13 @@ DIEnumDeviceObjectsCallback(
             state->nr_axes++;
         }
     } else if (lpddoi->guidType == GUID_Button) {
-        if (state->nr_buttons < 32) {
+        if (state->nr_buttons < MAX_JOY_BUTTONS) {
             memcpy(state->button[state->nr_buttons].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
             joystick_log("Button %i : %s  %x %x\n", state->nr_buttons, state->button[state->nr_buttons].name, lpddoi->dwOfs, lpddoi->dwType);
             state->nr_buttons++;
         }
     } else if (lpddoi->guidType == GUID_POV) {
-        if (state->nr_povs < 4) {
+        if (state->nr_povs < MAX_JOY_POVS) {
             memcpy(state->pov[state->nr_povs].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
             joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
             state->nr_povs++;
@@ -269,10 +269,10 @@ joystick_process(void)
         plat_joystick_state[c].a[6] = joystate.rglSlider[0];
         plat_joystick_state[c].a[7] = joystate.rglSlider[1];
 
-        for (b = 0; b < 16; b++)
+        for (b = 0; b < MAX_JOY_BUTTONS; b++)
             plat_joystick_state[c].b[b] = joystate.rgbButtons[b] & 0x80;
 
-        for (b = 0; b < 4; b++)
+        for (b = 0; b < MAX_JOY_POVS; b++)
             plat_joystick_state[c].p[b] = joystate.rgdwPOV[b];
         //                joystick_log("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", c, joystick_state[c].x, joystick_state[c].y, joystick_state[c].b[0], joystick_state[c].b[1], joysticks_present);
     }
