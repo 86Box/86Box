@@ -35,6 +35,29 @@
 #include <86box/gameport.h>
 #include <86box/win.h>
 
+/* These are defined in hidusage.h in the Windows SDK, but not in mingw-w64. */
+#ifndef HID_USAGE_SIMULATION_AILERON
+#    define HID_USAGE_SIMULATION_AILERON ((USAGE) 0xb0)
+#endif
+#ifndef HID_USAGE_SIMULATION_ELEVATOR
+#    define HID_USAGE_SIMULATION_ELEVATOR ((USAGE) 0xb8)
+#endif
+#ifndef HID_USAGE_SIMULATION_ACCELLERATOR
+#    define HID_USAGE_SIMULATION_ACCELLERATOR ((USAGE) 0xc4)
+#endif
+#ifndef HID_USAGE_SIMULATION_BRAKE
+#    define HID_USAGE_SIMULATION_BRAKE ((USAGE) 0xc5)
+#endif
+#ifndef HID_USAGE_SIMULATION_CLUTCH
+#    define HID_USAGE_SIMULATION_CLUTCH ((USAGE) 0xc6)
+#endif
+#ifndef HID_USAGE_SIMULATION_SHIFTER
+#    define HID_USAGE_SIMULATION_SHIFTER ((USAGE) 0xc7)
+#endif
+#ifndef HID_USAGE_SIMULATION_STEERING
+#    define HID_USAGE_SIMULATION_STEERING ((USAGE) 0xc8)
+#endif
+
 #ifdef ENABLE_JOYSTICK_LOG
 int joystick_do_log = ENABLE_JOYSTICK_LOG;
 
@@ -119,6 +142,42 @@ joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS
             break;
         case HID_USAGE_GENERIC_RZ:
             sprintf(joy->axis[joy->nr_axes].name, "RZ");
+            break;
+        case HID_USAGE_GENERIC_SLIDER:
+            sprintf(joy->axis[joy->nr_axes].name, "Slider");
+            break;
+        case HID_USAGE_GENERIC_DIAL:
+            sprintf(joy->axis[joy->nr_axes].name, "Dial");
+            break;
+        case HID_USAGE_GENERIC_WHEEL:
+            sprintf(joy->axis[joy->nr_axes].name, "Wheel");
+            break;
+        case HID_USAGE_SIMULATION_AILERON:
+            sprintf(joy->axis[joy->nr_axes].name, "Aileron");
+            break;
+        case HID_USAGE_SIMULATION_ELEVATOR:
+            sprintf(joy->axis[joy->nr_axes].name, "Elevator");
+            break;
+        case HID_USAGE_SIMULATION_RUDDER:
+            sprintf(joy->axis[joy->nr_axes].name, "Rudder");
+            break;
+        case HID_USAGE_SIMULATION_THROTTLE:
+            sprintf(joy->axis[joy->nr_axes].name, "Throttle");
+            break;
+        case HID_USAGE_SIMULATION_ACCELLERATOR:
+            sprintf(joy->axis[joy->nr_axes].name, "Accelerator");
+            break;
+        case HID_USAGE_SIMULATION_BRAKE:
+            sprintf(joy->axis[joy->nr_axes].name, "Brake");
+            break;
+        case HID_USAGE_SIMULATION_CLUTCH:
+            sprintf(joy->axis[joy->nr_axes].name, "Clutch");
+            break;
+        case HID_USAGE_SIMULATION_SHIFTER:
+            sprintf(joy->axis[joy->nr_axes].name, "Shifter");
+            break;
+        case HID_USAGE_SIMULATION_STEERING:
+            sprintf(joy->axis[joy->nr_axes].name, "Steering");
             break;
         default:
             return;
@@ -395,7 +454,9 @@ win_joystick_handle(PRAWINPUT raw)
         }
 
         plat_joystick_state[j].a[a] = value;
-        // joystick_log("%s %-06d ", plat_joystick_state[j].axis[a].name, plat_joystick_state[j].a[a]);
+#if 0
+        joystick_log("%s %-06d ", plat_joystick_state[j].axis[a].name, plat_joystick_state[j].a[a]);
+#endif
     }
 
     /* read povs */
