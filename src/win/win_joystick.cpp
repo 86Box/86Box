@@ -36,6 +36,7 @@
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t      joystick_state[MAX_JOYSTICKS];
 int             joysticks_present = 0;
+int             has_slider        = 0;
 
 static LPDIRECTINPUT8       lpdi;
 static LPDIRECTINPUTDEVICE8 lpdi_joystick[2] = { NULL, NULL };
@@ -98,6 +99,10 @@ DIEnumDeviceObjectsCallback(
                 state->axis[state->nr_axes].id = 4;
             else if (lpddoi->guidType == GUID_RzAxis)
                 state->axis[state->nr_axes].id = 5;
+            else if (lpddoi->guidType == GUID_Slider) {
+                state->axis[state->nr_axes].id = 6 + has_slider;
+                has_slider++;
+            }
             state->nr_axes++;
         }
     } else if (lpddoi->guidType == GUID_Button) {
@@ -111,13 +116,6 @@ DIEnumDeviceObjectsCallback(
             memcpy(state->pov[state->nr_povs].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
             joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
             state->nr_povs++;
-        }
-    } else if (lpddoi->guidType == GUID_Slider) {
-        if (state->nr_sliders < 2) {
-            memcpy(state->slider[state->nr_sliders].name, lpddoi->tszName, strlen(lpddoi->tszName) + 1);
-            state->slider[state->nr_sliders].id = state->nr_sliders | SLIDER;
-            joystick_log("Slider %i : %s  %x %x\n", state->nr_sliders, state->slider[state->nr_sliders].name, lpddoi->dwOfs, lpddoi->dwType);
-            state->nr_sliders++;
         }
     }
 
@@ -170,6 +168,7 @@ joystick_init()
         joystick_log(" Buttons = %i\n", devcaps.dwButtons);
         joystick_log(" POVs = %i\n", devcaps.dwPOVs);
 
+        has_slider = 0;
         lpdi_joystick[c]->EnumObjects(DIEnumDeviceObjectsCallback, &plat_joystick_state[c], DIDFT_ALL);
 
         if (FAILED(lpdi_joystick[c]->SetCooperativeLevel(hwndMain, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
@@ -234,8 +233,6 @@ joystick_get_axis(int joystick_nr, int mapping)
             return 0;
         else
             return -cos((2 * M_PI * (double) pov) / 36000.0) * 32767;
-    } else if (mapping & SLIDER) {
-        return plat_joystick_state[joystick_nr].s[mapping & 3];
     } else
         return plat_joystick_state[joystick_nr].a[plat_joystick_state[joystick_nr].axis[mapping].id];
 }
@@ -269,8 +266,8 @@ joystick_process(void)
         plat_joystick_state[c].a[3] = joystate.lRx;
         plat_joystick_state[c].a[4] = joystate.lRy;
         plat_joystick_state[c].a[5] = joystate.lRz;
-        plat_joystick_state[c].s[0] = joystate.rglSlider[0];
-        plat_joystick_state[c].s[1] = joystate.rglSlider[1];
+        plat_joystick_state[c].a[6] = joystate.rglSlider[0];
+        plat_joystick_state[c].a[7] = joystate.rglSlider[1];
 
         for (b = 0; b < 16; b++)
             plat_joystick_state[c].b[b] = joystate.rgbButtons[b] & 0x80;
