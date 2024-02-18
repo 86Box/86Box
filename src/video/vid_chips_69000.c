@@ -1886,10 +1886,10 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                 }
             case 0x13:
                 {
-                    // if (!(chips->pci_conf_status & PCI_COMMAND_MEM)) {
+                    if (!chips->linear_mapping.enable) {
                         chips->linear_mapping.base = val << 24;
-                        // break;
-                    // }
+                        break;
+                    }
                     mem_mapping_set_addr(&chips->linear_mapping, val << 24, (1 << 24));
                     break;
                 }
