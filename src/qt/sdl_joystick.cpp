@@ -36,19 +36,19 @@ joystick_init()
             int d;
 
             strncpy(plat_joystick_state[c].name, SDL_JoystickNameForIndex(c), 64);
-            plat_joystick_state[c].nr_axes    = SDL_JoystickNumAxes(sdl_joy[c]);
-            plat_joystick_state[c].nr_buttons = SDL_JoystickNumButtons(sdl_joy[c]);
-            plat_joystick_state[c].nr_povs    = SDL_JoystickNumHats(sdl_joy[c]);
+            plat_joystick_state[c].nr_axes    = std::min(SDL_JoystickNumAxes(sdl_joy[c]), MAX_JOY_AXES);
+            plat_joystick_state[c].nr_buttons = std::min(SDL_JoystickNumButtons(sdl_joy[c]), MAX_JOY_BUTTONS);
+            plat_joystick_state[c].nr_povs    = std::min(SDL_JoystickNumHats(sdl_joy[c]), MAX_JOY_POVS);
 
-            for (d = 0; d < std::min(plat_joystick_state[c].nr_axes, 8); d++) {
+            for (d = 0; d < plat_joystick_state[c].nr_axes; d++) {
                 snprintf(plat_joystick_state[c].axis[d].name, sizeof(plat_joystick_state[c].axis[d].name), "Axis %i", d);
                 plat_joystick_state[c].axis[d].id = d;
             }
-            for (d = 0; d < std::min(plat_joystick_state[c].nr_buttons, 8); d++) {
+            for (d = 0; d < plat_joystick_state[c].nr_buttons; d++) {
                 snprintf(plat_joystick_state[c].button[d].name, sizeof(plat_joystick_state[c].button[d].name), "Button %i", d);
                 plat_joystick_state[c].button[d].id = d;
             }
-            for (d = 0; d < std::min(plat_joystick_state[c].nr_povs, 4); d++) {
+            for (d = 0; d < plat_joystick_state[c].nr_povs; d++) {
                 snprintf(plat_joystick_state[c].pov[d].name, sizeof(plat_joystick_state[c].pov[d].name), "POV %i", d);
                 plat_joystick_state[c].pov[d].id = d;
             }
@@ -116,17 +116,13 @@ joystick_process()
     for (c = 0; c < joysticks_present; c++) {
         int b;
 
-        plat_joystick_state[c].a[0] = SDL_JoystickGetAxis(sdl_joy[c], 0);
-        plat_joystick_state[c].a[1] = SDL_JoystickGetAxis(sdl_joy[c], 1);
-        plat_joystick_state[c].a[2] = SDL_JoystickGetAxis(sdl_joy[c], 2);
-        plat_joystick_state[c].a[3] = SDL_JoystickGetAxis(sdl_joy[c], 3);
-        plat_joystick_state[c].a[4] = SDL_JoystickGetAxis(sdl_joy[c], 4);
-        plat_joystick_state[c].a[5] = SDL_JoystickGetAxis(sdl_joy[c], 5);
+        for (b = 0; b < plat_joystick_state[c].nr_axes; b++)
+            plat_joystick_state[c].a[b] = SDL_JoystickGetAxis(sdl_joy[c], b);
 
-        for (b = 0; b < 16; b++)
+        for (b = 0; b < plat_joystick_state[c].nr_buttons; b++)
             plat_joystick_state[c].b[b] = SDL_JoystickGetButton(sdl_joy[c], b);
 
-        for (b = 0; b < 4; b++)
+        for (b = 0; b < plat_joystick_state[c].nr_povs; b++)
             plat_joystick_state[c].p[b] = SDL_JoystickGetHat(sdl_joy[c], b);
         //                pclog("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", c, joystick_state[c].x, joystick_state[c].y, joystick_state[c].b[0], joystick_state[c].b[1], joysticks_present);
     }
