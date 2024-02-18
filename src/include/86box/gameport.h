@@ -24,7 +24,7 @@
 #define MAX_PLAT_JOYSTICKS  8
 #define MAX_JOYSTICKS       4
 
-#define MAX_JOY_AXES    8
+#define MAX_JOY_AXES    16
 #define MAX_JOY_BUTTONS 32
 #define MAX_JOY_POVS    4
 
