@@ -4093,6 +4093,11 @@ s3_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64))
+        svga->hoverride = 1;
+    else
+        svga->hoverride = 0;
 }
 
 static void
@@ -4271,6 +4276,8 @@ s3_trio64v_recalctimings(svga_t *svga)
                 break;
         }
     }
+
+    svga->hoverride = 1;
 }
 
 static void
