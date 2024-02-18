@@ -797,7 +797,7 @@ svga_recalctimings(svga_t *svga)
         svga_log("Blank: %04i-%04i, Total: %04i, Mask: %02X\n", svga->hblankstart, svga->hblank_end_val,
                  svga->htotal, eff_mask);
 
-        while (1) {
+        while (adj_dot < (svga->htotal << 1)) {
             if (dot == svga->htotal)
                 dot = 0;
 
@@ -820,7 +820,7 @@ svga_recalctimings(svga_t *svga)
                 uint32_t eff_mask8514 = 0x0000003f;
                 dev->hblank_sub = 0;
 
-                while (1) {
+                while (adj_dot8514 < (dev->h_total << 1)) {
                     if (dot8514 == dev->h_total)
                         dot = 0;
 
