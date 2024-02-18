@@ -31,10 +31,6 @@
 #include <86box/timer.h>
 #include <86box/isapnp.h>
 #include <86box/gameport.h>
-#include <86box/joystick_ch_flightstick_pro.h>
-#include <86box/joystick_standard.h>
-#include <86box/joystick_sw_pad.h>
-#include <86box/joystick_tm_fcs.h>
 #include <86box/plat_unused.h>
 
 typedef struct g_axis_t {

@@ -154,6 +154,19 @@ extern void  gameport_update_joystick_type(void);
 extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 
+extern const joystick_if_t joystick_2axis_2button;
+extern const joystick_if_t joystick_2axis_4button;
+extern const joystick_if_t joystick_3axis_2button;
+extern const joystick_if_t joystick_3axis_4button;
+extern const joystick_if_t joystick_4axis_4button;
+extern const joystick_if_t joystick_2axis_6button;
+extern const joystick_if_t joystick_2axis_8button;
+
+extern const joystick_if_t joystick_ch_flightstick_pro;
+
+extern const joystick_if_t joystick_sw_pad;
+
+extern const joystick_if_t joystick_tm_fcs;
 #ifdef __cplusplus
 }
 #endif
