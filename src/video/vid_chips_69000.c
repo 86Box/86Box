@@ -775,9 +775,6 @@ chips_69000_recalctimings(svga_t *svga)
         svga->hblank_end_val = ((svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00)) | (svga->crtc[0x3c] & 0b11000000);
         svga->hblank_end_mask = 0xff;
 
-        if (svga->hblank_end_val >= svga->htotal)
-            svga->hblank_end_val = svga->htotal - 1;
-
         svga->ma_latch |= (svga->crtc[0x40] & 0xF) << 16;
         svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
 
