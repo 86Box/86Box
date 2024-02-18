@@ -80,7 +80,6 @@ jobs:
           libopenal-dev
           libslirp-dev
           libfluidsynth-dev
-          libvncserver-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
