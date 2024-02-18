@@ -351,7 +351,7 @@ chips_69000_do_rop_16bpp(uint16_t *dst, uint16_t src, uint8_t rop)
             *dst |= src;
             break;
         case 0xFF:
-            *dst = 0xFF;
+            *dst = 0xFFFF;
             break;
     }
 }
@@ -405,7 +405,7 @@ chips_69000_do_rop_24bpp(uint32_t *dst, uint32_t src, uint8_t rop)
             *dst |= src;
             break;
         case 0xFF:
-            *dst = 0xFF;
+            *dst = 0xFFFFFF;
             break;
     }
 }
