@@ -82,7 +82,6 @@ jobs:
           rtmidi
           openal-soft
           fluidsynth
-          libvncserver
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
