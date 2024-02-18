@@ -714,7 +714,7 @@ ht216_recalctimings(svga_t *svga)
         svga->vram_display_mask = (ht216->ht_regs[0xf6] & 0x40) ? ht216->vram_mask : 0x3ffff;
 
     if (ht216->ht_regs[0xe0] & 0x20)
-        svga->hblankstart    = ((ht216->ht_regs[0xca] >> 2) << 8) + svga->crtc[4] + 1;
+        svga->hblankstart    = ((ht216->ht_regs[0xca] >> 2) << 8) + svga->crtc[4];
 }
 
 static void

@@ -650,7 +650,7 @@ et4000_recalctimings(svga_t *svga)
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
 
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2];
 
     if (svga->crtc[0x35] & 1)
         svga->vblankstart += 0x400;
@@ -690,14 +690,12 @@ et4000_recalctimings(svga_t *svga)
         case 15:
         case 16:
             svga->hdisp /= 2;
-            svga->hblankstart /= 2;
-            svga->hblank_end_val /= 2;
+            svga->dots_per_clock /= 2;
             break;
 
         case 24:
             svga->hdisp /= 3;
-            svga->hblankstart /= 3;
-            svga->hblank_end_val /= 3;
+            svga->dots_per_clock /= 3;
             break;
 
         default:

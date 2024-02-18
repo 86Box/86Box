@@ -945,7 +945,7 @@ mystique_recalctimings(svga_t *svga)
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;
 
-    svga->hblankstart    = (((mystique->crtcext_regs[1] & 0x02) >> 2) << 8) + svga->crtc[2] + 1;
+    svga->hblankstart    = (((mystique->crtcext_regs[1] & 0x02) >> 2) << 8) + svga->crtc[2];
 
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL10)
         svga->vtotal |= 0x400;

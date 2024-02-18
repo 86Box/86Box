@@ -1750,7 +1750,7 @@ gd54xx_recalctimings(svga_t *svga)
     uint8_t         rdmask;
     uint8_t         linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
 
-    svga->hblankstart = svga->crtc[2] + 1;
+    svga->hblankstart = svga->crtc[2];
 
     if (svga->crtc[0x1b] & ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5424) ? 0xa0 : 0x20)) {
         /* Special blanking mode: the blank start and end become components of the window generator,
@@ -1763,7 +1763,7 @@ gd54xx_recalctimings(svga_t *svga)
         svga->hblank_end_mask = 0x000000ff;
 
         if (svga->crtc[0x1b] & 0x20) {
-            svga->hblankstart = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ + 1;
+            svga->hblankstart = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3) + 1*/;
             svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
             /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */

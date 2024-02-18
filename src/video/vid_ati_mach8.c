@@ -2547,7 +2547,7 @@ mach_recalctimings(svga_t *svga)
     int           clock_sel;
 
     if (mach->regs[0xad] & 0x08)
-        svga->hblankstart    = ((mach->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = ((mach->regs[0x0d] >> 2) << 8) + svga->crtc[2];
 
     clock_sel = ((svga->miscout >> 2) & 3) | ((mach->regs[0xbe] & 0x10) >> 1) | ((mach->regs[0xb9] & 2) << 1);
 
@@ -3636,7 +3636,7 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             if (!(port & 1)) {
                 if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
                     dev->hsync_start = val;
-                    dev->hblankstart = (dev->hsync_start & 0x07) + 1;
+                    dev->hblankstart = (dev->hsync_start & 0x07);
                 }
             }
             mach_log("ATI 8514/A: H_SYNC_STRT write 0AE8 = %d\n", val + 1);

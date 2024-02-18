@@ -750,7 +750,7 @@ svga_recalctimings(svga_t *svga)
     } else
         svga->monitor->mon_overscan_x = 16;
 
-    svga->hblankstart    = svga->crtc[2] + 1;
+    svga->hblankstart    = svga->crtc[2];
     svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00);
     svga->hblank_end_mask = 0x0000003f;
 

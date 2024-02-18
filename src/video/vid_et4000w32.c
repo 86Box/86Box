@@ -432,7 +432,7 @@ et4000w32p_recalctimings(svga_t *svga)
 
     svga->ma_latch |= (svga->crtc[0x33] & 0x7) << 16;
 
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2];
 
     if (svga->crtc[0x35] & 0x01)
         svga->vblankstart += 0x400;

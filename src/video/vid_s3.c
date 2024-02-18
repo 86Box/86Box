@@ -3312,7 +3312,7 @@ s3_recalctimings(svga_t *svga)
     if (svga->crtc[0x33] & 0x20) {
         /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
         svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
-                            ((svga->crtc[3] >> 5) & 3)*/ + 1;
+                            ((svga->crtc[3] >> 5) & 3) + 1*/;
         svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         svga->monitor->mon_overscan_y = 0;
@@ -3324,7 +3324,7 @@ s3_recalctimings(svga_t *svga)
         if (s3->chip >= S3_VISION964)
             svga->hblank_end_mask  = 0x7f;
     } else if (s3->chip >= S3_86C801) {
-        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
         if (s3->chip >= S3_VISION964) {
             /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
@@ -4160,7 +4160,7 @@ s3_trio64v_recalctimings(svga_t *svga)
     if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
         /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
         svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
-                            ((svga->crtc[3] >> 5) & 3)*/ + 1;
+                            ((svga->crtc[3] >> 5) & 3) + 1*/;
         svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         svga->monitor->mon_overscan_y = 0;
@@ -4169,7 +4169,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
     } else {
-        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
         /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
                  The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
