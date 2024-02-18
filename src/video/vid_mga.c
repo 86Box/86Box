@@ -2811,7 +2811,6 @@ static uint8_t
 mystique_readb_linear(uint32_t addr, void *priv)
 {
     const svga_t *svga = (svga_t *) priv;
-    mystique_t *mystique = (mystique_t *) svga->priv;
 
     cycles -= svga->monitor->mon_video_timing_read_b;
 
@@ -2861,7 +2860,6 @@ static void
 mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    mystique_t *mystique = (mystique_t *) svga->priv;
 
     cycles -= svga->monitor->mon_video_timing_write_b;
 
