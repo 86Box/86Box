@@ -881,6 +881,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     uint32_t dest_pixel = 0;
     uint32_t dest_addr = chips->bitblt_running.bitblt.destination_addr + (chips->bitblt_running.y * chips->bitblt_running.bitblt.destination_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
     uint8_t vert_pat_alignment = (chips->bitblt_running.bitblt.bitblt_control >> 20) & 7;
+    uint8_t orig_dest_addr_bit = chips->bitblt_running.bitblt.destination_addr & 1;
 
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
@@ -903,8 +904,9 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
             }
     }
 
-    /* TODO: Find out from where it actually pulls the exact pattern x and y values. */
-    /* Also: is horizontal pattern alignment a requirement? */
+    if (chips->bitblt_running.bytes_per_pixel == 2) {
+        chips->bitblt_running.bitblt.destination_addr >>= 1;
+    }
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 18)) {
         uint8_t is_true = 0;
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
@@ -915,6 +917,10 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         is_true = !!(pattern_data & (1 << (7 - ((chips->bitblt_running.bitblt.destination_addr + chips->bitblt_running.x) & 7))));
 
         if (!is_true && (chips->bitblt_running.bitblt.bitblt_control & (1 << 17))) {
+            if (chips->bitblt_running.bytes_per_pixel == 2) {
+                chips->bitblt_running.bitblt.destination_addr <<= 1;
+                chips->bitblt_running.bitblt.destination_addr |= orig_dest_addr_bit;
+            }
             return;
         }
 
@@ -928,9 +934,13 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                                                         + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7), chips);
         }
         if (chips->bitblt_running.bytes_per_pixel == 2) {
-            pattern_pixel = chips_69000_readw_linear(chips->bitblt_running.bitblt.pat_addr
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
                                                         + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
+
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
         }
         if (chips->bitblt_running.bytes_per_pixel == 3) {
             pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
@@ -945,6 +955,10 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
                                                         + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
+    }
+    if (chips->bitblt_running.bytes_per_pixel == 2) {
+        chips->bitblt_running.bitblt.destination_addr <<= 1;
+        chips->bitblt_running.bitblt.destination_addr |= orig_dest_addr_bit;
     }
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 14)) {
