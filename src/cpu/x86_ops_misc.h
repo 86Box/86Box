@@ -763,7 +763,7 @@ opLOCK(uint32_t fetchdat)
                 legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
             break;
         case 0xfe ... 0xff:
-            legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
+            legal = lock_legal_fe[(fetch_dat.b[1] >> 3) & 0x07];
             if (legal == 1)
                 legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
             break;
