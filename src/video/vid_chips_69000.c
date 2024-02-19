@@ -2371,8 +2371,6 @@ chips_69000_getclock(int clock, void *priv)
         fvco *= 4.0;
     float fo   = fvco / (float)(1 << pl);
 
-    pclog("freq = %f\n", fo);
-
     return fo;
 }
 
