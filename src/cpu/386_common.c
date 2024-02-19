@@ -1539,7 +1539,10 @@ x86_int_sw(int num)
         }
     }
 
-    trap &= ~1;
+    if (cpu_use_exec)
+        trap = 0;
+    else
+        trap &= ~1;
     CPU_BLOCK_END();
 }
 
@@ -1582,7 +1585,10 @@ x86_int_sw_rm(int num)
 #endif
 
     cycles -= timing_int_rm;
-    trap &= ~1;
+    if (cpu_use_exec)
+        trap = 0;
+    else
+        trap &= ~1;
     CPU_BLOCK_END();
 
     return 0;
