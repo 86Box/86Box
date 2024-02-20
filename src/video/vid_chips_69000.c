@@ -743,6 +743,12 @@ chips_69000_recalctimings(svga_t *svga)
         svga->htotal -= 5;
     }
 
+    if (((chips->ext_regs[0x61] & 0x8) && !(chips->ext_regs[0x61] & 0x4))
+        || ((chips->ext_regs[0x61] & 0x2) && !(chips->ext_regs[0x61] & 0x1))) {
+        svga->dpms = 1;
+    } else
+        svga->dpms = 0;
+
     if (chips->ext_regs[0x09] & 0x1) {
         svga->vtotal -= 2;
         svga->vtotal &= 0xFF;
@@ -1543,6 +1549,7 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
             break;
         case 0x61:
             chips->ext_regs[chips->ext_index] = val & 0x7f;
+            svga_recalctimings(&chips->svga);
             break;
         case 0x62:
             chips->ext_regs[chips->ext_index] = val & 0x9C;

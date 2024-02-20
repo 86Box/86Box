@@ -947,6 +947,15 @@ svga_recalctimings(svga_t *svga)
     /* Inform the user interface of any DPMS mode changes. */
     if (svga->dpms) {
         if (!svga->dpms_ui) {
+            /* Make sure to black out the entire screen to avoid lingering image. */
+            int y_add   = enable_overscan ? svga->monitor->mon_overscan_y : 0;
+            int x_add   = enable_overscan ? svga->monitor->mon_overscan_x : 0;
+            int y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
+            int x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
+            video_wait_for_buffer_monitor(svga->monitor_index);
+            memset(svga->monitor->target_buffer->dat, 0, svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
+            video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
+            video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
             ui_sb_set_text_w(plat_get_string(IDS_2143));
         }
@@ -1864,14 +1873,14 @@ svga_doblit(int wx, int wy, svga_t *svga)
             p = &svga->monitor->target_buffer->line[i & 0x7ff][0];
 
             for (j = 0; j < (svga->monitor->mon_xsize + x_add); j++)
-                p[j] = svga->overscan_color;
+                p[j] = svga->dpms ? 0 : svga->overscan_color;
         }
 
         for (i = 0; i < bottom; i++) {
             p = &svga->monitor->target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
 
             for (j = 0; j < (svga->monitor->mon_xsize + x_add); j++)
-                p[j] = svga->overscan_color;
+                p[j] = svga->dpms ? 0 : svga->overscan_color;
         }
     }
 
