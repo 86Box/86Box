@@ -396,7 +396,7 @@ const device_t fdc37c661_ide_device = {
 
 const device_t fdc37c661_ide_sec_device = {
     .name          = "SMC FDC37C661 Super I/O (With Secondary IDE)",
-    .internal_name = "fdc37c661_ide",
+    .internal_name = "fdc37c661_ide_sec",
     .flags         = 0,
     .local         = 0x261,
     .init          = fdc37c6xx_init,
