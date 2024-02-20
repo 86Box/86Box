@@ -65,7 +65,7 @@ typedef struct tvp3026_ramdac_t {
 static void
 tvp3026_set_bpp(tvp3026_ramdac_t *ramdac, svga_t *svga)
 {
-    if ((ramdac->true_color & 0x80) == 0x80) {
+    if (ramdac->true_color & 0x80) {
         if (ramdac->mcr & 0x08)
             svga->bpp = 8;
         else
@@ -514,67 +514,16 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
 {
     const tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
 
-    svga->interlace = (ramdac->ccr & 0x40);
+    svga->interlace = !!(ramdac->ccr & 0x40);
     /* TODO: Figure out gamma correction for 15/16 bpp color. */
     svga->lut_map = !!(svga->bpp >= 15 && (ramdac->true_color & 0xf0) != 0x00);
 
-    switch (ramdac->mcr) {
-        case 0x41:
-        case 0x4a:
-        case 0x61:
+    pclog("MCR=0x%02x, truecolor=0x%02x, crtc1=0x%02x, MCLK=0x%02x, ClockSel=%x.\n", ramdac->mcr, ramdac->true_color, svga->crtc[1] + 1, ramdac->mclk & 0x7f, ramdac->clock_sel);
+    if (!(ramdac->clock_sel & 0x70)) {
+        if (ramdac->mcr != 0x98) {
             svga->hdisp <<= 1;
             svga->dots_per_clock <<= 1;
-            break;
-        case 0x42:
-        case 0x4b:
-        case 0x62:
-            svga->hdisp <<= 2;
-            svga->dots_per_clock <<= 2;
-            break;
-        case 0x43:
-        case 0x4c:
-        case 0x63:
-            svga->hdisp <<= 3;
-            svga->dots_per_clock <<= 3;
-            break;
-        case 0x44:
-        case 0x64:
-            svga->hdisp <<= 4;
-            svga->dots_per_clock <<= 4;
-            break;
-        case 0x5b:
-            switch (ramdac->true_color) {
-                case 0x16:
-                case 0x17:
-                    svga->hdisp = (svga->hdisp << 2) / 3;
-                    svga->dots_per_clock = (svga->dots_per_clock << 2) / 3;
-                    break;
-                case 0x1e:
-                case 0x1f:
-                    svga->hdisp = (svga->hdisp * 5) >> 2;
-                    svga->dots_per_clock = (svga->dots_per_clock * 5) >> 2;
-                    break;
-            }
-            break;
-        case 0x5c:
-            switch (ramdac->true_color) {
-                case 0x06:
-                case 0x07:
-                    svga->hdisp <<= 1;
-                    svga->dots_per_clock <<= 1;
-                    break;
-                case 0x16:
-                case 0x17:
-                    svga->hdisp = (svga->hdisp << 3) / 3;
-                    svga->dots_per_clock = (svga->dots_per_clock << 3) / 3;
-                    break;
-                case 0x1e:
-                case 0x1f:
-                    svga->hdisp = (svga->hdisp * 5) >> 1;
-                    svga->dots_per_clock = (svga->dots_per_clock * 5) >> 1;
-                    break;
-            }
-            break;
+        }
     }
 }
 

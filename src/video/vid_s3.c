@@ -3214,7 +3214,6 @@ s3_recalctimings(svga_t *svga)
     }
 
     svga->hdisp = svga->hdisp_old;
-
     svga->ma_latch |= (s3->ma_ext << 16);
 
     if (s3->chip >= S3_86C928) {
@@ -3222,7 +3221,7 @@ s3_recalctimings(svga_t *svga)
             svga->htotal |= 0x100;
         if (svga->crtc[0x5d] & 0x02) {
             svga->hdisp_time |= 0x100;
-            svga->hdisp |= 0x100 * svga->dots_per_clock;
+            svga->hdisp |= (0x100 * svga->dots_per_clock);
         }
         if (svga->crtc[0x5e] & 0x01)
             svga->vtotal |= 0x400;
@@ -3442,8 +3441,13 @@ s3_recalctimings(svga_t *svga)
                         break;
                     case S3_VISION968:
                         switch (s3->card_type) {
-                            case S3_PHOENIX_VISION968:
+                            case S3_MIROVIDEO40SV_ERGO_968:
+                                if (svga->hdisp == 832)
+                                    svga->hdisp -= 32;
+                                break;
                             case S3_NUMBER9_9FX_771:
+                            case S3_PHOENIX_VISION968:
+                            case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
                                 if (svga->hdisp == 832)
@@ -3619,8 +3623,13 @@ s3_recalctimings(svga_t *svga)
                         break;
                     case S3_VISION968:
                         switch (s3->card_type) {
+                            case S3_MIROVIDEO40SV_ERGO_968:
+                                if (svga->hdisp == 832)
+                                    svga->hdisp -= 32;
+                                break;
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
+                            case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
                                 /* TODO: Is this still needed? */
@@ -3801,8 +3810,13 @@ s3_recalctimings(svga_t *svga)
                         break;
                     case S3_VISION968:
                         switch (s3->card_type) {
+                            case S3_MIROVIDEO40SV_ERGO_968:
+                                if (svga->hdisp == 832)
+                                    svga->hdisp -= 32;
+                                break;
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
+                            case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
                                 /* TODO: Is this still needed? */
@@ -4003,8 +4017,13 @@ s3_recalctimings(svga_t *svga)
                         break;
                     case S3_VISION968:
                         switch (s3->card_type) {
+                            case S3_MIROVIDEO40SV_ERGO_968:
+                                if (svga->hdisp == 832)
+                                    svga->hdisp -= 32;
+                                break;
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
+                            case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
                                 /* TODO: Is this still needed? */
@@ -4165,7 +4184,7 @@ s3_trio64v_recalctimings(svga_t *svga)
     if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
         /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
         svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
-                            ((svga->crtc[3] >> 5) & 3) + 1*/;
+                            ((svga->crtc[3] >> 5) & 3)*/;
         svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         svga->monitor->mon_overscan_y = 0;

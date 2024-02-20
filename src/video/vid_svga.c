@@ -794,8 +794,8 @@ svga_recalctimings(svga_t *svga)
         uint32_t eff_mask = (svga->hblank_end_val & ~0x0000003f) ? svga->hblank_end_mask : 0x0000003f;
         svga->hblank_sub = 0;
 
-        svga_log("Blank: %04i-%04i, Total: %04i, Mask: %02X\n", svga->hblankstart, svga->hblank_end_val,
-                 svga->htotal, eff_mask);
+        svga_log("HDISP=%d, CRTC1+1=%d, Blank: %04i-%04i, Total: %04i, Mask: %02X, ADJ_DOT=%04i.\n", svga->hdisp, svga->crtc[1] + 1, svga->hblankstart, svga->hblank_end_val,
+                 svga->htotal, eff_mask, adj_dot);
 
         while (adj_dot < (svga->htotal << 1)) {
             if (dot == svga->htotal)
@@ -804,6 +804,7 @@ svga_recalctimings(svga_t *svga)
             if (adj_dot >= svga->htotal)
                 svga->hblank_sub++;
 
+            svga_log("Loop: adjdot=%d, htotal=%d, dotmask=%02x, hblankendvalmask=%02x, blankendval=%02x.\n", adj_dot, svga->htotal, dot & eff_mask, svga->hblank_end_val & eff_mask, svga->hblank_end_val);
             if ((dot & eff_mask) == (svga->hblank_end_val & eff_mask))
                 break;
 
@@ -812,32 +813,34 @@ svga_recalctimings(svga_t *svga)
         }
 
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+    }
 
-        if (ibm8514_active && (svga->dev8514 != NULL)) {
-            if (dev->on[0] || dev->on[1]) {
-                uint32_t dot8514 = dev->h_blankstart;
-                uint32_t adj_dot8514 = dev->h_blankstart;
-                uint32_t eff_mask8514 = 0x0000003f;
-                dev->hblank_sub = 0;
+#ifdef TBD
+    if (ibm8514_active && (svga->dev8514 != NULL)) {
+        if (dev->on[0] || dev->on[1]) {
+            uint32_t dot8514 = dev->h_blankstart;
+            uint32_t adj_dot8514 = dev->h_blankstart;
+            uint32_t eff_mask8514 = 0x0000003f;
+            dev->hblank_sub = 0;
 
-                while (adj_dot8514 < (dev->h_total << 1)) {
-                    if (dot8514 == dev->h_total)
-                        dot = 0;
+            while (adj_dot8514 < (dev->h_total << 1)) {
+                if (dot8514 == dev->h_total)
+                    dot8514 = 0;
 
-                    if (adj_dot8514 >= dev->h_total)
-                        dev->hblank_sub++;
+                if (adj_dot8514 >= dev->h_total)
+                    dev->hblank_sub++;
 
-                    if ((dot8514 & eff_mask8514) == (dev->h_blank_end_val & eff_mask8514))
-                        break;
+                if ((dot8514 & eff_mask8514) == (dev->h_blank_end_val & eff_mask8514))
+                    break;
 
-                    dot8514++;
-                    adj_dot8514++;
-                }
-
-                dev->h_disp -= dev->hblank_sub;
+                dot8514++;
+                adj_dot8514++;
             }
+
+            dev->h_disp -= dev->hblank_sub;
         }
     }
+#endif
 
     if (svga->hdisp >= 2048)
         svga->monitor->mon_overscan_x = 0;
