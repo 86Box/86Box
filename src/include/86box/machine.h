@@ -245,8 +245,12 @@ enum {
     MACHINE_CHIPSET_SIS_471,
     MACHINE_CHIPSET_SIS_496,
     MACHINE_CHIPSET_SIS_501,
+    MACHINE_CHIPSET_SIS_5501,
     MACHINE_CHIPSET_SIS_5511,
     MACHINE_CHIPSET_SIS_5571,
+    MACHINE_CHIPSET_SIS_5581,
+    MACHINE_CHIPSET_SIS_5591,
+    MACHINE_CHIPSET_SIS_5600,
     MACHINE_CHIPSET_SMSC_VICTORYBX_66,
     MACHINE_CHIPSET_STPC_CLIENT,
     MACHINE_CHIPSET_STPC_CONSUMER_II,
@@ -641,6 +645,11 @@ extern int machine_at_p54sp4_init(const machine_t *);
 extern int machine_at_sq588_init(const machine_t *);
 extern int machine_at_p54sps_init(const machine_t *);
 
+extern int machine_at_ms5109_init(const machine_t *);
+extern int machine_at_torino_init(const machine_t *);
+
+extern int machine_at_hot539_init(const machine_t *);
+
 /* m_at_socket7_3v.c */
 extern int machine_at_p54tp4xe_init(const machine_t *);
 extern int machine_at_p54tp4xe_mr_init(const machine_t *);
@@ -668,6 +677,8 @@ extern int machine_at_ap5s_init(const machine_t *);
 extern int machine_at_ms5124_init(const machine_t *);
 extern int machine_at_amis727_init(const machine_t *);
 extern int machine_at_vectra54_init(const machine_t *);
+
+extern int machine_at_5sbm2_init(const machine_t *);
 
 /* m_at_socket7.c */
 extern int machine_at_acerv35n_init(const machine_t *);
@@ -717,6 +728,12 @@ extern int machine_at_cb52xsi_init(const machine_t *);
 
 extern int machine_at_m560_init(const machine_t *);
 extern int machine_at_ms5164_init(const machine_t *);
+
+extern int machine_at_sp97xv_init(const machine_t *);
+extern int machine_at_sq578_init(const machine_t *);
+
+extern int machine_at_5sg100_init(const machine_t *);
+extern int machine_at_ms5172_init(const machine_t *);
 
 /* m_at_sockets7.c */
 extern int machine_at_p5a_init(const machine_t *);
@@ -779,6 +796,8 @@ extern int machine_at_vei8_init(const machine_t *);
 
 extern int machine_at_borapro_init(const machine_t *);
 extern int machine_at_ms6168_init(const machine_t *);
+
+extern int machine_at_p6f99_init(const machine_t *);
 
 /* m_at_slot2.c */
 extern int machine_at_6gxu_init(const machine_t *);

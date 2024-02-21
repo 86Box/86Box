@@ -79,16 +79,13 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
-
+#include <86box/port_92.h>
 #include <86box/chipset.h>
-
-#define IDE_BIT 0x01
 
 #ifdef ENABLE_UMC_8886_LOG
 int umc_8886_do_log = ENABLE_UMC_8886_LOG;
@@ -108,18 +105,6 @@ umc_8886_log(const char *fmt, ...)
 #    define umc_8886_log(fmt, ...)
 #endif
 
-/* PCI IRQ Flags */
-#define INTA       (PCI_INTA + (2 * !(addr & 1)))
-#define INTB       (PCI_INTB + (2 * !(addr & 1)))
-#define IRQRECALCA (((val & 0xf0) != 0) ? ((val & 0xf0) >> 4) : PCI_IRQ_DISABLED)
-#define IRQRECALCB (((val & 0x0f) != 0) ? (val & 0x0f) : PCI_IRQ_DISABLED)
-
-/* Disable Internal IDE Flag needed for the AF or BF Southbridge variant */
-#define HAS_IDE dev->has_ide
-
-/* Southbridge Revision */
-#define SB_ID dev->sb_id
-
 typedef struct umc_8886_t {
     uint8_t  max_func;            /* Last function number */
     uint8_t  pci_slot;
@@ -128,19 +113,24 @@ typedef struct umc_8886_t {
 
     uint8_t  pci_conf_sb[2][256]; /* PCI Registers */
 
-    uint16_t sb_id;              /* Southbridge Revision */
-    int      has_ide;            /* Check if Southbridge Revision is AF or F */
+    uint16_t sb_id;               /* Southbridge Revision */
+    uint16_t ide_id;              /* IDE Revision */
+
+    int      has_ide;             /* Check if Southbridge Revision is F, AF, or BF */
 } umc_8886_t;
 
 static void
-umc_8886_ide_handler(int status)
+umc_8886_ide_handler(umc_8886_t *dev)
 {
     ide_pri_disable();
     ide_sec_disable();
 
-    if (status) {
-        ide_pri_enable();
-        ide_sec_enable();
+    if (dev->pci_conf_sb[1][0x04] & 0x01) {
+        if (dev->pci_conf_sb[1][0x40] & 0x80)
+            ide_pri_enable();
+
+        if (dev->pci_conf_sb[1][0x40] & 0x40)
+            ide_sec_enable();
     }
 }
 
@@ -148,6 +138,7 @@ static void
 umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *) priv;
+    int irq_routing;
 
     if (func <= dev->max_func)
         switch (func) {
@@ -155,8 +146,17 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                 umc_8886_log("UM8886: dev->regs[%02x] = %02x POST %02x\n", addr, val, inb(0x80));
 
                 switch (addr) {
-                    case 0x04:
-                    case 0x05:
+                    case 0x04 ... 0x05:
+                    case 0x0c ... 0x0d:
+                    case 0x40 ... 0x42:
+                    case 0x45:
+                    case 0x50 ... 0x55:
+                    case 0x57:
+                    case 0x70 ... 0x76:
+                    case 0x80 ... 0x82:
+                    case 0x90 ... 0x92:
+                    case 0xa0 ... 0xa1:
+                    case 0xa5 ... 0xa8:
                         dev->pci_conf_sb[func][addr] = val;
                         break;
 
@@ -164,43 +164,28 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                         dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
                         break;
 
-                    case 0x0c:
-                    case 0x0d:
-                        dev->pci_conf_sb[func][addr] = val;
-                        break;
-
-                    case 0x40:
-                    case 0x41:
-                    case 0x42:
-                        dev->pci_conf_sb[func][addr] = val;
-                        break;
-
                     case 0x43:
+                        dev->pci_conf_sb[func][addr] = val;
+                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x01) ? (val >> 8) :
+                                      PCI_IRQ_DISABLED;
+                        pci_set_irq_routing(PCI_INTA, irq_routing);
+                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x02) ? (val & 0x0f) :
+                                      PCI_IRQ_DISABLED;
+                        pci_set_irq_routing(PCI_INTB, irq_routing);
+                        break;
                     case 0x44:
                         dev->pci_conf_sb[func][addr] = val;
-                        pci_set_irq_routing(INTA, IRQRECALCA);
-                        pci_set_irq_routing(INTB, IRQRECALCB);
+                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x04) ? (val >> 8) :
+                                      PCI_IRQ_DISABLED;
+                        pci_set_irq_routing(PCI_INTC, irq_routing);
+                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x08) ? (val & 0x0f) :
+                                      PCI_IRQ_DISABLED;
+                        pci_set_irq_routing(PCI_INTD, irq_routing);
                         break;
 
-                    case 0x45:
-                        dev->pci_conf_sb[func][addr] = val;
-                        break;
-
-                    case 0x46:
+                    case 0x46:    /* Bits 3-0 = 0 = IRQ disabled, 1 = IRQ enabled. */
+                    case 0x47:    /* Bits 3-0 = 0 = IRQ edge-triggered, 1 = IRQ level-triggered. */
                         /* Bit 6 seems to be the IRQ/SMI# toggle, 1 = IRQ, 0 = SMI#. */
-                        dev->pci_conf_sb[func][addr] = val;
-                        break;
-
-                    case 0x47:
-                        dev->pci_conf_sb[func][addr] = val;
-                        break;
-
-                    case 0x50:
-                    case 0x51:
-                    case 0x52:
-                    case 0x53:
-                    case 0x54:
-                    case 0x55:
                         dev->pci_conf_sb[func][addr] = val;
                         break;
 
@@ -220,16 +205,6 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                             default:
                                 break;
                         }
-
-                        break;
-
-                    case 0x57:
-                    case 0x70 ... 0x76:
-                    case 0x80:
-                    case 0x81:
-                    case 0x90 ... 0x92:
-                    case 0xa0 ... 0xa1:
-                        dev->pci_conf_sb[func][addr] = val;
                         break;
 
                     case 0xa2:
@@ -243,7 +218,6 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                                 picint(1 << ((dev->pci_conf_sb[0][0x46] & 0x80) ? 15 : 10));
                             else
                                 smi_raise();
-                            dev->pci_conf_sb[0][0xa3] |= 0x04;
                         }
 
                         dev->pci_conf_sb[func][addr] = val;
@@ -252,10 +226,6 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                     case 0xa4:
                         dev->pci_conf_sb[func][addr] = val;
                         cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
-                        break;
-
-                    case 0xa5 ... 0xa8:
-                        dev->pci_conf_sb[func][addr] = val;
                         break;
 
                     default:
@@ -269,7 +239,8 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                 switch (addr) {
                     case 0x04:
                         dev->pci_conf_sb[func][addr] = val;
-                        umc_8886_ide_handler(val & 1);
+                        if (dev->ide_id == 0x673a)
+                            umc_8886_ide_handler(dev);
                         break;
 
                     case 0x07:
@@ -277,9 +248,17 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                         break;
 
                     case 0x3c:
+                    case 0x41 ... 0x4b:
+                    case 0x54 ... 0x59:
+                        if (dev->ide_id == 0x673a)
+                            dev->pci_conf_sb[func][addr] = val;
+                        break;
+
                     case 0x40:
-                    case 0x41:
-                        dev->pci_conf_sb[func][addr] = val;
+                        if (dev->ide_id == 0x673a) {
+                            dev->pci_conf_sb[func][addr] = val;
+                            umc_8886_ide_handler(dev);
+                        }
                         break;
 
                     default:
@@ -311,47 +290,73 @@ umc_8886_reset(void *priv)
     memset(dev->pci_conf_sb[0], 0x00, sizeof(dev->pci_conf_sb[0]));
     memset(dev->pci_conf_sb[1], 0x00, sizeof(dev->pci_conf_sb[1]));
 
-    dev->pci_conf_sb[0][0] = 0x60; /* UMC */
-    dev->pci_conf_sb[0][1] = 0x10;
-
-    dev->pci_conf_sb[0][2] = (SB_ID & 0xff); /* 8886xx */
-    dev->pci_conf_sb[0][3] = ((SB_ID >> 8) & 0xff);
-
-    dev->pci_conf_sb[0][4] = 0x0f;
-    dev->pci_conf_sb[0][7] = 2;
-
-    dev->pci_conf_sb[0][8] = 0x0e;
-
+    dev->pci_conf_sb[0][0x00] = 0x60; /* UMC */
+    dev->pci_conf_sb[0][0x01] = 0x10;
+    dev->pci_conf_sb[0][0x02] = (dev->sb_id & 0xff); /* 8886xx */
+    dev->pci_conf_sb[0][0x03] = ((dev->sb_id >> 8) & 0xff);
+    dev->pci_conf_sb[0][0x04] = 0x0f;
+    dev->pci_conf_sb[0][0x07] = 0x02;
+    dev->pci_conf_sb[0][0x08] = 0x0e;
     dev->pci_conf_sb[0][0x09] = 0x00;
     dev->pci_conf_sb[0][0x0a] = 0x01;
     dev->pci_conf_sb[0][0x0b] = 0x06;
-
-    dev->pci_conf_sb[0][0x40] = 1;
-    dev->pci_conf_sb[0][0x41] = 6;
-    dev->pci_conf_sb[0][0x42] = 8;
-    dev->pci_conf_sb[0][0x43] = 0x9a;
-    dev->pci_conf_sb[0][0x44] = 0xbc;
-    dev->pci_conf_sb[0][0x45] = 4;
+    dev->pci_conf_sb[0][0x40] = 0x01;
+    dev->pci_conf_sb[0][0x41] = 0x06;
+    dev->pci_conf_sb[0][0x42] = 0x08;
+    dev->pci_conf_sb[0][0x43] = 0x00;
+    dev->pci_conf_sb[0][0x44] = 0x00;
+    dev->pci_conf_sb[0][0x45] = 0x04;
+    dev->pci_conf_sb[0][0x46] = 0x00;
     dev->pci_conf_sb[0][0x47] = 0x40;
-    dev->pci_conf_sb[0][0x50] = 1;
-    dev->pci_conf_sb[0][0x51] = 3;
+    dev->pci_conf_sb[0][0x50] = 0x01;
+    dev->pci_conf_sb[0][0x51] = 0x03;
+    dev->pci_conf_sb[0][0x56] = dev->pci_conf_sb[0][0x57] = 0x00;
+    dev->pci_conf_sb[0][0x70] = dev->pci_conf_sb[0][0x71] = 0x00;
+    dev->pci_conf_sb[0][0x72] = dev->pci_conf_sb[0][0x73] = 0x00;
+    dev->pci_conf_sb[0][0x74] = dev->pci_conf_sb[0][0x76] = 0x00;
+    dev->pci_conf_sb[0][0x82] = 0x00;
+    dev->pci_conf_sb[0][0x90] = dev->pci_conf_sb[0][0x91] = 0x00;
+    dev->pci_conf_sb[0][0xa0] = dev->pci_conf_sb[0][0xa2] = 0x00;
+    dev->pci_conf_sb[0][0xa4] = 0x00;
     dev->pci_conf_sb[0][0xa8] = 0x20;
 
-    if (HAS_IDE) {
-        dev->pci_conf_sb[1][0] = 0x60; /* UMC */
-        dev->pci_conf_sb[1][1] = 0x10;
+    if (dev->has_ide) {
+        dev->pci_conf_sb[1][0x00] = 0x60; /* UMC */
+        dev->pci_conf_sb[1][0x01] = 0x10;
+        dev->pci_conf_sb[1][0x02] = (dev->ide_id & 0xff); /* 8886xx IDE */
+        dev->pci_conf_sb[1][0x03] = ((dev->ide_id >> 8) & 0xff);
+        dev->pci_conf_sb[1][0x04] = 0x05; /* Start with Internal IDE Enabled */
+        dev->pci_conf_sb[1][0x08] = 0x10;
+        dev->pci_conf_sb[1][0x09] = 0x8f;
+        dev->pci_conf_sb[1][0x0a] = dev->pci_conf_sb[1][0x0b] = 0x01;
+        dev->pci_conf_sb[1][0x10] = 0xf1;
+        dev->pci_conf_sb[1][0x11] = 0x01;
+        dev->pci_conf_sb[1][0x14] = 0xf5;
+        dev->pci_conf_sb[1][0x15] = 0x03;
+        dev->pci_conf_sb[1][0x18] = 0x71;
+        dev->pci_conf_sb[1][0x19] = 0x01;
+        dev->pci_conf_sb[1][0x1c] = 0x75;
+        dev->pci_conf_sb[1][0x1d] = 0x03;
+        dev->pci_conf_sb[1][0x20] = 0x01;
+        dev->pci_conf_sb[1][0x21] = 0x10;
 
-        dev->pci_conf_sb[1][2] = 0x3a; /* 8886BF IDE */
-        dev->pci_conf_sb[1][3] = 0x67;
+        if (dev->ide_id == 0x673a) {
+            dev->pci_conf_sb[1][0x40] = 0xc0;
+            dev->pci_conf_sb[1][0x41] = 0x00;
+            dev->pci_conf_sb[1][0x42] = dev->pci_conf_sb[1][0x43] = 0x00;
+            dev->pci_conf_sb[1][0x44] = dev->pci_conf_sb[1][0x45] = 0x00;
+            dev->pci_conf_sb[1][0x46] = dev->pci_conf_sb[1][0x47] = 0x00;
+            dev->pci_conf_sb[1][0x48] = dev->pci_conf_sb[1][0x49] = 0x00;
+            dev->pci_conf_sb[1][0x4a] = dev->pci_conf_sb[1][0x4b] = 0x00;
+            dev->pci_conf_sb[1][0x54] = dev->pci_conf_sb[1][0x55] = 0x00;
+            dev->pci_conf_sb[1][0x56] = dev->pci_conf_sb[1][0x57] = 0x00;
+            dev->pci_conf_sb[1][0x58] = dev->pci_conf_sb[1][0x59] = 0x00;
 
-        dev->pci_conf_sb[1][4] = 1; /* Start with Internal IDE Enabled */
+            umc_8886_ide_handler(dev);
 
-        dev->pci_conf_sb[1][8] = 0x10;
-
-        dev->pci_conf_sb[1][0x09] = 0x0f;
-        dev->pci_conf_sb[1][0x0a] = dev->pci_conf_sb[1][0x0b] = 1;
-
-        umc_8886_ide_handler(1);
+            picintc(1 << 14);
+            picintc(1 << 15);
+        }
     }
 
     for (uint8_t i = 1; i < 5; i++) /* Disable all IRQ interrupts */
@@ -375,17 +380,28 @@ umc_8886_init(const device_t *info)
     umc_8886_t *dev = (umc_8886_t *) malloc(sizeof(umc_8886_t));
     memset(dev, 0, sizeof(umc_8886_t));
 
-    dev->has_ide = !!(info->local == 0x886a);
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, umc_8886_read, umc_8886_write, dev, &dev->pci_slot); /* Device 12: UMC 8886xx */
-
-    /* Add IDE if UM8886AF variant */
-    if (HAS_IDE)
-        device_add(&ide_pci_2ch_device);
-
-    dev->max_func = (HAS_IDE) ? 1 : 0;
+    /* Device 12: UMC 8886xx */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, umc_8886_read, umc_8886_write, dev, &dev->pci_slot);
 
     /* Get the Southbridge Revision */
-    SB_ID = info->local;
+    dev->sb_id = info->local & 0xffff;
+
+    /* IDE Revision */
+    dev->ide_id = info->local >> 16;
+
+    dev->has_ide = (dev->ide_id != 0x0000);
+
+    dev->max_func = 0;
+
+    /* Add IDE if this is the UM8886AF or UM8886BF. */
+    if (dev->ide_id == 0x673a) {
+        /* UM8886BF */
+        device_add(&ide_pci_2ch_device);
+        dev->max_func = 1;
+    } else if (dev->ide_id == 0x1001) {
+        /* UM8886AF */
+        device_add(&ide_um8673f_device);
+    }
 
     umc_8886_reset(dev);
 
@@ -396,7 +412,7 @@ const device_t umc_8886f_device = {
     .name          = "UMC 8886F",
     .internal_name = "umc_8886f",
     .flags         = DEVICE_PCI,
-    .local         = 0x8886,
+    .local         = 0x00008886,
     .init          = umc_8886_init,
     .close         = umc_8886_close,
     .reset         = umc_8886_reset,
@@ -407,10 +423,24 @@ const device_t umc_8886f_device = {
 };
 
 const device_t umc_8886af_device = {
-    .name          = "UMC 8886AF/8886BF",
+    .name          = "UMC 8886AF",
     .internal_name = "umc_8886af",
     .flags         = DEVICE_PCI,
-    .local         = 0x886a,
+    .local         = 0x1001886a,
+    .init          = umc_8886_init,
+    .close         = umc_8886_close,
+    .reset         = umc_8886_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t umc_8886bf_device = {
+    .name          = "UMC 8886BF",
+    .internal_name = "umc_8886bf",
+    .flags         = DEVICE_PCI,
+    .local         = 0x673a888a,
     .init          = umc_8886_init,
     .close         = umc_8886_close,
     .reset         = umc_8886_reset,

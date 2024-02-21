@@ -1908,7 +1908,7 @@ machine_at_hot433a_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&umc_hb4_device);
-    device_add(&umc_8886af_device);
+    device_add(&umc_8886bf_device);
     device_add(&um8669f_device);
     device_add(&winbond_flash_w29c010_device);
     device_add(&keyboard_at_ami_device);
@@ -1937,7 +1937,7 @@ machine_at_atc1415_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
-    device_add(&umc_8886af_device);
+    device_add(&umc_8886bf_device);
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_ami_device);
 
@@ -1966,10 +1966,9 @@ machine_at_actionpc2600_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_VIDEO,       0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&umc_hb4_device);
-    device_add(&umc_8886af_device);
+    device_add(&umc_8886bf_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_ps2_tg_ami_device);
@@ -2001,7 +2000,7 @@ machine_at_actiontower8400_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&umc_hb4_device);
-    device_add(&umc_8886af_device);
+    device_add(&umc_8886f_device);
     device_add(&fdc37c665_device);
     device_add(&ide_cmd640_pci_device);
     device_add(&intel_flash_bxt_device); // The ActionPC 2600 has this so I'm gonna assume this does too.
@@ -2033,8 +2032,8 @@ machine_at_m919_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
-    device_add(&umc_8886af_device);
-    device_add(&um8669f_device);
+    device_add(&umc_8886af_device);    /* AF is correct - the BIOS does IDE writes to ports 108h and 109h. */
+    device_add(&um8663bf_device);
     device_add(&sst_flash_29ee010_device);
     device_add(&keyboard_at_ami_device);
 
@@ -2226,7 +2225,7 @@ machine_at_ap4100aa_init(const machine_t *model)
     device_add(&ali1429g_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&ide_vlb_device);
-    device_add(&um8669f_device); // needs um8663
+    device_add(&um8663bf_device);
 
     return ret;
 }

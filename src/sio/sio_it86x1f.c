@@ -414,8 +414,10 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
         case 0x23:
             val &= (1 << dev->gpio_ldn) - 1;
             dev->global_regs[reg & 0x0f] = val;
+#ifdef ENABLE_IT86X1F_LOG
             if (val)
-                pclog("IT86x1F: Warning: ISAPnP mode enabled.\n");
+                it86x1f_log("IT86x1F: Warning: ISAPnP mode enabled.\n");
+#endif
             break;
 
         case 0x24:

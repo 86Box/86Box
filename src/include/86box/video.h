@@ -368,8 +368,9 @@ extern const device_t gd5434_onboard_pci_device;
 extern const device_t gd5434_vlb_device;
 extern const device_t gd5434_pci_device;
 extern const device_t gd5436_pci_device;
-extern const device_t gd5440_onboard_pci_device;
+extern const device_t gd5436_onboard_pci_device;
 extern const device_t gd5440_pci_device;
+extern const device_t gd5440_onboard_pci_device;
 extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
@@ -539,6 +540,7 @@ extern const device_t tgui9440_vlb_device;
 extern const device_t tgui9440_pci_device;
 extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
+extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
 
 /* IBM PS/1 (S)VGA */

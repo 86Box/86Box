@@ -43,6 +43,7 @@ typedef struct sff8038i_t
     uint8_t  irq_state;
     uint8_t  channel;
     uint8_t  irq_line;
+    uint8_t  mirq;
     uint16_t base;
     uint16_t pad;
     uint32_t ptr;
@@ -72,10 +73,9 @@ extern void sff_bus_master_reset(sff8038i_t *dev);
 extern void sff_set_slot(sff8038i_t *dev, int slot);
 
 extern void sff_set_irq_line(sff8038i_t *dev, int irq_line);
-
 extern void sff_set_irq_mode(sff8038i_t *dev, int irq_mode);
 extern void sff_set_irq_pin(sff8038i_t *dev, int irq_pin);
-
 extern void sff_set_irq_level(sff8038i_t *dev, int irq_level);
+extern void sff_set_mirq(sff8038i_t *dev, uint8_t mirq);
 
 #endif /*EMU_HDC_IDE_SFF8038I_H*/

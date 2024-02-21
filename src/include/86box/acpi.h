@@ -52,12 +52,14 @@ extern "C" {
 #define ACPI_ENABLE     0xf1
 #define ACPI_DISABLE    0xf0
 
-#define VEN_ALI         0x010b9
-#define VEN_INTEL       0x08086
-#define VEN_SIS         0x01039
-#define VEN_SMC         0x01055
-#define VEN_VIA         0x01106
-#define VEN_VIA_596B    0x11106
+#define VEN_ALI              0x010b9
+#define VEN_INTEL            0x08086
+#define VEN_SIS_5582         0x01039
+#define VEN_SIS_5595_1997    0x11039
+#define VEN_SIS_5595         0x21039
+#define VEN_SMC              0x01055
+#define VEN_VIA              0x01106
+#define VEN_VIA_596B         0x11106
 
 typedef struct acpi_regs_t {
     uint8_t  acpitst;
@@ -76,6 +78,25 @@ typedef struct acpi_regs_t {
     uint8_t  gporeg[4];
     uint8_t  extiotrapsts;
     uint8_t  extiotrapen;
+    uint8_t  enter_c2_ps;
+    uint8_t  enter_c3_ps;
+    uint8_t  reg_12;
+    uint8_t  reg_13;
+    uint8_t  smi_cmd;
+    uint8_t  reg_24;
+    uint8_t  reg_25;
+    uint8_t  reg_26;
+    uint8_t  smi_en_val;
+    uint8_t  smi_dis_val;
+    uint8_t  mail_box;
+    uint8_t  reg_2b;
+    uint8_t  gp_tmr;
+    uint8_t  leg_sts;
+    uint8_t  leg_en;
+    uint8_t  tst_ctl;
+    uint8_t  reg_34;
+    uint8_t  index;
+    uint8_t  reg_ff;
     uint16_t pmsts;
     uint16_t pmen;
     uint16_t pmcntrl;
@@ -91,6 +112,15 @@ typedef struct acpi_regs_t {
     uint16_t gpsmien;
     uint16_t pscntrl;
     uint16_t gpscists;
+    uint16_t reg_14;
+    uint16_t reg_16;
+    uint16_t reg_18;
+    uint16_t reg_1a;
+    uint16_t reg_1c;
+    uint16_t gpe_mul;
+    uint16_t gpe_ctl;
+    uint16_t gpe_smi;
+    uint16_t gpe_rl;
     int      smi_lock;
     int      smi_active;
     uint32_t pcntrl;
@@ -107,7 +137,12 @@ typedef struct acpi_regs_t {
     uint32_t gpo_val;
     uint32_t gpi_val;
     uint32_t extsmi_val;
-    uint32_t pad0;
+    uint32_t reg_0c;
+    uint32_t gpe_sts;
+    uint32_t gpe_en;
+    uint32_t gpe_pin;
+    uint32_t gpe_io;
+    uint32_t gpe_pol;
 } acpi_regs_t;
 
 typedef struct acpi_t {
@@ -128,11 +163,15 @@ typedef struct acpi_t {
     pc_timer_t  timer;
     pc_timer_t  resume_timer;
     pc_timer_t  pwrbtn_timer;
+    pc_timer_t  gp_timer;
+    pc_timer_t  per_timer;
     nvr_t      *nvr;
     apm_t      *apm;
     void       *i2c;
     void      (*trap_update)(void *priv);
     void       *trap_priv;
+    void       *smbus;
+    void       *priv;
 } acpi_t;
 
 /* Global variables. */
@@ -145,6 +184,9 @@ extern const device_t acpi_intel_device;
 extern const device_t acpi_smc_device;
 extern const device_t acpi_via_device;
 extern const device_t acpi_via_596b_device;
+extern const device_t acpi_sis_5582_device;
+extern const device_t acpi_sis_5595_1997_device;
+extern const device_t acpi_sis_5595_device;
 
 /* Functions */
 extern void    acpi_update_irq(acpi_t *dev);
@@ -163,6 +205,12 @@ extern void    acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 extern void    acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
 extern uint8_t acpi_ali_soft_smi_status_read(acpi_t *dev);
 extern void    acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);
+extern void *  acpi_get_smbus(void *priv);
+extern void    acpi_sis5582_pmu_event(void *priv);
+extern void    acpi_sis5595_smi_raise(void *priv);
+extern void    acpi_sis5595_pmu_event(void *priv);
+extern void    acpi_sis5595_smbus_event(void *priv);
+extern void    acpi_sis5595_software_smi(void *priv);
 
 #ifdef __cplusplus
 }

@@ -122,6 +122,8 @@ extern void nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
 extern void nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr);
 extern void nvr_at_index_read_handler(int set, uint16_t base, nvr_t *nvr);
 extern void nvr_read_addr_set(int set, nvr_t *nvr);
+extern uint8_t nvr_get_index(void *priv, uint8_t addr_id);
+extern void nvr_at_data_port(int set, nvr_t *nvr);
 extern void nvr_wp_set(int set, int h, nvr_t *nvr);
 extern void nvr_via_wp_set(int set, int reg, nvr_t *nvr);
 extern void nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);

@@ -6,11 +6,11 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the SiS 5571/5572 Pentium PCI/ISA Chipset.
+ *          Implementation of the SiS 5581/5582 Pentium PCI/ISA Chipset.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2021-2023 Miran Grca.
+ *          Copyright 2024 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -43,25 +43,26 @@
 #include <86box/sis_55xx.h>
 #include <86box/chipset.h>
 
-#ifdef ENABLE_SIS_5571_LOG
-int sis_5571_do_log = ENABLE_SIS_5571_LOG;
+#define ENABLE_SIS_5581_LOG 1
+#ifdef ENABLE_SIS_5581_LOG
+int sis_5581_do_log = ENABLE_SIS_5581_LOG;
 
 static void
-sis_5571_log(const char *fmt, ...)
+sis_5581_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (sis_5571_do_log) {
+    if (sis_5581_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define sis_5571_log(fmt, ...)
+#    define sis_5581_log(fmt, ...)
 #endif
 
-typedef struct sis_5571_t {
+typedef struct sis_5581_t {
     uint8_t            nb_slot;
     uint8_t            sb_slot;
 
@@ -71,39 +72,39 @@ typedef struct sis_5571_t {
     void              *usb;
 
     sis_55xx_common_t *sis;
-} sis_5571_t;
+} sis_5581_t;
 
 static void
-sis_5571_write(int func, int addr, uint8_t val, void *priv)
+sis_5581_write(int func, int addr, uint8_t val, void *priv)
 {
-    const sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5581_t *dev = (sis_5581_t *) priv;
 
-    sis_5571_log("SiS 5571: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
+    sis_5581_log("SiS 5581: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
 
     if (func == 0x00)
-        sis_5571_host_to_pci_write(addr, val, dev->h2p);
+        sis_5581_host_to_pci_write(addr, val, dev->h2p);
 }
 
 static uint8_t
-sis_5571_read(int func, int addr, void *priv)
+sis_5581_read(int func, int addr, void *priv)
 {
-    const sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5581_t *dev = (sis_5581_t *) priv;
     uint8_t ret = 0xff;
 
     if (func == 0x00)
-        ret = sis_5571_host_to_pci_read(addr, dev->h2p);
+        ret = sis_5581_host_to_pci_read(addr, dev->h2p);
 
-    sis_5571_log("SiS 5571: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
+    sis_5581_log("SiS 5581: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
 
     return ret;
 }
 
 static void
-sis_5572_write(int func, int addr, uint8_t val, void *priv)
+sis_5582_write(int func, int addr, uint8_t val, void *priv)
 {
-    const sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5581_t *dev = (sis_5581_t *) priv;
 
-    sis_5571_log("SiS 5572: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
+    sis_5581_log("SiS 5582: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
 
     switch (func) {
         case 0x00:
@@ -119,9 +120,9 @@ sis_5572_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_5572_read(int func, int addr, void *priv)
+sis_5582_read(int func, int addr, void *priv)
 {
-    const sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5581_t *dev = (sis_5581_t *) priv;
     uint8_t ret = 0xff;
 
     switch (func) {
@@ -136,46 +137,46 @@ sis_5572_read(int func, int addr, void *priv)
             break;
     }
 
-    sis_5571_log("SiS 5572: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
+    sis_5581_log("SiS 5582: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
 
     return ret;
 }
 
 static void
-sis_5571_close(void *priv)
+sis_5581_close(void *priv)
 {
-    sis_5571_t *dev = (sis_5571_t *) priv;
+    sis_5581_t *dev = (sis_5581_t *) priv;
 
     free(dev);
 }
 
 static void *
-sis_5571_init(UNUSED(const device_t *info))
+sis_5581_init(UNUSED(const device_t *info))
 {
-    sis_5571_t *dev = (sis_5571_t *) calloc(1, sizeof(sis_5571_t));
+    sis_5581_t *dev = (sis_5581_t *) calloc(1, sizeof(sis_5581_t));
 
-    /* Device 0: SiS 5571 */
-    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_5571_read, sis_5571_write, dev, &dev->nb_slot);
-    /* Device 1: SiS 5572 */
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_5572_read, sis_5572_write, dev, &dev->sb_slot);
+    /* Device 0: SiS 5581 */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_5581_read, sis_5581_write, dev, &dev->nb_slot);
+    /* Device 1: SiS 5582 */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_5582_read, sis_5582_write, dev, &dev->sb_slot);
 
     dev->sis = device_add(&sis_55xx_common_device);
 
-    dev->h2p = device_add_linked(&sis_5571_h2p_device, dev->sis);
-    dev->p2i = device_add_linked(&sis_5572_p2i_device, dev->sis);
-    dev->ide = device_add_linked(&sis_5572_ide_device, dev->sis);
-    dev->usb = device_add_linked(&sis_5572_usb_device, dev->sis);
+    dev->p2i = device_add_linked(&sis_5582_p2i_device, dev->sis);
+    dev->h2p = device_add_linked(&sis_5581_h2p_device, dev->sis);
+    dev->ide = device_add_linked(&sis_5582_ide_device, dev->sis);
+    dev->usb = device_add_linked(&sis_5582_usb_device, dev->sis);
 
     return dev;
 }
 
-const device_t sis_5571_device = {
-    .name          = "SiS 5571",
-    .internal_name = "sis_5571",
+const device_t sis_5581_device = {
+    .name          = "SiS 5581",
+    .internal_name = "sis_5581",
     .flags         = DEVICE_PCI,
     .local         = 0,
-    .init          = sis_5571_init,
-    .close         = sis_5571_close,
+    .init          = sis_5581_init,
+    .close         = sis_5581_close,
     .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,

@@ -4132,7 +4132,11 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5436:
-            romfn = BIOS_GD5436_PATH;
+            if (info->local & 0x200) {
+                romfn            = NULL;
+                gd54xx->has_bios = 0;
+            } else
+                romfn = BIOS_GD5436_PATH;
             break;
 
         case CIRRUS_ID_CLGD5430:
@@ -5143,6 +5147,20 @@ const device_t gd5434_pci_device = {
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
     { .available = gd5434_available },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd5434_config
+};
+
+const device_t gd5436_onboard_pci_device = {
+    .name          = "Cirrus Logic GD5436 (PCI) (On-Board)",
+    .internal_name = "cl_gd5436_onboard_pci",
+    .flags         = DEVICE_PCI,
+    .local         = CIRRUS_ID_CLGD5436 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    { .available = NULL },
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd5434_config

@@ -686,6 +686,19 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     }
 }
 
+/* Get the NVR register index (used for APC). */
+uint8_t
+nvr_get_index(void *priv, uint8_t addr_id)
+{
+    nvr_t   *nvr     = (nvr_t *) priv;
+    local_t *local   = (local_t *) nvr->data;
+    uint8_t  ret;
+
+    ret = local->addr[addr_id];
+
+    return ret;
+}
+
 /* Read from one of the NVR registers. */
 static uint8_t
 nvr_read(uint16_t addr, void *priv)
@@ -930,6 +943,17 @@ nvr_at_index_read_handler(int set, uint16_t base, nvr_t *nvr)
         io_handler(1, base + 1, 1,
                    nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
     }
+}
+
+void
+nvr_at_data_port(int set, nvr_t *nvr)
+{
+    io_handler(0, 0x71, 1,
+               nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+
+    if (set)
+        io_handler(1, 0x71, 1,
+                   nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
 }
 
 void

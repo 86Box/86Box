@@ -202,6 +202,7 @@ extern void  device_context(const device_t *dev);
 extern void  device_context_inst(const device_t *dev, int inst);
 extern void  device_context_restore(void);
 extern void *device_add(const device_t *d);
+extern void *device_add_linked(const device_t *d, void *priv);
 extern void *device_add_parameters(const device_t *dev, void *params);
 extern void  device_add_ex(const device_t *dev, void *priv);
 extern void  device_add_ex_parameters(const device_t *dev, void *priv, void *params);
@@ -217,6 +218,7 @@ extern void *device_cadd_inst(const device_t *dev, const device_t *cd, int inst)
 extern void *device_cadd_inst_parameters(const device_t *dev, const device_t *cd, int inst, void *params);
 extern void  device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *priv, int inst);
 extern void  device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params);
+extern void *device_get_common_priv(void);
 extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
 extern void *device_find_first_priv(uint32_t match_flags);
