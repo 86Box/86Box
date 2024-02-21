@@ -586,6 +586,7 @@ svga_recalctimings(svga_t *svga)
     int              hsyncend;
 #endif
 
+    svga->dpms        = 0;
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
     svga->vsyncstart  = svga->crtc[0x10];
