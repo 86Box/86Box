@@ -1605,8 +1605,12 @@ checkio(uint32_t port, int mask)
 {
     uint32_t t;
 
-    if (!(tr.access & 0x08))
+    if (!(tr.access & 0x08)) {
+        if ((CPL) > (IOPL))
+            return 1;
+
         return 0;
+    }
 
     cpl_override = 1;
     t            = readmemw(tr.base, 0x66);
