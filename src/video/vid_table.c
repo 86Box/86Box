@@ -254,6 +254,7 @@ video_cards[] = {
     { &s3_spea_mirage_p64_vlb_device                   },
     { &s3_phoenix_vision968_vlb_device                 },
     { &s3_phoenix_vision868_vlb_device                 },
+    { &s3_stb_powergraph_64_video_vlb_device           },
     { &ht216_32_standalone_device                      },
     { &tgui9400cxi_device                              },
     { &tgui9440_vlb_device                             },

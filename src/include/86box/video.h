@@ -491,6 +491,7 @@ extern const device_t s3_spea_mirage_p64_vlb_device;
 extern const device_t s3_phoenix_trio64_vlb_device;
 extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
+extern const device_t s3_stb_powergraph_64_video_vlb_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
 extern const device_t s3_cardex_trio64vplus_pci_device;

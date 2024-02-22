@@ -63,6 +63,7 @@
 #define ROM_PHOENIX_TRIO64             "roms/video/s3/86c764x1.bin"
 #define ROM_DIAMOND_STEALTH64_764      "roms/video/s3/stealt64.bin"
 #define ROM_TRIO64V2_DX_VBE20          "roms/video/s3/86c775_2.bin"
+#define ROM_STB_POWERGRAPH_64_VIDEO    "roms/video/s3/VBIOS.BIN"
 #define ROM_PHOENIX_TRIO64VPLUS        "roms/video/s3/64V1506.ROM"
 #define ROM_CARDEX_TRIO64VPLUS         "roms/video/s3/S3T64VP.VBI"
 #define ROM_DIAMOND_STEALTH_SE         "roms/video/s3/DiamondStealthSE.VBI"
@@ -94,6 +95,7 @@ enum {
     S3_AMI_86C924,
     S3_TRIO64V2_DX,
     S3_TRIO64V2_DX_ONBOARD,
+    S3_STB_POWERGRAPH_64_VIDEO,
     S3_PHOENIX_TRIO64VPLUS,
     S3_PHOENIX_TRIO64VPLUS_ONBOARD,
     S3_CARDEX_TRIO64VPLUS,
@@ -3079,7 +3081,8 @@ s3_in(uint16_t addr, void *priv)
                 temp = svga->seqregs[svga->seqaddr];
                 /* This is needed for the Intel Advanced/ATX's built-in S3 Trio64V+ BIOS to not
                    get stuck in an infinite loop. */
-                if (((s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) ||
+                if (((s3->card_type == S3_STB_POWERGRAPH_64_VIDEO) ||
+                    (s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) ||
                     (s3->card_type == S3_CARDEX_TRIO64VPLUS)) && (svga->seqaddr == 0x17))
                     svga->seqregs[svga->seqaddr] ^= 0x01;
                 return temp;
@@ -9478,6 +9481,7 @@ s3_reset(void *priv)
 
         case S3_PHOENIX_TRIO64:
         case S3_PHOENIX_TRIO64_ONBOARD:
+        case S3_STB_POWERGRAPH_64_VIDEO:
         case S3_CARDEX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
@@ -9716,6 +9720,14 @@ s3_init(const device_t *info)
         case S3_PHOENIX_TRIO64_ONBOARD:
             bios_fn = NULL;
             chip    = S3_TRIO64;
+            if (info->flags & DEVICE_PCI)
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            else
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+            break;
+        case S3_STB_POWERGRAPH_64_VIDEO:
+            bios_fn = ROM_STB_POWERGRAPH_64_VIDEO;
+            chip    = S3_TRIO64V;
             if (info->flags & DEVICE_PCI)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
             else
@@ -10181,6 +10193,7 @@ s3_init(const device_t *info)
 
         case S3_PHOENIX_TRIO64:
         case S3_PHOENIX_TRIO64_ONBOARD:
+        case S3_STB_POWERGRAPH_64_VIDEO:
         case S3_PHOENIX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
         case S3_CARDEX_TRIO64VPLUS:
@@ -10418,6 +10431,12 @@ static int
 s3_phoenix_trio64_available(void)
 {
     return rom_present(ROM_PHOENIX_TRIO64);
+}
+
+static int
+s3_stb_powergraph_64_video_available(void)
+{
+    return rom_present(ROM_STB_POWERGRAPH_64_VIDEO);
 }
 
 static int
@@ -11058,6 +11077,21 @@ const device_t s3_phoenix_trio64_pci_device = {
     .close         = s3_close,
     .reset         = s3_reset,
     { .available = s3_phoenix_trio64_available },
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_standard_config
+};
+
+const device_t s3_stb_powergraph_64_video_vlb_device = {
+    .name          = "S3 Trio64V+ (STB PowerGraph 64 Video) VLB",
+    .name          = "S3 Trio64V+ PCI (Phoenix)",
+    .internal_name = "px_trio64vplus_pci",
+    .flags         = DEVICE_VLB,
+    .local         = S3_STB_POWERGRAPH_64_VIDEO,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    { .available = s3_stb_powergraph_64_video_available },
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
     .config        = s3_standard_config
