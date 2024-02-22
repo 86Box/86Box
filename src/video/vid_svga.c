@@ -964,7 +964,7 @@ svga_recalctimings(svga_t *svga)
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
-            if (!postcard_enabled || (postcard_enabled && card_dpms))
+            if ((!postcard_enabled && !bugger_enabled && !unittester_enabled) || ((postcard_enabled || bugger_enabled || unittester_enabled) && card_dpms))
                 ui_sb_set_text_w(plat_get_string(IDS_2143));
         }
     } else if (svga->dpms_ui) {
