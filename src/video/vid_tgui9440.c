@@ -160,6 +160,7 @@ typedef struct tgui_t {
 
     int     ramdac_state;
     uint8_t ramdac_ctrl;
+    uint8_t dpms;
 
     int clock_m, clock_n, clock_k;
 
@@ -375,7 +376,7 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x3CF:
             if (svga->gdcaddr == 0x23) {
-                svga->dpms = !!(val & 0x03);
+                tgui->dpms = !!(val & 0x03);
                 svga_recalctimings(svga);
             }
             if (tgui->type == TGUI_9400CXI && svga->gdcaddr >= 16 && svga->gdcaddr < 32) {
@@ -649,6 +650,8 @@ tgui_recalctimings(svga_t *svga)
     const tgui_t *tgui       = (tgui_t *) svga->priv;
     uint8_t       ger22lower = (tgui->accel.ger22 & 0xff);
     uint8_t       ger22upper = (tgui->accel.ger22 >> 8);
+
+    svga->dpms = !!tgui->dpms;
 
     if (!svga->rowoffset)
         svga->rowoffset = 0x100;
@@ -3127,6 +3130,22 @@ tgui_mmio_read_l(uint32_t addr, void *priv)
     return ret;
 }
 
+static void
+tgui_reset(void *priv)
+{
+    tgui_t *tgui = (tgui_t *) priv;
+    svga_t       *svga  = (svga_t*) &tgui->svga;
+
+    tgui->oldctrl2 = 0;
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 tgui_init(const device_t *info)
 {
@@ -3339,7 +3358,7 @@ const device_t tgui9400cxi_device = {
     .local         = TGUI_9400CXI,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = tgui9400cxi_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
@@ -3353,7 +3372,7 @@ const device_t tgui9440_vlb_device = {
     .local         = TGUI_9440,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = tgui9440_vlb_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
@@ -3367,7 +3386,7 @@ const device_t tgui9440_pci_device = {
     .local         = TGUI_9440,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = tgui9440_pci_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
@@ -3381,7 +3400,7 @@ const device_t tgui9440_onboard_pci_device = {
     .local         = TGUI_9440 | ONBOARD,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = NULL },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
@@ -3395,7 +3414,7 @@ const device_t tgui9660_pci_device = {
     .local         = TGUI_9660,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = tgui96xx_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
@@ -3409,7 +3428,7 @@ const device_t tgui9660_onboard_pci_device = {
     .local         = TGUI_9660 | ONBOARD,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = NULL },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
@@ -3423,7 +3442,7 @@ const device_t tgui9680_pci_device = {
     .local         = TGUI_9680,
     .init          = tgui_init,
     .close         = tgui_close,
-    .reset         = NULL,
+    .reset         = tgui_reset,
     { .available = tgui96xx_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,

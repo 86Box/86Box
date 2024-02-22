@@ -103,6 +103,21 @@ vga_in(uint16_t addr, void *priv)
     return temp;
 }
 
+static void
+vga_reset(void *priv)
+{
+    vga_t  *vga  = (vga_t *) priv;
+    svga_t *svga = (svga_t*) &vga->svga;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 vga_init(const device_t *info)
 {
@@ -192,7 +207,7 @@ const device_t vga_device = {
     .local         = 0,
     .init          = vga_init,
     .close         = vga_close,
-    .reset         = NULL,
+    .reset         = vga_reset,
     { .available = vga_available },
     .speed_changed = vga_speed_changed,
     .force_redraw  = vga_force_redraw,
@@ -206,7 +221,7 @@ const device_t ps1vga_device = {
     .local         = 0,
     .init          = ps1vga_init,
     .close         = vga_close,
-    .reset         = NULL,
+    .reset         = vga_reset,
     { .available = vga_available },
     .speed_changed = vga_speed_changed,
     .force_redraw  = vga_force_redraw,
@@ -220,7 +235,7 @@ const device_t ps1vga_mca_device = {
     .local         = 0,
     .init          = ps1vga_init,
     .close         = vga_close,
-    .reset         = NULL,
+    .reset         = vga_reset,
     { .available = vga_available },
     .speed_changed = vga_speed_changed,
     .force_redraw  = vga_force_redraw,

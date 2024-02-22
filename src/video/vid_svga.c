@@ -586,6 +586,8 @@ svga_recalctimings(svga_t *svga)
     int              hsyncend;
 #endif
 
+    svga->dpms        = 0;
+
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
     svga->vsyncstart  = svga->crtc[0x10];
@@ -943,6 +945,9 @@ svga_recalctimings(svga_t *svga)
 
     if (!svga->force_old_addr)
         svga_recalc_remap_func(svga);
+
+    if (!svga->override && svga->render == svga_render_blank && !(svga->crtc[0x17] & 0x80))
+        svga->dpms = 1;
 
     /* Inform the user interface of any DPMS mode changes. */
     if (svga->dpms) {

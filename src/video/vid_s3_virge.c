@@ -477,7 +477,6 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                 return;
             } else if ((svga->seqaddr == 0x0d) && (svga->seqregs[0x08] == 0x06)) {
                 svga->seqregs[svga->seqaddr] = val;
-                svga->dpms                   = (svga->seqregs[0x0d] & 0x50) || (svga->crtc[0x56] & 0x06);
                 svga_recalctimings(svga);
                 return;
             }
@@ -607,7 +606,6 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x56:
-                    svga->dpms = (svga->seqregs[0x0d] & 0x50) || (svga->crtc[0x56] & 0x06);
                     old        = ~val; /* force recalc */
                     break;
 
@@ -777,6 +775,7 @@ s3_virge_recalctimings(svga_t *svga)
     const virge_t *virge = (virge_t *) svga->priv;
 
     svga->hdisp = svga->hdisp_old;
+    svga->dpms = (svga->seqregs[0x0d] & 0x50) || (svga->crtc[0x56] & 0x06);
 
     if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
@@ -4290,6 +4289,8 @@ s3_virge_reset(void *priv)
 
     mem_mapping_disable(&virge->mmio_mapping);
     mem_mapping_disable(&virge->new_mmio_mapping);
+
+    svga_recalctimings(&virge->svga);
 }
 
 static void *

@@ -759,8 +759,6 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
             mystique->crtcext_idx = val;
             break;
         case 0x3df:
-            if (mystique->crtcext_idx == 1)
-                svga->dpms = !!(val & 0x30);
             old = mystique->crtcext_regs[mystique->crtcext_idx];
             if (mystique->crtcext_idx < 6)
                 mystique->crtcext_regs[mystique->crtcext_idx] = val;
@@ -941,6 +939,7 @@ mystique_recalctimings(svga_t *svga)
     int         clk_sel  = (svga->miscout >> 2) & 3;
 
     svga->clock = (cpuclock * (float) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
+    svga->dpms = !!(mystique->crtcext_regs[1] & 0x30);
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;
@@ -6398,6 +6397,22 @@ mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
     return ret;
 }
 
+static void
+mystique_reset(void *priv)
+{
+    mystique_t *mystique = (mystique_t *) priv;
+    svga_t     *svga     = &mystique->svga;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(mystique->crtcext_regs, 0, sizeof(mystique->crtcext_regs));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 mystique_init(const device_t *info)
 {
@@ -6683,7 +6698,7 @@ const device_t millennium_device = {
     .local         = MGA_2064W,
     .init          = mystique_init,
     .close         = mystique_close,
-    .reset         = NULL,
+    .reset         = mystique_reset,
     { .available = millennium_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
@@ -6697,7 +6712,7 @@ const device_t mystique_device = {
     .local         = MGA_1064SG,
     .init          = mystique_init,
     .close         = mystique_close,
-    .reset         = NULL,
+    .reset         = mystique_reset,
     { .available = mystique_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
@@ -6711,7 +6726,7 @@ const device_t mystique_220_device = {
     .local         = MGA_1164SG,
     .init          = mystique_init,
     .close         = mystique_close,
-    .reset         = NULL,
+    .reset         = mystique_reset,
     { .available = mystique_220_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
@@ -6725,7 +6740,7 @@ const device_t millennium_ii_device = {
     .local         = MGA_2164W,
     .init          = mystique_init,
     .close         = mystique_close,
-    .reset         = NULL,
+    .reset         = mystique_reset,
     { .available = millennium_ii_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
@@ -6739,7 +6754,7 @@ const device_t productiva_g100_device = {
     .local         = MGA_G100,
     .init          = mystique_init,
     .close         = mystique_close,
-    .reset         = NULL,
+    .reset         = mystique_reset,
     { .available = matrox_g100_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
