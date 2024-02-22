@@ -81,7 +81,7 @@ um8890_shadow(umc_8890_t *dev)
 
     if ((dev->mem_state[1] ^ dev->pci_conf[0x5f]) & 0x0c) {
         mem_set_mem_state_both(0xe0000, 0x10000, state);
-        dev->mem_state[1] = (dev->mem_state[2] & 0xf0) | (dev->pci_conf[0x5f] & 0x0f);
+        dev->mem_state[1] = (dev->mem_state[1] & 0xf0) | (dev->pci_conf[0x5f] & 0x0f);
     }
 
     flag = (dev->pci_conf[0x5f] & 0xc0) >> 6;
