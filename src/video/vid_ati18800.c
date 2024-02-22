@@ -245,6 +245,23 @@ ati18800_recalctimings(svga_t *svga)
     }
 }
 
+static void
+ati18800_reset(void *priv)
+{
+    ati18800_t *ati18800  = (ati18800_t *) priv;
+    svga_t     *svga = (svga_t*) &ati18800->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 ati18800_init(const device_t *info)
 {
@@ -345,7 +362,7 @@ const device_t ati18800_wonder_device = {
     .local         = ATI18800_WONDER,
     .init          = ati18800_init,
     .close         = ati18800_close,
-    .reset         = NULL,
+    .reset         = ati18800_reset,
     { .available = ati18800_wonder_available },
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
@@ -360,7 +377,7 @@ const device_t ati18800_vga88_device = {
     .local         = ATI18800_VGA88,
     .init          = ati18800_init,
     .close         = ati18800_close,
-    .reset         = NULL,
+    .reset         = ati18800_reset,
     { .available = ati18800_vga88_available },
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
@@ -374,7 +391,7 @@ const device_t ati18800_device = {
     .local         = ATI18800_EDGE16,
     .init          = ati18800_init,
     .close         = ati18800_close,
-    .reset         = NULL,
+    .reset         = ati18800_reset,
     { .available = ati18800_available },
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,

@@ -414,6 +414,25 @@ oti_recalctimings(svga_t *svga)
         svga->render = svga_render_15bpp_highres;
         svga->hdisp >>= 1;
     }
+
+    svga->dpms = !(svga->crtc[0x17] & 0x80);
+}
+
+static void
+oti_reset(void *priv)
+{
+    oti_t  *oti  = (oti_t *) priv;
+    svga_t *svga = (svga_t*) &oti->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
 }
 
 static void *
@@ -634,7 +653,7 @@ const device_t oti037c_device = {
     .local         = 0,
     .init          = oti_init,
     .close         = oti_close,
-    .reset         = NULL,
+    .reset         = oti_reset,
     { .available = oti037c_available },
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
@@ -648,7 +667,7 @@ const device_t oti067_device = {
     .local         = 2,
     .init          = oti_init,
     .close         = oti_close,
-    .reset         = NULL,
+    .reset         = oti_reset,
     { .available = oti067_077_available },
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
@@ -662,7 +681,7 @@ const device_t oti067_m300_device = {
     .local         = 4,
     .init          = oti_init,
     .close         = oti_close,
-    .reset         = NULL,
+    .reset         = oti_reset,
     { .available = oti067_m300_available },
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
@@ -676,7 +695,7 @@ const device_t oti067_ama932j_device = {
     .local         = 3,
     .init          = oti_init,
     .close         = oti_close,
-    .reset         = NULL,
+    .reset         = oti_reset,
     { .available = oti067_ama932j_available },
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
@@ -690,7 +709,7 @@ const device_t oti077_device = {
     .local         = 5,
     .init          = oti_init,
     .close         = oti_close,
-    .reset         = NULL,
+    .reset         = oti_reset,
     { .available = oti067_077_available },
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,

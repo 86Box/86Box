@@ -110,6 +110,7 @@ vga_reset(void *priv)
     svga_t *svga = (svga_t*) &vga->svga;
 
     memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0x17]  = 0x0;
     svga->crtc[0]     = 63;
     svga->crtc[6]     = 255;
     svga->dispontime  = 1000ULL << 32;

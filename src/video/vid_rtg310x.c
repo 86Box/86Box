@@ -297,6 +297,24 @@ rtg_recalctimings(svga_t *svga)
     }
 }
 
+static void
+rtg_reset(void *priv)
+{
+    rtg_t  *dev  = (rtg_t *) priv;
+    svga_t *svga = (svga_t*) &dev->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0x17]  = 0x0;
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 rtg_init(const device_t *info)
 {
@@ -449,7 +467,7 @@ const device_t realtek_rtg3105_device = {
     .local         = 1,
     .init          = rtg_init,
     .close         = rtg_close,
-    .reset         = NULL,
+    .reset         = rtg_reset,
     { .available = rtg3105_available },
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
@@ -463,7 +481,7 @@ const device_t realtek_rtg3106_device = {
     .local         = 2,
     .init          = rtg_init,
     .close         = rtg_close,
-    .reset         = NULL,
+    .reset         = rtg_reset,
     { .available = rtg3106_available },
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
