@@ -4454,7 +4454,7 @@ ibm8514_init(const device_t *info)
     }
 #endif
 
-    timer_add(&svga->timer8514, ibm8514_poll, svga, 0);
+    timer_add(&svga->timer8514, ibm8514_poll, svga, 1);
 
     return svga;
 }

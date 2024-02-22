@@ -899,7 +899,7 @@ svga_recalctimings(svga_t *svga)
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on[0] || dev->on[1]) {
-            disptime8514 = dev->htotal;
+            disptime8514 = dev->h_total ? dev->h_total : TIMER_USEC;
             _dispontime8514 = dev->hdisped;
         }
     }
@@ -934,10 +934,10 @@ svga_recalctimings(svga_t *svga)
                 dev->dispofftime = TIMER_USEC;
 
             timer_disable(&svga->timer);
-            timer_enable(&svga->timer8514);
+            timer_set_delay_u64(&svga->timer8514, TIMER_USEC);
         } else {
             timer_disable(&svga->timer8514);
-            timer_enable(&svga->timer);
+            timer_set_delay_u64(&svga->timer, TIMER_USEC);
         }
     }
 

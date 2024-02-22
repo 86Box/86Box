@@ -6057,7 +6057,7 @@ mach8_init(const device_t *info)
     } else
         ati_eeprom_load_mach8(&mach->eeprom, "mach8.nvr");
 
-    timer_add(&svga->timer8514, ibm8514_poll, svga, 0);
+    timer_add(&svga->timer8514, ibm8514_poll, svga, 1);
 
     return mach;
 }
