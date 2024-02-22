@@ -516,7 +516,7 @@ mach64_recalctimings(svga_t *svga)
         svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
         svga->hblankstart              = (mach64->crtc_h_sync_strt_wid & 255) +
-                                         ((mach64->crtc_h_sync_strt_wid >> 8) & 7) + 1;
+                                         ((mach64->crtc_h_sync_strt_wid >> 8) & 7);
         svga->hblank_end_val           = (svga->hblankstart +
                                          ((mach64->crtc_h_sync_strt_wid >> 16) & 31) - 1) & 63;
         svga->vsyncstart               = (mach64->crtc_v_sync_strt_wid & 2047) + 1;

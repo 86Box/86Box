@@ -288,7 +288,7 @@ END
 #define STR_VIDEO         "Videokártya:"
 #define STR_VIDEO_2       "Videokártya 2:"
 #define STR_VOODOO        "Voodoo-gyorsítókártya"
-#define STR_IBM8514       "IBM 8514/a-gyorsítókártya"
+#define STR_IBM8514       "IBM 8514/A-gyorsítókártya"
 #define STR_XGA           "XGA-gyorsítókártya"
 
 #define STR_MOUSE         "Egér:"
@@ -469,7 +469,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Floppy %i (%s): %ls"
     IDS_2110    "Minden képfájl (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Továbbfejlesztett szektor képek (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Alapvető szektor képek  (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux képekfájlok (*.FDI)\0*.FDI\0Felületi képfájlok (*.86F;*.MFM)\0*.86F;*.MFM\0Minden fájl (*.*)\0*.*\0"
-    IDS_2112    "Az SDL inicializálása nem lehetséges, az SDL2.dll fájl szükséges"
     IDS_2113    "Biztosan szeretné újraindítani az emulált gépet?"
     IDS_2114    "Biztos benne, hogy ki szeretne lépni a 86Box-ból?"
     IDS_2115    "Nem sikerült inicializálni a Ghostscript-et"

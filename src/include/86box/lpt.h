@@ -83,6 +83,8 @@ extern lpt_port_t lpt_ports[PARALLEL_MAX];
 extern void    lpt_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t lpt_read(uint16_t port, void *priv);
 
+extern uint8_t lpt_read_port(int port, uint16_t reg);
+
 extern uint8_t lpt_read_status(int port);
 extern void    lpt_irq(void *priv, int raise);
 

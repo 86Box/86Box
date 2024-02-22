@@ -244,11 +244,61 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
     et4000_t *dev  = (et4000_t *) priv;
     svga_t   *svga = &dev->svga;
     uint8_t   old;
+    uint8_t   pal4to16[16] = { 0, 7, 0x38, 0x3f, 0, 3, 4, 0x3f, 0, 2, 4, 0x3e, 0, 3, 5, 0x3f };
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
 
     switch (addr) {
+        case 0x3c0:
+        case 0x3c1:
+            if (!svga->attrff) {
+                svga->attraddr = val & 0x1f;
+                if ((val & 0x20) != svga->attr_palette_enable) {
+                    svga->fullchange          = 3;
+                    svga->attr_palette_enable = val & 0x20;
+                    svga_recalctimings(svga);
+                }
+            } else {
+                if ((svga->attraddr == 0x13) && (svga->attrregs[0x13] != val))
+                    svga->fullchange = svga->monitor->mon_changeframecount;
+                old                  = svga->attrregs[svga->attraddr & 0x1f];
+                svga->attrregs[svga->attraddr & 0x1f] = val;
+                if (svga->attraddr < 0x10)
+                    svga->fullchange = svga->monitor->mon_changeframecount;
+
+                if ((svga->attraddr == 0x10) || (svga->attraddr == 0x14) || (svga->attraddr < 0x10)) {
+                    for (int c = 0; c < 0x10; c++) {
+                        if (svga->attrregs[0x10] & 0x80)
+                            svga->egapal[c] = (svga->attrregs[c] & 0xf) | ((svga->attrregs[0x14] & 0xf) << 4);
+                        else if (svga->ati_4color)
+                            svga->egapal[c] = pal4to16[(c & 0x03) | ((val >> 2) & 0xc)];
+                        else
+                            svga->egapal[c] = (svga->attrregs[c] & 0x3f) | ((svga->attrregs[0x14] & 0xc) << 4);
+                    }
+                    svga->fullchange = svga->monitor->mon_changeframecount;
+                }
+                /* Recalculate timings on change of attribute register 0x11
+                   (overscan border color) too. */
+                if (svga->attraddr == 0x10) {
+                    svga->chain4 &= ~0x02;
+                    if ((val & 0x40) && (svga->attrregs[0x10] & 0x40))
+                        svga->chain4 |= (svga->seqregs[0x0e] & 0x02);
+                    if (old != val)
+                        svga_recalctimings(svga);
+                } else if (svga->attraddr == 0x11) {
+                    svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
+                    if (old != val)
+                        svga_recalctimings(svga);
+                } else if (svga->attraddr == 0x12) {
+                    if ((val & 0xf) != svga->plane_mask)
+                        svga->fullchange = svga->monitor->mon_changeframecount;
+                    svga->plane_mask = val & 0xf;
+                }
+            }
+            svga->attrff ^= 1;
+            return;
+
         case 0x3c5:
             if (svga->seqaddr == 4) {
                 svga->seqregs[4] = val;
@@ -260,7 +310,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
             } else if (svga->seqaddr == 0x0e) {
                 svga->seqregs[0x0e] = val;
                 svga->chain4 &= ~0x02;
-                if (svga->gdcreg[5] & 0x40)
+                if ((svga->gdcreg[5] & 0x40) && svga->lowres)
                     svga->chain4 |= (svga->seqregs[0x0e] & 0x02);
                 svga_recalctimings(svga);
                 return;
@@ -288,7 +338,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3cf:
             if ((svga->gdcaddr & 15) == 5) {
                 svga->chain4 &= ~0x02;
-                if (val & 0x40)
+                if ((val & 0x40) && svga->lowres)
                     svga->chain4 |= (svga->seqregs[0x0e] & 0x02);
             } else if ((svga->gdcaddr & 15) == 6) {
                 if (!(svga->crtc[0x36] & 0x10) && !(val & 0x08)) {
@@ -599,24 +649,27 @@ et4000_recalctimings(svga_t *svga)
     const et4000_t *dev = (et4000_t *) svga->priv;
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
+
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
+
     if (svga->crtc[0x35] & 1)
-        svga->vblankstart += 0x400;
+        svga->vblankstart |= 0x400;
     if (svga->crtc[0x35] & 2)
-        svga->vtotal += 0x400;
+        svga->vtotal |= 0x400;
     if (svga->crtc[0x35] & 4)
-        svga->dispend += 0x400;
+        svga->dispend |= 0x400;
     if (svga->crtc[0x35] & 8)
-        svga->vsyncstart += 0x400;
+        svga->vsyncstart |= 0x400;
     if (svga->crtc[0x35] & 0x10)
-        svga->split += 0x400;
+        svga->split |= 0x400;
     if (!svga->rowoffset)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
-        svga->htotal += 256;
-    if (svga->attrregs[0x16] & 0x20)
+        svga->htotal |= 0x100;
+    if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
-
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+        svga->dots_per_clock <<= 1;
+    }
 
     switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4)) {
         case 0:
@@ -637,10 +690,12 @@ et4000_recalctimings(svga_t *svga)
         case 15:
         case 16:
             svga->hdisp /= 2;
+            svga->dots_per_clock /= 2;
             break;
 
         case 24:
             svga->hdisp /= 3;
+            svga->dots_per_clock /= 3;
             break;
 
         default:
@@ -659,9 +714,17 @@ et4000_recalctimings(svga_t *svga)
         }
     }
 
-    if ((svga->seqregs[0x0e] & 0x02) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
-        svga->ma_latch <<= (1 << 0);
-        svga->rowoffset <<= (1 << 0);
+    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
+        svga->map8 = svga->pallook;
+        if (svga->lowres)
+            svga->render = svga_render_8bpp_lowres;
+        else
+            svga->render = svga_render_8bpp_highres;
+    }
+
+    if ((svga->seqregs[0x0e] & 0x02) && ((svga->gdcreg[5] & 0x60) >= 0x40) && svga->lowres) {
+        svga->ma_latch <<= 1;
+        svga->rowoffset <<= 1;
         svga->render = svga_render_8bpp_highres;
     }
 
@@ -670,14 +733,6 @@ et4000_recalctimings(svga_t *svga)
             svga->render = svga_render_8bpp_tseng_lowres;
         else if (svga->render == svga_render_8bpp_highres)
             svga->render = svga_render_8bpp_tseng_highres;
-    }
-
-    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
-        svga->map8 = svga->pallook;
-        if (svga->lowres)
-            svga->render = svga_render_8bpp_lowres;
-        else
-            svga->render = svga_render_8bpp_highres;
     }
 }
 
@@ -689,7 +744,8 @@ et4000_kasan_recalctimings(svga_t *svga)
     et4000_recalctimings(svga);
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
-        svga->ma_latch -= 3;
+        svga->hdisp             += svga->dots_per_clock;
+        svga->ma_latch          -= 5;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))

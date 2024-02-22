@@ -41,6 +41,7 @@ extern int     cgate32;
 extern int     intgatesize;
 
 extern void    x86seg_reset(void);
+extern void    x86gen(void);
 extern void    x86de(char *s, uint16_t error);
 extern void    x86gpf(char *s, uint16_t error);
 extern void    x86gpf_expected(char *s, uint16_t error);

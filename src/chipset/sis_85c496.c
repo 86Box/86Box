@@ -123,7 +123,7 @@ sis_85c497_isa_read(uint16_t port, void *priv)
     const sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t             ret = 0xff;
 
-    if (port == 0x23)
+    if ((port == 0x23) && (dev->cur_reg < 0xc0))
         ret = dev->regs[dev->cur_reg];
     else if (port == 0x33)
         ret = 0x3c /*random_generate()*/;

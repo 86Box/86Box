@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Vídeo:"
 #define STR_VIDEO_2       "Vídeo 2:"
 #define STR_VOODOO        "Voodoo Graphics"
-#define STR_IBM8514       "IBM 8514/a Graphics"
+#define STR_IBM8514       "IBM 8514/A Graphics"
 #define STR_XGA           "XGA Graphics"
 
 #define STR_MOUSE         "Ratón:"
@@ -464,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Disquete %i (%s): %ls"
     IDS_2110    "Todas las Imágenes (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2112    "Incapaz de inicializar SDL, se requiere SDL2.dll"
     IDS_2113    "¿Seguro que quieres resetear la máquina emulada?"
     IDS_2114    "¿Seguro que quieres cerrar 86Box?"
     IDS_2115    "Incapaz de inicializar Ghostscript"

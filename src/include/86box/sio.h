@@ -26,11 +26,14 @@ extern const device_t f82c606_device;
 extern const device_t fdc37c651_device;
 extern const device_t fdc37c651_ide_device;
 extern const device_t fdc37c661_device;
+extern const device_t fdc37c661_ide_device;
+extern const device_t fdc37c661_ide_sec_device;
 extern const device_t fdc37c663_device;
 extern const device_t fdc37c663_ide_device;
 extern const device_t fdc37c665_device;
 extern const device_t fdc37c665_ide_device;
 extern const device_t fdc37c665_ide_pri_device;
+extern const device_t fdc37c665_ide_sec_device;
 extern const device_t fdc37c666_device;
 extern const device_t fdc37c67x_device;
 extern const device_t fdc37c669_device;
@@ -80,6 +83,12 @@ extern const device_t ps1_m2133_sio;
 #if defined(DEV_BRANCH) && defined(USE_SIO_DETECT)
 extern const device_t sio_detect_device;
 #endif
+extern const device_t um8663af_device;
+extern const device_t um8663af_ide_device;
+extern const device_t um8663af_sec_device;
+extern const device_t um8663bf_device;
+extern const device_t um8663bf_ide_device;
+extern const device_t um8663bf_sec_device;
 extern const device_t um8669f_device;
 extern const device_t um8669f_ide_device;
 extern const device_t um8669f_ide_sec_device;

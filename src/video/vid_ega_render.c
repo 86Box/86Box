@@ -199,6 +199,7 @@ ega_render_graphics(ega_t *ega)
     const bool    attrblink   = ((ega->attrregs[0x10] & 8) != 0);
     const bool    blinked     = ega->blink & 0x10;
     const bool    crtcreset   = ((ega->crtc[0x17] & 0x80) == 0);
+    const bool    seq9dot       = ((ega->seqregs[1] & 1) == 0);
     const bool    seqoddeven  = ((ega->seqregs[1] & 4) != 0);
     const uint8_t blinkmask   = (attrblink && blinked ? 0x8 : 0x0);
     uint32_t     *p           = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
@@ -206,6 +207,15 @@ ega_render_graphics(ega_t *ega)
     const int     dotwidth    = 1 << dwshift;
     const int     charwidth   = dotwidth * 8;
     int           secondcclk  = 0;
+
+    /* Compensate for 8dot scroll */
+    if (!seq9dot) {
+        for (int x = 0; x < dotwidth; x++) {
+            p[x] = ega->overscan_color;
+        }
+        p += dotwidth;
+    }
+
     for (int x = 0; x <= (ega->hdisp + ega->scrollcache); x += charwidth) {
         uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
 

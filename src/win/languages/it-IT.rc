@@ -284,7 +284,7 @@ END
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"
 #define STR_VOODOO        "Grafica Voodoo"
-#define STR_IBM8514       "Grafica IBM 8514/a"
+#define STR_IBM8514       "Grafica IBM 8514/A"
 #define STR_XGA           "Grafica XGA"
 
 #define STR_MOUSE         "Mouse:"
@@ -465,7 +465,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Floppy %i (%s): %ls"
     IDS_2110    "Tutte le immagini (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Immagini da settori avanzati (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Imagini da settori basilari (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Immagini flusso (*.FDI)\0*.FDI\0Immagini da superficie (*.86F;*.MFM)\0*.86F;*.MFM\0Tutti i file (*.*)\0*.*\0"
-    IDS_2112    "Impossibile inizializzare SDL, SDL2.dll è necessario"
     IDS_2113    "Sei sicuro di voler riavviare la macchina emulata?"
     IDS_2114    "Sei sicuro di voler uscire da 86Box?"
     IDS_2115    "Impossibile inizializzare Ghostscript"

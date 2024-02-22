@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "ビデオカード:"
 #define STR_VIDEO_2       "ビデオカード2:"
 #define STR_VOODOO        "Voodooグラフィック"
-#define STR_IBM8514       "IBM 8514/aグラフィック"
+#define STR_IBM8514       "IBM 8514/Aグラフィック"
 #define STR_XGA           "XGAグラフィック"
 
 #define STR_MOUSE         "マウス:"
@@ -464,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS値: %i、%i、%i)"
     IDS_2109    "フロッピー %i (%s): %ls"
     IDS_2110    "すべてのイメージ (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0アドバンスド セクター イメージ (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0ベーシック セクター イメージ (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0フラックスイメージ (*.FDI)\0*.FDI\0サーフェス イメージ (*.86F;*.MFM)\0*.86F;*.MFM\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2112    "SDLが初期化できません。SDL2.dllが必要です"
     IDS_2113    "使用中のマシンをハードリ セットしますか？"
     IDS_2114    "86Boxを終了しますか？"
     IDS_2115    "Ghostscriptが初期化できません"

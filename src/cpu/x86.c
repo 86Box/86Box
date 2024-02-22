@@ -270,11 +270,19 @@ reset_common(int hard)
         cr0 = 1 << 30;
     else
         cr0 = 0;
+    if (is386 && !is486 && (fpu_type == FPU_387))
+        cr0 |= 0x10;
     cpu_cache_int_enabled = 0;
     cpu_update_waitstates();
     cr4              = 0;
     cpu_state.eflags = 0;
     cgate32          = 0;
+    if (is386 && !is486) {
+        for (uint8_t i = 0; i < 4; i++)
+            dr[i] = 0x00000000;
+        dr[6] = 0xffff1ff0;
+        dr[7] = 0x00000400;
+    }
     if (is286) {
         if (is486)
             loadcs(0xF000);

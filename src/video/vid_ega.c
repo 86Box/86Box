@@ -295,22 +295,22 @@ ega_in(uint16_t addr, void *priv)
             break;
 
         case 0x3c0:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->attraddr | ega->attr_palette_enable;
             break;
         case 0x3c1:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->attrregs[ega->attraddr];
             break;
         case 0x3c2:
             ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
             break;
         case 0x3c4:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->seqaddr;
             break;
         case 0x3c5:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->seqregs[ega->seqaddr & 0xf];
             break;
         case 0x3c6:
@@ -318,24 +318,24 @@ ega_in(uint16_t addr, void *priv)
                 ret = ega->ctl_mode;
             break;
         case 0x3c8:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = 2;
             break;
         case 0x3cc:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->miscout;
             break;
         case 0x3ce:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->gdcaddr;
             break;
         case 0x3cf:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->gdcreg[ega->gdcaddr & 0xf];
             break;
         case 0x3d0:
         case 0x3d4:
-            if (ega_type)
+            if (ega_type == 1)
                 ret = ega->crtcreg;
             break;
         case 0x3d1:
@@ -349,14 +349,21 @@ ega_in(uint16_t addr, void *priv)
                     break;
 
                 case 0x10:
-                case 0x11:
-                    /* TODO: Return light pen address once implemented. */
-                    if (ega_type)
+                    if (ega_type == 1)
                         ret = ega->crtc[ega->crtcreg];
+                    else
+                        ret = ega->light_pen >> 8;
+                    break;
+
+                case 0x11:
+                    if (ega_type == 1)
+                        ret = ega->crtc[ega->crtcreg];
+                    else
+                        ret = ega->light_pen & 0xff;
                     break;
 
                 default:
-                    if (ega_type)
+                    if (ega_type == 1)
                         ret = ega->crtc[ega->crtcreg];
                     break;
             }
@@ -557,7 +564,7 @@ ega_recalctimings(ega_t *ega)
         overscan_x <<= 1;
 
     ega->y_add = (overscan_y >> 1);
-    ega->x_add = (overscan_x >> 1);
+    ega->x_add = (overscan_x >> 1) - ega->scrollcache;
 
     if (ega->vres)
         ega->y_add >>= 1;
@@ -804,10 +811,6 @@ ega_poll(void *priv)
             ega->cca = ega->ma;
             ega->maback <<= 2;
             ega->sc = 0;
-            if (ega->attrregs[0x10] & 0x20) {
-                ega->scrollcache = 0;
-                ega->x_add       = (overscan_x >> 1);
-            }
         }
         if (ega->vc == ega->dispend) {
             ega->dispon = 0;
@@ -1619,7 +1622,7 @@ static const device_config_t ega_config[] = {
 };
 
 const device_t ega_device = {
-    .name          = "EGA",
+    .name          = "IBM EGA",
     .internal_name = "ega",
     .flags         = DEVICE_ISA,
     .local         = EGA_IBM,

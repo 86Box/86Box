@@ -283,7 +283,7 @@ END
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"
 #define STR_VOODOO        "Voodoo grafika"
-#define STR_IBM8514       "IBM 8514/a grafika"
+#define STR_IBM8514       "IBM 8514/A grafika"
 #define STR_XGA           "XGA grafika"
 
 #define STR_MOUSE         "Miška:"
@@ -464,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Disketa %i (%s): %ls"
     IDS_2110    "Vse slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Tokovne slike (*.FDI)\0*.FDI\0Površinske slike (*.86F;*.MFM)\0*.86F;*.MFM\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2112    "Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
     IDS_2113    "Ste prepričani, da želite ponovno zagnati emulirani sistem?"
     IDS_2114    "Ste prepričani, da želite zapreti 86Box?"
     IDS_2115    "Ne morem inicializirati Ghostscript"

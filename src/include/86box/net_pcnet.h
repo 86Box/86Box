@@ -30,11 +30,4 @@ enum {
     DEV_AM79C973     = 6  /* PCnet-FAST III (PCI, 10/100 Mbps) */
 };
 
-extern const device_t pcnet_am79c960_device;
-extern const device_t pcnet_am79c960_eb_device;
-extern const device_t pcnet_am79c960_vlb_device;
-extern const device_t pcnet_am79c961_device;
-extern const device_t pcnet_am79c970a_device;
-extern const device_t pcnet_am79c973_device;
-
 #endif /*NET_PCNET_H*/

@@ -67,14 +67,9 @@
 #include <86box/ui.h>
 #include <86box/timer.h>
 #include <86box/network.h>
-#include <86box/net_3c501.h>
-#include <86box/net_3c503.h>
 #include <86box/net_ne2000.h>
 #include <86box/net_pcnet.h>
-#include <86box/net_plip.h>
 #include <86box/net_wd8003.h>
-#include <86box/net_tulip.h>
-#include <86box/net_rtl8139.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -117,6 +112,9 @@ static const device_t *net_cards[] = {
     &threec503_device,
     &pcnet_am79c960_device,
     &pcnet_am79c961_device,
+    &de220p_device,
+    &ne1000_compat_device,
+    &ne2000_compat_device,
     &ne1000_device,
     &ne2000_device,
     &pcnet_am79c960_eb_device,
@@ -136,6 +134,7 @@ static const device_t *net_cards[] = {
     &rtl8139c_plus_device,
     &dec_tulip_21140_device,
     &dec_tulip_21140_vpc_device,
+    &dec_tulip_21040_device,
     &pcnet_am79c960_vlb_device,
     NULL
 };

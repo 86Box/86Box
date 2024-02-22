@@ -352,6 +352,9 @@ msgstr "Vrsta procesorja:"
 msgid "Speed:"
 msgstr "Hitrost:"
 
+msgid "Frequency:"
+msgstr "Pogostost:"
+
 msgid "FPU:"
 msgstr "Procesor plavajoče vejice:"
 
@@ -385,8 +388,8 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo grafika"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a grafika"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A grafika"
 
 msgid "XGA Graphics"
 msgstr "XGA grafika"
@@ -409,16 +412,16 @@ msgstr "Igralna palica 3..."
 msgid "Joystick 4..."
 msgstr "Igralna palica 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Zvočna kartica 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Zvočna kartica 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Zvočna kartica 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Zvočna kartica 4:"
 
 msgid "MIDI Out Device:"
@@ -810,9 +813,6 @@ msgstr "Napredne sektorske slike"
 
 msgid "Flux images"
 msgstr "Tokovne slike"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Ste prepričani, da želite ponovno zagnati emulirani sistem?"

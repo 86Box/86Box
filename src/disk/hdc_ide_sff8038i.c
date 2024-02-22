@@ -436,9 +436,9 @@ sff_bus_master_set_irq(uint8_t status, void *priv)
         case IRQ_MODE_SIS_551X:
             /* SiS 551x mode. */
             if (irq)
-                pci_set_mirq(2, 1, &dev->irq_state);
+                pci_set_mirq(dev->mirq, 1, &dev->irq_state);
             else
-                pci_clear_mirq(2, 1, &dev->irq_state);
+                pci_clear_mirq(dev->mirq, 1, &dev->irq_state);
             break;
     }
 }
@@ -554,6 +554,12 @@ sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
     dev->irq_pin = irq_pin;
 }
 
+void
+sff_set_mirq(sff8038i_t *dev, uint8_t mirq)
+{
+    dev->mirq = mirq;
+}
+
 static void
 sff_close(void *priv)
 {
@@ -586,6 +592,7 @@ sff_init(UNUSED(const device_t *info))
     dev->pci_irq_line = 14;
     dev->irq_level    = 0;
     dev->irq_state    = 0;
+    dev->mirq         = 2;
 
     dev->channel      = next_id;
     next_id++;

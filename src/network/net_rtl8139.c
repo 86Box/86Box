@@ -43,7 +43,6 @@
 #include <86box/bswap.h>
 #include <86box/nvr.h>
 #include "cpu.h"
-#include <86box/net_rtl8139.h>
 #include <86box/plat_unused.h>
 
 #define PCI_PERIOD 30 /* 30 ns period = 33.333333 Mhz frequency */
@@ -308,6 +307,8 @@ enum CSCRBits {
 #endif
 enum CSCRBits {
     CSCR_Testfun       = 1 << 15, /* 1 = Auto-neg speeds up internal timer, WO, def 0 */
+    CSCR_Cable_Changed = 1 << 11, /* Undocumented: 1 = Cable status changed, 0 = No change */
+    CSCR_Cable         = 1 << 10, /* Undocumented: 1 = Cable connected, 0 = Cable disconnected */
     CSCR_LD            = 1 << 9,  /* Active low TPI link disable signal. When low, TPI still transmits link pulses and TPI stays in good link state. def 1*/
     CSCR_HEART_BIT     = 1 << 8,  /* 1 = HEART BEAT enable, 0 = HEART BEAT disable. HEART BEAT function is only valid in 10Mbps mode. def 1*/
     CSCR_JBEN          = 1 << 7,  /* 1 = enable jabber function. 0 = disable jabber function, def 1*/
@@ -2285,7 +2286,17 @@ rtl8139_TSAD_read(RTL8139State *s)
 static uint16_t
 rtl8139_CSCR_read(RTL8139State *s)
 {
-    uint16_t ret = s->CSCR;
+    static uint16_t old_ret = 0xffff;
+    uint16_t ret = s->CSCR |
+                   ((net_cards_conf[s->nic->card_num].link_state & NET_LINK_DOWN) ? 0 : CSCR_Cable);
+
+    if (old_ret != 0xffff) {
+        ret &= ~CSCR_Cable_Changed;
+        if ((ret ^ old_ret) & CSCR_Cable)
+            ret |= CSCR_Cable_Changed;
+    }
+
+    old_ret = ret;
 
     rtl8139_log("CSCR read val=0x%04x\n", ret);
 
@@ -2736,6 +2747,13 @@ rtl8139_io_readb(uint32_t addr, void *priv)
             rtl8139_log("RTL8139C TxConfig at 0x43 read(b) val=0x%02x\n", ret);
             break;
 
+        case CSCR:
+            ret = rtl8139_CSCR_read(s) & 0xff;
+            break;
+        case CSCR + 1:
+            ret = rtl8139_CSCR_read(s) >> 8;
+            break;
+
         default:
             rtl8139_log("not implemented read(b) addr=0x%x\n", addr);
             ret = 0;
@@ -3105,6 +3123,12 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
             return 1;
         case 0x14:
             return 0;
+        case 0x15:
+#ifdef USE_256_BYTE_BAR
+            return s->pci_conf[addr & 0xFF];
+#else
+            return s->pci_conf[addr & 0xFF] & 0xf0;
+#endif
         case 0x2c:
             return 0xEC;
         case 0x2d:
@@ -3164,15 +3188,27 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
                               rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
                               priv);
             break;
+#ifndef USE_256_BYTE_BAR
         case 0x14:
+#endif
         case 0x15:
         case 0x16:
         case 0x17:
             s->pci_conf[addr & 0xFF] = val;
-            s->mem_base = (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24); 
+            s->mem_base = (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) |
+                          (s->pci_conf[0x17] << 24);
+#ifndef USE_256_BYTE_BAR
+            s->mem_base &= 0xfffff000;
+#endif
             rtl8139_log("New memory base: %08X\n", s->mem_base);
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM)
-                mem_mapping_set_addr(&s->bar_mem, (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24), 256);
+#ifdef USE_256_BYTE_BAR
+                mem_mapping_set_addr(&s->bar_mem, (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) |
+                                     (s->pci_conf[0x17] << 24), 256);
+#else
+                mem_mapping_set_addr(&s->bar_mem, ((s->pci_conf[0x15] & 0xf0) << 8) |
+                                     (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24), 4096);
+#endif
             break;
         case 0x3c:
             s->pci_conf[addr & 0xFF] = val;

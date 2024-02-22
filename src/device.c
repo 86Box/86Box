@@ -62,6 +62,7 @@ static device_t        *devices[DEVICE_MAX];
 static void            *device_priv[DEVICE_MAX];
 static device_context_t device_current;
 static device_context_t device_prev;
+static void            *device_common_priv;
 
 #ifdef ENABLE_DEVICE_LOG
 int device_do_log = ENABLE_DEVICE_LOG;
@@ -210,6 +211,16 @@ device_add(const device_t *dev)
 }
 
 void *
+device_add_linked(const device_t *dev, void *priv)
+{
+    void *ret;
+    device_common_priv = priv;
+    ret = device_add_common(dev, dev, NULL, NULL, 0);
+    device_common_priv = NULL;
+    return ret;
+}
+
+void *
 device_add_parameters(const device_t *dev, void *params)
 {
     return device_add_common(dev, dev, NULL, params, 0);
@@ -303,6 +314,12 @@ void
 device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params)
 {
     device_add_common(dev, cd, priv, params, inst);
+}
+
+void *
+device_get_common_priv(void)
+{
+    return device_common_priv;
 }
 
 void

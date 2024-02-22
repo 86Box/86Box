@@ -831,9 +831,9 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
+    bitmap_t *b = calloc(sizeof(bitmap_t), (y * sizeof(uint32_t *)));
 
-    b->dat = malloc((size_t) x * y * 4);
+    b->dat = calloc((size_t) x * y, 4);
     for (int c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;

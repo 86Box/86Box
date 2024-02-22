@@ -118,16 +118,16 @@ typedef struct svga_t {
     int vram_display_mask;
     int vidclock;
     int dots_per_clock;
-    int hblank_ext;
     int hwcursor_on;
     int dac_hwcursor_on;
     int overlay_on;
     int set_override;
     int hblankstart;
     int hblankend;
-    int hblank_sub;
     int hblank_end_val;
     int hblank_end_len;
+    int hblank_end_mask;
+    int hblank_sub;
     int packed_4bpp;
     int ati_4color;
 
@@ -166,8 +166,12 @@ typedef struct svga_t {
     latch_t  latch;
 
     pc_timer_t timer;
+    pc_timer_t timer8514;
 
     double clock;
+    double clock8514;
+
+    double multiplier;
 
     hwcursor_t hwcursor;
     hwcursor_t hwcursor_latch;
@@ -281,12 +285,13 @@ typedef struct svga_t {
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
 
     void *  dev8514;
+    void *  ext8514;
     void *  xga;
 } svga_t;
 
 extern int vga_on;
 
-extern void    ibm8514_poll(void *priv, svga_t *svga);
+extern void    ibm8514_poll(void *priv);
 extern void    ibm8514_recalctimings(svga_t *svga);
 extern uint8_t ibm8514_ramdac_in(uint16_t port, void *priv);
 extern void    ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv);
@@ -295,6 +300,13 @@ extern int     ibm8514_cpu_dest(svga_t *svga);
 extern void    ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint32_t val, int len);
 extern void    ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
 extern void    ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
+
+#ifdef ATI_8514_ULTRA
+extern void    ati8514_recalctimings(svga_t *svga);
+extern uint8_t ati8514_mca_read(int port, void *priv);
+extern void    ati8514_mca_write(int port, uint8_t val, void *priv);
+extern void    ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
+#endif
 
 extern void xga_poll(void *priv, svga_t *svga);
 extern void xga_recalctimings(svga_t *svga);

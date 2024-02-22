@@ -783,6 +783,12 @@ s3_virge_recalctimings(svga_t *svga)
         svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
     }
 
+    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
+        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+        if (!svga->scrblank && svga->attr_palette_enable)
+            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+    }
+
     if (svga->crtc[0x5d] & 0x01)
         svga->htotal += 0x100;
     if (svga->crtc[0x5d] & 0x02) {
@@ -820,16 +826,9 @@ s3_virge_recalctimings(svga_t *svga)
 
     if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
         /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
-        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1] +
-                            ((svga->crtc[3] >> 5) & 3) + 1;
-        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
-
-        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
-        if (!svga->scrblank && svga->attr_palette_enable)
-            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
-
-        /* No overscan in this mode. */
-        svga->hblank_overscan = 0;
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
+                            ((svga->crtc[3] >> 5) & 3) + 1*/;
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         svga->monitor->mon_overscan_y = 0;
         svga->monitor->mon_overscan_x = 0;
@@ -837,10 +836,11 @@ s3_virge_recalctimings(svga_t *svga)
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
     } else {
-        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
-        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                               (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
+        svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
+        svga->hblank_end_mask = 0x7f;
     }
 
     if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
@@ -862,19 +862,21 @@ s3_virge_recalctimings(svga_t *svga)
                 case 15:
                     svga->render = svga_render_15bpp_highres;
                     if (virge->chip != S3_VIRGEVX && virge->chip < S3_VIRGEGX2) {
-                        svga->htotal >>= 1;
+                        // svga->htotal >>= 1;
+                        // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                            // svga->hblank_end_val = svga->htotal - 1;
                         svga->hdisp >>= 1;
-                        svga->hblankstart >>= 1;
-                        svga->hblank_end_val >>= 1;
+                        svga->dots_per_clock >>= 1;
                     }
                     break;
                 case 16:
                     svga->render = svga_render_16bpp_highres;
                     if (virge->chip != S3_VIRGEVX && virge->chip < S3_VIRGEGX2) {
-                        svga->htotal >>= 1;
+                        // svga->htotal >>= 1;
+                        // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                            // svga->hblank_end_val = svga->htotal - 1;
                         svga->hdisp >>= 1;
-                        svga->hblankstart >>= 1;
-                        svga->hblank_end_val >>= 1;
+                        svga->dots_per_clock >>= 1;
                     }
                     break;
                 case 24:
@@ -921,15 +923,17 @@ s3_virge_recalctimings(svga_t *svga)
                 svga->render = svga_render_8bpp_highres;
                 break;
             case 3: /*KRGB-16 (1.5.5.5)*/
-                svga->htotal >>= 1;
-                svga->hblankstart >>= 1;
-                svga->hblank_end_val >>= 1;
+                // svga->htotal >>= 1;
+                // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                    // svga->hblank_end_val = svga->htotal - 1;
+                // svga->dots_per_clock >>= 1;
                 svga->render = svga_render_15bpp_highres;
                 break;
             case 5: /*RGB-16 (5.6.5)*/
-                svga->htotal >>= 1;
-                svga->hblankstart >>= 1;
-                svga->hblank_end_val >>= 1;
+                // svga->htotal >>= 1;
+                // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                    // svga->hblank_end_val = svga->htotal - 1;
+                // svga->dots_per_clock >>= 1;
                 svga->render = svga_render_16bpp_highres;
                 break;
             case 6: /*RGB-24 (8.8.8)*/

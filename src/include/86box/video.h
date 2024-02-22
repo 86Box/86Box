@@ -306,7 +306,7 @@ extern void xga_device_add(void);
 
 /* IBM 8514/A and clones*/
 extern void ibm8514_device_add(void);
-extern const device_t mach8_isa_device;
+extern const device_t mach8_vga_isa_device;
 extern const device_t mach32_isa_device;
 extern const device_t mach32_vlb_device;
 extern const device_t mach32_mca_device;
@@ -348,6 +348,7 @@ extern const device_t gd5426_diamond_speedstar_pro_a1_isa_device;
 extern const device_t gd5426_vlb_device;
 extern const device_t gd5426_onboard_device;
 extern const device_t gd5428_isa_device;
+extern const device_t gd5428_vlb_onboard_device;
 extern const device_t gd5428_vlb_device;
 extern const device_t gd5428_diamond_speedstar_pro_b1_vlb_device;
 extern const device_t gd5428_boca_isa_device;
@@ -367,8 +368,9 @@ extern const device_t gd5434_onboard_pci_device;
 extern const device_t gd5434_vlb_device;
 extern const device_t gd5434_pci_device;
 extern const device_t gd5436_pci_device;
-extern const device_t gd5440_onboard_pci_device;
+extern const device_t gd5436_onboard_pci_device;
 extern const device_t gd5440_pci_device;
+extern const device_t gd5440_onboard_pci_device;
 extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
@@ -458,6 +460,7 @@ extern const device_t paradise_wd90c11_device;
 extern const device_t paradise_wd90c30_device;
 
 /* Realtek (S)VGA */
+extern const device_t realtek_rtg3105_device;
 extern const device_t realtek_rtg3106_device;
 
 /* S3 9XX/8XX/Vision/Trio */
@@ -478,7 +481,9 @@ extern const device_t s3_bahamas64_vlb_device;
 extern const device_t s3_bahamas64_pci_device;
 extern const device_t s3_9fx_vlb_device;
 extern const device_t s3_9fx_pci_device;
+extern const device_t s3_phoenix_trio32_onboard_vlb_device;
 extern const device_t s3_phoenix_trio32_vlb_device;
+extern const device_t s3_phoenix_trio32_onboard_pci_device;
 extern const device_t s3_phoenix_trio32_pci_device;
 extern const device_t s3_diamond_stealth_se_vlb_device;
 extern const device_t s3_diamond_stealth_se_pci_device;
@@ -486,6 +491,7 @@ extern const device_t s3_spea_mirage_p64_vlb_device;
 extern const device_t s3_phoenix_trio64_vlb_device;
 extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
+extern const device_t s3_stb_powergraph_64_video_vlb_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
 extern const device_t s3_cardex_trio64vplus_pci_device;
@@ -535,6 +541,7 @@ extern const device_t tgui9440_vlb_device;
 extern const device_t tgui9440_pci_device;
 extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
+extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
 
 /* IBM PS/1 (S)VGA */
@@ -572,6 +579,10 @@ extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
+
+/* Chips & Technologies */
+extern const device_t chips_69000_device;
+extern const device_t chips_69000_onboard_device;
 
 #endif
 

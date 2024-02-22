@@ -352,6 +352,9 @@ msgstr "Procesor:"
 msgid "Speed:"
 msgstr "Rychlost:"
 
+msgid "Frequency:"
+msgstr "Frekvence:"
+
 msgid "FPU:"
 msgstr "Koprocesor:"
 
@@ -385,8 +388,8 @@ msgstr "Grafika:"
 msgid "Voodoo Graphics"
 msgstr "Použít grafický akcelerátor Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Grafika IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Grafika IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Grafika XGA"
@@ -409,16 +412,16 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Zvuková karta 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Zvuková karta 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Zvuková karta 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"
@@ -810,9 +813,6 @@ msgstr "Rozšířené sektorové obrazy"
 
 msgid "Flux images"
 msgstr "Obrazy magnetického toku"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Nastala chyba při inicializaci knihovny SDL, je potřeba SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Opravdu chcete resetovat emulovaný počítač?"

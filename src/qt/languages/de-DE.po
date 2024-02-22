@@ -352,6 +352,9 @@ msgstr "CPU-Typ:"
 msgid "Speed:"
 msgstr "Takt:"
 
+msgid "Frequency:"
+msgstr "Frequenz:"
+
 msgid "FPU:"
 msgstr "FPU-Einheit:"
 
@@ -385,8 +388,8 @@ msgstr "Videokarte:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-Grafik"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a-Grafik"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A-Grafik"
 
 msgid "XGA Graphics"
 msgstr "XGA-Grafik"
@@ -409,16 +412,16 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Soundkarte 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Soundkarte 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Soundkarte 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Soundkarte 4:"
 
 msgid "MIDI Out Device:"
@@ -810,9 +813,6 @@ msgstr "Fortgeschrittene Sektorimages"
 
 msgid "Flux images"
 msgstr "Fluximages"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "SDL konnte nicht initialisiert werden, die Datei SDL2.dll wird benötigt"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Sind Sie sich sicher, dass Sie einen Hard-Reset für das emulierte System durchführen wollen?"

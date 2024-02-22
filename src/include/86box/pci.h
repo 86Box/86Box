@@ -289,6 +289,7 @@ extern const device_t via_vp3_agp_device;
 extern const device_t via_mvp3_agp_device;
 extern const device_t via_apro_agp_device;
 extern const device_t via_vt8601_agp_device;
+extern const device_t sis_5xxx_agp_device;
 #endif
 
 #endif /*EMU_PCI_H*/

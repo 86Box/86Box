@@ -153,11 +153,11 @@ machine_at_spitfire_init(const machine_t *model)
 }
 
 int
-machine_at_mate_nx_ma30d_23d_init(const machine_t *model)
+machine_at_ma30d_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/mate_nx_ma30d_23d/BIOS.ROM",
+    ret = bios_load_linear("roms/machines/ma30d/BIOS.ROM",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -183,8 +183,7 @@ machine_at_mate_nx_ma30d_23d_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c67x_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-    device_add(&lm78_device); /* no reporting in BIOS */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
@@ -261,11 +260,11 @@ machine_at_p2bls_init(const machine_t *model)
 }
 
 int
-machine_at_lgibm440bx_init(const machine_t *model)
+machine_at_lgibmx7g_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/lgibm440bx/ms6119.331",
+    ret = bios_load_linear("roms/machines/lgibmx7g/ms6119.331",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -808,3 +807,37 @@ machine_at_m729_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_p6f99_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/p6f99/99-8.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,       2, 3, 4, 1);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
+    device_add(&sis_5600_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&it8661f_device);
+    device_add(&winbond_flash_w29c020_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&es1371_onboard_device);
+
+    return ret;
+}
+

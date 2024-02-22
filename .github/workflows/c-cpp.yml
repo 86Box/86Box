@@ -16,6 +16,8 @@ on:
 
 jobs:
   msys2:
+    # Negative condition disables the job
+    if: false
     name: "Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
 
     runs-on: windows-2022
@@ -92,7 +94,6 @@ jobs:
             rtmidi:p
             libslirp:p
             fluidsynth:p
-            libvncserver:p
 
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -197,8 +197,7 @@ if(WIN32)
     else()
         target_sources(plat PRIVATE win_joystick_rawinput.c)
     endif()
-    target_sources(ui PRIVATE qt_d3d9renderer.hpp qt_d3d9renderer.cpp)
-    target_link_libraries(86Box hid d3d9)
+    target_link_libraries(86Box hid)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611

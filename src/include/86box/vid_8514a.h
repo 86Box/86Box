@@ -33,6 +33,8 @@ typedef struct hwcursor8514_t {
 } hwcursor8514_t;
 
 typedef struct ibm8514_t {
+    rom_t bios_rom;
+    rom_t bios_rom2;
     hwcursor8514_t hwcursor;
     hwcursor8514_t hwcursor_latch;
     uint8_t        pos_regs[8];
@@ -60,12 +62,15 @@ typedef struct ibm8514_t {
     int       dac_b;
     int       internal_pitch;
     int       hwcursor_on;
+    int       modechange;
+
+    uint64_t  dispontime;
+    uint64_t  dispofftime;
 
     struct {
         uint16_t subsys_cntl;
         uint16_t setup_md;
         uint16_t advfunc_cntl;
-        uint8_t  ext_advfunc_cntl;
         uint16_t cur_y;
         uint16_t cur_x;
         int16_t  destx;
@@ -142,14 +147,23 @@ typedef struct ibm8514_t {
 
     uint16_t test;
     int      vendor_mode[2];
+    int      h_blankstart;
+    int      h_blank_end_val;
+    int      hblankstart;
+    int      hblank_end_val;
+    int      hblankend;
+    int      hblank_ext;
+    int      hblank_sub;
 
+    int      v_total_reg;
     int      v_total;
     int      dispend;
+    int      v_sync_start;
     int      v_syncstart;
     int      split;
     int      h_disp;
-    int      h_disp_old;
     int      h_total;
+    int      h_sync_width;
     int      h_disp_time;
     int      rowoffset;
     int      dispon;
@@ -176,20 +190,17 @@ typedef struct ibm8514_t {
 
     uint8_t data_available;
     uint8_t data_available2;
-    uint8_t scanmodulos;
     uint8_t rowcount;
+    int     hsync_start;
+    int     hsync_width;
     int     htotal;
     int     hdisp;
-    int     vtadj;
-    int     vdadj;
-    int     vsadj;
+    int     hdisped;
     int     sc;
-    int     vtb;
-    int     vdb;
-    int     vsb;
     int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;
+    int     v_disp;
     int     vdisp;
     int     disp_cntl;
     int     interlace;
@@ -205,6 +216,7 @@ typedef struct ibm8514_t {
     int      pitch;
     int      ext_pitch;
     int      ext_crt_pitch;
+    int      extensions;
 } ibm8514_t;
 
 #endif /*VIDEO_8514A_H*/
