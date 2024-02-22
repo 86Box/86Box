@@ -577,6 +577,7 @@ svga_recalctimings(svga_t *svga)
     double           _dispontime8514 = 0.0;
     double           _dispofftime8514 = 0.0;
     double           disptime8514 = 0.0;
+    int              card_dpms = 0;
 #ifdef ENABLE_SVGA_LOG
     int              vsyncend;
     int              vblankend;
@@ -946,6 +947,7 @@ svga_recalctimings(svga_t *svga)
     if (!svga->force_old_addr)
         svga_recalc_remap_func(svga);
 
+    card_dpms = svga->dpms;
     if (!svga->override && svga->render == svga_render_blank && !(svga->crtc[0x17] & 0x80))
         svga->dpms = 1;
 
@@ -962,7 +964,8 @@ svga_recalctimings(svga_t *svga)
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
-            ui_sb_set_text_w(plat_get_string(IDS_2143));
+            if (!postcard_enabled || (postcard_enabled && card_dpms))
+                ui_sb_set_text_w(plat_get_string(IDS_2143));
         }
     } else if (svga->dpms_ui) {
         svga->dpms_ui = 0;
