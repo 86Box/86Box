@@ -745,7 +745,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
         svga->hdisp             += svga->dots_per_clock;
-        svga->ma_latch          -= 5;
+        svga->ma_latch          -= 4;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
