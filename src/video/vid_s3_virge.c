@@ -893,6 +893,7 @@ s3_virge_recalctimings(svga_t *svga)
             }
         }
         svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
+        svga->overlay.ena       = 0;
         s3_virge_log("VGA mode\n");
     } else /*Streams mode*/
     {
@@ -917,6 +918,14 @@ s3_virge_recalctimings(svga_t *svga)
         svga->overlay.ena   = (svga->overlay.x >= 0);
         svga->overlay.v_acc = virge->streams.dda_vert_accumulator;
         svga->rowoffset     = virge->streams.pri_stride >> 3;
+
+        if (virge->chip <= S3_VIRGEDX && svga->overlay.ena) {
+            svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
+        } else if (virge->chip == S3_VIRGEGX2 && svga->overlay.ena) {
+            /* 0x20 = Secondary Stream enabled */
+            /* 0x2000 = Primary Stream enabled */
+            svga->overlay.ena = !!(virge->streams.blend_ctrl & 0x20);
+        }
 
         switch ((virge->streams.pri_ctrl >> 24) & 0x7) {
             case 0: /*RGB-8 (CLUT)*/
@@ -1963,6 +1972,7 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 break;
             case 0x81a0:
                 virge->streams.blend_ctrl = val;
+                svga_recalctimings(svga);
                 break;
             case 0x81c0:
                 virge->streams.pri_fb0 = val & 0x7fffff;
