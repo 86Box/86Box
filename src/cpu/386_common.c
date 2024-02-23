@@ -123,11 +123,11 @@ int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,   /* 
 /* 0 = no, 1 = always, 2 = depends on second opcode, 3 = depends on mod/rm */
 int lock_legal[256]    = { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 2,   /* 0x0x */
                            1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0,   /* 0x1x */
-                           1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0,   /* 0x2x */
-                           1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x3x */
+                           1, 1, 1, 1, 1, 1, 4, 0, 1, 1, 1, 1, 1, 1, 4, 0,   /* 0x2x */
+                           1, 1, 1, 1, 1, 1, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0,   /* 0x3x */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x4x */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x5x */
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x6x */
+                           0, 0, 0, 0, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x6x */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x7x */
                            3, 3, 3, 3, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x8x */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x9x */
@@ -422,6 +422,50 @@ x386_common_log(const char *fmt, ...)
 #else
 #    define x386_common_log(fmt, ...)
 #endif
+
+int
+is_lock_legal(uint32_t fetchdat)
+{
+    int legal;
+    fetch_dat_t fetch_dat;
+
+    fetch_dat.fd = fetchdat;
+
+    legal = lock_legal[fetch_dat.b[0]];
+    if (legal == 1)
+        legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+    else if (legal == 2) {
+        legal = lock_legal_0f[fetch_dat.b[1]];
+        if (legal == 1)
+            legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
+        else if (legal == 3) {
+            legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
+        }
+    } else if (legal == 3)  switch(fetch_dat.b[0]) {
+        case 0x80 ... 0x83:
+            legal = lock_legal_80[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+        case 0xf6 ... 0xf7:
+            legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+        case 0xfe ... 0xff:
+            legal = lock_legal_fe[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+        default:
+            legal = 0;
+            break;
+    }
+
+    return legal;
+}
 
 /*Prefetch emulation is a fairly simplistic model:
   - All instruction bytes must be fetched before it starts.
