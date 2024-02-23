@@ -11084,8 +11084,7 @@ const device_t s3_phoenix_trio64_pci_device = {
 
 const device_t s3_stb_powergraph_64_video_vlb_device = {
     .name          = "S3 Trio64V+ (STB PowerGraph 64 Video) VLB",
-    .name          = "S3 Trio64V+ PCI (Phoenix)",
-    .internal_name = "px_trio64vplus_pci",
+    .internal_name = "stb_trio64vplus_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_STB_POWERGRAPH_64_VIDEO,
     .init          = s3_init,
