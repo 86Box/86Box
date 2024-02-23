@@ -893,6 +893,7 @@ s3_virge_recalctimings(svga_t *svga)
             }
         }
         svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
+        svga->overlay.ena       = 0;
         s3_virge_log("VGA mode\n");
     } else /*Streams mode*/
     {
@@ -923,7 +924,7 @@ s3_virge_recalctimings(svga_t *svga)
         } else if (virge->chip == S3_VIRGEGX2 && svga->overlay.ena) {
             /* 0x20 = Secondary Stream enabled */
             /* 0x2000 = Primary Stream enabled */
-            svga->overlay.ena = !!(virge->streams.blend_ctrl & 0x20) && (svga->crtc[0x67] & 0xC);
+            svga->overlay.ena = !!(virge->streams.blend_ctrl & 0x20);
         }
 
         switch ((virge->streams.pri_ctrl >> 24) & 0x7) {
