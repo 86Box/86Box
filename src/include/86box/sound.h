@@ -53,6 +53,13 @@ extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *priv),
                               void *priv);
 
+extern void sound_in_add_handler(void (*get_buffer)(int16_t *buffer,
+                                                    int len, void *priv),
+                                void *priv);
+
+extern void sound_in_start_input(void);
+extern void sound_in_stop_input(void);
+
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
                                                      double *buffer, void *priv),
                                       void *priv);
@@ -87,6 +94,10 @@ extern void closeal(void);
 extern void inital(void);
 extern void givealbuffer(void *buf);
 extern void givealbuffer_cd(void *buf);
+extern int al_capture_available(void);
+extern void al_capture_start(void);
+extern void al_capture_stop(void);
+extern void al_capture_get_data(int16_t* buf, size_t *len);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);

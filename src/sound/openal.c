@@ -49,6 +49,7 @@ static int         initialized   = 0;
 static int         sources       = 2;
 static ALCcontext *Context;
 static ALCdevice  *Device;
+static ALCdevice  *CaptureDevice;
 
 void
 al_set_midi(int freq, int buf_size)
@@ -69,13 +70,22 @@ alutInit(UNUSED(ALint *argc), UNUSED(ALbyte **argv))
         if (Context != NULL) {
             /* Set active context */
             alcMakeContextCurrent(Context);
+            alcProcessContext(Context);
         }
     }
+    /* Open capture device. */
+    CaptureDevice = NULL;
+    if (sound_input_enabled)
+        CaptureDevice = alcCaptureOpenDevice(sound_input_dev_name[0] ? (ALCchar *)sound_input_dev_name : NULL, 48000, AL_FORMAT_MONO16, SOUNDBUFLEN);
 }
 
 ALvoid
 alutExit(ALvoid)
 {
+    if (CaptureDevice) {
+        alcCaptureCloseDevice(CaptureDevice);
+        CaptureDevice = NULL;
+    }
     if (Context != NULL) {
         /* Disable context */
         alcMakeContextCurrent(NULL);
@@ -107,6 +117,50 @@ closeal(void)
     alutExit();
 
     initialized = 0;
+}
+
+int
+al_capture_available(void)
+{
+    return !!CaptureDevice;
+}
+
+void
+al_capture_start(void)
+{
+    if (al_capture_available()) {
+        alcCaptureStart(CaptureDevice);
+    }
+}
+
+void
+al_capture_stop(void)
+{
+    if (al_capture_available()) {
+        alcCaptureStop(CaptureDevice);
+    }
+}
+
+void
+al_capture_get_data(int16_t* buf, size_t *len)
+{
+    if (!buf)
+        return;
+    
+    if (*len > SOUNDBUFLEN)
+        *len = SOUNDBUFLEN;
+    
+    if (al_capture_available()) {
+        ALint availableSamples = 0;
+
+        alcGetIntegerv(CaptureDevice, ALC_CAPTURE_SAMPLES, 1, &availableSamples);
+        if (availableSamples > 0) {
+            if (availableSamples > SOUNDBUFLEN)
+                availableSamples = SOUNDBUFLEN;
+            *len = availableSamples;
+            alcCaptureSamples(CaptureDevice, buf, availableSamples);
+        }
+    }
 }
 
 void
