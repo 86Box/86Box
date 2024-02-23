@@ -280,7 +280,10 @@ exec386_2386(int32_t cycs)
 
                 cpu_state.pc++;
                 cpu_state.eflags &= ~(RF_FLAG);
+                if (opcode == 0xf0)
+                    in_lock = 1;
                 x86_2386_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                in_lock = 0;
                 if (x86_was_reset)
                     break;
             }

@@ -80,6 +80,8 @@ int hlt_reset_pending;
 
 int fpu_cycles = 0;
 
+int in_lock = 0;
+
 #ifdef ENABLE_X86_LOG
 void dumpregs(int);
 
@@ -350,6 +352,8 @@ reset_common(int hard)
 
     if (!is286)
         reset_808x(hard);
+
+    in_lock    = 0;
 
     cpu_cpurst_on_sr = 0;
 }

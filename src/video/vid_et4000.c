@@ -650,22 +650,22 @@ et4000_recalctimings(svga_t *svga)
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
 
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2];
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
 
     if (svga->crtc[0x35] & 1)
-        svga->vblankstart += 0x400;
+        svga->vblankstart |= 0x400;
     if (svga->crtc[0x35] & 2)
-        svga->vtotal += 0x400;
+        svga->vtotal |= 0x400;
     if (svga->crtc[0x35] & 4)
-        svga->dispend += 0x400;
+        svga->dispend |= 0x400;
     if (svga->crtc[0x35] & 8)
-        svga->vsyncstart += 0x400;
+        svga->vsyncstart |= 0x400;
     if (svga->crtc[0x35] & 0x10)
-        svga->split += 0x400;
+        svga->split |= 0x400;
     if (!svga->rowoffset)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
-        svga->htotal += 256;
+        svga->htotal |= 0x100;
     if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
         svga->dots_per_clock <<= 1;

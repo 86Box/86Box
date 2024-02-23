@@ -56,7 +56,6 @@ static uint32_t *opseg[4];
 static x86seg   *_opseg[4];
 
 static int noint   = 0;
-static int in_lock = 0;
 static int cpu_alu_op, pfq_size;
 
 static uint32_t cpu_src = 0, cpu_dest = 0;
@@ -545,7 +544,6 @@ reset_808x(int hard)
 {
     biu_cycles = 0;
     in_rep     = 0;
-    in_lock    = 0;
     completed  = 1;
     repeating  = 0;
     clear_lock = 0;
