@@ -55,9 +55,7 @@ private:
     QStringList filters;
     // "Dynamic-size VHD" is number 4 in the `filters` list and the
     // comboBoxFormat model
-    // Temporary change to fixed-size VHD due to MiniVHD's handling of
-    // dynamic-size VHD being buggy.
-    const uint8_t DEFAULT_DISK_FORMAT = 3;
+    const uint8_t DEFAULT_DISK_FORMAT = 4;
 
     bool checkAndAdjustCylinders();
     bool checkAndAdjustHeads();
