@@ -920,6 +920,10 @@ s3_virge_recalctimings(svga_t *svga)
 
         if (virge->chip <= S3_VIRGEDX && svga->overlay.ena) {
             svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
+        } else if (virge->chip == S3_VIRGEGX2 && svga->overlay.ena) {
+            /* 0x20 = Secondary Stream enabled */
+            /* 0x2000 = Primary Stream enabled */
+            svga->overlay.ena = !!(virge->streams.blend_ctrl & 0x20) && (svga->crtc[0x67] & 0xC);
         }
 
         switch ((virge->streams.pri_ctrl >> 24) & 0x7) {
