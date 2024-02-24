@@ -959,7 +959,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vram_display_mask = virge->vram_mask;
     }
 
-    svga->hoverride = 1
+    svga->hoverride = 1;
 }
 
 static void
