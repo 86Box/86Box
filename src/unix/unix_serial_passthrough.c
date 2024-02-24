@@ -112,7 +112,7 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
     if (dev->mode == SERPT_MODE_HOSTSER) {
         do {
             res = write(dev->master_fd, &data, 1);
-        } while (res == 0 || (res == -1 && (errno == EAGAIN || res == EWOULDBLOCK)));
+        } while (res == 0 || (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)));
     } else
         res = write(dev->master_fd, &data, 1);
 }
