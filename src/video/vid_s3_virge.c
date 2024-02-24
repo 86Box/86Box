@@ -958,13 +958,15 @@ s3_virge_recalctimings(svga_t *svga)
         }
         svga->vram_display_mask = virge->vram_mask;
     }
+
+    svga->hoverride = 1;
 }
 
 static void
 s3_virge_update_buffer(virge_t *virge)
 {
     svga_t *svga = &virge->svga;
-    
+
     if ((svga->crtc[0x67] & 0xc) != 0xc)
         return;
 
@@ -977,7 +979,7 @@ s3_virge_update_buffer(virge_t *virge)
         svga->overlay.addr = virge->streams.sec_fb1;
     else
         svga->overlay.addr = virge->streams.sec_fb0;
-    
+
     svga->rowoffset = virge->streams.pri_stride >> 3;
 }
 
