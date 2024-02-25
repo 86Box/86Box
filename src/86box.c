@@ -66,6 +66,7 @@
 #include <86box/bugger.h>
 #include <86box/postcard.h>
 #include <86box/unittester.h>
+#include <86box/novell_cardkey.h>
 #include <86box/isamem.h>
 #include <86box/isartc.h>
 #include <86box/lpt.h>
@@ -173,6 +174,7 @@ char     video_shader[512]                      = { '\0' };       /* (C) video *
 bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                          pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
+int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
@@ -1226,6 +1228,8 @@ pc_reset_hard_init(void)
         device_add(&postcard_device);
     if (unittester_enabled)
         device_add(&unittester_device);
+    if (novell_keycard_enabled)
+        device_add(&novell_keycard_device);
 
     if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
         pci_register_cards();
