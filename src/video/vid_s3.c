@@ -2128,8 +2128,8 @@ s3_vblank_start(svga_t *svga)
 static uint32_t
 s3_hwcursor_convert_addr(svga_t *svga)
 {
-    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
-        if ((svga->gdcreg[5] & 0x60) >= 0x40)
+    if ((svga->bpp == 8) && (((svga->gdcreg[5] & 0x60) == 0x20) || (svga->crtc[0x3a] & 0x10)) && (svga->crtc[0x45] & 0x10)) {
+        if (svga->crtc[0x3a] & 0x10)
             return ((svga->hwcursor_latch.addr & 0xfffff1ff) | ((svga->hwcursor_latch.addr & 0x200) << 2)) | 0x600;
         else if ((svga->gdcreg[5] & 0x60) == 0x20)
             return ((svga->hwcursor_latch.addr & 0xfffff0ff) | ((svga->hwcursor_latch.addr & 0x300) << 2)) | 0x300;
@@ -10002,14 +10002,14 @@ s3_init(const device_t *info)
         case S3_SPEA_MIRAGE_86C801:
         case S3_SPEA_MIRAGE_86C805:
             svga->decode_mask = (2 << 20) - 1;
-            stepping          = 0xa0; /*86C801/86C805*/
+            stepping          = 0xa2; /*86C801/86C805*/
             s3->id            = stepping;
             s3->id_ext        = stepping;
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
             svga->crtc[0x5a]  = 0x0a;
 
-            svga->ramdac    = device_add(&att490_ramdac_device);
+            svga->ramdac    = device_add(&att491_ramdac_device);
             svga->clock_gen = device_add(&av9194_device);
             svga->getclock  = av9194_getclock;
             break;
