@@ -842,9 +842,11 @@ s3_virge_recalctimings(svga_t *svga)
         svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
                                 (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
         svga->hblank_end_mask = 0x7f;
+        video_force_resize_set_monitor(1, svga->monitor_index);
     }
 
-    if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
+    /* ViRGE/GX2 and later does not use primary stream registers. */
+    if ((svga->crtc[0x67] & 0xc) != 0xc || virge->chip >= S3_VIRGEGX2) /*VGA mode*/
     {
         svga->ma_latch |= (virge->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
@@ -896,6 +898,22 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
         svga->overlay.ena       = 0;
         s3_virge_log("VGA mode\n");
+        if (virge->chip >= S3_VIRGEGX2 && (svga->crtc[0x67] & 0xc) == 0xc) {
+            /* ViRGE/GX2 and later does not use primary stream registers. */
+            svga->overlay.x         = virge->streams.sec_x;
+            svga->overlay.y         = virge->streams.sec_y;
+            svga->overlay.cur_ysize = virge->streams.sec_h;
+
+            if (virge->streams.buffer_ctrl & 2)
+                svga->overlay.addr = virge->streams.sec_fb1;
+            else
+                svga->overlay.addr = virge->streams.sec_fb0;
+
+            svga->overlay.ena       = (svga->overlay.x >= 0) && !!(virge->streams.blend_ctrl & 0x20);
+            svga->overlay.v_acc     = virge->streams.dda_vert_accumulator;
+            svga->rowoffset         = virge->streams.pri_stride >> 3;
+            svga->vram_display_mask = virge->vram_mask;
+        }
     } else /*Streams mode*/
     {
         if (virge->streams.buffer_ctrl & 1)
@@ -970,10 +988,12 @@ s3_virge_update_buffer(virge_t *virge)
     if ((svga->crtc[0x67] & 0xc) != 0xc)
         return;
 
-    if (virge->streams.buffer_ctrl & 1)
-        svga->ma_latch = virge->streams.pri_fb1 >> 2;
-    else
-        svga->ma_latch = virge->streams.pri_fb0 >> 2;
+    if (virge->chip < S3_VIRGEGX2) {
+        if (virge->streams.buffer_ctrl & 1)
+            svga->ma_latch = virge->streams.pri_fb1 >> 2;
+        else
+            svga->ma_latch = virge->streams.pri_fb0 >> 2;
+    }
 
     if (virge->streams.buffer_ctrl & 2)
         svga->overlay.addr = virge->streams.sec_fb1;
