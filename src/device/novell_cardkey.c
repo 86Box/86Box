@@ -73,6 +73,14 @@ void* novell_cardkey_init(const device_t* info)
         if (sernumstr[i] > '8' || sernumstr[i] < '0')
             sernumstr[i] = '0';
     }
+    if (sernumstr[8] > 'F' || sernumstr[8] < '0')
+        sernumstr[8] = '0';
+    if (sernumstr[9] > 'F' || sernumstr[9] < '0')
+        sernumstr[9] = '0';
+    if (sernumstr[10] > 'F' || sernumstr[10] < '0')
+        sernumstr[10] = '0';
+    if (sernumstr[11] > 'F' || sernumstr[11] < '0')
+        sernumstr[11] = '0';
     sernumstr[12] = 0;
     strncpy(cardkey->serial_number_str, sernumstr, sizeof(sernumstr));
     io_sethandler(NOVELL_KEYCARD_ADDR, NOVELL_KEYCARD_ADDRLEN, novell_cardkey_read, NULL, NULL, NULL, NULL, NULL, cardkey);
