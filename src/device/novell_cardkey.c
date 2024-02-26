@@ -39,10 +39,10 @@ novell_cardkey_read(uint16_t port, void *priv)
     uint8_t val = 0x00;
     switch (port) {
         case 0x23A:
-            val = ((cardkey->serial_number_str[11] - '0') << 4) | ((cardkey->serial_number_str[9] - '0'));
+            val = (((cardkey->serial_number_str[11] > 'A') ? ((cardkey->serial_number_str[11] - 'A') + 10) : (cardkey->serial_number_str[11] - '0')) << 4) | (((cardkey->serial_number_str[9] > 'A') ? ((cardkey->serial_number_str[9] - 'A') + 10) : (cardkey->serial_number_str[9] - '0')) << 4);
             break;
         case 0x23B:
-            val = ((cardkey->serial_number_str[10] - '0') << 4) | ((cardkey->serial_number_str[8] - '0'));
+            val = (((cardkey->serial_number_str[10] > 'A') ? ((cardkey->serial_number_str[10] - 'A') + 10) : (cardkey->serial_number_str[10] - '0')) << 4) | (((cardkey->serial_number_str[8] > 'A') ? ((cardkey->serial_number_str[8] - 'A') + 10) : (cardkey->serial_number_str[8] - '0')) << 4);
             break;
 
         case 0x23C:
@@ -69,7 +69,7 @@ void* novell_cardkey_init(const device_t* info)
 
     strncpy(sernumstr, device_get_config_string("serial_number"), sizeof(sernumstr) - 1);
     
-    for (i = 0; i < sizeof(sernumstr); i++) {
+    for (i = 0; i < sizeof(sernumstr) - 4; i++) {
         if (sernumstr[i] > '8' || sernumstr[i] < '0')
             sernumstr[i] = '0';
     }
