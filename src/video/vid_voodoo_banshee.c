@@ -510,6 +510,9 @@ banshee_render_16bpp_tiled(svga_t *svga)
     else
         addr = banshee->desktop_addr + (banshee->desktop_y & 31) * 128 + ((banshee->desktop_y >> 5) * banshee->desktop_stride_tiled);
 
+    if (addr >= svga->vram_max)
+        return;
+
     for (int x = 0; x <= svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
