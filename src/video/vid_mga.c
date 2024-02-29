@@ -6016,6 +6016,17 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
             }
             break;
 
+        case XCURCTRL_CURMODE_XWIN:
+            for (uint8_t x = 0; x < 64; x++) {
+                if ((dat[1] & (1ULL << 63)))
+                    svga->monitor->target_buffer->line[displine][(offset + svga->x_add) & 2047] = (dat[0] & (1ULL << 63)) ? (mystique->cursor.col[1]) : (mystique->cursor.col[0]);
+
+                offset++;
+                dat[0] <<= 1;
+                dat[1] <<= 1;
+            }
+            break;
+
         default:
             break;
     }
