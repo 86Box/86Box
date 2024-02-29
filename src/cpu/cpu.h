@@ -21,7 +21,14 @@
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
 
+#ifndef NO_SOFTFLOAT_INCLUDE
 #include "softfloat/softfloat.h"
+#else
+typedef struct floatx80 {	// leave alignment to compiler
+    uint64_t exp;
+    uint16_t fraction;
+} floatx80;
+#endif
 
 enum {
     FPU_NONE,
