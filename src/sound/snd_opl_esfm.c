@@ -212,7 +212,7 @@ const device_t esfm_esfmu_device = {
     .config        = NULL
 };
 
-const fm_drv_t nuked_opl_drv = {
+const fm_drv_t esfmu_opl_drv = {
     &esfm_drv_read,
     &esfm_drv_write,
     &esfm_drv_update,
