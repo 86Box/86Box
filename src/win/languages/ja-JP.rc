@@ -43,7 +43,7 @@ BEGIN
             MENUITEM "SDL (ソフトウェア)(&S)", IDM_VID_SDL_SW
             MENUITEM "SDL (ハードウェア)(&H)", IDM_VID_SDL_HW
             MENUITEM "SDL (OpenGL)(&O)", IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.0コア)(&G)", IDM_VID_OPENGL_CORE
+            MENUITEM "OpenGL (3.0 Core)(&G)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "VNC(&V)", IDM_VID_VNC
 #endif
@@ -514,7 +514,7 @@ BEGIN
     IDS_2151    "カートリッジ %i: %ls"
     IDS_2152    "カートリッジ イメージ (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0すべてのファイル (*.*)\0*.*\0"
     IDS_2153    "レンダラーの初期化エラー"
-    IDS_2154    "OpenGL (3.0コア) レンダラーが初期化できません。別のレンダラーを使用してください。"
+    IDS_2154    "OpenGL (3.0 Core) レンダラーが初期化できません。別のレンダラーを使用してください。"
     IDS_2155    "実行を再開"
     IDS_2156    "実行を一時停止"
     IDS_2157    "Ctrl+Alt+DELを押す"
