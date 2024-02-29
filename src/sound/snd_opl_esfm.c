@@ -200,9 +200,9 @@ esfm_drv_write(uint16_t port, uint8_t val, void *priv)
 
 const device_t esfm_esfmu_device = {
     .name          = "ESS Technology ESFM (ESFMu)",
-    .internal_name = "ymf262_nuked",
+    .internal_name = "esfm_esfmu",
     .flags         = 0,
-    .local         = FM_YMF262,
+    .local         = 0,
     .init          = esfm_drv_init,
     .close         = esfm_drv_close,
     .reset         = NULL,
