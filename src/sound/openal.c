@@ -154,13 +154,14 @@ inital(void)
 
     alGenBuffers(4, buffers);
     alGenBuffers(4, buffers_cd);
+    alGenBuffers(4, buffers_music);
     if (init_midi)
         alGenBuffers(4, buffers_midi);
 
     if (init_midi)
-        alGenSources(3, source);
+        alGenSources(4, source);
     else
-        alGenSources(2, source);
+        alGenSources(3, source);
 
     alSource3f(source[0], AL_POSITION, 0.0, 0.0, 0.0);
     alSource3f(source[0], AL_VELOCITY, 0.0, 0.0, 0.0);
@@ -172,22 +173,29 @@ inital(void)
     alSource3f(source[1], AL_DIRECTION, 0.0, 0.0, 0.0);
     alSourcef(source[1], AL_ROLLOFF_FACTOR, 0.0);
     alSourcei(source[1], AL_SOURCE_RELATIVE, AL_TRUE);
+    alSource3f(source[2], AL_POSITION, 0.0, 0.0, 0.0);
+    alSource3f(source[2], AL_VELOCITY, 0.0, 0.0, 0.0);
+    alSource3f(source[2], AL_DIRECTION, 0.0, 0.0, 0.0);
+    alSourcef(source[2], AL_ROLLOFF_FACTOR, 0.0);
+    alSourcei(source[2], AL_SOURCE_RELATIVE, AL_TRUE);
     if (init_midi) {
-        alSource3f(source[2], AL_POSITION, 0.0, 0.0, 0.0);
-        alSource3f(source[2], AL_VELOCITY, 0.0, 0.0, 0.0);
-        alSource3f(source[2], AL_DIRECTION, 0.0, 0.0, 0.0);
-        alSourcef(source[2], AL_ROLLOFF_FACTOR, 0.0);
-        alSourcei(source[2], AL_SOURCE_RELATIVE, AL_TRUE);
+        alSource3f(source[3], AL_POSITION, 0.0, 0.0, 0.0);
+        alSource3f(source[3], AL_VELOCITY, 0.0, 0.0, 0.0);
+        alSource3f(source[3], AL_DIRECTION, 0.0, 0.0, 0.0);
+        alSourcef(source[3], AL_ROLLOFF_FACTOR, 0.0);
+        alSourcei(source[3], AL_SOURCE_RELATIVE, AL_TRUE);
     }
 
     if (sound_is_float) {
         memset(buf, 0, BUFLEN * 2 * sizeof(float));
-        memset(cd_buf, 0, BUFLEN * 2 * sizeof(float));
+        memset(cd_buf, 0, CD_BUFLEN * 2 * sizeof(float));
+        memset(music_buf, 0, MUSICBUFLEN * 2 * sizeof(float));
         if (init_midi)
             memset(midi_buf, 0, midi_buf_size * sizeof(float));
     } else {
         memset(buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
-        memset(cd_buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
+        memset(cd_buf_int16, 0, CD_BUFLEN * 2 * sizeof(int16_t));
+        memset(music_buf_int16, 0, MUSICBUFLEN * 2 * sizeof(int16_t));
         if (init_midi)
             memset(midi_buf_int16, 0, midi_buf_size * sizeof(int16_t));
     }
@@ -195,13 +203,13 @@ inital(void)
     for (uint8_t c = 0; c < 4; c++) {
         if (sound_is_float) {
             alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN * 2 * sizeof(float), FREQ);
-            alBufferData(buffers_music[c], AL_FORMAT_STEREO_FLOAT32, buf, MUSICBUFLEN * 2 * sizeof(float), MUSIC_FREQ);
+            alBufferData(buffers_music[c], AL_FORMAT_STEREO_FLOAT32, music_buf, MUSICBUFLEN * 2 * sizeof(float), MUSIC_FREQ);
             alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN * 2 * sizeof(float), CD_FREQ);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO_FLOAT32, midi_buf, midi_buf_size * sizeof(float), midi_freq);
         } else {
             alBufferData(buffers[c], AL_FORMAT_STEREO16, buf_int16, BUFLEN * 2 * sizeof(int16_t), FREQ);
-            alBufferData(buffers_music[c], AL_FORMAT_STEREO16, buf_int16, MUSICBUFLEN * 2 * sizeof(int16_t), MUSIC_FREQ);
+            alBufferData(buffers_music[c], AL_FORMAT_STEREO16, music_buf_int16, MUSICBUFLEN * 2 * sizeof(int16_t), MUSIC_FREQ);
             alBufferData(buffers_cd[c], AL_FORMAT_STEREO16, cd_buf_int16, CD_BUFLEN * 2 * sizeof(int16_t), CD_FREQ);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO16, midi_buf_int16, midi_buf_size * sizeof(int16_t), midi_freq);
