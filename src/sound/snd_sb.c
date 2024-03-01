@@ -402,6 +402,9 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 
     sb_dsp_update(&sb->dsp);
 
+    if (sb->dsp.sb_type > SB16)
+        emu8k_update(&sb->emu8k);
+
     for (int c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
         out_r = 0.0;
@@ -490,9 +493,6 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
-
-    if (sb->dsp.sb_type > SB16)
-        emu8k_update(&sb->emu8k);
 
     for (int c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
