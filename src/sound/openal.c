@@ -140,13 +140,13 @@ inital(void)
 
     if (sound_is_float) {
         buf       = (float *) calloc((BUFLEN << 1), sizeof(float));
-        music_buf = (float *) calloc((MUSIC_BUFLEN << 1), sizeof(float));
+        music_buf = (float *) calloc((MUSICBUFLEN << 1), sizeof(float));
         cd_buf    = (float *) calloc((CD_BUFLEN << 1), sizeof(float));
         if (init_midi)
             midi_buf = (float *) calloc(midi_buf_size, sizeof(float));
     } else {
         buf_int16       = (int16_t *) calloc((BUFLEN << 1), sizeof(int16_t));
-        music_buf_int16 = (int16_t *) calloc((MUSIC_BUFLEN << 1), sizeof(int16_t));
+        music_buf_int16 = (int16_t *) calloc((MUSICBUFLEN << 1), sizeof(int16_t));
         cd_buf_int16    = (int16_t *) calloc((CD_BUFLEN << 1), sizeof(int16_t));
         if (init_midi)
             midi_buf_int16 = (int16_t *) calloc(midi_buf_size, sizeof(int16_t));
@@ -195,13 +195,13 @@ inital(void)
     for (uint8_t c = 0; c < 4; c++) {
         if (sound_is_float) {
             alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN * 2 * sizeof(float), FREQ);
-            alBufferData(buffers_music[c], AL_FORMAT_STEREO_FLOAT32, buf, MUSIC_BUFLEN * 2 * sizeof(float), MUSIC_FREQ);
+            alBufferData(buffers_music[c], AL_FORMAT_STEREO_FLOAT32, buf, MUSICBUFLEN * 2 * sizeof(float), MUSIC_FREQ);
             alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN * 2 * sizeof(float), CD_FREQ);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO_FLOAT32, midi_buf, midi_buf_size * sizeof(float), midi_freq);
         } else {
             alBufferData(buffers[c], AL_FORMAT_STEREO16, buf_int16, BUFLEN * 2 * sizeof(int16_t), FREQ);
-            alBufferData(buffers_music[c], AL_FORMAT_STEREO16, buf_int16, MUSIC_BUFLEN * 2 * sizeof(int16_t), MUSIC_FREQ);
+            alBufferData(buffers_music[c], AL_FORMAT_STEREO16, buf_int16, MUSICBUFLEN * 2 * sizeof(int16_t), MUSIC_FREQ);
             alBufferData(buffers_cd[c], AL_FORMAT_STEREO16, cd_buf_int16, CD_BUFLEN * 2 * sizeof(int16_t), CD_FREQ);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO16, midi_buf_int16, midi_buf_size * sizeof(int16_t), midi_freq);
