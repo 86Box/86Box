@@ -43,6 +43,14 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
+#define PNP_ROM_SB_VIBRA16XV   "roms/sound/creative/CT4170 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16C    "roms/sound/creative/CT4180 PnP.BIN"
+#define PNP_ROM_SB_32_PNP      "roms/sound/creative/CT3600 PnP.BIN"
+#define PNP_ROM_SB_AWE32_PNP   "roms/sound/creative/CT3980 PnP.BIN"
+#define PNP_ROM_SB_AWE64_VALUE "roms/sound/creative/CT4520 PnP.BIN"
+#define PNP_ROM_SB_AWE64       PNP_ROM_SB_AWE64_VALUE
+#define PNP_ROM_SB_AWE64_GOLD  "roms/sound/creative/CT4540 PnP.BIN"
+
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
    Note that for positive dB values, this is not amplitude, it is amplitude - 1. */
 static const double sb_bass_treble_4bits[] = {
@@ -2382,13 +2390,13 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 static int
 sb_vibra16xv_available(void)
 {
-    return rom_present("roms/sound/creative/CT4170 PnP.BIN");
+    return rom_present(PNP_ROM_SB_VIBRA16XV);
 }
 
 static int
 sb_vibra16c_available(void)
 {
-    return rom_present("roms/sound/creative/CT4180 PnP.BIN");
+    return rom_present(PNP_ROM_SB_VIBRA16C);
 }
 
 static void *
@@ -2430,11 +2438,11 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     const char *pnp_rom_file = NULL;
     switch (info->local) {
         case 0:
-            pnp_rom_file = "roms/sound/creative/CT4170 PnP.BIN";
+            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
             break;
 
         case 1:
-            pnp_rom_file = "roms/sound/creative/CT4180 PnP.BIN";
+            pnp_rom_file = PNP_ROM_SB_VIBRA16C;
             break;
 
         default:
@@ -2515,31 +2523,31 @@ sb_awe32_available(void)
 static int
 sb_32_pnp_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/creative/CT3600 PnP.BIN");
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_32_PNP);
 }
 
 static int
 sb_awe32_pnp_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/creative/CT3980 PnP.BIN");
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE32_PNP);
 }
 
 static int
 sb_awe64_value_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/creative/CT4520 PnP.BIN");
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_VALUE);
 }
 
 static int
 sb_awe64_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/creative/CT4520 PnP.BIN");
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64);
 }
 
 static int
 sb_awe64_gold_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/creative/CT4540 PnP.BIN");
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_GOLD);
 }
 
 static void *
@@ -2659,20 +2667,23 @@ sb_awe32_pnp_init(const device_t *info)
     const char *pnp_rom_file = NULL;
     switch (info->local) {
         case 0:
-            pnp_rom_file = "roms/sound/creative/CT3600 PnP.BIN";
+            pnp_rom_file = PNP_ROM_SB_32_PNP;
             break;
 
         case 1:
-            pnp_rom_file = "roms/sound/creative/CT3980 PnP.BIN";
+            pnp_rom_file = PNP_ROM_SB_AWE32_PNP;
             break;
 
         case 2:
+            pnp_rom_file = PNP_ROM_SB_AWE64_VALUE;
+            break;
+
         case 3:
-            pnp_rom_file = "roms/sound/creative/CT4520 PnP.BIN";
+            pnp_rom_file = PNP_ROM_SB_AWE64;
             break;
 
         case 4:
-            pnp_rom_file = "roms/sound/creative/CT4540 PnP.BIN";
+            pnp_rom_file = PNP_ROM_SB_AWE64_GOLD;
             break;
 
         default:
