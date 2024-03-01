@@ -480,6 +480,8 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
         case 0xc6: /* 85C497 Post / INIT Configuration */
             dev->pci_conf[addr] = val & 0x0f;
+            cpu_cpurst_on_sr = !(val & 0x08);
+            soft_reset_pci = !!(val & 0x04);
             break;
         case 0xc8:
         case 0xc9:
@@ -614,6 +616,9 @@ sis_85c496_reset(void *priv)
     nvr_bank_set(0, 0, dev->nvr);
 
     sis_85c497_isa_reset(dev);
+
+    cpu_cpurst_on_sr = 1;
+    soft_reset_pci = 0;
 }
 
 static void
