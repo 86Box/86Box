@@ -407,7 +407,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
         out_r = 0.0;
 
         if (sb->dsp.sb_type > SB16)
-            c_emu8k = ((((c / 2) * FREQ_44100) / MUSIC_FREQ) * 2);
+            c_emu8k = ((((c / 2) * FREQ_44100) / SOUND_FREQ) * 2);
 
         if (sb->dsp.sb_type > SB16) {
             out_l += (((double) sb->emu8k.buffer[c_emu8k]) * mixer->fm_l);
