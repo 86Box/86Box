@@ -188,13 +188,13 @@ inital(void)
 
     if (sound_is_float) {
         memset(buf, 0, BUFLEN * 2 * sizeof(float));
-        memset(cd_buf, 0, BUFLEN * 2 * sizeof(float));
+        memset(cd_buf, 0, CD_BUFLEN * 2 * sizeof(float));
         memset(music_buf, 0, MUSICBUFLEN * 2 * sizeof(float));
         if (init_midi)
             memset(midi_buf, 0, midi_buf_size * sizeof(float));
     } else {
         memset(buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
-        memset(cd_buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
+        memset(cd_buf_int16, 0, CD_BUFLEN * 2 * sizeof(int16_t));
         memset(music_buf_int16, 0, MUSICBUFLEN * 2 * sizeof(int16_t));
         if (init_midi)
             memset(midi_buf_int16, 0, midi_buf_size * sizeof(int16_t));
