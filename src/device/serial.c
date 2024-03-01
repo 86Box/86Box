@@ -686,7 +686,10 @@ serial_read(uint16_t addr, void *priv)
             serial_update_ints(dev);
             break;
         case 6:
-            ret = dev->msr | dev->msr_set;
+            if (dev->mctrl & 0x10)
+                ret = dev->msr;
+            else
+                ret = dev->msr | dev->msr_set;
             dev->msr &= ~0x0f;
             dev->int_status &= ~SERIAL_INT_MSR;
             serial_update_ints(dev);

@@ -4,9 +4,10 @@
     <metadata_license>CC0-1.0</metadata_license>
     <project_license>GPL-2.0-or-later</project_license>
     <name>86Box</name>
+    <developer_name>86Box developers</developer_name>
     <summary>An emulator for classic IBM PC clones</summary>
     <categories>
-      <category>Emulation</category>
+      <category>Emulator</category>
     </categories>
     <launchable type="desktop-id">net.86box.86Box.desktop</launchable>
     <releases>

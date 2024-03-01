@@ -1158,9 +1158,9 @@ svga_poll(void *priv)
 
             if (ret) {
                 if (svga->interlace && svga->oddeven)
-                    svga->ma = svga->maback = (svga->rowoffset << 1) + ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                    svga->ma = svga->maback = (svga->rowoffset << 1) + svga->hblank_sub;
                 else
-                    svga->ma = svga->maback = ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                    svga->ma = svga->maback = svga->hblank_sub;
                 svga->ma     = (svga->ma << 2);
                 svga->maback = (svga->maback << 2);
 
@@ -1230,10 +1230,9 @@ svga_poll(void *priv)
             svga->vslines                       = 0;
 
             if (svga->interlace && svga->oddeven)
-                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) +
-                           ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + svga->hblank_sub;
             else
-                svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                svga->ma = svga->maback = svga->ma_latch + svga->hblank_sub;
 
             svga->ca     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
             svga->ma     = (svga->ma << 2);

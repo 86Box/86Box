@@ -33,6 +33,9 @@ extern int sound_gain;
 #define SOUND_FREQ  FREQ_48000
 #define SOUNDBUFLEN (SOUND_FREQ / 50)
 
+#define MUSIC_FREQ  FREQ_49716
+#define MUSICBUFLEN (MUSIC_FREQ / 36)
+
 #define CD_FREQ     FREQ_44100
 #define CD_BUFLEN   (CD_FREQ / 10)
 
@@ -47,9 +50,15 @@ extern int speakval;
 extern int speakon;
 
 extern int sound_pos_global;
+extern int music_pos_global;
+
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
+                                                 int len, void *priv),
+                              void *priv);
+
+extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *priv),
                               void *priv);
 
@@ -86,6 +95,7 @@ extern void sound_cd_thread_reset(void);
 extern void closeal(void);
 extern void inital(void);
 extern void givealbuffer(void *buf);
+extern void givealbuffer_music(void *buf);
 extern void givealbuffer_cd(void *buf);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base

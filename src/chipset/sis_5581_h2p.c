@@ -168,7 +168,6 @@ sis_5581_trap_update_devctl(sis_5581_host_to_pci_t *dev, uint8_t trap_id, uint8_
                             uint16_t addr, uint16_t size)
 {
     sis_5581_io_trap_t *trap = &dev->io_traps[trap_id];
-    enable                   = enable;
 
     /* Set up Device I/O traps dynamically. */
     if (enable && !trap->trap) {

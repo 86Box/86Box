@@ -391,6 +391,9 @@ optimc_init(const device_t *info)
     optimc->sb              = calloc(1, sizeof(sb_t));
     optimc->sb->opl_enabled = 1;
 
+    optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
+
+    sb_dsp_set_real_opl(&optimc->sb->dsp, optimc->fm_type != FM_YMF278B);
     sb_dsp_init(&optimc->sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, optimc);
     sb_dsp_setaddr(&optimc->sb->dsp, optimc->cur_addr);
     sb_dsp_setirq(&optimc->sb->dsp, optimc->cur_irq);
@@ -400,7 +403,6 @@ optimc_init(const device_t *info)
     optimc->sb->opl_mixer = optimc;
     optimc->sb->opl_mix   = optimc_filter_opl;
 
-    optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
     fm_driver_get(optimc->fm_type, &optimc->sb->opl);
     io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
@@ -411,6 +413,10 @@ optimc_init(const device_t *info)
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
     sound_add_handler(optimc_get_buffer, optimc);
+    if (optimc->fm_type == FM_YMF278B)
+        sound_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
+    else
+        music_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, optimc->sb); /* CD audio filter for the default context */
 
     optimc->mpu = (mpu_t *) malloc(sizeof(mpu_t));

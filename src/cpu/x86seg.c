@@ -2401,7 +2401,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
             ldt.base |= (readmemb(0, templ + 7) << 24);
         }
 
-        if (!(new_cs & 0xfff8)) {
+        if (!(new_cs & 0xfff8) && !(new_cs & 0x0004)) {
             x86ts(NULL, 0);
             return;
         }

@@ -50,7 +50,7 @@ msgid "SDL (&OpenGL)"
 msgstr "SDL (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 코어)(&G)"
+msgstr "OpenGL (3.0 Core)(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
