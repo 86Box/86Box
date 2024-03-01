@@ -647,9 +647,11 @@ ESFM_write_reg_emu (esfm_chip *chip, uint16_t address, uint8_t data)
 				break;
 			case 0x02:
 				chip->timer_reload[0] = data;
+				chip->timer_counter[0] = data;
 				break;
 			case 0x03:
 				chip->timer_reload[1] = data;
+				chip->timer_counter[1] = data;
 				break;
 			case 0x04:
 				for (i = 0; i < 3; i++)
@@ -685,19 +687,24 @@ ESFM_write_reg_emu (esfm_chip *chip, uint16_t address, uint8_t data)
 				break;
 			case 0x02:
 				chip->timer_reload[0] = data;
+				chip->timer_counter[0] = data;
 				break;
 			case 0x03:
 				chip->timer_reload[1] = data;
+				chip->timer_counter[1] = data;
 				break;
 			case 0x04:
-				chip->timer_enable[0] = data & 0x01;
-				chip->timer_enable[1] = (data & 0x02) != 0;
-				chip->timer_mask[0] = (data & 0x20) != 0;
-				chip->timer_mask[1] = (data & 0x40) != 0;
 				if (data & 0x80)
 				{
 					chip->irq_bit = 0;
+					chip->timer_overflow[0] = 0;
+					chip->timer_overflow[1] = 0;
+					break;
 				}
+				chip->timer_enable[0] = data & 0x01;
+				chip->timer_enable[1] = (data & 0x02) != 0;
+				chip->timer_mask[1] = (data & 0x20) != 0;
+				chip->timer_mask[0] = (data & 0x40) != 0;
 				break;
 			case 0x08:
 				chip->keyscale_mode = (data & 0x40) != 0;
