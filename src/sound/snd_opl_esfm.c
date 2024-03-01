@@ -112,14 +112,14 @@ esfm_drv_update(void *priv)
 {
     esfm_drv_t *dev = (esfm_drv_t *) priv;
 
-    if (dev->pos >= sound_pos_global)
+    if (dev->pos >= music_pos_global)
         return dev->buffer;
 
     esfm_drv_generate_stream(dev,
                           &dev->buffer[dev->pos * 2],
-                          sound_pos_global - dev->pos);
+                          music_pos_global - dev->pos);
 
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < music_pos_global; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }
