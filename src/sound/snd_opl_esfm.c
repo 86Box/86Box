@@ -54,44 +54,25 @@ typedef struct {
     uint16_t timer_count[2];
     uint16_t timer_cur_count[2];
 
-    // OPL3L
-    int32_t rateratio;
-    int32_t samplecnt;
-    int32_t oldsamples[2];
-    int32_t samples[2];
-
     int     pos;
     int32_t buffer[SOUNDBUFLEN * 2];
 } esfm_drv_t;
 
 void
-esfm_drv_generate_resampled(esfm_drv_t *dev, int32_t *bufp)
+esfm_generate_raw(esfm_drv_t *dev, int32_t *bufp)
 {
-    while (dev->samplecnt >= dev->rateratio) {
-        int16_t samples[2] = { 0, 0 };
-        dev->oldsamples[0] = dev->samples[0];
-        dev->oldsamples[1] = dev->samples[1];
-        ESFM_generate(&dev->opl, samples);
-        dev->samples[0] = samples[0];
-        dev->samples[1] = samples[1];
-        dev->samplecnt -= dev->rateratio;
-    }
+    int16_t samples[2] = { 0, 0 };
+    ESFM_generate(&dev->opl, samples);
 
-    bufp[0] = (int32_t) ((dev->oldsamples[0] * (dev->rateratio - dev->samplecnt)
-                          + dev->samples[0] * dev->samplecnt)
-                         / dev->rateratio);
-    bufp[1] = (int32_t) ((dev->oldsamples[1] * (dev->rateratio - dev->samplecnt)
-                          + dev->samples[1] * dev->samplecnt)
-                         / dev->rateratio);
-
-    dev->samplecnt += 1 << RSM_FRAC;
+    bufp[0] = (int32_t) samples[0];
+    bufp[1] = (int32_t) samples[1];
 }
 
 void
 esfm_drv_generate_stream(esfm_drv_t *dev, int32_t *sndptr, uint32_t num)
 {
     for (uint32_t i = 0; i < num; i++) {
-        esfm_drv_generate_resampled(dev, sndptr);
+        esfm_generate_raw(dev, sndptr);
         sndptr += 2;
     }
 }
@@ -115,7 +96,6 @@ esfm_drv_init(const device_t *info)
 
     /* Initialize the ESFMu object. */
     ESFM_init(&dev->opl);
-    dev->rateratio = (SOUND_FREQ << RSM_FRAC) / 49716;
 
     return dev;
 }

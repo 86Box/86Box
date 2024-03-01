@@ -2117,7 +2117,7 @@ ESFM_update_timers(esfm_chip *chip)
 	{
 		if (chip->timer_enable[i])
 		{
-			chip->timer_accumulator[i] += i == 0 ? TIMER1_CONST : TIMER2_CONST;
+			chip->timer_accumulator[i] += (i == 0) ? TIMER1_CONST : TIMER2_CONST;
 			if (chip->timer_accumulator[i] > 1.0)
 			{
 				chip->timer_accumulator[i] -= 1.0;
@@ -2126,6 +2126,7 @@ ESFM_update_timers(esfm_chip *chip)
 				{
 					if (chip->timer_mask[i] == 0)
 					{
+						chip->irq_bit = true;
 						chip->timer_overflow[i] = true;
 					}
 					chip->timer_counter[i] = chip->timer_reload[i];
