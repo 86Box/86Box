@@ -2509,7 +2509,7 @@ sb_16_compat_init(const device_t *info)
 static int
 sb_awe32_available(void)
 {
-    return rom_present("roms/sound/creative/awe32.raw");
+    return rom_present(EMU8K_ROM_PATH);
 }
 
 static int
