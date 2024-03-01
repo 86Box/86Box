@@ -50,7 +50,7 @@ msgid "SDL (&OpenGL)"
 msgstr "SDL (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 核心)(&G)"
+msgstr "OpenGL (3.0 Core)(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
@@ -938,7 +938,7 @@ msgid "Error initializing renderer"
 msgstr "初始化渲染器时出错"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
+msgstr "无法初始化 OpenGL (3.0 Core) 渲染器。请使用其他渲染器。"
 
 msgid "Resume execution"
 msgstr "恢复执行"
