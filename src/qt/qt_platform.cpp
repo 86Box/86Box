@@ -413,7 +413,7 @@ void
 plat_power_off(void)
 {
     plat_mouse_capture(0);
-    confirm_exit = 0;
+    confirm_exit_cmdl = 0;
     nvr_save();
     config_save();
 
