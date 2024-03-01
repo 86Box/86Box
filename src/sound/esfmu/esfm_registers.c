@@ -453,21 +453,24 @@ ESFM_write_reg_native (esfm_chip *chip, uint16_t address, uint8_t data)
 		{
 		case TIMER1_REG:
 			chip->timer_reload[0] = data;
+			chip->timer_counter[0] = data;
 			break;
 		case TIMER2_REG:
 			chip->timer_reload[1] = data;
+			chip->timer_counter[1] = data;
 			break;
 		case TIMER_SETUP_REG:
 			if (data & 0x80)
 			{
+				chip->irq_bit = 0;
 				chip->timer_overflow[0] = 0;
 				chip->timer_overflow[1] = 0;
-				chip->irq_bit = 0;
+				break;
 			}
 			chip->timer_enable[0] = (data & 0x01) != 0;
 			chip->timer_enable[1] = (data & 0x02) != 0;
-			chip->timer_mask[0] = (data & 0x20) != 0;
-			chip->timer_mask[1] = (data & 0x40) != 0;
+			chip->timer_mask[1] = (data & 0x20) != 0;
+			chip->timer_mask[0] = (data & 0x40) != 0;
 			break;
 		case CONFIG_REG:
 			chip->keyscale_mode = (data & 0x40) != 0;
@@ -547,16 +550,16 @@ ESFM_readback_reg_native (esfm_chip *chip, uint16_t address)
 		switch (address & 0x5ff)
 		{
 		case TIMER1_REG:
-			data = chip->timer_reload[0];
+			data = chip->timer_counter[0];
 			break;
 		case TIMER2_REG:
-			data = chip->timer_reload[1];
+			data = chip->timer_counter[1];
 			break;
 		case TIMER_SETUP_REG:
 			data |= chip->timer_enable[0] != 0;
 			data |= (chip->timer_enable[1] != 0) << 1;
-			data |= (chip->timer_mask[0] != 0) << 5;
-			data |= (chip->timer_mask[1] != 0) << 6;
+			data |= (chip->timer_mask[1] != 0) << 5;
+			data |= (chip->timer_mask[0] != 0) << 6;
 			break;
 		case CONFIG_REG:
 			data |= (chip->keyscale_mode != 0) << 6;
