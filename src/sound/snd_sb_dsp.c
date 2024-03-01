@@ -115,7 +115,7 @@ uint8_t adjustMap2[24] = {
     252, 0, 252, 0
 };
 
-double low_fir_sb16_coef[3][SB16_NCoef];
+double low_fir_sb16_coef[4][SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -1256,8 +1256,12 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
        a set frequency command is sent. */
     recalc_sb16_filter(0, 3200 * 2);
-    recalc_sb16_filter(1, FREQ_44100);
-    recalc_sb16_filter(2, 18939);
+    if (dsp->sb_has_real_opl)
+        recalc_sb16_filter(1, FREQ_49716);
+    else
+        recalc_sb16_filter(1, FREQ_48000);
+    recalc_sb16_filter(2, FREQ_44100);
+    recalc_sb16_filter(3, 18939);
 
     /* Initialize SB16 8051 RAM and ASP internal RAM */
     memset(dsp->sb_8051_ram, 0x00, sizeof(dsp->sb_8051_ram));
@@ -1281,6 +1285,12 @@ sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr)
         io_sethandler(dsp->sb_addr + 6, 0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
         io_sethandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
     }
+}
+
+void
+sb_dsp_set_real_opl(sb_dsp_t *dsp, uint8_t has_real_opl)
+{
+    dsp->sb_has_real_opl = has_real_opl;
 }
 
 void

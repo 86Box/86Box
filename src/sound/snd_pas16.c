@@ -728,18 +728,27 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
 
-    const int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (int c = 0; c < len * 2; c++) {
-        buffer[c] += opl_buf[c];
         buffer[c] += (int16_t) (sb_iir(0, c & 1, (double) pas16->dsp.buffer[c]) / 1.3) / 2;
         buffer[c] += (pas16->pcm_buffer[c & 1][c >> 1] / 2);
     }
 
     pas16->pos = 0;
-    pas16->opl.reset_buffer(pas16->opl.priv);
     pas16->dsp.pos = 0;
+}
+
+void
+pas16_get_music_buffer(int32_t *buffer, int len, void *priv)
+{
+    pas16_t *pas16 = (pas16_t *) priv;
+
+    const int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
+    for (int c = 0; c < len * 2; c++)
+        buffer[c] += opl_buf[c];
+
+    pas16->opl.reset_buffer(pas16->opl.priv);
 }
 
 static void *
@@ -756,6 +765,7 @@ pas16_init(UNUSED(const device_t *info))
     timer_add(&pas16->pit.timer[0], pas16_pcm_poll, pas16, 0);
 
     sound_add_handler(pas16_get_buffer, pas16);
+    music_add_handler(pas16_get_music_buffer, pas16);
 
     return pas16;
 }
