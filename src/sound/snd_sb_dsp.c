@@ -906,17 +906,21 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->sb_8_pause = 1;
             break;
         case 0xD1: /* Speaker on */
-            if (dsp->sb_type < SB15)
-                dsp->sb_8_pause = 1;
-            else if (dsp->sb_type < SB16)
-                dsp->muted = 0;
+            if (!IS_ESS(dsp)) {
+                if (dsp->sb_type < SB15)
+                    dsp->sb_8_pause = 1;
+                else if (dsp->sb_type < SB16)
+                    dsp->muted = 0;
+            }
             dsp->sb_speaker = 1;
             break;
         case 0xD3: /* Speaker off */
-            if (dsp->sb_type < SB15)
-                dsp->sb_8_pause = 1;
-            else if (dsp->sb_type < SB16)
-                dsp->muted = 1;
+            if (!IS_ESS(dsp)) {
+                if (dsp->sb_type < SB15)
+                    dsp->sb_8_pause = 1;
+                else if (dsp->sb_type < SB16)
+                    dsp->muted = 1;
+            }
             dsp->sb_speaker = 0;
             break;
         case 0xD4: /* Continue 8-bit DMA */
@@ -944,6 +948,11 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_add_data(dsp, ~dsp->sb_data[0]);
             break;
         case 0xE1: /* Get DSP version */
+            if (IS_ESS(dsp)) {
+               sb_add_data(dsp, 0x3);
+               sb_add_data(dsp, 0x1);
+               break;
+            }
             if (IS_AZTECH(dsp)) {
                 if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
                     sb_add_data(dsp, 0x3);
@@ -1036,7 +1045,7 @@ sb_write(uint16_t a, uint8_t v, void *priv)
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if (dsp->sb_type < SB16)
+    if (dsp->sb_type < SB16 && (!IS_ESS(dsp) || (IS_ESS(dsp) && ((a & 0xF) != 0xE))))
         a &= 0xfffe;
 
     switch (a & 0xF) {
