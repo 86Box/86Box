@@ -395,6 +395,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 {
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    int                      c_emu8k = 0;
     double                   out_l = 0.0;
     double                   out_r = 0.0;
     double                   bass_treble;
@@ -404,6 +405,14 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
     for (int c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
         out_r = 0.0;
+
+        if (sb->dsp.sb_type > SB16)
+            c_emu8k = ((((c / 2) * FREQ_44100) / MUSIC_FREQ) * 2);
+
+        if (sb->dsp.sb_type > SB16) {
+            out_l += (((double) sb->emu8k.buffer[c_emu8k]) * mixer->fm_l);
+            out_r += (((double) sb->emu8k.buffer[c_emu8k + 1]) * mixer->fm_r);
+        }
 
         if (mixer->output_filter) {
             /* We divide by 3 to get the volume down to normal. */
@@ -460,6 +469,9 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
     }
 
     sb->dsp.pos = 0;
+
+    if (sb->dsp.sb_type > SB16)
+        sb->emu8k.pos = 0;
 }
 
 static void
@@ -468,7 +480,6 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     int                      dsp_rec_pos = sb->dsp.record_pos_write;
-    int                      c_emu8k = 0;
     int                      c_record;
     int32_t                  in_l;
     int32_t                  in_r;
@@ -487,17 +498,9 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
         out_l = 0.0;
         out_r = 0.0;
 
-        if (sb->dsp.sb_type > SB16)
-            c_emu8k = ((((c / 2) * FREQ_44100) / MUSIC_FREQ) * 2);
-
         if (sb->opl_enabled) {
             out_l = ((double) opl_buf[c]) * mixer->fm_l * 0.7171630859375;
             out_r = ((double) opl_buf[c + 1]) * mixer->fm_r * 0.7171630859375;
-        }
-
-        if (sb->dsp.sb_type > SB16) {
-            out_l += (((double) sb->emu8k.buffer[c_emu8k]) * mixer->fm_l);
-            out_r += (((double) sb->emu8k.buffer[c_emu8k + 1]) * mixer->fm_r);
         }
 
         /* TODO: Multi-recording mic with agc/+20db, CD, and line in with channel inversion */
@@ -576,9 +579,6 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 
     if (sb->opl_enabled)
         sb->opl.reset_buffer(sb->opl.priv);
-
-    if (sb->dsp.sb_type > SB16)
-        sb->emu8k.pos = 0;
 }
 
 void
