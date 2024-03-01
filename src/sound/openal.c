@@ -114,12 +114,14 @@ closeal(void)
 void
 inital(void)
 {
-    float   *buf            = NULL;
-    float   *cd_buf         = NULL;
-    float   *midi_buf       = NULL;
-    int16_t *buf_int16      = NULL;
-    int16_t *cd_buf_int16   = NULL;
-    int16_t *midi_buf_int16 = NULL;
+    float   *buf             = NULL;
+    float   *music_buf       = NULL;
+    float   *cd_buf          = NULL;
+    float   *midi_buf        = NULL;
+    int16_t *buf_int16       = NULL;
+    int16_t *music_buf_int16 = NULL;
+    int16_t *cd_buf_int16    = NULL;
+    int16_t *midi_buf_int16  = NULL;
 
     const char *mdn;
     int         init_midi = 0;
@@ -276,7 +278,7 @@ givealbuffer(void *buf)
 void
 givealbuffer_music(void *buf)
 {
-    givealbuffer_common(buf, 1, MUSIC_BUFLEN << 1, MUSIC_FREQ);
+    givealbuffer_common(buf, 1, MUSICBUFLEN << 1, MUSIC_FREQ);
 }
 
 void
