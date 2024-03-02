@@ -383,7 +383,7 @@ win_notify_dlg_closed(void)
 void
 plat_power_off(void)
 {
-    confirm_exit = 0;
+    confirm_exit_cmdl = 0;
     nvr_save();
     config_save();
 

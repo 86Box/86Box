@@ -2596,14 +2596,15 @@ mach_recalctimings(svga_t *svga)
     mach_log("ON[0]=%d, ON[1]=%d, exton[0]=%d, exton[1]=%d, vendormode0=%d, vendormode1=%d.\n", dev->on[0], dev->on[1], mach->ext_on[0], mach->ext_on[1], dev->vendor_mode[0], dev->vendor_mode[1]);
     if (dev->on[0] || dev->on[1]) {
         mach_log("8514/A ON.\n");
-        dev->h_disp                     = dev->hdisp;
         dev->h_total                    = dev->htotal + 1;
         dev->h_blankstart               = dev->hblankstart;
         dev->h_blank_end_val            = dev->hblank_end_val;
         dev->v_total                    = dev->vtotal;
         dev->v_syncstart                = dev->vsyncstart;
-        dev->dispend                    = dev->vdisp;
         dev->rowcount                   = !!(dev->disp_cntl & 0x08);
+
+        dev->h_disp                     = dev->hdisp;
+        dev->dispend                    = dev->vdisp;
 
         if (dev->dispend == 766)
             dev->dispend += 2;
@@ -2636,6 +2637,7 @@ mach_recalctimings(svga_t *svga)
                 dev->v_total >>= 1;
             }
 
+            mach_log("HDISP=%d.\n", dev->h_disp);
             dev->pitch = dev->ext_pitch;
             dev->rowoffset = dev->ext_crt_pitch;
             if ((mach->accel.ext_ge_config & 0x800) || (!(mach->accel.ext_ge_config & 0x8000) && !(mach->accel.ext_ge_config & 0x800))) {
@@ -3626,9 +3628,21 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                 if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)) || (mach->accel.clock_sel & 0x01)) {
                     dev->hdisped = val;
                     dev->hdisp = (dev->hdisped + 1) << 3;
+                    if ((dev->hdisp == 640) && ((mach->shadow_set & 0x03) == 0x02) && (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04)))
+                        svga_recalctimings(svga);
+                    else if ((dev->hdisp == 1024) && !(mach->accel.clock_sel & 0x01) && ((dev->disp_cntl & 0x60) == 0x40)) {
+                        if (dev->accel.advfunc_cntl & 0x04) {
+                            dev->hdisp = 1024;
+                            dev->vdisp = 768;
+                        } else {
+                            dev->hdisp = 640;
+                            dev->vdisp = 480;
+                        }
+                        svga_recalctimings(svga);
+                    }
                 }
             }
-            mach_log("[%04X:%08X]: ATI 8514/A: H_DISP write 06E8 = %d, actual val=%d, set lock=%x, shadow set=%x, advfunc=%x, dispcntl=%02x.\n", CS, cpu_state.pc, dev->hdisp, ((val + 1) << 3), mach->shadow_cntl, mach->shadow_set, dev->accel.advfunc_cntl & 4, dev->disp_cntl & 0x60);
+            mach_log("[%04X:%08X]: ATI 8514/A: H_DISP write 06E8 = %d, actual val=%d, set lock=%x, shadow set=%x, advfunc bit 2=%x, dispcntl=%02x, clocksel bit 0=%x.\n", CS, cpu_state.pc, dev->hdisp, ((val + 1) << 3), mach->shadow_cntl, mach->shadow_set, dev->accel.advfunc_cntl & 0x04, dev->disp_cntl & 0x60, mach->accel.clock_sel & 0x01);
             break;
 
         case 0xae8:
@@ -3733,7 +3747,7 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             mach->ext_on[port & 1] = dev->on[port & 1];
             mach32_updatemapping(mach, svga);
             dev->vendor_mode[port & 1] = 0;
-            mach_log("ATI 8514/A: (0x%04x): ON=%d, shadow crt=%x.\n", port, dev->on[port & 1], dev->accel.advfunc_cntl & 4);
+            mach_log("ATI 8514/A: (0x%04x): ON=%d, shadow crt=%x, hdisp=%d.\n", port, dev->on[port & 1], dev->accel.advfunc_cntl & 4, dev->hdisp);
             svga_recalctimings(svga);
             break;
 

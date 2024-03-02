@@ -697,7 +697,7 @@ plat_get_exe_name(char *s, int size)
 void
 plat_power_off(void)
 {
-    confirm_exit = 0;
+    confirm_exit_cmdl = 0;
     nvr_save();
     config_save();
 
