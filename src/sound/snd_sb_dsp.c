@@ -135,6 +135,8 @@ sb_dsp_log(const char *fmt, ...)
 #    define sb_dsp_log(fmt, ...)
 #endif
 
+#define ESSreg(reg) (dsp)->ess_regs[reg - 0xA0]
+
 static __inline double
 sinc(double x)
 {
