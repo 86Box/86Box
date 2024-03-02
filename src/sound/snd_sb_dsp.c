@@ -224,6 +224,12 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
             break;
     }
 
+    /* TODO: Investigate real hardware for this (the ES1887 datasheet documents this bit somewhat oddly.) */
+    if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
+        if (!(ESSreg(0xB1) & 0x40)) // if ESS playback, and IRQ disabled, do not fire
+            return;
+    }
+
     if (set && !masked)
         dsp->irq_update(dsp->irq_priv, 1);
     else if (!set)
@@ -377,6 +383,9 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->output_timer))
             timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
     }
+
+    /* This will be set later for ESS playback/record modes. */
+    dsp->ess_playback_mode = 0;
 }
 
 void
@@ -407,6 +416,32 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
     }
 
     memset(dsp->record_buffer, 0, sizeof(dsp->record_buffer));
+}
+
+void
+sb_start_dma_ess(sb_dsp_t* dsp, int dma8, int autoinit, uint8_t format, int len)
+{
+    if (IS_ESS(dsp)) {
+        dma_set_drq(dsp->sb_8_dmanum, 0);
+        dma_set_drq(dsp->sb_16_8_dmanum, 0);
+    }
+    sb_start_dma(dsp, dma8, autoinit, format, len);
+    dsp->ess_playback_mode = 1;
+    dma_set_drq(dsp->sb_8_dmanum, 1);
+    dma_set_drq(dsp->sb_16_8_dmanum, 1);
+}
+
+void
+sb_start_dma_ess_i(sb_dsp_t* dsp, int dma8, int autoinit, uint8_t format, int len)
+{
+    if (IS_ESS(dsp)) {
+        dma_set_drq(dsp->sb_8_dmanum, 0);
+        dma_set_drq(dsp->sb_16_8_dmanum, 0);
+    }
+    sb_start_dma_i(dsp, dma8, autoinit, format, len);
+    dsp->ess_playback_mode = 1;
+    dma_set_drq(dsp->sb_8_dmanum, 1);
+    dma_set_drq(dsp->sb_16_8_dmanum, 1);
 }
 
 int
