@@ -587,7 +587,8 @@ sb_dsp_setdma16_translate(sb_dsp_t *dsp, int translate)
 
 /* TODO: Investigate ESS cards' filtering on real hardware as well.
     (DOSBox-X did it purely off some laptop's ESS chip, which isn't a good look.) */
-static void sb_ess_update_filter_freq(sb_dsp_t *dsp) {
+static void sb_ess_update_filter_freq(sb_dsp_t *dsp)
+{
     if (dsp->sb_freq >= 22050)
         ESSreg(0xA1) = 256 - (795500UL / dsp->sb_freq);
     else
@@ -595,6 +596,27 @@ static void sb_ess_update_filter_freq(sb_dsp_t *dsp) {
 
     unsigned int freq = ((dsp->sb_freq * 4) / (5 * 2)); /* 80% of 1/2 the sample rate */
     ESSreg(0xA2) = 256 - (7160000 / (freq * 82));
+}
+
+static unsigned int sb_ess_get_dma_len(sb_dsp_t *dsp)
+{
+    unsigned int r;
+
+    r = (unsigned int)ESSreg(0xA5) << 8U;
+    r |= (unsigned int)ESSreg(0xA4);
+
+    /* the 16-bit counter is a "two's complement" of the DMA count because it counts UP to 0 and triggers IRQ on overflow */
+    return 0x10000U-r;
+}
+
+static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
+{
+    switch (reg) {
+        default:
+            return ESSreg(reg);
+    }
+
+    return 0xFF;
 }
 
 void
