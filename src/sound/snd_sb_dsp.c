@@ -1333,6 +1333,15 @@ sb_dsp_dma_attach(sb_dsp_t *dsp,
 }
 
 void
+sb_ess_finish_dma(sb_dsp_t *dsp)
+{
+    if (!dsp->ess_playback_mode)
+        return;
+    ESSreg(0xB8) &= ~0x01;
+    dma_set_drq(dsp->sb_8_dmanum, 0);
+}
+
+void
 pollsb(void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
@@ -1530,6 +1539,7 @@ pollsb(void *priv)
             else {
                 dsp->sb_8_enable = 0;
                 timer_disable(&dsp->output_timer);
+                sb_ess_finish_dma(dsp);
             }
             sb_irq(dsp, 1);
         }
@@ -1582,6 +1592,7 @@ pollsb(void *priv)
             else {
                 dsp->sb_16_enable = 0;
                 timer_disable(&dsp->output_timer);
+                sb_ess_finish_dma(dsp);
             }
             sb_irq(dsp, 0);
         }
