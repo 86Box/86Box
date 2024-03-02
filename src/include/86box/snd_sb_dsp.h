@@ -142,6 +142,7 @@ typedef struct sb_dsp_t {
 
     uint8_t ess_regs[256]; /* ESS registers. */
     uint8_t ess_playback_mode;
+    uint8_t ess_extended_mode;
 
     mpu_t *mpu;
 } sb_dsp_t;

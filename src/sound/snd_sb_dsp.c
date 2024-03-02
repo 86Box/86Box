@@ -610,6 +610,13 @@ sb_exec_command(sb_dsp_t *dsp)
     if (dsp->sb_type >= SB16)
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
 
+    if (IS_ESS(dsp)) {
+        if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7){
+            dsp->ess_extended_mode = !!(dsp->sb_command == 0xC6);
+            return;
+        }
+    }
+
     switch (dsp->sb_command) {
         case 0x01: /* ???? */
             if (dsp->sb_type >= SB16)
