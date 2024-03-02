@@ -2793,7 +2793,8 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type, int b
     ide_boards[board]->base[0] = base_main;
     ide_boards[board]->base[1] = side_main;
 
-    ide_set_handlers(board);
+    if (!(bus & DEVICE_MCA))
+        ide_set_handlers(board);
 
     timer_add(&ide_boards[board]->timer, ide_board_callback, ide_boards[board], 0);
 
@@ -3065,9 +3066,17 @@ mcide_mca_write(int port, uint8_t val, void *priv)
                ide_readb, ide_readw, ide_readl,
                ide_writeb, ide_writew, ide_writel,
                ide_boards[0]);
+    io_handler(0, ide_boards[0]->base[1], 1,
+               ide_read_alt_status, NULL, NULL,
+               ide_write_devctl, NULL, NULL,
+               ide_boards[0]);
     io_handler(0, ide_boards[1]->base[0], 8,
                ide_readb, ide_readw, ide_readl,
                ide_writeb, ide_writew, ide_writel,
+               ide_boards[1]);
+    io_handler(0, ide_boards[1]->base[1], 1,
+               ide_read_alt_status, NULL, NULL,
+               ide_write_devctl, NULL, NULL,
                ide_boards[1]);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
@@ -3105,37 +3114,43 @@ mcide_mca_write(int port, uint8_t val, void *priv)
     }
 
     if (dev->pos_regs[3] & 0x08) {
-        switch ((dev->pos_regs[3] & 3)) {
+        switch (dev->pos_regs[3] & 3) {
             case 0:
                 ide_boards[0]->base[0] = 0x1f0;
+                ide_boards[0]->base[1] = 0x3f6;
                 break;
             case 1:
                 ide_boards[0]->base[0] = 0x170;
+                ide_boards[0]->base[1] = 0x376;
                 break;
             case 2:
                 ide_boards[0]->base[0] = 0x1e8;
+                ide_boards[0]->base[1] = 0x3ee;
                 break;
             case 3:
                 ide_boards[0]->base[0] = 0x168;
+                ide_boards[0]->base[1] = 0x36e;
                 break;
             default:
                 break;
         }
-    } else
+    } else {
         ide_boards[0]->base[0] = 0;
+        ide_boards[0]->base[1] = 0;
+    }
 
     if (dev->pos_regs[3] & 0x80) {
-        switch ((dev->pos_regs[3] >> 5) & 3) {
-            case 0:
+        switch (dev->pos_regs[3] & 0x30) {
+            case 0x00:
                 ide_boards[0]->irq = 10;
                 break;
-            case 1:
+            case 0x10:
                 ide_boards[0]->irq = 11;
                 break;
-            case 2:
+            case 0x20:
                 ide_boards[0]->irq = 14;
                 break;
-            case 3:
+            case 0x30:
                 ide_boards[0]->irq = 15;
                 break;
 
@@ -3149,34 +3164,40 @@ mcide_mca_write(int port, uint8_t val, void *priv)
         switch ((dev->pos_regs[4] & 3)) {
             case 0:
                 ide_boards[1]->base[0] = 0x1f0;
+                ide_boards[1]->base[1] = 0x3f6;
                 break;
             case 1:
                 ide_boards[1]->base[0] = 0x170;
+                ide_boards[1]->base[1] = 0x376;
                 break;
             case 2:
                 ide_boards[1]->base[0] = 0x1e8;
+                ide_boards[1]->base[1] = 0x3ee;
                 break;
             case 3:
                 ide_boards[1]->base[0] = 0x168;
+                ide_boards[1]->base[1] = 0x36e;
                 break;
             default:
                 break;
         }
-    } else
+    } else {
         ide_boards[1]->base[0] = 0;
+        ide_boards[1]->base[1] = 0;
+    }
 
     if (dev->pos_regs[4] & 0x80) {
-        switch ((dev->pos_regs[4] >> 5) & 3) {
-            case 0:
+        switch (dev->pos_regs[4] & 0x30) {
+            case 0x00:
                 ide_boards[1]->irq = 10;
                 break;
-            case 1:
+            case 0x10:
                 ide_boards[1]->irq = 11;
                 break;
-            case 2:
+            case 0x20:
                 ide_boards[1]->irq = 14;
                 break;
-            case 3:
+            case 0x30:
                 ide_boards[1]->irq = 15;
                 break;
 
@@ -3187,26 +3208,36 @@ mcide_mca_write(int port, uint8_t val, void *priv)
        ide_boards[1]->irq = -1;
 
     if (dev->pos_regs[2] & 1) {
-        if ((dev->pos_regs[3] & 0x88) == 0x88)
+        if (ide_boards[0]->base[0] && ide_boards[0]->base[1]) {
             io_handler(1, ide_boards[0]->base[0], 8,
                        ide_readb, ide_readw, ide_readl,
                        ide_writeb, ide_writew, ide_writel,
                        ide_boards[0]);
+            io_handler(1, ide_boards[0]->base[1], 1,
+                       ide_read_alt_status, NULL, NULL,
+                       ide_write_devctl, NULL, NULL,
+                       ide_boards[0]);
+        }
 
-        if ((dev->pos_regs[4] & 0x88) == 0x88)
+        if (ide_boards[1]->base[0] && ide_boards[1]->base[1]) {
             io_handler(1, ide_boards[1]->base[0], 8,
                        ide_readb, ide_readw, ide_readl,
                        ide_writeb, ide_writew, ide_writel,
                        ide_boards[1]);
+            io_handler(1, ide_boards[1]->base[1], 1,
+                       ide_read_alt_status, NULL, NULL,
+                       ide_write_devctl, NULL, NULL,
+                       ide_boards[1]);
+        }
 
-        if (dev->pos_regs[2] & 0x80) {
+        if (dev->bios_addr) {
             mem_mapping_enable(&dev->bios_rom.mapping);
             mem_mapping_set_addr(&dev->bios_rom.mapping,
-                                 dev->bios_addr, 0x2000);
+                                 dev->bios_addr, 0x4000);
         }
 
         /* Say hello. */
-        ide_log("McIDE: Primary I/O=%03x, Primary IRQ=%i, Secondary I/O=%03x, Secondary IRQ=%d, BIOS @%05X\n",
+        ide_log("McIDE: Primary Master I/O=%03x, Primary IRQ=%i, Secondary Master I/O=%03x, Secondary IRQ=%d, BIOS @%05X\n",
                      ide_boards[0]->base[0], ide_boards[0]->irq, ide_boards[1]->base[0], ide_boards[1]->irq, dev->bios_addr);
     }
 }
@@ -3255,7 +3286,7 @@ mcide_init(const device_t *info)
     ide_board_init(1, -1, 0, 0, info->local, info->flags);
 
     rom_init(&dev->bios_rom, ROM_PATH_MCIDE,
-                         0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+                         0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
     /* Set the MCA ID for this controller, 0xF171. */
@@ -3375,7 +3406,7 @@ const device_t ide_pci_2ch_device = {
 
 const device_t mcide_device = {
     .name          = "MCA McIDE Controller",
-    .internal_name = "mcide",
+    .internal_name = "ide_mcide",
     .flags         = DEVICE_MCA,
     .local         = 0,
     .init          = mcide_init,
