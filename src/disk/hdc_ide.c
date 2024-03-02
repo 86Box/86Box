@@ -3237,8 +3237,6 @@ mcide_mca_reset(void *priv)
 static void
 mcide_reset(void *priv)
 {
-    mcide_t *dev = (mcide_t *) priv;
-
     for (uint8_t i = 0; i < 2; i++) {
         if (ide_boards[i] != NULL)
             ide_board_reset(i);
