@@ -585,6 +585,18 @@ sb_dsp_setdma16_translate(sb_dsp_t *dsp, int translate)
     dsp->sb_16_dma_translate = translate;
 }
 
+/* TODO: Investigate ESS cards' filtering on real hardware as well.
+    (DOSBox-X did it purely off some laptop's ESS chip, which isn't a good look.) */
+static void sb_ess_update_filter_freq(sb_dsp_t *dsp) {
+    if (dsp->sb_freq >= 22050)
+        ESSreg(0xA1) = 256 - (795500UL / dsp->sb_freq);
+    else
+        ESSreg(0xA1) = 128 - (397700UL / dsp->sb_freq);
+
+    unsigned int freq = ((dsp->sb_freq * 4) / (5 * 2)); /* 80% of 1/2 the sample rate */
+    ESSreg(0xA2) = 256 - (7160000 / (freq * 82));
+}
+
 void
 sb_exec_command(sb_dsp_t *dsp)
 {
@@ -796,6 +808,9 @@ sb_exec_command(sb_dsp_t *dsp)
             if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16))
                 recalc_sb16_filter(0, temp);
             dsp->sb_freq = temp;
+            if (IS_ESS(dsp)) {
+                sb_ess_update_filter_freq(dsp);
+            }
             break;
         case 0x41: /* Set output sampling rate */
         case 0x42: /* Set input sampling rate */
