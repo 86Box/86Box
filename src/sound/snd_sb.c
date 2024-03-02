@@ -383,10 +383,7 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
     double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
     double                   master = channel ? mixer->master_r : mixer->master_l;
 
-    if (mixer->output_filter)
-        c = (sb_iir(2, channel, *buffer) * cd) / 3.9;
-    else
-        c = (*buffer * cd) / 3.0;
+    c = (*buffer * cd) / 3.0;
     *buffer = c * master;
 }
 
@@ -594,10 +591,7 @@ sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv)
     double                   bass_treble;
     double                   output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
 
-    if (mixer->output_filter)
-        c = (low_fir_sb16(2, channel, *buffer) * cd) / 3.0;
-    else
-        c = ((*buffer) * cd) / 3.0;
+    c = ((*buffer) * cd) / 3.0;
     c *= master;
 
     /* This is not exactly how one does bass/treble controls, but the end result is like it.
