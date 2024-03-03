@@ -54,18 +54,19 @@ typedef struct {
     uint16_t timer_count[2];
     uint16_t timer_cur_count[2];
 
+    int16_t samples[2];
+
     int     pos;
-    int32_t buffer[SOUNDBUFLEN * 2];
+    int32_t buffer[MUSICBUFLEN * 2];
 } esfm_drv_t;
 
 void
 esfm_generate_raw(esfm_drv_t *dev, int32_t *bufp)
 {
-    int16_t samples[2] = { 0, 0 };
-    ESFM_generate(&dev->opl, samples);
+    ESFM_generate(&dev->opl, &dev->samples[0]);
 
-    bufp[0] = (int32_t) samples[0];
-    bufp[1] = (int32_t) samples[1];
+    bufp[0] = dev->samples[0];
+    bufp[1] = dev->samples[1];
 }
 
 void
