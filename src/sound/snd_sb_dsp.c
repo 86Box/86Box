@@ -6,6 +6,7 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -418,30 +419,65 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
     memset(dsp->record_buffer, 0, sizeof(dsp->record_buffer));
 }
 
-void
-sb_start_dma_ess(sb_dsp_t* dsp, int dma8, int autoinit, uint8_t format, int len)
+
+static unsigned int sb_ess_get_dma_len(sb_dsp_t *dsp)
 {
+    unsigned int r;
+
+    r = (unsigned int)ESSreg(0xA5) << 8U;
+    r |= (unsigned int)ESSreg(0xA4);
+
+    /* the 16-bit counter is a "two's complement" of the DMA count because it counts UP to 0 and triggers IRQ on overflow */
+    return 0x10000U-r;
+}
+
+void
+sb_start_dma_ess(sb_dsp_t* dsp)
+{
+    uint8_t real_format = 0;
+    uint32_t len = !(ESSreg(0xB7) & 4) ? dsp->sb_8_length : dsp->sb_16_length;
+
+    if (!dsp->ess_reload_len) {
+        len = sb_ess_get_dma_len(dsp);
+    }
+
     if (IS_ESS(dsp)) {
         dma_set_drq(dsp->sb_8_dmanum, 0);
         dma_set_drq(dsp->sb_16_8_dmanum, 0);
     }
-    sb_start_dma(dsp, dma8, autoinit, format, len);
+    real_format |= !!(ESSreg(0xB7) & 0x20) ? 0x10 : 0;
+    real_format |= !!(ESSreg(0xB7) & 0x8) ? 0x20 : 0;
+    if (!!(ESSreg(0xB8) & 8))
+        sb_start_dma_i(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, sb_ess_get_dma_len(dsp));
+    else
+        sb_start_dma(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, sb_ess_get_dma_len(dsp));
     dsp->ess_playback_mode = 1;
     dma_set_drq(dsp->sb_8_dmanum, 1);
     dma_set_drq(dsp->sb_16_8_dmanum, 1);
 }
 
 void
-sb_start_dma_ess_i(sb_dsp_t* dsp, int dma8, int autoinit, uint8_t format, int len)
+sb_stop_dma_ess(sb_dsp_t* dsp)
 {
-    if (IS_ESS(dsp)) {
-        dma_set_drq(dsp->sb_8_dmanum, 0);
-        dma_set_drq(dsp->sb_16_8_dmanum, 0);
+    dsp->sb_8_enable = dsp->sb_16_enable = 0;
+    dma_set_drq(dsp->sb_16_8_dmanum, 0);
+    dma_set_drq(dsp->sb_8_dmanum, 0);
+}
+
+static void sb_ess_update_dma_status(sb_dsp_t* dsp)
+{
+    bool dma_en = (ESSreg(0xB8) & 1)?true:false;
+
+    // if the DRQ is disabled, do not start
+    if (!(ESSreg(0xB2) & 0x40))
+        dma_en = false;
+
+    if (dma_en) {
+        if (!dsp->sb_8_enable && !dsp->sb_16_enable) sb_start_dma_ess(dsp);
     }
-    sb_start_dma_i(dsp, dma8, autoinit, format, len);
-    dsp->ess_playback_mode = 1;
-    dma_set_drq(dsp->sb_8_dmanum, 1);
-    dma_set_drq(dsp->sb_16_8_dmanum, 1);
+    else {
+        if (dsp->sb_8_enable || dsp->sb_16_enable) sb_stop_dma_ess(dsp);
+    }
 }
 
 int
@@ -598,17 +634,6 @@ static void sb_ess_update_filter_freq(sb_dsp_t *dsp)
     ESSreg(0xA2) = 256 - (7160000 / (freq * 82));
 }
 
-static unsigned int sb_ess_get_dma_len(sb_dsp_t *dsp)
-{
-    unsigned int r;
-
-    r = (unsigned int)ESSreg(0xA5) << 8U;
-    r |= (unsigned int)ESSreg(0xA4);
-
-    /* the 16-bit counter is a "two's complement" of the DMA count because it counts UP to 0 and triggers IRQ on overflow */
-    return 0x10000U-r;
-}
-
 static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
 {
     switch (reg) {
@@ -617,6 +642,120 @@ static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
     }
 
     return 0xFF;
+}
+
+static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
+{
+    uint8_t chg = 0x00;
+    sb_dsp_log("ESS register write reg=%02xh val=%02xh\n",reg,data);
+
+    switch (reg) {
+        case 0xA1: /* Extended Mode Sample Rate Generator */
+        {
+            ESSreg(reg) = data;
+            if (data & 0x80)
+                dsp->sb_freq = 795500UL / (256ul - data);
+            else
+                dsp->sb_freq = 397700UL / (128ul - data);
+
+            if (dsp->sb_16_enable || dsp->sb_8_enable) {
+                sb_stop_dma_ess(dsp);
+                sb_start_dma_ess(dsp);
+            }
+            break;
+        }
+        case 0xA2: /* Filter divider (effectively, a hardware lowpass filter under S/W control) */
+            ESSreg(reg) = data;
+            break;
+
+        case 0xA4: /* DMA Transfer Count Reload (low) */
+        case 0xA5: /* DMA Transfer Count Reload (high) */
+            ESSreg(reg) = data;
+            if (dsp->sb_16_length == 0 || dsp->sb_8_length == 0)
+                dsp->ess_reload_len = 1;
+            break;
+
+        case 0xA8: /* Analog Control */
+            /* bits 7:5   0                  Reserved. Always write 0
+             * bit  4     1                  Reserved. Always write 1
+             * bit  3     Record monitor     1=Enable record monitor
+             *            enable
+             * bit  2     0                  Reserved. Always write 0
+             * bits 1:0   Stereo/mono select 00=Reserved
+             *                               01=Stereo
+             *                               10=Mono
+             *                               11=Reserved */
+            chg = ESSreg(reg) ^ data;
+            ESSreg(reg) = data;
+            if (chg & 0x3) {
+                if (dsp->sb_16_enable || dsp->sb_8_enable) {
+                    sb_stop_dma_ess(dsp);
+                    sb_start_dma_ess(dsp);
+                }
+            }
+            break;
+
+        case 0xB1: /* Legacy Audio Interrupt Control */
+        case 0xB2: /* DRQ Control */
+            chg = ESSreg(reg) ^ data;
+            ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
+            if (chg & 0x40) sb_ess_update_dma_status(dsp);
+            break;
+        case 0xB5: /* DAC Direct Access Holding (low) */
+        case 0xB6: /* DAC Direct Access Holding (high) */
+            ESSreg(reg) = data;
+            break;
+
+        case 0xB7: /* Audio 1 Control 1 */
+            /* bit  7     Enable FIFO to/from codec
+             * bit  6     Opposite from bit 3               Must be set opposite to bit 3
+             * bit  5     FIFO signed mode                  1=Data is signed twos-complement   0=Data is unsigned
+             * bit  4     Reserved                          Always write 1
+             * bit  3     FIFO stereo mode                  1=Data is stereo
+             * bit  2     FIFO 16-bit mode                  1=Data is 16-bit
+             * bit  1     Reserved                          Always write 0
+             * bit  0     Generate load signal */
+            chg = ESSreg(reg) ^ data;
+            ESSreg(reg) = data;
+            if (chg & 0x0C) {
+                if (dsp->sb_16_enable || dsp->sb_8_enable) {
+                    sb_stop_dma_ess(dsp);
+                    sb_start_dma_ess(dsp);
+                }
+            }
+            break;
+
+        case 0xB8: /* Audio 1 Control 2 */
+            /* bits 7:4   reserved
+             * bit  3     CODEC mode         1=first DMA converter in ADC mode
+             *                               0=first DMA converter in DAC mode
+             * bit  2     DMA mode           1=auto-initialize mode
+             *                               0=normal DMA mode
+             * bit  1     DMA read enable    1=first DMA is read (for ADC)
+             *                               0=first DMA is write (for DAC)
+             * bit  0     DMA xfer enable    1=DMA is allowed to proceed */
+            data &= 0xF;
+            chg = ESSreg(reg) ^ data;
+            ESSreg(reg) = data;
+
+            if (chg & 1)
+                dsp->ess_reload_len = 1;
+
+            if (chg & 0xB) {
+                if (chg & 0xA) sb_stop_dma_ess(dsp); /* changing capture/playback direction? stop DMA to reinit */
+                sb_ess_update_dma_status(dsp);
+            }
+            break;
+
+        case 0xB9: /* Audio 1 Transfer Type */
+        case 0xBA: /* Left Channel ADC Offset Adjust */
+        case 0xBB: /* Right Channel ADC Offset Adjust */
+            ESSreg(reg) = data;
+            break;
+
+        default:
+            break;
+    }
 }
 
 void
@@ -632,11 +771,17 @@ sb_exec_command(sb_dsp_t *dsp)
     if (dsp->sb_type >= SB16)
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
 
-    if (IS_ESS(dsp)) {
-        if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7){
+    if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
+        if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7) {
             dsp->ess_extended_mode = !!(dsp->sb_command == 0xC6);
             return;
         }
+        if (dsp->sb_command == 0xC0) {
+            sb_add_data(dsp, sb_ess_read_reg(dsp, dsp->sb_data[0]));
+        } else if (dsp->sb_command < 0xC0 && dsp->ess_extended_mode) {
+            sb_ess_write_reg(dsp, dsp->sb_command, dsp->sb_data[0]);
+        }
+        return;
     }
 
     switch (dsp->sb_command) {
@@ -1062,12 +1207,29 @@ sb_exec_command(sb_dsp_t *dsp)
                 while (sb16_copyright[c])
                     sb_add_data(dsp, sb16_copyright[c++]);
                 sb_add_data(dsp, 0);
+            } else if (IS_ESS(dsp)) {
+                sb_add_data(dsp, 0);
             }
             break;
         case 0xE4: /* Write test register */
             dsp->sb_test = dsp->sb_data[0];
             break;
-        case 0xE7: /* ???? */
+        case 0xE7: /* ???? */ /* ESS detect/read config on ESS cards */
+            if (IS_ESS(dsp)) {
+                switch (dsp->sb_subtype) {
+                default:
+                    break;
+                case SB_SUBTYPE_ESS_ES688:
+                    sb_add_data(dsp, 0x68);
+                    sb_add_data(dsp, 0x80 | 0x04);
+                    break;
+                case SB_SUBTYPE_ESS_ES1688:
+                    // Determined via Windows driver debugging.
+                    sb_add_data(dsp, 0x68);
+                    sb_add_data(dsp, 0x80 | 0x09);
+                    break;
+                }
+            }
             break;
         case 0xE8: /* Read test register */
             sb_add_data(dsp, dsp->sb_test);
@@ -1169,6 +1331,13 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                         sb_commands[dsp->sb_command] = 3;
                     else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
                         sb_commands[dsp->sb_command] = 2;
+                }
+                if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
+                    if (dsp->sb_command <= 0xC0) {
+                        sb_commands[dsp->sb_command] = 1;
+                    } else {
+                        sb_commands[dsp->sb_command] = 0;
+                    }
                 }
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
