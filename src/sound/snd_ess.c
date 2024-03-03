@@ -299,7 +299,6 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
     double                   out_l = 0.0;
     double                   out_r = 0.0;
     const int32_t           *opl_buf = NULL;
-    const int32_t           *opl2_buf = NULL;
 
     opl_buf = ess->opl.update(ess->opl.priv);
 
