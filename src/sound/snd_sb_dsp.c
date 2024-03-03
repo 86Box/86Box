@@ -437,8 +437,9 @@ sb_start_dma_ess(sb_dsp_t* dsp)
     uint8_t real_format = 0;
     uint32_t len = !(ESSreg(0xB7) & 4) ? dsp->sb_8_length : dsp->sb_16_length;
 
-    if (!dsp->ess_reload_len) {
+    if (dsp->ess_reload_len) {
         len = sb_ess_get_dma_len(dsp);
+        dsp->ess_reload_len = 0;
     }
 
     if (IS_ESS(dsp)) {
@@ -676,7 +677,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
         case 0xA5: /* DMA Transfer Count Reload (high) */
             ESSreg(reg) = data;
             sb_ess_update_autolen(dsp);
-            if (dsp->sb_16_length < 0 || dsp->sb_8_length < 0)
+            if ((dsp->sb_16_length < 0 && !dsp->sb_16_enable) && (dsp->sb_8_length < 0 && !dsp->sb_8_enable))
                 dsp->ess_reload_len = 1;
             break;
 
@@ -1912,6 +1913,7 @@ sb_poll_i(void *priv)
             else {
                 dsp->sb_8_enable = 0;
                 timer_disable(&dsp->input_timer);
+                sb_ess_finish_dma(dsp);
             }
             sb_irq(dsp, 1);
         }
@@ -1960,6 +1962,7 @@ sb_poll_i(void *priv)
             else {
                 dsp->sb_16_enable = 0;
                 timer_disable(&dsp->input_timer);
+                sb_ess_finish_dma(dsp);
             }
             sb_irq(dsp, 0);
         }
