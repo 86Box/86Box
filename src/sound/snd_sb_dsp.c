@@ -900,6 +900,9 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x10: /* 8-bit direct mode */
             sb_dsp_update(dsp);
             dsp->sbdat = dsp->sbdatl = dsp->sbdatr = (dsp->sb_data[0] ^ 0x80) << 8;
+            // FIXME: What does the ESS AudioDrive do to its filter/sample rate divider registers when emulating this Sound Blaster command?
+            ESSreg(0xA1) = 128 - (397700 / 22050);
+            ESSreg(0xA2) = 256 - (7160000 / (82 * ((4 * 22050) / 10)));
             break;
         case 0x14: /* 8-bit single cycle DMA output */
             sb_start_dma(dsp, 1, 0, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
