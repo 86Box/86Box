@@ -76,6 +76,9 @@ typedef struct ess_mixer_t {
 
     uint8_t index;
     uint8_t regs[256];
+
+    uint8_t ess_id_str[4];
+    uint8_t ess_id_str_pos : 2;
 } ess_mixer_t;
 
 typedef struct ess_t {
@@ -128,6 +131,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
     if (!(addr & 1)) {
         mixer->index      = val;
         mixer->regs[0x01] = val;
+        if (val == 0x40)
+            mixer->ess_id_str_pos = 0;
     } else {
         if (mixer->index == 0) {
             /* Reset */
@@ -218,8 +223,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 ess_mixer_read(uint16_t addr, void *priv)
 {
-    const ess_t       *ess   = (ess_t *) priv;
-    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    ess_t       *ess   = (ess_t *) priv;
+    ess_mixer_t *mixer = &ess->mixer_sbpro;
 
     if (!(addr & 1))
         return mixer->index;
@@ -241,6 +246,11 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x36:
         case 0x38:
             return mixer->regs[mixer->index];
+
+        case 0x40:
+            {
+                return mixer->ess_id_str[mixer->ess_id_str_pos++];
+            }
 
         default:
             //sb_log("ess: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
@@ -390,6 +400,13 @@ ess_1688_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+
+    {
+        ess->mixer_sbpro.ess_id_str[0] = 0x16;
+        ess->mixer_sbpro.ess_id_str[1] = 0x88;
+        ess->mixer_sbpro.ess_id_str[2] = (addr >> 8) & 0xff;
+        ess->mixer_sbpro.ess_id_str[3] = addr & 0xff;
+    }
 
     return ess;
 }
