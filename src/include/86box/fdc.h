@@ -115,12 +115,13 @@ typedef struct fdc_t {
     uint8_t rw_drive;
 
     uint8_t lock;
+    uint8_t dsr;
 
+    uint8_t params[15];
     uint8_t specify[2];
     uint8_t res[11];
     uint8_t eot[4];
     uint8_t rwc[4];
-    uint8_t params[8];
 
     uint16_t pcn[4];
 

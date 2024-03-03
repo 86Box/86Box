@@ -79,7 +79,6 @@ int floppyrate[4];
 
 int fdc_type = 0;
 
-// #define ENABLE_FDC_LOG 1
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 
@@ -781,12 +780,27 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             }
             return;
         case 4:
-            if (val & 0x80) {
+            if (!(val & 0x80)) {
                 timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                fdc->interrupt = -1;
-                fdc->perp &= 0xfc;
-                fdc_ctrl_reset(fdc);
+                fdc->interrupt = -6;
             }
+            if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
+                if (fdc->power_down) {
+                    timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+                    fdc->interrupt = -5;
+                } else {
+                    timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                    fdc->interrupt = -1;
+
+                    fdc->perp &= 0xfc;
+
+                    for (i = 0; i < FDD_NUM; i++)
+                        ui_sb_update_icon(SB_FLOPPY | i, 0);
+
+                    fdc_ctrl_reset(fdc);
+                }
+            }
+            fdc->dsr = val;
             return;
         case 5: /*Command register*/
             if ((fdc->stat & 0xf0) == 0xb0) {
@@ -1531,6 +1545,9 @@ fdc_callback(void *priv)
             fdc->fintr = 0;
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
             fdc->reset_stat = 4;
+            return;
+        case -6: /*DSR Reset clear*/
+            fdc->dsr |= 0x80;
             return;
         case 0x01: /* Mode */
             fdc->stat         = 0x80;
