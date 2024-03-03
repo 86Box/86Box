@@ -256,3 +256,262 @@ ess_mixer_reset(ess_t *ess)
     ess_mixer_write(4, 0, ess);
     ess_mixer_write(5, 0, ess);
 }
+
+void
+ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
+{
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+
+    sb_dsp_update(&sb->dsp);
+
+    for (int c = 0; c < len * 2; c += 2) {
+        out_l = 0.0;
+        out_r = 0.0;
+
+        /* TODO: Implement the stereo switch on the mixer instead of on the dsp? */
+        if (mixer->output_filter) {
+            out_l += (sb_iir(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.9;
+            out_r += (sb_iir(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.9;
+        } else {
+            out_l += (sb->dsp.buffer[c] * mixer->voice_l) / 3.0;
+            out_r += (sb->dsp.buffer[c + 1] * mixer->voice_r) / 3.0;
+        }
+
+        /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
+        out_l *= mixer->master_l;
+        out_r *= mixer->master_r;
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    sb->dsp.pos = 0;
+}
+
+void
+ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
+{
+    ess_t                    *ess    = (ess_t *) priv;
+    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    const int32_t           *opl_buf = NULL;
+    const int32_t           *opl2_buf = NULL;
+
+    opl_buf = ess->opl.update(ess->opl.priv);
+
+    sb_dsp_update(&ess->dsp);
+
+    for (int c = 0; c < len * 2; c += 2) {
+        out_l = 0.0;
+        out_r = 0.0;
+
+        {
+            out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
+            out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+            if (ess->opl_mix && ess->opl_mixer)
+                ess->opl_mix(ess->opl_mixer, &out_l, &out_r);
+        }
+
+        /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
+        out_l *= mixer->master_l;
+        out_r *= mixer->master_r;
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    ess->opl.reset_buffer(ess->opl.priv);
+}
+
+void
+ess_filter_cd_audio(int channel, double *buffer, void *priv)
+{
+    const ess_t              *ess    = (ess_t *) priv;
+    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    double                   c;
+    double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
+    double                   master = channel ? mixer->master_r : mixer->master_l;
+
+    if (mixer->output_filter)
+        c = (sb_iir(2, channel, *buffer) * cd) / 3.9;
+    else
+        c = (*buffer * cd) / 3.0;
+    *buffer = c * master;
+}
+
+static void *
+ess_1688_init(UNUSED(const device_t *info))
+{
+    /* SB Pro 2 port mappings, 220h or 240h.
+       2x0 to 2x3 -> FM chip (18 voices)
+       2x4 to 2x5 -> Mixer interface
+       2x6, 2xA, 2xC, 2xE -> DSP chip
+       2x8, 2x9, 388 and 389 FM chip (9 voices)
+       2x0+10 to 2x0+13 CDROM interface. */
+    ess_t    *ess   = malloc(sizeof(ess_t));
+    uint16_t  addr = device_get_config_hex16("base");
+    memset(ess, 0, sizeof(ess_t));
+
+    fm_driver_get(FM_ESFM, &ess->opl);
+
+    sb_dsp_set_real_opl(&ess->dsp, 1);
+    sb_dsp_init(&ess->dsp, SBPRO2, SB_SUBTYPE_ESS_ES1688, ess);
+    sb_dsp_setaddr(&ess->dsp, addr);
+    sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
+    sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
+    ess_mixer_reset(ess);
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    {
+        io_sethandler(addr, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(addr + 8, 0x0002,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(0x0388, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+    }
+
+    ess->mixer_enabled = 1;
+    io_sethandler(addr + 4, 0x0002,
+                  ess_mixer_read, NULL, NULL,
+                  ess_mixer_write, NULL, NULL,
+                  ess);
+    sound_add_handler(ess_get_buffer_sbpro, ess);
+    music_add_handler(ess_get_music_buffer_sbpro, ess);
+    sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+
+    return ess;
+}
+
+void
+ess_close(void *priv)
+{
+    ess_t *ess = (ess_t *) priv;
+    sb_dsp_close(&ess->dsp);
+
+    free(ess);
+}
+
+void
+ess_speed_changed(void *priv)
+{
+    ess_t *ess = (ess_t *) priv;
+
+    sb_dsp_speed_changed(&ess->dsp);
+}
+
+static const device_config_t ess_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x220,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x220",
+                .value = 0x220
+            },
+            {
+                .description = "0x240",
+                .value = 0x240
+            },
+            { .description = "" }
+        }
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "IRQ 2",
+                .value = 2
+            },
+            {
+                .description = "IRQ 5",
+                .value = 5
+            },
+            {
+                .description = "IRQ 7",
+                .value = 7
+            },
+            {
+                .description = "IRQ 10",
+                .value = 10
+            },
+            { .description = "" }
+        }
+    },
+    {
+        .name = "dma",
+        .description = "DMA",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 1,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "DMA 0",
+                .value = 0
+            },
+            {
+                .description = "DMA 1",
+                .value = 1
+            },
+            {
+                .description = "DMA 3",
+                .value = 3
+            },
+            { .description = "" }
+        }
+    },
+    {
+        .name = "opl",
+        .description = "Enable OPL",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input",
+        .description = "Receive input (SB MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t ess_1688_device = {
+    .name          = "ESS Technology ESS1688",
+    .internal_name = "ess_1688",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = ess_1688_init,
+    .close         = ess_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = ess_speed_changed,
+    .force_redraw  = NULL,
+    .config        = ess_config
+};
