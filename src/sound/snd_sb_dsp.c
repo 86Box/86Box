@@ -722,6 +722,10 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
              * bit  0     Generate load signal */
             chg = ESSreg(reg) ^ data;
             ESSreg(reg) = data;
+
+            if (chg & 4)
+                sb_ess_update_autolen(dsp);
+
             if (chg & 0x0C) {
                 if (dsp->sb_16_enable || dsp->sb_8_enable) {
                     sb_stop_dma_ess(dsp);
@@ -745,9 +749,6 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
 
             if (chg & 1)
                 dsp->ess_reload_len = 1;
-
-            if (chg & 4)
-                sb_ess_update_autolen(dsp);
 
             if (chg & 0xB) {
                 if (chg & 0xA) sb_stop_dma_ess(dsp); /* changing capture/playback direction? stop DMA to reinit */
