@@ -433,7 +433,7 @@ is_lock_legal(uint32_t fetchdat)
 
     legal = lock_legal[fetch_dat.b[0]];
     if (legal == 1)
-        legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+        legal = 1; // ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
     else if (legal == 2) {
         legal = lock_legal_0f[fetch_dat.b[1]];
         if (legal == 1)

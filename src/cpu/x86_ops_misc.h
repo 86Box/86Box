@@ -738,9 +738,6 @@ opLOCK(uint32_t fetchdat)
 
     legal = is_lock_legal(fetchdat);
 
-    if (legal == 4)
-        pclog("PREFIX: F0 %08X\n", fetchdat);
-
     ILLEGAL_ON(legal == 0);
 
     CLOCK_CYCLES(4);
