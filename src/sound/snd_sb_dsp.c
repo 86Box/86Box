@@ -644,6 +644,10 @@ static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
     return 0xFF;
 }
 
+static void sb_ess_update_autolen(sb_dsp_t *dsp) {
+    dsp->sb_8_autolen = dsp->sb_16_autolen = sb_ess_get_dma_len(dsp);
+}
+
 static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
 {
     uint8_t chg = 0x00;
@@ -671,7 +675,8 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
         case 0xA4: /* DMA Transfer Count Reload (low) */
         case 0xA5: /* DMA Transfer Count Reload (high) */
             ESSreg(reg) = data;
-            if (dsp->sb_16_length == 0 || dsp->sb_8_length == 0)
+            sb_ess_update_autolen(dsp);
+            if (dsp->sb_16_length < 0 || dsp->sb_8_length < 0)
                 dsp->ess_reload_len = 1;
             break;
 
@@ -740,6 +745,9 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
 
             if (chg & 1)
                 dsp->ess_reload_len = 1;
+
+            if (chg & 4)
+                sb_ess_update_autolen(dsp);
 
             if (chg & 0xB) {
                 if (chg & 0xA) sb_stop_dma_ess(dsp); /* changing capture/playback direction? stop DMA to reinit */
