@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 
@@ -122,6 +123,11 @@ static inline uint8_t expand16to32(const uint8_t t) {
     return (t << 1) | (t >> 3);
 }
 
+static double ess_mixer_get_vol_4bit(uint8_t vol)
+{
+    return (48.0 + (20.0 * log((vol & 0xF) / 15.0))) / 48.0;
+}
+
 void
 ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -142,6 +148,14 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x04] = mixer->regs[0x22] = 0xee;
             mixer->regs[0x26] = mixer->regs[0x28] = 0xee;
             mixer->regs[0x2e]                     = 0x00;
+
+            /* Initialize ESS regs. */
+            mixer->regs[0x14] = mixer->regs[0x32] = 0x88;
+            mixer->regs[0x36] = 0x88;
+            mixer->regs[0x38] = 0x00;
+            mixer->regs[0x3a] = 0x00;
+            mixer->regs[0x3e] = 0x00;
+
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
             mixer->regs[mixer->index] = val;
@@ -153,20 +167,29 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x08:
                     mixer->regs[mixer->index + 0x20] = ((val & 0xe) << 4) | (val & 0xe);
                     break;
+                
+                case 0x14:
+                    mixer->regs[0x4] = val & 0xee;
+                    break;
 
                 case 0x22:
                 case 0x26:
                 case 0x28:
+                case 0x2E:
                     mixer->regs[mixer->index - 0x20] = (val & 0xe);
+                    mixer->regs[mixer->index + 0x10] = val;
                     break;
 
                 /* More compatibility:
                    SoundBlaster Pro selects register 020h for 030h, 022h for 032h,
                    026h for 036h, and 028h for 038h. */
                 case 0x30:
+                    mixer->regs[mixer->index - 0x10] = (val & 0xee);
+                    break;
                 case 0x32:
                 case 0x36:
                 case 0x38:
+                case 0x3e:
                     mixer->regs[mixer->index - 0x10] = (val & 0xee);
                     break;
 
@@ -175,8 +198,58 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x0a:
                 case 0x0c:
                 case 0x0e:
-                case 0x2e:
                     break;
+
+                case 0x40: {
+                        uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] & 0x38) << 1);
+                        gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
+                        io_removehandler(0x0388, 0x0004,
+                        ess->opl.read, NULL, NULL,
+                        ess->opl.write, NULL, NULL,
+                        ess->opl.priv);
+                        if (mixer->regs[0x40] & 1) {
+                            io_sethandler(0x0388, 0x0004,
+                                        ess->opl.read, NULL, NULL,
+                                        ess->opl.write, NULL, NULL,
+                                        ess->opl.priv);
+                        }
+
+                        switch ((mixer->regs[0x40] >> 5) & 7) {
+                            case 0:
+                                mpu401_change_addr(ess->mpu, 0x00);
+                                mpu401_setirq(ess->mpu, -1);
+                                break;
+                            case 1:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, -1);
+                                break;
+                            case 2:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, ess->dsp.sb_irqnum);
+                                break;
+                            case 3:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, 0xE);
+                                break;
+                            case 4:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, 0xA);
+                                break;
+                            case 5:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, 0xB);
+                                break;
+                            case 6:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, 0xC);
+                                break;
+                            case 7:
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                mpu401_setirq(ess->mpu, 0xD);
+                                break;
+                        }
+                        break;
+                    }
 
                 default:
                     //sb_log("ess: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
@@ -184,16 +257,16 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             }
         }
 
-        mixer->voice_l  = sb_att_4dbstep_3bits[(mixer->regs[0x04] >> 5) & 0x7] / 32768.0;
-        mixer->voice_r  = sb_att_4dbstep_3bits[(mixer->regs[0x04] >> 1) & 0x7] / 32768.0;
-        mixer->master_l = sb_att_4dbstep_3bits[(mixer->regs[0x22] >> 5) & 0x7] / 32768.0;
-        mixer->master_r = sb_att_4dbstep_3bits[(mixer->regs[0x22] >> 1) & 0x7] / 32768.0;
-        mixer->fm_l     = sb_att_4dbstep_3bits[(mixer->regs[0x26] >> 5) & 0x7] / 32768.0;
-        mixer->fm_r     = sb_att_4dbstep_3bits[(mixer->regs[0x26] >> 1) & 0x7] / 32768.0;
-        mixer->cd_l     = sb_att_4dbstep_3bits[(mixer->regs[0x28] >> 5) & 0x7] / 32768.0;
-        mixer->cd_r     = sb_att_4dbstep_3bits[(mixer->regs[0x28] >> 1) & 0x7] / 32768.0;
-        mixer->line_l   = sb_att_4dbstep_3bits[(mixer->regs[0x2e] >> 5) & 0x7] / 32768.0;
-        mixer->line_r   = sb_att_4dbstep_3bits[(mixer->regs[0x2e] >> 1) & 0x7] / 32768.0;
+        mixer->voice_l  = ess_mixer_get_vol_4bit(mixer->regs[0x14]);
+        mixer->voice_r  = ess_mixer_get_vol_4bit(mixer->regs[0x14] >> 4);
+        mixer->master_l = ess_mixer_get_vol_4bit(mixer->regs[0x32]);
+        mixer->master_r = ess_mixer_get_vol_4bit(mixer->regs[0x32] >> 4);
+        mixer->fm_l     = ess_mixer_get_vol_4bit(mixer->regs[0x36]);
+        mixer->fm_r     = ess_mixer_get_vol_4bit(mixer->regs[0x36] >> 4);
+        mixer->cd_l     = ess_mixer_get_vol_4bit(mixer->regs[0x38]);
+        mixer->cd_r     = ess_mixer_get_vol_4bit(mixer->regs[0x38] >> 4);
+        mixer->line_l   = ess_mixer_get_vol_4bit(mixer->regs[0x3e]);
+        mixer->line_r   = ess_mixer_get_vol_4bit(mixer->regs[0x3e] >> 4);
 
         mixer->mic = sb_att_7dbstep_2bits[(mixer->regs[0x0a] >> 1) & 0x3] / 32768.0;
 
@@ -372,6 +445,8 @@ ess_1688_init(UNUSED(const device_t *info))
     sb_dsp_setaddr(&ess->dsp, addr);
     sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
+    sb_dsp_setdma16_8(&ess->dsp, device_get_config_int("dma"));
+    sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     {
@@ -407,6 +482,14 @@ ess_1688_init(UNUSED(const device_t *info))
         ess->mixer_sbpro.ess_id_str[2] = (addr >> 8) & 0xff;
         ess->mixer_sbpro.ess_id_str[3] = addr & 0xff;
     }
+
+    ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
+    mpu401_init(ess->mpu, 0, 0, M_UART, 1);
+    sb_dsp_set_mpu(&ess->dsp, ess->mpu);
+
+    ess->gameport = gameport_add(&gameport_pnp_device);
+    ess->gameport_addr = 0x000;
+    gameport_remap(ess->gameport, ess->gameport_addr);
 
     return ess;
 }
