@@ -320,9 +320,6 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x3e:
             return mixer->regs[mixer->index];
 
-        case 0x64:
-            return mixer->regs[mixer->index] & 7;
-
         case 0x40:
             {
                 uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
