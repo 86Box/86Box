@@ -79,7 +79,7 @@ typedef struct ess_mixer_t {
     uint8_t regs[256];
 
     uint8_t ess_id_str[256];
-    uint8_t ess_id_str_pos;
+    uint8_t ess_id_str_pos : 2;
 } ess_mixer_t;
 
 typedef struct ess_t {
@@ -192,6 +192,10 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x0e:
                     break;
 
+                case 0x64:
+                    mixer->regs[mixer->index] &= ~0x8;
+                    break;
+
                 case 0x40: {
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] & 0x38) << 1);
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
@@ -223,23 +227,23 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                 break;
                             case 3:
                                 mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 0xE);
+                                mpu401_setirq(ess->mpu, 11);
                                 break;
                             case 4:
                                 mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 0xA);
+                                mpu401_setirq(ess->mpu, 9);
                                 break;
                             case 5:
                                 mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 0xB);
+                                mpu401_setirq(ess->mpu, 5);
                                 break;
                             case 6:
                                 mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 0xC);
+                                mpu401_setirq(ess->mpu, 7);
                                 break;
                             case 7:
                                 mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 0xD);
+                                mpu401_setirq(ess->mpu, 10);
                                 break;
                         }
                         break;
@@ -302,6 +306,7 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x0a:
         case 0x0c:
         case 0x0e:
+        case 0x14:
         case 0x22:
         case 0x26:
         case 0x28:
@@ -312,7 +317,11 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x32:
         case 0x36:
         case 0x38:
+        case 0x3e:
             return mixer->regs[mixer->index];
+
+        case 0x64:
+            return mixer->regs[mixer->index] & 7;
 
         case 0x40:
             {
@@ -324,11 +333,11 @@ ess_mixer_read(uint16_t addr, void *priv)
             }
 
         default:
-            //sb_log("ess: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            pclog("ess: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             break;
     }
 
-    return 0xff;
+    return 0x00;
 }
 
 void
