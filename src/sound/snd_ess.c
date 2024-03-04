@@ -78,27 +78,19 @@ typedef struct ess_mixer_t {
     uint8_t index;
     uint8_t regs[256];
 
-    uint8_t ess_id_str[4];
-    uint8_t ess_id_str_pos : 2;
+    uint8_t ess_id_str[256];
+    uint8_t ess_id_str_pos;
 } ess_mixer_t;
 
 typedef struct ess_t {
     uint8_t  mixer_enabled;
     fm_drv_t opl;
     sb_dsp_t dsp;
-    union {
-        ess_mixer_t mixer_sbpro;
-    };
+    ess_mixer_t mixer_sbpro;
+
     mpu_t  *mpu;
-    emu8k_t emu8k;
     void   *gameport;
 
-    int pnp;
-
-    uint8_t pos_regs[8];
-    uint8_t pnp_rom[512];
-
-    uint16_t opl_pnp_addr;
     uint16_t gameport_addr;
 
     void   *opl_mixer;
@@ -322,7 +314,11 @@ ess_mixer_read(uint16_t addr, void *priv)
 
         case 0x40:
             {
-                return mixer->ess_id_str[mixer->ess_id_str_pos++];
+                uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
+                mixer->ess_id_str_pos++;
+                if (mixer->ess_id_str_pos >= 4)
+                    mixer->ess_id_str_pos = 0;
+                return val;
             }
 
         default:
@@ -343,12 +339,12 @@ ess_mixer_reset(ess_t *ess)
 void
 ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
-    sb_t                    *sb    = (sb_t *) priv;
-    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    ess_t                    *ess    = (ess_t *) priv;
+    const ess_mixer_t        *mixer = &ess->mixer_sbpro;
     double                   out_l = 0.0;
     double                   out_r = 0.0;
 
-    sb_dsp_update(&sb->dsp);
+    sb_dsp_update(&ess->dsp);
 
     for (int c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
@@ -356,11 +352,11 @@ ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 
         /* TODO: Implement the stereo switch on the mixer instead of on the dsp? */
         if (mixer->output_filter) {
-            out_l += (sb_iir(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.9;
-            out_r += (sb_iir(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.9;
+            out_l += (sb_iir(0, 0, (double) ess->dsp.buffer[c]) * mixer->voice_l) / 3.9;
+            out_r += (sb_iir(0, 1, (double) ess->dsp.buffer[c + 1]) * mixer->voice_r) / 3.9;
         } else {
-            out_l += (sb->dsp.buffer[c] * mixer->voice_l) / 3.0;
-            out_r += (sb->dsp.buffer[c + 1] * mixer->voice_r) / 3.0;
+            out_l += (ess->dsp.buffer[c] * mixer->voice_l) / 3.0;
+            out_r += (ess->dsp.buffer[c + 1] * mixer->voice_r) / 3.0;
         }
 
         /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
@@ -371,7 +367,7 @@ ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
         buffer[c + 1] += (int32_t) out_r;
     }
 
-    sb->dsp.pos = 0;
+    ess->dsp.pos = 0;
 }
 
 void
@@ -434,9 +430,8 @@ ess_1688_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    ess_t    *ess   = malloc(sizeof(ess_t));
+    ess_t    *ess   = calloc(sizeof(ess_t), 1);
     uint16_t  addr = device_get_config_hex16("base");
-    memset(ess, 0, sizeof(ess_t));
 
     fm_driver_get(FM_ESFM, &ess->opl);
 
