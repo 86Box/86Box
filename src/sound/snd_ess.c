@@ -602,8 +602,8 @@ static const device_config_t ess_config[] = {
 };
 
 const device_t ess_1688_device = {
-    .name          = "ESS Technology ESS1688",
-    .internal_name = "ess_1688",
+    .name          = "ESS Technology ES1688",
+    .internal_name = "ess_es1688",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = ess_1688_init,
