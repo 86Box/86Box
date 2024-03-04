@@ -437,7 +437,7 @@ sb_start_dma_ess(sb_dsp_t* dsp)
     uint8_t real_format = 0;
     uint32_t len = !(ESSreg(0xB7) & 4) ? dsp->sb_8_length : dsp->sb_16_length;
 
-    if (dsp->ess_reload_len) {
+    if (dsp->ess_reload_len || len <= 0) {
         len = sb_ess_get_dma_len(dsp);
         dsp->ess_reload_len = 0;
     }
@@ -449,9 +449,9 @@ sb_start_dma_ess(sb_dsp_t* dsp)
     real_format |= !!(ESSreg(0xB7) & 0x20) ? 0x10 : 0;
     real_format |= !!(ESSreg(0xB7) & 0x8) ? 0x20 : 0;
     if (!!(ESSreg(0xB8) & 8))
-        sb_start_dma_i(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, sb_ess_get_dma_len(dsp));
+        sb_start_dma_i(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, len);
     else
-        sb_start_dma(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, sb_ess_get_dma_len(dsp));
+        sb_start_dma(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, len);
     dsp->ess_playback_mode = 1;
     dma_set_drq(dsp->sb_8_dmanum, 1);
     dma_set_drq(dsp->sb_16_8_dmanum, 1);
@@ -748,8 +748,15 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             chg = ESSreg(reg) ^ data;
             ESSreg(reg) = data;
 
-            if (chg & 1)
-                dsp->ess_reload_len = 1;
+            if (chg & 1) {
+                if (dsp->sb_16_enable || dsp->sb_8_enable) {
+                    if (dsp->sb_16_enable)
+                        dsp->sb_16_length = sb_ess_get_dma_len(dsp);
+                    if (dsp->sb_8_enable)
+                        dsp->sb_8_length = sb_ess_get_dma_len(dsp);
+                } else
+                    dsp->ess_reload_len = 1;
+            }
 
             if (chg & 0xB) {
                 if (chg & 0xA) sb_stop_dma_ess(dsp); /* changing capture/playback direction? stop DMA to reinit */
