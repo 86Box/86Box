@@ -195,6 +195,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x40: {
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] & 0x38) << 1);
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
+                        /* This doesn't work yet. */
+                        /*
                         io_removehandler(0x0388, 0x0004,
                         ess->opl.read, NULL, NULL,
                         ess->opl.write, NULL, NULL,
@@ -204,7 +206,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                         ess->opl.read, NULL, NULL,
                                         ess->opl.write, NULL, NULL,
                                         ess->opl.priv);
-                        }
+                        }*/
 
                         switch ((mixer->regs[0x40] >> 5) & 7) {
                             case 0:
