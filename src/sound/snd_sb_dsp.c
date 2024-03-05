@@ -710,10 +710,6 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             else
                 dsp->sb_freq = 397700UL / (128ul - data);
 
-            if (dsp->sb_16_enable || dsp->sb_8_enable) {
-                sb_stop_dma_ess(dsp);
-                sb_start_dma_ess(dsp);
-            }
             break;
         }
         case 0xA2: /* Filter divider (effectively, a hardware lowpass filter under S/W control) */
@@ -742,8 +738,15 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             ESSreg(reg) = data;
             if (chg & 0x3) {
                 if (dsp->sb_16_enable || dsp->sb_8_enable) {
-                    sb_stop_dma_ess(dsp);
-                    sb_start_dma_ess(dsp);
+                    uint8_t real_format = 0x00;
+                    real_format |= !!(ESSreg(0xB7) & 0x20) ? 0x10 : 0;
+                    real_format |= !!(ESSreg(0xB7) & 0x8) ? 0x20 : 0;
+
+                    if (dsp->sb_16_enable)
+                        dsp->sb_16_format = real_format;
+
+                    if (dsp->sb_8_enable)
+                        dsp->sb_8_format = real_format;
                 }
             }
             break;
