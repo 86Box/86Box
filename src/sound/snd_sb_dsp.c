@@ -585,15 +585,53 @@ sb_16_write_dma(void *priv, uint16_t val)
 void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
+    uint8_t t = 0x00;
     sb_dsp_log("IRQ now: %i\n", irq);
     dsp->sb_irqnum = irq;
+
+    /* legacy audio interrupt control */
+    t = 0x80;/*game compatible IRQ*/
+    switch (dsp->sb_irqnum) {
+        case 5:     t |= 0x5; break;
+        case 7:     t |= 0xA; break;
+        case 10:    t |= 0xF; break;
+    }
+    ESSreg(0xB1) = t;
+
+    /* DRQ control */
+    t = 0x80;/*game compatible DRQ */
+    switch (dsp->sb_8_dmanum) {
+        case 0:     t |= 0x5; break;
+        case 1:     t |= 0xA; break;
+        case 3:     t |= 0xF; break;
+    }
+    ESSreg(0xB2) = t;
 }
 
 void
 sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
 {
+    uint8_t t = 0x00;
     sb_dsp_log("8-bit DMA now: %i\n", dma);
     dsp->sb_8_dmanum = dma;
+
+    /* legacy audio interrupt control */
+    t = 0x80;/*game compatible IRQ*/
+    switch (dsp->sb_irqnum) {
+        case 5:     t |= 0x5; break;
+        case 7:     t |= 0xA; break;
+        case 10:    t |= 0xF; break;
+    }
+    ESSreg(0xB1) = t;
+
+    /* DRQ control */
+    t = 0x80;/*game compatible DRQ */
+    switch (dsp->sb_8_dmanum) {
+        case 0:     t |= 0x5; break;
+        case 1:     t |= 0xA; break;
+        case 3:     t |= 0xF; break;
+    }
+    ESSreg(0xB2) = t;
 }
 
 void
@@ -661,7 +699,7 @@ static void sb_ess_update_autolen(sb_dsp_t *dsp) {
 static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
 {
     uint8_t chg = 0x00;
-    sb_dsp_log("ESS register write reg=%02xh val=%02xh\n",reg,data);
+    pclog("ESS register write reg=%02xh val=%02xh\n",reg,data);
 
     switch (reg) {
         case 0xA1: /* Extended Mode Sample Rate Generator */
@@ -798,6 +836,7 @@ sb_exec_command(sb_dsp_t *dsp)
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
 
     if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
+        pclog("dsp->sb_command = 0x%X\n", dsp->sb_command);
         if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7) {
             dsp->ess_extended_mode = !!(dsp->sb_command == 0xC6);
             return;
@@ -1365,7 +1404,7 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                     if (dsp->sb_command <= 0xC0) {
                         sb_commands[dsp->sb_command] = 1;
                     } else {
-                        sb_commands[dsp->sb_command] = 0;
+                        sb_commands[dsp->sb_command] = -1;
                     }
                 }
             }
