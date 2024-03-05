@@ -834,9 +834,9 @@ sb_exec_command(sb_dsp_t *dsp)
        See https://github.com/joncampbell123/dosbox-x/issues/1044 */
     if (dsp->sb_type >= SB16)
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
+        pclog("dsp->sb_command = 0x%X\n", dsp->sb_command);
 
     if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
-        pclog("dsp->sb_command = 0x%X\n", dsp->sb_command);
         if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7) {
             dsp->ess_extended_mode = !!(dsp->sb_command == 0xC6);
             return;

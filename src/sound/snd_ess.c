@@ -151,6 +151,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
             mixer->regs[mixer->index] = val;
+            pclog("ess: Register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
             switch (mixer->index) {
                 /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
@@ -197,6 +198,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x40: {
+                        break;
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] & 0x38) << 1);
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
                         /* This doesn't work yet. */
@@ -318,6 +320,7 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x36:
         case 0x38:
         case 0x3e:
+            pclog("ess: Register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             return mixer->regs[mixer->index];
 
         case 0x40:
@@ -326,6 +329,7 @@ ess_mixer_read(uint16_t addr, void *priv)
                 mixer->ess_id_str_pos++;
                 if (mixer->ess_id_str_pos >= 4)
                     mixer->ess_id_str_pos = 0;
+                pclog("ess: ID READ: %02X (pos %d)\n", val, mixer->ess_id_str_pos);
                 return val;
             }
 
@@ -491,7 +495,7 @@ ess_1688_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&ess->dsp, ess->mpu);
 
     ess->gameport = gameport_add(&gameport_pnp_device);
-    ess->gameport_addr = 0x000;
+    ess->gameport_addr = 0x200;
     gameport_remap(ess->gameport, ess->gameport_addr);
 
     return ess;
