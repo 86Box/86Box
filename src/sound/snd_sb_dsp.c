@@ -353,10 +353,26 @@ sb_add_data(sb_dsp_t *dsp, uint8_t v)
     dsp->sb_read_wp &= 0xff;
 }
 
+static unsigned int sb_ess_get_dma_len(sb_dsp_t *dsp)
+{
+    unsigned int r;
+
+    r = (unsigned int)ESSreg(0xA5) << 8U;
+    r |= (unsigned int)ESSreg(0xA4);
+
+    /* the 16-bit counter is a "two's complement" of the DMA count because it counts UP to 0 and triggers IRQ on overflow */
+    return 0x10000U-r;
+}
+
 void
 sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
     dsp->sb_pausetime = -1;
+
+    if (dsp->ess_reload_len) {
+        len = sb_ess_get_dma_len(dsp);
+        dsp->ess_reload_len = 0;
+    }
 
     if (dma8) {
         dsp->sb_8_length = dsp->sb_8_origlength = len;
@@ -392,6 +408,11 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 void
 sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
+    if (dsp->ess_reload_len) {
+        len = sb_ess_get_dma_len(dsp);
+        dsp->ess_reload_len = 0;
+    }
+
     if (dma8) {
         dsp->sb_8_length = dsp->sb_8_origlength = len;
         dsp->sb_8_format                        = format;
@@ -417,18 +438,6 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
     }
 
     memset(dsp->record_buffer, 0, sizeof(dsp->record_buffer));
-}
-
-
-static unsigned int sb_ess_get_dma_len(sb_dsp_t *dsp)
-{
-    unsigned int r;
-
-    r = (unsigned int)ESSreg(0xA5) << 8U;
-    r |= (unsigned int)ESSreg(0xA4);
-
-    /* the 16-bit counter is a "two's complement" of the DMA count because it counts UP to 0 and triggers IRQ on overflow */
-    return 0x10000U-r;
 }
 
 void
