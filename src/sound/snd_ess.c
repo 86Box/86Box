@@ -250,7 +250,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     }
 
                 default:
-                    //sb_log("ess: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    pclog("ess: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -334,7 +334,7 @@ ess_mixer_read(uint16_t addr, void *priv)
             break;
     }
 
-    return 0x00;
+    return 0x0a;
 }
 
 void
