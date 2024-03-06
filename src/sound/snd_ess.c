@@ -6,16 +6,20 @@
  *
  *           This file is part of the 86Box distribution.
  *
- *           Sound Blaster emulation.
+ *           ESS AudioDrive emulation.
  *
  *
  *
  * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           Miran Grca, <mgrca8@gmail.com>
  *           TheCollector1995, <mariogplayer@gmail.com>
+ *           Cacodemon345, 
+ *           Kagamiin~, <kagamiin@riseup.net>
  *
  *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2016-2020 Miran Grca.
+ *           Copyright 2024 Cacodemon345
+ *           Copyright 2024 Kagamiin~
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -79,7 +83,7 @@ typedef struct ess_mixer_t {
     uint8_t regs[256];
 
     uint8_t ess_id_str[256];
-    uint8_t ess_id_str_pos : 2;
+    uint8_t ess_id_str_pos;
 } ess_mixer_t;
 
 typedef struct ess_t {
@@ -130,7 +134,10 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
         mixer->index      = val;
         mixer->regs[0x01] = val;
         if (val == 0x40)
+        {
+            pclog("ess: Mixer addr 0x40 selected, ID string offset reset\n");
             mixer->ess_id_str_pos = 0;
+        }
     } else {
         if (mixer->index == 0) {
             /* Reset */
@@ -151,7 +158,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
             mixer->regs[mixer->index] = val;
-            pclog("ess: Register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            pclog("ess: Mixer Register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
             switch (mixer->index) {
                 /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
@@ -198,23 +205,27 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x40: {
-                        break;
-                        uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] & 0x38) << 1);
-                        gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
-                        /* This doesn't work yet. */
-                        /*
-                        io_removehandler(0x0388, 0x0004,
-                        ess->opl.read, NULL, NULL,
-                        ess->opl.write, NULL, NULL,
-                        ess->opl.priv);
-                        if (mixer->regs[0x40] & 1) {
-                            io_sethandler(0x0388, 0x0004,
-                                        ess->opl.read, NULL, NULL,
-                                        ess->opl.write, NULL, NULL,
-                                        ess->opl.priv);
-                        }*/
+                        /* TODO: Implement "Read-Sequence-Key" method of software address selection
+                         * (needed for ESSCFG.EXE to work properly) */
 
-                        switch ((mixer->regs[0x40] >> 5) & 7) {
+                        uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
+                        gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
+
+                        /* This doesn't work yet. */
+#if 1
+                        io_removehandler(0x0388, 0x0004,
+                                         ess->opl.read, NULL, NULL,
+                                         ess->opl.write, NULL, NULL,
+                                         ess->opl.priv);
+                        if ((mixer->regs[0x40] & 0x1) != 0)
+                        {
+                            io_sethandler(0x0388, 0x0004,
+                                          ess->opl.read, NULL, NULL,
+                                          ess->opl.write, NULL, NULL,
+                                          ess->opl.priv);
+                        }
+#endif
+                        switch ((mixer->regs[0x40] >> 5) & 0x7) {
                             case 0:
                                 mpu401_change_addr(ess->mpu, 0x00);
                                 mpu401_setirq(ess->mpu, -1);
@@ -252,7 +263,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     }
 
                 default:
-                    pclog("ess: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    pclog("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -320,21 +331,22 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x36:
         case 0x38:
         case 0x3e:
-            pclog("ess: Register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            pclog("ess: Mixer Register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             return mixer->regs[mixer->index];
 
         case 0x40:
             {
                 uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
+                uint8_t pos_log = mixer->ess_id_str_pos; /* TODO remove */
                 mixer->ess_id_str_pos++;
                 if (mixer->ess_id_str_pos >= 4)
                     mixer->ess_id_str_pos = 0;
-                pclog("ess: ID READ: %02X (pos %d)\n", val, mixer->ess_id_str_pos);
+                pclog("ess: ID READ: %02X (pos %d)\n", val, pos_log);
                 return val;
             }
 
         default:
-            pclog("ess: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            pclog("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             break;
     }
 
@@ -491,7 +503,7 @@ ess_1688_init(UNUSED(const device_t *info))
     }
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
-    mpu401_init(ess->mpu, 0, 0, M_UART, 1);
+    mpu401_init(ess->mpu, 0, -1, M_UART, 1);
     sb_dsp_set_mpu(&ess->dsp, ess->mpu);
 
     ess->gameport = gameport_add(&gameport_pnp_device);

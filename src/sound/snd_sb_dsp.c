@@ -583,29 +583,44 @@ sb_16_write_dma(void *priv, uint16_t val)
 }
 
 void
+sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
+{
+    uint8_t t = 0x00;
+    /* IRQ control */
+    if (legacy)
+    {
+        t |= 0x80;
+    }
+    switch (dsp->sb_irqnum) {
+        case 5:     t |= 0x5; break;
+        case 7:     t |= 0xA; break;
+        case 10:    t |= 0xF; break;
+    }
+    pclog("ESSreg 0xB1 was %02X, irqnum is %d, t is %02X; new 0xB1 is %02X\n", ESSreg(0xB1), dsp->sb_irqnum, t, (ESSreg(0xB1) & 0xF0) | t);
+    ESSreg(0xB1) = (ESSreg(0xB1) & 0xF0) | t;
+
+    /* DRQ control */
+    t = 0x00;
+    if (legacy)
+    {
+        t |= 0x80;
+    }
+    switch (dsp->sb_8_dmanum) {
+        case 0:     t |= 0x5; break;
+        case 1:     t |= 0xA; break;
+        case 3:     t |= 0xF; break;
+    }
+    ESSreg(0xB2) = (ESSreg(0xB2) & 0xF0) | t;
+}
+
+void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
     uint8_t t = 0x00;
     sb_dsp_log("IRQ now: %i\n", irq);
     dsp->sb_irqnum = irq;
 
-    /* legacy audio interrupt control */
-    t = 0x80;/*game compatible IRQ*/
-    switch (dsp->sb_irqnum) {
-        case 5:     t |= 0x5; break;
-        case 7:     t |= 0xA; break;
-        case 10:    t |= 0xF; break;
-    }
-    ESSreg(0xB1) = t;
-
-    /* DRQ control */
-    t = 0x80;/*game compatible DRQ */
-    switch (dsp->sb_8_dmanum) {
-        case 0:     t |= 0x5; break;
-        case 1:     t |= 0xA; break;
-        case 3:     t |= 0xF; break;
-    }
-    ESSreg(0xB2) = t;
+    sb_ess_update_irq_drq_readback_regs(dsp, true);
 }
 
 void
@@ -615,23 +630,7 @@ sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
     sb_dsp_log("8-bit DMA now: %i\n", dma);
     dsp->sb_8_dmanum = dma;
 
-    /* legacy audio interrupt control */
-    t = 0x80;/*game compatible IRQ*/
-    switch (dsp->sb_irqnum) {
-        case 5:     t |= 0x5; break;
-        case 7:     t |= 0xA; break;
-        case 10:    t |= 0xF; break;
-    }
-    ESSreg(0xB1) = t;
-
-    /* DRQ control */
-    t = 0x80;/*game compatible DRQ */
-    switch (dsp->sb_8_dmanum) {
-        case 0:     t |= 0x5; break;
-        case 1:     t |= 0xA; break;
-        case 3:     t |= 0xF; break;
-    }
-    ESSreg(0xB2) = t;
+    sb_ess_update_irq_drq_readback_regs(dsp, true);
 }
 
 void
@@ -686,6 +685,7 @@ static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
 {
     switch (reg) {
         default:
+            pclog("ESS register read reg=%02xh val=%02xh\n",reg, ESSreg(reg));
             return ESSreg(reg);
     }
 
@@ -752,9 +752,43 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             break;
 
         case 0xB1: /* Legacy Audio Interrupt Control */
+            ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
+            switch (data & 0x0C)
+            {
+            case 0x00:
+                dsp->sb_irqnum = 2;
+                break;
+            case 0x04:
+                dsp->sb_irqnum = 5;
+                break;
+            case 0x08:
+                dsp->sb_irqnum = 7;
+                break;
+            case 0x0C:
+                dsp->sb_irqnum = 10;
+                break;
+            }
+            sb_ess_update_irq_drq_readback_regs(dsp, false);
+            break;
         case 0xB2: /* DRQ Control */
             chg = ESSreg(reg) ^ data;
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
+            switch (data & 0x0C)
+            {
+            case 0x00:
+                dsp->sb_8_dmanum = -1;
+                break;
+            case 0x04:
+                dsp->sb_8_dmanum = 0;
+                break;
+            case 0x08:
+                dsp->sb_8_dmanum = 1;
+                break;
+            case 0x0C:
+                dsp->sb_8_dmanum = 3;
+                break;
+            }
+            sb_ess_update_irq_drq_readback_regs(dsp, false);
             if (chg & 0x40) sb_ess_update_dma_status(dsp);
             break;
         case 0xB5: /* DAC Direct Access Holding (low) */
