@@ -458,8 +458,6 @@ isamem_init(const device_t *info)
             dev->total_size = device_get_config_int("size");
             dev->start_addr = device_get_config_int("start");
             tot             = device_get_config_int("length");
-            if (!!device_get_config_int("speed"))
-                dev->flags |= FLAG_FAST;
             if (!!device_get_config_int("ems"))
                 dev->flags |= FLAG_EMS;
             dev->frame_addr = 0xE0000;
@@ -1294,20 +1292,6 @@ static const device_config_t ev165a_config[] = {
             .step = 128
         },
         .selection = { { 0 } }
-    },
-    {
-        .name = "speed",
-        .description = "Transfer Speed",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Standard (150ns)",   .value = 0 },
-            { .description = "High-Speed (120ns)", .value = 1 },
-            { .description = ""                               }
-        }
     },
     {
         .name = "ems",
