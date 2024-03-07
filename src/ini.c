@@ -276,7 +276,7 @@ ini_detect_bom(const char *fn)
 #endif
     if (fp == NULL)
         return 0;
-    (void) !fread(bom, 1, 3, fp);
+    fread(bom, 1, 3, fp);
     if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF) {
         fclose(fp);
         return 1;
@@ -350,7 +350,7 @@ ini_read(const char *fn)
 #ifdef __HAIKU__
         ini_fgetws(buff, sizeof_w(buff), fp);
 #else
-        (void) !fgetws(buff, sizeof_w(buff), fp);
+        fgetws(buff, sizeof_w(buff), fp);
 #endif
         if (feof(fp))
             break;
@@ -380,7 +380,7 @@ ini_read(const char *fn)
             c++;
             d = 0;
             while (buff[c] != L']' && buff[c])
-                (void) !wctomb(&(sname[d++]), buff[c++]);
+		    wctomb(&(sname[d++]), buff[c++]);
             sname[d] = L'\0';
 
             /* Is the section name properly terminated? */
@@ -390,7 +390,7 @@ ini_read(const char *fn)
             /* Create a new section and insert it. */
             ns = malloc(sizeof(section_t));
             memset(ns, 0x00, sizeof(section_t));
-            memcpy(ns->name, sname, 128);
+            memcpy(ns->name, sname, sizeof(sname));
             list_add(&ns->list, head);
 
             /* New section is now the current one. */
@@ -401,7 +401,7 @@ ini_read(const char *fn)
         /* Get the variable name. */
         d = 0;
         while ((buff[c] != L'=') && (buff[c] != L' ') && buff[c])
-            (void) !wctomb(&(ename[d++]), buff[c++]);
+		wctomb(&(ename[d++]), buff[c++]);
         ename[d] = L'\0';
 
         /* Skip incomplete lines. */
@@ -422,7 +422,7 @@ ini_read(const char *fn)
         /* Allocate a new variable entry.. */
         ne = malloc(sizeof(entry_t));
         memset(ne, 0x00, sizeof(entry_t));
-        memcpy(ne->name, ename, 128);
+        memcpy(ne->name, ename, sizeof(ename));
         wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata) - 1);
         ne->wdata[sizeof_w(ne->wdata) - 1] = L'\0';
 #ifdef _WIN32 /* Make sure the string is converted to UTF-8 rather than a legacy codepage */

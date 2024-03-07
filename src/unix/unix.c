@@ -921,7 +921,7 @@ monitor_thread(void *param)
             else {
 #endif
                 printf("(86Box) ");
-                (void) !getline(&line, &n, stdin);
+                getline(&line, &n, stdin);
 #ifdef ENABLE_READLINE
             }
 #endif

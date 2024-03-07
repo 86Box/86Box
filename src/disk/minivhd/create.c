@@ -268,7 +268,7 @@ mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t size_in_bytes, M
         gen_footer(&vhdm->footer, raw_size, geom, MVHD_TYPE_FIXED, 0);
         mvhd_fseeko64(raw_img, 0, SEEK_SET);
         for (s = 0; s < size_sectors; s++) {
-            (void) !fread(img_data, sizeof img_data, 1, raw_img);
+            fread(img_data, sizeof img_data, 1, raw_img);
             fwrite(img_data, sizeof img_data, 1, fp);
             if (progress_callback)
                 progress_callback(s + 1, size_sectors);

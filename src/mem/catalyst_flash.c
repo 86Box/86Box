@@ -209,7 +209,7 @@ catalyst_flash_init(UNUSED(const device_t *info))
 
     fp = nvr_fopen(flash_path, "rb");
     if (fp) {
-        (void) !fread(dev->array, 0x20000, 1, fp);
+        fread(dev->array, 0x20000, 1, fp);
         fclose(fp);
     }
 

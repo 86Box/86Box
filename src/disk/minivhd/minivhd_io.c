@@ -105,7 +105,7 @@ read_sect_bitmap(MVHDMeta* vhdm, int blk)
 {
     if (vhdm->block_offset[blk] != MVHD_SPARSE_BLK) {
         mvhd_fseeko64(vhdm->f, (uint64_t)vhdm->block_offset[blk] * MVHD_SECTOR_SIZE, SEEK_SET);
-        (void) !fread(vhdm->bitmap.curr_bitmap, vhdm->bitmap.sector_count * MVHD_SECTOR_SIZE, 1, vhdm->f);
+        fread(vhdm->bitmap.curr_bitmap, vhdm->bitmap.sector_count * MVHD_SECTOR_SIZE, 1, vhdm->f);
     } else {
         memset(vhdm->bitmap.curr_bitmap, 0, vhdm->bitmap.sector_count * MVHD_SECTOR_SIZE);
     }
@@ -168,13 +168,13 @@ create_block(MVHDMeta* vhdm, int blk)
 
     /* Seek to where the footer SHOULD be */
     mvhd_fseeko64(vhdm->f, -MVHD_FOOTER_SIZE, SEEK_END);
-    (void) !fread(footer, sizeof footer, 1, vhdm->f);
+    fread(footer, sizeof footer, 1, vhdm->f);
     mvhd_fseeko64(vhdm->f, -MVHD_FOOTER_SIZE, SEEK_END);
 
     if (!mvhd_is_conectix_str(footer)) {
         /* Oh dear. We use the header instead, since something has gone wrong at the footer */
         mvhd_fseeko64(vhdm->f, 0, SEEK_SET);
-        (void) !fread(footer, sizeof footer, 1, vhdm->f);
+        fread(footer, sizeof footer, 1, vhdm->f);
         mvhd_fseeko64(vhdm->f, 0, SEEK_END);
     }
 
@@ -215,7 +215,7 @@ mvhd_fixed_read(MVHDMeta* vhdm, uint32_t offset, int num_sectors, void* out_buff
 
     addr = (int64_t)offset * MVHD_SECTOR_SIZE;
     mvhd_fseeko64(vhdm->f, addr, SEEK_SET);
-    (void) !fread(out_buff, transfer_sectors*MVHD_SECTOR_SIZE, 1, vhdm->f);
+    fread(out_buff, transfer_sectors*MVHD_SECTOR_SIZE, 1, vhdm->f);
 
     return truncated_sectors;
 }
@@ -251,7 +251,7 @@ mvhd_sparse_read(MVHDMeta* vhdm, uint32_t offset, int num_sectors, void* out_buf
         }
 
         if (VHD_TESTBIT(vhdm->bitmap.curr_bitmap, sib)) {
-            (void) !fread(buff, MVHD_SECTOR_SIZE, 1, vhdm->f);
+            fread(buff, MVHD_SECTOR_SIZE, 1, vhdm->f);
         } else {
             memset(buff, 0, MVHD_SECTOR_SIZE);
             mvhd_fseeko64(vhdm->f, MVHD_SECTOR_SIZE, SEEK_CUR);

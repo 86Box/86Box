@@ -514,16 +514,16 @@ intel_flash_init(const device_t *info)
 
     fp = nvr_fopen(flash_path, "rb");
     if (fp) {
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
+        fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
         if (dev->block_len[BLOCK_MAIN2])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
+            fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
         if (dev->block_len[BLOCK_MAIN3])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
+            fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
         if (dev->block_len[BLOCK_MAIN4])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
+            fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
 
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+        fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
+        fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
         fclose(fp);
     }
 

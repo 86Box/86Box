@@ -711,12 +711,12 @@ img_load(int drive, char *fn)
         /* This is a Japanese FDI image, so let's read the header */
         img_log("img_load(): File is a Japanese FDI image...\n");
         fseek(dev->fp, 0x10, SEEK_SET);
-        (void) !fread(&bpb_bps, 1, 2, dev->fp);
+        fread(&bpb_bps, 1, 2, dev->fp);
         fseek(dev->fp, 0x0C, SEEK_SET);
-        (void) !fread(&size, 1, 4, dev->fp);
+        fread(&size, 1, 4, dev->fp);
         bpb_total = size / bpb_bps;
         fseek(dev->fp, 0x08, SEEK_SET);
-        (void) !fread(&(dev->base), 1, 4, dev->fp);
+        fread(&(dev->base), 1, 4, dev->fp);
         fseek(dev->fp, dev->base + 0x15, SEEK_SET);
         bpb_mid = fgetc(dev->fp);
         if (bpb_mid < 0xF0)
@@ -755,7 +755,7 @@ img_load(int drive, char *fn)
             dev->disk_at_once = 1;
 
             fseek(dev->fp, 0x50, SEEK_SET);
-            (void) !fread(&dev->tracks, 1, 4, dev->fp);
+            fread(&dev->tracks, 1, 4, dev->fp);
 
             /* Decode the entire file - pass 1, no write to buffer, determine length. */
             fseek(dev->fp, 0x80, SEEK_SET);
@@ -766,10 +766,10 @@ img_load(int drive, char *fn)
                 if (!track_bytes) {
                     /* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
                     first_byte = fgetc(dev->fp);
-                    (void) !fread(&track_bytes, 1, 2, dev->fp);
+                    fread(&track_bytes, 1, 2, dev->fp);
                     img_log("Block header: %02X %04X ", first_byte, track_bytes);
                     /* Read the length of encoded data block. */
-                    (void) !fread(&track_bytes, 1, 2, dev->fp);
+                    fread(&track_bytes, 1, 2, dev->fp);
                     img_log("%04X\n", track_bytes);
                 }
 
@@ -793,7 +793,7 @@ img_load(int drive, char *fn)
                         /* Literal. */
                         track_bytes -= (run & 0x7f);
                         literal = (uint8_t *) malloc(run & 0x7f);
-                        (void) !fread(literal, 1, (run & 0x7f), dev->fp);
+                        fread(literal, 1, (run & 0x7f), dev->fp);
                         free(literal);
                     }
                     size += (run & 0x7f);
@@ -803,7 +803,7 @@ img_load(int drive, char *fn)
                     /* Literal block. */
                     size += (track_bytes - fdf_suppress_final_byte);
                     literal = (uint8_t *) malloc(track_bytes);
-                    (void) !fread(literal, 1, track_bytes, dev->fp);
+                    fread(literal, 1, track_bytes, dev->fp);
                     free(literal);
                     track_bytes = 0;
                 }
@@ -823,10 +823,10 @@ img_load(int drive, char *fn)
                 if (!track_bytes) {
                     /* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
                     first_byte = fgetc(dev->fp);
-                    (void) !fread(&track_bytes, 1, 2, dev->fp);
+                    fread(&track_bytes, 1, 2, dev->fp);
                     img_log("Block header: %02X %04X ", first_byte, track_bytes);
                     /* Read the length of encoded data block. */
-                    (void) !fread(&track_bytes, 1, 2, dev->fp);
+                    fread(&track_bytes, 1, 2, dev->fp);
                     img_log("%04X\n", track_bytes);
                 }
 
@@ -855,7 +855,7 @@ img_load(int drive, char *fn)
                         /* Literal. */
                         track_bytes -= real_run;
                         literal = (uint8_t *) malloc(real_run);
-                        (void) !fread(literal, 1, real_run, dev->fp);
+                        fread(literal, 1, real_run, dev->fp);
                         if (!track_bytes)
                             real_run -= fdf_suppress_final_byte;
                         if (run & 0x7f)
@@ -866,7 +866,7 @@ img_load(int drive, char *fn)
                 } else {
                     /* Literal block. */
                     literal = (uint8_t *) malloc(track_bytes);
-                    (void) !fread(literal, 1, track_bytes, dev->fp);
+                    fread(literal, 1, track_bytes, dev->fp);
                     memcpy(bpos, literal, track_bytes - fdf_suppress_final_byte);
                     free(literal);
                     bpos += (track_bytes - fdf_suppress_final_byte);
@@ -896,10 +896,10 @@ img_load(int drive, char *fn)
             dev->fp = plat_fopen(fn, "rb");
 
             fseek(dev->fp, 0x03, SEEK_SET);
-            (void) !fread(&bpb_bps, 1, 2, dev->fp);
+            fread(&bpb_bps, 1, 2, dev->fp);
 #if 0
             fseek(dev->fp, 0x0B, SEEK_SET);
-            (void) !fread(&bpb_total, 1, 2, dev->fp);
+            fread(&bpb_total, 1, 2, dev->fp);
 #endif
             fseek(dev->fp, 0x10, SEEK_SET);
             bpb_sectors = fgetc(dev->fp);
@@ -919,7 +919,7 @@ img_load(int drive, char *fn)
             memset(dev->disk_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
 
             fseek(dev->fp, 0x6F, SEEK_SET);
-            (void) !fread(&comment_len, 1, 2, dev->fp);
+            fread(&comment_len, 1, 2, dev->fp);
 
             fseek(dev->fp, -1, SEEK_END);
             size = ftell(dev->fp) + 1;
@@ -929,7 +929,7 @@ img_load(int drive, char *fn)
             cur_pos = 0;
 
             while (!feof(dev->fp)) {
-                (void) !fread(&block_len, 1, 2, dev->fp);
+                fread(&block_len, 1, 2, dev->fp);
 
                 if (!feof(dev->fp)) {
                     if (block_len < 0) {
@@ -946,10 +946,10 @@ img_load(int drive, char *fn)
                     } else if (block_len > 0) {
                         if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps)) {
                             block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
-                            (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
+                            fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
                             break;
                         } else {
-                            (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
+                            fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
                             cur_pos += block_len;
                         }
                     }
@@ -970,9 +970,9 @@ img_load(int drive, char *fn)
             } else
                 img_log("img_load(): File is a raw image...\n");
             fseek(dev->fp, dev->base + 0x0B, SEEK_SET);
-            (void) !fread(&bpb_bps, 1, 2, dev->fp);
+            fread(&bpb_bps, 1, 2, dev->fp);
             fseek(dev->fp, dev->base + 0x13, SEEK_SET);
-            (void) !fread(&bpb_total, 1, 2, dev->fp);
+            fread(&bpb_total, 1, 2, dev->fp);
             fseek(dev->fp, dev->base + 0x15, SEEK_SET);
             bpb_mid = fgetc(dev->fp);
             fseek(dev->fp, dev->base + 0x18, SEEK_SET);
@@ -1140,7 +1140,7 @@ jump_if_fdf:
             /* The image is a Japanese FDI, therefore we read the number of tracks from the header. */
             if (fseek(dev->fp, 0x1C, SEEK_SET) == -1)
                 fatal("Japanese FDI: Failed when seeking to 0x1C\n");
-            (void) !fread(&(dev->tracks), 1, 4, dev->fp);
+            fread(&(dev->tracks), 1, 4, dev->fp);
         } else {
             if (!cqm && !fdf) {
                 /* Number of tracks = number of total sectors divided by sides times sectors per track. */

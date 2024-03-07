@@ -1452,7 +1452,7 @@ ncr53c8xx_eeprom(ncr53c8xx_t *dev, uint8_t save)
         if (save)
             fwrite(&dev->nvram, sizeof(dev->nvram), 1, fp);
         else
-            (void) !fread(&dev->nvram, sizeof(dev->nvram), 1, fp);
+            fread(&dev->nvram, sizeof(dev->nvram), 1, fp);
         fclose(fp);
     }
 }
