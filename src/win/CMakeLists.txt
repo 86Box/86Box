@@ -51,6 +51,7 @@ if(NOT MINGW)
     target_sources(plat PRIVATE win_opendir.c)
 endif()
 
+option(DINPUT "Use DirectInput joystick backend instead of raw input" OFF)
 if(DINPUT)
     target_sources(plat PRIVATE win_joystick.cpp)
     target_link_libraries(86Box dinput8)
