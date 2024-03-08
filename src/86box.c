@@ -1168,12 +1168,13 @@ pc_reset_hard_init(void)
     /* note: PLIP LPT side has to be initialized before the network side */
     lpt_devices_init();
 
-    /* Reset and reconfigure the Network Card layer. */
-    network_reset();
-
     /* Reset and reconfigure the serial ports. */
+    /* note: SLIP COM side has to be initialized before the network side */
     serial_standalone_init();
     serial_passthrough_init();
+
+    /* Reset and reconfigure the Network Card layer. */
+    network_reset();
 
     /*
      * Reset the mouse, this will attach it to any port needed.
