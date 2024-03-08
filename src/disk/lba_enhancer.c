@@ -30,25 +30,29 @@
 
 typedef struct lba_enhancer_t
 {
-    rom_t rom;
+    rom_t    rom;
 } lba_enhancer_t;
 
 #define BIOS_LBA_ENHANCER "roms/hdd/misc/lbaenhancer.bin"
 
-void* lba_enhancer_init(const device_t* info)
+void *
+lba_enhancer_init(const device_t *info)
 {
-    lba_enhancer_t* lba_enhancer = (lba_enhancer_t*)calloc(1, sizeof(lba_enhancer_t));
+    lba_enhancer_t *lba_enhancer = (lba_enhancer_t *) calloc(1, sizeof(lba_enhancer_t));
 
-    rom_init(&lba_enhancer->rom, BIOS_LBA_ENHANCER, device_get_config_hex20("bios_addr"), 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+    rom_init(&lba_enhancer->rom, BIOS_LBA_ENHANCER,
+             device_get_config_hex20("bios_addr"), 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
     return lba_enhancer;
 }
 
-void lba_enhancer_close(void* priv)
+void
+lba_enhancer_close(void* priv)
 {
-    lba_enhancer_t* lba_enhancer = (lba_enhancer_t*)priv;
+    lba_enhancer_t *lba_enhancer = (lba_enhancer_t *) priv;
 
-    free(lba_enhancer->rom.rom);
     free(priv);
+
     return;
 }
 
