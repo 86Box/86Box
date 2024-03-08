@@ -73,6 +73,8 @@ static uint8_t *aha1542cp_pnp_rom = NULL;
 // static char    *aha1542cp_rev     = "F001";
 static char     aha1542cp_rev[16] = { 0 };
 
+static uint16_t fw_chksum         = 0x0000;
+
 #pragma pack(push, 1)
 typedef struct aha_setup_t {
     uint8_t  CustomerSignature[20];
@@ -469,8 +471,10 @@ aha_setup_data(void *priv)
     ReplyISI->fParityCheckingEnabled        = dev->parity & 1;
 
     U32_TO_ADDR(aha_setup->BIOSMailboxAddress, dev->BIOSMailboxOutAddr);
-    aha_setup->uChecksum = 0xA3;
-    aha_setup->uUnknown  = 0xC2;
+    // aha_setup->uChecksum = 0xA3;
+    // aha_setup->uUnknown  = 0xC2;
+    aha_setup->uChecksum = fw_chksum >> 8;
+    aha_setup->uUnknown  = fw_chksum & 0xff;
 }
 
 static void
@@ -825,6 +829,7 @@ aha_setmcode(x54x_t *dev)
 {
     uint32_t temp;
     FILE    *fp;
+    uint16_t tempb = 0x00;
 
     /* Only if this device has a BIOS ROM. */
     if (dev->mcode_path == NULL)
@@ -879,6 +884,14 @@ aha_setmcode(x54x_t *dev)
     /* Load the SCSISelect decompression code. */
     fseek(fp, dev->cmd_33_offset, SEEK_SET);
     (void) !fread(dev->cmd_33_buf, dev->cmd_33_len, 1, fp);
+
+    fw_chksum = 0x0000;
+
+    for (uint16_t i = 0; i < 32768; i++) {
+        (void) fseek(fp, i, SEEK_SET);
+        (void) !fread(&tempb, 1, 1, fp);
+        fw_chksum += tempb;
+    }
 
     (void) fclose(fp);
 }
@@ -987,6 +1000,8 @@ aha_init(const device_t *info)
     memset(dev->cmd_33_buf, 0x00, 4096);
 
     strcpy(dev->vendor, "Adaptec");
+
+    fw_chksum          = 0xa3c2;
 
     /* Perform per-board initialization. */
     switch (dev->type) {
