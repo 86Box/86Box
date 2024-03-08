@@ -52,13 +52,14 @@ typedef struct modem_t
 {
     uint8_t   mac[6];
     serial_t *serial;
-    double    baudrate;
+    uint32_t  baudrate;
 
     modem_mode_t mode;
 
     uint8_t esc_character_expected;
     pc_timer_t host_to_serial_timer;
     pc_timer_t dtr_timer;
+    pc_timer_t cmdpause_timer;
 
     uint8_t tx_pkt_ser_line[0x10000]; /* SLIP-encoded. */
     uint32_t tx_count;
@@ -70,13 +71,25 @@ typedef struct modem_t
 
     char cmdbuf[512];
 	uint32_t cmdpos;
+    uint32_t port;
     int plusinc, flowcontrol;
-    int in_warmup;
+    int in_warmup, dtrmode;
 
     bool connected, ringing;
     bool echo, numericresponse;
 
     int doresponse;
+    int cmdpause;
+
+    struct {
+		bool binary[2];
+		bool echo[2];
+		bool supressGA[2];
+		bool timingMark[2];
+		bool inIAC;
+		bool recCommand;
+		uint8_t command;
+	} telClient;
     
     netcard_t *card;
 } modem_t;
@@ -91,6 +104,14 @@ static modem_t *instance;
 #define MREG_BACKSPACE_CHAR 5
 #define MREG_GUARD_TIME 12
 #define MREG_DTR_DELAY 25
+
+static void modem_do_command(modem_t* modem);
+
+static void
+modem_echo(modem_t* modem, uint8_t c)
+{
+    if (modem->echo && fifo8_num_free(&modem->data_pending)) fifo8_push(&modem->data_pending, c);
+}
 
 static uint32_t
 modem_scan_number(char **scan)
@@ -128,7 +149,7 @@ modem_speed_changed(void *priv)
 
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
-    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / dev->baudrate) * 9);
+    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double)dev->baudrate) * 9);
 #if 0
     serial_clear_fifo(dev->serial);
 #endif
@@ -210,16 +231,20 @@ static void
 modem_data_mode_process_byte(modem_t* modem, uint8_t data)
 {
     if (modem->reg[MREG_ESCAPE_CHAR] <= 127) {
-        if (modem->reg[MREG_ESCAPE_CHAR] == data) {
-            return;
+        if (modem->plusinc >= 1 && modem->plusinc <= 3 && modem->reg[MREG_ESCAPE_CHAR] == data) {
+            modem->plusinc++;
+        } else {
+            modem->plusinc = 0;
         }
     }
 
-    if (data == END) {
-        process_tx_packet(modem, modem->tx_pkt_ser_line, (uint32_t)modem->tx_count + 1ul);
-    }
-    else if (modem->tx_count < 0x10000)
+    if (modem->tx_count < 0x10000 && modem->connected) {
         modem->tx_pkt_ser_line[modem->tx_count++] = data;
+        if (data == END) {
+            process_tx_packet(modem, modem->tx_pkt_ser_line, (uint32_t)modem->tx_count);
+            modem->tx_count = 0;
+        }
+    }
 }
 
 static void
@@ -237,6 +262,9 @@ host_to_modem_cb(void *priv)
         }
     }
 
+    if (!((modem->serial->mctrl & 2) || modem->flowcontrol != 3))
+        goto no_write_to_machine;
+
     if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data)) {
         serial_write_fifo(modem->serial, fifo8_pop(&modem->rx_data));
     } else if (fifo8_num_used(&modem->data_pending)) {
@@ -244,13 +272,55 @@ host_to_modem_cb(void *priv)
     }
 
 no_write_to_machine:
-    timer_on_auto(&modem->host_to_serial_timer, (1000000.0 / modem->baudrate) * (double)9);
+    timer_on_auto(&modem->host_to_serial_timer, (1000000.0 / (double)modem->baudrate) * (double)9);
 }
 
 static void
-modem_write(UNUSED(serial_t *s), void *priv, uint8_t val)
+modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 {
     modem_t* modem = (modem_t*)priv;
+
+    if (modem->mode == MODEM_MODE_COMMAND) {
+        if (modem->cmdpos < 2) {
+			// Ignore everything until we see "AT" sequence.
+			if (modem->cmdpos == 0 && toupper(txval) != 'A') {
+				return;
+			}
+
+			if (modem->cmdpos == 1 && toupper(txval) != 'T') {
+				modem_echo(modem, modem->reg[MREG_BACKSPACE_CHAR]);
+				modem->cmdpos = 0;
+				return;
+			}
+        } else {
+			// Now entering command.
+			if (txval == modem->reg[MREG_BACKSPACE_CHAR]) {
+				if (modem->cmdpos > 2) {
+					modem_echo(modem, txval);
+					modem->cmdpos--;
+				}
+				return;
+			}
+
+			if (txval == modem->reg[MREG_LF_CHAR]) {
+				return; // Real modem doesn't seem to skip this?
+			}
+
+			if (txval == modem->reg[MREG_CR_CHAR]) {
+				modem_echo(modem, txval);
+				modem_do_command(modem);
+				return;
+			}
+
+            if (modem->cmdpos < 99) {
+				modem_echo(modem, txval);
+				modem->cmdbuf[modem->cmdpos] = txval;
+				modem->cmdpos++;
+			}
+		}
+    } else {
+        modem_data_mode_process_byte(modem, txval);
+    }
 }
 
 void modem_send_res(modem_t* modem, const ResTypes response) {
@@ -310,6 +380,7 @@ modem_enter_connected_state(modem_t* modem)
     modem->mode = MODEM_MODE_DATA;
     modem->ringing = false;
     modem->connected = true;
+    memset(&modem->telClient, 0, sizeof(modem->telClient));
     serial_set_dcd(modem->serial, 1);
     serial_set_ri(modem->serial, 0);
 }
@@ -322,6 +393,7 @@ modem_reset(modem_t* modem)
 	modem->cmdbuf[0] = 0;
 	modem->flowcontrol = 0;
 	modem->plusinc = 0;
+    modem->dtrmode = 2;
 
 	memset(&modem->reg,0,sizeof(modem->reg));
 	modem->reg[MREG_AUTOANSWER_COUNT] = 0;  // no autoanswer
@@ -560,6 +632,107 @@ modem_do_command(modem_t* modem)
                     return;
                 }
             }
+
+		    case 'S': { // Registers
+		    	const uint32_t index = modem_scan_number(&scanbuf);
+		    	if (index >= 100) {
+		    		modem_send_res(modem, ResERROR);
+		    		return; //goto ret_none;
+		    	}
+
+		    	while (scanbuf[0] == ' ')
+		    		scanbuf++; // skip spaces
+
+		    	if (scanbuf[0] == '=') { // set register
+		    		scanbuf++;
+		    		while (scanbuf[0] == ' ')
+		    			scanbuf++; // skip spaces
+		    		const uint32_t val = modem_scan_number(&scanbuf);
+		    		modem->reg[index] = val;
+		    		break;
+		    	}
+		    	else if (scanbuf[0] == '?') { // get register
+		    		modem_send_number(modem, modem->reg[index]);
+		    		scanbuf++;
+		    		break;
+		    	}
+		    	// else
+		    		// LOG_MSG("SERIAL: Port %" PRIu8 " print reg %" PRIu32
+		    		//         " with %" PRIu8 ".",
+		    		//         GetPortNumber(), index, reg[index]);
+		    }
+		    break;
+		    case '&': { // & escaped commands
+		    	char cmdchar = modem_fetch_character(&scanbuf);
+		    	switch(cmdchar) {
+		    		case 'K': {
+		    		        const uint32_t val = modem_scan_number(&scanbuf);
+		    		        if (val < 5)
+		    			        modem->flowcontrol = val;
+		    		        else {
+		    			        modem_send_res(modem, ResERROR);
+		    			        return;
+		    		        }
+		    		        break;
+		    	        }
+		    	        case 'D': {
+		    		        const uint32_t val = modem_scan_number(&scanbuf);
+		    		        if (val < 4)
+		    			        modem->dtrmode = val;
+		    		        else {
+		    			        modem_send_res(modem, ResERROR);
+		    			        return;
+		    		        }
+		    		        break;
+		    	        }
+		    	        case '\0':
+		    		        // end of string
+		    		        modem_send_res(modem, ResERROR);
+		    		        return;
+		    	        }
+		    	        break;
+		    }
+		    case '\\': { // \ escaped commands
+		    	char cmdchar = modem_fetch_character(&scanbuf);
+		    	switch (cmdchar) {
+		    		case 'N':
+		    			// error correction stuff - not emulated
+		    			if (modem_scan_number(&scanbuf) > 5) {
+		    				modem_send_res(modem, ResERROR);
+		    				return;
+		    			}
+		    			break;
+		    		case '\0':
+		    			// end of string
+		    			modem_send_res(modem, ResERROR);
+		    			return;
+		    	}
+		    	break;
+		    }
+		    case '\0':
+		    	modem_send_res(modem, ResOK);
+		    	return;
+            }
+    }
+}
+
+void
+modem_dtr_callback_timer(void* priv)
+{
+    modem_t *dev = (modem_t *) priv;
+    if (dev->connected) {
+		switch (dev->dtrmode) {
+            case 1:
+                dev->mode = MODEM_MODE_COMMAND;
+                break;
+            case 2:
+                modem_send_res(dev, ResNOCARRIER);
+                modem_enter_idle_state(dev);
+                break;
+            case 3:
+                modem_send_res(dev, ResNOCARRIER);
+                modem_reset(dev);
+                break;
         }
     }
 }
@@ -571,7 +744,7 @@ modem_dtr_callback(serial_t* serial, int status, void *priv)
     if (status == 1)
         timer_disable(&dev->dtr_timer);
     else if (!timer_is_enabled(&dev->dtr_timer))
-        timer_enable(&dev->dtr_timer);
+        timer_on_auto(&dev->dtr_timer, 1000000);
 }
 
 static void
@@ -606,7 +779,12 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
     uint8_t c = 0;
     uint32_t i = 0;
 
-    if ((io_len) < (fifo8_num_free(&modem->rx_data) / 2)) {
+    if (!modem->connected) {
+        /* Drop packet. */
+        return 0;
+    }
+
+    if ((io_len) <= (fifo8_num_free(&modem->rx_data) / 2)) {
         fifo8_resize_2x(&modem->rx_data);
     }
 
@@ -637,10 +815,29 @@ modem_rcr_cb(UNUSED(struct serial_s *serial), void *priv)
 
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
-    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / dev->baudrate) * (double) 9);
+    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double)dev->baudrate) * (double) 9);
 #if 0
     serial_clear_fifo(dev->serial);
 #endif
+}
+
+static void
+modem_cmdpause_timer_callback(void *priv)
+{
+    modem_t *dev = (modem_t *) priv;
+	uint32_t guard_threashold = 0;
+
+	dev->cmdpause++;
+    guard_threashold = (uint32_t)(dev->reg[MREG_GUARD_TIME] * 20);
+	if (dev->cmdpause > guard_threashold) {
+		if (dev->plusinc == 0) {
+			dev->plusinc = 1;
+		} else if (dev->plusinc == 4) {
+			dev->mode = MODEM_MODE_COMMAND;
+			modem_send_res(dev, ResOK);
+			dev->plusinc = 0;
+		}
+	}
 }
 
 /* Initialize the device for use by the user. */
@@ -650,16 +847,50 @@ modem_init(const device_t *info)
     modem_t* modem = (modem_t*)calloc(1, sizeof(modem_t));
     memset(modem->mac, 0xfc, 6);
 
+    
+    modem->port = device_get_config_int("port");
+    modem->baudrate = device_get_config_int("baudrate");
+
+    fifo8_create(&modem->data_pending, 0x10000);
+    fifo8_create(&modem->rx_data, 0x10000);
+
+    timer_add(&modem->dtr_timer, modem_dtr_callback_timer, modem, 0);
+    timer_add(&modem->host_to_serial_timer, host_to_modem_cb, modem, 0);
+    timer_add(&modem->cmdpause_timer, modem_cmdpause_timer_callback, modem, 0);
+    timer_on_auto(&modem->cmdpause_timer, 1000);
+    modem->serial = serial_attach_ex_2(modem->port, modem_rcr_cb, modem_write, modem_dtr_callback, modem);
+
+    modem_reset(modem);
     modem->card = network_attach(instance, instance->mac, modem_rx, NULL);
     return modem;
 }
 
 void modem_close(void *priv)
 {
+    modem_t* modem = (modem_t*)priv;
+    fifo8_destroy(&modem->data_pending);
+    fifo8_destroy(&modem->rx_data);
+    netcard_close(modem->card);
     free(priv);
 }
 
 static const device_config_t modem_config[] = {
+    {
+        .name = "port",
+        .description = "Serial Port",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "COM1", .value = 0 },
+            { .description = "COM2", .value = 1 },
+            { .description = "COM3", .value = 2 },
+            { .description = "COM4", .value = 3 },
+            { .description = ""                 }
+        }
+    },
     {
         .name = "baudrate",
         .description = "Baud Rate",
@@ -669,10 +900,6 @@ static const device_config_t modem_config[] = {
         .file_filter = NULL,
         .spinner = { 0 },
         .selection = {
-#if 0
-            { .description = "256000", .value = 256000 },
-            { .description = "128000", .value = 128000 },
-#endif
             { .description = "115200", .value = 115200 },
             { .description =  "57600", .value =  57600 },
             { .description =  "56000", .value =  56000 },
@@ -694,7 +921,7 @@ static const device_config_t modem_config[] = {
 
 const device_t modem_device = {
     .name          = "Standard Hayes-compliant Modem",
-    .flags         = 0,
+    .flags         = DEVICE_COM,
     .local         = 0,
     .init          = modem_init,
     .close         = modem_close,

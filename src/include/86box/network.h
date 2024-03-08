@@ -225,6 +225,9 @@ extern const device_t pcnet_am79c970a_device;
 extern const device_t pcnet_am79c973_device;
 extern const device_t pcnet_am79c973_onboard_device;
 
+/* Modem */
+extern const device_t modem_device;
+
 /* PLIP */
 #ifdef EMU_LPT_H
 extern const lpt_device_t lpt_plip_device;

@@ -589,8 +589,8 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 serial_do_irq(dev, 0);
             if ((val ^ dev->mctrl) & 0x10)
                 serial_reset_fifo(dev);
-            if (dev->sd && dev->sd->dtr_callback)
-                dev->sd->dtr_callback(dev, val, dev->sd->priv);
+            if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
+                dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
             dev->mctrl = val;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
