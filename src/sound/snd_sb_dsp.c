@@ -228,7 +228,10 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     /* TODO: Investigate real hardware for this (the ES1887 datasheet documents this bit somewhat oddly.) */
     if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
         if (!(ESSreg(0xB1) & 0x40)) // if ESS playback, and IRQ disabled, do not fire
+        {
+            pclog("ess: IRQ was masked");
             return;
+        }
     }
 
     if (set && !masked)
@@ -240,6 +243,7 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
 void
 sb_irq(sb_dsp_t *dsp, int irq8)
 {
+    pclog("sb: IRQ raised\n");
     sb_update_status(dsp, !irq8, 1);
 }
 
@@ -330,6 +334,9 @@ sb_doreset(sb_dsp_t *dsp)
 
     dsp->sb_asp_regs[5] = 0x01;
     dsp->sb_asp_regs[9] = 0xf8;
+
+    /* Initialize ESS registers */
+    ESSreg(0xA5) = 0xf8;
 }
 
 void
@@ -596,7 +603,6 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
         case 7:     t |= 0xA; break;
         case 10:    t |= 0xF; break;
     }
-    pclog("ESSreg 0xB1 was %02X, irqnum is %d, t is %02X; new 0xB1 is %02X\n", ESSreg(0xB1), dsp->sb_irqnum, t, (ESSreg(0xB1) & 0xF0) | t);
     ESSreg(0xB1) = (ESSreg(0xB1) & 0xF0) | t;
 
     /* DRQ control */
@@ -704,11 +710,16 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
     switch (reg) {
         case 0xA1: /* Extended Mode Sample Rate Generator */
         {
+            double temp;
             ESSreg(reg) = data;
             if (data & 0x80)
                 dsp->sb_freq = 795500UL / (256ul - data);
             else
                 dsp->sb_freq = 397700UL / (128ul - data);
+            temp = 1000000.0 / dsp->sb_freq;
+            dsp->sblatchi = dsp->sblatcho = TIMER_USEC * temp;
+            dsp->sb_timei = dsp->sb_timeo;
+            pclog("ess: Sample rate - %ihz (%f)\n", dsp->sb_freq, dsp->sblatcho);
 
             break;
         }
@@ -720,6 +731,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
         case 0xA5: /* DMA Transfer Count Reload (high) */
             ESSreg(reg) = data;
             sb_ess_update_autolen(dsp);
+            pclog("ess: DMA Transfer Count Reload length set to %d samples\n", sb_ess_get_dma_len(dsp));
             if ((dsp->sb_16_length < 0 && !dsp->sb_16_enable) && (dsp->sb_8_length < 0 && !dsp->sb_8_enable))
                 dsp->ess_reload_len = 1;
             break;
@@ -855,6 +867,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             break;
 
         default:
+            pclog("UNKNOWN ESS register write reg=%02xh val=%02xh\n",reg,data);
             break;
     }
 }
@@ -870,8 +883,21 @@ sb_exec_command(sb_dsp_t *dsp)
     /* Update 8051 ram with the current DSP command.
        See https://github.com/joncampbell123/dosbox-x/issues/1044 */
     if (dsp->sb_type >= SB16)
+    {
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
-        pclog("dsp->sb_command = 0x%X\n", dsp->sb_command);
+    }
+    
+    {
+        int i;
+        char data_s[256];
+        data_s[0] = '\0';
+
+        for (i = 0; i < sb_commands[dsp->sb_command]; i++)
+        {
+            snprintf(data_s, 256, " 0x%02X", dsp->sb_data[i]);
+        }
+        pclog("dsp->sb_command = 0x%02X%s, length %d\n", dsp->sb_command, data_s, sb_commands[dsp->sb_command]);
+    }
 
     if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
         if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7) {
@@ -1083,7 +1109,8 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->sblatcho = dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_data[0]);
             temp                          = 256 - dsp->sb_data[0];
             temp                          = 1000000 / temp;
-            sb_dsp_log("Sample rate - %ihz (%i)\n", temp, dsp->sblatcho);
+            sb_dsp_log("Sample rate - %ihz (%f)\n", temp, dsp->sblatcho);
+            pclog("Sample rate - %ihz (%f)\n", temp, dsp->sblatcho);
             if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16))
                 recalc_sb16_filter(0, temp);
             dsp->sb_freq = temp;
@@ -1095,7 +1122,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x42: /* Set input sampling rate */
             if (dsp->sb_type >= SB16) {
                 dsp->sblatcho = (uint64_t) (TIMER_USEC * (1000000.0f / (float) (dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
-                sb_dsp_log("Sample rate - %ihz (%i)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
+                sb_dsp_log("Sample rate - %ihz (%f)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
+                pclog("Sample rate - %ihz (%f)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
                 temp          = dsp->sb_freq;
                 dsp->sb_freq  = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
                 dsp->sb_timeo = 256LL + dsp->sb_freq;
@@ -1396,6 +1424,8 @@ sb_write(uint16_t a, uint8_t v, void *priv)
     if (dsp->sb_type < SB16 && (!IS_ESS(dsp) || (IS_ESS(dsp) && ((a & 0xF) != 0xE))))
         a &= 0xfffe;
 
+    //pclog("sb: port write %03x %02x\n", a, v);
+
     switch (a & 0xF) {
         case 6: /* Reset */
             if (!dsp->uart_midi) {
@@ -1428,8 +1458,6 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                 if (v == 0x01)
                     sb_add_data(dsp, 0);
                 dsp->sb_data_stat++;
-            } else {
-                dsp->sb_data[dsp->sb_data_stat++] = v;
                 if (IS_AZTECH(dsp)) {
                     /* variable length commands */
                     if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
@@ -1444,6 +1472,8 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                         sb_commands[dsp->sb_command] = -1;
                     }
                 }
+            } else {
+                dsp->sb_data[dsp->sb_data_stat++] = v;
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
                 sb_exec_command(dsp);
@@ -1469,7 +1499,13 @@ sb_read(uint16_t a, void *priv)
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
     if (dsp->sb_type < SB16)
-        a &= 0xfffe;
+    {
+        /* Exception: ESS AudioDrive does not alias port base+0xf */
+        if (!IS_ESS(dsp) || !((a & 0xF) == 0xF))
+        {
+            a &= 0xfffe;
+        }
+    }
 
     switch (a & 0xf) {
         case 0xA: /* Read data */
@@ -1509,6 +1545,10 @@ sb_read(uint16_t a, void *priv)
             break;
         case 0xE: /* Read data ready */
             dsp->irq_update(dsp->irq_priv, 0);
+            if (dsp->sb_irq8 || dsp->sb_irq16)
+            {
+                pclog("sb: IRQ acknowledged\n");
+            }
             dsp->sb_irq8 = dsp->sb_irq16 = 0;
             /* Only bit 7 is defined but aztech diagnostics fail if the others are set. Keep the original behavior to not interfere with what's already working. */
             if (IS_AZTECH(dsp)) {
@@ -1520,16 +1560,25 @@ sb_read(uint16_t a, void *priv)
             }
             break;
         case 0xF: /* 16-bit ack */
-            dsp->sb_irq16 = 0;
-            if (!dsp->sb_irq8)
-                dsp->irq_update(dsp->irq_priv, 0);
-            sb_dsp_log("SB 16-bit ACK read 0xFF\n");
+            if (!IS_ESS(dsp))
+            {
+                if (dsp->sb_irq16)
+                {
+                    pclog("sb: 16-bit IRQ acknowledged");
+                }
+                dsp->sb_irq16 = 0;
+                if (!dsp->sb_irq8)
+                    dsp->irq_update(dsp->irq_priv, 0);
+                sb_dsp_log("SB 16-bit ACK read 0xFF\n");
+            }
             ret = 0xff;
             break;
 
         default:
             break;
     }
+    
+    //pclog("sb: port read %03x %02x\n", a, ret);
 
     return ret;
 }
@@ -1634,6 +1683,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     dsp->sb_8051_ram[0x37] = 0x38;
 
     memset(dsp->sb_asp_ram, 0xff, sizeof(dsp->sb_asp_ram));
+
 }
 
 void
@@ -1692,6 +1742,7 @@ sb_ess_finish_dma(sb_dsp_t *dsp)
         return;
     ESSreg(0xB8) &= ~0x01;
     dma_set_drq(dsp->sb_8_dmanum, 0);
+    pclog("ess: DMA finished");
 }
 
 void
@@ -1885,6 +1936,7 @@ pollsb(void *priv)
             default:
                 break;
         }
+
 
         if (dsp->sb_8_length < 0) {
             if (dsp->sb_8_autoinit)

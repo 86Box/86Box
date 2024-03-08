@@ -335,7 +335,10 @@ ess_mixer_read(uint16_t addr, void *priv)
             return mixer->regs[mixer->index];
 
         case 0x40:
+
+            if (0)
             {
+                // not on ES1688
                 uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
                 uint8_t pos_log = mixer->ess_id_str_pos; /* TODO remove */
                 mixer->ess_id_str_pos++;
@@ -343,6 +346,11 @@ ess_mixer_read(uint16_t addr, void *priv)
                     mixer->ess_id_str_pos = 0;
                 pclog("ess: ID READ: %02X (pos %d)\n", val, pos_log);
                 return val;
+            }
+            else
+            {
+                pclog("ess: Mixer Register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                return mixer->regs[mixer->index];
             }
 
         default:
