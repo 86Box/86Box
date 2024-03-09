@@ -550,6 +550,7 @@ extern const device_t ibm_ps1_2121_device;
 /* Trident TVGA 8900 */
 extern const device_t tvga8900b_device;
 extern const device_t tvga8900d_device;
+extern const device_t tvga8900dr_device;
 extern const device_t tvga9000b_device;
 extern const device_t nec_sv9000_device;
 
