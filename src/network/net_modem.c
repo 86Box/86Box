@@ -268,7 +268,9 @@ host_to_modem_cb(void *priv)
     if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data)) {
         serial_write_fifo(modem->serial, fifo8_pop(&modem->rx_data));
     } else if (fifo8_num_used(&modem->data_pending)) {
-        serial_write_fifo(modem->serial, fifo8_pop(&modem->data_pending));
+        uint8_t val = fifo8_pop(&modem->data_pending);
+        fprintf(stderr, "%c", val);
+        serial_write_fifo(modem->serial, val);
     }
 
 no_write_to_machine:
@@ -281,6 +283,7 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
     modem_t* modem = (modem_t*)priv;
 
     if (modem->mode == MODEM_MODE_COMMAND) {
+        fprintf(stderr, "%c", txval);
         if (modem->cmdpos < 2) {
 			// Ignore everything until we see "AT" sequence.
 			if (modem->cmdpos == 0 && toupper(txval) != 'A') {
@@ -861,7 +864,7 @@ modem_init(const device_t *info)
     modem->serial = serial_attach_ex_2(modem->port, modem_rcr_cb, modem_write, modem_dtr_callback, modem);
 
     modem_reset(modem);
-    modem->card = network_attach(instance, instance->mac, modem_rx, NULL);
+    modem->card = network_attach(modem, modem->mac, modem_rx, NULL);
     return modem;
 }
 
@@ -921,6 +924,7 @@ static const device_config_t modem_config[] = {
 
 const device_t modem_device = {
     .name          = "Standard Hayes-compliant Modem",
+    .internal_name = "modem",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = modem_init,
