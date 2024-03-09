@@ -131,7 +131,6 @@ option(RTMIDI       "RtMidi"                                                    
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(VNC          "VNC renderer"                                                  OFF)
-option(DINPUT       "DirectInput"                                                   OFF)
 option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)

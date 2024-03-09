@@ -141,6 +141,7 @@ extern int      fpu_type;                   /* (C) fpu type */
 extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
 extern int      hdd_format_type;            /* (C) hard disk file format */
+extern int      lba_enhancer_enabled;       /* (C) enable Vision Systems LBA Enhancer */
 extern int      confirm_reset;              /* (C) enable reset confirmation */
 extern int      confirm_exit;               /* (C) enable exit confirmation */
 extern int      confirm_save;               /* (C) enable save confirmation */

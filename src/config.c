@@ -876,6 +876,8 @@ load_storage_controllers(void)
             path_normalize(cart_fns[c]);
         }
     }
+
+    lba_enhancer_enabled = !!ini_section_get_int(cat, "lba_enhancer_enabled", 0);
 }
 
 /* Load "Hard Disks" section. */
@@ -2342,6 +2344,11 @@ save_storage_controllers(void)
         else
             ini_section_set_string(cat, temp, cart_fns[c]);
     }
+
+    if (lba_enhancer_enabled == 0)
+        ini_section_delete_var(cat, "lba_enhancer_enabled");
+    else
+        ini_section_set_int(cat, "lba_enhancer_enabled", 1);
 }
 
 /* Save "Other Peripherals" section. */

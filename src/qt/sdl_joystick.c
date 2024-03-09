@@ -1,28 +1,53 @@
-// Lifted from wx-sdl2-joystick.c in PCem
-
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          SDL2 joystick interface.
+ *
+ *
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *          Copyright 2017-2021 Sarah Walker
+ *          Copyright 2021 Joakim L. Gilje
+ */
 #include <SDL2/SDL.h>
 
-#include <algorithm>
-
-extern "C" {
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
+/* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
+#undef HAVE_STDARG_H
+#define HAVE_STDARG_H
+#include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
+#include <86box/plat_unused.h>
 
 int                  joysticks_present;
 joystick_t           joystick_state[MAX_JOYSTICKS];
 plat_joystick_t      plat_joystick_state[MAX_PLAT_JOYSTICKS];
 static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
-}
-
-#include <algorithm>
 
 #ifndef M_PI
 #    define M_PI 3.14159265358979323846
 #endif
 
 void
-joystick_init()
+joystick_init(void)
 {
+    /* This is needed for SDL's Windows raw input backend to work properly without SDL video. */
+    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+
     if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
         return;
     }
@@ -36,9 +61,9 @@ joystick_init()
             int d;
 
             strncpy(plat_joystick_state[c].name, SDL_JoystickNameForIndex(c), 64);
-            plat_joystick_state[c].nr_axes    = std::min(SDL_JoystickNumAxes(sdl_joy[c]), MAX_JOY_AXES);
-            plat_joystick_state[c].nr_buttons = std::min(SDL_JoystickNumButtons(sdl_joy[c]), MAX_JOY_BUTTONS);
-            plat_joystick_state[c].nr_povs    = std::min(SDL_JoystickNumHats(sdl_joy[c]), MAX_JOY_POVS);
+            plat_joystick_state[c].nr_axes    = MIN(SDL_JoystickNumAxes(sdl_joy[c]), MAX_JOY_AXES);
+            plat_joystick_state[c].nr_buttons = MIN(SDL_JoystickNumButtons(sdl_joy[c]), MAX_JOY_BUTTONS);
+            plat_joystick_state[c].nr_povs    = MIN(SDL_JoystickNumHats(sdl_joy[c]), MAX_JOY_POVS);
 
             for (d = 0; d < plat_joystick_state[c].nr_axes; d++) {
                 snprintf(plat_joystick_state[c].axis[d].name, sizeof(plat_joystick_state[c].axis[d].name), "Axis %i", d);
@@ -57,7 +82,7 @@ joystick_init()
 }
 
 void
-joystick_close()
+joystick_close(void)
 {
     int c;
 
@@ -103,8 +128,9 @@ joystick_get_axis(int joystick_nr, int mapping)
     } else
         return plat_joystick_state[joystick_nr].a[plat_joystick_state[joystick_nr].axis[mapping].id];
 }
+
 void
-joystick_process()
+joystick_process(void)
 {
     int c;
     int d;
@@ -160,3 +186,11 @@ joystick_process()
         }
     }
 }
+
+#ifdef _WIN32
+void
+win_joystick_handle(UNUSED(void *raw))
+{
+    /* Nothing to be done here, atleast currently */
+}
+#endif

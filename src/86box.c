@@ -183,6 +183,7 @@ int      gfxcard[2]                             = { 0, 0 };       /* (C) graphic
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                         = 1;              /* (C) sound uses FP values */
 int      voodoo_enabled                         = 0;              /* (C) video option */
+int      lba_enhancer_enabled                   = 0;              /* (C) enable Vision Systems LBA Enhancer */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
 uint32_t mem_size                               = 0;              /* (C) memory size (Installed on
@@ -1228,6 +1229,10 @@ pc_reset_hard_init(void)
         device_add(&postcard_device);
     if (unittester_enabled)
         device_add(&unittester_device);
+
+    if (lba_enhancer_enabled)
+        device_add(&lba_enhancer_device);
+
     if (novell_keycard_enabled)
         device_add(&novell_keycard_device);
 

@@ -39,6 +39,10 @@ private slots:
     void on_comboBoxHD_currentIndexChanged(int index);
     void on_comboBoxCDInterface_currentIndexChanged(int index);
 
+    void on_checkBoxLbaEnhancer_stateChanged(int arg1);
+
+    void on_pushButtonConfigureLbaEnhancer_clicked();
+
 private:
     Ui::SettingsStorageControllers *ui;
     int                             machineId = 0;

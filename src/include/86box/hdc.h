@@ -103,6 +103,9 @@ extern const device_t xtide_at_device;        /* xtide_at */
 extern const device_t xtide_acculogic_device; /* xtide_ps2 */
 extern const device_t xtide_at_ps2_device;    /* xtide_at_ps2 */
 
+/* Miscellaneous */
+extern const device_t lba_enhancer_device;
+
 extern void hdc_init(void);
 extern void hdc_reset(void);
 
