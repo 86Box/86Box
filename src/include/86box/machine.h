@@ -521,6 +521,7 @@ extern int machine_at_403tg_d_init(const machine_t *);
 extern int machine_at_403tg_d_mr_init(const machine_t *);
 extern int machine_at_pb450_init(const machine_t *);
 extern int machine_at_pb450_init(const machine_t *);
+extern int machine_at_aptiva_510_init(const machine_t *);
 extern int machine_at_pc330_6573_init(const machine_t *);
 extern int machine_at_mvi486_init(const machine_t *);
 
@@ -705,6 +706,7 @@ extern int machine_at_pb810_init(const machine_t *);
 extern int machine_at_mb520n_init(const machine_t *);
 extern int machine_at_i430vx_init(const machine_t *);
 
+extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_AN430TX)
@@ -799,6 +801,7 @@ extern int machine_at_borapro_init(const machine_t *);
 extern int machine_at_ms6168_init(const machine_t *);
 
 extern int machine_at_p6f99_init(const machine_t *);
+extern int machine_at_m747_init(const machine_t *);
 
 /* m_at_slot2.c */
 extern int machine_at_6gxu_init(const machine_t *);

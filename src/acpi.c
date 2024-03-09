@@ -1733,6 +1733,9 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x1c:
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0xff << shift32)) | ((val & 0xff) << shift32));
+            if (!strcmp(machine_get_internal_name(), "m747") && (val & 0x10) &&
+                !(dev->regs.gpe_io & 0x00000010))
+                resetx86();
             break;
         case 0x1d:
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0x0f << shift32)) | ((val & 0x0f) << shift32));

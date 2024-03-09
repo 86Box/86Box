@@ -144,6 +144,7 @@ video_cards[] = {
     { &sigma_device                                    },
     { &tvga8900b_device                                },
     { &tvga8900d_device                                },
+    { &tvga8900dr_device                               },
     { &tvga9000b_device                                },
     { &nec_sv9000_device                               },
     { &et4000k_isa_device                              },
