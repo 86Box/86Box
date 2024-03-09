@@ -706,6 +706,7 @@ extern int machine_at_pb810_init(const machine_t *);
 extern int machine_at_mb520n_init(const machine_t *);
 extern int machine_at_i430vx_init(const machine_t *);
 
+extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_AN430TX)
