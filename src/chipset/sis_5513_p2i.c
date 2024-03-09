@@ -86,6 +86,7 @@ typedef struct sis_5513_pci_to_isa_t {
     port_92_t         *port_92;
     void              *pit;
     nvr_t             *nvr;
+    char              *fn;
     ddma_t            *ddma;
     acpi_t            *acpi;
     void              *smbus;
@@ -1077,7 +1078,6 @@ sis_5513_11_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->sis->ide_bits_1_3_writable = 0;
     dev->sis->usb_enabled = 0;
 
-    sis_5513_apc_reset(dev);
     sis_5513_apc_recalc(dev, 0);
 }
 
@@ -1132,7 +1132,6 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
 
     dev->sis->usb_enabled = 0;
 
-    sis_5513_apc_reset(dev);
     sis_5513_apc_recalc(dev, 0);
 
     if (dev->rev == 0x81)
@@ -1196,6 +1195,17 @@ static void
 sis_5513_pci_to_isa_close(void *priv)
 {
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
+    FILE      *fp  = NULL;
+
+    fp = nvr_fopen(dev->fn, "wb");
+
+    if (fp != NULL) {
+        (void) fwrite(dev->apc_regs, 256, 1, fp);
+        fclose(fp);
+    }
+
+    if (dev->fn != NULL)
+        free(dev->fn);
 
     free(dev);
 }
@@ -1205,6 +1215,8 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
 {
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) calloc(1, sizeof(sis_5513_pci_to_isa_t));
     uint8_t pit_is_fast = (((pit_mode == -1) && is486) || (pit_mode == 1));
+    FILE      *fp = NULL;
+    int        c;
 
     dev->rev = info->local;
 
@@ -1272,6 +1284,22 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
             dev->sis->acpi->priv = dev->sis;
             acpi_set_slot(dev->sis->acpi, dev->sis->sb_pci_slot);
             acpi_set_nvr(dev->sis->acpi, dev->nvr);
+
+            /* Set up the NVR file's name. */
+            c       = strlen(machine_get_internal_name()) + 9;
+            dev->fn = (char *) malloc(c + 1);
+            sprintf(dev->fn, "%s_apc.nvr", machine_get_internal_name());
+
+            fp = nvr_fopen(dev->fn, "rb");
+
+            memset(dev->apc_regs, 0x00, sizeof(dev->apc_regs));
+            sis_5513_apc_reset(dev);
+            if (fp != NULL) {
+                if (fread(dev->apc_regs, 1, 256, fp) != 256)
+                    fatal("sis_5513_pci_to_isa_init(): Error reading APC data\n");
+                fclose(fp);
+            }
+
             acpi_set_irq_mode(dev->sis->acpi, 2);
             break;
     }
