@@ -267,9 +267,9 @@ host_to_modem_cb(void *priv)
 
     if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data)) {
         serial_write_fifo(modem->serial, fifo8_pop(&modem->rx_data));
+        fprintf(stderr, "(data)\n");
     } else if (fifo8_num_used(&modem->data_pending)) {
         uint8_t val = fifo8_pop(&modem->data_pending);
-        fprintf(stderr, "%c", val);
         serial_write_fifo(modem->serial, val);
     }
 
@@ -283,7 +283,6 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
     modem_t* modem = (modem_t*)priv;
 
     if (modem->mode == MODEM_MODE_COMMAND) {
-        fprintf(stderr, "%c", txval);
         if (modem->cmdpos < 2) {
 			// Ignore everything until we see "AT" sequence.
 			if (modem->cmdpos == 0 && toupper(txval) != 'A') {
@@ -314,12 +313,12 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 				modem_do_command(modem);
 				return;
 			}
+		}
 
-            if (modem->cmdpos < 99) {
-				modem_echo(modem, txval);
-				modem->cmdbuf[modem->cmdpos] = txval;
-				modem->cmdpos++;
-			}
+        if (modem->cmdpos < 99) {
+			modem_echo(modem, txval);
+			modem->cmdbuf[modem->cmdpos] = txval;
+			modem->cmdpos++;
 		}
     } else {
         modem_data_mode_process_byte(modem, txval);
@@ -492,6 +491,8 @@ modem_do_command(modem_t* modem)
 		modem_send_res(modem, ResERROR);
 		return;
 	}
+
+    pclog("Command received: %s (doresponse = %d)\n", modem->cmdbuf, modem->doresponse);
 
     scanbuf = &modem->cmdbuf[2];
 
