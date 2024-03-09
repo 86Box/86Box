@@ -418,7 +418,10 @@ tvga_init(const device_t *info)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
         tvga->vram_size = 512 << 10;
     } else {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
+        if (info->local & 0x0100)
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
+        else
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
         tvga->vram_size = device_get_config_int("memory") << 10;
     }
 
