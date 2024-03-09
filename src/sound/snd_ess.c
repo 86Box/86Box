@@ -135,7 +135,6 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
         mixer->regs[0x01] = val;
         if (val == 0x40)
         {
-            pclog("ess: Mixer addr 0x40 selected, ID string offset reset\n");
             mixer->ess_id_str_pos = 0;
         }
     } else {
@@ -211,20 +210,21 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
-                        /* This doesn't work yet. */
-#if 1
-                        io_removehandler(0x0388, 0x0004,
-                                         ess->opl.read, NULL, NULL,
-                                         ess->opl.write, NULL, NULL,
-                                         ess->opl.priv);
-                        if ((mixer->regs[0x40] & 0x1) != 0)
+                        if (0)
                         {
-                            io_sethandler(0x0388, 0x0004,
-                                          ess->opl.read, NULL, NULL,
-                                          ess->opl.write, NULL, NULL,
-                                          ess->opl.priv);
+                            /* Not on ES1688. */
+                            io_removehandler(0x0388, 0x0004,
+                                            ess->opl.read, NULL, NULL,
+                                            ess->opl.write, NULL, NULL,
+                                            ess->opl.priv);
+                            if ((mixer->regs[0x40] & 0x1) != 0)
+                            {
+                                io_sethandler(0x0388, 0x0004,
+                                            ess->opl.read, NULL, NULL,
+                                            ess->opl.write, NULL, NULL,
+                                            ess->opl.priv);
+                            }
                         }
-#endif
                         switch ((mixer->regs[0x40] >> 5) & 0x7) {
                             case 0:
                                 mpu401_change_addr(ess->mpu, 0x00);
@@ -338,7 +338,7 @@ ess_mixer_read(uint16_t addr, void *priv)
 
             if (0)
             {
-                // not on ES1688
+                /* not on ES1688 */
                 uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
                 uint8_t pos_log = mixer->ess_id_str_pos; /* TODO remove */
                 mixer->ess_id_str_pos++;
@@ -475,6 +475,7 @@ ess_1688_init(UNUSED(const device_t *info))
     sb_dsp_setdma16_8(&ess->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
+
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     {
         io_sethandler(addr, 0x0004,
@@ -502,7 +503,6 @@ ess_1688_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
-
     {
         ess->mixer_sbpro.ess_id_str[0] = 0x16;
         ess->mixer_sbpro.ess_id_str[1] = 0x88;

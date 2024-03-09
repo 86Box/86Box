@@ -716,6 +716,11 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
                 dsp->sb_freq = 795500UL / (256ul - data);
             else
                 dsp->sb_freq = 397700UL / (128ul - data);
+            // TODO: check if this command updates the filter or not
+            sb_ess_update_filter_freq(dsp);
+            ESSreg(reg) = data; /* HACK: sb_ess_update_filter_freq updates 0xA1.
+                                 * I'm not sure if that could cause an off by one
+                                 * error, so this is just to be safe. */
             temp = 1000000.0 / dsp->sb_freq;
             dsp->sblatchi = dsp->sblatcho = TIMER_USEC * temp;
             dsp->sb_timei = dsp->sb_timeo;
