@@ -60,6 +60,7 @@ typedef struct tvga_t {
 } tvga_t;
 
 video_timings_t timing_tvga8900 = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 8, .read_w = 8, .read_l = 12 };
+video_timings_t timing_tvga8900dr = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
 video_timings_t timing_tvga9000 = { .type = VIDEO_ISA, .write_b = 7, .write_w = 7, .write_l = 12, .read_b = 7, .read_w = 7, .read_l = 12 };
 
 static uint8_t crtc_mask[0x40] = {
@@ -419,7 +420,7 @@ tvga_init(const device_t *info)
         tvga->vram_size = 512 << 10;
     } else {
         if (info->local & 0x0100)
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900dr);
         else
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
         tvga->vram_size = device_get_config_int("memory") << 10;
