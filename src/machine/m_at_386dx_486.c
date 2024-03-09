@@ -693,17 +693,9 @@ machine_at_pb450_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse */
+static void
+machine_at_pc330_6573_common_init(const machine_t *model)
 {
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc330_6573/$IMAGES.USF",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
     machine_at_common_init_ex(model, 2);
     device_add(&ide_vlb_2ch_device);
 
@@ -718,7 +710,7 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
     pci_register_slot(0x0E, PCI_CARD_VIDEO,       13, 14, 15, 16);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5430_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&opti602_device);
     device_add(&opti802g_device);
@@ -727,6 +719,36 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
     device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
+}
+
+int
+machine_at_aptiva_cm_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/aptiva_cm/$IMAGES.USF",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_pc330_6573_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_pc330_6573_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc330_6573/$IMAGES.USF",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_pc330_6573_common_init(model);
 
     return ret;
 }
