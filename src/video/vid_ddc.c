@@ -169,7 +169,7 @@ ddc_init(void *i2c)
     STANDARD_TIMING(standard_timings[2], 1366, STD_ASPECT_16_9, 60);  /* 1360x768 (closest to 1366x768) */
     STANDARD_TIMING(standard_timings[3], 1440, STD_ASPECT_16_10, 60); /* 1440x900 */
     STANDARD_TIMING(standard_timings[4], 1600, STD_ASPECT_16_9, 60);  /* 1600x900 */
-    STANDARD_TIMING(standard_timings[5], 1680, STD_ASPECT_16_10, 60); /* 1680x1050 */
+    STANDARD_TIMING(standard_timings[5], 1600, STD_ASPECT_4_3, 60);   /* 1600x1200 */
     STANDARD_TIMING(standard_timings[6], 1920, STD_ASPECT_16_9, 60);  /* 1920x1080 */
     STANDARD_TIMING(standard_timings[7], 2048, STD_ASPECT_4_3, 60);   /* 2048x1536 */
 
@@ -210,12 +210,12 @@ ddc_init(void *i2c)
     /* High refresh rate timings (VGA is limited to 85 Hz) */
     edid->ext_descriptors[1].tag = 0xfa; /* standard timing identifiers */
 #define ext_standard_timings0 ext_descriptors[1].ext_standard_timings.timings
-    STANDARD_TIMING(ext_standard_timings0[0], 640, STD_ASPECT_4_3, 90);  /* 640x480 @ 90 Hz */
-    STANDARD_TIMING(ext_standard_timings0[1], 640, STD_ASPECT_4_3, 120); /* 640x480 @ 120 Hz */
-    STANDARD_TIMING(ext_standard_timings0[2], 800, STD_ASPECT_4_3, 90);  /* 800x600 @ 90 Hz */
-    STANDARD_TIMING(ext_standard_timings0[3], 800, STD_ASPECT_4_3, 120); /* 800x600 @ 120 Hz */
-    STANDARD_TIMING(ext_standard_timings0[4], 1024, STD_ASPECT_4_3, 90); /* 1024x768 @ 90 Hz */
-    STANDARD_TIMING(ext_standard_timings0[5], 1280, STD_ASPECT_5_4, 90); /* 1280x1024 @ 90 Hz */
+    STANDARD_TIMING(ext_standard_timings0[0], 640, STD_ASPECT_4_3, 85);    /* 640x480 @ 85 Hz */
+    STANDARD_TIMING(ext_standard_timings0[1], 800, STD_ASPECT_4_3, 85);    /* 800x600 @ 85 Hz */
+    STANDARD_TIMING(ext_standard_timings0[2], 1024, STD_ASPECT_4_3, 85);   /* 1024x768 @ 85 Hz */
+    STANDARD_TIMING(ext_standard_timings0[3], 1280, STD_ASPECT_5_4, 85);   /* 1280x1024 @ 85 Hz */
+    STANDARD_TIMING(ext_standard_timings0[4], 1600, STD_ASPECT_4_3, 85);   /* 1600x1200 @ 85 Hz */
+    STANDARD_TIMING(ext_standard_timings0[5], 1680, STD_ASPECT_16_10, 60); /* 1680x1050 @ 60 Hz (previously in standard timings) */
     edid->ext_descriptors[1].ext_standard_timings.padding = 0x0a;
 
     for (uint8_t c = 128; c < 255; c++)
