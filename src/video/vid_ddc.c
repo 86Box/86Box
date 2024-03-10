@@ -138,12 +138,12 @@ ddc_init(void *i2c)
 
     memset(&edid->magic[1], 0xff, sizeof(edid->magic) - 2);
 
-    edid->mfg[0]       = 0x09; /* manufacturer "BOX" (apparently unassigned by UEFI) */
+    edid->mfg[0]       = 0x09; /* manufacturer "BOX" (currently unassigned by UEFI) */
     edid->mfg[1]       = 0xf8;
     edid->mfg_week     = 48;
     edid->mfg_year     = 2020 - 1990;
     edid->edid_version = 0x01;
-    edid->edid_rev     = 0x04; /* EDID 1.4, required for Xorg on Linux to use the preferred mode timing */
+    edid->edid_rev     = 0x04; /* EDID 1.4, required for Xorg on newer Linux to use the preferred mode timing instead of maxing out */
 
     edid->input_params = 0x0e; /* analog input; separate sync; composite sync; sync on green */
     edid->horiz_size   = round(horiz_mm / 10.0);
@@ -207,7 +207,7 @@ ddc_init(void *i2c)
     /* Detailed timing for 1366x768 */
     DETAILED_TIMING(ext_detailed_timings[0], 85500, 1366, 768, 426, 30, 70, 143, 3, 3);
 
-    /* High refresh rate timings (VGA is limited to 85 Hz) */
+    /* High refresh rate timings (within the standard 85 Hz VGA limit) */
     edid->ext_descriptors[1].tag = 0xfa; /* standard timing identifiers */
 #define ext_standard_timings0 ext_descriptors[1].ext_standard_timings.timings
     STANDARD_TIMING(ext_standard_timings0[0], 640, STD_ASPECT_4_3, 85);    /* 640x480 @ 85 Hz */
