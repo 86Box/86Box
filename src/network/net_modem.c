@@ -1,3 +1,6 @@
+
+/* TODO: SLIP support. */
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -14,6 +17,7 @@
 #include <86box/fifo8.h>
 #include <86box/timer.h>
 #include <86box/serial.h>
+#include <86box/plat.h>
 #include <86box/network.h>
 #include <86box/plat_unused.h>
 
@@ -47,6 +51,18 @@ typedef enum modem_mode_t
     MODEM_MODE_COMMAND = 0,
     MODEM_MODE_DATA = 1
 } modem_mode_t;
+
+typedef enum modem_slip_stage_t
+{
+    MODEM_SLIP_STAGE_USERNAME,
+    MODEM_SLIP_STAGE_PASSWORD
+} modem_slip_stage_t;
+
+typedef struct modem_phonebook_entry_t
+{
+    char phone[1024];
+    char address[1024];
+} modem_phonebook_entry_t;
 
 typedef struct modem_t
 {
@@ -90,6 +106,9 @@ typedef struct modem_t
 		bool recCommand;
 		uint8_t command;
 	} telClient;
+
+    modem_phonebook_entry_t entries[20];
+    uint32_t entries_num;
     
     netcard_t *card;
 } modem_t;
@@ -106,6 +125,43 @@ static modem_t *instance;
 #define MREG_DTR_DELAY 25
 
 static void modem_do_command(modem_t* modem);
+
+extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
+
+static void
+modem_read_phonebook_file(modem_t* modem, const char* path)
+{
+    FILE* file = plat_fopen(path, "r");
+    char* buf = NULL;
+    size_t size = 0;
+    if (!file)
+        return;
+
+    modem->entries_num = 0;
+
+    while (local_getline(&buf, &size, file) != -1) {
+        modem_phonebook_entry_t entry = { { 0 }, { 0 } };
+        int res = 0;
+        buf[strcspn(buf, "\r\n")] = 0;
+
+        res = sscanf(buf, "%s %s", entry.phone, entry.address);
+
+        if (res == 0 || res == 1) {
+            /* Appears to be a bad line. */
+            continue;
+        }
+
+        if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
+            /* Invalid characters. */
+            continue;
+        }
+        
+        modem->entries[modem->entries_num++] = entry;
+        if (modem->entries_num >= 20)
+            break;
+    }
+    fclose(file);
+}
 
 static void
 modem_echo(modem_t* modem, uint8_t c)
@@ -190,6 +246,8 @@ process_tx_packet(modem_t *modem, uint8_t *p, uint32_t len)
     uint8_t *processed_tx_packet = calloc(len, 1);
     uint8_t  c                   = 0;
 
+    pclog("Processing SLIP packet of %u bytes\n", len);
+
     while (pos < len) {
         c = p[pos];
         pos++;
@@ -223,7 +281,18 @@ process_tx_packet(modem_t *modem, uint8_t *p, uint32_t len)
     }
 
 send_tx_packet:
-    network_tx(modem->card, processed_tx_packet, received);
+    if (received)
+    {
+        uint8_t* buf = calloc(received + 14, 1);
+        buf[0] = buf[1] = buf[2] = buf[3] = buf[4] = buf[5] = 0xFF;
+        buf[6] = buf[7] = buf[8] = buf[9] = buf[10] = buf[11] = 0xFC;
+        buf[12] = 0x08;
+        buf[13] = 0x00;
+        memcpy(buf + 14, processed_tx_packet, received);
+        network_tx(modem->card, buf, received + 14);
+        free(processed_tx_packet);
+        free(buf);
+    }
     return;
 }
 
@@ -267,7 +336,6 @@ host_to_modem_cb(void *priv)
 
     if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data)) {
         serial_write_fifo(modem->serial, fifo8_pop(&modem->rx_data));
-        fprintf(stderr, "(data)\n");
     } else if (fifo8_num_used(&modem->data_pending)) {
         uint8_t val = fifo8_pop(&modem->data_pending);
         serial_write_fifo(modem->serial, val);
@@ -326,11 +394,15 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 }
 
 void modem_send_res(modem_t* modem, const ResTypes response) {
+    char response_str_connect[256] = { 0 };
 	const char* response_str = NULL;
 	uint32_t code = -1;
+
+    snprintf(response_str_connect, sizeof(response_str_connect), "CONNECT %u", modem->baudrate);
+
 	switch (response) {
 	case ResOK:         code = 0; response_str = "OK"; break;
-	case ResCONNECT:    code = 1; response_str = "CONNECT 33600"; break;
+	case ResCONNECT:    code = 1; response_str = response_str_connect; break;
 	case ResRING:       code = 2; response_str = "RING"; break;
 	case ResNOCARRIER:  code = 3; response_str = "NO CARRIER"; break;
 	case ResERROR:      code = 4; response_str = "ERROR"; break;
@@ -416,9 +488,13 @@ void
 modem_dial(modem_t* modem, const char* str)
 {
     /* TODO: Port TCP/IP support from DOSBox. */
-    if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1)) {
+    if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1))
+    {
+        pclog("Turning on SLIP\n");
         modem_enter_connected_state(modem);
-    } else {
+    }
+    else
+    {
 		modem_send_res(modem, ResNOCARRIER);
 		modem_enter_idle_state(modem);
     }
@@ -779,18 +855,30 @@ fifo8_resize_2x(Fifo8* fifo)
 static int
 modem_rx(void *priv, uint8_t *buf, int io_len)
 {
+#if 1
     modem_t* modem = (modem_t*)priv;
     uint8_t c = 0;
     uint32_t i = 0;
 
     if (!modem->connected) {
         /* Drop packet. */
+        pclog("Dropping %d bytes\n", io_len - 14);
         return 0;
     }
 
-    if ((io_len) <= (fifo8_num_free(&modem->rx_data) / 2)) {
+    if ((io_len) >= (fifo8_num_free(&modem->rx_data))) {
         fifo8_resize_2x(&modem->rx_data);
     }
+
+    if (!(buf[12] == 0x08 && buf[13] == 0x00)) {
+        pclog("Dropping %d bytes (non-IP packet (ethtype 0x%02X%02X))\n", io_len - 14, buf[12], buf[13]);
+        return 0;
+    }
+
+    pclog("Receiving %d bytes\n", io_len - 14);
+    /* Strip the Ethernet header. */
+    io_len -= 14;
+    buf += 14;
 
     fifo8_push(&modem->rx_data, END);
     for (i = 0; i < io_len; i++) {
@@ -810,6 +898,7 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
     }
     fifo8_push(&modem->rx_data, END);
     return 1;
+#endif
 }
 
 static void

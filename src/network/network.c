@@ -454,6 +454,7 @@ netcard_t *
 network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
 {
     netcard_t *card       = calloc(1, sizeof(netcard_t));
+    int net_type          = net_cards_conf[net_card_current].net_type;
     card->queued_pkt.data = calloc(1, NET_MAX_FRAME);
     card->card_drv        = card_drv;
     card->rx              = rx;
@@ -470,7 +471,12 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
         network_queue_init(&card->queues[i]);
     }
 
-    switch (net_cards_conf[net_card_current].net_type) {
+    if (!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem") && net_type >= NET_TYPE_PCAP) {
+        /* Force SLiRP here. Modem only operates on non-Ethernet frames. */
+        net_type = NET_TYPE_SLIRP;
+    }
+
+    switch (net_type) {
         case NET_TYPE_SLIRP:
             card->host_drv      = net_slirp_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, NULL, net_drv_error);
