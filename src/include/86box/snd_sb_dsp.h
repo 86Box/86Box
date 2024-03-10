@@ -130,6 +130,8 @@ typedef struct sb_dsp_t {
     pc_timer_t wb_timer;
     int        wb_full;
 
+    pc_timer_t irq_timer;
+
     int busy_count;
 
     int     record_pos_read;

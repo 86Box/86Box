@@ -209,6 +209,15 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
 {
     int masked = 0;
 
+    if (dsp->sb_irq8 || dsp->sb_irq16)
+        return;
+
+    if (!(ESSreg(0xB1) & 0x10)) // if ESS playback, and IRQ disabled, do not fire
+    {
+        pclog("ess: IRQ was masked");
+        return;
+    }
+
     switch (bit) {
         default:
         case 0:
@@ -599,6 +608,7 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
         t |= 0x80;
     }
     switch (dsp->sb_irqnum) {
+        case 9:     t |= 0x0; break;
         case 5:     t |= 0x5; break;
         case 7:     t |= 0xA; break;
         case 10:    t |= 0xF; break;
@@ -627,6 +637,8 @@ sb_dsp_setirq(sb_dsp_t *dsp, int irq)
     dsp->sb_irqnum = irq;
 
     sb_ess_update_irq_drq_readback_regs(dsp, true);
+
+    ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF) | 0x10;
 }
 
 void
@@ -1384,7 +1396,15 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0xF2: /* Trigger 8-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
-            sb_irq(dsp, 1);
+            if (IS_ESS(dsp)) {
+                if (timer_is_enabled(&dsp->irq_timer))
+                    pclog("F2 already written\n");
+                else {
+                    timer_set_delay_u64(&dsp->irq_timer, (100ULL * TIMER_USEC));
+                    pclog("F2 written\n");
+                }
+            } else
+                sb_irq(dsp, 1);
             break;
         case 0xF3: /* Trigger 16-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
@@ -1483,6 +1503,8 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                 if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
                     if (dsp->sb_command <= 0xC0 || dsp->sb_command == 0xC2) {
                         sb_commands[dsp->sb_command] = 1;
+                    } else if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7) {
+                        sb_commands[dsp->sb_command] = 0;
                     } else {
                         sb_commands[dsp->sb_command] = -1;
                     }
@@ -1653,6 +1675,14 @@ sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 }
 
 void
+sb_dsp_irq_poll(void *priv)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    sb_irq(dsp, 1);
+}
+
+void
 sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
 {
     dsp->sb_type    = type;
@@ -1680,6 +1710,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     timer_add(&dsp->output_timer, pollsb, dsp, 0);
     timer_add(&dsp->input_timer, sb_poll_i, dsp, 0);
     timer_add(&dsp->wb_timer, NULL, dsp, 0);
+    timer_add(&dsp->irq_timer, sb_dsp_irq_poll, dsp, 0);
 
     /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
        a set frequency command is sent. */
