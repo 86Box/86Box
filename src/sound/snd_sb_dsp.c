@@ -868,6 +868,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
         case 0xB9: /* Audio 1 Transfer Type */
         case 0xBA: /* Left Channel ADC Offset Adjust */
         case 0xBB: /* Right Channel ADC Offset Adjust */
+        case 0xC3: /* Internal state register */
             ESSreg(reg) = data;
             break;
 
@@ -909,9 +910,18 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->ess_extended_mode = !!(dsp->sb_command == 0xC6);
             return;
         }
-        if (dsp->sb_command == 0xC0) {
+        else if (dsp->sb_command == 0xC2)
+        {
+            sb_ess_write_reg(dsp, 0xC3, dsp->sb_data[0]);
+        }
+        else if (dsp->sb_command == 0xC3)
+        {
+            sb_add_data(dsp, sb_ess_read_reg(dsp, 0xC3));
+        }
+        else if (dsp->sb_command == 0xC0) {
             sb_add_data(dsp, sb_ess_read_reg(dsp, dsp->sb_data[0]));
-        } else if (dsp->sb_command < 0xC0 && dsp->ess_extended_mode) {
+        } 
+        else if (dsp->sb_command < 0xC0 && dsp->ess_extended_mode) {
             sb_ess_write_reg(dsp, dsp->sb_command, dsp->sb_data[0]);
         }
         return;
@@ -1471,7 +1481,7 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                         sb_commands[dsp->sb_command] = 2;
                 }
                 if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
-                    if (dsp->sb_command <= 0xC0) {
+                    if (dsp->sb_command <= 0xC0 || dsp->sb_command == 0xC2) {
                         sb_commands[dsp->sb_command] = 1;
                     } else {
                         sb_commands[dsp->sb_command] = -1;
