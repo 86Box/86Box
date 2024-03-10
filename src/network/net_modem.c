@@ -866,7 +866,7 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
         return 0;
     }
 
-    if ((io_len) >= (fifo8_num_free(&modem->rx_data))) {
+    if ((io_len) >= (fifo8_num_free(&modem->rx_data) / 2)) {
         fifo8_resize_2x(&modem->rx_data);
     }
 
