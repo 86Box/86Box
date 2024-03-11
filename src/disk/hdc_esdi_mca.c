@@ -92,7 +92,7 @@
 #define BIOS_FILE_L     "roms/hdd/esdi/90x8969.bin"
 #define BIOS_FILE_H     "roms/hdd/esdi/90x8970.bin"
 
-#define ESDI_TIME       512.0
+#define ESDI_TIME       500.0
 #define CMD_ADAPTER     0
 
 typedef struct esdi_drive_t {
@@ -113,6 +113,7 @@ typedef struct esdi_t {
     uint8_t  basic_ctrl;
     uint8_t  status;
     uint8_t  irq_status;
+    int      irq_ena_disable;
     int      irq_in_progress;
     int      cmd_req_in_progress;
     int      cmd_pos;
@@ -218,14 +219,26 @@ esdi_mca_log(const char *fmt, ...)
 static __inline void
 set_irq(esdi_t *dev)
 {
+    dev->irq_ena_disable = 1;
+    esdi_mca_log("Set IRQ 14: bit=%x, cmd=%02x.\n", dev->basic_ctrl & CTRL_IRQ_ENA, dev->command);
     if (dev->basic_ctrl & CTRL_IRQ_ENA)
-        picint(1 << 14);
+        picint_common(1 << ESDI_IRQCHAN, PIC_IRQ_EDGE, 1, NULL);
 }
 
 static __inline void
-clear_irq(UNUSED(esdi_t *dev))
+clear_irq(esdi_t *dev)
 {
-    picintc(1 << 14);
+    dev->irq_ena_disable = 0;
+    esdi_mca_log("Clear IRQ 14: bit=%x, cmd=%02x.\n", dev->basic_ctrl & CTRL_IRQ_ENA, dev->command);
+    if (dev->basic_ctrl & CTRL_IRQ_ENA)
+        picint_common(1 << ESDI_IRQCHAN, PIC_IRQ_EDGE, 0, NULL);
+}
+
+static __inline void
+update_irq(esdi_t *dev)
+{
+    uint8_t set = (dev->basic_ctrl & CTRL_IRQ_ENA) && dev->irq_ena_disable;
+    picint_common(1 << ESDI_IRQCHAN, PIC_IRQ_EDGE, set, NULL);
 }
 
 static void
@@ -235,10 +248,11 @@ esdi_mca_set_callback(esdi_t *dev, double callback)
         return;
     }
 
-    if (callback) {
-        timer_on_auto(&dev->timer, callback);
-    } else {
+    if (callback == 0.0) {
+        esdi_mca_log("Callback Stopped.\n");
         timer_stop(&dev->timer);
+    } else {
+        timer_on_auto(&dev->timer, callback);
     }
 }
 
@@ -317,9 +331,9 @@ complete_command_status(esdi_t *dev)
 {
     dev->status_len = 7;
     if (dev->cmd_dev == ATTN_DEVICE_0)
-        dev->status_data[0] = CMD_READ | STATUS_LEN(7) | STATUS_DEVICE(0);
+        dev->status_data[0] = dev->command | STATUS_LEN(7) | STATUS_DEVICE(0);
     else
-        dev->status_data[0] = CMD_READ | STATUS_LEN(7) | STATUS_DEVICE(1);
+        dev->status_data[0] = dev->command | STATUS_LEN(7) | STATUS_DEVICE(1);
     dev->status_data[1] = 0x0000;                  /*Error bits*/
     dev->status_data[2] = 0x1900;                  /*Device status*/
     dev->status_data[3] = 0;                       /*Number of blocks left to do*/
@@ -330,15 +344,12 @@ complete_command_status(esdi_t *dev)
 }
 
 #define ESDI_ADAPTER_ONLY()                      \
-    do {                                         \
         if (dev->cmd_dev != ATTN_HOST_ADAPTER) { \
             cmd_unsupported(dev);                \
             return;                              \
-        }                                        \
-    } while (0)
+        }
 
 #define ESDI_DRIVE_ONLY()                                                     \
-    do {                                                                      \
         if (dev->cmd_dev != ATTN_DEVICE_0 && dev->cmd_dev != ATTN_DEVICE_1) { \
             cmd_unsupported(dev);                                             \
             return;                                                           \
@@ -346,8 +357,7 @@ complete_command_status(esdi_t *dev)
         if (dev->cmd_dev == ATTN_DEVICE_0)                                    \
             drive = &dev->drives[0];                                          \
         else                                                                  \
-            drive = &dev->drives[1];                                          \
-    } while (0)
+            drive = &dev->drives[1];
 
 static void
 esdi_callback(void *priv)
@@ -357,19 +367,19 @@ esdi_callback(void *priv)
     int            val;
     double         cmd_time = 0.0;
 
-    esdi_mca_set_callback(dev, 0);
-
     /* If we are returning from a RESET, handle this first. */
     if (dev->in_reset) {
+        esdi_mca_log("ESDI reset.\n");
         dev->in_reset   = 0;
         dev->status     = STATUS_IRQ;
         dev->irq_status = IRQ_HOST_ADAPTER | IRQ_RESET_COMPLETE;
-
         return;
     }
 
+    esdi_mca_log("Command=%02x.\n", dev->command);
     switch (dev->command) {
         case CMD_READ:
+        case 0x15:
             ESDI_DRIVE_ONLY();
 
             if (!drive->present) {
@@ -379,7 +389,8 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    if (dev->command == CMD_READ)
+                        dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
 
                     dev->sector_pos   = 0;
                     dev->sector_count = dev->cmd_data[1];
@@ -873,7 +884,7 @@ static uint8_t
 esdi_read(uint16_t port, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t ret = 0x00;
 
     switch (port & 7) {
         case 2: /*Basic status register*/
@@ -890,6 +901,7 @@ esdi_read(uint16_t port, void *priv)
             break;
     }
 
+    esdi_mca_log("ESDI: rr(%04x, %02x)\n", port & 7, ret);
     return ret;
 }
 
@@ -897,6 +909,7 @@ static void
 esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
+    uint8_t old;
 
     esdi_mca_log("ESDI: wr(%04x, %02x)\n", port & 7, val);
 
@@ -906,11 +919,14 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                 dev->in_reset = 1;
                 esdi_mca_set_callback(dev, ESDI_TIME * 50);
                 dev->status = STATUS_BUSY;
+            } else if (!(dev->basic_ctrl & CTRL_RESET) && (val & CTRL_RESET)) {
+                esdi_mca_set_callback(dev, 0.0);
+                dev->status = STATUS_BUSY;
             }
+            old = dev->basic_ctrl;
             dev->basic_ctrl = val;
-
-            if (!(dev->basic_ctrl & CTRL_IRQ_ENA))
-                picintc(1 << 14);
+            if ((val & CTRL_IRQ_ENA) && !(old & CTRL_IRQ_ENA))
+                update_irq(dev);
             break;
 
         case 3: /*Attention register*/
@@ -945,6 +961,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case ATTN_DEVICE_0:
+                    esdi_mca_log("ATTN Device 0.\n");
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
                             if (dev->cmd_req_in_progress)
@@ -957,6 +974,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         case ATTN_EOI:
+                            esdi_mca_log("EOI.\n");
                             dev->irq_in_progress = 0;
                             dev->status &= ~STATUS_IRQ;
                             clear_irq(dev);
@@ -1112,15 +1130,40 @@ esdi_mca_write(int port, uint8_t val, void *priv)
             break;
     }
 
+    if (!(dev->pos_regs[3] & 8)) {
+        switch (dev->pos_regs[3] & 7) {
+            case 2:
+                dev->bios = 0xc8000;
+                break;
+            case 3:
+                dev->bios = 0xcc000;
+                break;
+            case 4:
+                dev->bios = 0xd0000;
+                break;
+            case 5:
+                dev->bios = 0xd4000;
+                break;
+            case 6:
+                dev->bios = 0xd8000;
+                break;
+            case 7:
+                dev->bios = 0xdc000;
+                break;
+            default:
+                break;
+        }
+    } else
+        dev->bios = 0;
+
     if (dev->pos_regs[2] & 1) {
         io_sethandler(ESDI_IOADDR_PRI, 8,
                       esdi_read, esdi_readw, NULL,
                       esdi_write, esdi_writew, NULL, dev);
 
-        if (!(dev->pos_regs[3] & 8)) {
+        if (dev->bios) {
             mem_mapping_enable(&dev->bios_rom.mapping);
-            mem_mapping_set_addr(&dev->bios_rom.mapping,
-                                 ((dev->pos_regs[3] & 7) * 0x4000) + 0xc0000, 0x4000);
+            mem_mapping_set_addr(&dev->bios_rom.mapping, dev->bios, 0x4000);
         }
 
         /* Say hello. */
