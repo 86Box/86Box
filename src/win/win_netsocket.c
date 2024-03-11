@@ -80,6 +80,9 @@ int plat_netsocket_connected(SOCKET socket)
 {
     struct sockaddr addr;
     socklen_t len = sizeof(struct sockaddr);
+
+    
+
     if (getpeername(socket, &addr, &len) == SOCKET_ERROR)
         return 0;
     
@@ -113,6 +116,8 @@ int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short p
 
         if (error == WSAEISCONN)
             return 0;
+        
+        res = -1;
     }
     return res;
 }

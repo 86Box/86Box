@@ -16,7 +16,7 @@ SOCKET plat_netsocket_create_server(int type, unsigned short port);
 void plat_netsocket_close(SOCKET socket);
 
 SOCKET plat_netsocket_accept(SOCKET socket);
-int plat_netsocket_connected(SOCKET socket);
+int plat_netsocket_connected(SOCKET socket); /* Returns -1 on trouble. */
 int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short port);
 
 /* Returns 0 in case of inability to send. -1 in case of errors. */
