@@ -1,3 +1,4 @@
+#include <ws2tcpip.h>
 #define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <fcntl.h>
@@ -102,7 +103,7 @@ int plat_netsocket_connected(SOCKET socket)
     struct timeval  tv;
     int             res = -1;
     int             status = 0;
-    int             optlen = 4;
+    socklen_t       optlen = 4;
 
     FD_ZERO(&wrfds);
     FD_SET(socket, &wrfds);
