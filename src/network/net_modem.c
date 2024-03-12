@@ -178,6 +178,9 @@ modem_read_phonebook_file(modem_t* modem, const char* path)
             continue;
         }
 
+        if (res == EOF)
+            break;
+
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
             continue;
