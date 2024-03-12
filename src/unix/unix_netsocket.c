@@ -22,14 +22,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 SOCKET plat_netsocket_create(int type)
 {
     SOCKET fd = -1;
-    u_long yes = 1;
+    int yes = 1;
 
     if (type != NET_SOCKET_TCP)
         return -1;
@@ -47,7 +49,7 @@ SOCKET plat_netsocket_create_server(int type, unsigned short port)
 {
     struct sockaddr_in sock_addr;
     SOCKET fd = -1;
-    u_long yes = 1;
+    int yes = 1;
 
     if (type != NET_SOCKET_TCP)
         return -1;
