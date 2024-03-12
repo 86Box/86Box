@@ -112,6 +112,7 @@ typedef struct modem_t
     bool connected, ringing;
     bool echo, numericresponse;
     bool tcpIpMode, tcpIpConnInProgress;
+    bool telnet_mode;
     uint32_t tcpIpConnCounter;
 
     int doresponse;
@@ -683,7 +684,22 @@ modem_do_command(modem_t* modem)
         char chr = modem_fetch_character(&scanbuf);
         switch (chr) {
             case '+':
-                /* None supported yet. */
+                if (is_next_token("NET", sizeof("NET"), scanbuf)) {
+                    // only walk the pointer ahead if the command matches
+                    scanbuf += 3;
+                    const uint32_t requested_mode = modem_scan_number(&scanbuf);
+
+                    // If the mode isn't valid then stop parsing
+                    if (requested_mode != 1 && requested_mode != 0) {
+                        modem_send_res(modem, ResERROR);
+                        return;
+                    }
+                    // Inform the user on changes
+                    if (modem->telnet_mode != !!requested_mode) {
+                        modem->telnet_mode = !!requested_mode;
+                    }
+                    break;
+                }
                 modem_send_res(modem, ResERROR);
                 return;
             case 'D': { // Dial.
@@ -968,6 +984,106 @@ fifo8_resize_2x(Fifo8* fifo)
     free(temp_buf);
 }
 
+#define TEL_CLIENT 0
+#define TEL_SERVER 1
+void modem_process_telnet(modem_t* modem, uint8_t *data, uint32_t size)
+{
+    uint32_t i = 0;
+	for (i = 0; i < size; i++) {
+		uint8_t c = data[i];
+		if (modem->telClient.inIAC) {
+			if (modem->telClient.recCommand) {
+				if ((c != 0) && (c != 1) && (c != 3)) {
+					if (modem->telClient.command > 250) {
+						/* Reject anything we don't recognize */
+						modem_data_mode_process_byte(modem, 0xff);
+						modem_data_mode_process_byte(modem, 252);
+						modem_data_mode_process_byte(modem, c); /* We won't do crap! */
+					}
+			}
+			switch (modem->telClient.command) {
+				case 251: /* Will */
+					if (c == 0) modem->telClient.binary[TEL_SERVER] = true;
+					if (c == 1) modem->telClient.echo[TEL_SERVER] = true;
+					if (c == 3) modem->telClient.supressGA[TEL_SERVER] = true;
+					break;
+				case 252: /* Won't */
+					if (c == 0) modem->telClient.binary[TEL_SERVER] = false;
+					if (c == 1) modem->telClient.echo[TEL_SERVER] = false;
+					if (c == 3) modem->telClient.supressGA[TEL_SERVER] = false;
+					break;
+				case 253: /* Do */
+					if (c == 0) {
+						modem->telClient.binary[TEL_CLIENT] = true;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 251);
+							modem_data_mode_process_byte(modem, 0); /* Will do binary transfer */
+					}
+					if (c == 1) {
+						modem->telClient.echo[TEL_CLIENT] = false;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 252);
+							modem_data_mode_process_byte(modem, 1); /* Won't echo (too lazy) */
+					}
+					if (c == 3) {
+						modem->telClient.supressGA[TEL_CLIENT] = true;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 251);
+							modem_data_mode_process_byte(modem, 3); /* Will Suppress GA */
+					}
+					break;
+				case 254: /* Don't */
+					if (c == 0) {
+						modem->telClient.binary[TEL_CLIENT] = false;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 252);
+							modem_data_mode_process_byte(modem, 0); /* Won't do binary transfer */
+					}
+					if (c == 1) {
+						modem->telClient.echo[TEL_CLIENT] = false;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 252);
+							modem_data_mode_process_byte(modem, 1); /* Won't echo (fine by me) */
+					}
+					if (c == 3) {
+						modem->telClient.supressGA[TEL_CLIENT] = true;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 251);
+							modem_data_mode_process_byte(modem, 3); /* Will Suppress GA (too lazy) */
+					}
+					break;
+				default:
+					break;
+			}
+			modem->telClient.inIAC = false;
+			modem->telClient.recCommand = false;
+			continue;
+		} else {
+			if (c == 249) {
+				/* Go Ahead received */
+				modem->telClient.inIAC = false;
+				continue;
+			}
+			modem->telClient.command = c;
+			modem->telClient.recCommand = true;
+
+			if ((modem->telClient.binary[TEL_SERVER]) && (c == 0xff)) {
+				/* Binary data with value of 255 */
+				modem->telClient.inIAC = false;
+				modem->telClient.recCommand = false;
+                fifo8_push(&modem->rx_data, 0xff);
+				continue;
+			}
+		}
+		} else {
+			if (c == 0xff) {
+				modem->telClient.inIAC = true;
+				continue;
+			}
+			fifo8_push(&modem->rx_data, c);
+		}
+	}
+}
 
 static int
 modem_rx(void *priv, uint8_t *buf, int io_len)
@@ -1147,7 +1263,10 @@ modem_cmdpause_timer_callback(void *priv)
             int res = plat_netsocket_receive(modem->clientsocket, buffer, sizeof(buffer), &wouldblock);
 
             if (res > 0) {
-                fifo8_push_all(&modem->rx_data, buffer, res);
+                if (modem->telnet_mode)
+                    modem_process_telnet(modem, buffer, res);
+                else
+                    fifo8_push_all(&modem->rx_data, buffer, res);
             } else if (res == 0) {
                 modem->tx_count = 0;
                 modem_enter_idle_state(modem);
@@ -1185,6 +1304,7 @@ modem_init(const device_t *info)
     modem->port = device_get_config_int("port");
     modem->baudrate = device_get_config_int("baudrate");
     modem->listen_port = device_get_config_int("listen_port");
+    modem->telnet_mode = device_get_config_int("telnet_mode");
 
     modem->clientsocket = modem->serversocket = modem->waitingclientsocket = -1;
 
@@ -1278,6 +1398,13 @@ static const device_config_t modem_config[] = {
         .type = CONFIG_FNAME,
         .default_string = "",
         .file_filter = "Text files (*.txt)|*.txt"
+    },
+    {
+        .name = "telnet_mode",
+        .description = "Telnet emulation",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
