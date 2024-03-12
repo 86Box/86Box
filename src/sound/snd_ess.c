@@ -21,6 +21,7 @@
  *           Copyright 2024 Cacodemon345
  *           Copyright 2024 Kagamiin~
  */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -48,12 +49,19 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
+
+
 static const double sb_att_4dbstep_3bits[] = {
       164.0,  2067.0,  3276.0,  5193.0,  8230.0, 13045.0, 20675.0, 32767.0
 };
 
 static const double sb_att_7dbstep_2bits[] = {
       164.0,  6537.0, 14637.0, 32767.0
+};
+
+static const double sb_att_1p4dbstep_4bits[] = {
+      164.0,  3431.0,  4031.0,  4736.0,  5565.0,  6537.0,  7681.0,  9025.0,
+    10603.0, 12458.0, 14637.0, 17196.0, 20204.0, 23738.0, 27889.0, 32767.0
 };
 
 /* SB PRO */
@@ -68,7 +76,10 @@ typedef struct ess_mixer_t {
     double cd_r;
     double line_l;
     double line_r;
-    double mic;
+    double mic_l;
+    double mic_r;
+    double auxb_l;
+    double auxb_r;
     /*see sb_ct1745_mixer for values for input selector*/
     int32_t input_selector;
 
@@ -84,6 +95,12 @@ typedef struct ess_mixer_t {
 
     uint8_t ess_id_str[256];
     uint8_t ess_id_str_pos;
+
+#if 0
+    int record_pos_write_cd;
+    double record_pos_write_cd_sigma;
+    int record_pos_write_music;
+#endif
 } ess_mixer_t;
 
 typedef struct ess_t {
@@ -166,9 +183,55 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x08:
                     mixer->regs[mixer->index + 0x20] = ((val & 0xe) << 4) | (val & 0xe);
                     break;
-                
+
+                case 0x0A:
+                {
+                    uint8_t mic_vol_2bit = (mixer->regs[0x0a] >> 1) & 0x3;
+                    mixer->mic_l = mixer->mic_r = sb_att_7dbstep_2bits[mic_vol_2bit] / 32768.0;
+                    mixer->regs[0x1A] = mic_vol_2bit | (mic_vol_2bit << 2);
+                    break;
+                }
+
+                case 0x0C:
+                    switch (mixer->regs[0x0C] & 6) {
+                    case 2:
+                        mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
+                        break;
+                    case 6:
+                        mixer->input_selector = INPUT_LINE_L | INPUT_LINE_R;
+                        break;
+                    default:
+                        mixer->input_selector = INPUT_MIC;
+                        break;
+                    }
+                    break;
+
                 case 0x14:
                     mixer->regs[0x4] = val & 0xee;
+                    break;
+
+                case 0x1A:
+                    mixer->mic_l = sb_att_1p4dbstep_4bits[(mixer->regs[0x1A] >> 4) & 0xF];
+                    mixer->mic_r = sb_att_1p4dbstep_4bits[mixer->regs[0x1A] & 0xF];
+                    break;
+
+                case 0x1C:
+                    if ((mixer->regs[0x1C] & 0x07) == 0x07)
+                    {
+                        mixer->input_selector = INPUT_MIXER_L | INPUT_MIXER_R;
+                    }
+                    else if ((mixer->regs[0x1C] & 0x07) == 0x06)
+                    {
+                        mixer->input_selector = INPUT_LINE_L | INPUT_LINE_R;
+                    }
+                    else if ((mixer->regs[0x1C] & 0x06) == 0x02)
+                    {
+                        mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
+                    }
+                    else if ((mixer->regs[0x1C] & 0x02) == 0)
+                    {
+                        mixer->input_selector = INPUT_MIC;
+                    }
                     break;
 
                 case 0x22:
@@ -192,10 +255,13 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     mixer->regs[mixer->index - 0x10] = (val & 0xee);
                     break;
 
+                case 0x3a:
+                    break;
+
                 case 0x00:
                 case 0x04:
-                case 0x0a:
-                case 0x0c:
+                    break;
+
                 case 0x0e:
                     break;
 
@@ -268,18 +334,18 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             }
         }
 
-        mixer->voice_l  = ess_mixer_get_vol_4bit(mixer->regs[0x14]);
-        mixer->voice_r  = ess_mixer_get_vol_4bit(mixer->regs[0x14] >> 4);
-        mixer->master_l = ess_mixer_get_vol_4bit(mixer->regs[0x32]);
-        mixer->master_r = ess_mixer_get_vol_4bit(mixer->regs[0x32] >> 4);
-        mixer->fm_l     = ess_mixer_get_vol_4bit(mixer->regs[0x36]);
-        mixer->fm_r     = ess_mixer_get_vol_4bit(mixer->regs[0x36] >> 4);
-        mixer->cd_l     = ess_mixer_get_vol_4bit(mixer->regs[0x38]);
-        mixer->cd_r     = ess_mixer_get_vol_4bit(mixer->regs[0x38] >> 4);
-        mixer->line_l   = ess_mixer_get_vol_4bit(mixer->regs[0x3e]);
-        mixer->line_r   = ess_mixer_get_vol_4bit(mixer->regs[0x3e] >> 4);
-
-        mixer->mic = sb_att_7dbstep_2bits[(mixer->regs[0x0a] >> 1) & 0x3] / 32768.0;
+        mixer->voice_l  = ess_mixer_get_vol_4bit(mixer->regs[0x14] >> 4);
+        mixer->voice_r  = ess_mixer_get_vol_4bit(mixer->regs[0x14]);
+        mixer->master_l = ess_mixer_get_vol_4bit(mixer->regs[0x32] >> 4);
+        mixer->master_r = ess_mixer_get_vol_4bit(mixer->regs[0x32]);
+        mixer->fm_l     = ess_mixer_get_vol_4bit(mixer->regs[0x36] >> 4);
+        mixer->fm_r     = ess_mixer_get_vol_4bit(mixer->regs[0x36]);
+        mixer->cd_l     = ess_mixer_get_vol_4bit(mixer->regs[0x38] >> 4);
+        mixer->cd_r     = ess_mixer_get_vol_4bit(mixer->regs[0x38]);
+        mixer->line_l   = ess_mixer_get_vol_4bit(mixer->regs[0x3e] >> 4);
+        mixer->line_r   = ess_mixer_get_vol_4bit(mixer->regs[0x3e]);
+        mixer->auxb_l   = ess_mixer_get_vol_4bit(mixer->regs[0x3a] >> 4);
+        mixer->auxb_r   = ess_mixer_get_vol_4bit(mixer->regs[0x3a]);
 
         mixer->output_filter  = !(mixer->regs[0xe] & 0x20);
         mixer->input_filter   = !(mixer->regs[0xc] & 0x20);
@@ -287,18 +353,6 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
         mixer->stereo         = mixer->regs[0xe] & 2;
         if (mixer->index == 0xe)
             sb_dsp_set_stereo(&ess->dsp, val & 2);
-
-        switch (mixer->regs[0xc] & 6) {
-            case 2:
-                mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
-                break;
-            case 6:
-                mixer->input_selector = INPUT_LINE_L | INPUT_LINE_R;
-                break;
-            default:
-                mixer->input_selector = INPUT_MIC;
-                break;
-        }
 
         /* TODO: pcspeaker volume? Or is it not worth? */
     }
@@ -406,7 +460,13 @@ void
 ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
     ess_t                    *ess    = (ess_t *) priv;
-    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    const ess_mixer_t        *mixer = &ess->mixer_sbpro;
+#if 0
+    int                      rec_pos = ess->mixer_sbpro.record_pos_write_music;
+    int                      c_record;
+    int32_t                  in_l;
+    int32_t                  in_r;
+#endif
     double                   out_l = 0.0;
     double                   out_r = 0.0;
     const int32_t           *opl_buf = NULL;
@@ -430,9 +490,51 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
 
+#if 0
+        // Pull input after applying mixer's master volume scaling
+        in_l = (mixer->input_selector & INPUT_MIXER_L) ? ((int32_t) out_l) : 0;
+        in_r = (mixer->input_selector & INPUT_MIXER_R) ? ((int32_t) out_l) : 0;
+
+        if (ess->dsp.sb_enable_i) {
+            // NOTE: this is nearest-neighbor sampling. This is gonna generate aliasing like HECK. Is this what the real card does?
+            c_record = rec_pos + ((c * ess->dsp.sb_freq) / MUSIC_FREQ);
+
+            ess->dsp.record_buffer[c_record & 0xfffe]       += in_l;
+            ess->dsp.record_buffer[(c_record & 0xfffe) + 1] += in_r;
+
+            if (ess->dsp.record_buffer[c_record & 0xfffe] < -32768)
+            {
+                ess->dsp.record_buffer[c_record & 0xfffe] = -32768;
+            }
+            else if (ess->dsp.record_buffer[c_record & 0xfffe] > 32767)
+            {
+                ess->dsp.record_buffer[c_record & 0xfffe] = 32767;
+            }
+
+            if (ess->dsp.record_buffer[(c_record & 0xfffe) + 1] < -32768)
+            {
+                ess->dsp.record_buffer[(c_record & 0xfffe) + 1] = -32768;
+            }
+            else if (ess->dsp.record_buffer[(c_record & 0xfffe) + 1] > 32767)
+            {
+                ess->dsp.record_buffer[(c_record & 0xfffe) + 1] = 32767;
+            }
+       }
+
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
+#endif
     }
+
+#if 0
+    ess->mixer_sbpro.record_pos_write_music += ((len * 2 * ess->dsp.sb_freq) / MUSIC_FREQ);
+    ess->mixer_sbpro.record_pos_write_music &= 0xfffe;
+
+    if (ess->mixer_sbpro.record_pos_write_music < ess->mixer_sbpro.record_pos_write_cd)
+    {
+        ess->dsp.record_pos_write = ess->mixer_sbpro.record_pos_write_music;
+    }
+#endif
 
     ess->opl.reset_buffer(ess->opl.priv);
 }
@@ -440,14 +542,54 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 void
 ess_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    const ess_t              *ess    = (ess_t *) priv;
-    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    const ess_t                    *ess    = (ess_t *) priv;
+    const ess_mixer_t        *mixer = &ess->mixer_sbpro;
     double                   c;
+#if 0
+    double                   rec_pos = ess->mixer_sbpro.record_pos_write_cd;
+    double                   rec_pos_sigma = ess->mixer_sbpro.record_pos_write_cd_sigma;
+    int                      c_record;
+    int                      selector = channel ? INPUT_MIXER_R : INPUT_MIXER_L;
+    int                      rec_buf_pos;
+    int32_t                  in;
+#endif
     double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
     double                   master = channel ? mixer->master_r : mixer->master_l;
 
     c = (*buffer * cd) / 3.0;
     *buffer = c * master;
+#if 0
+    in = (mixer->input_selector & selector) ? (int32_t)(c * master) : 0;
+
+    if (ess->dsp.sb_enable_i)
+    {
+        // NOTE: this is nearest-neighbor sampling. This is gonna generate aliasing like HECK. Is this what the real card does?
+        c_record = (int)(rec_pos + rec_pos_sigma);
+        rec_buf_pos = channel ? ((c_record & 0xfffe) + 1) : (c_record & 0xfffe);
+
+        ess->dsp.record_buffer[rec_buf_pos] += in;
+
+        if (ess->dsp.record_buffer[rec_buf_pos] < -32768)
+        {
+            ess->dsp.record_buffer[rec_buf_pos] = -32768;
+        }
+        else if (ess->dsp.record_buffer[rec_buf_pos] > 32767)
+        {
+            ess->dsp.record_buffer[rec_buf_pos] = 32767;
+        }
+    }
+
+    ess->mixer_sbpro.record_pos_write_cd += ((2 * (double)ess->dsp.sb_freq) / MUSIC_FREQ) + rec_pos_sigma;
+    ess->mixer_sbpro.record_pos_write_cd &= ~1;
+    ess->mixer_sbpro.record_pos_write_cd_sigma = (double)rec_pos + ((2 * (double)ess->dsp.sb_freq) / MUSIC_FREQ) + rec_pos_sigma - ess->mixer_sbpro.record_pos_write_cd;
+
+    ess->mixer_sbpro.record_pos_write_cd &= 0xfffe;
+
+    if (ess->mixer_sbpro.record_pos_write_cd < ess->mixer_sbpro.record_pos_write_music)
+    {
+        ess->dsp.record_pos_write = ess->mixer_sbpro.record_pos_write_cd;
+    }
+#endif
 }
 
 static void *
@@ -507,6 +649,11 @@ ess_1688_init(UNUSED(const device_t *info))
         ess->mixer_sbpro.ess_id_str[3] = addr & 0xff;
     }
 
+#if 0
+    ess->mixer_sbpro.record_pos_write_cd = ess->dsp.record_pos_write;
+    ess->mixer_sbpro.record_pos_write_music = ess->dsp.record_pos_write;
+#endif
+
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(ess->mpu, 0, -1, M_UART, 1);
     sb_dsp_set_mpu(&ess->dsp, ess->mpu);
@@ -561,7 +708,7 @@ static const device_config_t ess_config[] = {
         .description = "IRQ",
         .type = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 7,
+        .default_int = 5,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {

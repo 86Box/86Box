@@ -105,13 +105,15 @@ typedef struct sb_ct1745_mixer_t {
 
     int input_selector_left;
     int input_selector_right;
-#define INPUT_MIC    1
-#define INPUT_CD_R   2
-#define INPUT_CD_L   4
-#define INPUT_LINE_R 8
-#define INPUT_LINE_L 16
-#define INPUT_MIDI_R 32
-#define INPUT_MIDI_L 64
+#define INPUT_MIC     1
+#define INPUT_CD_R    2
+#define INPUT_CD_L    4
+#define INPUT_LINE_R  8
+#define INPUT_LINE_L  16
+#define INPUT_MIDI_R  32
+#define INPUT_MIDI_L  64
+#define INPUT_MIXER_L 128
+#define INPUT_MIXER_R 256
 
     int mic_agc;
 
