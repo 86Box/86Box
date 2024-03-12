@@ -1,5 +1,22 @@
 
-/* TODO: SLIP support. */
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Hayes AT-compliant modem emulation.
+ *
+ *
+ *
+ * Authors: Cacodemon345
+ *          The DOSBox Team
+ *
+ *          Copyright 2024 Cacodemon345
+ *          Copyright 2002-2021 The DOSBox Team
+ */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -20,6 +37,7 @@
 #include <86box/plat.h>
 #include <86box/network.h>
 #include <86box/plat_unused.h>
+#include <86box/plat_netsocket.h>
 
 /* From RFC 1055. */
 #define END             0300    /* indicates end of packet */
@@ -93,9 +111,18 @@ typedef struct modem_t
 
     bool connected, ringing;
     bool echo, numericresponse;
+    bool tcpIpMode, tcpIpConnInProgress;
+    bool telnet_mode;
+    uint32_t tcpIpConnCounter;
 
     int doresponse;
     int cmdpause;
+    int listen_port;
+    int ringtimer;
+
+    SOCKET serversocket;
+    SOCKET clientsocket;
+    SOCKET waitingclientsocket;
 
     struct {
 		bool binary[2];
@@ -150,6 +177,9 @@ modem_read_phonebook_file(modem_t* modem, const char* path)
             /* Appears to be a bad line. */
             continue;
         }
+
+        if (res == EOF)
+            break;
 
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
@@ -309,7 +339,7 @@ modem_data_mode_process_byte(modem_t* modem, uint8_t data)
 
     if (modem->tx_count < 0x10000 && modem->connected) {
         modem->tx_pkt_ser_line[modem->tx_count++] = data;
-        if (data == END) {
+        if (data == END && !modem->tcpIpMode) {
             process_tx_packet(modem, modem->tx_pkt_ser_line, (uint32_t)modem->tx_count);
             modem->tx_count = 0;
         }
@@ -320,6 +350,9 @@ static void
 host_to_modem_cb(void *priv)
 {
     modem_t* modem = (modem_t*)priv;
+
+    if (modem->in_warmup)
+        goto no_write_to_machine;
 
     if ((modem->serial->type >= SERIAL_16550) && modem->serial->fifo_enabled) {
         if (fifo_get_full(modem->serial->rcvr_fifo)) {
@@ -441,6 +474,40 @@ modem_enter_idle_state(modem_t* modem)
     modem->ringing = false;
     modem->mode = MODEM_MODE_COMMAND;
     modem->in_warmup = 0;
+    modem->tcpIpConnInProgress = 0;
+    modem->tcpIpConnCounter = 0;
+
+    if (modem->waitingclientsocket != (SOCKET)-1)
+        plat_netsocket_close(modem->waitingclientsocket);
+    
+    if (modem->clientsocket != (SOCKET)-1)
+        plat_netsocket_close(modem->clientsocket);
+
+    modem->clientsocket = modem->waitingclientsocket = (SOCKET)-1;
+    if (modem->serversocket != (SOCKET)-1) {
+        modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
+        while (modem->waitingclientsocket != (SOCKET)-1) {
+            plat_netsocket_close(modem->waitingclientsocket);
+            modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
+        }
+        plat_netsocket_close(modem->serversocket);
+        modem->serversocket = (SOCKET)-1;
+    }
+
+    if (modem->waitingclientsocket != (SOCKET)-1)
+        plat_netsocket_close(modem->waitingclientsocket);
+
+    modem->waitingclientsocket = (SOCKET)-1;
+    modem->tcpIpMode = false;
+    modem->tcpIpConnInProgress = false;
+
+    if (modem->listen_port) {
+        modem->serversocket = plat_netsocket_create_server(NET_SOCKET_TCP, modem->listen_port);
+        if (modem->serversocket == (SOCKET)-1) {
+            pclog("Failed to set up server on port %d\n", modem->listen_port);
+        }
+    }
+
     serial_set_cts(modem->serial, 1);
     serial_set_dsr(modem->serial, 1);
     serial_set_dcd(modem->serial, 0);
@@ -454,6 +521,9 @@ modem_enter_connected_state(modem_t* modem)
     modem->mode = MODEM_MODE_DATA;
     modem->ringing = false;
     modem->connected = true;
+    modem->tcpIpMode = true;
+    plat_netsocket_close(modem->serversocket);
+    modem->serversocket = -1;
     memset(&modem->telClient, 0, sizeof(modem->telClient));
     serial_set_dcd(modem->serial, 1);
     serial_set_ri(modem->serial, 0);
@@ -488,15 +558,46 @@ void
 modem_dial(modem_t* modem, const char* str)
 {
     /* TODO: Port TCP/IP support from DOSBox. */
+    modem->tcpIpConnCounter = 0;
+    modem->tcpIpMode = false;
     if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1))
     {
         pclog("Turning on SLIP\n");
         modem_enter_connected_state(modem);
+        modem->tcpIpMode = false;
     }
     else
     {
-		modem_send_res(modem, ResNOCARRIER);
-		modem_enter_idle_state(modem);
+        char buf[128] = "";
+        const char *destination = buf;
+        strcpy(buf, str);
+        // Scan host for port
+        uint16_t port;
+        char * hasport = strrchr(buf,':');
+        if (hasport) {
+            *hasport++ = 0;
+            port = (uint16_t)atoi(hasport);
+        }
+        else {
+            port = 23;
+        }
+
+        modem->clientsocket = plat_netsocket_create(NET_SOCKET_TCP);
+        if (modem->clientsocket == -1) {
+            pclog("Failed to create client socket\n");
+		    modem_send_res(modem, ResNOCARRIER);
+		    modem_enter_idle_state(modem);
+            return;
+        }
+
+        if (-1 == plat_netsocket_connect(modem->clientsocket, buf, port)) {
+            pclog("Failed to connect to %s\n", buf);
+		    modem_send_res(modem, ResNOCARRIER);
+		    modem_enter_idle_state(modem);
+            return;
+        }
+        modem->tcpIpConnInProgress = 1;
+        modem->tcpIpConnCounter = 0;
     }
 }
 
@@ -551,6 +652,16 @@ char *trim(char *str)
     return str;
 }
 
+static const char *modem_get_address_from_phonebook(modem_t* modem, const char *input) {
+    int i = 0;
+	for (i = 0; i < modem->entries_num; i++) {
+		if (strcmp(input, modem->entries[i].phone) == 0)
+			return modem->entries[i].address;
+	}
+
+	return NULL;
+}
+
 static void
 modem_do_command(modem_t* modem)
 {
@@ -576,14 +687,31 @@ modem_do_command(modem_t* modem)
         char chr = modem_fetch_character(&scanbuf);
         switch (chr) {
             case '+':
-                /* None supported yet. */
+                if (is_next_token("NET", sizeof("NET"), scanbuf)) {
+                    // only walk the pointer ahead if the command matches
+                    scanbuf += 3;
+                    const uint32_t requested_mode = modem_scan_number(&scanbuf);
+
+                    // If the mode isn't valid then stop parsing
+                    if (requested_mode != 1 && requested_mode != 0) {
+                        modem_send_res(modem, ResERROR);
+                        return;
+                    }
+                    // Inform the user on changes
+                    if (modem->telnet_mode != !!requested_mode) {
+                        modem->telnet_mode = !!requested_mode;
+                    }
+                    break;
+                }
                 modem_send_res(modem, ResERROR);
                 return;
             case 'D': { // Dial.
                 char buffer[128];
                 char obuffer[128];
                 char * foundstr = &scanbuf[0];
+                const char *mappedaddr = NULL;
                 size_t i = 0;
+
                 if (*foundstr == 'T' || *foundstr == 'P')
                     foundstr++;
                 
@@ -593,6 +721,13 @@ modem_do_command(modem_t* modem)
                 }
 
                 foundstr = trim(foundstr);
+
+                mappedaddr = modem_get_address_from_phonebook(modem, foundstr);
+                if (mappedaddr) {
+                    modem_dial(modem, mappedaddr);
+                    return;
+                }
+
                 if (strlen(foundstr) >= 12) {
                     // Check if supplied parameter only consists of digits
                     bool isNum = true;
@@ -634,6 +769,7 @@ modem_do_command(modem_t* modem)
                     }
                 }
                 modem_dial(modem, foundstr);
+                break;
             }
             case 'I': // Some strings about firmware
                 switch (modem_scan_number(&scanbuf)) {
@@ -851,6 +987,106 @@ fifo8_resize_2x(Fifo8* fifo)
     free(temp_buf);
 }
 
+#define TEL_CLIENT 0
+#define TEL_SERVER 1
+void modem_process_telnet(modem_t* modem, uint8_t *data, uint32_t size)
+{
+    uint32_t i = 0;
+	for (i = 0; i < size; i++) {
+		uint8_t c = data[i];
+		if (modem->telClient.inIAC) {
+			if (modem->telClient.recCommand) {
+				if ((c != 0) && (c != 1) && (c != 3)) {
+					if (modem->telClient.command > 250) {
+						/* Reject anything we don't recognize */
+						modem_data_mode_process_byte(modem, 0xff);
+						modem_data_mode_process_byte(modem, 252);
+						modem_data_mode_process_byte(modem, c); /* We won't do crap! */
+					}
+			}
+			switch (modem->telClient.command) {
+				case 251: /* Will */
+					if (c == 0) modem->telClient.binary[TEL_SERVER] = true;
+					if (c == 1) modem->telClient.echo[TEL_SERVER] = true;
+					if (c == 3) modem->telClient.supressGA[TEL_SERVER] = true;
+					break;
+				case 252: /* Won't */
+					if (c == 0) modem->telClient.binary[TEL_SERVER] = false;
+					if (c == 1) modem->telClient.echo[TEL_SERVER] = false;
+					if (c == 3) modem->telClient.supressGA[TEL_SERVER] = false;
+					break;
+				case 253: /* Do */
+					if (c == 0) {
+						modem->telClient.binary[TEL_CLIENT] = true;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 251);
+							modem_data_mode_process_byte(modem, 0); /* Will do binary transfer */
+					}
+					if (c == 1) {
+						modem->telClient.echo[TEL_CLIENT] = false;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 252);
+							modem_data_mode_process_byte(modem, 1); /* Won't echo (too lazy) */
+					}
+					if (c == 3) {
+						modem->telClient.supressGA[TEL_CLIENT] = true;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 251);
+							modem_data_mode_process_byte(modem, 3); /* Will Suppress GA */
+					}
+					break;
+				case 254: /* Don't */
+					if (c == 0) {
+						modem->telClient.binary[TEL_CLIENT] = false;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 252);
+							modem_data_mode_process_byte(modem, 0); /* Won't do binary transfer */
+					}
+					if (c == 1) {
+						modem->telClient.echo[TEL_CLIENT] = false;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 252);
+							modem_data_mode_process_byte(modem, 1); /* Won't echo (fine by me) */
+					}
+					if (c == 3) {
+						modem->telClient.supressGA[TEL_CLIENT] = true;
+							modem_data_mode_process_byte(modem, 0xff);
+							modem_data_mode_process_byte(modem, 251);
+							modem_data_mode_process_byte(modem, 3); /* Will Suppress GA (too lazy) */
+					}
+					break;
+				default:
+					break;
+			}
+			modem->telClient.inIAC = false;
+			modem->telClient.recCommand = false;
+			continue;
+		} else {
+			if (c == 249) {
+				/* Go Ahead received */
+				modem->telClient.inIAC = false;
+				continue;
+			}
+			modem->telClient.command = c;
+			modem->telClient.recCommand = true;
+
+			if ((modem->telClient.binary[TEL_SERVER]) && (c == 0xff)) {
+				/* Binary data with value of 255 */
+				modem->telClient.inIAC = false;
+				modem->telClient.recCommand = false;
+                fifo8_push(&modem->rx_data, 0xff);
+				continue;
+			}
+		}
+		} else {
+			if (c == 0xff) {
+				modem->telClient.inIAC = true;
+				continue;
+			}
+			fifo8_push(&modem->rx_data, c);
+		}
+	}
+}
 
 static int
 modem_rx(void *priv, uint8_t *buf, int io_len)
@@ -859,6 +1095,9 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
     modem_t* modem = (modem_t*)priv;
     uint8_t c = 0;
     uint32_t i = 0;
+
+    if (modem->tcpIpMode)
+        return 0;
 
     if (!modem->connected) {
         /* Drop packet. */
@@ -915,20 +1154,143 @@ modem_rcr_cb(UNUSED(struct serial_s *serial), void *priv)
 }
 
 static void
+modem_accept_incoming_call(modem_t* modem)
+{
+    if (modem->waitingclientsocket != -1) {
+        modem->clientsocket = modem->waitingclientsocket;
+        modem->waitingclientsocket = -1;
+        modem_enter_connected_state(modem);
+        modem->in_warmup = 250;
+    } else {
+        modem_enter_idle_state(modem);
+    }
+}
+
+static void
 modem_cmdpause_timer_callback(void *priv)
 {
-    modem_t *dev = (modem_t *) priv;
+    modem_t *modem = (modem_t *) priv;
 	uint32_t guard_threashold = 0;
+    timer_on_auto(&modem->cmdpause_timer, 1000);
 
-	dev->cmdpause++;
-    guard_threashold = (uint32_t)(dev->reg[MREG_GUARD_TIME] * 20);
-	if (dev->cmdpause > guard_threashold) {
-		if (dev->plusinc == 0) {
-			dev->plusinc = 1;
-		} else if (dev->plusinc == 4) {
-			dev->mode = MODEM_MODE_COMMAND;
-			modem_send_res(dev, ResOK);
-			dev->plusinc = 0;
+    if (modem->tcpIpConnInProgress) {
+        do {
+            int status = plat_netsocket_connected(modem->clientsocket);
+
+            if (status == -1) {
+                plat_netsocket_close(modem->clientsocket);
+                modem->clientsocket = -1;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
+                modem->tcpIpConnInProgress = 0;
+                break;
+            } else if (status == 1) {
+                modem_enter_connected_state(modem);
+                modem->tcpIpConnInProgress = 0;
+                break;
+            }
+
+            modem->tcpIpConnCounter++;
+
+            if (status < 0 || (status == 0 && modem->tcpIpConnCounter >= 5000)) {
+                plat_netsocket_close(modem->clientsocket);
+                modem->clientsocket = -1;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOANSWER);
+                modem->tcpIpConnInProgress = 0;
+                modem->tcpIpMode = 0;
+                break;
+            }
+        } while (0);
+    }
+
+    if (!modem->connected && modem->waitingclientsocket == -1 && modem->serversocket != -1) {
+        modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
+        if (modem->waitingclientsocket != -1) {
+            if (!(modem->serial->mctrl & 1) && modem->dtrmode != 0) {
+                modem_enter_idle_state(modem);
+            } else {
+                modem->ringing = true;
+                modem_send_res(modem, ResRING);
+                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+                modem->ringtimer = 3000;
+                modem->reg[MREG_RING_COUNT] = 0;
+            }
+        }
+    }
+	if (modem->ringing) {
+		if (modem->ringtimer <= 0) {
+			modem->reg[MREG_RING_COUNT]++;
+			if ((modem->reg[MREG_AUTOANSWER_COUNT] > 0) &&
+				(modem->reg[MREG_RING_COUNT] >= modem->reg[MREG_AUTOANSWER_COUNT])) {
+				modem_accept_incoming_call(modem);
+				return;
+			}
+			modem_send_res(modem, ResRING);
+            serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+
+			modem->ringtimer = 3000;
+		}
+		--modem->ringtimer;
+	}
+
+    if (modem->in_warmup) {
+        modem->in_warmup--;
+        if (modem->in_warmup == 0) {
+            modem->tx_count = 0;
+            fifo8_reset(&modem->rx_data);
+        }
+    }
+    else if (modem->connected && modem->tcpIpMode) {
+        if (modem->tx_count) {
+            int wouldblock = 0;
+            int res = plat_netsocket_send(modem->clientsocket, modem->tx_pkt_ser_line, modem->tx_count, &wouldblock);
+            
+            if (res <= 0 && !wouldblock) {
+                /* No bytes sent or error. */
+                modem->tx_count = 0;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
+            } else if (res > 0) {
+                if (res == modem->tx_count) {
+                    modem->tx_count = 0;
+                } else {
+                    memmove(modem->tx_pkt_ser_line, &modem->tx_pkt_ser_line[res], modem->tx_count - res);
+                    modem->tx_count -= res;
+                }
+            }
+        }
+        if (modem->connected) {
+            uint8_t buffer[16];
+            int wouldblock = 0;
+            int res = plat_netsocket_receive(modem->clientsocket, buffer, sizeof(buffer), &wouldblock);
+
+            if (res > 0) {
+                if (modem->telnet_mode)
+                    modem_process_telnet(modem, buffer, res);
+                else
+                    fifo8_push_all(&modem->rx_data, buffer, res);
+            } else if (res == 0) {
+                modem->tx_count = 0;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
+            } else if (!wouldblock) {
+                modem->tx_count = 0;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
+            }
+        }
+    }
+
+	modem->cmdpause++;
+    guard_threashold = (uint32_t)(modem->reg[MREG_GUARD_TIME] * 20);
+	if (modem->cmdpause > guard_threashold) {
+		if (modem->plusinc == 0) {
+			modem->plusinc = 1;
+		} else if (modem->plusinc == 4) {
+			modem->mode = MODEM_MODE_COMMAND;
+			modem_send_res(modem, ResOK);
+			modem->plusinc = 0;
 		}
 	}
 }
@@ -938,11 +1300,16 @@ static void *
 modem_init(const device_t *info)
 {
     modem_t* modem = (modem_t*)calloc(1, sizeof(modem_t));
+    const char* phonebook_file = NULL;
     memset(modem->mac, 0xfc, 6);
 
     
     modem->port = device_get_config_int("port");
     modem->baudrate = device_get_config_int("baudrate");
+    modem->listen_port = device_get_config_int("listen_port");
+    modem->telnet_mode = device_get_config_int("telnet_mode");
+
+    modem->clientsocket = modem->serversocket = modem->waitingclientsocket = -1;
 
     fifo8_create(&modem->data_pending, 0x10000);
     fifo8_create(&modem->rx_data, 0x10000);
@@ -955,12 +1322,20 @@ modem_init(const device_t *info)
 
     modem_reset(modem);
     modem->card = network_attach(modem, modem->mac, modem_rx, NULL);
+
+    phonebook_file = device_get_config_string("phonebook_file");
+    if (phonebook_file && phonebook_file[0] != 0) {
+        modem_read_phonebook_file(modem, phonebook_file);
+    }
+    
     return modem;
 }
 
 void modem_close(void *priv)
 {
     modem_t* modem = (modem_t*)priv;
+    modem->listen_port = 0;
+    modem_reset(modem);
     fifo8_destroy(&modem->data_pending);
     fifo8_destroy(&modem->rx_data);
     netcard_close(modem->card);
@@ -1008,6 +1383,31 @@ static const device_config_t modem_config[] = {
             { .description =    "600", .value =    600 },
             { .description =    "300", .value =    300 },
         }
+    },
+    {
+        .name = "listen_port",
+        .description = "TCP/IP listening port",
+        .type = CONFIG_SPINNER,
+        .spinner =
+        {
+            .min = 0,
+            .max = 32767
+        },
+        .default_int = 0
+    },
+    {
+        .name = "phonebook_file",
+        .description = "Phonebook File",
+        .type = CONFIG_FNAME,
+        .default_string = "",
+        .file_filter = "Text files (*.txt)|*.txt"
+    },
+    {
+        .name = "telnet_mode",
+        .description = "Telnet emulation",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

@@ -451,6 +451,12 @@ serial_set_ri(serial_t *dev, uint8_t enabled)
     }
 }
 
+int
+serial_get_ri(serial_t *dev)
+{
+    return !!(dev->msr & (1 << 6));
+}
+
 void
 serial_set_clock_src(serial_t *dev, double clock_src)
 {
