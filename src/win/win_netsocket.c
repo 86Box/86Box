@@ -17,6 +17,7 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+#include <winerror.h>
 
 SOCKET plat_netsocket_create(int type)
 {
@@ -88,23 +89,31 @@ int plat_netsocket_connected(SOCKET socket)
 {
     struct sockaddr addr;
     socklen_t       len = sizeof(struct sockaddr);
-    fd_set          wrfds;
+    fd_set          wrfds, exfds;
     struct timeval  tv;
     int             res = SOCKET_ERROR;
     int             status = 0;
     int             optlen = 4;
 
     FD_ZERO(&wrfds);
+    FD_ZERO(&exfds);
     FD_SET(socket, &wrfds);
+    FD_SET(socket, &exfds);
 
     tv.tv_sec  = 0;
     tv.tv_usec = 0;
 
-    res = select(1, NULL, &wrfds, NULL, &tv);
+    res = select(socket + 1, NULL, &wrfds, &exfds, &tv);
 
     if (res == SOCKET_ERROR)
         return -1;
     
+    if (res >= 1 && FD_ISSET(socket, &exfds)) {
+        res = getsockopt(socket, SOL_SOCKET, SO_ERROR, (char*)&status, &optlen);
+        pclog("Socket error %d\n", status);
+        return -1;
+    }
+
     if (res == 0 || !(res >= 1 && FD_ISSET(socket, &wrfds)))
         return 0;
     
@@ -147,7 +156,7 @@ int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short p
     if (res == SOCKET_ERROR) {
         int error = WSAGetLastError();
 
-        if (error == WSAEISCONN)
+        if (error == WSAEISCONN || error == WSAEWOULDBLOCK)
             return 0;
         
         res = -1;

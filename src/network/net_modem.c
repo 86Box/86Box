@@ -456,32 +456,35 @@ modem_enter_idle_state(modem_t* modem)
     modem->tcpIpConnInProgress = 0;
     modem->tcpIpConnCounter = 0;
 
-    if (modem->waitingclientsocket != -1)
+    if (modem->waitingclientsocket != (SOCKET)-1)
         plat_netsocket_close(modem->waitingclientsocket);
     
-    if (modem->clientsocket != -1)
+    if (modem->clientsocket != (SOCKET)-1)
         plat_netsocket_close(modem->clientsocket);
 
-    modem->clientsocket = modem->waitingclientsocket = -1;
-    if (modem->serversocket != -1) {
+    modem->clientsocket = modem->waitingclientsocket = (SOCKET)-1;
+    if (modem->serversocket != (SOCKET)-1) {
         modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
-        while (modem->waitingclientsocket != -1) {
+        while (modem->waitingclientsocket != (SOCKET)-1) {
             plat_netsocket_close(modem->waitingclientsocket);
             modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
         }
         plat_netsocket_close(modem->serversocket);
-        modem->serversocket = -1;
+        modem->serversocket = (SOCKET)-1;
     }
 
-    if (modem->waitingclientsocket != -1)
+    if (modem->waitingclientsocket != (SOCKET)-1)
         plat_netsocket_close(modem->waitingclientsocket);
 
-    modem->waitingclientsocket = -1;
+    modem->waitingclientsocket = (SOCKET)-1;
     modem->tcpIpMode = false;
     modem->tcpIpConnInProgress = false;
 
     if (modem->listen_port) {
         modem->serversocket = plat_netsocket_create_server(NET_SOCKET_TCP, modem->listen_port);
+        if (modem->serversocket == (SOCKET)-1) {
+            pclog("Failed to set up server on port %d\n", modem->listen_port);
+        }
     }
 
     serial_set_cts(modem->serial, 1);
@@ -560,12 +563,18 @@ modem_dial(modem_t* modem, const char* str)
 
         modem->clientsocket = plat_netsocket_create(NET_SOCKET_TCP);
         if (modem->clientsocket == -1) {
+            pclog("Failed to create client socket\n");
 		    modem_send_res(modem, ResNOCARRIER);
 		    modem_enter_idle_state(modem);
             return;
         }
 
-        plat_netsocket_connect(modem->clientsocket, buf, port);
+        if (-1 == plat_netsocket_connect(modem->clientsocket, buf, port)) {
+            pclog("Failed to connect to %s\n", buf);
+		    modem_send_res(modem, ResNOCARRIER);
+		    modem_enter_idle_state(modem);
+            return;
+        }
         modem->tcpIpConnInProgress = 1;
         modem->tcpIpConnCounter = 0;
     }
@@ -724,6 +733,7 @@ modem_do_command(modem_t* modem)
                     }
                 }
                 modem_dial(modem, foundstr);
+                break;
             }
             case 'I': // Some strings about firmware
                 switch (modem_scan_number(&scanbuf)) {
@@ -1023,120 +1033,125 @@ modem_accept_incoming_call(modem_t* modem)
 static void
 modem_cmdpause_timer_callback(void *priv)
 {
-    modem_t *dev = (modem_t *) priv;
+    modem_t *modem = (modem_t *) priv;
 	uint32_t guard_threashold = 0;
+    timer_on_auto(&modem->cmdpause_timer, 1000);
 
-    if (dev->tcpIpConnInProgress) {
-        int status = plat_netsocket_connected(dev->clientsocket);
+    if (modem->tcpIpConnInProgress) {
+        do {
+            int status = plat_netsocket_connected(modem->clientsocket);
 
-        if (status == -1) {
-            plat_netsocket_close(dev->clientsocket);
-            dev->clientsocket = -1;
-            modem_enter_idle_state(dev);
-            modem_send_res(dev, ResNOCARRIER);
-            dev->tcpIpConnInProgress = 0;
-        } else if (status == 1) {
-            modem_enter_connected_state(dev);
-            dev->tcpIpConnInProgress = 0;
-        }
+            if (status == -1) {
+                plat_netsocket_close(modem->clientsocket);
+                modem->clientsocket = -1;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
+                modem->tcpIpConnInProgress = 0;
+                break;
+            } else if (status == 1) {
+                modem_enter_connected_state(modem);
+                modem->tcpIpConnInProgress = 0;
+                break;
+            }
 
-        dev->tcpIpConnCounter++;
+            modem->tcpIpConnCounter++;
 
-        if (status <= 0 && dev->tcpIpConnCounter >= 5000) {
-            plat_netsocket_close(dev->clientsocket);
-            dev->clientsocket = -1;
-            modem_enter_idle_state(dev);
-            modem_send_res(dev, ResNOANSWER);
-            dev->tcpIpConnInProgress = 0;
-            dev->tcpIpMode = 0;
-        }
+            if (status < 0 || (status == 0 && modem->tcpIpConnCounter >= 5000)) {
+                plat_netsocket_close(modem->clientsocket);
+                modem->clientsocket = -1;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOANSWER);
+                modem->tcpIpConnInProgress = 0;
+                modem->tcpIpMode = 0;
+                break;
+            }
+        } while (0);
     }
 
-    if (!dev->connected && dev->waitingclientsocket == -1 && dev->serversocket != -1) {
-        dev->waitingclientsocket = plat_netsocket_accept(dev->serversocket);
-        if (dev->waitingclientsocket != -1) {
-            if (!(dev->serial->mctrl & 1) && dev->dtrmode != 0) {
-                modem_enter_idle_state(dev);
+    if (!modem->connected && modem->waitingclientsocket == -1 && modem->serversocket != -1) {
+        modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
+        if (modem->waitingclientsocket != -1) {
+            if (!(modem->serial->mctrl & 1) && modem->dtrmode != 0) {
+                modem_enter_idle_state(modem);
             } else {
-                dev->ringing = true;
-                modem_send_res(dev, ResRING);
-                serial_set_ri(dev->serial, !serial_get_ri(dev->serial));
-                dev->ringtimer = 3000;
-                dev->reg[MREG_RING_COUNT] = 0;
+                modem->ringing = true;
+                modem_send_res(modem, ResRING);
+                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+                modem->ringtimer = 3000;
+                modem->reg[MREG_RING_COUNT] = 0;
             }
         }
     }
-	if (dev->ringing) {
-		if (dev->ringtimer <= 0) {
-			dev->reg[MREG_RING_COUNT]++;
-			if ((dev->reg[MREG_AUTOANSWER_COUNT] > 0) &&
-				(dev->reg[MREG_RING_COUNT] >= dev->reg[MREG_AUTOANSWER_COUNT])) {
-				modem_accept_incoming_call(dev);
+	if (modem->ringing) {
+		if (modem->ringtimer <= 0) {
+			modem->reg[MREG_RING_COUNT]++;
+			if ((modem->reg[MREG_AUTOANSWER_COUNT] > 0) &&
+				(modem->reg[MREG_RING_COUNT] >= modem->reg[MREG_AUTOANSWER_COUNT])) {
+				modem_accept_incoming_call(modem);
 				return;
 			}
-			modem_send_res(dev, ResRING);
-            serial_set_ri(dev->serial, !serial_get_ri(dev->serial));
+			modem_send_res(modem, ResRING);
+            serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
 
-			//MIXER_Enable(mhd.chan,true);
-			dev->ringtimer = 3000;
+			modem->ringtimer = 3000;
 		}
-		--dev->ringtimer;
+		--modem->ringtimer;
 	}
 
-    if (dev->in_warmup) {
-        dev->in_warmup--;
-        if (dev->in_warmup == 0) {
-            dev->tx_count = 0;
-            fifo8_reset(&dev->rx_data);
+    if (modem->in_warmup) {
+        modem->in_warmup--;
+        if (modem->in_warmup == 0) {
+            modem->tx_count = 0;
+            fifo8_reset(&modem->rx_data);
         }
     }
-    else if (dev->connected && dev->tcpIpMode) {
-        if (dev->tx_count) {
+    else if (modem->connected && modem->tcpIpMode) {
+        if (modem->tx_count) {
             int wouldblock = 0;
-            int res = plat_netsocket_send(dev->clientsocket, dev->tx_pkt_ser_line, dev->tx_count, &wouldblock);
+            int res = plat_netsocket_send(modem->clientsocket, modem->tx_pkt_ser_line, modem->tx_count, &wouldblock);
             
             if (res <= 0 && !wouldblock) {
                 /* No bytes sent or error. */
-                dev->tx_count = 0;
-                modem_enter_idle_state(dev);
-                modem_send_res(dev, ResNOCARRIER);
+                modem->tx_count = 0;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
             } else if (res > 0) {
-                if (res == dev->tx_count) {
-                    dev->tx_count = 0;
+                if (res == modem->tx_count) {
+                    modem->tx_count = 0;
                 } else {
-                    memmove(dev->tx_pkt_ser_line, &dev->tx_pkt_ser_line[res], dev->tx_count - res);
-                    dev->tx_count -= res;
+                    memmove(modem->tx_pkt_ser_line, &modem->tx_pkt_ser_line[res], modem->tx_count - res);
+                    modem->tx_count -= res;
                 }
             }
         }
-        if (dev->connected) {
+        if (modem->connected) {
             uint8_t buffer[16];
             int wouldblock = 0;
-            int res = plat_netsocket_receive(dev->clientsocket, buffer, sizeof(buffer), &wouldblock);
+            int res = plat_netsocket_receive(modem->clientsocket, buffer, sizeof(buffer), &wouldblock);
 
             if (res > 0) {
-                fifo8_push_all(&dev->rx_data, buffer, res);
+                fifo8_push_all(&modem->rx_data, buffer, res);
             } else if (res == 0) {
-                dev->tx_count = 0;
-                modem_enter_idle_state(dev);
-                modem_send_res(dev, ResNOCARRIER);
+                modem->tx_count = 0;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
             } else if (!wouldblock) {
-                dev->tx_count = 0;
-                modem_enter_idle_state(dev);
-                modem_send_res(dev, ResNOCARRIER);
+                modem->tx_count = 0;
+                modem_enter_idle_state(modem);
+                modem_send_res(modem, ResNOCARRIER);
             }
         }
     }
 
-	dev->cmdpause++;
-    guard_threashold = (uint32_t)(dev->reg[MREG_GUARD_TIME] * 20);
-	if (dev->cmdpause > guard_threashold) {
-		if (dev->plusinc == 0) {
-			dev->plusinc = 1;
-		} else if (dev->plusinc == 4) {
-			dev->mode = MODEM_MODE_COMMAND;
-			modem_send_res(dev, ResOK);
-			dev->plusinc = 0;
+	modem->cmdpause++;
+    guard_threashold = (uint32_t)(modem->reg[MREG_GUARD_TIME] * 20);
+	if (modem->cmdpause > guard_threashold) {
+		if (modem->plusinc == 0) {
+			modem->plusinc = 1;
+		} else if (modem->plusinc == 4) {
+			modem->mode = MODEM_MODE_COMMAND;
+			modem_send_res(modem, ResOK);
+			modem->plusinc = 0;
 		}
 	}
 }
@@ -1232,12 +1247,13 @@ static const device_config_t modem_config[] = {
     {
         .name = "listen_port",
         .description = "TCP/IP listening port",
-        .type = CONFIG_INT,
-        .default_string = "",
-        .default_int = 5000,
-        .file_filter = NULL,
-        .spinner = { 0 },
-        .selection = {}
+        .type = CONFIG_SPINNER,
+        .spinner =
+        {
+            .min = 0,
+            .max = 32767
+        },
+        .default_int = 0
     },
     {
         .name = "phonebook_file",

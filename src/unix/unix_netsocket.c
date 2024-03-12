@@ -155,7 +155,7 @@ int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short p
     if (res == -1) {
         int error = errno;
 
-        if (error == EISCONN)
+        if (error == EISCONN || error == EWOULDBLOCK || error == EAGAIN || error == EINPROGRESS)
             return 0;
         
         res = -1;
