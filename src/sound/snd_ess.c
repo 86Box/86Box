@@ -150,7 +150,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             /* Initialize ESS regs. */
             mixer->regs[0x14] = mixer->regs[0x32] = 0x88;
             mixer->regs[0x36] = 0x88;
-            mixer->regs[0x38] = 0x00;
+            mixer->regs[0x38] = 0x88;
             mixer->regs[0x3a] = 0x00;
             mixer->regs[0x3e] = 0x00;
 
@@ -384,8 +384,8 @@ ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 
         /* TODO: Implement the stereo switch on the mixer instead of on the dsp? */
         if (mixer->output_filter) {
-            out_l += (sb_iir(0, 0, (double) ess->dsp.buffer[c]) * mixer->voice_l) / 3.9;
-            out_r += (sb_iir(0, 1, (double) ess->dsp.buffer[c + 1]) * mixer->voice_r) / 3.9;
+            out_l += (low_fir_sb16(0, 0, (double) ess->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+            out_r += (low_fir_sb16(0, 1, (double) ess->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
         } else {
             out_l += (ess->dsp.buffer[c] * mixer->voice_l) / 3.0;
             out_r += (ess->dsp.buffer[c + 1] * mixer->voice_r) / 3.0;
@@ -446,10 +446,7 @@ ess_filter_cd_audio(int channel, double *buffer, void *priv)
     double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
     double                   master = channel ? mixer->master_r : mixer->master_l;
 
-    if (mixer->output_filter)
-        c = (sb_iir(2, channel, *buffer) * cd) / 3.9;
-    else
-        c = (*buffer * cd) / 3.0;
+    c = (*buffer * cd) / 3.0;
     *buffer = c * master;
 }
 
