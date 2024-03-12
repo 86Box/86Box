@@ -17,6 +17,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,7 @@ SOCKET plat_netsocket_create(int type)
         return -1;
 
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(yes));
     
     return fd;
 }
@@ -75,6 +77,7 @@ SOCKET plat_netsocket_create_server(int type, unsigned short port)
     }
 
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char*)&yes, sizeof(yes));
 
     return fd;
 }
@@ -141,7 +144,7 @@ int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short p
     sock_addr.sin_addr.s_addr = inet_addr(hostname);
     sock_addr.sin_port = htons(port);
 
-    if (sock_addr.sin_addr.s_addr == INADDR_ANY || sock_addr.sin_addr.s_addr == INADDR_NONE) {
+    if (sock_addr.sin_addr.s_addr == INADDR_ANY || sock_addr.sin_addr.s_addr == 0) {
         struct hostent *hp;
 
         hp = gethostbyname(hostname);
