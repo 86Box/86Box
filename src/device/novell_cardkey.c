@@ -102,7 +102,7 @@ static const device_config_t keycard_config[] = {
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 },
-        .selection = { 0 }
+        .selection = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
