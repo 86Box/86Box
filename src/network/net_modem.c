@@ -1154,6 +1154,8 @@ modem_init(const device_t *info)
     modem->baudrate = device_get_config_int("baudrate");
     modem->listen_port = device_get_config_int("listen_port");
 
+    modem->clientsocket = modem->serversocket = modem->waitingclientsocket = -1;
+
     fifo8_create(&modem->data_pending, 0x10000);
     fifo8_create(&modem->rx_data, 0x10000);
 
