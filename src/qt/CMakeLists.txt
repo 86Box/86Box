@@ -223,7 +223,7 @@ endif()
 if(WIN32)
     target_sources(plat PRIVATE ../win/win_serial_passthrough.c ../win/win_netsocket.c)
 else()
-    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c)
+    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
 endif()
 
 if (APPLE)

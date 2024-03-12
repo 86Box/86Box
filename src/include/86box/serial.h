@@ -137,6 +137,7 @@ extern void      serial_set_cts(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dsr(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dcd(serial_t *dev, uint8_t enabled);
 extern void      serial_set_ri(serial_t *dev, uint8_t enabled);
+extern int       serial_get_ri(serial_t *dev);
 
 extern const device_t ns8250_device;
 extern const device_t ns8250_pcjr_device;

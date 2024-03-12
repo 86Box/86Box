@@ -14,38 +14,46 @@
 #include <86box/plat_netsocket.h>
 #include <86box/ui.h>
 
-#include <winsock2.h>
-#include <windows.h>
-#include <ws2tcpip.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 SOCKET plat_netsocket_create(int type)
 {
-    SOCKET socket = -1;
+    SOCKET fd = -1;
     u_long yes = 1;
 
     if (type != NET_SOCKET_TCP)
         return -1;
     
-    socket = WSASocketA(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (socket == INVALID_SOCKET)
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == -1)
         return -1;
 
-    ioctlsocket(socket, FIONBIO, &yes);
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
     
-    return socket;
+    return fd;
 }
 
 SOCKET plat_netsocket_create_server(int type, unsigned short port)
 {
     struct sockaddr_in sock_addr;
-    SOCKET socket = -1;
+    SOCKET fd = -1;
     u_long yes = 1;
 
     if (type != NET_SOCKET_TCP)
         return -1;
     
-    socket = WSASocketA(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (socket == INVALID_SOCKET)
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == -1)
         return -1;
     
     memset(&sock_addr, 0, sizeof(struct sockaddr_in));
@@ -54,31 +62,31 @@ SOCKET plat_netsocket_create_server(int type, unsigned short port)
     sock_addr.sin_addr.s_addr = INADDR_ANY;
     sock_addr.sin_port = port;
 
-    if (bind(socket, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in)) == SOCKET_ERROR) {
-        plat_netsocket_close(socket);
+    if (bind(fd, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in)) == -1) {
+        plat_netsocket_close(fd);
         return (SOCKET)-1;
     }
 
-    if (listen(socket, 5) == SOCKET_ERROR) {
-        plat_netsocket_close(socket);
+    if (listen(fd, 5) == -1) {
+        plat_netsocket_close(fd);
         return (SOCKET)-1;
     }
 
-    ioctlsocket(socket, FIONBIO, &yes);
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 
-    return socket;
+    return fd;
 }
 
 void plat_netsocket_close(SOCKET socket)
 {
-    closesocket((SOCKET)socket);
+    close((SOCKET)socket);
 }
 
 SOCKET plat_netsocket_accept(SOCKET socket)
 {
     SOCKET clientsocket = accept(socket, NULL, NULL);
 
-    if (clientsocket == INVALID_SOCKET)
+    if (clientsocket == -1)
         return -1;
     
     return clientsocket;
@@ -90,7 +98,7 @@ int plat_netsocket_connected(SOCKET socket)
     socklen_t       len = sizeof(struct sockaddr);
     fd_set          wrfds;
     struct timeval  tv;
-    int             res = SOCKET_ERROR;
+    int             res = -1;
     int             status = 0;
     int             optlen = 4;
 
@@ -100,9 +108,9 @@ int plat_netsocket_connected(SOCKET socket)
     tv.tv_sec  = 0;
     tv.tv_usec = 0;
 
-    res = select(1, NULL, &wrfds, NULL, &tv);
+    res = select(socket + 1, NULL, &wrfds, NULL, &tv);
 
-    if (res == SOCKET_ERROR)
+    if (res == -1)
         return -1;
     
     if (res == 0 || !(res >= 1 && FD_ISSET(socket, &wrfds)))
@@ -110,13 +118,13 @@ int plat_netsocket_connected(SOCKET socket)
     
     res = getsockopt(socket, SOL_SOCKET, SO_ERROR, (char*)&status, &optlen);
 
-    if (res == SOCKET_ERROR)
+    if (res == -1)
         return -1;
     
     if (status != 0)
         return -1;
 
-    if (getpeername(socket, &addr, &len) == SOCKET_ERROR)
+    if (getpeername(socket, &addr, &len) == -1)
         return -1;
 
     return 1;
@@ -144,10 +152,10 @@ int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short p
 
     res = connect(socket, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in));
 
-    if (res == SOCKET_ERROR) {
-        int error = WSAGetLastError();
+    if (res == -1) {
+        int error = errno;
 
-        if (error == WSAEISCONN)
+        if (error == EISCONN)
             return 0;
         
         res = -1;
@@ -159,11 +167,11 @@ int plat_netsocket_send(SOCKET socket, const unsigned char* data, unsigned int s
 {
     int res = send(socket, (const char*)data, size, 0);
 
-    if (res == SOCKET_ERROR) {
-        int error = WSAGetLastError();
+    if (res == -1) {
+        int error = errno;
 
         if (wouldblock)
-            *wouldblock = !!(error == WSAEWOULDBLOCK);
+            *wouldblock = !!(error == EWOULDBLOCK || error == EAGAIN);
 
         return -1;
     }
@@ -174,11 +182,11 @@ int plat_netsocket_receive(SOCKET socket, unsigned char* data, unsigned int size
 {
     int res = recv(socket, (char*)data, size, 0);
 
-    if (res == SOCKET_ERROR) {
-        int error = WSAGetLastError();
+    if (res == -1) {
+        int error = errno;
 
         if (wouldblock)
-            *wouldblock = !!(error == WSAEWOULDBLOCK);
+            *wouldblock = !!(error == EWOULDBLOCK || error == EAGAIN);
 
         return -1;
     }
