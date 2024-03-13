@@ -153,6 +153,7 @@ static modem_t *instance;
 #define MREG_DTR_DELAY 25
 
 static void modem_do_command(modem_t* modem);
+static void modem_answer_incoming_call(modem_t* modem);
 
 extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
 
@@ -822,8 +823,12 @@ modem_do_command(modem_t* modem)
                 break;
             case 'A': // Answer call
                 {
-                    modem_send_res(modem, ResERROR);
-                    return;
+                    if (modem->waitingclientsocket == -1) {
+                        modem_send_res(modem, ResERROR);
+                        return;
+                    }
+                    modem_answer_incoming_call(modem);
+                    break;
                 }
                 return;
             case 'Z': { // Reset and load profiles
