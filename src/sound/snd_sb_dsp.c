@@ -124,7 +124,7 @@ uint8_t adjustMap2[24] = {
  * This current table is part software reverse engineering, part guesswork/extrapolation.
  * It's close enough to what's in the chip to produce acceptable results, but not exact.
  **/
-uint8_t espcm_range_map[512] = {
+int8_t espcm_range_map[512] = {
        -8,  -7,  -6,  -5,  -4,  -3,  -2,  -1,   0,   1,   2,   3,   4,   5,   6,   7,
       -10,  -8,  -7,  -5,  -4,  -3,  -2,  -1,   0,   2,   3,   4,   5,   6,   8,   9,
       -12, -11,  -9,  -8,  -6,  -5,  -3,  -2,   0,   2,   3,   5,   6,   8,  10,  11,
@@ -2331,6 +2331,7 @@ pollsb(void *priv)
                     }
 
                     dsp->espcm_table_index = dsp->espcm_byte_buffer[0] & 0x03;
+
                     dsp->espcm_code_buffer[0] = (dsp->espcm_byte_buffer[0] >> 2) & 0x07;
                     dsp->espcm_code_buffer[1] = (dsp->espcm_byte_buffer[0] >> 5) & 0x07;
                     dsp->espcm_code_buffer[2] = (dsp->espcm_byte_buffer[1]) & 0x07;
@@ -2613,6 +2614,90 @@ sb_poll_i(void *priv)
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
+            case ESPCM_4:
+                // I assume the real hardware double-buffers the blocks or something like that.
+                // We're not gonna do that here.
+                dsp->espcm_sample_buffer[dsp->espcm_sample_idx] = dsp->record_buffer[dsp->record_pos_read] >> 8;
+                dsp->espcm_sample_idx++;
+                dsp->record_pos_read += 2;
+                dsp->record_pos_read &= 0xFFFF;
+                if (dsp->espcm_sample_idx >= 19)
+                {
+                    int i, bit, table_addr, sigma, last_sigma;
+                    int8_t min_sample = 127, max_sample = -128, s;
+                    uint8_t b;
+
+                    for (i = 0; i < 19; i++)
+                    {
+                        s = dsp->espcm_sample_buffer[i];
+                        if (s < min_sample)
+                        {
+                            min_sample = s;
+                        }
+                        if (s > max_sample)
+                        {
+                            max_sample = s;
+                        }
+                    }
+                    if (min_sample < 0)
+                    {
+                        min_sample = -min_sample;
+                    }
+                    if (max_sample < 0)
+                    {
+                        max_sample = -max_sample;
+                    }
+                    if (min_sample > max_sample)
+                    {
+                        max_sample = min_sample;
+                    }
+
+                    for (table_addr = 15; table_addr < 256; table_addr += 16)
+                    {
+                        if (max_sample <= espcm_range_map[table_addr])
+                        {
+                            break;
+                        }
+                    }
+                    dsp->espcm_range = table_addr >> 4;
+
+                    for (i = 0; i < 19; i++)
+                    {
+                        table_addr = dsp->espcm_range << 4;
+                        last_sigma = 9999;
+                        s = dsp->espcm_sample_buffer[i];
+                        for (; (table_addr >> 4) == dsp->espcm_range; table_addr++)
+                        {
+                            sigma = espcm_range_map[table_addr] - s;
+                            if (sigma < 0)
+                            {
+                                sigma = -sigma;
+                            }
+                            if (sigma > last_sigma)
+                            {
+                                break;
+                            }
+                            last_sigma = sigma;
+                        }
+                        table_addr--;
+                        dsp->espcm_code_buffer[i] = table_addr & 0x0F;
+                    }
+
+                    b = dsp->espcm_range | (dsp->espcm_code_buffer[0] << 4);
+                    dsp->dma_writeb(dsp->dma_priv, b);
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+
+                    for (i = 1; i < 10; i++)
+                    {
+                        b = dsp->espcm_code_buffer[i * 2 - 1] | (dsp->espcm_code_buffer[i * 2] << 4);
+                        dsp->dma_writeb(dsp->dma_priv, b);
+                        dsp->sb_8_length--;
+                        dsp->ess_dma_counter++;
+                    }
+
+                    dsp->espcm_sample_idx = 0;
+                }
 
             default:
                 break;
