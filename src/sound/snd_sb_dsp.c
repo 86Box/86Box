@@ -32,6 +32,9 @@
 #define ADPCM_4  1
 #define ADPCM_26 2
 #define ADPCM_2  3
+#define ESPCM_4  4
+#define ESPCM_3  5
+#define ESPCM_1  6 // not ESPCM_2, unlike what the manuals say
 
 /*The recording safety margin is intended for uneven "len" calls to the get_buffer mixer calls on sound_sb*/
 #define SB_DSP_REC_SAFEFTY_MARGIN 4096
@@ -114,6 +117,25 @@ uint8_t adjustMap2[24] = {
     252, 4, 252, 4, 252, 4, 252, 4,
     252, 4, 252, 4, 252, 4, 252, 4,
     252, 0, 252, 0
+};
+
+uint8_t espcm_range_map[256] = {
+       -8,  -7,  -6,  -5,  -4,  -3,  -2,  -1,   0,   1,   2,   3,   4,   5,   6,   7,
+      -10,  -8,  -7,  -5,  -4,  -3,  -2,  -1,   0,   2,   3,   4,   5,   6,   8,   9,
+      -12, -11,  -9,  -8,  -6,  -5,  -3,  -2,   0,   2,   3,   5,   6,   8,  10,  11,
+      -14, -12, -11,  -9,  -7,  -5,  -4,  -2,   0,   2,   4,   5,   7,   9,  11,  13,
+      -16, -14, -12, -10,  -8,  -6,  -4,  -2,   0,   2,   4,   6,   8,  10,  12,  14,
+      -21, -18, -16, -13, -11,  -8,  -6,  -3,   0,   2,   5,   7,  10,  12,  15,  18,
+      -27, -24, -21, -17, -14, -11,  -8,  -4,   0,   3,   7,  10,  13,  17,  20,  24,
+      -35, -28, -24, -20, -16, -12,  -8,  -4,   0,   4,   8,  12,  16,  20,  24,  28,
+      -40, -35, -30, -25, -20, -15, -10,  -5,   0,   5,  10,  15,  20,  25,  30,  35,
+      -48, -42, -36, -30, -24, -18, -12,  -6,   0,   6,  12,  18,  24,  30,  36,  43,
+      -56, -49, -42, -35, -28, -21, -14,  -7,   0,   7,  14,  21,  28,  35,  42,  49,
+      -72, -63, -54, -45, -36, -27, -18,  -9,   0,   9,  18,  27,  36,  45,  54,  63,
+      -85, -74, -64, -53, -43, -32, -22, -11,   0,  11,  22,  33,  43,  54,  64,  75,
+     -102, -98, -85, -71, -58, -45, -31, -14,   0,  13,  26,  39,  52,  65,  78,  90,
+     -127,-112, -96, -80, -64, -48, -32, -16,   0,  16,  32,  48,  64,  80,  96, 112,
+     -128,-127,-109, -91, -73, -54, -36, -18,   0,  18,  36,  54,  73,  91, 109, 127
 };
 
 double low_fir_sb16_coef[4][SB16_NCoef];
@@ -1216,6 +1238,78 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x48: /* Set DSP block transfer size */
             dsp->sb_8_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
             break;
+        case 0x65: /* 4-bit ESPCM output with reference */
+            if (!IS_ESS(dsp))
+            {
+                break;
+            }
+            dsp->sbref = dsp->dma_readb(dsp->dma_priv);
+            dsp->sb_8_length--;
+            dsp->ess_dma_counter++;
+            fallthrough;
+        case 0x64: /* 4-bit ESPCM output */
+            if (IS_ESS(dsp))
+            {
+                sb_start_dma(dsp, 1, 0, ESPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
+                dsp->sb_8_length--;
+                dsp->ess_dma_counter++;
+            }
+            break;
+        case 0x67: /* 3-bit ESPCM output with reference */
+            if (!IS_ESS(dsp))
+            {
+                break;
+            }
+            dsp->sbref = dsp->dma_readb(dsp->dma_priv);
+            dsp->sb_8_length--;
+            dsp->ess_dma_counter++;
+            fallthrough;
+        case 0x66: /* 3-bit ESPCM output */
+            if (IS_ESS(dsp))
+            {
+                sb_start_dma(dsp, 1, 0, ESPCM_3, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
+                dsp->sb_8_length--;
+                dsp->ess_dma_counter++;
+            }
+            break;
+        case 0x6B: /* 1-bit ESPCM output with reference */
+            if (!IS_ESS(dsp))
+            {
+                break;
+            }
+            dsp->sbref = dsp->dma_readb(dsp->dma_priv);
+            dsp->sb_8_length--;
+            dsp->ess_dma_counter++;
+            fallthrough;
+        case 0x6A: /* 1-bit ESPCM output */
+            if (IS_ESS(dsp))
+            {
+                sb_start_dma(dsp, 1, 0, ESPCM_1, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
+                dsp->sb_8_length--;
+                dsp->ess_dma_counter++;
+            }
+            break;
+        case 0x6F: /* 4-bit ESPCM input with reference */
+            if (!IS_ESS(dsp))
+            {
+                break;
+            }
+            dsp->sbref = (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80;
+            dsp->record_pos_read += 2;
+            dsp->record_pos_read &= 0xFFFF;
+            fallthrough;
+        case 0x6E: /* 4-bit ESPCM input */
+            if (IS_ESS(dsp))
+            {
+                sb_start_dma_i(dsp, 1, 0, ESPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->sbdat2 = (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80;
+                dsp->record_pos_read += 2;
+                dsp->record_pos_read &= 0xFFFF;
+            }
+            break;
         case 0x75: /* 4-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
@@ -2058,6 +2152,112 @@ pollsb(void *priv)
                     dsp->sbleftright = !dsp->sbleftright;
                 } else
                     dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                break;
+
+            case ESPCM_4:
+                if (dsp->espcm_sample_idx >= 19)
+                {
+                    dsp->espcm_sample_idx = 0;
+                }
+                if (dsp->espcm_sample_idx == 0)
+                {
+                    dsp->espcm_byte_buffer[0] = dsp->dma_readb(dsp->dma_priv);
+                    dsp->espcm_sample_idx++;
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+
+                    dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
+                    tempi = dsp->espcm_byte_buffer[0] >> 4;
+                }
+                else if (dsp->espcm_sample_idx & 1)
+                {
+                    dsp->espcm_byte_buffer[0] = dsp->dma_readb(dsp->dma_priv);
+                    dsp->espcm_sample_idx++;
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+
+                    tempi = dsp->espcm_byte_buffer[0] & 0x0F;
+                }
+                else
+                {
+                    dsp->espcm_sample_idx++;
+                    tempi = dsp->espcm_byte_buffer[0] >> 4;
+                }
+
+                tempi |= (dsp->espcm_range << 4);
+                data[0] = espcm_range_map[tempi];
+                dsp->sbdat = data[0] << 8;
+                if (dsp->stereo)
+                {
+                    sb_dsp_log("pollsb: ESPCM 4, dsp->stereo, %s channel, %04X\n",
+                            dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                    if (dsp->sbleftright)
+                        dsp->sbdatl = dsp->sbdat;
+                    else
+                        dsp->sbdatr = dsp->sbdat;
+                    dsp->sbleftright = !dsp->sbleftright;
+                }
+                else
+                {
+                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                }
+                break;
+
+            case ESPCM_3:
+                // TODO
+                break;
+
+            case ESPCM_1:
+                if (dsp->espcm_sample_idx >= 19)
+                {
+                    dsp->espcm_sample_idx = 0;
+                }
+                if (dsp->espcm_sample_idx == 0)
+                {
+                    dsp->espcm_byte_buffer[0] = dsp->dma_readb(dsp->dma_priv);
+                    dsp->espcm_sample_idx++;
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+
+                    dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
+                    dsp->espcm_byte_buffer[0] >>= 5;
+                    tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xF : 0x0;
+                    dsp->espcm_byte_buffer[0] >>= 1;
+                }
+                else if (dsp->espcm_sample_idx == 3 | dsp->espcm_sample_idx == 11)
+                {
+                    dsp->espcm_byte_buffer[0] = dsp->dma_readb(dsp->dma_priv);
+                    dsp->espcm_sample_idx++;
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+
+                    tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xF : 0x0;
+                    dsp->espcm_byte_buffer[0] >>= 1;
+                }
+                else
+                {
+                    dsp->espcm_sample_idx++;
+                    tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xF : 0x0;
+                    dsp->espcm_byte_buffer[0] >>= 1;
+                }
+
+                tempi |= (dsp->espcm_range << 4);
+                data[0] = espcm_range_map[tempi];
+                dsp->sbdat = data[0] << 8;
+                if (dsp->stereo)
+                {
+                    sb_dsp_log("pollsb: ESPCM 1, dsp->stereo, %s channel, %04X\n",
+                            dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                    if (dsp->sbleftright)
+                        dsp->sbdatl = dsp->sbdat;
+                    else
+                        dsp->sbdatr = dsp->sbdat;
+                    dsp->sbleftright = !dsp->sbleftright;
+                }
+                else
+                {
+                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                }
                 break;
 
             default:

@@ -9,7 +9,7 @@
 #define SB_SUBTYPE_ESS_ES1688          4 /* ESS Technology ES1688 */
 
 /* ESS-related */
-#define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)
+#define IS_ESS(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_ESS_ES688 || (dsp)->sb_subtype == SB_SUBTYPE_ESS_ES1688) /* check for future ESS cards here */
 
 /* aztech-related */
 #define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) /* check for future AZT cards here */
@@ -147,6 +147,13 @@ typedef struct sb_dsp_t {
     uint8_t ess_extended_mode;
     uint8_t ess_reload_len;
     uint32_t ess_dma_counter;
+
+    // ESPCM
+    uint8_t espcm_sample_idx;
+    uint8_t espcm_range;
+    uint8_t espcm_byte_buffer[4];
+    uint8_t espcm_code_buffer[10]; /* used for ESPCM_3 */
+    uint8_t espcm_last_nibble;     /* used for ESPCM_3 */
 
     mpu_t *mpu;
 } sb_dsp_t;
