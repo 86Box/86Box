@@ -113,6 +113,7 @@ typedef struct modem_t
     bool echo, numericresponse;
     bool tcpIpMode, tcpIpConnInProgress;
     bool telnet_mode;
+    bool dtrstate;
     uint32_t tcpIpConnCounter;
 
     int doresponse;
@@ -957,6 +958,7 @@ void
 modem_dtr_callback(serial_t* serial, int status, void *priv)
 {
     modem_t *dev = (modem_t *) priv;
+    dev->dtrstate = !!status;
     if (status == 1)
         timer_disable(&dev->dtr_timer);
     else if (!timer_is_enabled(&dev->dtr_timer))
@@ -1207,7 +1209,7 @@ modem_cmdpause_timer_callback(void *priv)
     if (!modem->connected && modem->waitingclientsocket == -1 && modem->serversocket != -1) {
         modem->waitingclientsocket = plat_netsocket_accept(modem->serversocket);
         if (modem->waitingclientsocket != -1) {
-            if (!(modem->serial->mctrl & 1) && modem->dtrmode != 0) {
+            if (modem->dtrstate == 0 && modem->dtrmode != 0) {
                 modem_enter_idle_state(modem);
             } else {
                 modem->ringing = true;
