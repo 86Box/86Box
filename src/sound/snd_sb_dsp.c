@@ -1348,6 +1348,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (IS_ESS(dsp))
             {
                 sb_start_dma(dsp, 1, 0, ESPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->espcm_sample_idx = 0;
                 dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
                 dsp->ess_dma_counter++;
@@ -1366,6 +1367,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (IS_ESS(dsp))
             {
                 sb_start_dma(dsp, 1, 0, ESPCM_3, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->espcm_sample_idx = 0;
                 dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
                 dsp->ess_dma_counter++;
@@ -1384,6 +1386,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (IS_ESS(dsp))
             {
                 sb_start_dma(dsp, 1, 0, ESPCM_1, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->espcm_sample_idx = 0;
                 dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
                 dsp->ess_dma_counter++;
@@ -1402,6 +1405,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (IS_ESS(dsp))
             {
                 sb_start_dma_i(dsp, 1, 0, ESPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
+                dsp->espcm_sample_idx = 0;
                 dsp->sbdat2 = (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
