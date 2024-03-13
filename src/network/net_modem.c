@@ -153,7 +153,7 @@ static modem_t *instance;
 #define MREG_DTR_DELAY 25
 
 static void modem_do_command(modem_t* modem);
-static void modem_answer_incoming_call(modem_t* modem);
+static void modem_accept_incoming_call(modem_t* modem);
 
 extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
 
@@ -559,7 +559,6 @@ modem_reset(modem_t* modem)
 void
 modem_dial(modem_t* modem, const char* str)
 {
-    /* TODO: Port TCP/IP support from DOSBox. */
     modem->tcpIpConnCounter = 0;
     modem->tcpIpMode = false;
     if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1))
@@ -827,7 +826,7 @@ modem_do_command(modem_t* modem)
                         modem_send_res(modem, ResERROR);
                         return;
                     }
-                    modem_answer_incoming_call(modem);
+                    modem_accept_incoming_call(modem);
                     break;
                 }
                 return;
