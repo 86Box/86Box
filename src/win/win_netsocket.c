@@ -53,7 +53,7 @@ SOCKET plat_netsocket_create_server(int type, unsigned short port)
     
     sock_addr.sin_family = AF_INET;
     sock_addr.sin_addr.s_addr = INADDR_ANY;
-    sock_addr.sin_port = port;
+    sock_addr.sin_port = htons(port);
 
     if (bind(socket, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in)) == SOCKET_ERROR) {
         plat_netsocket_close(socket);
