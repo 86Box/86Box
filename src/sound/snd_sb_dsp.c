@@ -2301,7 +2301,96 @@ pollsb(void *priv)
                 break;
 
             case ESPCM_3:
-                // TODO
+                if (dsp->espcm_sample_idx >= 19)
+                {
+                    dsp->espcm_sample_idx = 0;
+                }
+                if (dsp->espcm_sample_idx == 0)
+                {
+                    dsp->espcm_byte_buffer[0] = dsp->dma_readb(dsp->dma_priv);
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+
+                    dsp->espcm_sample_idx++;
+
+                    dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
+                    tempi = dsp->espcm_byte_buffer[0] >> 4;
+                    dsp->espcm_last_value = tempi;
+                }
+                else if (dsp->espcm_sample_idx == 1)
+                {
+                    for (tempi = 0; tempi < 4; tempi++)
+                    {
+                        dsp->espcm_byte_buffer[tempi] = dsp->dma_readb(dsp->dma_priv);
+                        dsp->sb_8_length--;
+                        dsp->ess_dma_counter++;
+                    }
+
+                    dsp->espcm_table_index = dsp->espcm_byte_buffer[0] & 0x03;
+                    dsp->espcm_code_buffer[0] = (dsp->espcm_byte_buffer[0] >> 2) & 0x07;
+                    dsp->espcm_code_buffer[1] = (dsp->espcm_byte_buffer[0] >> 5) & 0x07;
+                    dsp->espcm_code_buffer[2] = (dsp->espcm_byte_buffer[1]) & 0x07;
+                    dsp->espcm_code_buffer[3] = (dsp->espcm_byte_buffer[1] >> 3) & 0x07;
+                    dsp->espcm_code_buffer[4] = ((dsp->espcm_byte_buffer[1] >> 6) & 0x03) | ((dsp->espcm_byte_buffer[2] & 0x01) << 2);
+                    dsp->espcm_code_buffer[5] = (dsp->espcm_byte_buffer[2] >> 1) & 0x07;
+                    dsp->espcm_code_buffer[6] = (dsp->espcm_byte_buffer[2] >> 4) & 0x07;
+                    dsp->espcm_code_buffer[7] = ((dsp->espcm_byte_buffer[2] >> 7) & 0x01) | ((dsp->espcm_byte_buffer[3] & 0x03) << 1);
+                    dsp->espcm_code_buffer[8] = (dsp->espcm_byte_buffer[3] >> 2) & 0x07;
+                    dsp->espcm_code_buffer[9] = (dsp->espcm_byte_buffer[3] >> 5) & 0x07;
+
+                    tempi = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[0];
+                    tempi = espcm3_dpcm_tables[tempi];
+                    dsp->espcm_last_value = tempi;
+                    dsp->espcm_sample_idx++;
+                }
+                else if (dsp->espcm_sample_idx == 11)
+                {
+                    for (tempi = 1; tempi < 4; tempi++)
+                    {
+                        dsp->espcm_byte_buffer[tempi] = dsp->dma_readb(dsp->dma_priv);
+                        dsp->sb_8_length--;
+                        dsp->ess_dma_counter++;
+                    }
+
+                    dsp->espcm_code_buffer[0] = (dsp->espcm_byte_buffer[1]) & 0x07;
+                    dsp->espcm_code_buffer[1] = (dsp->espcm_byte_buffer[1] >> 3) & 0x07;
+                    dsp->espcm_code_buffer[2] = ((dsp->espcm_byte_buffer[1] >> 6) & 0x03) | ((dsp->espcm_byte_buffer[2] & 0x01) << 2);
+                    dsp->espcm_code_buffer[3] = (dsp->espcm_byte_buffer[2] >> 1) & 0x07;
+                    dsp->espcm_code_buffer[4] = (dsp->espcm_byte_buffer[2] >> 4) & 0x07;
+                    dsp->espcm_code_buffer[5] = ((dsp->espcm_byte_buffer[2] >> 7) & 0x01) | ((dsp->espcm_byte_buffer[3] & 0x03) << 1);
+                    dsp->espcm_code_buffer[6] = (dsp->espcm_byte_buffer[3] >> 2) & 0x07;
+                    dsp->espcm_code_buffer[7] = (dsp->espcm_byte_buffer[3] >> 5) & 0x07;
+
+                    tempi = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[0];
+                    tempi = espcm3_dpcm_tables[tempi];
+                    dsp->espcm_last_value = tempi;
+                    dsp->espcm_sample_idx++;
+                }
+                else
+                {
+                    tempi = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[(dsp->espcm_sample_idx - 1) % 10];
+                    tempi = espcm3_dpcm_tables[tempi];
+                    dsp->espcm_last_value = tempi;
+                    dsp->espcm_sample_idx++;
+                }
+
+                tempi |= (dsp->espcm_range << 4);
+                data[0] = espcm_range_map[tempi];
+                dsp->sbdat = data[0] << 8;
+                if (dsp->stereo)
+                {
+                    sb_dsp_log("pollsb: ESPCM 3, dsp->stereo, %s channel, %04X\n",
+                            dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                    if (dsp->sbleftright)
+                        dsp->sbdatl = dsp->sbdat;
+                    else
+                        dsp->sbdatr = dsp->sbdat;
+                    dsp->sbleftright = !dsp->sbleftright;
+                }
+                else
+                {
+                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                }
                 break;
 
             case ESPCM_1:
