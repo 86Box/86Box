@@ -144,7 +144,7 @@ int plat_netsocket_connect(SOCKET socket, const char* hostname, unsigned short p
     sock_addr.sin_addr.s_addr = inet_addr(hostname);
     sock_addr.sin_port = htons(port);
 
-    if (sock_addr.sin_addr.s_addr == INADDR_ANY || sock_addr.sin_addr.s_addr == 0) {
+    if (sock_addr.sin_addr.s_addr == ((in_addr_t)-1) || sock_addr.sin_addr.s_addr == 0) {
         struct hostent *hp;
 
         hp = gethostbyname(hostname);
