@@ -112,6 +112,7 @@ typedef struct modem_t
     bool connected, ringing;
     bool echo, numericresponse;
     bool tcpIpMode, tcpIpConnInProgress;
+    bool cooldown;
     bool telnet_mode;
     bool dtrstate;
     uint32_t tcpIpConnCounter;
@@ -369,11 +370,15 @@ host_to_modem_cb(void *priv)
     if (!((modem->serial->mctrl & 2) || modem->flowcontrol != 3))
         goto no_write_to_machine;
 
-    if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data)) {
+    if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data) && !modem->cooldown) {
         serial_write_fifo(modem->serial, fifo8_pop(&modem->rx_data));
     } else if (fifo8_num_used(&modem->data_pending)) {
         uint8_t val = fifo8_pop(&modem->data_pending);
         serial_write_fifo(modem->serial, val);
+    }
+
+    if (fifo8_num_used(&modem->data_pending) == 0) {
+        modem->cooldown = false;
     }
 
 no_write_to_machine:
@@ -524,6 +529,7 @@ modem_enter_connected_state(modem_t* modem)
     modem->ringing = false;
     modem->connected = true;
     modem->tcpIpMode = true;
+    modem->cooldown = true;
     plat_netsocket_close(modem->serversocket);
     modem->serversocket = -1;
     memset(&modem->telClient, 0, sizeof(modem->telClient));
