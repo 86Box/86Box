@@ -153,7 +153,7 @@ typedef struct sb_dsp_t {
     uint8_t espcm_range;
     uint8_t espcm_byte_buffer[4];
     uint8_t espcm_code_buffer[10]; /* used for ESPCM_3 */
-    uint8_t espcm_last_nibble;     /* used for ESPCM_3 */
+    uint8_t espcm_last_value;      /* used for ESPCM_3 */
 
     mpu_t *mpu;
 } sb_dsp_t;
