@@ -1224,3 +1224,9 @@ msgstr "빠른"
 
 msgid "&Auto-pause on focus loss"
 msgstr "집중력 저하 시 자동 일시 중지(&A)"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox는 더 이상 지원되지 않습니다"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "WinBox 매니저의 개발은 유지 관리자의 부족으로 인해 2022년에 중단되었습니다. 86Box를 더욱 개선하기 위한 노력의 일환으로 WinBox 매니저를 더 이상 지원하지 않기로 결정했습니다.\n\nWinBox를 통해 더 이상의 업데이트는 제공되지 않으며, 최신 버전의 86Box를 계속 사용할 경우 잘못된 동작이 발생할 수 있습니다. WinBox 동작과 관련된 모든 버그 보고는 유효하지 않은 것으로 종료됩니다.\n\n사용할 수 있는 다른 관리자 목록을 보려면 86box.net으로 이동하세요."

@@ -1224,3 +1224,9 @@ msgstr "Hızlı"
 
 msgid "&Auto-pause on focus loss"
 msgstr "&Odak kaybında otomatik duraklatma"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox artık desteklenmiyor"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "WinBox yöneticisinin geliştirilmesi, bakımcı eksikliği nedeniyle 2022 yılında durduruldu. Çabalarımızı 86Box'ı daha da iyi hale getirmeye yönlendirdiğimiz için, WinBox'ı artık bir yönetici olarak desteklememe kararı aldık.\n\nWinBox aracılığıyla daha fazla güncelleme sağlanmayacak ve 86Box'ın daha yeni sürümleriyle kullanmaya devam ederseniz hatalı davranışlarla karşılaşabilirsiniz. WinBox davranışıyla ilgili tüm hata raporları geçersiz olarak kapatılacaktır.\n\nKullanabileceğiniz diğer yöneticilerin bir listesi için 86box.net adresine gidin."

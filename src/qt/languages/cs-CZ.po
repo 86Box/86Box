@@ -1224,3 +1224,9 @@ msgstr "Rychlý"
 
 msgid "&Auto-pause on focus loss"
 msgstr "&Automatická pauza při ztrátě zaměření okna"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox již není podporován"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Vývoj správce WinBox byl zastaven v roce 2022 z důvodu nedostatku správců. Vzhledem k tomu, že naše úsilí směřujeme k tomu, abychom 86Box ještě vylepšili, rozhodli jsme se WinBox jako správce již nepodporovat.\n\nProstřednictvím WinBoxu nebudou poskytovány žádné další aktualizace a pokud jej budete nadále používat s novějšími verzemi 86Boxu, můžete se setkat s nesprávným chováním. Veškerá hlášení o chybách souvisejících s chováním WinBoxu budou uzavřena jako neplatná.\n\nSeznam dalších správců, které můžete používat, najdete na webu 86box.net."
