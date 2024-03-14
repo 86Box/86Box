@@ -919,6 +919,7 @@ modem_do_command(modem_t* modem)
 		    	        }
 		    	        break;
 		    }
+            break;
 		    case '\\': { // \ escaped commands
 		    	char cmdchar = modem_fetch_character(&scanbuf);
 		    	switch (cmdchar) {
