@@ -473,8 +473,6 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 
     opl_buf = ess->opl.update(ess->opl.priv);
 
-    sb_dsp_update(&ess->dsp);
-
     for (int c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
         out_r = 0.0;
