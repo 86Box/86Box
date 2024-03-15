@@ -46,7 +46,7 @@ ProgSettings::getIconSetPath()
 {
     if (iconset_to_qt.isEmpty()) {
         // Always include default bundled icons
-        iconset_to_qt.insert("", ":/settings/win/icons");
+        iconset_to_qt.insert("", ":/settings/qt/icons");
         // Walk rom_paths to get the candidates
         for (rom_path_t *emu_rom_path = &rom_paths; emu_rom_path != nullptr; emu_rom_path = emu_rom_path->next) {
             // Check for icons subdir in each candidate

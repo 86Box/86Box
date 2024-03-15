@@ -189,7 +189,7 @@ endif()
 
 if(WIN32)
     enable_language(RC)
-    target_sources(86Box PUBLIC ../win/86Box-qt.rc)
+    target_sources(86Box PUBLIC 86Box-qt.rc)
     target_sources(plat PRIVATE win_dynld.c)
 
     # CMake 3.22 messed this up for clang/clang++
@@ -198,8 +198,8 @@ if(WIN32)
         # MSVC linker adds its own manifest to the executable, which fails if
         # we include ours in 86Box.rc. We therefore need to pass the manifest
         # directly as as a source file, so the linker can use that instead.
-        set_property(SOURCE ../win/86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
-        target_sources(86Box PRIVATE ../win/86Box.manifest)
+        set_property(SOURCE 86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        target_sources(86Box PRIVATE 86Box.manifest)
     endif()
 
     if (MINGW)
@@ -217,11 +217,11 @@ else()
 endif()
 
 if(WIN32 AND NOT MINGW)
-    target_sources(plat PRIVATE ../win/win_opendir.c)
+    target_sources(plat PRIVATE win_opendir.c)
 endif()
 
 if(WIN32)
-    target_sources(plat PRIVATE ../win/win_serial_passthrough.c ../win/win_netsocket.c)
+    target_sources(plat PRIVATE win_serial_passthrough.c win_netsocket.c)
 else()
     target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
 endif()

@@ -199,13 +199,13 @@ main(int argc, char *argv[])
 
 #ifndef Q_OS_MACOS
 #    ifdef RELEASE_BUILD
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-green.ico"));
 #    elif defined ALPHA_BUILD
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-red.ico"));
 #    elif defined BETA_BUILD
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-yellow.ico"));
 #    else
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-gray.ico"));
 #    endif
 
 #    ifdef Q_OS_UNIX

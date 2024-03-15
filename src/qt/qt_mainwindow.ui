@@ -292,7 +292,7 @@
   <action name="actionHard_Reset">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/win/icons/hard_reset.ico</normaloff>:/menuicons/win/icons/hard_reset.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/hard_reset.ico</normaloff>:/menuicons/qt/icons/hard_reset.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Hard Reset...</string>
@@ -304,7 +304,7 @@
   <action name="actionCtrl_Alt_Del">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/win/icons/send_cad.ico</normaloff>:/menuicons/win/icons/send_cad.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/send_cad.ico</normaloff>:/menuicons/qt/icons/send_cad.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Ctrl+Alt+Del</string>
@@ -325,7 +325,7 @@
   <action name="actionCtrl_Alt_Esc">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/win/icons/send_cae.ico</normaloff>:/menuicons/win/icons/send_cae.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/send_cae.ico</normaloff>:/menuicons/qt/icons/send_cae.ico</iconset>
    </property>
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
@@ -340,7 +340,7 @@
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/win/icons/pause.ico</normaloff>:/menuicons/win/icons/pause.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/pause.ico</normaloff>:/menuicons/qt/icons/pause.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Pause</string>
@@ -357,7 +357,7 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/win/icons/settings.ico</normaloff>:/menuicons/win/icons/settings.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/settings.ico</normaloff>:/menuicons/qt/icons/settings.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Settings...</string>
@@ -768,7 +768,7 @@
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/win/icons/acpi_shutdown.ico</normaloff>:/menuicons/win/icons/acpi_shutdown.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
     <string>ACPI shutdown</string>
