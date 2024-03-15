@@ -220,13 +220,13 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
 #    if !defined(EMU_BUILD_NUM) || (EMU_BUILD_NUM != 5624)
-    HWND winbox = FindWindow("TWinBoxMain", NULL);
+    HWND winbox = FindWindowW(L"TWinBoxMain", NULL);
     if (winbox &&
-        FindWindowEx(winbox, NULL, "TToolBar", NULL) &&
-        FindWindowEx(winbox, NULL, "TListBox", NULL) &&
-        FindWindowEx(winbox, NULL, "TStatusBar", NULL) &&
-        (winbox = FindWindowEx(winbox, NULL, "TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
-        FindWindowEx(winbox, NULL, "TTabSheet", NULL))
+        FindWindowExW(winbox, NULL, L"TToolBar", NULL) &&
+        FindWindowExW(winbox, NULL, L"TListBox", NULL) &&
+        FindWindowExW(winbox, NULL, L"TStatusBar", NULL) &&
+        (winbox = FindWindowExW(winbox, NULL, L"TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
+        FindWindowExW(winbox, NULL, L"TTabSheet", NULL))
 #    endif
     {
         QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("WinBox is no longer supported"),
