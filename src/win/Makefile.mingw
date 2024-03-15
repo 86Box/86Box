@@ -783,7 +783,8 @@ VOODOOOBJ := vid_voodoo.o vid_voodoo_banshee.o \
 PLATOBJ := win.o \
            win_dynld.o \
            win_cdrom.o win_keyboard.o \
-           win_mouse.o win_serial_passthrough.o
+           win_mouse.o win_serial_passthrough.o \
+           win_netsocket.c
 
 UIOBJ := win_ui.o win_icon.o win_stbar.o discord.o \
          win_sdl.o win_opengl.o win_opengl_glslp.o glad.o \
