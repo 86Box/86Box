@@ -1,4 +1,3 @@
-
 /*
  * 86Box    A hypervisor and IBM PC system emulator that specializes in
  *          running old operating systems and software designed for IBM
@@ -323,9 +322,9 @@ send_tx_packet:
         buf[13] = 0x00;
         memcpy(buf + 14, processed_tx_packet, received);
         network_tx(modem->card, buf, received + 14);
-        free(processed_tx_packet);
         free(buf);
     }
+    free(processed_tx_packet);
     return;
 }
 
@@ -530,6 +529,7 @@ modem_enter_connected_state(modem_t* modem)
     modem->connected = true;
     modem->tcpIpMode = true;
     modem->cooldown = true;
+    modem->tx_count = 0;
     plat_netsocket_close(modem->serversocket);
     modem->serversocket = -1;
     memset(&modem->telClient, 0, sizeof(modem->telClient));
@@ -919,6 +919,7 @@ modem_do_command(modem_t* modem)
 		    	        }
 		    	        break;
 		    }
+            break;
 		    case '\\': { // \ escaped commands
 		    	char cmdchar = modem_fetch_character(&scanbuf);
 		    	switch (cmdchar) {
