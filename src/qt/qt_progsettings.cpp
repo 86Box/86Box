@@ -110,6 +110,7 @@ ProgSettings::ProgSettings(QWidget *parent)
             ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i.key()));
         }
     }
+    ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
     mouseSensitivity = mouse_sensitivity;
     ui->horizontalSlider->setValue(mouseSensitivity * 100.);
