@@ -760,9 +760,6 @@ msgstr "%i Wait state(s)"
 msgid "Type"
 msgstr "Type"
 
-msgid "Failed to set up PCap"
-msgstr "Failed to set up PCap"
-
 msgid "No PCap devices found"
 msgstr "No PCap devices found"
 
@@ -999,9 +996,6 @@ msgstr "Unable to write file"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "HDI or HDX images with a sector size other than 512 are not supported."
-
-msgid "USB is not yet supported"
-msgstr "USB is not yet supported"
 
 msgid "Disk image file already exists"
 msgstr "Disk image file already exists"

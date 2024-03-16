@@ -760,9 +760,6 @@ msgstr "%i čekací stav(y)"
 msgid "Type"
 msgstr "Typ"
 
-msgid "Failed to set up PCap"
-msgstr "Nastala chyba při inicializaci knihovny PCap"
-
 msgid "No PCap devices found"
 msgstr "Nebyla nalezena žádná PCap zařízení"
 
@@ -999,9 +996,6 @@ msgstr "Nebylo možné zapisovat do souboru"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Obraz disku ve formátu HDI nebo HDX s velikostí sektoru jinou než 512 bajtů nejsou podporovány."
-
-msgid "USB is not yet supported"
-msgstr "USB zatím není podporováno."
 
 msgid "Disk image file already exists"
 msgstr "Soubor obrazu disku již existuje"

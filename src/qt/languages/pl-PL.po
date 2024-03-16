@@ -760,9 +760,6 @@ msgstr "%i Stany oczekiwania"
 msgid "Type"
 msgstr "Rodzaj"
 
-msgid "Failed to set up PCap"
-msgstr "Nie udało się ustawić PCap"
-
 msgid "No PCap devices found"
 msgstr "Nie znaleziono urządzeń PCap"
 
@@ -999,9 +996,6 @@ msgstr "Nie można zapisać pliku"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Obrazy HDI lub HDX z rozmiarem sektora innym niż 512 nie są wspierane."
-
-msgid "USB is not yet supported"
-msgstr "USB nie jest jeszcze wspierane"
 
 msgid "Disk image file already exists"
 msgstr "Plik obrazu dysku już istnieje"

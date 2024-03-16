@@ -760,9 +760,6 @@ msgstr "%i Bekleme durumları"
 msgid "Type"
 msgstr "Tür"
 
-msgid "Failed to set up PCap"
-msgstr "PCap ayarlanamadı"
-
 msgid "No PCap devices found"
 msgstr "Herhangi bir PCap cihazı bulunamadı"
 
@@ -999,9 +996,6 @@ msgstr "Dosyanın üzerine yazılamıyor"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "512 dışında sektör boyutu olan HDI veya HDX imajları desteklenmemektedir."
-
-msgid "USB is not yet supported"
-msgstr "USB şu anda desteklenmemektedir"
 
 msgid "Disk image file already exists"
 msgstr "Disk imaj dosyası zaten var olmakta"

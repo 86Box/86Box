@@ -256,8 +256,6 @@ plat_get_string(int i)
             return L"Invalid configuration";
         case IDS_4099:
             return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case IDS_2094:
-            return L"Failed to set up PCap";
         case IDS_2095:
             return L"No PCap devices found";
         case IDS_2096:

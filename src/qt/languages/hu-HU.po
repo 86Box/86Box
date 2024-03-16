@@ -760,9 +760,6 @@ msgstr "%i várakozási ciklus(ok)"
 msgid "Type"
 msgstr "Típus"
 
-msgid "Failed to set up PCap"
-msgstr "Nem sikerült a PCap beállítása"
-
 msgid "No PCap devices found"
 msgstr "Nem találhatóak PCap eszközök"
 
@@ -999,9 +996,6 @@ msgstr "A fájl nem írható"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Az 512-től eltérő szektorméretű HDI vagy HDX képek nem támogatottak."
-
-msgid "USB is not yet supported"
-msgstr "Az USB még nem támogatott"
 
 msgid "Disk image file already exists"
 msgstr "A lemezképfájl már létezik"

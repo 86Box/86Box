@@ -760,9 +760,6 @@ msgstr "%i stanje čekanja"
 msgid "Type"
 msgstr "Tip"
 
-msgid "Failed to set up PCap"
-msgstr "Postavljanje PCap-a nije uspjelo"
-
 msgid "No PCap devices found"
 msgstr "Nema PCap uređaja"
 
@@ -999,9 +996,6 @@ msgstr "Nije moguće napisati datoteku"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "HDI ili HDX slike s veličinom sektora koja nije 512 kB nisu podržane."
-
-msgid "USB is not yet supported"
-msgstr "USB nije još podržano"
 
 msgid "Disk image file already exists"
 msgstr "Slika diska već postoji"

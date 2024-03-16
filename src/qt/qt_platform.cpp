@@ -602,7 +602,6 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2131] = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[IDS_4099] = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
-    translatedstrings[IDS_2094] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
     translatedstrings[IDS_2095] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
     translatedstrings[IDS_2096] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
     translatedstrings[IDS_2130] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();

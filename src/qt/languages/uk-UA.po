@@ -760,9 +760,6 @@ msgstr "%i WS"
 msgid "Type"
 msgstr "Тип"
 
-msgid "Failed to set up PCap"
-msgstr "Не вдалося налаштувати PCap"
-
 msgid "No PCap devices found"
 msgstr "Пристрої PCap не знайдені"
 
@@ -999,9 +996,6 @@ msgstr "Неможливо записати файл"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Образи HDI або HDX з розміром сектора, відмінним від 512, не підтримуються."
-
-msgid "USB is not yet supported"
-msgstr "USB поки не підтримується"
 
 msgid "Disk image file already exists"
 msgstr "Файл образу диска вже існує"

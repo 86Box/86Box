@@ -760,9 +760,6 @@ msgstr "%iつのウェイト ステート"
 msgid "Type"
 msgstr "タイプ"
 
-msgid "Failed to set up PCap"
-msgstr "PCapのセットアップに失敗しました"
-
 msgid "No PCap devices found"
 msgstr "PCapデバイスがありません"
 
@@ -999,9 +996,6 @@ msgstr "ファイルの書き込みができません"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "512以外のセクタサイズを持つHDIまたはHDXイメージはサポートされていません。"
-
-msgid "USB is not yet supported"
-msgstr "USBはまだ非対応です"
 
 msgid "Disk image file already exists"
 msgstr "ディスクイメージファイルが既に存在します"

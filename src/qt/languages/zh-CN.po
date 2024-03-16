@@ -760,9 +760,6 @@ msgstr "%i 等待状态 (WS)"
 msgid "Type"
 msgstr "类型"
 
-msgid "Failed to set up PCap"
-msgstr "设置 PCap 失败"
-
 msgid "No PCap devices found"
 msgstr "未找到 PCap 设备"
 
@@ -999,9 +996,6 @@ msgstr "无法写入文件"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 映像。"
-
-msgid "USB is not yet supported"
-msgstr "尚未支持 USB"
 
 msgid "Disk image file already exists"
 msgstr "磁盘映像文件已存在"
