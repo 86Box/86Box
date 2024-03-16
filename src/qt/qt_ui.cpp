@@ -95,25 +95,19 @@ plat_resize_request(int w, int h, int monitor_index)
     if (video_fullscreen || is_quit)
         return;
     if (vid_resize & 2) {
-        plat_resize_monitor(fixed_size_x, fixed_size_y, monitor_index);
+        plat_resize(fixed_size_x, fixed_size_y, monitor_index);
     } else {
-        plat_resize_monitor(w, h, monitor_index);
+        plat_resize(w, h, monitor_index);
     }
 }
 
 void
-plat_resize_monitor(int w, int h, int monitor_index)
+plat_resize(int w, int h, int monitor_index)
 {
     if (monitor_index >= 1)
         main_window->resizeContentsMonitor(w, h, monitor_index);
     else
         main_window->resizeContents(w, h);
-}
-
-void
-plat_setfullscreen(int on)
-{
-    main_window->setFullscreen(on > 0 ? true : false);
 }
 
 void

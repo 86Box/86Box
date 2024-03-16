@@ -150,6 +150,11 @@ strnicmp(const char *s1, const char *s2, size_t n)
 }
 
 void
+do_start(void)
+{
+}
+
+void
 do_stop(void)
 {
     cpu_thread_run = 0;
@@ -423,12 +428,6 @@ plat_power_off(void)
 
     cpu_thread_run = 0;
     QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
-}
-
-void
-set_language(uint32_t id)
-{
-    lang_id = id;
 }
 
 extern "C++" {
@@ -739,12 +738,6 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
 
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
 
-}
-
-double
-plat_get_dpi(void)
-{
-    return util::screenOfWidget(main_window)->devicePixelRatio();
 }
 
 void

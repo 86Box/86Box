@@ -448,12 +448,6 @@ plat_get_ticks(void)
     return (uint32_t) (plat_get_ticks_common() / 1000);
 }
 
-uint32_t
-plat_get_micro_ticks(void)
-{
-    return (uint32_t) plat_get_ticks_common();
-}
-
 void
 plat_remove(char *path)
 {
@@ -578,9 +572,9 @@ main_thread(void *param)
         /* If needed, handle a screen resize. */
         if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
             if (vid_resize & 2)
-                plat_resize(fixed_size_x, fixed_size_y);
+                plat_resize(fixed_size_x, fixed_size_y, 0);
             else
-                plat_resize(scrnsz_x, scrnsz_y);
+                plat_resize(scrnsz_x, scrnsz_y, 0);
             atomic_store(&doresize_monitors[0], 1);
         }
     }
@@ -1356,12 +1350,6 @@ char *
 plat_vidapi_name(int i)
 {
     return "default";
-}
-
-void
-set_language(uint32_t id)
-{
-    lang_id = id;
 }
 
 /* Sets up the program language before initialization. */
