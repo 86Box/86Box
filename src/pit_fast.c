@@ -66,13 +66,15 @@ pit_log(const char *fmt, ...)
 #endif
 
 static void
-pitf_ctr_set_out(ctrf_t *ctr, int out)
+pitf_ctr_set_out(ctrf_t *ctr, int out, void *priv)
 {
+    pitf_t *pit = (pitf_t *)priv;
+
     if (ctr == NULL)
         return;
 
     if (ctr->out_func != NULL)
-        ctr->out_func(out, ctr->out);
+        ctr->out_func(out, ctr->out, pit);
     ctr->out = out;
 }
 
@@ -98,7 +100,7 @@ pitf_ctr_get_count(void *data, int counter_id)
 }
 
 static void
-pitf_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out))
+pitf_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv))
 {
     if (data == NULL)
         return;
@@ -154,8 +156,9 @@ pitf_dump_and_disable_timer(ctrf_t *ctr)
 }
 
 static void
-pitf_ctr_load(ctrf_t *ctr)
+pitf_ctr_load(ctrf_t *ctr, void *priv)
 {
+    pitf_t *pit = (pitf_t *)priv;
     int l = ctr->l ? ctr->l : 0x10000;
 
     ctr->newcount = 0;
@@ -166,7 +169,7 @@ pitf_ctr_load(ctrf_t *ctr)
             ctr->count = l;
             if (ctr->using_timer)
                 timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
-            pitf_ctr_set_out(ctr, 0);
+            pitf_ctr_set_out(ctr, 0, pit);
             ctr->thit    = 0;
             ctr->enabled = ctr->gate;
             break;
@@ -178,7 +181,7 @@ pitf_ctr_load(ctrf_t *ctr)
                 ctr->count = l - 1;
                 if (ctr->using_timer)
                     timer_set_delay_u64(&ctr->timer, (uint64_t) ((l - 1) * PITCONST));
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
             ctr->enabled = ctr->gate;
@@ -188,7 +191,7 @@ pitf_ctr_load(ctrf_t *ctr)
                 ctr->count = l;
                 if (ctr->using_timer)
                     timer_set_delay_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
             ctr->enabled = ctr->gate;
@@ -200,7 +203,7 @@ pitf_ctr_load(ctrf_t *ctr)
                 ctr->count = l;
                 if (ctr->using_timer)
                     timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
-                pitf_ctr_set_out(ctr, 0);
+                pitf_ctr_set_out(ctr, 0, pit);
                 ctr->thit = 0;
             }
             ctr->enabled = ctr->gate;
@@ -223,8 +226,9 @@ pitf_ctr_load(ctrf_t *ctr)
 }
 
 static void
-pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
+pitf_set_gate_no_timer(ctrf_t *ctr, int gate, void *priv)
 {
+    pitf_t *pit = (pitf_t *)priv;
     int l = ctr->l ? ctr->l : 0x10000;
 
     if (ctr->disabled) {
@@ -245,7 +249,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
                 ctr->count = l;
                 if (ctr->using_timer)
                     timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
-                pitf_ctr_set_out(ctr, 0);
+                pitf_ctr_set_out(ctr, 0, pit);
                 ctr->thit    = 0;
                 ctr->enabled = 1;
             }
@@ -255,7 +259,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
                 ctr->count = l - 1;
                 if (ctr->using_timer)
                     timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
             ctr->enabled = gate;
@@ -265,7 +269,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
                 ctr->count = l;
                 if (ctr->using_timer)
                     timer_set_delay_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
             ctr->enabled = gate;
@@ -291,12 +295,13 @@ pitf_ctr_set_gate(void *data, int counter_id, int gate)
         return;
     }
 
-    pitf_set_gate_no_timer(ctr, gate);
+    pitf_set_gate_no_timer(ctr, gate, pit);
 }
 
 static void
-pitf_over(ctrf_t *ctr)
+pitf_over(ctrf_t *ctr, void *priv)
 {
+    pitf_t *pit = (pitf_t *)priv;
     int l = ctr->l ? ctr->l : 0x10000;
     if (ctr->disabled) {
         ctr->count += 0xffff;
@@ -309,7 +314,7 @@ pitf_over(ctrf_t *ctr)
         case 0: /*Interrupt on terminal count*/
         case 1: /*Hardware retriggerable one-shot*/
             if (!ctr->thit)
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 1, pit);
             ctr->thit = 1;
             ctr->count += 0xffff;
             if (ctr->using_timer)
@@ -319,17 +324,17 @@ pitf_over(ctrf_t *ctr)
             ctr->count += l;
             if (ctr->using_timer)
                 timer_advance_u64(&ctr->timer, (uint64_t) (l * PITCONST));
-            pitf_ctr_set_out(ctr, 0);
-            pitf_ctr_set_out(ctr, 1);
+            pitf_ctr_set_out(ctr, 0, pit);
+            pitf_ctr_set_out(ctr, 1, pit);
             break;
         case 3: /*Square wave mode*/
             if (ctr->out) {
-                pitf_ctr_set_out(ctr, 0);
+                pitf_ctr_set_out(ctr, 0, pit);
                 ctr->count += (l >> 1);
                 if (ctr->using_timer)
                     timer_advance_u64(&ctr->timer, (uint64_t) ((l >> 1) * PITCONST));
             } else {
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 1, pit);
                 ctr->count += ((l + 1) >> 1);
                 if (ctr->using_timer)
                     timer_advance_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
@@ -341,8 +346,8 @@ pitf_over(ctrf_t *ctr)
             break;
         case 4: /*Software triggered strove*/
             if (!ctr->thit) {
-                pitf_ctr_set_out(ctr, 0);
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 0, pit);
+                pitf_ctr_set_out(ctr, 1, pit);
             }
             if (ctr->newcount) {
                 ctr->newcount = 0;
@@ -358,8 +363,8 @@ pitf_over(ctrf_t *ctr)
             break;
         case 5: /*Hardware triggered strove*/
             if (!ctr->thit) {
-                pitf_ctr_set_out(ctr, 0);
-                pitf_ctr_set_out(ctr, 1);
+                pitf_ctr_set_out(ctr, 0, pit);
+                pitf_ctr_set_out(ctr, 1, pit);
             }
             ctr->thit = 1;
             ctr->count += 0xffff;
@@ -453,9 +458,9 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
                     ctr->rereadlatch = 1;
                     ctr->initial     = 1;
                     if (!ctr->m)
-                        pitf_ctr_set_out(ctr, 0);
+                        pitf_ctr_set_out(ctr, 0, dev);
                     else
-                        pitf_ctr_set_out(ctr, 1);
+                        pitf_ctr_set_out(ctr, 1, dev);
                     ctr->disabled = 1;
 
                     pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
@@ -472,16 +477,16 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
             switch (ctr->wm) {
                 case 1:
                     ctr->l = val;
-                    pitf_ctr_load(ctr);
+                    pitf_ctr_load(ctr, dev);
                     break;
                 case 2:
                     ctr->l = (val << 8);
-                    pitf_ctr_load(ctr);
+                    pitf_ctr_load(ctr, dev);
                     break;
                 case 0:
                     ctr->l &= 0xFF;
                     ctr->l |= (val << 8);
-                    pitf_ctr_load(ctr);
+                    pitf_ctr_load(ctr, dev);
                     ctr->wm = 3;
                     break;
                 case 3:
@@ -610,7 +615,8 @@ static void
 pitf_timer_over(void *priv)
 {
     ctrf_t *ctr = (ctrf_t *) priv;
-    pitf_over(ctr);
+    pit_t *pit = (pit_t *)ctr->priv;
+    pitf_over(ctr, pit);
 }
 
 static void
@@ -627,7 +633,7 @@ pitf_ctr_clock(void *data, int counter_id)
 
     ctr->count -= (ctr->m == 3) ? 2 : 1;
     if (!ctr->count)
-        pitf_over(ctr);
+        pitf_over(ctr, pit);
 }
 
 static void
@@ -679,6 +685,7 @@ pitf_init(const device_t *info)
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         for (int i = 0; i < 3; i++) {
             ctrf_t *ctr = &dev->counters[i];
+            ctr->priv = dev;
             timer_add(&ctr->timer, pitf_timer_over, (void *) ctr, 0);
         }
     }

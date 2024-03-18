@@ -59,7 +59,8 @@ typedef struct ctrf_t {
     pc_timer_t timer;
 
     void (*load_func)(uint8_t new_m, int new_count);
-    void (*out_func)(int new_out, int old_out);
+    void (*out_func)(int new_out, int old_out, void *priv);
+    void *priv;
 } ctrf_t;
 
 typedef struct pitf_t {
