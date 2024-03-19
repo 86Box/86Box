@@ -1357,8 +1357,10 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x64: /* 4-bit ESPCM output */
             if (IS_ESS(dsp))
             {
-                if (dsp->espcm_mode != ESPCM_4)
+                if (dsp->espcm_mode != ESPCM_4
+                    || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
+                    pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1370,8 +1372,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x66: /* 3-bit ESPCM output */
             if (IS_ESS(dsp))
             {
-                pclog("ess: Starting espcm3 transfer\n");
-                if (dsp->espcm_mode != ESPCM_3)
+                if (dsp->espcm_mode != ESPCM_3
+                    || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
                     pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
@@ -1385,8 +1387,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x6C: /* 1-bit ESPCM output */
             if (IS_ESS(dsp))
             {
-                pclog("ess: Starting espcm1 transfer\n");
-                if (dsp->espcm_mode != ESPCM_1)
+                if (dsp->espcm_mode != ESPCM_1
+                    || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
                     pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
@@ -1400,8 +1402,10 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x6E: /* 4-bit ESPCM input */
             if (IS_ESS(dsp))
             {
-                if (dsp->espcm_mode != ESPCM_4E)
+                if (dsp->espcm_mode != ESPCM_4E
+                    || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
+                    pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -2109,7 +2113,7 @@ sb_ess_finish_dma(sb_dsp_t *dsp)
 void
 sb_espcm_fifoctl_run(sb_dsp_t *dsp)
 {
-    if (fifo_get_empty(dsp->espcm_fifo))
+    if (fifo_get_empty(dsp->espcm_fifo) && !dsp->sb_8_pause)
     {
         while (!fifo_get_full(dsp->espcm_fifo))
         {
@@ -2134,191 +2138,212 @@ pollsb(void *priv)
     int       data[2];
 
     timer_advance_u64(&dsp->output_timer, dsp->sblatcho);
-    if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
+    if (dsp->sb_8_enable && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
         sb_dsp_update(dsp);
 
         switch (dsp->sb_8_format) {
             case 0x00: /* Mono unsigned */
-                data[0] = dsp->dma_readb(dsp->dma_priv);
-                /* Needed to prevent clicking in Worms, which programs the DSP to
-                   auto-init DMA but programs the DMA controller to single cycle */
-                if (data[0] == DMA_NODATA)
-                    break;
-                dsp->sbdat = (data[0] ^ 0x80) << 8;
-                if (dsp->stereo) {
-                    sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
-                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
-                    if (dsp->sbleftright)
-                        dsp->sbdatl = dsp->sbdat;
-                    else
-                        dsp->sbdatr = dsp->sbdat;
-                    dsp->sbleftright = !dsp->sbleftright;
-                } else
-                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
-                dsp->sb_8_length--;
-                dsp->ess_dma_counter++;
+                if (!dsp->sb_8_pause)
+                {
+                    data[0] = dsp->dma_readb(dsp->dma_priv);
+                    /* Needed to prevent clicking in Worms, which programs the DSP to
+                    auto-init DMA but programs the DMA controller to single cycle */
+                    if (data[0] == DMA_NODATA)
+                        break;
+                    dsp->sbdat = (data[0] ^ 0x80) << 8;
+                    if (dsp->stereo) {
+                        sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
+                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                        if (dsp->sbleftright)
+                            dsp->sbdatl = dsp->sbdat;
+                        else
+                            dsp->sbdatr = dsp->sbdat;
+                        dsp->sbleftright = !dsp->sbleftright;
+                    } else
+                        dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+                }
                 break;
             case 0x10: /* Mono signed */
-                data[0] = dsp->dma_readb(dsp->dma_priv);
-                if (data[0] == DMA_NODATA)
-                    break;
-                dsp->sbdat = data[0] << 8;
-                if (dsp->stereo) {
-                    sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
-                               dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
-                    if (dsp->sbleftright)
-                        dsp->sbdatl = dsp->sbdat;
-                    else
-                        dsp->sbdatr = dsp->sbdat;
-                    dsp->sbleftright = !dsp->sbleftright;
-                } else
-                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
-                dsp->sb_8_length--;
-                dsp->ess_dma_counter++;
+                if (!dsp->sb_8_pause)
+                {
+                    data[0] = dsp->dma_readb(dsp->dma_priv);
+                    if (data[0] == DMA_NODATA)
+                        break;
+                    dsp->sbdat = data[0] << 8;
+                    if (dsp->stereo) {
+                        sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
+                                dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
+                        if (dsp->sbleftright)
+                            dsp->sbdatl = dsp->sbdat;
+                        else
+                            dsp->sbdatr = dsp->sbdat;
+                        dsp->sbleftright = !dsp->sbleftright;
+                    } else
+                        dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                    dsp->sb_8_length--;
+                    dsp->ess_dma_counter++;
+                }
                 break;
             case 0x20: /* Stereo unsigned */
-                data[0] = dsp->dma_readb(dsp->dma_priv);
-                data[1] = dsp->dma_readb(dsp->dma_priv);
-                if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
-                    break;
-                dsp->sbdatl = (data[0] ^ 0x80) << 8;
-                dsp->sbdatr = (data[1] ^ 0x80) << 8;
-                dsp->sb_8_length -= 2;
-                dsp->ess_dma_counter += 2;
+                if (!dsp->sb_8_pause)
+                {
+                    data[0] = dsp->dma_readb(dsp->dma_priv);
+                    data[1] = dsp->dma_readb(dsp->dma_priv);
+                    if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
+                        break;
+                    dsp->sbdatl = (data[0] ^ 0x80) << 8;
+                    dsp->sbdatr = (data[1] ^ 0x80) << 8;
+                    dsp->sb_8_length -= 2;
+                    dsp->ess_dma_counter += 2;
+                }
                 break;
             case 0x30: /* Stereo signed */
-                data[0] = dsp->dma_readb(dsp->dma_priv);
-                data[1] = dsp->dma_readb(dsp->dma_priv);
-                if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
-                    break;
-                dsp->sbdatl = data[0] << 8;
-                dsp->sbdatr = data[1] << 8;
-                dsp->sb_8_length -= 2;
-                dsp->ess_dma_counter += 2;
+                if (!dsp->sb_8_pause)
+                {
+                    data[0] = dsp->dma_readb(dsp->dma_priv);
+                    data[1] = dsp->dma_readb(dsp->dma_priv);
+                    if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
+                        break;
+                    dsp->sbdatl = data[0] << 8;
+                    dsp->sbdatr = data[1] << 8;
+                    dsp->sb_8_length -= 2;
+                    dsp->ess_dma_counter += 2;
+                }
                 break;
 
             case ADPCM_4:
-                if (dsp->sbdacpos)
-                    tempi = (dsp->sbdat2 & 0xF) + dsp->sbstep;
-                else
-                    tempi = (dsp->sbdat2 >> 4) + dsp->sbstep;
-                if (tempi < 0)
-                    tempi = 0;
-                if (tempi > 63)
-                    tempi = 63;
-
-                ref = dsp->sbref + scaleMap4[tempi];
-                if (ref > 0xff)
-                    dsp->sbref = 0xff;
-                else if (ref < 0x00)
-                    dsp->sbref = 0x00;
-                else
-                    dsp->sbref = ref;
-
-                dsp->sbstep = (dsp->sbstep + adjustMap4[tempi]) & 0xff;
-                dsp->sbdat  = (dsp->sbref ^ 0x80) << 8;
-
-                dsp->sbdacpos++;
-
-                if (dsp->sbdacpos >= 2) {
-                    dsp->sbdacpos = 0;
-                    dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
-                    dsp->sb_8_length--;
-                    dsp->ess_dma_counter++;
-                }
-
-                if (dsp->stereo) {
-                    sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
-                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
-                    if (dsp->sbleftright)
-                        dsp->sbdatl = dsp->sbdat;
+                if (!dsp->sb_8_pause)
+                {
+                    if (dsp->sbdacpos)
+                        tempi = (dsp->sbdat2 & 0xF) + dsp->sbstep;
                     else
-                        dsp->sbdatr = dsp->sbdat;
-                    dsp->sbleftright = !dsp->sbleftright;
-                } else
-                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                        tempi = (dsp->sbdat2 >> 4) + dsp->sbstep;
+                    if (tempi < 0)
+                        tempi = 0;
+                    if (tempi > 63)
+                        tempi = 63;
+
+                    ref = dsp->sbref + scaleMap4[tempi];
+                    if (ref > 0xff)
+                        dsp->sbref = 0xff;
+                    else if (ref < 0x00)
+                        dsp->sbref = 0x00;
+                    else
+                        dsp->sbref = ref;
+
+                    dsp->sbstep = (dsp->sbstep + adjustMap4[tempi]) & 0xff;
+                    dsp->sbdat  = (dsp->sbref ^ 0x80) << 8;
+
+                    dsp->sbdacpos++;
+
+                    if (dsp->sbdacpos >= 2) {
+                        dsp->sbdacpos = 0;
+                        dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
+                        dsp->sb_8_length--;
+                        dsp->ess_dma_counter++;
+                    }
+
+                    if (dsp->stereo) {
+                        sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
+                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                        if (dsp->sbleftright)
+                            dsp->sbdatl = dsp->sbdat;
+                        else
+                            dsp->sbdatr = dsp->sbdat;
+                        dsp->sbleftright = !dsp->sbleftright;
+                    } else
+                        dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                }
                 break;
 
             case ADPCM_26:
-                if (!dsp->sbdacpos)
-                    tempi = (dsp->sbdat2 >> 5) + dsp->sbstep;
-                else if (dsp->sbdacpos == 1)
-                    tempi = ((dsp->sbdat2 >> 2) & 7) + dsp->sbstep;
-                else
-                    tempi = ((dsp->sbdat2 << 1) & 7) + dsp->sbstep;
-
-                if (tempi < 0)
-                    tempi = 0;
-                if (tempi > 39)
-                    tempi = 39;
-
-                ref = dsp->sbref + scaleMap26[tempi];
-                if (ref > 0xff)
-                    dsp->sbref = 0xff;
-                else if (ref < 0x00)
-                    dsp->sbref = 0x00;
-                else
-                    dsp->sbref = ref;
-                dsp->sbstep = (dsp->sbstep + adjustMap26[tempi]) & 0xff;
-
-                dsp->sbdat = (dsp->sbref ^ 0x80) << 8;
-
-                dsp->sbdacpos++;
-                if (dsp->sbdacpos >= 3) {
-                    dsp->sbdacpos = 0;
-                    dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
-                    dsp->sb_8_length--;
-                    dsp->ess_dma_counter++;
-                }
-
-                if (dsp->stereo) {
-                    sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
-                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
-                    if (dsp->sbleftright)
-                        dsp->sbdatl = dsp->sbdat;
+                if (!dsp->sb_8_pause)
+                {
+                    if (!dsp->sbdacpos)
+                        tempi = (dsp->sbdat2 >> 5) + dsp->sbstep;
+                    else if (dsp->sbdacpos == 1)
+                        tempi = ((dsp->sbdat2 >> 2) & 7) + dsp->sbstep;
                     else
-                        dsp->sbdatr = dsp->sbdat;
-                    dsp->sbleftright = !dsp->sbleftright;
-                } else
-                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                        tempi = ((dsp->sbdat2 << 1) & 7) + dsp->sbstep;
+
+                    if (tempi < 0)
+                        tempi = 0;
+                    if (tempi > 39)
+                        tempi = 39;
+
+                    ref = dsp->sbref + scaleMap26[tempi];
+                    if (ref > 0xff)
+                        dsp->sbref = 0xff;
+                    else if (ref < 0x00)
+                        dsp->sbref = 0x00;
+                    else
+                        dsp->sbref = ref;
+                    dsp->sbstep = (dsp->sbstep + adjustMap26[tempi]) & 0xff;
+
+                    dsp->sbdat = (dsp->sbref ^ 0x80) << 8;
+
+                    dsp->sbdacpos++;
+                    if (dsp->sbdacpos >= 3) {
+                        dsp->sbdacpos = 0;
+                        dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
+                        dsp->sb_8_length--;
+                        dsp->ess_dma_counter++;
+                    }
+
+                    if (dsp->stereo) {
+                        sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
+                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                        if (dsp->sbleftright)
+                            dsp->sbdatl = dsp->sbdat;
+                        else
+                            dsp->sbdatr = dsp->sbdat;
+                        dsp->sbleftright = !dsp->sbleftright;
+                    } else
+                        dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                }
                 break;
 
             case ADPCM_2:
-                tempi = ((dsp->sbdat2 >> ((3 - dsp->sbdacpos) * 2)) & 3) + dsp->sbstep;
-                if (tempi < 0)
-                    tempi = 0;
-                if (tempi > 23)
-                    tempi = 23;
+                if (!dsp->sb_8_pause)
+                {
+                    tempi = ((dsp->sbdat2 >> ((3 - dsp->sbdacpos) * 2)) & 3) + dsp->sbstep;
+                    if (tempi < 0)
+                        tempi = 0;
+                    if (tempi > 23)
+                        tempi = 23;
 
-                ref = dsp->sbref + scaleMap2[tempi];
-                if (ref > 0xff)
-                    dsp->sbref = 0xff;
-                else if (ref < 0x00)
-                    dsp->sbref = 0x00;
-                else
-                    dsp->sbref = ref;
-                dsp->sbstep = (dsp->sbstep + adjustMap2[tempi]) & 0xff;
-
-                dsp->sbdat = (dsp->sbref ^ 0x80) << 8;
-
-                dsp->sbdacpos++;
-                if (dsp->sbdacpos >= 4) {
-                    dsp->sbdacpos = 0;
-                    dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
-                    dsp->sb_8_length--;
-                    dsp->ess_dma_counter++;
-                }
-
-                if (dsp->stereo) {
-                    sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
-                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
-                    if (dsp->sbleftright)
-                        dsp->sbdatl = dsp->sbdat;
+                    ref = dsp->sbref + scaleMap2[tempi];
+                    if (ref > 0xff)
+                        dsp->sbref = 0xff;
+                    else if (ref < 0x00)
+                        dsp->sbref = 0x00;
                     else
-                        dsp->sbdatr = dsp->sbdat;
-                    dsp->sbleftright = !dsp->sbleftright;
-                } else
-                    dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                        dsp->sbref = ref;
+                    dsp->sbstep = (dsp->sbstep + adjustMap2[tempi]) & 0xff;
+
+                    dsp->sbdat = (dsp->sbref ^ 0x80) << 8;
+
+                    dsp->sbdacpos++;
+                    if (dsp->sbdacpos >= 4) {
+                        dsp->sbdacpos = 0;
+                        dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
+                        dsp->sb_8_length--;
+                        dsp->ess_dma_counter++;
+                    }
+
+                    if (dsp->stereo) {
+                        sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
+                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                        if (dsp->sbleftright)
+                            dsp->sbdatl = dsp->sbdat;
+                        else
+                            dsp->sbdatr = dsp->sbdat;
+                        dsp->sbleftright = !dsp->sbleftright;
+                    } else
+                        dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
+                }
                 break;
 
             case ESPCM_4:
@@ -2329,6 +2354,10 @@ pollsb(void *priv)
                 if (dsp->espcm_sample_idx == 0)
                 {
                     sb_espcm_fifoctl_run(dsp);
+                    if (fifo_get_empty(dsp->espcm_fifo))
+                    {
+                        break;
+                    }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
 
                     dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
@@ -2337,6 +2366,10 @@ pollsb(void *priv)
                 else if (dsp->espcm_sample_idx & 1)
                 {
                     sb_espcm_fifoctl_run(dsp);
+                    if (fifo_get_empty(dsp->espcm_fifo))
+                    {
+                        break;
+                    }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
                     dsp->sb_8_length--;
 
@@ -2381,6 +2414,10 @@ pollsb(void *priv)
                 if (dsp->espcm_sample_idx == 0)
                 {
                     sb_espcm_fifoctl_run(dsp);
+                    if (fifo_get_empty(dsp->espcm_fifo))
+                    {
+                        break;
+                    }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
 
                     dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
@@ -2392,8 +2429,16 @@ pollsb(void *priv)
                     for (tempi = 0; tempi < 4; tempi++)
                     {
                         sb_espcm_fifoctl_run(dsp);
+                        if (fifo_get_empty(dsp->espcm_fifo))
+                        {
+                            break;
+                        }
                         dsp->espcm_byte_buffer[tempi] = fifo_read(dsp->espcm_fifo);
                         dsp->sb_8_length--;
+                    }
+                    if (tempi < 4)
+                    {
+                        break;
                     }
 
                     dsp->espcm_table_index = dsp->espcm_byte_buffer[0] & 0x03;
@@ -2418,8 +2463,16 @@ pollsb(void *priv)
                     for (tempi = 1; tempi < 4; tempi++)
                     {
                         sb_espcm_fifoctl_run(dsp);
+                        if (fifo_get_empty(dsp->espcm_fifo))
+                        {
+                            break;
+                        }
                         dsp->espcm_byte_buffer[tempi] = fifo_read(dsp->espcm_fifo);
                         dsp->sb_8_length--;
+                    }
+                    if (tempi < 4)
+                    {
+                        break;
                     }
 
                     dsp->espcm_code_buffer[0] = (dsp->espcm_byte_buffer[1]) & 0x07;
@@ -2476,6 +2529,10 @@ pollsb(void *priv)
                 if (dsp->espcm_sample_idx == 0)
                 {
                     sb_espcm_fifoctl_run(dsp);
+                    if (fifo_get_empty(dsp->espcm_fifo))
+                    {
+                        break;
+                    }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
 
                     dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
@@ -2486,6 +2543,10 @@ pollsb(void *priv)
                 else if (dsp->espcm_sample_idx == 3 | dsp->espcm_sample_idx == 11)
                 {
                     sb_espcm_fifoctl_run(dsp);
+                    if (fifo_get_empty(dsp->espcm_fifo))
+                    {
+                        break;
+                    }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
                     dsp->sb_8_length--;
 
