@@ -30,7 +30,25 @@
 #endif
 
 /* String ID numbers. */
-#include <86box/language.h>
+enum {
+    STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
+    STRING_MOUSE_RELEASE,             /* "Press F8+F12/Ctrl+End to release mouse" */
+    STRING_MOUSE_RELEASE_MMB,         /* "Press F8+F12/Ctrl+End or middle button to release mouse" */
+    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
+    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
+    STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
+    STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
+    STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */
+    STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device" */
+    STRING_PCAP_ERROR_DESC,           /* "Make sure libpcap is installed..." */
+    STRING_GHOSTSCRIPT_ERROR_TITLE,   /* "Unable to initialize Ghostscript" */
+    STRING_GHOSTSCRIPT_ERROR_DESC,    /* "gsdll32.dll/gsdll64.dll/libgs is required..." */
+    STRING_HW_NOT_AVAILABLE_TITLE,    /* "Hardware not available" */
+    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
+    STRING_MONITOR_SLEEP              /* "Monitor in sleep mode" */
+};
 
 /* The Win32 API uses _wcsicmp. */
 #ifdef _WIN32

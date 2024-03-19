@@ -246,33 +246,33 @@ wchar_t *
 plat_get_string(int i)
 {
     switch (i) {
-        case IDS_2077:
+        case STRING_MOUSE_CAPTURE:
             return L"Click to capture mouse";
-        case IDS_2078:
+        case STRING_MOUSE_RELEASE:
             return L"Press CTRL-END to release mouse";
-        case IDS_2079:
+        case STRING_MOUSE_RELEASE_MMB:
             return L"Press CTRL-END or middle button to release mouse";
-        case IDS_2131:
+        case STRING_INVALID_CONFIG:
             return L"Invalid configuration";
-        case IDS_4099:
+        case STRING_NO_ST506_ESDI_CDROM:
             return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case IDS_2095:
+        case STRING_PCAP_ERROR_NO_DEVICES:
             return L"No PCap devices found";
-        case IDS_2096:
+        case STRING_PCAP_ERROR_INVALID_DEVICE:
             return L"Invalid PCap device";
-        case IDS_2133:
+        case STRING_GHOSTSCRIPT_ERROR_DESC:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case IDS_2130:
+        case STRING_PCAP_ERROR_DESC:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case IDS_2115:
+        case STRING_GHOSTSCRIPT_ERROR_TITLE:
             return L"Unable to initialize Ghostscript";
-        case IDS_2063:
+        case STRING_HW_NOT_AVAILABLE_MACHINE:
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
-        case IDS_2064:
+        case STRING_HW_NOT_AVAILABLE_VIDEO:
             return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
-        case IDS_2129:
+        case STRING_HW_NOT_AVAILABLE_TITLE:
             return L"Hardware not available";
-        case IDS_2143:
+        case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
     }
     return L"";
@@ -638,10 +638,6 @@ ui_msgbox_header(int flags, void *header, void *message)
 
     if (!header)
         header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
-    if (header <= (void *) 7168)
-        header = (void *) plat_get_string((uintptr_t) header);
-    if (message <= (void *) 7168)
-        message = (void *) plat_get_string((uintptr_t) message);
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";

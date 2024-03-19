@@ -53,7 +53,7 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "mfm") || !strcmp(str, "rll")) {
         if (cdrom) {
 no_cdrom:
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2131, (wchar_t *) IDS_4099);
+            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_INVALID_CONFIG), plat_get_string(STRING_NO_ST506_ESDI_CDROM));
             return 0;
         }
 

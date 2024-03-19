@@ -214,7 +214,11 @@ main(int argc, char *argv[])
 #endif
 
     if (!pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, (void *) IDS_2121, (void *) IDS_2056);
+        QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
+                             QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
+                             QMessageBox::Ok);
+        fatalbox.setTextFormat(Qt::TextFormat::RichText);
+        fatalbox.exec();
         return 6;
     }
 
