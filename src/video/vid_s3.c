@@ -2128,8 +2128,8 @@ s3_vblank_start(svga_t *svga)
 static uint32_t
 s3_hwcursor_convert_addr(svga_t *svga)
 {
-    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
-        if ((svga->gdcreg[5] & 0x60) >= 0x40)
+    if ((svga->bpp == 8) && (((svga->gdcreg[5] & 0x60) == 0x20) || (svga->crtc[0x3a] & 0x10)) && (svga->crtc[0x45] & 0x10)) {
+        if (svga->crtc[0x3a] & 0x10)
             return ((svga->hwcursor_latch.addr & 0xfffff1ff) | ((svga->hwcursor_latch.addr & 0x200) << 2)) | 0x600;
         else if ((svga->gdcreg[5] & 0x60) == 0x20)
             return ((svga->hwcursor_latch.addr & 0xfffff0ff) | ((svga->hwcursor_latch.addr & 0x300) << 2)) | 0x300;
@@ -10005,14 +10005,14 @@ s3_init(const device_t *info)
         case S3_SPEA_MIRAGE_86C801:
         case S3_SPEA_MIRAGE_86C805:
             svga->decode_mask = (2 << 20) - 1;
-            stepping          = 0xa0; /*86C801/86C805*/
+            stepping          = 0xa2; /*86C801/86C805*/
             s3->id            = stepping;
             s3->id_ext        = stepping;
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
             svga->crtc[0x5a]  = 0x0a;
 
-            svga->ramdac    = device_add(&att490_ramdac_device);
+            svga->ramdac    = device_add(&att491_ramdac_device);
             svga->clock_gen = device_add(&av9194_device);
             svga->getclock  = av9194_getclock;
             break;
@@ -11087,8 +11087,7 @@ const device_t s3_phoenix_trio64_pci_device = {
 
 const device_t s3_stb_powergraph_64_video_vlb_device = {
     .name          = "S3 Trio64V+ (STB PowerGraph 64 Video) VLB",
-    .name          = "S3 Trio64V+ PCI (Phoenix)",
-    .internal_name = "px_trio64vplus_pci",
+    .internal_name = "stb_trio64vplus_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_STB_POWERGRAPH_64_VIDEO,
     .init          = s3_init,
@@ -11097,7 +11096,7 @@ const device_t s3_stb_powergraph_64_video_vlb_device = {
     { .available = s3_stb_powergraph_64_video_available },
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
+    .config        = s3_phoenix_trio32_config
 };
 
 const device_t s3_phoenix_trio64vplus_onboard_pci_device = {

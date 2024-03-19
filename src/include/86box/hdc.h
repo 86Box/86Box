@@ -93,6 +93,8 @@ extern const device_t ide_ter_pnp_device;
 extern const device_t ide_qua_device;
 extern const device_t ide_qua_pnp_device;
 
+extern const device_t mcide_device;
+
 extern const device_t xta_wdxt150_device; /* xta_wdxt150 */
 extern const device_t xta_hd20_device;    /* EuroPC internal */
 
@@ -100,6 +102,9 @@ extern const device_t xtide_device;           /* xtide_xt */
 extern const device_t xtide_at_device;        /* xtide_at */
 extern const device_t xtide_acculogic_device; /* xtide_ps2 */
 extern const device_t xtide_at_ps2_device;    /* xtide_at_ps2 */
+
+/* Miscellaneous */
+extern const device_t lba_enhancer_device;
 
 extern void hdc_init(void);
 extern void hdc_reset(void);

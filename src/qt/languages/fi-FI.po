@@ -1224,3 +1224,9 @@ msgstr "Nopea"
 
 msgid "&Auto-pause on focus loss"
 msgstr "&Automaattinen tauko tarkennuksen hävitessä"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBoxia ei enää tueta"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "WinBox-managerin kehitys lopetettiin vuonna 2022, koska ylläpitäjiä ei ollut riittävästi. Koska suuntaamme ponnistuksemme 86Boxin parantamiseen entisestään, olemme päättäneet olla enää tukematta WinBoxia managerina.\n\nWinBoxin kautta ei enää toimiteta päivityksiä, ja saatat kohdata virheellistä käyttäytymistä, jos jatkat sen käyttöä 86Boxin uudemmissa versioissa. Kaikki WinBoxin käyttäytymiseen liittyvät vikailmoitukset suljetaan virheellisinä.\n\nSiirry osoitteeseen 86box.net saadaksesi luettelon muista käyttämistäsi hallintaohjelmista."

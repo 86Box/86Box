@@ -109,6 +109,7 @@ static const struct {
     { &ide_pci_2ch_device          },
     { &ide_vlb_device              },
     { &ide_vlb_2ch_device          },
+    { &mcide_device                },
     { NULL                         }
     // clang-format on
 };

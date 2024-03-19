@@ -216,6 +216,9 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                 uint32_t dest    = voodoo->vram[addr];
                 uint32_t pattern = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern8[(pat_x & 7) + (pat_y & 7) * 8];
 
+                if (addr > voodoo->fb_mask)
+                    break;
+
                 voodoo->vram[addr]              = MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_8);
                 voodoo->changedvram[addr >> 12] = changeframecount;
                 break;
@@ -225,6 +228,9 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                 uint32_t addr    = get_addr(voodoo, x * 2, y, 0, 0); //(voodoo->banshee_blt.dstBaseAddr + x*2 + y*voodoo->banshee_blt.dst_stride)  & voodoo->fb_mask;
                 uint32_t dest    = *(uint16_t *) &voodoo->vram[addr];
                 uint32_t pattern = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern16[(pat_x & 7) + (pat_y & 7) * 8];
+
+                if (addr > voodoo->fb_mask)
+                    break;
 
                 *(uint16_t *) &voodoo->vram[addr] = MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_16);
                 voodoo->changedvram[addr >> 12]   = changeframecount;
@@ -236,6 +242,9 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                 uint32_t dest    = *(uint32_t *) &voodoo->vram[addr];
                 uint32_t pattern = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern24[(pat_x & 7) + (pat_y & 7) * 8];
 
+                if (addr > voodoo->fb_mask)
+                    break;
+
                 *(uint32_t *) &voodoo->vram[addr] = (MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_32) & 0xffffff) | (dest & 0xff000000);
                 voodoo->changedvram[addr >> 12]   = changeframecount;
                 break;
@@ -245,6 +254,9 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                 uint32_t addr    = get_addr(voodoo, x * 4, y, 0, 0); //(voodoo->banshee_blt.dstBaseAddr + x*4 + y*voodoo->banshee_blt.dst_stride) & voodoo->fb_mask;
                 uint32_t dest    = *(uint32_t *) &voodoo->vram[addr];
                 uint32_t pattern = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern[(pat_x & 7) + (pat_y & 7) * 8];
+
+                if (addr > voodoo->fb_mask)
+                    break;
 
                 *(uint32_t *) &voodoo->vram[addr] = MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_32);
                 voodoo->changedvram[addr >> 12]   = changeframecount;
@@ -265,6 +277,9 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
                 uint32_t addr = get_addr(voodoo, x, y, 0, 0); //(voodoo->banshee_blt.dstBaseAddr + x + y*voodoo->banshee_blt.dst_stride) & voodoo->fb_mask;
                 uint32_t dest = voodoo->vram[addr];
 
+                if (addr > voodoo->fb_mask)
+                    break;
+
                 voodoo->vram[addr]              = MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_8);
                 voodoo->changedvram[addr >> 12] = changeframecount;
                 break;
@@ -273,6 +288,9 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
             {
                 uint32_t addr = get_addr(voodoo, x * 2, y, 0, 0); //(voodoo->banshee_blt.dstBaseAddr + x*2 + y*voodoo->banshee_blt.dst_stride)  & voodoo->fb_mask;
                 uint32_t dest = *(uint16_t *) &voodoo->vram[addr];
+
+                if (addr > voodoo->fb_mask)
+                    break;
 
                 *(uint16_t *) &voodoo->vram[addr] = MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_16);
                 voodoo->changedvram[addr >> 12]   = changeframecount;
@@ -283,6 +301,9 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
                 uint32_t addr = get_addr(voodoo, x * 3, y, 0, 0); //(voodoo->banshee_blt.dstBaseAddr + x*3 + y*voodoo->banshee_blt.dst_stride)  & voodoo->fb_mask;
                 uint32_t dest = *(uint32_t *) &voodoo->vram[addr];
 
+                if (addr > voodoo->fb_mask)
+                    break;
+
                 *(uint32_t *) &voodoo->vram[addr] = (MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_32) & 0xffffff) | (dest & 0xff000000);
                 voodoo->changedvram[addr >> 12]   = changeframecount;
                 break;
@@ -291,6 +312,9 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
             {
                 uint32_t addr = get_addr(voodoo, x * 4, y, 0, 0); //(voodoo->banshee_blt.dstBaseAddr + x*4 + y*voodoo->banshee_blt.dst_stride) & voodoo->fb_mask;
                 uint32_t dest = *(uint32_t *) &voodoo->vram[addr];
+
+                if (addr > voodoo->fb_mask)
+                    break;
 
                 *(uint32_t *) &voodoo->vram[addr] = MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_32);
                 voodoo->changedvram[addr >> 12]   = changeframecount;
@@ -573,6 +597,9 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 uint32_t dest     = voodoo->vram[dst_addr];
                                 uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern8[(pat_x & 7) + (pat_y & 7) * 8];
 
+                                if (dst_addr > voodoo->fb_mask)
+                                     break;
+
                                 voodoo->vram[dst_addr]              = MIX(voodoo, dest, src, pattern, COLORKEY_8, COLORKEY_8);
                                 voodoo->changedvram[dst_addr >> 12] = changeframecount;
                                 break;
@@ -583,6 +610,9 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 uint32_t src      = *(uint16_t *) &src_p[src_x_real];
                                 uint32_t dest     = *(uint16_t *) &voodoo->vram[dst_addr];
                                 uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern16[(pat_x & 7) + (pat_y & 7) * 8];
+
+                                if (dst_addr > voodoo->fb_mask)
+                                     break;
 
                                 *(uint16_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_16, COLORKEY_16);
                                 voodoo->changedvram[dst_addr >> 12]   = changeframecount;
@@ -595,6 +625,9 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 uint32_t dest     = *(uint32_t *) &voodoo->vram[dst_addr];
                                 uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern24[(pat_x & 7) + (pat_y & 7) * 8];
 
+                                if (dst_addr > voodoo->fb_mask)
+                                     break;
+
                                 *(uint32_t *) &voodoo->vram[dst_addr] = (MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32) & 0xffffff) | (dest & 0xff000000);
                                 voodoo->changedvram[dst_addr >> 12]   = changeframecount;
                                 break;
@@ -605,6 +638,9 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 uint32_t src      = *(uint32_t *) &src_p[src_x_real];
                                 uint32_t dest     = *(uint32_t *) &voodoo->vram[dst_addr];
                                 uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : voodoo->banshee_blt.colorPattern[(pat_x & 7) + (pat_y & 7) * 8];
+
+                                if (dst_addr > voodoo->fb_mask)
+                                     break;
 
                                 *(uint32_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32);
                                 voodoo->changedvram[dst_addr >> 12]   = changeframecount;
@@ -904,6 +940,9 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                             uint32_t dest     = voodoo->vram[dst_addr];
                             uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : colorPattern[(pat_x & 7) + (pat_y & 7) * 8];
 
+                            if (dst_addr > voodoo->fb_mask)
+                                break;
+
                             voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_8, COLORKEY_8);
 #if 0
                             bansheeblt_log("%i,%i : sdp=%02x,%02x,%02x res=%02x\n", voodoo->banshee_blt.cur_x, voodoo->banshee_blt.cur_y, src, dest, pattern, voodoo->vram[dst_addr]);
@@ -917,6 +956,9 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                             uint32_t src      = *(uint16_t *) &src_p[src_x * 2];
                             uint32_t dest     = *(uint16_t *) &voodoo->vram[dst_addr];
                             uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : colorPattern[(pat_x & 7) + (pat_y & 7) * 8];
+
+                            if (dst_addr > voodoo->fb_mask)
+                                break;
 
                             *(uint16_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_16, COLORKEY_16);
 #if 0
@@ -932,6 +974,9 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                             uint32_t dest     = *(uint32_t *) &voodoo->vram[dst_addr];
                             uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : colorPattern[(pat_x & 7) + (pat_y & 7) * 8];
 
+                            if (dst_addr > voodoo->fb_mask)
+                                break;
+
                             *(uint32_t *) &voodoo->vram[dst_addr] = (MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32) & 0xffffff) | (*(uint32_t *) &voodoo->vram[dst_addr] & 0xff000000);
 #if 0
                             bansheeblt_log("%i,%i : sdp=%02x,%02x,%02x res=%02x\n", voodoo->banshee_blt.cur_x, voodoo->banshee_blt.cur_y, src, dest, pattern, voodoo->vram[dst_addr]);
@@ -945,6 +990,9 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                             uint32_t src      = *(uint32_t *) &src_p[src_x * 4];
                             uint32_t dest     = *(uint32_t *) &voodoo->vram[dst_addr];
                             uint32_t pattern  = (voodoo->banshee_blt.command & COMMAND_PATTERN_MONO) ? ((pattern_mask & (1 << (7 - (pat_x & 7)))) ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack) : colorPattern[(pat_x & 7) + (pat_y & 7) * 8];
+
+                            if (dst_addr > voodoo->fb_mask)
+                                break;
 
                             *(uint32_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32);
 #if 0

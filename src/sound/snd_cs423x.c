@@ -545,11 +545,29 @@ static void
 cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
     cs423x_t       *dev = (cs423x_t *) priv;
+
+    /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
+    ad1848_update(&dev->ad1848);
+
+    /* Don't output anything if the analog section is powered down. */
+    if (!(dev->indirect_regs[2] & 0xa4)) {
+        for (int c = 0; c < len * 2; c += 2) {
+            buffer[c] += dev->ad1848.buffer[c] / 2;
+            buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
+        }
+    }
+
+    dev->ad1848.pos = 0;
+}
+
+static void
+cs423x_get_music_buffer(int32_t *buffer, int len, void *priv)
+{
+    cs423x_t       *dev = (cs423x_t *) priv;
     int             opl_wss = dev->opl_wss;
     const int32_t  *opl_buf = NULL;
 
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
-    ad1848_update(&dev->ad1848);
     if (opl_wss)
         opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
 
@@ -560,13 +578,9 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
                 buffer[c] += (opl_buf[c] * dev->ad1848.fm_vol_l) >> 16;
                 buffer[c + 1] += (opl_buf[c + 1] * dev->ad1848.fm_vol_r) >> 16;
             }
-
-            buffer[c] += dev->ad1848.buffer[c] / 2;
-            buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
         }
     }
 
-    dev->ad1848.pos = 0;
     if (opl_wss)
         dev->sb->opl.reset_buffer(dev->sb->opl.priv);
 }
@@ -846,6 +860,7 @@ cs423x_init(const device_t *info)
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
     sound_add_handler(cs423x_get_buffer, dev);
+    music_add_handler(cs423x_get_music_buffer, dev);
 
     /* Add Control/RAM backdoor handlers for CS4235. */
     dev->ad1848.cram_priv  = dev;

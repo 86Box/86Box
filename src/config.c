@@ -876,6 +876,8 @@ load_storage_controllers(void)
             path_normalize(cart_fns[c]);
         }
     }
+
+    lba_enhancer_enabled = !!ini_section_get_int(cat, "lba_enhancer_enabled", 0);
 }
 
 /* Load "Hard Disks" section. */
@@ -1568,9 +1570,10 @@ load_other_peripherals(void)
     char         *p;
     char          temp[512];
 
-    bugger_enabled     = !!ini_section_get_int(cat, "bugger_enabled", 0);
-    postcard_enabled   = !!ini_section_get_int(cat, "postcard_enabled", 0);
-    unittester_enabled = !!ini_section_get_int(cat, "unittester_enabled", 0);
+    bugger_enabled         = !!ini_section_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled       = !!ini_section_get_int(cat, "postcard_enabled", 0);
+    unittester_enabled     = !!ini_section_get_int(cat, "unittester_enabled", 0);
+    novell_keycard_enabled = !!ini_section_get_int(cat, "novell_keycard_enabled", 0);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
@@ -2341,6 +2344,11 @@ save_storage_controllers(void)
         else
             ini_section_set_string(cat, temp, cart_fns[c]);
     }
+
+    if (lba_enhancer_enabled == 0)
+        ini_section_delete_var(cat, "lba_enhancer_enabled");
+    else
+        ini_section_set_int(cat, "lba_enhancer_enabled", 1);
 }
 
 /* Save "Other Peripherals" section. */
@@ -2364,6 +2372,11 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "unittester_enabled");
     else
         ini_section_set_int(cat, "unittester_enabled", unittester_enabled);
+
+    if (novell_keycard_enabled == 0)
+        ini_section_delete_var(cat, "novell_keycard_enabled");
+    else
+        ini_section_set_int(cat, "novell_keycard_enabled", novell_keycard_enabled);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);

@@ -63,7 +63,9 @@
 #define ET4000_TYPE_KASAN    5 /* Kasan ET4000 */
 
 #define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
+#define V8_06_BIOS_ROM_PATH    "roms/video/et4000/ET4000_V8_06.BIN"
 #define TC6058AF_BIOS_ROM_PATH "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
+#define V1_21_BIOS_ROM_PATH    "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.21.bin"
 #define KOREAN_BIOS_ROM_PATH   "roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH   "roms/video/et4000/tg_ksc5601.rom"
 #define KASAN_BIOS_ROM_PATH    "roms/video/et4000/et4000_kasan16.bin"
@@ -750,7 +752,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
         svga->hdisp             += svga->dots_per_clock;
-        svga->ma_latch          -= 5;
+        svga->ma_latch          -= 4;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
@@ -806,6 +808,7 @@ et4000_reset(void *priv)
 static void *
 et4000_init(const device_t *info)
 {
+    const char *bios_ver = NULL;
     const char *fn;
     et4000_t   *dev;
     int         i;
@@ -826,8 +829,8 @@ et4000_init(const device_t *info)
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
-            if (dev->type == ET4000_TYPE_TC6058AF)
-                fn = TC6058AF_BIOS_ROM_PATH;
+            bios_ver      = (char *) device_get_config_bios("bios_ver");
+            fn            = (char *) device_get_bios_file(info, bios_ver, 0);
             break;
 
         case ET4000_TYPE_MCA: /* MCA ET4000AX */
@@ -949,12 +952,6 @@ et4000_force_redraw(void *priv)
 }
 
 static int
-et4000_tc6058af_available(void)
-{
-    return rom_present(TC6058AF_BIOS_ROM_PATH);
-}
-
-static int
 et4000_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
@@ -994,9 +991,72 @@ static const device_config_t et4000_tc6058af_config[] = {
         }
     },
     {
+        .name = "bios_ver",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "v1_10",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Version 1.10", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
+            { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { V1_21_BIOS_ROM_PATH, "" } },
+            { .files_no = 0 }
+        },
+    },
+    {
         .type = CONFIG_END
     }
 // clang-format on
+};
+
+static const device_config_t et4000_bios_config[] = {
+  // clang-format off
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .name = "bios_ver",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "v8_01",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Version 8.01", .internal_name = "v8_01", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { BIOS_ROM_PATH, "" } },
+            { .name = "Version 8.06", .internal_name = "v8_06", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { V8_06_BIOS_ROM_PATH, "" } },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .type = CONFIG_END
+    }
+  // clang-format on
 };
 
 static const device_config_t et4000_config[] = {
@@ -1038,7 +1098,7 @@ const device_t et4000_tc6058af_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = et4000_reset,
-    { .available = et4000_tc6058af_available },
+    { .available = NULL },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_tc6058af_config
@@ -1052,10 +1112,10 @@ const device_t et4000_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = et4000_reset,
-    { .available = et4000_available },
+    { .available = NULL },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
-    .config        = et4000_config
+    .config        = et4000_bios_config
 };
 
 const device_t et4000_mca_device = {

@@ -1224,3 +1224,9 @@ msgstr "Hitri"
 
 msgid "&Auto-pause on focus loss"
 msgstr "&Samodejni premor ob izgubi fokusa"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox ni več podprt"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Razvoj upravitelja WinBox se je leta 2022 ustavil zaradi pomanjkanja vzdrževalcev. Ker svoja prizadevanja usmerjamo v še boljše delovanje programa 86Box, smo se odločili, da programa WinBox kot upravitelja ne bomo več podpirali.\n\nWinBox ne bo več zagotavljal posodobitev, če ga boste še naprej uporabljali z novejšimi različicami programa 86Box, pa lahko naletite na nepravilno obnašanje. Vsa poročila o napakah, povezana z obnašanjem programa WinBox, bodo zaprta kot neveljavna.\n\nZa seznam drugih upraviteljev, ki jih lahko uporabite, obiščite spletno stran 86box.net."

@@ -115,14 +115,13 @@ typedef struct fdc_t {
     uint8_t rw_drive;
 
     uint8_t lock;
+    uint8_t dsr;
+
+    uint8_t params[15];
     uint8_t specify[2];
-
     uint8_t res[11];
-
     uint8_t eot[4];
     uint8_t rwc[4];
-    uint8_t params[8];
-    uint8_t fifobuf[16];
 
     uint16_t pcn[4];
 
@@ -144,6 +143,8 @@ typedef struct fdc_t {
     int dma_ch;      /* Should be 2 by default. */
 
     int drvrate[4];
+
+    void *fifo_p;
 
     sector_id_t read_track_sector;
     sector_id_t format_sector_id;

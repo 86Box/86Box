@@ -38,6 +38,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/fifo.h>
 
 extern uint64_t motoron[FDD_NUM];
 
@@ -309,7 +310,7 @@ fdc_request_next_sector_id(fdc_t *fdc)
         fdc->stat = 0xf0;
     else {
         dma_set_drq(fdc->dma_ch, 1);
-        fdc->stat = 0xd0;
+        fdc->stat = 0x50;
     }
 }
 
@@ -335,39 +336,6 @@ int
 fdc_get_format_sectors(fdc_t *fdc)
 {
     return (int) fdc->format_sectors;
-}
-
-static void
-fdc_reset_fifo_buf(fdc_t *fdc)
-{
-    memset(fdc->fifobuf, 0, 16);
-    fdc->fifobufpos = 0;
-}
-
-static void
-fdc_fifo_buf_advance(fdc_t *fdc)
-{
-    if (fdc->fifobufpos == fdc->tfifo)
-        fdc->fifobufpos = 0;
-    else
-        fdc->fifobufpos++;
-}
-
-static void
-fdc_fifo_buf_write(fdc_t *fdc, uint8_t val)
-{
-    fdc->fifobuf[fdc->fifobufpos] = val;
-    fdc_fifo_buf_advance(fdc);
-}
-
-static int
-fdc_fifo_buf_read(fdc_t *fdc)
-{
-    int temp = fdc->fifobuf[fdc->fifobufpos];
-    fdc_fifo_buf_advance(fdc);
-    if (!fdc->fifobufpos)
-        fdc->data_ready = 0;
-    return temp;
 }
 
 static void
@@ -669,7 +637,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     pclog_toggle_suppr();
 #endif
 
-    fdc_reset_fifo_buf(fdc);
+    fifo_reset(fdc->fifo_p);
     fdc_rate(fdc, fdc->drive);
     fdc->head = fdc->params[2];
     fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
@@ -687,7 +655,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     }
 
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
-    fdc->stat = out ? 0x90 : 0x50;
+    fdc->stat = out ? 0x10 : 0x50;
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
         fdc->stat |= 0x20;
     else
@@ -812,12 +780,27 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             }
             return;
         case 4:
-            if (val & 0x80) {
+            if (!(val & 0x80)) {
                 timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                fdc->interrupt = -1;
-                fdc->perp &= 0xfc;
-                fdc_ctrl_reset(fdc);
+                fdc->interrupt = -6;
             }
+            if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
+                if (fdc->power_down) {
+                    timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+                    fdc->interrupt = -5;
+                } else {
+                    timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                    fdc->interrupt = -1;
+
+                    fdc->perp &= 0xfc;
+
+                    for (i = 0; i < FDD_NUM; i++)
+                        ui_sb_update_icon(SB_FLOPPY | i, 0);
+
+                    fdc_ctrl_reset(fdc);
+                }
+            }
+            fdc->dsr = val;
             return;
         case 5: /*Command register*/
             if ((fdc->stat & 0xf0) == 0xb0) {
@@ -825,8 +808,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc->dat = val;
                     fdc->stat &= ~0x80;
                 } else {
-                    fdc_fifo_buf_write(fdc, val);
-                    if (fdc->fifobufpos == 0)
+                    fifo_write(val, fdc->fifo_p);
+                    if (fifo_get_full(fdc->fifo_p))
                         fdc->stat &= ~0x80;
                 }
                 break;
@@ -849,7 +832,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 fdc_log("Starting FDC command %02X\n", fdc->command);
                 fdc->error = 0;
 
-                if (((fdc->command & 0x1f) == 0x02) || ((fdc->command & 0x1f) == 0x05) || ((fdc->command & 0x1f) == 0x06) || ((fdc->command & 0x1f) == 0x0a) || ((fdc->command & 0x1f) == 0x0c) || ((fdc->command & 0x1f) == 0x0d) || ((fdc->command & 0x1f) == 0x11) || ((fdc->command & 0x1f) == 0x16) || ((fdc->command & 0x1f) == 0x19) || ((fdc->command & 0x1f) == 0x1d))
+                if (((fdc->command & 0x1f) == 0x02) || ((fdc->command & 0x1f) == 0x05) ||
+                    ((fdc->command & 0x1f) == 0x06) || ((fdc->command & 0x1f) == 0x0a) ||
+                    ((fdc->command & 0x1f) == 0x0c) || ((fdc->command & 0x1f) == 0x0d) ||
+                    ((fdc->command & 0x1f) == 0x11) || ((fdc->command & 0x1f) == 0x16) ||
+                    ((fdc->command & 0x1f) == 0x19) || ((fdc->command & 0x1f) == 0x1d))
                     fdc->processed_cmd = fdc->command & 0x1f;
                 else
                     fdc->processed_cmd = fdc->command;
@@ -997,6 +984,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 }
                 if (fdc->pnum == fdc->ptot) {
                     fdc_log("Got all params %02X\n", fdc->command);
+                    fifo_reset(fdc->fifo_p);
                     fdc->interrupt  = fdc->processed_cmd;
                     fdc->reset_stat = 0;
                     /* Disable timer if enabled. */
@@ -1386,11 +1374,11 @@ fdc_read(uint16_t addr, void *priv)
                     fdc->data_ready = 0;
                     ret             = fdc->dat;
                 } else
-                    ret = fdc_fifo_buf_read(fdc);
+                    ret = fifo_read(fdc->fifo_p);
                 break;
             }
-            fdc->stat &= ~0x80;
             if (fdc->paramstogo) {
+                fdc->stat &= ~0x80;
                 fdc_log("%i parameters to go\n", fdc->paramstogo);
                 fdc->paramstogo--;
                 ret = fdc->res[10 - fdc->paramstogo];
@@ -1398,7 +1386,11 @@ fdc_read(uint16_t addr, void *priv)
                     fdc->stat = 0x80;
                 else
                     fdc->stat |= 0xC0;
+            } else if (fdc->dma) {
+                ret       = fdc->dat;
+                break;
             } else {
+                fdc->stat &= ~0x80;
                 if (lastbyte)
                     fdc->stat = 0x80;
                 lastbyte        = 0;
@@ -1554,6 +1546,9 @@ fdc_callback(void *priv)
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
             fdc->reset_stat = 4;
             return;
+        case -6: /*DSR Reset clear*/
+            fdc->dsr |= 0x80;
+            return;
         case 0x01: /* Mode */
             fdc->stat         = 0x80;
             fdc->densel_force = (fdc->params[2] & 0xC0) >> 6;
@@ -1689,7 +1684,7 @@ fdc_callback(void *priv)
                         fdc->stat = 0xb0;
                     else {
                         dma_set_drq(fdc->dma_ch, 1);
-                        fdc->stat = 0x90;
+                        fdc->stat = 0x10;
                     }
                     break;
                 case 6:
@@ -1711,7 +1706,7 @@ fdc_callback(void *priv)
                         fdc->stat = 0xb0;
                     else {
                         dma_set_drq(fdc->dma_ch, 1);
-                        fdc->stat = 0x90;
+                        fdc->stat = 0x10;
                     }
                     break;
 
@@ -1802,6 +1797,9 @@ fdc_callback(void *priv)
             fdc->pretrk = fdc->params[2];
             fdc->fifo   = (fdc->params[1] & 0x20) ? 0 : 1;
             fdc->tfifo  = (fdc->params[1] & 0xF);
+            fifo_reset(fdc->fifo_p);
+            fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
+            fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
             fdc->stat   = 0x80;
             return;
         case 0x14: /*Unlock*/
@@ -1928,7 +1926,6 @@ int
 fdc_data(fdc_t *fdc, uint8_t data, int last)
 {
     int result = 0;
-    int n;
 
     if (fdc->deleted & 2) {
         /* We're in a VERIFY command, so return with 0. */
@@ -1950,8 +1947,8 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
             fdc->stat       = 0xf0;
         } else {
             /* FIFO enabled */
-            fdc_fifo_buf_write(fdc, data);
-            if (fdc->fifobufpos == 0) {
+            fifo_write(data, fdc->fifo_p);
+            if (fifo_get_full(fdc->fifo_p)) {
                 /* We have wrapped around, means FIFO is over */
                 fdc->data_ready = 1;
                 fdc->stat       = 0xf0;
@@ -1963,11 +1960,10 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 
         if (!fdc->fifo || (fdc->tfifo < 1)) {
             fdc->data_ready = 1;
-            fdc->stat       = 0xd0;
+            fdc->stat       = 0x50;
             dma_set_drq(fdc->dma_ch, 1);
 
-            fdc->fifobufpos = 0;
-
+            fdc->dat = data;
             result = dma_channel_write(fdc->dma_ch, data);
 
             if (result & DMA_OVER) {
@@ -1978,19 +1974,15 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
             dma_set_drq(fdc->dma_ch, 0);
         } else {
             /* FIFO enabled */
-            fdc_fifo_buf_write(fdc, data);
-            if (last || (fdc->fifobufpos == 0)) {
+            fifo_write(data, fdc->fifo_p);
+            if (last || fifo_get_full(fdc->fifo_p)) {
                 /* We have wrapped around, means FIFO is over */
                 fdc->data_ready = 1;
-                fdc->stat       = 0xd0;
+                fdc->stat       = 0x50;
                 dma_set_drq(fdc->dma_ch, 1);
 
-                n = (fdc->fifobufpos > 0) ? (fdc->fifobufpos - 1) : fdc->tfifo;
-                if (fdc->fifobufpos > 0)
-                    fdc->fifobufpos = 0;
-
-                for (int i = 0; i <= n; i++) {
-                    result = dma_channel_write(fdc->dma_ch, fdc->fifobuf[i]);
+                while (!fifo_get_empty(fdc->fifo_p)) {
+                    result = dma_channel_write(fdc->dma_ch, fifo_read(fdc->fifo_p));
 
                     if (result & DMA_OVER) {
                         dma_set_drq(fdc->dma_ch, 0);
@@ -2101,9 +2093,9 @@ fdc_getdata(fdc_t *fdc, int last)
             if (!last)
                 fdc->stat = 0xb0;
         } else {
-            data = fdc_fifo_buf_read(fdc);
+            data = fifo_read(fdc->fifo_p);
 
-            if (!last && (fdc->fifobufpos == 0))
+            if (!last && fifo_get_empty(fdc->fifo_p))
                 fdc->stat = 0xb0;
         }
     } else {
@@ -2115,14 +2107,14 @@ fdc_getdata(fdc_t *fdc, int last)
                 fdc->tc = 1;
 
             if (!last) {
-                fdc->stat = 0x90;
                 dma_set_drq(fdc->dma_ch, 1);
+                fdc->stat = 0x10;
             }
         } else {
-            if (fdc->fifobufpos == 0) {
-                for (int i = 0; i <= fdc->tfifo; i++) {
+            if (fifo_get_empty(fdc->fifo_p)) {
+                while (!fifo_get_full(fdc->fifo_p)) {
                     data            = dma_channel_read(fdc->dma_ch);
-                    fdc->fifobuf[i] = data;
+                    fifo_write(data, fdc->fifo_p);
 
                     if (data & DMA_OVER) {
                         dma_set_drq(fdc->dma_ch, 0);
@@ -2133,11 +2125,11 @@ fdc_getdata(fdc_t *fdc, int last)
                 dma_set_drq(fdc->dma_ch, 0);
             }
 
-            data = fdc_fifo_buf_read(fdc);
+            data = fifo_read(fdc->fifo_p);
 
-            if (!last && (fdc->fifobufpos == 0)) {
+            if (!last && fifo_get_empty(fdc->fifo_p)) {
                 dma_set_drq(fdc->dma_ch, 1);
-                fdc->stat = 0x90;
+                fdc->stat = 0x10;
             }
         }
     }
@@ -2335,15 +2327,14 @@ fdc_reset(void *priv)
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
     fdc_remove(fdc);
-    if (fdc->flags & FDC_FLAG_SEC) {
+    if (fdc->flags & FDC_FLAG_SEC)
         fdc_set_base(fdc, FDC_SECONDARY_ADDR);
-    } else if (fdc->flags & FDC_FLAG_TER) {
+    else if (fdc->flags & FDC_FLAG_TER)
         fdc_set_base(fdc, FDC_TERTIARY_ADDR);
-    } else if (fdc->flags & FDC_FLAG_QUA) {
+    else if (fdc->flags & FDC_FLAG_QUA)
         fdc_set_base(fdc, FDC_QUATERNARY_ADDR);
-    } else {
+    else
         fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? FDC_PRIMARY_PCJR_ADDR : FDC_PRIMARY_ADDR);
-    }
 
     current_drive = 0;
 
@@ -2358,10 +2349,11 @@ fdc_close(void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
-    fdc_reset(fdc);
-
     /* Stop timers. */
-    fdc->watchdog_count = 0;
+    timer_disable(&fdc->watchdog_timer);
+    timer_disable(&fdc->timer);
+
+    fifo_close(fdc->fifo_p);
 
     free(fdc);
 }
@@ -2395,6 +2387,8 @@ fdc_init(const device_t *info)
         fdc->dma_ch = FDC_PRIMARY_DMA;
 
     fdc_log("FDC added: %04X (flags: %08X)\n", fdc->base_address, fdc->flags);
+
+    fdc->fifo_p = (void *) fifo16_init();
 
     timer_add(&fdc->timer, fdc_callback, fdc, 0);
 

@@ -143,7 +143,6 @@ typedef struct sb_t {
     emu8k_t emu8k;
     void   *gameport;
 
-    int pos;
     int pnp;
 
     uint8_t pos_regs[8];
@@ -165,6 +164,7 @@ extern uint8_t sb_ct1745_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ct1745_mixer_reset(sb_t *sb);
 
 extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv);
+extern void sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);

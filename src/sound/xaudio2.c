@@ -51,6 +51,7 @@ static int                     initialized   = 0;
 static IXAudio2               *xaudio2       = NULL;
 static IXAudio2MasteringVoice *mastervoice   = NULL;
 static IXAudio2SourceVoice    *srcvoice      = NULL;
+static IXAudio2SourceVoice    *srcvoicemusic = NULL;
 static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 
@@ -164,6 +165,12 @@ inital(void)
         return;
     }
 
+    fmt.nSamplesPerSec  = MUSIC_FREQ;
+    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
+    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
+
+    IXAudio2_CreateSourceVoice(xaudio2, &srcvoicemusic, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+
     fmt.nSamplesPerSec  = CD_FREQ;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
@@ -173,6 +180,7 @@ inital(void)
     IXAudio2SourceVoice_SetVolume(srcvoice, 1, XAUDIO2_COMMIT_NOW);
     IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
     IXAudio2SourceVoice_Start(srcvoicecd, 0, XAUDIO2_COMMIT_NOW);
+    IXAudio2SourceVoice_Start(srcvoicemusic, 0, XAUDIO2_COMMIT_NOW);
 
     const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
 
@@ -196,6 +204,8 @@ closeal(void)
     initialized = 0;
     IXAudio2SourceVoice_Stop(srcvoice, 0, XAUDIO2_COMMIT_NOW);
     IXAudio2SourceVoice_FlushSourceBuffers(srcvoice);
+    IXAudio2SourceVoice_Stop(srcvoicemusic, 0, XAUDIO2_COMMIT_NOW);
+    IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemusic);
     IXAudio2SourceVoice_Stop(srcvoicecd, 0, XAUDIO2_COMMIT_NOW);
     IXAudio2SourceVoice_FlushSourceBuffers(srcvoicecd);
     if (srcvoicemidi) {
@@ -203,8 +213,9 @@ closeal(void)
         IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemidi);
         IXAudio2SourceVoice_DestroyVoice(srcvoicemidi);
     }
-    IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2SourceVoice_DestroyVoice(srcvoicecd);
+    IXAudio2SourceVoice_DestroyVoice(srcvoicemusic);
+    IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
     srcvoice = srcvoicecd = srcvoicemidi = NULL;
@@ -247,6 +258,12 @@ void
 givealbuffer(void *buf)
 {
     givealbuffer_common(buf, srcvoice, BUFLEN << 1);
+}
+
+void
+givealbuffer_music(void *buf)
+{
+    givealbuffer_common(buf, srcvoicemusic, MUSICBUFLEN << 1);
 }
 
 void

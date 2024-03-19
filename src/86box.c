@@ -66,6 +66,7 @@
 #include <86box/bugger.h>
 #include <86box/postcard.h>
 #include <86box/unittester.h>
+#include <86box/novell_cardkey.h>
 #include <86box/isamem.h>
 #include <86box/isartc.h>
 #include <86box/lpt.h>
@@ -173,6 +174,7 @@ char     video_shader[512]                      = { '\0' };       /* (C) video *
 bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                          pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
+int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
@@ -181,6 +183,7 @@ int      gfxcard[2]                             = { 0, 0 };       /* (C) graphic
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                         = 1;              /* (C) sound uses FP values */
 int      voodoo_enabled                         = 0;              /* (C) video option */
+int      lba_enhancer_enabled                   = 0;              /* (C) enable Vision Systems LBA Enhancer */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
 uint32_t mem_size                               = 0;              /* (C) memory size (Installed on
@@ -1167,12 +1170,13 @@ pc_reset_hard_init(void)
     /* note: PLIP LPT side has to be initialized before the network side */
     lpt_devices_init();
 
-    /* Reset and reconfigure the Network Card layer. */
-    network_reset();
-
     /* Reset and reconfigure the serial ports. */
+    /* note: SLIP COM side has to be initialized before the network side */
     serial_standalone_init();
     serial_passthrough_init();
+
+    /* Reset and reconfigure the Network Card layer. */
+    network_reset();
 
     /*
      * Reset the mouse, this will attach it to any port needed.
@@ -1226,6 +1230,12 @@ pc_reset_hard_init(void)
         device_add(&postcard_device);
     if (unittester_enabled)
         device_add(&unittester_device);
+
+    if (lba_enhancer_enabled)
+        device_add(&lba_enhancer_device);
+
+    if (novell_keycard_enabled)
+        device_add(&novell_keycard_device);
 
     if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
         pci_register_cards();

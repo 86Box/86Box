@@ -62,6 +62,7 @@ SettingsStorageControllers::save()
     ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
     ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
     cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;
+    lba_enhancer_enabled    = ui->checkBoxLbaEnhancer->isChecked() ? 1 : 0;
 }
 
 void
@@ -204,6 +205,9 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         ui->checkBoxCassette->setChecked(false);
         ui->checkBoxCassette->setEnabled(false);
     }
+
+    ui->checkBoxLbaEnhancer->setChecked(lba_enhancer_enabled > 0 && device_available(&lba_enhancer_device));
+    ui->pushButtonConfigureLbaEnhancer->setEnabled(ui->checkBoxLbaEnhancer->isChecked());
 }
 
 void
@@ -333,3 +337,15 @@ SettingsStorageControllers::on_pushButtonSCSI4_clicked()
 {
     DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
 }
+
+void SettingsStorageControllers::on_checkBoxLbaEnhancer_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureLbaEnhancer->setEnabled(arg1 != 0);
+}
+
+
+void SettingsStorageControllers::on_pushButtonConfigureLbaEnhancer_clicked()
+{
+    DeviceConfig::ConfigureDevice(&lba_enhancer_device);
+}
+

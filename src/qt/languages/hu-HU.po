@@ -1224,3 +1224,9 @@ msgstr "Gyors"
 
 msgid "&Auto-pause on focus loss"
 msgstr "&Automatikus szünet fókuszvesztéskor"
+
+msgid "WinBox is no longer supported"
+msgstr "A WinBox már nem támogatott"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "A WinBox menedzser fejlesztése 2022-ben leállt karbantartók hiányában. Mivel erőfeszítéseinket a 86Box még jobbá tételére irányítjuk, úgy döntöttünk, hogy a WinBox-ot mint menedzsert nem támogatjuk tovább.\n\nA WinBoxon keresztül nem lesznek további frissítések, és hibás viselkedéssel találkozhat, ha továbbra is a 86Box újabb verzióival használja. A WinBox viselkedésével kapcsolatos hibajelentéseket érvénytelennek nyilvánítjuk.\n\nA 86box.net oldalon talál egy listát más kezelőkről, amelyeket használhat."

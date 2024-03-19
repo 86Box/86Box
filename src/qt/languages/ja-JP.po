@@ -50,7 +50,7 @@ msgid "SDL (&OpenGL)"
 msgstr "SDL (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0コア)(&G)"
+msgstr "OpenGL (3.0 Core)(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
@@ -938,7 +938,7 @@ msgid "Error initializing renderer"
 msgstr "レンダラーの初期化エラー"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0コア) レンダラーが初期化できません。別のレンダラーを使用してください。"
+msgstr "OpenGL (3.0 Core) レンダラーが初期化できません。別のレンダラーを使用してください。"
 
 msgid "Resume execution"
 msgstr "実行を再開"
@@ -1224,3 +1224,9 @@ msgstr "速い"
 
 msgid "&Auto-pause on focus loss"
 msgstr "フォーカスが奪われると自動停止(&A)"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBoxはサポート終了"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "WinBoxマネージャーの開発は、メンテナ不足のため2022年に停止しました。86Boxをより良いものにするため、WinBoxをマネージャーとしてサポートしないことを決定しました。\n\nWinBoxを使ったアップデートは今後提供されませんし、86Boxの新しいバージョンでWinBoxを使い続けると、正しくない動作に遭遇するかもしれません。WinBoxの動作に関連するバグレポートは無効としてクローズされます。\n\n86box.netに他のマネージャのリストがあります。"

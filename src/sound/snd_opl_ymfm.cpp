@@ -51,10 +51,11 @@ enum {
 
 class YMFMChipBase {
 public:
-    YMFMChipBase(UNUSED(uint32_t clock), fm_type type, UNUSED(uint32_t samplerate))
+    YMFMChipBase(UNUSED(uint32_t clock), fm_type type, uint32_t samplerate)
         : m_buf_pos(0)
         , m_flags(0)
         , m_type(type)
+        , m_samplerate(samplerate)
     {
         memset(m_buffer, 0, sizeof(m_buffer));
     }
@@ -79,10 +80,11 @@ public:
     virtual void     set_clock(uint32_t clock)                               = 0;
 
 protected:
-    int32_t m_buffer[SOUNDBUFLEN * 2];
-    int     m_buf_pos;
-    int8_t  m_flags;
-    fm_type m_type;
+    int32_t  m_buffer[MUSICBUFLEN * 2];
+    int      m_buf_pos;
+    int8_t   m_flags;
+    fm_type  m_type;
+    uint32_t m_samplerate;
 };
 
 template <typename ChipType>
@@ -170,6 +172,11 @@ public:
 
     virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
     {
+        if (m_samplerate == FREQ_49716) {
+            generate(data, num_samples);
+            return;
+        }
+
         for (uint32_t i = 0; i < num_samples; i++) {
             while (m_samplecnt >= m_rateratio) {
                 m_oldsamples[0] = m_samples[0];
@@ -206,14 +213,26 @@ public:
 
     virtual int32_t *update() override
     {
-        if (m_buf_pos >= sound_pos_global)
-            return m_buffer;
+        if (m_samplerate == FREQ_49716) {
+            if (m_buf_pos >= music_pos_global)
+                return m_buffer;
 
-        generate_resampled(&m_buffer[m_buf_pos * 2], sound_pos_global - m_buf_pos);
+            generate(&m_buffer[m_buf_pos * 2], music_pos_global - m_buf_pos);
 
-        for (; m_buf_pos < sound_pos_global; m_buf_pos++) {
-            m_buffer[m_buf_pos * 2] /= 2;
-            m_buffer[(m_buf_pos * 2) + 1] /= 2;
+            for (; m_buf_pos < music_pos_global; m_buf_pos++) {
+                m_buffer[m_buf_pos * 2] /= 2;
+                m_buffer[(m_buf_pos * 2) + 1] /= 2;
+            }
+        } else {
+            if (m_buf_pos >= sound_pos_global)
+                return m_buffer;
+
+            generate_resampled(&m_buffer[m_buf_pos * 2], sound_pos_global - m_buf_pos);
+
+            for (; m_buf_pos < sound_pos_global; m_buf_pos++) {
+                m_buffer[m_buf_pos * 2] /= 2;
+                m_buffer[(m_buf_pos * 2) + 1] /= 2;
+            }
         }
 
         return m_buffer;
@@ -314,11 +333,11 @@ ymfm_drv_init(const device_t *info)
     switch (info->local) {
         default:
         case FM_YM3812:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, OPL_FREQ);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, FREQ_49716);
             break;
 
         case FM_YMF262:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, OPL_FREQ);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, FREQ_49716);
             break;
 
         case FM_YMF289B:

@@ -1224,3 +1224,9 @@ msgstr "Schnell"
 
 msgid "&Auto-pause on focus loss"
 msgstr "&Auto-Pause bei Fokusverlust"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox wird nicht mehr unterstützt"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Die Entwicklung des WinBox-Managers wurde im Jahr 2022 eingestellt, da es an Betreuern mangelte. Da wir unsere Bemühungen darauf richten, 86Box noch besser zu machen, haben wir uns entschlossen, WinBox nicht mehr als Manager zu unterstützen.\n\nEs werden keine weiteren Updates für WinBox zur Verfügung gestellt, und es kann zu fehlerhaftem Verhalten kommen, wenn Sie WinBox weiterhin mit neueren Versionen von 86Box verwenden. Alle Fehlerberichte, die sich auf das Verhalten von WinBox beziehen, werden als ungültig geschlossen.\n\nAuf 86box.net finden Sie eine Liste anderer Manager, die Sie verwenden können."

@@ -30,8 +30,10 @@
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/io.h>
+#include <86box/mca.h>
 #include <86box/mem.h>
 #include <86box/pic.h>
+#include <86box/rom.h>
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/timer.h>
@@ -112,6 +114,8 @@
 
 #define IDE_ATAPI_IS_EARLY             ide->sc->pad0
 
+#define ROM_PATH_MCIDE                 "roms/hdd/xtide/ide_ps2 R1.1.bin"
+
 typedef struct ide_bm_t {
     int (*dma)(uint8_t *data, int transfer_length, int out, void *priv);
     void (*set_irq)(uint8_t status, void *priv);
@@ -134,6 +138,12 @@ typedef struct ide_board_t {
     ide_t     *ide[2];
     ide_bm_t  *bm;
 } ide_board_t;
+
+typedef struct mcide_t {
+    uint8_t    pos_regs[8];
+    uint32_t   bios_addr;
+    rom_t bios_rom;
+} mcide_t;
 
 ide_board_t *ide_boards[IDE_BUS_MAX];
 
@@ -2764,9 +2774,9 @@ ide_board_setup(int board)
 }
 
 static void
-ide_board_init(int board, int irq, int base_main, int side_main, int type)
+ide_board_init(int board, int irq, int base_main, int side_main, int type, int bus)
 {
-    ide_log("ide_board_init(%i, %i, %04X, %04X, %i)\n", board, irq, base_main, side_main, type);
+    ide_log("ide_board_init(%i, %i, %04X, %04X, %i, %i)\n", board, irq, base_main, side_main, type, bus);
 
     if ((ide_boards[board] != NULL) && ide_boards[board]->inited)
         return;
@@ -2782,7 +2792,9 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
         ide_boards[board]->bit32 = 1;
     ide_boards[board]->base[0] = base_main;
     ide_boards[board]->base[1] = side_main;
-    ide_set_handlers(board);
+
+    if (!(bus & DEVICE_MCA))
+        ide_set_handlers(board);
 
     timer_add(&ide_boards[board]->timer, ide_board_callback, ide_boards[board], 0);
 
@@ -2834,12 +2846,12 @@ ide_ter_init(const device_t *info)
         irq = device_get_config_int("irq");
 
     if (irq < 0) {
-        ide_board_init(2, -1, 0, 0, 0);
+        ide_board_init(2, -1, 0, 0, 0, 0);
         if (irq == -1)
             isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom),
                             ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
     } else {
-        ide_board_init(2, irq, HDC_TERTIARY_BASE, HDC_TERTIARY_SIDE, 0);
+        ide_board_init(2, irq, HDC_TERTIARY_BASE, HDC_TERTIARY_SIDE, 0, 0);
     }
 
     return (ide_boards[2]);
@@ -2866,12 +2878,12 @@ ide_qua_init(const device_t *info)
         irq = device_get_config_int("irq");
 
     if (irq < 0) {
-        ide_board_init(3, -1, 0, 0, 0);
+        ide_board_init(3, -1, 0, 0, 0, 0);
         if (irq == -1)
             isapnp_add_card(ide_qua_pnp_rom, sizeof(ide_qua_pnp_rom),
                             ide_pnp_config_changed, NULL, NULL, NULL, (void *) 3);
     } else
-        ide_board_init(3, irq, HDC_QUATERNARY_BASE, HDC_QUATERNARY_SIDE, 0);
+        ide_board_init(3, irq, HDC_QUATERNARY_BASE, HDC_QUATERNARY_SIDE, 0, 0);
 
     return (ide_boards[3]);
 }
@@ -2886,7 +2898,7 @@ ide_qua_close(UNUSED(void *priv))
 void *
 ide_xtide_init(void)
 {
-    ide_board_init(0, -1, 0, 0, 0);
+    ide_board_init(0, -1, 0, 0, 0, 0);
 
     return ide_boards[0];
 }
@@ -2922,10 +2934,10 @@ ide_init(const device_t *info)
 
     switch (info->local) {
         case 0 ... 5:
-            ide_board_init(0, 14, 0x1f0, 0x3f6, info->local);
+            ide_board_init(0, 14, 0x1f0, 0x3f6, info->local, info->flags);
 
             if (info->local & 1)
-                ide_board_init(1, 15, 0x170, 0x376, info->local);
+                ide_board_init(1, 15, 0x170, 0x376, info->local, info->flags);
             break;
 
         default:
@@ -3026,6 +3038,288 @@ ide_close(UNUSED(void *priv))
     }
 }
 
+static uint8_t
+mcide_mca_read(int port, void *priv)
+{
+    const mcide_t *dev = (mcide_t *) priv;
+
+    ide_log("IDE: mcard(%04x)\n", port);
+
+    return (dev->pos_regs[port & 7]);
+}
+
+static void
+mcide_mca_write(int port, uint8_t val, void *priv)
+{
+    mcide_t *dev = (mcide_t *) priv;
+
+    ide_log("IDE: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
+                 port, val, dev->pos_regs[2], dev->pos_regs[3]);
+
+    if (port < 0x102)
+        return;
+
+    /* Save the new value. */
+    dev->pos_regs[port & 7] = val;
+
+    io_handler(0, ide_boards[0]->base[0], 8,
+               ide_readb, ide_readw, ide_readl,
+               ide_writeb, ide_writew, ide_writel,
+               ide_boards[0]);
+    io_handler(0, ide_boards[0]->base[1], 1,
+               ide_read_alt_status, NULL, NULL,
+               ide_write_devctl, NULL, NULL,
+               ide_boards[0]);
+    io_handler(0, ide_boards[1]->base[0], 8,
+               ide_readb, ide_readw, ide_readl,
+               ide_writeb, ide_writew, ide_writel,
+               ide_boards[1]);
+    io_handler(0, ide_boards[1]->base[1], 1,
+               ide_read_alt_status, NULL, NULL,
+               ide_write_devctl, NULL, NULL,
+               ide_boards[1]);
+    mem_mapping_disable(&dev->bios_rom.mapping);
+
+    if (dev->pos_regs[2] & 0x80) {
+        switch ((dev->pos_regs[2] >> 4) & 7) {
+            case 0:
+                dev->bios_addr = 0xc0000;
+                break;
+            case 1:
+                dev->bios_addr = 0xc4000;
+                break;
+            case 2:
+                dev->bios_addr = 0xc8000;
+                break;
+            case 3:
+                dev->bios_addr = 0xcc000;
+                break;
+            case 4:
+                dev->bios_addr = 0xd0000;
+                break;
+            case 5:
+                dev->bios_addr = 0xd4000;
+                break;
+            case 6:
+                dev->bios_addr = 0xd8000;
+                break;
+            case 7:
+                dev->bios_addr = 0xd8000;
+                break;
+            default:
+                break;
+        }
+    } else {
+        dev->bios_addr = 0;
+    }
+
+    if (dev->pos_regs[3] & 0x08) {
+        switch (dev->pos_regs[3] & 3) {
+            case 0:
+                ide_boards[0]->base[0] = 0x1f0;
+                ide_boards[0]->base[1] = 0x3f6;
+                break;
+            case 1:
+                ide_boards[0]->base[0] = 0x170;
+                ide_boards[0]->base[1] = 0x376;
+                break;
+            case 2:
+                ide_boards[0]->base[0] = 0x1e8;
+                ide_boards[0]->base[1] = 0x3ee;
+                break;
+            case 3:
+                ide_boards[0]->base[0] = 0x168;
+                ide_boards[0]->base[1] = 0x36e;
+                break;
+            default:
+                break;
+        }
+    } else {
+        ide_boards[0]->base[0] = 0;
+        ide_boards[0]->base[1] = 0;
+    }
+
+    if (dev->pos_regs[3] & 0x80) {
+        switch (dev->pos_regs[3] & 0x30) {
+            case 0x00:
+                ide_boards[0]->irq = 10;
+                break;
+            case 0x10:
+                ide_boards[0]->irq = 11;
+                break;
+            case 0x20:
+                ide_boards[0]->irq = 14;
+                break;
+            case 0x30:
+                ide_boards[0]->irq = 15;
+                break;
+
+            default:
+                break;
+        }
+    } else
+       ide_boards[0]->irq = -1;
+
+    if (dev->pos_regs[4] & 0x08) {
+        switch ((dev->pos_regs[4] & 3)) {
+            case 0:
+                ide_boards[1]->base[0] = 0x1f0;
+                ide_boards[1]->base[1] = 0x3f6;
+                break;
+            case 1:
+                ide_boards[1]->base[0] = 0x170;
+                ide_boards[1]->base[1] = 0x376;
+                break;
+            case 2:
+                ide_boards[1]->base[0] = 0x1e8;
+                ide_boards[1]->base[1] = 0x3ee;
+                break;
+            case 3:
+                ide_boards[1]->base[0] = 0x168;
+                ide_boards[1]->base[1] = 0x36e;
+                break;
+            default:
+                break;
+        }
+    } else {
+        ide_boards[1]->base[0] = 0;
+        ide_boards[1]->base[1] = 0;
+    }
+
+    if (dev->pos_regs[4] & 0x80) {
+        switch (dev->pos_regs[4] & 0x30) {
+            case 0x00:
+                ide_boards[1]->irq = 10;
+                break;
+            case 0x10:
+                ide_boards[1]->irq = 11;
+                break;
+            case 0x20:
+                ide_boards[1]->irq = 14;
+                break;
+            case 0x30:
+                ide_boards[1]->irq = 15;
+                break;
+
+            default:
+                break;
+        }
+    } else
+       ide_boards[1]->irq = -1;
+
+    if (dev->pos_regs[2] & 1) {
+        if (ide_boards[0]->base[0] && ide_boards[0]->base[1]) {
+            io_handler(1, ide_boards[0]->base[0], 8,
+                       ide_readb, ide_readw, ide_readl,
+                       ide_writeb, ide_writew, ide_writel,
+                       ide_boards[0]);
+            io_handler(1, ide_boards[0]->base[1], 1,
+                       ide_read_alt_status, NULL, NULL,
+                       ide_write_devctl, NULL, NULL,
+                       ide_boards[0]);
+        }
+
+        if (ide_boards[1]->base[0] && ide_boards[1]->base[1]) {
+            io_handler(1, ide_boards[1]->base[0], 8,
+                       ide_readb, ide_readw, ide_readl,
+                       ide_writeb, ide_writew, ide_writel,
+                       ide_boards[1]);
+            io_handler(1, ide_boards[1]->base[1], 1,
+                       ide_read_alt_status, NULL, NULL,
+                       ide_write_devctl, NULL, NULL,
+                       ide_boards[1]);
+        }
+
+        if (dev->bios_addr) {
+            mem_mapping_enable(&dev->bios_rom.mapping);
+            mem_mapping_set_addr(&dev->bios_rom.mapping,
+                                 dev->bios_addr, 0x4000);
+        }
+
+        /* Say hello. */
+        ide_log("McIDE: Primary Master I/O=%03x, Primary IRQ=%i, Secondary Master I/O=%03x, Secondary IRQ=%d, BIOS @%05X\n",
+                     ide_boards[0]->base[0], ide_boards[0]->irq, ide_boards[1]->base[0], ide_boards[1]->irq, dev->bios_addr);
+    }
+}
+
+static uint8_t
+mcide_mca_feedb(void *priv)
+{
+    const mcide_t *dev = (mcide_t *) priv;
+
+    return (dev->pos_regs[2] & 1);
+}
+
+static void
+mcide_mca_reset(void *priv)
+{
+    mcide_t *dev = (mcide_t *) priv;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        if (ide_boards[i] != NULL)
+            ide_board_reset(i);
+    }
+
+    ide_log("McIDE: MCA Reset.\n");
+    mem_mapping_disable(&dev->bios_rom.mapping);
+    mcide_mca_write(0x102, 0, dev);
+}
+
+static void
+mcide_reset(void *priv)
+{
+    for (uint8_t i = 0; i < 2; i++) {
+        if (ide_boards[i] != NULL)
+            ide_board_reset(i);
+    }
+
+    ide_log("McIDE: Reset.\n");
+}
+
+static void *
+mcide_init(const device_t *info)
+{
+    ide_log("Initializing McIDE...\n");
+    mcide_t *dev = (mcide_t *) calloc(1, sizeof(mcide_t));
+
+    ide_board_init(0, -1, 0, 0, info->local, info->flags);
+    ide_board_init(1, -1, 0, 0, info->local, info->flags);
+
+    rom_init(&dev->bios_rom, ROM_PATH_MCIDE,
+                         0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+    mem_mapping_disable(&dev->bios_rom.mapping);
+
+    /* Set the MCA ID for this controller, 0xF171. */
+    dev->pos_regs[0] = 0xf1;
+    dev->pos_regs[1] = 0x71;
+
+    /* Enable the device. */
+    mca_add(mcide_mca_read, mcide_mca_write, mcide_mca_feedb, mcide_mca_reset, dev);
+
+    return dev;
+}
+
+static int
+mcide_available(void)
+{
+    return (rom_present(ROM_PATH_MCIDE));
+}
+
+static void
+mcide_close(void *priv)
+{
+    mcide_t *dev = (mcide_t *) priv;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        if (ide_boards[i] != NULL) {
+            ide_board_close(i);
+            ide_boards[i] = NULL;
+        }
+    }
+
+    free(dev);
+}
+
 const device_t ide_isa_device = {
     .name          = "ISA PC/AT IDE Controller",
     .internal_name = "ide_isa",
@@ -3109,6 +3403,21 @@ const device_t ide_pci_2ch_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t mcide_device = {
+    .name          = "MCA McIDE Controller",
+    .internal_name = "ide_mcide",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = mcide_init,
+    .close         = mcide_close,
+    .reset         = mcide_reset,
+    { .available = mcide_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 
 // clang-format off
 static const device_config_t ide_ter_config[] = {
