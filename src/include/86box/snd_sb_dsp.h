@@ -1,6 +1,8 @@
 #ifndef SOUND_SND_SB_DSP_H
 #define SOUND_SND_SB_DSP_H
 
+#include <86box/fifo.h>
+
 /*Sound Blaster Clones, for quirks*/
 #define SB_SUBTYPE_DEFAULT             0 /*Handle as a Creative card*/
 #define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /*Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone*/
@@ -142,20 +144,25 @@ typedef struct sb_dsp_t {
 
     uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
 
-    uint8_t ess_regs[256]; /* ESS registers. */
-    uint8_t ess_playback_mode;
-    uint8_t ess_extended_mode;
-    uint8_t ess_reload_len;
+    uint8_t  ess_regs[256]; /* ESS registers. */
+    uint8_t  ess_playback_mode;
+    uint8_t  ess_extended_mode;
+    uint8_t  ess_reload_len;
     uint32_t ess_dma_counter;
+    int      ess_irq_generic;
+    int      ess_irq_dmactr;
 
     // ESPCM
-    uint8_t espcm_sample_idx;
-    uint8_t espcm_range;
-    uint8_t espcm_byte_buffer[4];
-    uint8_t espcm_code_buffer[19];   /* used for ESPCM_3 and for ESPCM_4 recording */
-    int8_t espcm_sample_buffer[19];  /* used for ESPCM_4 recording */
-    uint8_t espcm_table_index;       /* used for ESPCM_3 */
-    uint8_t espcm_last_value;        /* used for ESPCM_3 */
+    fifo64_t *espcm_fifo;
+    int       espcm_fifo_reset;
+    int       espcm_mode;
+    uint8_t   espcm_sample_idx;
+    uint8_t   espcm_range;
+    uint8_t   espcm_byte_buffer[4];
+    uint8_t   espcm_code_buffer[19];   /* used for ESPCM_3 and for ESPCM_4 recording */
+    int8_t    espcm_sample_buffer[19]; /* used for ESPCM_4 recording */
+    uint8_t   espcm_table_index;       /* used for ESPCM_3 */
+    uint8_t   espcm_last_value;        /* used for ESPCM_3 */
 
     mpu_t *mpu;
 } sb_dsp_t;
