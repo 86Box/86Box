@@ -7187,10 +7187,10 @@ const machine_t machines[] = {
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name = "[OPTi 802G] IBM Aptiva 510/710/Vision",
-        .internal_name = "aptiva_510",
+        .internal_name = "aptiva510",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
-        .init = machine_at_aptiva_510_init,
+        .init = machine_at_aptiva510_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,

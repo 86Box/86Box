@@ -722,11 +722,11 @@ machine_at_pc330_6573_common_init(const machine_t *model)
 }
 
 int
-machine_at_aptiva_510_init(const machine_t *model)
+machine_at_aptiva510_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/aptiva_510/$IMAGES.USF",
+    ret = bios_load_linear("roms/machines/aptiva510/$IMAGES.USF",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
