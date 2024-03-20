@@ -909,6 +909,47 @@ MediaMenu::getMediaOpenDirectory()
 
 // callbacks from 86box C code
 extern "C" {
+void
+cassette_mount(char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->cassetteMount(QString(fn), wp);
+}
+
+void
+cassette_eject(void)
+{
+    MediaMenu::ptr->cassetteEject();
+}
+
+void
+cartridge_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->cartridgeMount(id, QString(fn));
+}
+
+void
+cartridge_eject(uint8_t id)
+{
+    MediaMenu::ptr->cartridgeEject(id);
+}
+
+void
+floppy_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->floppyMount(id, QString(fn), wp);
+}
+
+void
+floppy_eject(uint8_t id)
+{
+    MediaMenu::ptr->floppyEject(id);
+}
+
+void
+cdrom_mount(uint8_t id, char *fn)
+{
+    MediaMenu::ptr->cdromMount(id, QString(fn));
+}
 
 void
 plat_cdrom_ui_update(uint8_t id, uint8_t reload)
@@ -923,6 +964,12 @@ zip_eject(uint8_t id)
 }
 
 void
+zip_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->zipMount(id, QString(fn), wp);
+}
+
+void
 zip_reload(uint8_t id)
 {
     MediaMenu::ptr->zipReload(id);
@@ -932,6 +979,12 @@ void
 mo_eject(uint8_t id)
 {
     MediaMenu::ptr->moEject(id);
+}
+
+void
+mo_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->moMount(id, QString(fn), wp);
 }
 
 void
