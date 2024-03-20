@@ -625,12 +625,6 @@ msgstr "ISABugger device"
 msgid "POST card"
 msgstr "POST card"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
-
 msgid "86Box"
 msgstr "86Box"
 

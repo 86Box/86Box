@@ -625,12 +625,6 @@ msgstr "ISABuggerデバイス"
 msgid "POST card"
 msgstr "POSTカード"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Meiryo UI"
-
 msgid "86Box"
 msgstr "86Box"
 

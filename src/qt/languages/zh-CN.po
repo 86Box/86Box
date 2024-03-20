@@ -625,12 +625,6 @@ msgstr "ISABugger 设备"
 msgid "POST card"
 msgstr "自检 (POST) 卡"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Microsoft YaHei"
-
 msgid "86Box"
 msgstr "86Box"
 

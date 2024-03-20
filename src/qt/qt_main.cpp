@@ -191,9 +191,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
-    auto font_name = QObject::tr("FONT_NAME");
-    auto font_size = QObject::tr("FONT_SIZE");
-    QApplication::setFont(QFont(font_name, font_size.toInt()));
+    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 

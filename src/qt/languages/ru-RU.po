@@ -712,12 +712,6 @@ msgstr "Карта POST"
 msgid "86Box Unit Tester"
 msgstr "Модульный Тестер 86Box"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
-
 msgid "86Box"
 msgstr "86Box"
 

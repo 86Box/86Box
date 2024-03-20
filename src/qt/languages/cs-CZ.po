@@ -625,12 +625,6 @@ msgstr "Zařízení ISABugger"
 msgid "POST card"
 msgstr "Karta pro kódy POST"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
-
 msgid "86Box"
 msgstr "86Box"
 

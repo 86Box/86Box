@@ -16,6 +16,9 @@ public:
     ~ProgSettings();
     static QString getIconSetPath();
     static QIcon   loadIcon(QString file);
+#ifdef Q_OS_WINDOWS
+    static QString getFontName(uint32_t lcid);
+#endif
     static void    loadTranslators(QObject *parent = nullptr);
     static void    reloadStrings();
     class CustomTranslator : public QTranslator {

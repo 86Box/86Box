@@ -625,12 +625,6 @@ msgstr "ISABugger 장치"
 msgid "POST card"
 msgstr "POST 카드"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Malgun Gothic"
-
 msgid "86Box"
 msgstr "86Box"
 
