@@ -365,7 +365,13 @@ net_pcap_prepare(netdev_t *list)
 
     /* Try loading the DLL. */
 #ifdef _WIN32
+    /* Add the Npcap directory to the DLL search path. */
+    char npcap_dir[512];
+    GetSystemDirectoryA(npcap_dir, 480);
+    strcat(npcap_dir, "\\Npcap");
+    SetDllDirectoryA(npcap_dir);
     libpcap_handle = dynld_module("wpcap.dll", pcap_imports);
+    SetDllDirectoryA(NULL); /* reset the DLL search path */
 #elif defined __APPLE__
     libpcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
