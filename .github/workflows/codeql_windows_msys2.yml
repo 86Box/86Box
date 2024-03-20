@@ -61,9 +61,6 @@ jobs:
             new: on
             slug: -NDR
         ui:
-          - name: Win32 GUI
-            qt: off
-            static: on
           - name: Qt GUI
             qt: on
             static: off

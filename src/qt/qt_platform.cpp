@@ -581,7 +581,11 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 #ifdef _WIN32
-#    define LIB_NAME_GS          "gsdll32.dll"
+#    if defined(__amd64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
+#        define LIB_NAME_GS          "gsdll64.dll"
+#    else
+#        define LIB_NAME_GS          "gsdll32.dll"
+#    endif
 #    define MOUSE_CAPTURE_KEYSEQ "F8+F12"
 #else
 #    define LIB_NAME_GS          "libgs"
