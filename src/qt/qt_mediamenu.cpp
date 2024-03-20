@@ -522,6 +522,23 @@ MediaMenu::cdromReload(int index, int slot)
 }
 
 void
+MediaMenu::cdromUpdateUi(int i)
+{
+    cdrom_t *drv = &cdrom[i];
+
+    if (drv->host_drive == 0) {
+        mhm.addImageToHistory(i, ui::MediaType::Optical, drv->prev_image_path, QString());
+        ui_sb_update_icon_state(SB_CDROM | i, 1);
+    } else {
+        mhm.addImageToHistory(i, ui::MediaType::Optical, drv->prev_image_path, drv->image_path);
+        ui_sb_update_icon_state(SB_CDROM | i, 0);
+    }
+
+    cdromUpdateMenu(i);
+    ui_sb_update_tip(SB_CDROM | i);
+}
+
+void
 MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
 {
     QMenu      *menu;
@@ -891,6 +908,12 @@ MediaMenu::getMediaOpenDirectory()
 
 // callbacks from 86box C code
 extern "C" {
+
+void
+plat_cdrom_ui_update(uint8_t id, uint8_t reload)
+{
+    MediaMenu::ptr->cdromUpdateUi(id);
+}
 
 void
 zip_eject(uint8_t id)
