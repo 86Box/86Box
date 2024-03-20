@@ -471,7 +471,8 @@ ali6117_init(const device_t *info)
 
     dev->local = info->local;
 
-    device_add(&ide_isa_device);
+    if (!(dev->local & 0x08))
+        device_add(&ide_isa_device);
 
     ali6117_setup(dev);
 
