@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: ko_KR\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "동작(&A)"
 
@@ -40,14 +48,11 @@ msgstr "창 크기와 위치를 기억하기(&E)"
 msgid "Re&nderer"
 msgstr "렌더러(&N)"
 
-msgid "&SDL (Software)"
-msgstr "SDL (소프트웨어)(&S)"
+msgid "&Qt (Software)"
+msgstr "Qt (소프트웨어)(&Q)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (하드웨어)(&H)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (OpenGL)(&O)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -589,9 +594,6 @@ msgstr "BPB 확인"
 msgid "CD-ROM drives:"
 msgstr "CD-ROM 드라이브:"
 
-msgid "Earlier drive"
-msgstr "이전 드라이브"
-
 msgid "MO drives:"
 msgstr "광자기 드라이브:"
 
@@ -624,12 +626,6 @@ msgstr "ISABugger 장치"
 
 msgid "POST card"
 msgstr "POST 카드"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Malgun Gothic"
 
 msgid "86Box"
 msgstr "86Box"
@@ -724,11 +720,11 @@ msgstr "기타 주변기기"
 msgid "Click to capture mouse"
 msgstr "이 창을 클릭하면 마우스를 사용합니다"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "F12+F8키를 누르면 마우스를 해제합니다"
+msgid "Press %1 to release mouse"
+msgstr "%1키를 누르면 마우스를 해제합니다"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "F12+F8키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
+msgid "Press %1 or middle button to release mouse"
+msgstr "%1키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
 
 msgid "Bus"
 msgstr "버스"
@@ -760,9 +756,6 @@ msgstr "%i 대기 상태"
 msgid "Type"
 msgstr "형식"
 
-msgid "Failed to set up PCap"
-msgstr "PCap 설정에 실패했습니다"
-
 msgid "No PCap devices found"
 msgstr "PCap 장치가 없습니다"
 
@@ -792,15 +785,6 @@ msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
 msgstr "없음"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "키보드 가속기를 불러올 수 없습니다."
-
-msgid "Unable to register raw input."
-msgstr "Raw 입력을 등록할 수 없습니다."
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
@@ -862,26 +846,14 @@ msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), Rich
 msgid "Hardware not available"
 msgstr "하드웨어를 이용할 수 없습니다"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "이 설치되었는지 libpcap에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "이 설치되었는지 %1에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
 
 msgid "Invalid configuration"
 msgstr "올바르지 않은 설정입니다"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
 
 msgid "Entering fullscreen mode"
 msgstr "전체 화면으로 전환"
@@ -901,8 +873,8 @@ msgstr "재시작 안함"
 msgid "CD-ROM images"
 msgstr "CD-ROM 이미지"
 
-msgid "%hs Device Configuration"
-msgstr "%hs 장치 설정"
+msgid "%1 Device Configuration"
+msgstr "%1 장치 설정"
 
 msgid "Monitor in sleep mode"
 msgstr "모니터 절전 모드"
@@ -958,14 +930,8 @@ msgstr "재시작"
 msgid "ACPI shutdown"
 msgstr "ACPI 종료"
 
-msgid "Hard disk (%s)"
-msgstr "하드 디스크 (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "하드 디스크 (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL 또는 ESDI CD-ROM 드라이브가 존재하지 않습니다"
@@ -999,9 +965,6 @@ msgstr "파일을 저장할 수 없습니다"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다"
-
-msgid "USB is not yet supported"
-msgstr "USB는 아직 지원하지 않습니다"
 
 msgid "Disk image file already exists"
 msgstr "디스크 이미지 파일이 이미 존재합니다"
@@ -1075,9 +1038,6 @@ msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD 타임스탬프를 고칠 수 없습니다"
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1092,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

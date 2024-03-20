@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: sl_SI\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Dejanja"
 
@@ -40,14 +48,11 @@ msgstr "&Zapomni si velikost in položaj"
 msgid "Re&nderer"
 msgstr "&Upodabljanje"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (programsko)"
+msgid "&Qt (Software)"
+msgstr "&Qt (programsko)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (s&trojno)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (Jedro 3.0)"
@@ -589,9 +594,6 @@ msgstr "Preverjaj BPB"
 msgid "CD-ROM drives:"
 msgstr "Pogoni CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Zgodnejši pogon"
-
 msgid "MO drives:"
 msgstr "Magnetno-optični pogoni:"
 
@@ -624,12 +626,6 @@ msgstr "Naprava ISABugger"
 
 msgid "POST card"
 msgstr "Kartica POST"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -724,11 +720,11 @@ msgstr "Druga periferija"
 msgid "Click to capture mouse"
 msgstr "Kliknite za zajem miške"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Pritisnite F8+F12 za izpust miške"
+msgid "Press %1 to release mouse"
+msgstr "Pritisnite %1 za izpust miške"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Pritisnite F8+F12 ali srednji gumb za izpust miške"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Pritisnite %1 ali srednji gumb za izpust miške"
 
 msgid "Bus"
 msgstr "Vodilo"
@@ -760,9 +756,6 @@ msgstr "%i stanj čakanja"
 msgid "Type"
 msgstr "Vrsta"
 
-msgid "Failed to set up PCap"
-msgstr "Nastavitev PCap ni uspela"
-
 msgid "No PCap devices found"
 msgstr "Nobena naprava PCap ni bila najdena"
 
@@ -792,15 +785,6 @@ msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
 msgstr "Brez"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "Ne morem naložiti pospeševalnikov tipkovnice."
-
-msgid "Unable to register raw input."
-msgstr "Ne morem registrirati neobdelanega vnosa."
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
@@ -862,26 +846,14 @@ msgstr "Emulator starih računalnikov\n\nAvtorji: Miran Grča (OBattler), Richar
 msgid "Hardware not available"
 msgstr "Strojna oprema ni na voljo"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Prepičajte se, da je nameščen libpcap in da ste na omrežni povezavi, združljivi z "
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "Prepičajte se, da je nameščen %1 in da ste na omrežni povezavi, združljivi z libpcap."
 
 msgid "Invalid configuration"
 msgstr "Neveljavna konfiguracija"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
 
 msgid "Entering fullscreen mode"
 msgstr "Preklapljam v celozaslonski način"
@@ -901,8 +873,8 @@ msgstr "Ne resetiraj"
 msgid "CD-ROM images"
 msgstr "Slike CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Konfiguracija naprave %hs"
+msgid "%1 Device Configuration"
+msgstr "Konfiguracija naprave %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Zaslon v načinu spanja"
@@ -958,14 +930,8 @@ msgstr "Ponovni zagon"
 msgid "ACPI shutdown"
 msgstr "Zaustavitev ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Trdi disk (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Trdi disk (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL ali ESDI pogoni CD-ROM niso nikoli obstajali"
@@ -999,9 +965,6 @@ msgstr "Ne morem pisati v datoteko"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Slike HDI ali HDX, ki nimajo sektorjev velikosti 512 bajtov, niso podprte."
-
-msgid "USB is not yet supported"
-msgstr "USB še ni podprt"
 
 msgid "Disk image file already exists"
 msgstr "Datoteka s sliko diska že obstaja"
@@ -1075,9 +1038,6 @@ msgstr "Časovna žiga starševske slike diska in slike diska otroka se ne ujema
 msgid "Could not fix VHD timestamp."
 msgstr "Ne morem popraviti časovnega žiga slike VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1092,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

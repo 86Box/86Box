@@ -30,7 +30,25 @@
 #endif
 
 /* String ID numbers. */
-#include <86box/language.h>
+enum {
+    STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
+    STRING_MOUSE_RELEASE,             /* "Press F8+F12/Ctrl+End to release mouse" */
+    STRING_MOUSE_RELEASE_MMB,         /* "Press F8+F12/Ctrl+End or middle button to release mouse" */
+    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
+    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
+    STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
+    STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
+    STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */
+    STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device" */
+    STRING_PCAP_ERROR_DESC,           /* "Make sure libpcap is installed..." */
+    STRING_GHOSTSCRIPT_ERROR_TITLE,   /* "Unable to initialize Ghostscript" */
+    STRING_GHOSTSCRIPT_ERROR_DESC,    /* "gsdll32.dll/gsdll64.dll/libgs is required..." */
+    STRING_HW_NOT_AVAILABLE_TITLE,    /* "Hardware not available" */
+    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
+    STRING_MONITOR_SLEEP              /* "Monitor in sleep mode" */
+};
 
 /* The Win32 API uses _wcsicmp. */
 #ifdef _WIN32
@@ -113,7 +131,6 @@ extern int hide_status_bar;
 extern int hide_tool_bar;
 
 /* System-related functions. */
-extern char    *fix_exe_path(char *str);
 extern FILE    *plat_fopen(const char *path, const char *mode);
 extern FILE    *plat_fopen64(const char *path, const char *mode);
 extern void     plat_remove(char *path);
@@ -129,29 +146,19 @@ extern void    *plat_mmap(size_t size, uint8_t executable);
 extern void     plat_munmap(void *ptr, size_t size);
 extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
-extern uint32_t plat_get_micro_ticks(void);
 extern void     plat_delay_ms(uint32_t count);
 extern void     plat_pause(int p);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(char *name);
 extern char    *plat_vidapi_name(int api);
-extern int      plat_setvid(int api);
-extern void     plat_vidsize(int x, int y);
-extern void     plat_setfullscreen(int on);
-extern void     plat_resize_monitor(int x, int y, int monitor_index);
+extern void     plat_resize(int x, int y, int monitor_index);
 extern void     plat_resize_request(int x, int y, int monitor_index);
-extern void     plat_resize(int x, int y);
-extern void     plat_vidapi_enable(int enabled);
-extern void     plat_vidapi_reload(void);
-extern void     plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char *langcode);
 extern void     plat_language_code_r(uint32_t lcid, char *outbuf, int len);
 extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
-extern double   plat_get_dpi(void);
 extern void     plat_set_thread_name(void *thread, const char *name);
 
 /* Resource management. */
-extern void     set_language(uint32_t id);
 extern wchar_t *plat_get_string(int id);
 
 /* Emulator start/stop support functions. */
@@ -183,16 +190,10 @@ extern void ioctl_close(uint8_t id);
 /* Other stuff. */
 extern void startblit(void);
 extern void endblit(void);
-extern void take_screenshot(void);
 
 /* Conversion between UTF-8 and UTF-16. */
 extern size_t mbstoc16s(uint16_t dst[], const char src[], int len);
 extern size_t c16stombs(char dst[], const uint16_t src[], int len);
-
-#ifdef MTR_ENABLED
-extern void init_trace(void);
-extern void shutdown_trace(void);
-#endif
 
 #ifdef __cplusplus
 }

@@ -1919,9 +1919,7 @@ MainWindow::changeEvent(QEvent *event)
 {
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
-        auto font_name = tr("FONT_NAME");
-        auto font_size = tr("FONT_SIZE");
-        QApplication::setFont(QFont(font_name, font_size.toInt()));
+        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
     }
 #endif
     QWidget::changeEvent(event);
