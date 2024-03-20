@@ -10,7 +10,7 @@ extern "C" {
 }
 class QMenu;
 
-class MediaMenu : QObject {
+class MediaMenu : public QObject {
     Q_OBJECT
 public:
     MediaMenu(QWidget *parent);
@@ -45,7 +45,6 @@ public:
     void cdromMount(int i, const QString &filename);
     void cdromEject(int i);
     void cdromReload(int index, int slot);
-    void cdromUpdateUi(int i);
     void updateImageHistory(int index, int slot, ui::MediaType type);
     void clearImageHistory();
     void cdromUpdateMenu(int i);
@@ -67,6 +66,12 @@ public:
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
+
+public slots:
+    void cdromUpdateUi(int i);
+
+signals:
+    void onCdromUpdateUi(int i);
 
 private:
     QWidget *parentWidget = nullptr;

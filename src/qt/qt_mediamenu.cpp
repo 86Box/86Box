@@ -61,6 +61,7 @@ MediaMenu::MediaMenu(QWidget *parent)
     : QObject(parent)
 {
     parentWidget = parent;
+    connect(this, &MediaMenu::onCdromUpdateUi, this, &MediaMenu::cdromUpdateUi, Qt::QueuedConnection);
 }
 
 void
@@ -912,7 +913,7 @@ extern "C" {
 void
 plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 {
-    MediaMenu::ptr->cdromUpdateUi(id);
+    emit MediaMenu::ptr->onCdromUpdateUi(id);
 }
 
 void
