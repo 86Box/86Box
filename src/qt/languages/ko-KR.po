@@ -40,14 +40,11 @@ msgstr "창 크기와 위치를 기억하기(&E)"
 msgid "Re&nderer"
 msgstr "렌더러(&N)"
 
-msgid "&SDL (Software)"
-msgstr "SDL (소프트웨어)(&S)"
+msgid "&Qt (Software)"
+msgstr "Qt (소프트웨어)(&Q)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (하드웨어)(&H)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (OpenGL)(&O)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -718,11 +715,11 @@ msgstr "기타 주변기기"
 msgid "Click to capture mouse"
 msgstr "이 창을 클릭하면 마우스를 사용합니다"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "F12+F8키를 누르면 마우스를 해제합니다"
+msgid "Press %1 to release mouse"
+msgstr "%1키를 누르면 마우스를 해제합니다"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "F12+F8키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
+msgid "Press %1 or middle button to release mouse"
+msgstr "%1키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
 
 msgid "Bus"
 msgstr "버스"
@@ -853,26 +850,14 @@ msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), Rich
 msgid "Hardware not available"
 msgstr "하드웨어를 이용할 수 없습니다"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "이 설치되었는지 libpcap에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "이 설치되었는지 %1에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
 
 msgid "Invalid configuration"
 msgstr "올바르지 않은 설정입니다"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
 
 msgid "Entering fullscreen mode"
 msgstr "전체 화면으로 전환"
@@ -892,8 +877,8 @@ msgstr "재시작 안함"
 msgid "CD-ROM images"
 msgstr "CD-ROM 이미지"
 
-msgid "%hs Device Configuration"
-msgstr "%hs 장치 설정"
+msgid "%1 Device Configuration"
+msgstr "%1 장치 설정"
 
 msgid "Monitor in sleep mode"
 msgstr "모니터 절전 모드"
@@ -949,8 +934,8 @@ msgstr "재시작"
 msgid "ACPI shutdown"
 msgstr "ACPI 종료"
 
-msgid "Hard disk (%s)"
-msgstr "하드 디스크 (%s)"
+msgid "Hard disk (%1)"
+msgstr "하드 디스크 (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

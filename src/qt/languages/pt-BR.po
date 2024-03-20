@@ -40,14 +40,11 @@ msgstr "&Lembrar tamanho e posição"
 msgid "Re&nderer"
 msgstr "&Renderizador"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (Núcleo 3.0)"
@@ -718,11 +715,11 @@ msgstr "Outros periféricos"
 msgid "Click to capture mouse"
 msgstr "Clique para capturar o mouse"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Aperte F8+F12 para liberar o mouse"
+msgid "Press %1 to release mouse"
+msgstr "Aperte %1 para liberar o mouse"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Aperte F8+F12 ou botão do meio para liberar o mouse"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Aperte %1 ou botão do meio para liberar o mouse"
 
 msgid "Bus"
 msgstr "Barramento"
@@ -853,26 +850,14 @@ msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), 
 msgid "Hardware not available"
 msgstr "Hardware não disponível"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Certifique-se de que libpcap esteja instalado e que você tenha uma conexão de rede compatível com libpcap."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Certifique-se de que %1 esteja instalado e que você tenha uma conexão de rede compatível com %1."
 
 msgid "Invalid configuration"
 msgstr "Configuração inválida"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " é necessário para a conversão automática de arquivos PostScript para PDF.\n\nQualquer documento enviado para a impressora genérica PostScript será salvo como arquivos PostScript (.ps)."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 é necessário para a conversão automática de arquivos PostScript para PDF.\n\nQualquer documento enviado para a impressora genérica PostScript será salvo como arquivos PostScript (.ps)."
 
 msgid "Entering fullscreen mode"
 msgstr "Entrando no modo de tela cheia"
@@ -892,8 +877,8 @@ msgstr "Não reiniciar"
 msgid "CD-ROM images"
 msgstr "Imagens de CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Configuração do dispositivo %hs"
+msgid "%1 Device Configuration"
+msgstr "Configuração do dispositivo %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor em modo de suspensão"
@@ -949,8 +934,8 @@ msgstr "Reinicialização completa"
 msgid "ACPI shutdown"
 msgstr "Desligamento por ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Disco rígido (%s)"
+msgid "Hard disk (%1)"
+msgstr "Disco rígido (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

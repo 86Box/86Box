@@ -40,14 +40,11 @@ msgstr "&Pencere boyut ve pozisyonunu hatırla"
 msgid "Re&nderer"
 msgstr "&İşleyici"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Yazılım)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Yazılım)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Donanım)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -718,11 +715,11 @@ msgstr "Diğer cihazlar"
 msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Farenin bırakılması için F8+F12 tuşlarına basın"
+msgid "Press %1 to release mouse"
+msgstr "Farenin bırakılması için %1 tuşlarına basın"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Farenin bırakılması için F8+F12 veya farenin orta tuşuna basın"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Farenin bırakılması için %1 veya farenin orta tuşuna basın"
 
 msgid "Bus"
 msgstr "Veri yolu"
@@ -853,26 +850,14 @@ msgstr "Bir eski bilgisayar emülatörü\n\nYapanlar: Miran Grča (OBattler), Ri
 msgid "Hardware not available"
 msgstr "Donanım mevcut değil"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "libpcap kurulu olduğundan ve libpcap-uyumlu bir internet ağında bulunduğunuzdan emin olun."
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "%1 kurulu olduğundan ve libpcap-uyumlu bir internet ağında bulunduğunuzdan emin olun."
 
 msgid "Invalid configuration"
 msgstr "Geçersiz konfigürasyon"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nGenel PostScript yazıcısına gönderilen tüm dökümanlar PostScript (.ps) dosyaları olarak kaydedilecektir."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nGenel PostScript yazıcısına gönderilen tüm dökümanlar PostScript (.ps) dosyaları olarak kaydedilecektir."
 
 msgid "Entering fullscreen mode"
 msgstr "Tam ekran moduna geçiliyor"
@@ -892,8 +877,8 @@ msgstr "Yeniden başlatma"
 msgid "CD-ROM images"
 msgstr "CD-ROM imajları"
 
-msgid "%hs Device Configuration"
-msgstr "%hs Cihaz Konfigürasyonu"
+msgid "%1 Device Configuration"
+msgstr "%1 Cihaz Konfigürasyonu"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitör uyku modunda"
@@ -949,8 +934,8 @@ msgstr "Makineyi yeniden başlat"
 msgid "ACPI shutdown"
 msgstr "ACPI kapatma"
 
-msgid "Hard disk (%s)"
-msgstr "Hard disk (%s)"
+msgid "Hard disk (%1)"
+msgstr "Hard disk (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

@@ -40,14 +40,11 @@ msgstr "&Pamätať si veľkosť a polohu"
 msgid "Re&nderer"
 msgstr "&Renderer"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -718,11 +715,11 @@ msgstr "Iné príslušenstvo"
 msgid "Click to capture mouse"
 msgstr "Kliknite pre zabráni myši"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Stlačte F8+F12 pre uvoľnenie myši"
+msgid "Press %1 to release mouse"
+msgstr "Stlačte %1 pre uvoľnenie myši"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Stlačte F8+F12 alebo prostredné tlačidlo na uvoľnenie myši"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Stlačte %1 alebo prostredné tlačidlo na uvoľnenie myši"
 
 msgid "Bus"
 msgstr "Zbernica"
@@ -853,26 +850,14 @@ msgstr "Emulátor starých počítačov\n\nAutori: Miran Grča (OBattler), Richa
 msgid "Hardware not available"
 msgstr "Hardvér nie je dostupný"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Uistite sa, že je nainštalovaný libpcap a používate sieťové pripojenie s ním kompatibilné."
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "Uistite sa, že je nainštalovaný %1 a používate sieťové pripojenie s ním kompatibilné."
 
 msgid "Invalid configuration"
 msgstr "Neplatná konfigurácia"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " je potrebná pre automatický prevod PostScript dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PostScriptovú tlačiareň budú uložené ako PostScript (.ps) súbory."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 je potrebná pre automatický prevod PostScript dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PostScriptovú tlačiareň budú uložené ako PostScript (.ps) súbory."
 
 msgid "Entering fullscreen mode"
 msgstr "Vstup do režimu celej obrazovky"
@@ -892,8 +877,8 @@ msgstr "Neresetovať"
 msgid "CD-ROM images"
 msgstr "Obraz CD-ROM disku"
 
-msgid "%hs Device Configuration"
-msgstr "Konfigurácia zariadenia %hs"
+msgid "%1 Device Configuration"
+msgstr "Konfigurácia zariadenia %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor je v režime spánku"
@@ -949,8 +934,8 @@ msgstr "Resetovať"
 msgid "ACPI shutdown"
 msgstr "Vypnúť cez rozhranie ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Pevný disk (%s)"
+msgid "Hard disk (%1)"
+msgstr "Pevný disk (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

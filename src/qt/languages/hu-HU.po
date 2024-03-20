@@ -40,14 +40,11 @@ msgstr "Méret és pozíció &megjegyzése"
 msgid "Re&nderer"
 msgstr "&Megjelenítő"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Szoftveres)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Szoftveres)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardveres)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -718,11 +715,11 @@ msgstr "Egyéb perifériák"
 msgid "Click to capture mouse"
 msgstr "Kattintson az egér elfogásához"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Nyomja meg az F8+F12-t az egér elengédéséhez"
+msgid "Press %1 to release mouse"
+msgstr "Nyomja meg az %1-t az egér elengédéséhez"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Nyomja meg az F8+F12-t vagy a középső gombot az egér elengédéséhez"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Nyomja meg az %1-t vagy a középső gombot az egér elengédéséhez"
 
 msgid "Bus"
 msgstr "Busz"
@@ -853,26 +850,14 @@ msgstr "Régi számítógépek emulátora\n\nFejlesztők: Miran Grča (OBattler)
 msgid "Hardware not available"
 msgstr "Hardver nem elérhető"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Győződjön meg hogy a(z) libpcap telepítve van és jelenleg a libpcap-kompatibilis kapcsolatot használja."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Győződjön meg hogy a(z) %1 telepítve van és jelenleg a %1-kompatibilis kapcsolatot használja."
 
 msgid "Invalid configuration"
 msgstr "Érvénytelen konfiguráció"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
 
 msgid "Entering fullscreen mode"
 msgstr "Teljes képernyős módra váltás"
@@ -892,8 +877,8 @@ msgstr "Ne indítsa újra"
 msgid "CD-ROM images"
 msgstr "CD-ROM-képek"
 
-msgid "%hs Device Configuration"
-msgstr "%hs eszközkonfiguráció"
+msgid "%1 Device Configuration"
+msgstr "%1 eszközkonfiguráció"
 
 msgid "Monitor in sleep mode"
 msgstr "Képernyő alvó módban"
@@ -949,8 +934,8 @@ msgstr "Hardveres újraindítás"
 msgid "ACPI shutdown"
 msgstr "ACPI leállítás"
 
-msgid "Hard disk (%s)"
-msgstr "Merevlemez (%s)"
+msgid "Hard disk (%1)"
+msgstr "Merevlemez (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

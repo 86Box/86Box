@@ -40,14 +40,11 @@ msgstr "記住視窗大小和位置(&E)"
 msgid "Re&nderer"
 msgstr "渲染器(&N)"
 
-msgid "&SDL (Software)"
-msgstr "SDL (軟體)(&S)"
+msgid "&Qt (Software)"
+msgstr "Qt (軟體)(&Q)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (硬體)(&H)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (OpenGL)(&O)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -718,11 +715,11 @@ msgstr "其他周邊裝置"
 msgid "Click to capture mouse"
 msgstr "點擊視窗捕捉滑鼠"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "按下 F8+F12 釋放滑鼠"
+msgid "Press %1 to release mouse"
+msgstr "按下 %1 釋放滑鼠"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "按下 F8+F12 或滑鼠中鍵釋放滑鼠"
+msgid "Press %1 or middle button to release mouse"
+msgstr "按下 %1 或滑鼠中鍵釋放滑鼠"
 
 msgid "Bus"
 msgstr "匯流排"
@@ -853,26 +850,14 @@ msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG
 msgid "Hardware not available"
 msgstr "硬體不可用"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "請確認 libpcap 已安裝且使用相容 libpcap 的網路連線。"
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "請確認 %1 已安裝且使用相容 libpcap 的網路連線。"
 
 msgid "Invalid configuration"
 msgstr "無效設定"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
 
 msgid "Entering fullscreen mode"
 msgstr "正在進入全螢幕模式"
@@ -892,8 +877,8 @@ msgstr "不重設"
 msgid "CD-ROM images"
 msgstr "光碟映像"
 
-msgid "%hs Device Configuration"
-msgstr "%hs 裝置設定"
+msgid "%1 Device Configuration"
+msgstr "%1 裝置設定"
 
 msgid "Monitor in sleep mode"
 msgstr "顯示器處在睡眠狀態"
@@ -949,8 +934,8 @@ msgstr "硬重設"
 msgid "ACPI shutdown"
 msgstr "ACPI 關機"
 
-msgid "Hard disk (%s)"
-msgstr "硬碟 (%s)"
+msgid "Hard disk (%1)"
+msgstr "硬碟 (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

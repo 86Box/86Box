@@ -40,14 +40,11 @@ msgstr "&Zapomni si velikost in položaj"
 msgid "Re&nderer"
 msgstr "&Upodabljanje"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (programsko)"
+msgid "&Qt (Software)"
+msgstr "&Qt (programsko)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (s&trojno)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (Jedro 3.0)"
@@ -718,11 +715,11 @@ msgstr "Druga periferija"
 msgid "Click to capture mouse"
 msgstr "Kliknite za zajem miške"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Pritisnite F8+F12 za izpust miške"
+msgid "Press %1 to release mouse"
+msgstr "Pritisnite %1 za izpust miške"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Pritisnite F8+F12 ali srednji gumb za izpust miške"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Pritisnite %1 ali srednji gumb za izpust miške"
 
 msgid "Bus"
 msgstr "Vodilo"
@@ -853,26 +850,14 @@ msgstr "Emulator starih računalnikov\n\nAvtorji: Miran Grča (OBattler), Richar
 msgid "Hardware not available"
 msgstr "Strojna oprema ni na voljo"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Prepičajte se, da je nameščen libpcap in da ste na omrežni povezavi, združljivi z "
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "Prepičajte se, da je nameščen %1 in da ste na omrežni povezavi, združljivi z libpcap."
 
 msgid "Invalid configuration"
 msgstr "Neveljavna konfiguracija"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
 
 msgid "Entering fullscreen mode"
 msgstr "Preklapljam v celozaslonski način"
@@ -892,8 +877,8 @@ msgstr "Ne resetiraj"
 msgid "CD-ROM images"
 msgstr "Slike CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Konfiguracija naprave %hs"
+msgid "%1 Device Configuration"
+msgstr "Konfiguracija naprave %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Zaslon v načinu spanja"
@@ -949,8 +934,8 @@ msgstr "Ponovni zagon"
 msgid "ACPI shutdown"
 msgstr "Zaustavitev ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Trdi disk (%s)"
+msgid "Hard disk (%1)"
+msgstr "Trdi disk (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"

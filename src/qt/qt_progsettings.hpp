@@ -40,12 +40,6 @@ public:
                 sourceText = "Begin trace\tCtrl+T";
             if (strcmp(sourceText, "End trace") == 0)
                 sourceText = "End trace\tCtrl+T";
-            if (strcmp(sourceText, "&Qt (Software)") == 0) {
-                QString finalstr = QTranslator::translate("", "&SDL (Software)", disambiguation, n);
-                finalstr.replace("SDL", "Qt");
-                finalstr.replace("(&S)", "(&Q)");
-                return finalstr;
-            }
             QString finalstr = QTranslator::translate("", sourceText, disambiguation, n);
 #ifdef Q_OS_MACOS
             if (finalstr.contains('\t'))

@@ -40,14 +40,11 @@ msgstr "记住窗口大小和位置(&E)"
 msgid "Re&nderer"
 msgstr "渲染器(&N)"
 
-msgid "&SDL (Software)"
-msgstr "SDL (软件)(&S)"
+msgid "&Qt (Software)"
+msgstr "Qt (软件)(&Q)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (硬件)(&H)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (OpenGL)(&O)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -718,11 +715,11 @@ msgstr "其他外围设备"
 msgid "Click to capture mouse"
 msgstr "单击窗口捕捉鼠标"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "按下 F8+F12 释放鼠标"
+msgid "Press %1 to release mouse"
+msgstr "按下 %1 释放鼠标"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "按下 F8+F12 或鼠标中键释放鼠标"
+msgid "Press %1 or middle button to release mouse"
+msgstr "按下 %1 或鼠标中键释放鼠标"
 
 msgid "Bus"
 msgstr "总线"
@@ -853,26 +850,14 @@ msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、Richa
 msgid "Hardware not available"
 msgstr "硬件不可用"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "请确认 libpcap 已安装且使用兼容 libpcap 的网络连接。"
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "请确认 %1 已安装且使用兼容 libpcap 的网络连接。"
 
 msgid "Invalid configuration"
 msgstr "无效配置"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
 
 msgid "Entering fullscreen mode"
 msgstr "正在进入全屏模式"
@@ -892,8 +877,8 @@ msgstr "不重置"
 msgid "CD-ROM images"
 msgstr "光盘映像"
 
-msgid "%hs Device Configuration"
-msgstr "%hs 设备配置"
+msgid "%1 Device Configuration"
+msgstr "%1 设备配置"
 
 msgid "Monitor in sleep mode"
 msgstr "显示器处在睡眠状态"
@@ -949,8 +934,8 @@ msgstr "硬重置"
 msgid "ACPI shutdown"
 msgstr "ACPI 关机"
 
-msgid "Hard disk (%s)"
-msgstr "硬盘 (%s)"
+msgid "Hard disk (%1)"
+msgstr "硬盘 (%1)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"
