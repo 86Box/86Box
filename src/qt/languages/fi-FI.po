@@ -586,9 +586,6 @@ msgstr "Tarkista BPB"
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-asemat:"
 
-msgid "Earlier drive"
-msgstr "Aiemmat asemat"
-
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
 
@@ -781,15 +778,6 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Ei mikään"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "Näppäinkiihdyttimien lataus epäonnistui"
-
-msgid "Unable to register raw input."
-msgstr "Raakasyötteen rekisteröinti epäonnistui"
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u Mt (CHS: %i, %i, %i)"
 
@@ -937,12 +925,6 @@ msgstr "ACPI-sammutus"
 msgid "Hard disk (%1)"
 msgstr "Kiintolevy (%1)"
 
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
-
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
 
@@ -1048,9 +1030,6 @@ msgstr "Ylä- ja alatason levyjen aikaleimat eivät täsmää"
 msgid "Could not fix VHD timestamp."
 msgstr "VHD aikaleimaa ei pystytty korjaamaan."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1065,24 +1044,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

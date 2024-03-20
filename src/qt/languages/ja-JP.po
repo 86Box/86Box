@@ -586,9 +586,6 @@ msgstr "BPBチェック"
 msgid "CD-ROM drives:"
 msgstr "CD-ROMドライブ:"
 
-msgid "Earlier drive"
-msgstr "先のドライブ"
-
 msgid "MO drives:"
 msgstr "光磁気ドライブ:"
 
@@ -781,15 +778,6 @@ msgstr "Thrustmaster飛行制御システム"
 msgid "None"
 msgstr "なし"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "キーボードアクセラレータを読み込めません。"
-
-msgid "Unable to register raw input."
-msgstr "生入力が登録できません。"
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS値: %i、%i、%i)"
 
@@ -937,12 +925,6 @@ msgstr "ACPIシャットダウン"
 msgid "Hard disk (%1)"
 msgstr "ハードディスク (%1)"
 
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
-
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLLやESDI CD-ROMドライブが存在しません"
 
@@ -1048,9 +1030,6 @@ msgstr "親ディスクと子ディスクのタイムス タンプが一致し�
 msgid "Could not fix VHD timestamp."
 msgstr "VHD のタイムスタンプを修正できません。"
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1065,24 +1044,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
