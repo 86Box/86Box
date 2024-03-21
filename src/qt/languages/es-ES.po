@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: es_ES\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Acción"
 
@@ -40,14 +48,11 @@ msgstr "&Recordar tamaño y posición"
 msgid "Re&nderer"
 msgstr "Re&nderizador"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -589,9 +594,6 @@ msgstr "Chequear BPB"
 msgid "CD-ROM drives:"
 msgstr "Unidades de CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Unidad anterior"
-
 msgid "MO drives:"
 msgstr "Unidades MO:"
 
@@ -624,12 +626,6 @@ msgstr "Dispositivo ISABugger"
 
 msgid "POST card"
 msgstr "Tarjeta POST"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -724,11 +720,11 @@ msgstr "Otros periféricos"
 msgid "Click to capture mouse"
 msgstr "Haga click para capturar el ratón"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Pulse F8+F12 para liberar el ratón"
+msgid "Press %1 to release mouse"
+msgstr "Pulse %1 para liberar el ratón"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Pulse F8+F12 o el botón central para liberar el ratón"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Pulse %1 o el botón central para liberar el ratón"
 
 msgid "Bus"
 msgstr "Bus"
@@ -760,9 +756,6 @@ msgstr "%i estado(s) de Espera"
 msgid "Type"
 msgstr "Tipo"
 
-msgid "Failed to set up PCap"
-msgstr "Incapaz de configurar PCap"
-
 msgid "No PCap devices found"
 msgstr "No se encontraron dispositivos PCap"
 
@@ -792,15 +785,6 @@ msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
 msgstr "Ninguno"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "No fué posible cargar aceleradores de teclado."
-
-msgid "Unable to register raw input."
-msgstr "No fué posible registrar entrada directa."
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
@@ -862,26 +846,14 @@ msgstr "Un emulador de ordenadores antigüos\n\nAutores: Miran Grča (OBattler),
 msgid "Hardware not available"
 msgstr "Equipo no disponible"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Asegúrate de que libpcap está instalado y de que estás en una conexión de red compatible con libpcap."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Asegúrate de que %1 está instalado y de que estás en una conexión de red compatible con %1."
 
 msgid "Invalid configuration"
 msgstr "Configuración inválida"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " es necesaria para la conversión automática de archivos PostScript a PDF.\n\nCualquier documento enviado a la impresora genérica postScript se guardará como archivo PostScript (.ps)."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 es necesaria para la conversión automática de archivos PostScript a PDF.\n\nCualquier documento enviado a la impresora genérica postScript se guardará como archivo PostScript (.ps)."
 
 msgid "Entering fullscreen mode"
 msgstr "Entrando en modo pantalla completa"
@@ -901,8 +873,8 @@ msgstr "No reinicializar"
 msgid "CD-ROM images"
 msgstr "Imágenes de CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "%hs Configuración de Dispositivo"
+msgid "%1 Device Configuration"
+msgstr "%1 Configuración de Dispositivo"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor en modo ahorro"
@@ -958,14 +930,8 @@ msgstr "Hard reset"
 msgid "ACPI shutdown"
 msgstr "Parada ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Disco duro (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Disco duro (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "Nunca existieron unidades de CD-ROM MFM/RLL o ESDI"
@@ -999,9 +965,6 @@ msgstr "No se pudo escribir el archivo"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "No se soportan las imágenes HDI o HDX con un tamaño de sector diferente a 512."
-
-msgid "USB is not yet supported"
-msgstr "No se soporta aún el USB"
 
 msgid "Disk image file already exists"
 msgstr "La imagen de disco ya existe"
@@ -1075,9 +1038,6 @@ msgstr "Las marcas de tiempo del padre e hijo no coinciden"
 msgid "Could not fix VHD timestamp."
 msgstr "No fué posible corregir la marca de tiempo del VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1092,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

@@ -10,7 +10,7 @@ extern "C" {
 }
 class QMenu;
 
-class MediaMenu : QObject {
+class MediaMenu : public QObject {
     Q_OBJECT
 public:
     MediaMenu(QWidget *parent);
@@ -66,6 +66,12 @@ public:
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
+
+public slots:
+    void cdromUpdateUi(int i);
+
+signals:
+    void onCdromUpdateUi(int i);
 
 private:
     QWidget *parentWidget = nullptr;

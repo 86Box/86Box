@@ -153,6 +153,25 @@ ProgSettings::on_pushButton_released()
     ui->comboBox->setCurrentIndex(0);
 }
 
+#ifdef Q_OS_WINDOWS
+/* Return the standard font name on Windows, which is overridden per-language
+   to prevent CJK fonts with embedded bitmaps being chosen as a fallback. */
+QString
+ProgSettings::getFontName(uint32_t lcid)
+{
+        if (lcid == 0x0804) /* zh-CN */
+            return "Microsoft YaHei";
+        else if (lcid == 0x0404) /* zh-TW */
+            return "Microsoft JhengHei";
+        else if (lcid == 0x0411) /* ja-JP */
+            return "Meiryo UI";
+        else if (lcid == 0x0412) /* ko-KR */
+            return "Malgun Gothic";
+        else
+            return "Segoe UI";
+}
+#endif
+
 void
 ProgSettings::loadTranslators(QObject *parent)
 {

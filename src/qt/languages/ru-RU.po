@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: ru_RU\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Действие"
 
@@ -43,14 +51,11 @@ msgstr "&Запомнить размер и положение"
 msgid "Re&nderer"
 msgstr "&Рендеринг"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0)"
@@ -673,9 +678,6 @@ msgstr "Проверять BPB"
 msgid "CD-ROM drives:"
 msgstr "Дисководы CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Предыдущий дисковод"
-
 msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
@@ -711,12 +713,6 @@ msgstr "Карта POST"
 
 msgid "86Box Unit Tester"
 msgstr "Модульный Тестер 86Box"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -814,11 +810,11 @@ msgstr "Другая периферия"
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Нажмите F8+F12 чтобы освободить курсор"
+msgid "Press %1 to release mouse"
+msgstr "Нажмите %1, чтобы освободить курсор"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Нажмите F8+F12 или среднюю кнопку мыши чтобы освободить курсор"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Нажмите %1 или среднюю кнопку мыши, чтобы освободить курсор"
 
 msgid "Bus"
 msgstr "Шина"
@@ -850,9 +846,6 @@ msgstr "%i WS"
 msgid "Type"
 msgstr "Тип"
 
-msgid "Failed to set up PCap"
-msgstr "Не удалось настроить PCap"
-
 msgid "No PCap devices found"
 msgstr "Устройства PCap не найдены"
 
@@ -882,15 +875,6 @@ msgstr "Система управления полётом Thrustmaster"
 
 msgid "None"
 msgstr "Нет"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "Невозможно загрузить ускорители клавиатуры."
-
-msgid "Unable to register raw input."
-msgstr "Невозможно зарегистрировать необработанный (RAW) ввод."
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u МБ (CHS: %i, %i, %i)"
@@ -952,26 +936,14 @@ msgstr "Эмулятор старых компьютеров\n\nАвторы: Mi
 msgid "Hardware not available"
 msgstr "Оборудование недоступно"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Убедитесь, что libpcap установлен и ваше сетевое соединение, совместимо с libpcap."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Убедитесь, что %1 установлен и ваше сетевое соединение совместимо с %1."
 
 msgid "Invalid configuration"
 msgstr "Недопустимая конфигурация"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " требуется для автоматического преобразования файлов PostScript в PDF.\n\nВсе документы, отправленные на общий принтер PostScript, будут сохранены в виде файлов PostScript (.ps)."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Для автоматического преобразования файлов PostScript в PDF требуется %1.\n\nВсе документы, отправленные на общий принтер PostScript, будут сохранены в виде файлов PostScript (.ps)."
 
 msgid "Entering fullscreen mode"
 msgstr "Вход в полноэкранный режим"
@@ -991,8 +963,8 @@ msgstr "Не перезагружать"
 msgid "CD-ROM images"
 msgstr "Образы CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Конфигурация устройства %hs"
+msgid "%1 Device Configuration"
+msgstr "Конфигурация устройства %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Монитор в спящем режиме"
@@ -1048,14 +1020,8 @@ msgstr "Холодная перезагрузка"
 msgid "ACPI shutdown"
 msgstr "Сигнал завершения ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Жёсткий диск (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Жёсткий диск (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL или ESDI дисководов CD-ROM никогда не существовало"
@@ -1089,9 +1055,6 @@ msgstr "Невозможно записать файл"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Образы HDI или HDX с размером сектора, отличным от 512, не поддерживаются."
-
-msgid "USB is not yet supported"
-msgstr "USB пока не поддерживается"
 
 msgid "Disk image file already exists"
 msgstr "Файл образа диска уже существует"
@@ -1165,9 +1128,6 @@ msgstr "Временные метки родительского и дочерн
 msgid "Could not fix VHD timestamp."
 msgstr "Не удалось исправить временную метку VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1182,24 +1142,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

@@ -61,7 +61,6 @@ add_library(plat STATIC
 
 add_library(ui STATIC
     qt_ui.cpp
-    qt_cdrom.c
 
     qt_mainwindow.cpp
     qt_mainwindow.hpp

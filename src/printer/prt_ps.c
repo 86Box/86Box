@@ -23,7 +23,6 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/language.h>
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
@@ -352,7 +351,7 @@ ps_init(void *lpt)
     }
 #endif
     if (ghostscript_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2115, (wchar_t *) IDS_2133);
+        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
     } else {
         if (gsapi_revision(&rev, sizeof(rev)) == 0) {
             pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);

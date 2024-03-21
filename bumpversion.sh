@@ -26,12 +26,6 @@ then
 fi
 shift
 
-# Extract version components.
-newversion_maj=$(echo "$newversion" | cut -d. -f1)
-newversion_min=$(echo "$newversion" | cut -d. -f2)
-newversion_patch=$(echo "$newversion" | cut -d. -f3)
-[ -z "$newversion_patch" ] && newversion_patch=0
-
 if [ -z "${romversion}" ]; then
 	# Get the latest ROM release from the GitHub API.
 	romversion=$(curl --silent "https://api.github.com/repos/86Box/roms/releases/latest" |
@@ -62,12 +56,6 @@ patch_file() {
 }
 patch_file CMakeLists.txt VERSION 's/^(\s*VERSION ).+/\1'"$newversion"'/'
 patch_file vcpkg.json version-string 's/(^\s*"version-string"\s*:\s*")[^"]+/\1'"$newversion"'/'
-patch_file src/include_make/*/version.h EMU_VERSION 's/(#\s*define\s+EMU_VERSION\s+")[^"]+/\1'"$newversion"'/'
-patch_file src/include_make/*/version.h EMU_VERSION_MAJ 's/(#\s*define\s+EMU_VERSION_MAJ\s+)[0-9]+/\1'"$newversion_maj"'/'
-patch_file src/include_make/*/version.h EMU_VERSION_MIN 's/(#\s*define\s+EMU_VERSION_MIN\s+)[0-9]+/\1'"$newversion_min"'/'
-patch_file src/include_make/*/version.h EMU_VERSION_PATCH 's/(#\s*define\s+EMU_VERSION_PATCH\s+)[0-9]+/\1'"$newversion_patch"'/'
-patch_file src/include_make/*/version.h COPYRIGHT_YEAR 's/(#\s*define\s+COPYRIGHT_YEAR\s+)[0-9]+/\1'"$(date +%Y)"'/'
-patch_file src/include_make/*/version.h EMU_DOCS_URL 's/(#\s*define\s+EMU_DOCS_URL\s+"https:\/\/[^\/]+\/en\/v)[^\/]+/\1'"$newversion_maj.$newversion_min"'/'
 patch_file src/unix/assets/*.spec Version 's/(Version:\s+)[0-9].+/\1'"$newversion"'/'
 patch_file src/unix/assets/*.spec '%global romver' 's/(^%global\ romver\s+)[0-9]{8}/\1'"$romversion"'/'
 patch_file src/unix/assets/*.spec 'changelog version' 's/(^[*]\s.*>\s+)[0-9].+/\1'"$newversion"-1'/'
