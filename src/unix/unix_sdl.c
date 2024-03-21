@@ -424,9 +424,9 @@ sdl_init_common(int flags)
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1)) {
         if (vid_resize & 2)
-            plat_resize(fixed_size_x, fixed_size_y);
+            plat_resize(fixed_size_x, fixed_size_y, 0);
         else
-            plat_resize(scrnsz_x, scrnsz_y);
+            plat_resize(scrnsz_x, scrnsz_y, 0);
     }
     if ((vid_resize < 2) && window_remember) {
         SDL_SetWindowSize(sdl_win, window_w, window_h);
@@ -479,7 +479,7 @@ plat_mouse_capture(int on)
 }
 
 void
-plat_resize(int w, int h)
+plat_resize(int w, int h, UNUSED(int monitor_index))
 {
     SDL_LockMutex(sdl_mutex);
     resize_w       = w;

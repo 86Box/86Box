@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: ja_JP\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "操作(&A)"
 
@@ -40,14 +48,11 @@ msgstr "ウィンドウのサイズと位置を保存(&E)"
 msgid "Re&nderer"
 msgstr "レンダラー(&N)"
 
-msgid "&SDL (Software)"
-msgstr "SDL (ソフトウェア)(&S)"
+msgid "&Qt (Software)"
+msgstr "Qt (ソフトウェア)(&Q)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (ハードウェア)(&H)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (OpenGL)(&O)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -589,9 +594,6 @@ msgstr "BPBチェック"
 msgid "CD-ROM drives:"
 msgstr "CD-ROMドライブ:"
 
-msgid "Earlier drive"
-msgstr "先のドライブ"
-
 msgid "MO drives:"
 msgstr "光磁気ドライブ:"
 
@@ -624,12 +626,6 @@ msgstr "ISABuggerデバイス"
 
 msgid "POST card"
 msgstr "POSTカード"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Meiryo UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -724,11 +720,11 @@ msgstr "他の周辺デバイス"
 msgid "Click to capture mouse"
 msgstr "左クリックでマウスをキャプチャします"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "F8+F12キーでマウスを解放します"
+msgid "Press %1 to release mouse"
+msgstr "%1キーでマウスを解放します"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "F8+F12キーまたは中クリックでマウスを解放します"
+msgid "Press %1 or middle button to release mouse"
+msgstr "%1キーまたは中クリックでマウスを解放します"
 
 msgid "Bus"
 msgstr "バス"
@@ -760,9 +756,6 @@ msgstr "%iつのウェイト ステート"
 msgid "Type"
 msgstr "タイプ"
 
-msgid "Failed to set up PCap"
-msgstr "PCapのセットアップに失敗しました"
-
 msgid "No PCap devices found"
 msgstr "PCapデバイスがありません"
 
@@ -792,15 +785,6 @@ msgstr "Thrustmaster飛行制御システム"
 
 msgid "None"
 msgstr "なし"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "キーボードアクセラレータを読み込めません。"
-
-msgid "Unable to register raw input."
-msgstr "生入力が登録できません。"
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS値: %i、%i、%i)"
@@ -862,26 +846,14 @@ msgstr "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBatt
 msgid "Hardware not available"
 msgstr "ハードウェアが利用できません"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "がインストールされてるか、libpcapに対応したネットワークに接続されてるか確認してください。"
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "がインストールされてるか、%1に対応したネットワークに接続されてるか確認してください。"
 
 msgid "Invalid configuration"
 msgstr "不正な設定です"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "PostScriptファイルをPDFに自動変換するにはlibgsが必要です。\n\n汎用PostScriptプリンターに送信された文書は、PostScript (.ps) ファイルとして保存されます。"
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "PostScriptファイルをPDFに自動変換するには%1が必要です。\n\n汎用PostScriptプリンターに送信された文書は、PostScript (.ps) ファイルとして保存されます。"
 
 msgid "Entering fullscreen mode"
 msgstr "全画面モードを入力"
@@ -901,8 +873,8 @@ msgstr "リセットしない"
 msgid "CD-ROM images"
 msgstr "CD-ROMイメージ"
 
-msgid "%hs Device Configuration"
-msgstr "%hs のデバイス設定"
+msgid "%1 Device Configuration"
+msgstr "%1 のデバイス設定"
 
 msgid "Monitor in sleep mode"
 msgstr "モニターのスリープモード"
@@ -958,14 +930,8 @@ msgstr "ハードリセット"
 msgid "ACPI shutdown"
 msgstr "ACPIシャットダウン"
 
-msgid "Hard disk (%s)"
-msgstr "ハードディスク (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "ハードディスク (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLLやESDI CD-ROMドライブが存在しません"
@@ -999,9 +965,6 @@ msgstr "ファイルの書き込みができません"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "512以外のセクタサイズを持つHDIまたはHDXイメージはサポートされていません。"
-
-msgid "USB is not yet supported"
-msgstr "USBはまだ非対応です"
 
 msgid "Disk image file already exists"
 msgstr "ディスクイメージファイルが既に存在します"
@@ -1075,9 +1038,6 @@ msgstr "親ディスクと子ディスクのタイムス タンプが一致し�
 msgid "Could not fix VHD timestamp."
 msgstr "VHD のタイムスタンプを修正できません。"
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1092,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

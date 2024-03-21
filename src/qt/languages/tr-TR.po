@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: tr_TR\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Komutlar"
 
@@ -40,14 +48,11 @@ msgstr "&Pencere boyut ve pozisyonunu hatırla"
 msgid "Re&nderer"
 msgstr "&İşleyici"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Yazılım)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Yazılım)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Donanım)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -589,9 +594,6 @@ msgstr "BPB'yi denetle"
 msgid "CD-ROM drives:"
 msgstr "CD-ROM sürücüleri:"
 
-msgid "Earlier drive"
-msgstr "Daha erken sürüş"
-
 msgid "MO drives:"
 msgstr "MO sürücüleri:"
 
@@ -624,12 +626,6 @@ msgstr "ISABugger cihazı"
 
 msgid "POST card"
 msgstr "POST kartı"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -724,11 +720,11 @@ msgstr "Diğer cihazlar"
 msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Farenin bırakılması için F8+F12 tuşlarına basın"
+msgid "Press %1 to release mouse"
+msgstr "Farenin bırakılması için %1 tuşlarına basın"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Farenin bırakılması için F8+F12 veya farenin orta tuşuna basın"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Farenin bırakılması için %1 veya farenin orta tuşuna basın"
 
 msgid "Bus"
 msgstr "Veri yolu"
@@ -760,9 +756,6 @@ msgstr "%i Bekleme durumları"
 msgid "Type"
 msgstr "Tür"
 
-msgid "Failed to set up PCap"
-msgstr "PCap ayarlanamadı"
-
 msgid "No PCap devices found"
 msgstr "Herhangi bir PCap cihazı bulunamadı"
 
@@ -792,15 +785,6 @@ msgstr "Thrustmaster Flight Kontrol Sistemi"
 
 msgid "None"
 msgstr "Hiçbiri"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "Klavye ivdirgeçleri yüklenemedi."
-
-msgid "Unable to register raw input."
-msgstr "Ham girdi kaydedilemedi."
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
@@ -862,26 +846,14 @@ msgstr "Bir eski bilgisayar emülatörü\n\nYapanlar: Miran Grča (OBattler), Ri
 msgid "Hardware not available"
 msgstr "Donanım mevcut değil"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "libpcap kurulu olduğundan ve libpcap-uyumlu bir internet ağında bulunduğunuzdan emin olun."
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "%1 kurulu olduğundan ve libpcap-uyumlu bir internet ağında bulunduğunuzdan emin olun."
 
 msgid "Invalid configuration"
 msgstr "Geçersiz konfigürasyon"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nGenel PostScript yazıcısına gönderilen tüm dökümanlar PostScript (.ps) dosyaları olarak kaydedilecektir."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nGenel PostScript yazıcısına gönderilen tüm dökümanlar PostScript (.ps) dosyaları olarak kaydedilecektir."
 
 msgid "Entering fullscreen mode"
 msgstr "Tam ekran moduna geçiliyor"
@@ -901,8 +873,8 @@ msgstr "Yeniden başlatma"
 msgid "CD-ROM images"
 msgstr "CD-ROM imajları"
 
-msgid "%hs Device Configuration"
-msgstr "%hs Cihaz Konfigürasyonu"
+msgid "%1 Device Configuration"
+msgstr "%1 Cihaz Konfigürasyonu"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitör uyku modunda"
@@ -958,14 +930,8 @@ msgstr "Makineyi yeniden başlat"
 msgid "ACPI shutdown"
 msgstr "ACPI kapatma"
 
-msgid "Hard disk (%s)"
-msgstr "Hard disk (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Hard disk (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL veya ESDI CD-ROM sürücüleri hiçbir zaman var olmamıştır"
@@ -999,9 +965,6 @@ msgstr "Dosyanın üzerine yazılamıyor"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "512 dışında sektör boyutu olan HDI veya HDX imajları desteklenmemektedir."
-
-msgid "USB is not yet supported"
-msgstr "USB şu anda desteklenmemektedir"
 
 msgid "Disk image file already exists"
 msgstr "Disk imaj dosyası zaten var olmakta"
@@ -1075,9 +1038,6 @@ msgstr "Ana ve ek disk zaman damgaları uyuşmuyor"
 msgid "Could not fix VHD timestamp."
 msgstr "VHD zaman damgası düzeltilemedi."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1092,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

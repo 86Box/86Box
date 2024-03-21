@@ -965,7 +965,7 @@ svga_recalctimings(svga_t *svga)
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
             if ((!postcard_enabled && !bugger_enabled && !unittester_enabled) || ((postcard_enabled || bugger_enabled || unittester_enabled) && card_dpms))
-                ui_sb_set_text_w(plat_get_string(IDS_2143));
+                ui_sb_set_text_w(plat_get_string(STRING_MONITOR_SLEEP));
         }
     } else if (svga->dpms_ui) {
         svga->dpms_ui = 0;
