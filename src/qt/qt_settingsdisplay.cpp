@@ -139,6 +139,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
+    static QRegularExpression voodooRegex("3dfx|voodoo|banshee", QRegularExpression::CaseInsensitiveOption);
     auto curVideoCard_2 = videoCard[1];
     videoCard[0] = ui->comboBoxVideo->currentData().toInt();
     if (videoCard[0] == VID_INTERNAL)
@@ -206,6 +207,25 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     if ((videoCard[1] == 0) || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureSecondary->setEnabled(false);
+    }
+
+    // Is the currently selected video card a voodoo?
+    if (ui->comboBoxVideo->currentText().contains(voodooRegex)) {
+        // Get the name of the video card currently in use
+        const device_t *video_dev        = video_card_getdevice(gfxcard[0]);
+        const QString   currentVideoName = DeviceConfig::DeviceName(video_dev, video_get_internal_name(gfxcard[0]), 1);
+        // Is it a voodoo?
+        const bool currentCardIsVoodoo = currentVideoName.contains(voodooRegex);
+        // Don't uncheck if
+        // * Current card is voodoo
+        // * Add-on voodoo was manually overridden in config
+        if (ui->checkBoxVoodoo->isChecked() && !currentCardIsVoodoo) {
+            // Otherwise, uncheck the add-on voodoo when a main voodoo is selected
+            ui->checkBoxVoodoo->setCheckState(Qt::Unchecked);
+        }
+        ui->checkBoxVoodoo->setDisabled(true);
+    } else {
+        ui->checkBoxVoodoo->setDisabled(false);
     }
 }
 
