@@ -56,6 +56,8 @@ typedef struct ctr_t {
     };
 
     uint32_t l;
+    uint32_t lback;
+    uint32_t lback2;
 
     void (*load_func)(uint8_t new_m, int new_count);
     void (*out_func)(int new_out, int old_out, void *priv);
@@ -70,7 +72,6 @@ typedef struct PIT {
 
     uint8_t ctrl;
     void *dev_priv;
-    void (*dev_timer)(void *priv);
 } pit_t;
 
 extern pit_t *ext_pit;

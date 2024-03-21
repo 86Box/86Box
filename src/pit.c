@@ -103,6 +103,7 @@ ctr_set_out(ctr_t *ctr, int out, void *priv)
 
     if (ctr->out_func != NULL)
         ctr->out_func(out, ctr->out, pit);
+
     ctr->out = out;
 }
 
@@ -354,7 +355,7 @@ ctr_load(ctr_t *ctr)
     if (ctr->load_func != NULL)
         ctr->load_func(ctr->m, ctr->l ? ctr->l : 0x10000);
 
-    pclog("Counter loaded, state = %i, gate = %i, latch = %i\n", ctr->state, ctr->gate, ctr->latch);
+    pit_log("Counter loaded, state = %i, gate = %i, latch = %i\n", ctr->state, ctr->gate, ctr->latch);
 }
 
 static __inline void
@@ -393,7 +394,7 @@ ctr_latch_count(ctr_t *ctr)
             break;
     }
 
-    pclog("rm = %x, latched counter = %04X\n", ctr->rm & 0x03, ctr->rl & 0xffff);
+    pit_log("rm = %x, latched counter = %04X\n", ctr->rm & 0x03, ctr->rl & 0xffff);
 }
 
 uint16_t
@@ -522,9 +523,6 @@ pit_timer_over(void *priv)
     for (uint8_t i = 0; i < 3; i++)
         pit_ctr_set_clock_common(&dev->counters[i], dev->clock, dev);
 
-    if (dev->dev_timer != NULL)
-        dev->dev_timer(dev);
-
     timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
 }
 
@@ -536,7 +534,7 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
     ctr_t *ctr;
 
     if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-        pclog("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
+        pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
     switch (addr & 3) {
         case 3: /* control */
@@ -553,7 +551,7 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                         if (val & 8)
                             ctr_latch_count(&dev->counters[2]);
                         if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-                            pclog("PIT %i: Initiated readback command\n", t);
+                            pit_log("PIT %i: Initiated readback command\n", t);
                     }
                     if (!(val & 0x10)) {
                         if (val & 2)
@@ -571,7 +569,7 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                 if (!(dev->ctrl & 0x30)) {
                     ctr_latch_count(ctr);
                     if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-                        pclog("PIT %i: Initiated latched read, %i bytes latched\n",
+                        pit_log("PIT %i: Initiated latched read, %i bytes latched\n",
                             t, ctr->latched);
                 } else {
                     ctr->ctrl = val;
@@ -585,12 +583,12 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     ctr->state = 0;
                     if (ctr->latched) {
                         if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-                            pclog("PIT %i: Reload while counter is latched\n", t);
+                            pit_log("PIT %i: Reload while counter is latched\n", t);
                         ctr->rl--;
                     }
 
                     if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-                        pclog("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
+                        pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
                 }
             }
             break;
@@ -606,12 +604,20 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 1:
                     ctr->l = val;
+                    ctr->lback = ctr->l;
+                    ctr->lback2 = ctr->l;
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                        pit_log("PIT %i (1): Written byte %02X, latch now %04X\n", t, val, ctr->l);
                     if (ctr->m == 0)
                         ctr_set_out(ctr, 0, dev);
                     ctr_load(ctr);
                     break;
                 case 2:
                     ctr->l = (val << 8);
+                    ctr->lback = ctr->l;
+                    ctr->lback2 = ctr->l;
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                        pit_log("PIT %i (2): Written byte %02X, latch now %04X\n", t, val, ctr->l);
                     if (ctr->m == 0)
                         ctr_set_out(ctr, 0, dev);
                     ctr_load(ctr);
@@ -620,13 +626,17 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x83:
                     if (ctr->wm & 0x80) {
                         ctr->l = (ctr->l & 0x00ff) | (val << 8);
+                        ctr->lback = ctr->l;
+                        ctr->lback2 = ctr->l;
                         if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-                            pclog("PIT %i: Written high byte %02X, latch now %04X\n", t, val, ctr->l);
+                            pit_log("PIT %i (0x83): Written high byte %02X, latch now %04X\n", t, val, ctr->l);
                         ctr_load(ctr);
                     } else {
                         ctr->l = (ctr->l & 0xff00) | val;
+                        ctr->lback = ctr->l;
+                        ctr->lback2 = ctr->l;
                         if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-                            pclog("PIT %i: Written low byte %02X, latch now %04X\n", t, val, ctr->l);
+                            pit_log("PIT %i (3): Written low byte %02X, latch now %04X\n", t, val, ctr->l);
                         if (ctr->m == 0) {
                             ctr->state = 0;
                             ctr_set_out(ctr, 0, dev);
@@ -763,7 +773,7 @@ pit_read(uint16_t addr, void *priv)
     }
 
     if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
-        pclog("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+        pit_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
 
     return ret;
 }
@@ -890,14 +900,12 @@ pit_init(const device_t *info)
     }
 
     dev->flags = info->local;
+    dev->dev_priv = NULL;
 
     if (!(dev->flags & PIT_EXT_IO)) {
         io_sethandler((dev->flags & PIT_SECONDARY) ? 0x0048 : 0x0040, 0x0004,
                       pit_read, NULL, NULL, pit_write, NULL, NULL, dev);
     }
-
-    dev->dev_priv = NULL;
-    dev->dev_timer = NULL;
 
     return dev;
 }

@@ -137,17 +137,22 @@ typedef struct pas16_t {
     uint8_t midi_ctrl;
     uint8_t midi_stat;
     uint8_t midi_data;
-    uint8_t midi_fifo[16];
+    uint8_t fifo_stat;
+    int     midi_r;
+    int     midi_w;
+    int     midi_uart_out;
+    int     midi_uart_in;
+    uint8_t midi_queue[256];
+    int     sysex;
 
     fm_drv_t opl;
     sb_dsp_t dsp;
     mpu_t *mpu;
+    pc_timer_t timer;
 
     int16_t pcm_buffer[2][SOUNDBUFLEN];
 
     int pos;
-
-    int midi_uart_out;
 
     pit_t *pit;
 } pas16_t;
@@ -155,7 +160,6 @@ typedef struct pas16_t {
 static void    pas16_update(pas16_t *pas16);
 
 static int pas16_dmas[8]    = { 4, 1, 2, 3, 0, 5, 6, 7 };
-static int pas16_irqs[16]   = { 0, 2, 3, 4, 5, 6, 7, 10, 11, 12, 14, 15, 0, 0, 0, 0 };
 static int pas16_sb_irqs[8] = { 0, 2, 3, 5, 7, 10, 11, 12 };
 static int pas16_sb_dmas[8] = { 0, 1, 2, 3 };
 
@@ -167,7 +171,8 @@ enum {
 
 enum {
     PAS16_PCM_MONO = 0x20,
-    PAS16_PCM_ENA  = 0x40
+    PAS16_PCM_ENA  = 0x40,
+    PAS16_PCM_DMA_ENA = 0x80
 };
 
 enum {
@@ -197,94 +202,24 @@ pas16_log(const char *fmt, ...)
 #    define pas16_log(fmt, ...)
 #endif
 
+static uint8_t
+pas16_in(uint16_t port, void *priv);
 static void
-pas16_update_midi_irqs(pas16_t *pas16)
+pas16_out(uint16_t port, uint8_t val, void *priv);
+
+static void
+pas16_update_irq(pas16_t *pas16)
 {
-    int irq = 0;
-
-    pas16->irq_stat &= ~PAS16_INT_MIDI;
-
-    if ((pas16->uart_status & 0x18) || (dev->uart_status & 0x04)) {
+    if (pas16->midi_uart_out && (pas16->midi_stat & 0x18)) {
         pas16->irq_stat |= PAS16_INT_MIDI;
-        irq = 1;
+        if (pas16->irq_ena & PAS16_INT_MIDI)
+            picint(1 << pas16->irq);
     }
-
-    if (irq)
-        picint(1 << pas16->irq);
-    else
-        picintc(1 << pas16->irq);
-}
-
-static void
-pas16_update_tx_irq(pas16_t *pas16)
-{
-    pas16->uart_status &= ~0x18;
-
-    if ((pas16->irq_ena & PAS16_INT_MIDI) && (pas16->uart_ctrl & 0x18))
-        pas16->uart_status |= 0x18;
-
-    pas16_update_midi_irqs(pas16);
-}
-
-static void
-pas16_update_rx_irq(pas16_t *pas16)
-{
-    pas16->uart_status &= ~0x04;
-
-    if ((pas16->irq_ena & PAS16_INT_MIDI) && (pas16->uart_ctrl & 0x04))
-        pas16->uart_status |= 0x04;
-
-    pas16_update_midi_irqs(pas16);
-}
-
-static void
-pas16_scan_fifo(pas16_t *pas16)
-{
-    if (pas16->read_fifo_pos != pas16->write_fifo_pos) {
-        pas16->uart_data     = pas16->uart_fifo[pas16->read_fifo_pos];
-        pas16->read_fifo_pos = (pas16->read_fifo_pos + 1) & 0x0f;
-
-        es1371_set_rx_irq(pas16, 1);
-    } else
-        es1371_set_rx_irq(pas16, 0);
-}
-
-static void
-es1371_write_fifo(es1371_t *dev, uint8_t val)
-{
-    if (dev->write_fifo_pos < 16) {
-        dev->uart_fifo[dev->write_fifo_pos] = val | UART_FIFO_BYTE_VALID;
-        dev->write_fifo_pos                 = (dev->write_fifo_pos + 1) & 0x0f;
+    if (pas16->midi_uart_in && (pas16->midi_stat & 0x04)) {
+        pas16->irq_stat |= PAS16_INT_MIDI;
+        if (pas16->irq_ena & PAS16_INT_MIDI)
+            picint(1 << pas16->irq);
     }
-}
-
-static void
-es1371_reset_fifo(es1371_t *dev)
-{
-    for (uint8_t i = 0; i < 16; i++)
-        dev->uart_fifo[i] = 0x00000000;
-
-    dev->read_fifo_pos = dev->write_fifo_pos = 0;
-
-    es1371_set_rx_irq(dev, 0);
-}
-
-static void
-pas16_reset(void *priv)
-{
-    pas16_t *pas16 = (pas16_t *) priv;
-
-    pas16->uart_status = 0xff;
-    pas16->uart_ctrl = 0x00;
-
-    for (uint8_t i = 0; i < 16; i++)
-        pas16->uart_fifo[i] = 0x00;
-
-    pas16_set_tx_irq(pas16, 0);
-
-    pas16_reset_fifo(pas16);
-
-    pas16_update_midi_irqs(pas16);
 }
 
 static uint8_t
@@ -292,29 +227,26 @@ pas16_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
     uint8_t  temp  = 0xff;
-    switch ((port - pas16->base) + 0x388) {
+    switch (port) {
         case 0x388:
         case 0x389:
         case 0x38a:
         case 0x38b:
-            temp = pas16->opl.read((port - pas16->base) + 0x388, pas16->opl.priv);
+            temp = pas16->opl.read(port, pas16->opl.priv);
             break;
 
         case 0xb88:
             temp = pas16->audio_mixer;
             break;
-
         case 0xb89:
             temp = pas16->irq_stat;
             break;
-
         case 0xb8a:
             temp = pas16->audiofilt;
             break;
-
         case 0xb8b:
-            temp = pas16->irq_ena & ~0xe0;
-            temp |= 0x01;
+            temp = pas16->irq_ena | 0x20;
+            pas16_log("IRQ Mask read=%02x.\n", temp);
             break;
 
         case 0xf8a:
@@ -322,19 +254,36 @@ pas16_in(uint16_t port, void *priv)
             break;
 
         case 0x1789:
-            temp = 0;
+        case 0x178b:
+            temp = pas16->midi_ctrl;
             break;
         case 0x178a:
-            temp = pas16->uart_data;
-            pas16_set_rx_irq(pas16, 0);
+        case 0x1b8a:
+            temp = 0;
+            if (pas16->midi_uart_in) {
+                if ((pas16->midi_data == 0xaa) && (pas16->midi_ctrl & 0x04))
+                    temp = pas16->midi_data;
+                else {
+                    temp = pas16->midi_queue[pas16->midi_r];
+                    if (pas16->midi_r != pas16->midi_w) {
+                        pas16->midi_r++;
+                        pas16->midi_r &= 0xff;
+                    }
+                }
+                pas16->midi_stat &= ~0x04;
+                pas16_update_irq(pas16);
+            }
             break;
 
         case 0x1b88:
-            temp = pas16->uart_status;
+            temp = pas16->midi_stat;
+            break;
+        case 0x1b89:
+            temp = pas16->fifo_stat;
             break;
 
         case 0x2789: /*Board revision*/
-            temp = 0;
+            temp = 0x00;
             break;
 
         case 0x7f89:
@@ -347,19 +296,18 @@ pas16_in(uint16_t port, void *priv)
         case 0x8389:
             temp = pas16->sys_conf_2;
             break;
-        case 0x838b:
+        case 0x838a:
             temp = pas16->sys_conf_3;
             break;
-        case 0x838c:
+        case 0x838b:
             temp = pas16->sys_conf_4;
             break;
 
         case 0xbf88:
             temp = pas16->waitstates;
             break;
-
         case 0xef8b:
-            temp = 0x0c;
+            temp = 0x00;
             break;
 
         case 0xf388:
@@ -367,9 +315,11 @@ pas16_in(uint16_t port, void *priv)
             break;
         case 0xf389:
             temp = pas16->io_conf_2;
+            pas16_log("pas16_in : set PAS DMA %i\n", pas16->dma);
             break;
         case 0xf38a:
             temp = pas16->io_conf_3;
+            pas16_log("pas16_in : set PAS IRQ %i\n", pas16->irq);
             break;
         case 0xf38b:
             temp = pas16->io_conf_4;
@@ -396,7 +346,7 @@ pas16_in(uint16_t port, void *priv)
         default:
             break;
     }
-    pclog("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS, cpu_state.pc);
+    pas16_log("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS, cpu_state.pc);
     return temp;
 }
 
@@ -405,30 +355,27 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
     pit_t *pit = (pit_t *) pas16->pit;
-    pclog("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS, cpu_state.pc);
-    switch ((port - pas16->base) + 0x388) {
+    pas16_log("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS, cpu_state.pc);
+    switch (port) {
         case 0x388:
         case 0x389:
         case 0x38a:
         case 0x38b:
-            pas16->opl.write((port - pas16->base) + 0x388, val, pas16->opl.priv);
+            pas16->opl.write(port, val, pas16->opl.priv);
             break;
 
         case 0xb88:
             pas16->audio_mixer = val;
             break;
-
         case 0xb89:
             pas16->irq_stat &= ~val;
             break;
-
         case 0xb8a:
             pas16_update(pas16);
             pas16->audiofilt = val;
             break;
-
         case 0xb8b:
-            pas16->irq_ena = val;
+            pas16->irq_ena = val & 0x1f;
             break;
 
         case 0xf88:
@@ -448,29 +395,33 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 
         case 0x1789:
         case 0x178b:
-            pas16->uart_ctrl = val;
-
+            pas16->midi_ctrl = val;
             if ((val & 0x60) == 0x60) {
-                /* Reset TX */
-                pas16_set_tx_irq(pas16, 1);
+                pas16->midi_uart_out = 0;
+                pas16->midi_uart_in = 0;
+            } else if (val & 0x18) {
+                pas16->midi_uart_out = 1;
+            } else if (val & 0x04)
+                pas16->midi_uart_in = 1;
+            else
+                pas16->midi_uart_out = 1;
 
-                /* Software reset */
-                pas16_reset_fifo(pas16);
-            } else {
-                pas16_set_tx_irq(pas16, 1);
-
-                pas16_update_tx_irq(pas16);
-                pas16_update_rx_irq(pas16);
-            }
+            pas16_update_irq(pas16);
             break;
-
         case 0x178a:
-            midi_raw_out_byte(val);
-            pas16_set_tx_irq(pas16, 1);
+        case 0x1b8a:
+            pas16->midi_data = val;
+            pas16_log("UART OUT=%d.\n", pas16->midi_uart_out);
+            if (pas16->midi_uart_out)
+                midi_raw_out_byte(val);
             break;
 
         case 0x1b88:
-            pas16->uart_status = val;
+            pas16->midi_stat = val;
+            pas16_update_irq(pas16);
+            break;
+        case 0x1b89:
+            pas16->fifo_stat = val;
             break;
 
         case 0x7f89:
@@ -478,9 +429,10 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x8388:
-            if ((val & 0x80) && !(pas16->sys_conf_1 & 0x80)) {
-                pclog("Reset.\n");
-                pas16_reset(pas16);
+            if ((val & 0xc0) && !(pas16->sys_conf_1 & 0xc0)) {
+                pas16_log("Reset.\n");
+                picintc(1 << pas16->irq);
+                val = 0x00;
             }
             pas16->sys_conf_1 = val;
             break;
@@ -504,12 +456,19 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
         case 0xf389:
             pas16->io_conf_2 = val;
             pas16->dma       = pas16_dmas[val & 0x7];
-            pclog("pas16_out : set PAS DMA %i\n", pas16->dma);
+            pas16_log("pas16_out : set PAS DMA %i\n", pas16->dma);
             break;
         case 0xf38a:
             pas16->io_conf_3 = val;
-            pas16->irq       = pas16_irqs[val & 0xf];
-            pclog("pas16_out : set PAS IRQ %i\n", pas16->irq);
+            pas16->irq       = val & 0x0f;
+            if (pas16->irq <= 6) {
+                pas16->irq++;
+            } else if ((pas16->irq > 6) && (pas16->irq < 0x0b))
+                pas16->irq += 3;
+            else
+                pas16->irq += 4;
+
+            pas16_log("pas16_out : set PAS IRQ %i, val=%02x\n", pas16->irq, val & 0x0f);
             break;
         case 0xf38b:
             pas16->io_conf_4 = val;
@@ -538,32 +497,12 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             pas16->sb_irqdma = val;
             sb_dsp_setirq(&pas16->dsp, pas16_sb_irqs[(val >> 3) & 7]);
             sb_dsp_setdma8(&pas16->dsp, pas16_sb_dmas[(val >> 6) & 3]);
-            pas16_log("pas16_out : set SB IRQ %i DMA %i\n", pas16_sb_irqs[(val >> 3) & 7], pas16_sb_dmas[(val >> 6) & 3]);
+            pas16_log("pas16_out : set SB IRQ %i DMA %i.\n", pas16_sb_irqs[(val >> 3) & 7], pas16_sb_dmas[(val >> 6) & 3]);
             break;
 
         default:
-            pclog("pas16_out : unknown %04X\n", port);
+            pas16_log("pas16_out : unknown %04X\n", port);
     }
-#if 0
-    if (cpu_state.pc == 0x80048CF3) {
-        if (output)
-            fatal("here\n");
-        output = 3;
-    }
-#endif
-}
-
-
-static void
-pas16_scan_fifo(pas16_t *pas16)
-{
-    if (pas16->read_fifo_pos != pas16->write_fifo_pos) {
-        pas16->uart_data     = pas16->uart_fifo[pas16->read_fifo_pos];
-        pas16->read_fifo_pos = (pas16->read_fifo_pos + 1) & 7;
-
-        pas16_set_rx_irq(pas16, 1);
-    } else
-        pas16_set_rx_irq(pas16, 0);
 }
 
 static uint8_t
@@ -572,39 +511,49 @@ pas16_readdma(pas16_t *pas16)
     return dma_channel_read(pas16->dma);
 }
 
-
 static void
 pas16_pcm_poll(void *priv)
 {
-    pit_t *pit = (pit_t *)priv;
-    pas16_t *pas16 = (pas16_t *) pit->dev_priv;
+    pas16_t *pas16 = (pas16_t *) priv;
+    pit_t *pit = (pit_t *) pas16->pit;
+    int data;
     uint16_t temp = 0x0000;
 
-
     pas16_update(pas16);
-    if (pit->counters[0].m & 2) {
-        if (pit->counters[0].l)
-            timer_advance_u64(&pit->callback_timer, pit->counters[0].l * (PITCONST << 1ULL));
-        else {
-            timer_advance_u64(&pit->callback_timer, 0x10000 * (PITCONST << 1ULL));
+    if (pit->counters[0].m & 0x02) {
+        if (pit->counters[0].l & 0xff) {
+            if (pas16->dma >= 5)
+                timer_advance_u64(&pas16->timer, (pit->counters[0].l & 0xff) * (PITCONST << 1ULL));
+            else
+                timer_advance_u64(&pas16->timer, (pit->counters[0].l & 0xff) * PITCONST);
+        } else {
+            if (pas16->dma >= 5)
+                timer_advance_u64(&pas16->timer, 0x100 * (PITCONST << 1ULL));
+            else
+                timer_advance_u64(&pas16->timer, 0x100 * PITCONST);
         }
     }
 
+    pas16_update_irq(pas16);
+
     pas16->irq_stat |= PAS16_INT_SAMP;
-    if (pas16->irq_ena & PAS16_INT_SAMP)
+    if (pas16->irq_ena & PAS16_INT_SAMP) {
+        pas16_log("INT SAMP.\n");
         picint(1 << pas16->irq);
-    else
-        picintc(1 << pas16->irq);
+    }
 
     /*Update sample rate counter*/
-    pas16_log("Enable (t1) = %d.\n", pit->counters[1].enable);
+    pas16_log("T1=%d, master bit 1=%x, counter0=%d, counter1=%d, pcm dma ena=%02x 16bit?=%02x.\n", pit->counters[1].enable, pit->counters[0].m & 0x02, pit->counters[0].l, pit->counters[1].l, pas16->pcm_ctrl & 0xc0, pas16->sys_conf_2 & PAS16_SC2_16BIT);
     if (pit->counters[1].enable) {
-        if (pas16->pcm_ctrl & PAS16_PCM_ENA) {
+        if ((pas16->pcm_ctrl & (PAS16_PCM_ENA | PAS16_PCM_DMA_ENA))) {
             if (pas16->sys_conf_2 & PAS16_SC2_16BIT) {
-                temp = pas16_readdma(pas16) << 8;
-                temp |= pas16_readdma(pas16);
-            } else
-                temp = (pas16_readdma(pas16) ^ 0x80) << 8;
+                data = pas16_readdma(pas16) << 8;
+                data |= pas16_readdma(pas16);
+                temp = data;
+            } else {
+                data = pas16_readdma(pas16);
+                temp = (data ^ 0x80) << 8;
+            }
 
             if (pas16->sys_conf_2 & PAS16_SC2_MSBINV)
                 temp ^= 0x8000;
@@ -619,41 +568,63 @@ pas16_pcm_poll(void *priv)
                 pas16->stereo_lr = !pas16->stereo_lr;
             }
         }
-        if (pas16->sys_conf_2 & PAS16_SC2_16BIT)
-            pit->counters[1].rl -= 2;
-        else
-            pit->counters[1].rl--;
-
-        pas16_log("RL=%d, mode=%x.\n", pit->counters[1].rl, pit->counters[1].m & 0x03);
-        if (pit->counters[1].rl == 0xffff) {
-            if (pit->counters[1].m & 2) {
-                if (pit->counters[1].l & 0xffff)
-                    pit->counters[1].rl = pit->counters[1].l & 0xffff;
-                else
-                    pit->counters[1].rl = 0;
-            } else {
-                pit->counters[1].enable = 0;
-                pit->counters[1].rl = 0;
+        if (pas16->sys_conf_2 & PAS16_SC2_16BIT) {
+            pit->counters[1].lback -= 2;
+            if (!pit->counters[1].lback) {
+                if (pit->counters[1].m & 0x02) {
+                    if (pit->counters[1].lback2 & 0xfffe)
+                        pit->counters[1].lback = pit->counters[1].lback2 & 0xfffe;
+                    else
+                        pit->counters[1].lback = 0;
+                } else {
+                    pit->counters[1].lback = 0;
+                    pit->counters[1].enable = 0;
+                }
+                pas16_log("16-bit: New counter=%d, mode=%x.\n", pit->counters[1].lback, pit->counters[1].m & 0x03);
+                pas16->irq_stat |= PAS16_INT_PCM;
+                if (pas16->irq_ena & PAS16_INT_PCM) {
+                    pas16_log("16-bit: INT PCM.\n");
+                    picint(1 << pas16->irq);
+                }
             }
-
-            pas16_log("New counter=%d, mode=%x.\n", pit->counters[1].rl, pit->counters[1].m & 0x03);
-            pas16->irq_stat |= PAS16_INT_PCM;
-            if (pas16->irq_ena & PAS16_INT_PCM) {
-                pclog("pas16_pcm_poll : cause IRQ %i %02X, enable timer 1 = %x\n", pas16->irq, 1 << pas16->irq, pit->counters[1].enable);
-                picint(1 << pas16->irq);
-            } else
-                picintc(1 << pas16->irq);
+        } else {
+            pit->counters[1].lback--;
+            if (!pit->counters[1].lback) {
+                if (pit->counters[1].m & 0x02) {
+                    if (pit->counters[1].lback2 & 0xffff)
+                        pit->counters[1].lback = pit->counters[1].lback2 & 0xffff;
+                    else
+                        pit->counters[1].lback = 0;
+                } else {
+                    pit->counters[1].lback = 0;
+                    pit->counters[1].enable = 0;
+                }
+                pas16_log("8-bit: New counter=%d, mode=%x.\n", pit->counters[1].lback, pit->counters[1].m & 0x03);
+                pas16->irq_stat |= PAS16_INT_PCM;
+                if (pas16->irq_ena & PAS16_INT_PCM) {
+                    pas16_log("8-bit: INT PCM.\n");
+                    picint(1 << pas16->irq);
+                }
+            }
         }
     }
 }
 
 static void
-pas16_pit_timer0(int new_out, int old_out, void *priv)
+pas16_pit_timer0(int new_out, UNUSED(int old_out), void *priv)
 {
     pit_t *pit = (pit_t *)priv;
-    pclog("NewOut=%d, OldOut=%d.\n", new_out, old_out);
-    pit->counters[1].enable = new_out;
+    pas16_t *pas16 = (pas16_t *)pit->dev_priv;
+
+    pas16_log("PAS16 pit timer0 out=%x, cnt0=%d, cnt1=%d.\n", new_out, pit->counters[0].l, pit->counters[1].l);
     pit_ctr_set_clock(&pit->counters[0], new_out, pit);
+    pit->counters[1].enable = new_out;
+    if (!timer_is_enabled(&pas16->timer)) {
+        if (pas16->dma >= 5)
+            timer_set_delay_u64(&pas16->timer, (pit->counters[0].l & 0xff) * (PITCONST << 1ULL));
+        else
+            timer_set_delay_u64(&pas16->timer, (pit->counters[0].l & 0xff) * PITCONST);
+    }
 }
 
 static void
@@ -661,48 +632,56 @@ pas16_out_base(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
 
-    io_removehandler((pas16->base - 0x388) + 0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x0b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x0f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    pit_handler(0, (pas16->base - 0x388) + 0x1388, 0x0004, pas16->pit);
-    io_removehandler((pas16->base - 0x388) + 0x1788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x1b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x2788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x7f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0x8388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xbf88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xe388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xe788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xeb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xef88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xf388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xf788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xfb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_removehandler((pas16->base - 0x388) + 0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
+    for (uint32_t addr = 0x000; addr < 0x10000; addr += 0x400) {
+        if (addr != 0x1000) {
+            io_removehandler(pas16->base + addr, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
+            io_sethandler(pas16->base + addr, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
+        }
+    }
+    pit_handler(0, pas16->base + 0x1000, 0x0004, pas16->pit);
+    pit_handler(1, pas16->base + 0x1000, 0x0004, pas16->pit);
 
     pas16->base = val << 2;
-    pclog("pas16_write_base : PAS16 base now at %04X\n", pas16->base);
+}
 
-    io_sethandler((pas16->base - 0x388) + 0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x0b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x0f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    pit_handler(1, (pas16->base - 0x388) + 0x1388, 0x0004, pas16->pit);
-    io_sethandler((pas16->base - 0x388) + 0x1788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x1b88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x2788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x7f88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0x8388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xbf88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xe388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xe788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xeb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xef88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xf388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xf788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xfb88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
-    io_sethandler((pas16->base - 0x388) + 0xff88, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
+static void
+pas16_input_msg(void *priv, uint8_t *msg, uint32_t len)
+{
+    pas16_t  *pas16 = (pas16_t *) priv;
+
+    if (pas16->sysex)
+        return;
+
+    if (pas16->midi_uart_in) {
+        pas16->midi_stat |= 0x04;
+
+        for (uint32_t i = 0; i < len; i++) {
+            pas16->midi_queue[pas16->midi_w++] = msg[i];
+            pas16->midi_w &= 0xff;
+        }
+
+        pas16_update_irq(pas16);
+    }
+}
+
+static int
+pas16_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
+{
+    pas16_t  *pas16 = (pas16_t *) priv;
+
+    if (abort) {
+        pas16->sysex = 0;
+        return 0;
+    }
+    pas16->sysex = 1;
+    for (uint32_t i = 0; i < len; i++) {
+        if (pas16->midi_r == pas16->midi_w)
+            return (len - i);
+        pas16->midi_queue[pas16->midi_w++] = buffer[i];
+        pas16->midi_w &= 0xff;
+    }
+    pas16->sysex = 0;
+    return 0;
 }
 
 static void
@@ -756,6 +735,7 @@ pas16_init(UNUSED(const device_t *info))
     memset(pas16, 0, sizeof(pas16_t));
 
     fm_driver_get(FM_YMF262, &pas16->opl);
+    sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
     pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(pas16->mpu, 0, sizeof(mpu_t));
@@ -763,19 +743,24 @@ pas16_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
 
     pas16->pit = device_add(&i8254_ext_io_device);
-
-    pas16->midi_uart_out = 1;
+    pas16->pit->dev_priv = pas16;
+    pas16->irq = 10;
+    pas16->dma = 3;
+    pas16->base = 0x0388;
 
     io_sethandler(0x9a01, 0x0001, NULL, NULL, NULL, pas16_out_base, NULL, NULL, pas16);
     pit_ctr_set_out_func(pas16->pit, 0, pas16_pit_timer0);
     pit_ctr_set_using_timer(pas16->pit, 0, 1);
     pit_ctr_set_using_timer(pas16->pit, 1, 0);
     pit_ctr_set_using_timer(pas16->pit, 2, 0);
-    pas16->pit->dev_priv = pas16;
-    pas16->pit->dev_timer = pas16_pcm_poll;
+
+    timer_add(&pas16->timer, pas16_pcm_poll, pas16, 0);
 
     sound_add_handler(pas16_get_buffer, pas16);
     music_add_handler(pas16_get_music_buffer, pas16);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, pas16_input_msg, pas16_input_sysex, pas16);
 
     return pas16;
 }
@@ -795,6 +780,13 @@ static const device_config_t pas16_config[] = {
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
+    },
+    {
+        .name = "receive_input",
+        .description = "Receive input (PAS16 MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
