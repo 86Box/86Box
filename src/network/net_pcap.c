@@ -500,7 +500,7 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *
     pcap_log("PCAP: installing filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
              mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     sprintf(filter_exp,
-            "( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
+            "( ((ether broadcast) or (ether multicast) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5],
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     if (f_pcap_compile(pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
