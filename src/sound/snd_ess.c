@@ -59,11 +59,15 @@ static const double sb_att_7dbstep_2bits[] = {
       164.0,  6537.0, 14637.0, 32767.0
 };
 
+/* Attenuation table for 4-bit microphone volume.
+ * The last step is a jump to -48 dB. */
 static const double sb_att_1p4dbstep_4bits[] = {
       164.0,  3431.0,  4031.0,  4736.0,  5565.0,  6537.0,  7681.0,  9025.0,
     10603.0, 12458.0, 14637.0, 17196.0, 20204.0, 23738.0, 27889.0, 32767.0
 };
 
+/* Attenuation table for 4-bit mixer avolume.
+ * The last step is a jump to -48 dB. */
 static const double sb_att_2dbstep_4bits[] = {
       164.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
      6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
@@ -177,7 +181,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 {
                     uint8_t mic_vol_2bit = (mixer->regs[0x0a] >> 1) & 0x3;
                     mixer->mic_l = mixer->mic_r = sb_att_7dbstep_2bits[mic_vol_2bit] / 32768.0;
-                    mixer->regs[0x1A] = mic_vol_2bit | (mic_vol_2bit << 2);
+                    mixer->regs[0x1A] = mic_vol_2bit | (mic_vol_2bit << 2) | (mic_vol_2bit << 4) | (mic_vol_2bit << 6);
                     break;
                 }
 
