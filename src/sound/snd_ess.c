@@ -518,10 +518,10 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
                 ess->dsp.record_buffer[(c_record & 0xfffe) + 1] = 32767;
             }
        }
+#endif
 
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
-#endif
     }
 
 #if 0

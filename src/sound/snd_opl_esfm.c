@@ -270,7 +270,7 @@ esfm_drv_read(uint16_t port, void *priv)
             break;
     }
 
-    pclog("esfm: [%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
+    esfm_log("esfm: [%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
 }
@@ -347,7 +347,7 @@ esfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     esfm_drv_t *dev = (esfm_drv_t *) priv;
 
-    pclog("esfm: [%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
+    esfm_log("esfm: [%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
 
     if (dev->flags & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));
