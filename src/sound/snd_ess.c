@@ -127,7 +127,7 @@ typedef struct ess_t {
 
 static double ess_mixer_get_vol_4bit(uint8_t vol)
 {
-    return sb_att_2dbstep_4bits[vol] / 32767.0;
+    return sb_att_2dbstep_4bits[vol & 0x0F] / 32767.0;
 }
 
 void
