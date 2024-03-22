@@ -50,7 +50,7 @@
 #include <86box/plat_unused.h>
 
 
-
+// clang-format off
 static const double sb_att_4dbstep_3bits[] = {
       164.0,  2067.0,  3276.0,  5193.0,  8230.0, 13045.0, 20675.0, 32767.0
 };
@@ -63,6 +63,13 @@ static const double sb_att_1p4dbstep_4bits[] = {
       164.0,  3431.0,  4031.0,  4736.0,  5565.0,  6537.0,  7681.0,  9025.0,
     10603.0, 12458.0, 14637.0, 17196.0, 20204.0, 23738.0, 27889.0, 32767.0
 };
+
+static const double sb_att_2dbstep_4bits[] = {
+      164.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
+     6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
+};
+// clang-format on
+
 
 /* SB PRO */
 typedef struct ess_mixer_t {
@@ -118,27 +125,9 @@ typedef struct ess_t {
     void  (*opl_mix)(void*, double*, double*);
 } ess_t;
 
-static inline uint8_t expand16to32(const uint8_t t) {
-    /* 4-bit -> 5-bit expansion.
-     *
-     * 0 -> 0
-     * 1 -> 2
-     * 2 -> 4
-     * 3 -> 6
-     * ....
-     * 7 -> 14
-     * 8 -> 17
-     * 9 -> 19
-     * 10 -> 21
-     * 11 -> 23
-     * ....
-     * 15 -> 31 */
-    return (t << 1) | (t >> 3);
-}
-
 static double ess_mixer_get_vol_4bit(uint8_t vol)
 {
-    return (48.0 + (20.0 * log((vol & 0xF) / 15.0))) / 48.0;
+    return sb_att_2dbstep_4bits[vol] / 32767.0;
 }
 
 void
