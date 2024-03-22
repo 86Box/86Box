@@ -99,10 +99,7 @@ esfm_log(const char *fmt, ...)
 void
 esfm_generate_raw(esfm_drv_t *dev, int32_t *bufp)
 {
-    ESFM_generate(&dev->opl, &dev->samples[0]);
-
-    bufp[0] = dev->samples[0];
-    bufp[1] = dev->samples[1];
+    ESFM_generate(&dev->opl, bufp);
 }
 
 void
@@ -270,75 +267,48 @@ esfm_drv_read(uint16_t port, void *priv)
             break;
     }
 
-    esfm_log("esfm: [%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
-
     return ret;
 }
 
 static void
 esfm_drv_write_buffered(esfm_drv_t *dev, uint8_t val)
 {
+    uint16_t p = dev->port;
+
     ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
 
     if (dev->opl.native_mode)
     {
-        switch (dev->port & 0x5ff)
-        {
-            case 0x402: /* Timer 1 */
-                dev->timer_count[0] = val;
-                esfm_log("Timer 0 count now: %i\n", dev->timer_count[0]);
-                break;
-
-            case 0x403: /* Timer 2 */
-                dev->timer_count[1] = val;
-                esfm_log("Timer 1 count now: %i\n", dev->timer_count[1]);
-                break;
-
-            case 0x404: /* Timer control */
-                if (val & CTRL_RESET) {
-                    esfm_log("Resetting timer status...\n");
-                    dev->status &= ~STAT_TMR_OVER;
-                } else {
-                    dev->timer_ctrl = val;
-                    esfm_timer_control(dev, 0, val & CTRL_TMR1_START);
-                    esfm_timer_control(dev, 1, val & CTRL_TMR2_START);
-                    esfm_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
-                }
-                break;
-
-            default:
-                break;
-        }
+        p -= 0x400;
+        p &= 0x1ff;
     }
-    else
+
+    switch (p)
     {
-        switch (dev->port & 0x1ff)
-        {
-            case 0x002: /* Timer 1 */
-                dev->timer_count[0] = val;
-                esfm_log("Timer 0 count now: %i\n", dev->timer_count[0]);
-                break;
+        case 0x002: /* Timer 1 */
+            dev->timer_count[0] = val;
+            esfm_log("Timer 0 count now: %i\n", dev->timer_count[0]);
+            break;
 
-            case 0x003: /* Timer 2 */
-                dev->timer_count[1] = val;
-                esfm_log("Timer 1 count now: %i\n", dev->timer_count[1]);
-                break;
+        case 0x003: /* Timer 2 */
+            dev->timer_count[1] = val;
+            esfm_log("Timer 1 count now: %i\n", dev->timer_count[1]);
+            break;
 
-            case 0x004: /* Timer control */
-                if (val & CTRL_RESET) {
-                    esfm_log("Resetting timer status...\n");
-                    dev->status &= ~STAT_TMR_OVER;
-                } else {
-                    dev->timer_ctrl = val;
-                    esfm_timer_control(dev, 0, val & CTRL_TMR1_START);
-                    esfm_timer_control(dev, 1, val & CTRL_TMR2_START);
-                    esfm_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
-                }
-                break;
+        case 0x004: /* Timer control */
+            if (val & CTRL_RESET) {
+                esfm_log("Resetting timer status...\n");
+                dev->status &= ~STAT_TMR_OVER;
+            } else {
+                dev->timer_ctrl = val;
+                esfm_timer_control(dev, 0, val & CTRL_TMR1_START);
+                esfm_timer_control(dev, 1, val & CTRL_TMR2_START);
+                esfm_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
+            }
+            break;
 
-            default:
-                break;
-        }
+        default:
+            break;
     }
 }
 
@@ -346,8 +316,6 @@ static void
 esfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     esfm_drv_t *dev = (esfm_drv_t *) priv;
-
-    esfm_log("esfm: [%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
 
     if (dev->flags & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));

@@ -1741,6 +1741,10 @@ ESFM_slot_generate_emu(esfm_slot *slot)
 }
 
 /* ------------------------------------------------------------------------- */
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
 static void
 ESFM_process_feedback(esfm_chip *chip)
 {
@@ -2226,7 +2230,7 @@ ESFM_update_write_buffer(esfm_chip *chip)
 
 /* ------------------------------------------------------------------------- */
 void
-ESFM_generate(esfm_chip *chip, int16_t *buf)
+ESFM_generate(esfm_chip *chip, int32_t *buf)
 {
 	int channel_idx;
 
@@ -2259,8 +2263,8 @@ ESFM_generate(esfm_chip *chip, int16_t *buf)
 		chip->output_accm[1] += channel->output[1];
 	}
 
-	buf[0] = ESFM_clip_sample(chip->output_accm[0]);
-	buf[1] = ESFM_clip_sample(chip->output_accm[1]);
+	buf[0] = chip->output_accm[0];
+	buf[1] = chip->output_accm[1];
 
 	ESFM_update_timers(chip);
 	ESFM_update_write_buffer(chip);
@@ -2308,10 +2312,13 @@ void
 ESFM_generate_stream(esfm_chip *chip, int16_t *sndptr, uint32_t num_samples)
 {
 	uint32_t i;
+	int32_t  buf[2] = { 0 };
 
 	for (i = 0; i < num_samples; i++)
 	{
-		ESFM_generate(chip, sndptr);
+		ESFM_generate(chip, buf);
+		sndptr[0] = ESFM_clip_sample(buf[0]);
+		sndptr[1] = ESFM_clip_sample(buf[1]);
 		sndptr += 2;
 	}
 }

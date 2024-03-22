@@ -67,7 +67,7 @@ void ESFM_write_reg_buffered_fast (esfm_chip *chip, uint16_t address, uint8_t da
 void ESFM_write_port (esfm_chip *chip, uint8_t offset, uint8_t data);
 uint8_t ESFM_readback_reg (esfm_chip *chip, uint16_t address);
 uint8_t ESFM_read_port (esfm_chip *chip, uint8_t offset);
-void ESFM_generate(esfm_chip *chip, int16_t *buf);
+void ESFM_generate(esfm_chip *chip, int32_t *buf);
 void ESFM_generate_stream(esfm_chip *chip, int16_t *sndptr, uint32_t num_samples);
 int16_t ESFM_get_channel_output_native(esfm_chip *chip, int channel_idx);
 
