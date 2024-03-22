@@ -38,11 +38,6 @@
 
 #define RSM_FRAC    10
 
-enum {
-    FLAG_CYCLES = 0x02,
-    FLAG_OPL3   = 0x01
-};
-
 typedef struct {
     esfm_chip opl;
     int8_t  flags;
@@ -54,11 +49,52 @@ typedef struct {
     uint16_t timer_count[2];
     uint16_t timer_cur_count[2];
 
+    pc_timer_t timers[2];
+
     int16_t samples[2];
 
     int     pos;
     int32_t buffer[MUSICBUFLEN * 2];
 } esfm_drv_t;
+
+enum {
+    FLAG_CYCLES = 0x02,
+    FLAG_OPL3   = 0x01
+};
+
+enum {
+    STAT_TMR_OVER  = 0x60,
+    STAT_TMR1_OVER = 0x40,
+    STAT_TMR2_OVER = 0x20,
+    STAT_TMR_ANY   = 0x80
+};
+
+enum {
+    CTRL_RESET      = 0x80,
+    CTRL_TMR_MASK   = 0x60,
+    CTRL_TMR1_MASK  = 0x40,
+    CTRL_TMR2_MASK  = 0x20,
+    CTRL_TMR2_START = 0x02,
+    CTRL_TMR1_START = 0x01
+};
+
+#ifdef ENABLE_OPL_LOG
+int esfm_do_log = ENABLE_OPL_LOG;
+
+static void
+esfm_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (esfm_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define esfm_log(fmt, ...)
+#endif
 
 void
 esfm_generate_raw(esfm_drv_t *dev, int32_t *bufp)
@@ -76,6 +112,60 @@ esfm_drv_generate_stream(esfm_drv_t *dev, int32_t *sndptr, uint32_t num)
         esfm_generate_raw(dev, sndptr);
         sndptr += 2;
     }
+}
+
+static void
+esfm_timer_tick(esfm_drv_t *dev, int tmr)
+{
+    dev->timer_cur_count[tmr] = (dev->timer_cur_count[tmr] + 1) & 0xff;
+
+    esfm_log("Ticking timer %i, count now %02X...\n", tmr, dev->timer_cur_count[tmr]);
+
+    if (dev->timer_cur_count[tmr] == 0x00) {
+        dev->status |= ((STAT_TMR1_OVER >> tmr) & ~dev->timer_ctrl);
+        dev->timer_cur_count[tmr] = dev->timer_count[tmr];
+
+        esfm_log("Count wrapped around to zero, reloading timer %i (%02X), status = %02X...\n", tmr, (STAT_TMR1_OVER >> tmr), dev->status);
+    }
+
+    timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+}
+
+static void
+esfm_timer_control(esfm_drv_t *dev, int tmr, int start)
+{
+    timer_on_auto(&dev->timers[tmr], 0.0);
+
+    if (start) {
+        esfm_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
+        dev->timer_cur_count[tmr] = dev->timer_count[tmr];
+        if (dev->flags & FLAG_OPL3)
+            esfm_timer_tick(dev, tmr); /* Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
+        else
+            timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+    } else {
+        esfm_log("Timer %i stopped\n", tmr);
+        if (tmr == 1) {
+            dev->status &= ~STAT_TMR2_OVER;
+        } else
+            dev->status &= ~STAT_TMR1_OVER;
+    }
+}
+
+static void
+esfm_timer_1(void *priv)
+{
+    esfm_drv_t *dev = (esfm_drv_t *) priv;
+
+    esfm_timer_tick(dev, 0);
+}
+
+static void
+esfm_timer_2(void *priv)
+{
+    esfm_drv_t *dev = (esfm_drv_t *) priv;
+
+    esfm_timer_tick(dev, 1);
 }
 
 static void
@@ -97,6 +187,9 @@ esfm_drv_init(const device_t *info)
 
     /* Initialize the ESFMu object. */
     ESFM_init(&dev->opl);
+
+    timer_add(&dev->timers[0], esfm_timer_1, dev, 0);
+    timer_add(&dev->timers[1], esfm_timer_2, dev, 0);
 
     return dev;
 }
@@ -149,9 +242,104 @@ esfm_drv_read(uint16_t port, void *priv)
 
     uint8_t ret = 0xff;
 
-    ret = ESFM_read_port(&dev->opl, port & 3);
+    switch (port & 0x0003)
+    {
+        case 0x0000:
+            ret = dev->status;
+            if (dev->status & STAT_TMR_OVER)
+                ret |= STAT_TMR_ANY;
+            break;
+        case 0x0001:
+            ret = ESFM_read_port(&dev->opl, port & 3);
+            switch (dev->opl.addr_latch & 0x5ff)
+            {
+                case 0x402:
+                    ret = dev->timer_count[0];
+                    break;
+                case 0x403:
+                    ret = dev->timer_count[1];
+                    break;
+                case 0x404:
+                    ret = dev->timer_ctrl;
+                    break;
+            }
+            break;
+        case 0x0002:
+        case 0x0003:
+            ret = 0xff;
+            break;
+    }
+
+    pclog("esfm: [%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
+}
+
+static void
+esfm_drv_write_buffered(esfm_drv_t *dev, uint8_t val)
+{
+    ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
+
+    if (dev->opl.native_mode)
+    {
+        switch (dev->port & 0x5ff)
+        {
+            case 0x402: /* Timer 1 */
+                dev->timer_count[0] = val;
+                esfm_log("Timer 0 count now: %i\n", dev->timer_count[0]);
+                break;
+
+            case 0x403: /* Timer 2 */
+                dev->timer_count[1] = val;
+                esfm_log("Timer 1 count now: %i\n", dev->timer_count[1]);
+                break;
+
+            case 0x404: /* Timer control */
+                if (val & CTRL_RESET) {
+                    esfm_log("Resetting timer status...\n");
+                    dev->status &= ~STAT_TMR_OVER;
+                } else {
+                    dev->timer_ctrl = val;
+                    esfm_timer_control(dev, 0, val & CTRL_TMR1_START);
+                    esfm_timer_control(dev, 1, val & CTRL_TMR2_START);
+                    esfm_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+    else
+    {
+        switch (dev->port & 0x1ff)
+        {
+            case 0x002: /* Timer 1 */
+                dev->timer_count[0] = val;
+                esfm_log("Timer 0 count now: %i\n", dev->timer_count[0]);
+                break;
+
+            case 0x003: /* Timer 2 */
+                dev->timer_count[1] = val;
+                esfm_log("Timer 1 count now: %i\n", dev->timer_count[1]);
+                break;
+
+            case 0x004: /* Timer control */
+                if (val & CTRL_RESET) {
+                    esfm_log("Resetting timer status...\n");
+                    dev->status &= ~STAT_TMR_OVER;
+                } else {
+                    dev->timer_ctrl = val;
+                    esfm_timer_control(dev, 0, val & CTRL_TMR1_START);
+                    esfm_timer_control(dev, 1, val & CTRL_TMR2_START);
+                    esfm_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
 }
 
 static void
@@ -159,22 +347,26 @@ esfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     esfm_drv_t *dev = (esfm_drv_t *) priv;
 
+    pclog("esfm: [%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
+
     if (dev->flags & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));
 
     esfm_drv_update(dev);
 
     if (dev->opl.native_mode) {
-        if ((port & 3) == 1) {
-            ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
-        } else {
+        if ((port & 0x0003) == 0x0001)
+            esfm_drv_write_buffered(dev, val);
+        else {
             ESFM_write_port(&dev->opl, port & 3, val);
+            dev->port = dev->opl.addr_latch & 0x07ff;
         }
     } else {
-        if ((port & 3) == 1 || (port & 3) == 3) {
-            ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
-        } else {
+        if ((port & 0x0001) == 0x0001)
+            esfm_drv_write_buffered(dev, val);
+        else {
             ESFM_write_port(&dev->opl, port & 3, val);
+            dev->port = dev->opl.addr_latch & 0x01ff;
         }
     }
 }
