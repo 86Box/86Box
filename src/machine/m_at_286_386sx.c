@@ -351,6 +351,25 @@ machine_at_gw286ct_init(const machine_t *model)
 }
 
 int
+machine_at_senor_scat286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/senor286/AMI-DSC2-1115-061390-K8.rom",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_scat_init(model, 0, 1);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_super286c_init(const machine_t *model)
 {
     int ret;
