@@ -13,7 +13,7 @@
  * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           Miran Grca, <mgrca8@gmail.com>
  *           TheCollector1995, <mariogplayer@gmail.com>
- *           Cacodemon345, 
+ *           Cacodemon345,
  *           Kagamiin~, <kagamiin@riseup.net>
  *
  *           Copyright 2008-2020 Sarah Walker.
@@ -49,7 +49,6 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
-
 // clang-format off
 static const double sb_att_4dbstep_3bits[] = {
       164.0,  2067.0,  3276.0,  5193.0,  8230.0, 13045.0, 20675.0, 32767.0
@@ -73,7 +72,6 @@ static const double sb_att_2dbstep_4bits[] = {
      6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
 };
 // clang-format on
-
 
 /* SB PRO */
 typedef struct ess_mixer_t {
@@ -109,21 +107,22 @@ typedef struct ess_mixer_t {
 } ess_mixer_t;
 
 typedef struct ess_t {
-    uint8_t  mixer_enabled;
-    fm_drv_t opl;
-    sb_dsp_t dsp;
+    uint8_t     mixer_enabled;
+    fm_drv_t    opl;
+    sb_dsp_t    dsp;
     ess_mixer_t mixer_sbpro;
 
-    mpu_t  *mpu;
-    void   *gameport;
+    mpu_t *mpu;
+    void  *gameport;
 
     uint16_t gameport_addr;
 
-    void   *opl_mixer;
-    void  (*opl_mix)(void*, double*, double*);
+    void *opl_mixer;
+    void (*opl_mix)(void *, double *, double *);
 } ess_t;
 
-static double ess_mixer_get_vol_4bit(uint8_t vol)
+static double
+ess_mixer_get_vol_4bit(uint8_t vol)
 {
     return sb_att_2dbstep_4bits[vol & 0x0F] / 32767.0;
 }
@@ -137,8 +136,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
     if (!(addr & 1)) {
         mixer->index      = val;
         mixer->regs[0x01] = val;
-        if (val == 0x40)
-        {
+        if (val == 0x40) {
             mixer->ess_id_str_pos = 0;
         }
     } else {
@@ -153,10 +151,10 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
             /* Initialize ESS regs. */
             mixer->regs[0x14] = mixer->regs[0x32] = 0x88;
-            mixer->regs[0x36] = 0x88;
-            mixer->regs[0x38] = 0x88;
-            mixer->regs[0x3a] = 0x00;
-            mixer->regs[0x3e] = 0x00;
+            mixer->regs[0x36]                     = 0x88;
+            mixer->regs[0x38]                     = 0x88;
+            mixer->regs[0x3a]                     = 0x00;
+            mixer->regs[0x3e]                     = 0x00;
 
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
@@ -171,24 +169,24 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x0A:
-                {
-                    uint8_t mic_vol_2bit = (mixer->regs[0x0a] >> 1) & 0x3;
-                    mixer->mic_l = mixer->mic_r = sb_att_7dbstep_2bits[mic_vol_2bit] / 32768.0;
-                    mixer->regs[0x1A] = mic_vol_2bit | (mic_vol_2bit << 2) | (mic_vol_2bit << 4) | (mic_vol_2bit << 6);
-                    break;
-                }
+                    {
+                        uint8_t mic_vol_2bit = (mixer->regs[0x0a] >> 1) & 0x3;
+                        mixer->mic_l = mixer->mic_r = sb_att_7dbstep_2bits[mic_vol_2bit] / 32768.0;
+                        mixer->regs[0x1A]           = mic_vol_2bit | (mic_vol_2bit << 2) | (mic_vol_2bit << 4) | (mic_vol_2bit << 6);
+                        break;
+                    }
 
                 case 0x0C:
                     switch (mixer->regs[0x0C] & 6) {
-                    case 2:
-                        mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
-                        break;
-                    case 6:
-                        mixer->input_selector = INPUT_LINE_L | INPUT_LINE_R;
-                        break;
-                    default:
-                        mixer->input_selector = INPUT_MIC;
-                        break;
+                        case 2:
+                            mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
+                            break;
+                        case 6:
+                            mixer->input_selector = INPUT_LINE_L | INPUT_LINE_R;
+                            break;
+                        default:
+                            mixer->input_selector = INPUT_MIC;
+                            break;
                     }
                     break;
 
@@ -202,20 +200,13 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x1C:
-                    if ((mixer->regs[0x1C] & 0x07) == 0x07)
-                    {
+                    if ((mixer->regs[0x1C] & 0x07) == 0x07) {
                         mixer->input_selector = INPUT_MIXER_L | INPUT_MIXER_R;
-                    }
-                    else if ((mixer->regs[0x1C] & 0x07) == 0x06)
-                    {
+                    } else if ((mixer->regs[0x1C] & 0x07) == 0x06) {
                         mixer->input_selector = INPUT_LINE_L | INPUT_LINE_R;
-                    }
-                    else if ((mixer->regs[0x1C] & 0x06) == 0x02)
-                    {
+                    } else if ((mixer->regs[0x1C] & 0x06) == 0x02) {
                         mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
-                    }
-                    else if ((mixer->regs[0x1C] & 0x02) == 0)
-                    {
+                    } else if ((mixer->regs[0x1C] & 0x02) == 0) {
                         mixer->input_selector = INPUT_MIC;
                     }
                     break;
@@ -255,26 +246,22 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     mixer->regs[mixer->index] &= ~0x8;
                     break;
 
-                case 0x40: {
-                        /* TODO: Implement "Read-Sequence-Key" method of software address selection
-                         * (needed for ESSCFG.EXE to work properly) */
-
+                case 0x40:
+                    {
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
-                        if (0)
-                        {
+                        if (0) {
                             /* Not on ES1688. */
                             io_removehandler(0x0388, 0x0004,
-                                            ess->opl.read, NULL, NULL,
-                                            ess->opl.write, NULL, NULL,
-                                            ess->opl.priv);
-                            if ((mixer->regs[0x40] & 0x1) != 0)
-                            {
+                                             ess->opl.read, NULL, NULL,
+                                             ess->opl.write, NULL, NULL,
+                                             ess->opl.priv);
+                            if ((mixer->regs[0x40] & 0x1) != 0) {
                                 io_sethandler(0x0388, 0x0004,
-                                            ess->opl.read, NULL, NULL,
-                                            ess->opl.write, NULL, NULL,
-                                            ess->opl.priv);
+                                              ess->opl.read, NULL, NULL,
+                                              ess->opl.write, NULL, NULL,
+                                              ess->opl.priv);
                             }
                         }
                         switch ((mixer->regs[0x40] >> 5) & 0x7) {
@@ -315,7 +302,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     }
 
                 default:
-                    //pclog("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    // pclog("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -375,21 +362,18 @@ ess_mixer_read(uint16_t addr, void *priv)
 
         case 0x40:
 
-            if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688)
-            {
+            if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688) {
                 uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
                 mixer->ess_id_str_pos++;
                 if (mixer->ess_id_str_pos >= 4)
                     mixer->ess_id_str_pos = 0;
                 return val;
-            }
-            else
-            {
+            } else {
                 return mixer->regs[mixer->index];
             }
 
         default:
-            //pclog("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            // pclog("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             break;
     }
 
@@ -406,10 +390,10 @@ ess_mixer_reset(ess_t *ess)
 void
 ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
-    ess_t                    *ess    = (ess_t *) priv;
-    const ess_mixer_t        *mixer = &ess->mixer_sbpro;
-    double                   out_l = 0.0;
-    double                   out_r = 0.0;
+    ess_t             *ess   = (ess_t *) priv;
+    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    double             out_l = 0.0;
+    double             out_r = 0.0;
 
     sb_dsp_update(&ess->dsp);
 
@@ -440,11 +424,11 @@ ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 void
 ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
-    ess_t                    *ess    = (ess_t *) priv;
-    const ess_mixer_t        *mixer = &ess->mixer_sbpro;
-    double                   out_l = 0.0;
-    double                   out_r = 0.0;
-    const int32_t           *opl_buf = NULL;
+    ess_t             *ess     = (ess_t *) priv;
+    const ess_mixer_t *mixer   = &ess->mixer_sbpro;
+    double             out_l   = 0.0;
+    double             out_r   = 0.0;
+    const int32_t     *opl_buf = NULL;
 
     opl_buf = ess->opl.update(ess->opl.priv);
 
@@ -473,13 +457,13 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 void
 ess_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    const ess_t                    *ess    = (ess_t *) priv;
-    const ess_mixer_t        *mixer = &ess->mixer_sbpro;
-    double                   c;
-    double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
-    double                   master = channel ? mixer->master_r : mixer->master_l;
+    const ess_t       *ess   = (ess_t *) priv;
+    const ess_mixer_t *mixer = &ess->mixer_sbpro;
+    double             c;
+    double             cd     = channel ? mixer->cd_r : mixer->cd_l;
+    double             master = channel ? mixer->master_r : mixer->master_l;
 
-    c = (*buffer * cd) / 3.0;
+    c       = (*buffer * cd) / 3.0;
     *buffer = c * master;
 }
 
@@ -492,8 +476,8 @@ ess_1688_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    ess_t    *ess   = calloc(sizeof(ess_t), 1);
-    uint16_t  addr = device_get_config_hex16("base");
+    ess_t   *ess  = calloc(sizeof(ess_t), 1);
+    uint16_t addr = device_get_config_hex16("base");
 
     fm_driver_get(FM_ESFM, &ess->opl);
 
@@ -544,7 +528,7 @@ ess_1688_init(UNUSED(const device_t *info))
     mpu401_init(ess->mpu, 0, -1, M_UART, 1);
     sb_dsp_set_mpu(&ess->dsp, ess->mpu);
 
-    ess->gameport = gameport_add(&gameport_pnp_device);
+    ess->gameport      = gameport_add(&gameport_pnp_device);
     ess->gameport_addr = 0x200;
     gameport_remap(ess->gameport, ess->gameport_addr);
 
@@ -568,95 +552,97 @@ ess_speed_changed(void *priv)
     sb_dsp_speed_changed(&ess->dsp);
 }
 
+// clang-format off
 static const device_config_t ess_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
+        .name           =  "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_int    = 0x220,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
             {
                 .description = "0x220",
-                .value = 0x220
+                .value       = 0x220
             },
             {
                 .description = "0x240",
-                .value = 0x240
+                .value       = 0x240
             },
             { .description = "" }
         }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_int    = 5,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
             {
                 .description = "IRQ 2",
-                .value = 2
+                .value       = 2
             },
             {
                 .description = "IRQ 5",
-                .value = 5
+                .value       = 5
             },
             {
                 .description = "IRQ 7",
-                .value = 7
+                .value       = 7
             },
             {
                 .description = "IRQ 10",
-                .value = 10
+                .value       = 10
             },
             { .description = "" }
         }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_int    = 1,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
             {
                 .description = "DMA 0",
-                .value = 0
+                .value       = 0
             },
             {
                 .description = "DMA 1",
-                .value = 1
+                .value       = 1
             },
             {
                 .description = "DMA 3",
-                .value = 3
+                .value       = 3
             },
             { .description = "" }
         }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 1
+        .default_int    = 1
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
-        .type = CONFIG_BINARY,
+        .name           = "receive_input",
+        .description    = "Receive input (SB MIDI)",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 1
+        .default_int    = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t ess_1688_device = {
     .name          = "ESS Technology ES1688",

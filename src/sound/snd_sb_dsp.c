@@ -120,6 +120,7 @@ uint8_t adjustMap2[24] = {
     252, 0, 252, 0
 };
 
+// clang-format off
 /* Upper half only used for ESPCM_3 mode. */
 /* TODO: Extract actual table (or exact ranges + range interpolation algo, whatever it is) from chip, someday, somehow.
  * This current table is part software reverse engineering, part guesswork/extrapolation.
@@ -235,6 +236,7 @@ uint16_t espcm3_dpcm_tables[1024] =
        5,   7,   8,   9,  10,  11,  12, 270,   5,   7,   8,   9,  10,  11,  12, 270,
        6,   7,   8,   9,  10,  11,  13, 271,   6,   7,   8,   9,  10,  11,  13,  15
 };
+// clang-format on
 
 double low_fir_sb16_coef[4][SB16_NCoef];
 
@@ -387,8 +389,7 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     }
 
     /* NOTE: not on ES1688, apparently; investigate on ES1868 */
-    if (IS_ESS(dsp) && dsp->sb_subtype != SB_SUBTYPE_ESS_ES1688)
-    {
+    if (IS_ESS(dsp) && dsp->sb_subtype != SB_SUBTYPE_ESS_ES1688) {
         /* TODO: Investigate real hardware for this (the ES1887 datasheet documents this bit somewhat oddly.) */
         if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
             if (!(ESSreg(0xB1) & 0x40)) // if ESS playback, and IRQ disabled, do not fire
@@ -523,17 +524,19 @@ sb_add_data(sb_dsp_t *dsp, uint8_t v)
     dsp->sb_read_wp &= 0xff;
 }
 
-static unsigned int sb_ess_get_dma_counter(sb_dsp_t *dsp)
+static unsigned int
+sb_ess_get_dma_counter(sb_dsp_t *dsp)
 {
     unsigned int c;
 
-    c = (unsigned int)ESSreg(0xA5) << 8U;
-    c |= (unsigned int)ESSreg(0xA4);
+    c = (unsigned int) ESSreg(0xA5) << 8U;
+    c |= (unsigned int) ESSreg(0xA4);
 
     return c;
 }
 
-static unsigned int sb_ess_get_dma_len(sb_dsp_t *dsp)
+static unsigned int
+sb_ess_get_dma_len(sb_dsp_t *dsp)
 {
     return 0x10000U - sb_ess_get_dma_counter(dsp);
 }
@@ -605,11 +608,11 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 }
 
 void
-sb_start_dma_ess(sb_dsp_t* dsp)
+sb_start_dma_ess(sb_dsp_t *dsp)
 {
-    uint8_t real_format = 0;
+    uint8_t real_format  = 0;
     dsp->ess_dma_counter = sb_ess_get_dma_counter(dsp);
-    uint32_t len = sb_ess_get_dma_len(dsp);
+    uint32_t len         = sb_ess_get_dma_len(dsp);
 
     if (IS_ESS(dsp)) {
         dma_set_drq(dsp->sb_8_dmanum, 0);
@@ -627,26 +630,28 @@ sb_start_dma_ess(sb_dsp_t* dsp)
 }
 
 void
-sb_stop_dma_ess(sb_dsp_t* dsp)
+sb_stop_dma_ess(sb_dsp_t *dsp)
 {
     dsp->sb_8_enable = dsp->sb_16_enable = 0;
     dma_set_drq(dsp->sb_16_8_dmanum, 0);
     dma_set_drq(dsp->sb_8_dmanum, 0);
 }
 
-static void sb_ess_update_dma_status(sb_dsp_t* dsp)
+static void
+sb_ess_update_dma_status(sb_dsp_t *dsp)
 {
-    bool dma_en = (ESSreg(0xB8) & 1)?true:false;
+    bool dma_en = (ESSreg(0xB8) & 1) ? true : false;
 
     // if the DRQ is disabled, do not start
     if (!(ESSreg(0xB2) & 0x40))
         dma_en = false;
 
     if (dma_en) {
-        if (!dsp->sb_8_enable && !dsp->sb_16_enable) sb_start_dma_ess(dsp);
-    }
-    else {
-        if (dsp->sb_8_enable || dsp->sb_16_enable) sb_stop_dma_ess(dsp);
+        if (!dsp->sb_8_enable && !dsp->sb_16_enable)
+            sb_start_dma_ess(dsp);
+    } else {
+        if (dsp->sb_8_enable || dsp->sb_16_enable)
+            sb_stop_dma_ess(dsp);
     }
 }
 
@@ -682,8 +687,8 @@ int
 sb_16_read_dma(void *priv)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
-    int temp, ret = 0;
-    int dma_flags, dma_ch = dsp->sb_16_dmanum;
+    int             temp, ret         = 0;
+    int             dma_flags, dma_ch = dsp->sb_16_dmanum;
 
     if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
         ret = dma_channel_read(dma_ch);
@@ -697,7 +702,7 @@ sb_16_read_dma(void *priv)
             /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
         temp = dma_channel_read(dma_ch);
-        ret = temp;
+        ret  = temp;
         if ((temp != DMA_NODATA) && !(temp & DMA_OVER)) {
             temp = dma_channel_read(dma_ch);
             if (temp == DMA_NODATA)
@@ -706,7 +711,7 @@ sb_16_read_dma(void *priv)
                 dma_flags = temp & DMA_OVER;
                 temp &= ~DMA_OVER;
                 ret |= (temp << 8) | dma_flags;
-           }
+            }
         }
     }
 
@@ -717,9 +722,9 @@ int
 sb_16_write_dma(void *priv, uint16_t val)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
-    int temp, ret = 0;
-    int dma_ch = dsp->sb_16_dmanum;
- 
+    int             temp, ret = 0;
+    int             dma_ch = dsp->sb_16_dmanum;
+
     if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
         ret = dma_channel_write(dma_ch, val) == DMA_NODATA;
     else {
@@ -732,10 +737,10 @@ sb_16_write_dma(void *priv, uint16_t val)
             /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
         temp = dma_channel_write(dma_ch, val & 0xff);
-        ret = temp;
+        ret  = temp;
         if ((temp != DMA_NODATA) && (temp != DMA_OVER)) {
             temp = dma_channel_write(dma_ch, val >> 8);
-            ret = temp;
+            ret  = temp;
         }
     }
 
@@ -747,28 +752,40 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
 {
     uint8_t t = 0x00;
     /* IRQ control */
-    if (legacy)
-    {
+    if (legacy) {
         t |= 0x80;
     }
     switch (dsp->sb_irqnum) {
-        case 9:     t |= 0x0; break;
-        case 5:     t |= 0x5; break;
-        case 7:     t |= 0xA; break;
-        case 10:    t |= 0xF; break;
+        case 9:
+            t |= 0x0;
+            break;
+        case 5:
+            t |= 0x5;
+            break;
+        case 7:
+            t |= 0xA;
+            break;
+        case 10:
+            t |= 0xF;
+            break;
     }
     ESSreg(0xB1) = (ESSreg(0xB1) & 0xF0) | t;
 
     /* DRQ control */
     t = 0x00;
-    if (legacy)
-    {
+    if (legacy) {
         t |= 0x80;
     }
     switch (dsp->sb_8_dmanum) {
-        case 0:     t |= 0x5; break;
-        case 1:     t |= 0xA; break;
-        case 3:     t |= 0xF; break;
+        case 0:
+            t |= 0x5;
+            break;
+        case 1:
+            t |= 0xA;
+            break;
+        case 3:
+            t |= 0xF;
+            break;
     }
     ESSreg(0xB2) = (ESSreg(0xB2) & 0xF0) | t;
 }
@@ -830,10 +847,11 @@ sb_dsp_setdma16_translate(sb_dsp_t *dsp, int translate)
     dsp->sb_16_dma_translate = translate;
 }
 
-static void sb_ess_update_reg_a2(sb_dsp_t *dsp, uint8_t val)
+static void
+sb_ess_update_reg_a2(sb_dsp_t *dsp, uint8_t val)
 {
-    double freq = (7160000.0 / (256.0 - ((double) val))) * 41.0;
-    int temp = (int) freq;
+    double freq  = (7160000.0 / (256.0 - ((double) val))) * 41.0;
+    int    temp  = (int) freq;
     ESSreg(0xA2) = val;
 
     if (dsp->sb_freq != temp)
@@ -843,7 +861,8 @@ static void sb_ess_update_reg_a2(sb_dsp_t *dsp, uint8_t val)
 
 /* TODO: Investigate ESS cards' filtering on real hardware as well.
     (DOSBox-X did it purely off some laptop's ESS chip, which isn't a good look.) */
-static void sb_ess_update_filter_freq(sb_dsp_t *dsp)
+static void
+sb_ess_update_filter_freq(sb_dsp_t *dsp)
 {
     double temp = (7160000.0 / (((((double) dsp->sb_freq) / 2.0) * 0.80) * 82.0)) - 256.0;
 
@@ -855,7 +874,8 @@ static void sb_ess_update_filter_freq(sb_dsp_t *dsp)
     sb_ess_update_reg_a2(dsp, (uint8_t) temp);
 }
 
-static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
+static uint8_t
+sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
 {
     switch (reg) {
         default:
@@ -865,28 +885,31 @@ static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
     return 0xFF;
 }
 
-static void sb_ess_update_autolen(sb_dsp_t *dsp) {
+static void
+sb_ess_update_autolen(sb_dsp_t *dsp)
+{
     dsp->sb_8_autolen = dsp->sb_16_autolen = sb_ess_get_dma_len(dsp);
 }
 
-static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
+static void
+sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
 {
     uint8_t chg = 0x00;
 
     switch (reg) {
         case 0xA1: /* Extended Mode Sample Rate Generator */
-        {
-            double temp;
-            ESSreg(reg) = data;
-            if (data & 0x80)
-                dsp->sb_freq = 795500UL / (256ul - data);
-            else
-                dsp->sb_freq = 397700UL / (128ul - data);
-            temp = 1000000.0 / dsp->sb_freq;
-            dsp->sblatchi = dsp->sblatcho = TIMER_USEC * temp;
-            dsp->sb_timei = dsp->sb_timeo;
-            break;
-        }
+            {
+                double temp;
+                ESSreg(reg) = data;
+                if (data & 0x80)
+                    dsp->sb_freq = 795500UL / (256ul - data);
+                else
+                    dsp->sb_freq = 397700UL / (128ul - data);
+                temp          = 1000000.0 / dsp->sb_freq;
+                dsp->sblatchi = dsp->sblatcho = TIMER_USEC * temp;
+                dsp->sb_timei                 = dsp->sb_timeo;
+                break;
+            }
         case 0xA2: /* Filter divider (effectively, a hardware lowpass filter under S/W control) */
             sb_ess_update_reg_a2(dsp, data);
             break;
@@ -909,7 +932,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
              *                               01=Stereo
              *                               10=Mono
              *                               11=Reserved */
-            chg = ESSreg(reg) ^ data;
+            chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = data;
             if (chg & 0x3) {
                 if (dsp->sb_16_enable || dsp->sb_8_enable) {
@@ -926,45 +949,44 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             }
             break;
 
-        case 0xB1: /* Legacy Audio Interrupt Control */
+        case 0xB1:                                              /* Legacy Audio Interrupt Control */
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            switch (data & 0x0C)
-            {
-            case 0x00:
-                dsp->sb_irqnum = 2;
-                break;
-            case 0x04:
-                dsp->sb_irqnum = 5;
-                break;
-            case 0x08:
-                dsp->sb_irqnum = 7;
-                break;
-            case 0x0C:
-                dsp->sb_irqnum = 10;
-                break;
+            switch (data & 0x0C) {
+                case 0x00:
+                    dsp->sb_irqnum = 2;
+                    break;
+                case 0x04:
+                    dsp->sb_irqnum = 5;
+                    break;
+                case 0x08:
+                    dsp->sb_irqnum = 7;
+                    break;
+                case 0x0C:
+                    dsp->sb_irqnum = 10;
+                    break;
             }
             sb_ess_update_irq_drq_readback_regs(dsp, false);
             break;
         case 0xB2: /* DRQ Control */
-            chg = ESSreg(reg) ^ data;
+            chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            switch (data & 0x0C)
-            {
-            case 0x00:
-                dsp->sb_8_dmanum = -1;
-                break;
-            case 0x04:
-                dsp->sb_8_dmanum = 0;
-                break;
-            case 0x08:
-                dsp->sb_8_dmanum = 1;
-                break;
-            case 0x0C:
-                dsp->sb_8_dmanum = 3;
-                break;
+            switch (data & 0x0C) {
+                case 0x00:
+                    dsp->sb_8_dmanum = -1;
+                    break;
+                case 0x04:
+                    dsp->sb_8_dmanum = 0;
+                    break;
+                case 0x08:
+                    dsp->sb_8_dmanum = 1;
+                    break;
+                case 0x0C:
+                    dsp->sb_8_dmanum = 3;
+                    break;
             }
             sb_ess_update_irq_drq_readback_regs(dsp, false);
-            if (chg & 0x40) sb_ess_update_dma_status(dsp);
+            if (chg & 0x40)
+                sb_ess_update_dma_status(dsp);
             break;
         case 0xB5: /* DAC Direct Access Holding (low) */
         case 0xB6: /* DAC Direct Access Holding (high) */
@@ -980,7 +1002,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
              * bit  2     FIFO 16-bit mode                  1=Data is 16-bit
              * bit  1     Reserved                          Always write 0
              * bit  0     Generate load signal */
-            chg = ESSreg(reg) ^ data;
+            chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = data;
 
             if (chg & 4)
@@ -1004,7 +1026,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
              *                               0=first DMA is write (for DAC)
              * bit  0     DMA xfer enable    1=DMA is allowed to proceed */
             data &= 0xF;
-            chg = ESSreg(reg) ^ data;
+            chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = data;
 
             if (chg & 1) {
@@ -1017,20 +1039,18 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
                     dsp->ess_reload_len = 1;
             }
 
-            if (chg & 0x4)
-            {
-                if (dsp->sb_16_enable)
-                {
+            if (chg & 0x4) {
+                if (dsp->sb_16_enable) {
                     dsp->sb_16_autoinit = (ESSreg(0xB8) & 0x4) != 0;
                 }
-                if (dsp->sb_8_enable)
-                {
+                if (dsp->sb_8_enable) {
                     dsp->sb_8_autoinit = (ESSreg(0xB8) & 0x4) != 0;
                 }
             }
 
             if (chg & 0xB) {
-                if (chg & 0xA) sb_stop_dma_ess(dsp); /* changing capture/playback direction? stop DMA to reinit */
+                if (chg & 0xA)
+                    sb_stop_dma_ess(dsp); /* changing capture/playback direction? stop DMA to reinit */
                 sb_ess_update_dma_status(dsp);
             }
             break;
@@ -1044,7 +1064,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             break;
 
         default:
-            sb_dsp_log("UNKNOWN ESS register write reg=%02xh val=%02xh\n",reg,data);
+            sb_dsp_log("UNKNOWN ESS register write reg=%02xh val=%02xh\n", reg, data);
             break;
     }
 }
@@ -1059,8 +1079,7 @@ sb_exec_command(sb_dsp_t *dsp)
 
     /* Update 8051 ram with the current DSP command.
        See https://github.com/joncampbell123/dosbox-x/issues/1044 */
-    if (dsp->sb_type >= SB16)
-    {
+    if (dsp->sb_type >= SB16) {
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
     }
 
@@ -1068,27 +1087,17 @@ sb_exec_command(sb_dsp_t *dsp)
         if (dsp->sb_command == 0xC6 || dsp->sb_command == 0xC7) {
             dsp->ess_extended_mode = !!(dsp->sb_command == 0xC6);
             return;
-        }
-        else if (dsp->sb_command == 0xC2)
-        {
+        } else if (dsp->sb_command == 0xC2) {
             sb_ess_write_reg(dsp, 0xC3, dsp->sb_data[0]);
-        }
-        else if (dsp->sb_command == 0xC3)
-        {
+        } else if (dsp->sb_command == 0xC3) {
             sb_add_data(dsp, sb_ess_read_reg(dsp, 0xC3));
-        }
-        else if (dsp->sb_command == 0xCE)
-        {
+        } else if (dsp->sb_command == 0xCE) {
             sb_add_data(dsp, sb_ess_read_reg(dsp, 0xCF));
-        }
-        else if (dsp->sb_command == 0xCF)
-        {
+        } else if (dsp->sb_command == 0xCF) {
             sb_ess_write_reg(dsp, 0xCF, dsp->sb_data[0]);
-        }
-        else if (dsp->sb_command == 0xC0) {
+        } else if (dsp->sb_command == 0xC0) {
             sb_add_data(dsp, sb_ess_read_reg(dsp, dsp->sb_data[0]));
-        } 
-        else if (dsp->sb_command < 0xC0 && dsp->ess_extended_mode) {
+        } else if (dsp->sb_command < 0xC0 && dsp->ess_extended_mode) {
             sb_ess_write_reg(dsp, dsp->sb_command, dsp->sb_data[0]);
         }
         return;
@@ -1216,8 +1225,7 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
             dsp->sb_8_length--;
             dsp->ess_dma_counter++;
-            if (dsp->sb_command == 0x17)
-            {
+            if (dsp->sb_command == 0x17) {
                 dsp->sb_8_length--;
                 dsp->ess_dma_counter++;
             }
@@ -1330,11 +1338,9 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x65: /* 4-bit ESPCM output with reference */
         case 0x64: /* 4-bit ESPCM output */
-            if (IS_ESS(dsp))
-            {
+            if (IS_ESS(dsp)) {
                 if (dsp->espcm_mode != ESPCM_4
-                    || (dsp->sb_8_enable && dsp->sb_8_pause))
-                {
+                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1344,11 +1350,9 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x67: /* 3-bit ESPCM output with reference */
         case 0x66: /* 3-bit ESPCM output */
-            if (IS_ESS(dsp))
-            {
+            if (IS_ESS(dsp)) {
                 if (dsp->espcm_mode != ESPCM_3
-                    || (dsp->sb_8_enable && dsp->sb_8_pause))
-                {
+                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1358,11 +1362,9 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x6D: /* 1-bit ESPCM output with reference */
         case 0x6C: /* 1-bit ESPCM output */
-            if (IS_ESS(dsp))
-            {
+            if (IS_ESS(dsp)) {
                 if (dsp->espcm_mode != ESPCM_1
-                    || (dsp->sb_8_enable && dsp->sb_8_pause))
-                {
+                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1372,11 +1374,9 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x6F: /* 4-bit ESPCM input with reference */
         case 0x6E: /* 4-bit ESPCM input */
-            if (IS_ESS(dsp))
-            {
+            if (IS_ESS(dsp)) {
                 if (dsp->espcm_mode != ESPCM_4E
-                    || (dsp->sb_8_enable && dsp->sb_8_pause))
-                {
+                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1394,8 +1394,7 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
             dsp->sb_8_length--;
             dsp->ess_dma_counter++;
-            if (dsp->sb_command == 0x75)
-            {
+            if (dsp->sb_command == 0x75) {
                 dsp->sb_8_length--;
                 dsp->ess_dma_counter++;
             }
@@ -1409,8 +1408,7 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
             dsp->sb_8_length--;
             dsp->ess_dma_counter++;
-            if (dsp->sb_command == 0x77)
-            {
+            if (dsp->sb_command == 0x77) {
                 dsp->sb_8_length--;
                 dsp->ess_dma_counter++;
             }
@@ -1561,9 +1559,9 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0xE1: /* Get DSP version */
             if (IS_ESS(dsp)) {
-               sb_add_data(dsp, 0x3);
-               sb_add_data(dsp, 0x1);
-               break;
+                sb_add_data(dsp, 0x3);
+                sb_add_data(dsp, 0x1);
+                break;
             }
             if (IS_AZTECH(dsp)) {
                 if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
@@ -1603,17 +1601,17 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xE7: /* ???? */ /* ESS detect/read config on ESS cards */
             if (IS_ESS(dsp)) {
                 switch (dsp->sb_subtype) {
-                default:
-                    break;
-                case SB_SUBTYPE_ESS_ES688:
-                    sb_add_data(dsp, 0x68);
-                    sb_add_data(dsp, 0x80 | 0x04);
-                    break;
-                case SB_SUBTYPE_ESS_ES1688:
-                    // Determined via Windows driver debugging.
-                    sb_add_data(dsp, 0x68);
-                    sb_add_data(dsp, 0x80 | 0x09);
-                    break;
+                    default:
+                        break;
+                    case SB_SUBTYPE_ESS_ES688:
+                        sb_add_data(dsp, 0x68);
+                        sb_add_data(dsp, 0x80 | 0x04);
+                        break;
+                    case SB_SUBTYPE_ESS_ES1688:
+                        // Determined via Windows driver debugging.
+                        sb_add_data(dsp, 0x68);
+                        sb_add_data(dsp, 0x80 | 0x09);
+                        break;
                 }
             }
             break;
@@ -1623,8 +1621,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xF2: /* Trigger 8-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
             if (IS_ESS(dsp)) {
-                if (!timer_is_enabled(&dsp->irq_timer))
-                {
+                if (!timer_is_enabled(&dsp->irq_timer)) {
                     timer_set_delay_u64(&dsp->irq_timer, (100ULL * TIMER_USEC));
                 }
             } else {
@@ -1685,7 +1682,7 @@ sb_write(uint16_t a, uint8_t v, void *priv)
     if (dsp->sb_type < SB16 && (!IS_ESS(dsp) || (IS_ESS(dsp) && ((a & 0xF) != 0xE))))
         a &= 0xfffe;
 
-    //pclog("sb: port write %03x %02x\n", a, v);
+    // pclog("sb: port write %03x %02x\n", a, v);
 
     switch (a & 0xF) {
         case 6: /* Reset */
@@ -1697,14 +1694,13 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                 dsp->sbreset = v;
             }
 
-            if (!(v & 2) && (dsp->espcm_fifo_reset & 2))
-            {
+            if (!(v & 2) && (dsp->espcm_fifo_reset & 2)) {
                 fifo_reset(dsp->espcm_fifo);
             }
             dsp->espcm_fifo_reset = v;
-            dsp->uart_midi    = 0;
-            dsp->uart_irq     = 0;
-            dsp->onebyte_midi = 0;
+            dsp->uart_midi        = 0;
+            dsp->uart_irq         = 0;
+            dsp->onebyte_midi     = 0;
             return;
         case 0xC: /* Command/data write */
             if (dsp->uart_midi || dsp->onebyte_midi) {
@@ -1732,23 +1728,18 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                     else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
                         sb_commands[dsp->sb_command] = 2;
                 }
-                if (IS_ESS(dsp) && dsp->sb_command >= 0x64 && dsp->sb_command <= 0x6F)
-                {
-                    if (dsp->sb_subtype == SB_SUBTYPE_ESS_ES1688)
-                    {
+                if (IS_ESS(dsp) && dsp->sb_command >= 0x64 && dsp->sb_command <= 0x6F) {
+                    if (dsp->sb_subtype == SB_SUBTYPE_ESS_ES1688) {
+                        sb_commands[dsp->sb_command] = 2;
+                    } else {
                         sb_commands[dsp->sb_command] = 2;
                     }
-                    else
-                    {
-                        sb_commands[dsp->sb_command] = 2;
-                    }
-                }
-                else if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
+                } else if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
                     if (dsp->sb_command <= 0xC0 || dsp->sb_command == 0xC2
                         || dsp->sb_command == 0xCF) {
                         sb_commands[dsp->sb_command] = 1;
                     } else if (dsp->sb_command == 0xC3 || dsp->sb_command == 0xC6
-                        || dsp->sb_command == 0xC7 || dsp->sb_command == 0xCE) {
+                               || dsp->sb_command == 0xC7 || dsp->sb_command == 0xCE) {
                         sb_commands[dsp->sb_command] = 0;
                     } else {
                         sb_commands[dsp->sb_command] = -1;
@@ -1780,11 +1771,9 @@ sb_read(uint16_t a, void *priv)
     uint8_t   ret = 0x00;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if (dsp->sb_type < SB16)
-    {
+    if (dsp->sb_type < SB16) {
         /* Exception: ESS AudioDrive does not alias port base+0xf */
-        if (!IS_ESS(dsp) || !((a & 0xF) == 0xF))
-        {
+        if (!IS_ESS(dsp) || !((a & 0xF) == 0xF)) {
             a &= 0xfffe;
         }
     }
@@ -1807,19 +1796,18 @@ sb_read(uint16_t a, void *priv)
                 dsp->busy_count = (dsp->busy_count + 1) & 3;
             else
                 dsp->busy_count = 0;
-            if (IS_ESS(dsp))
-            {
+            if (IS_ESS(dsp)) {
                 if (dsp->wb_full || (dsp->busy_count & 2)) {
                     dsp->wb_full = timer_is_enabled(&dsp->wb_timer);
                 }
-                uint8_t busy_flag = dsp->wb_full ? 0x80 : 0x00;
-                uint8_t data_rdy = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x40;
-                uint8_t fifo_full = 0;  // Unimplemented
-                uint8_t fifo_empty = 0;
-                uint8_t fifo_half = 0;
+                uint8_t busy_flag   = dsp->wb_full ? 0x80 : 0x00;
+                uint8_t data_rdy    = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x40;
+                uint8_t fifo_full   = 0; // Unimplemented
+                uint8_t fifo_empty  = 0;
+                uint8_t fifo_half   = 0;
                 uint8_t irq_generic = dsp->ess_irq_generic ? 0x04 : 0x00;
-                uint8_t irq_fifohe = 0; // Unimplemented
-                uint8_t irq_dmactr = dsp->ess_irq_dmactr ? 0x01 : 0x00;
+                uint8_t irq_fifohe  = 0; // Unimplemented
+                uint8_t irq_dmactr  = dsp->ess_irq_dmactr ? 0x01 : 0x00;
 
                 return busy_flag | data_rdy | fifo_full | fifo_empty
                     | fifo_half | irq_generic | irq_fifohe | irq_dmactr;
@@ -1856,8 +1844,7 @@ sb_read(uint16_t a, void *priv)
             }
             break;
         case 0xF: /* 16-bit ack */
-            if (!IS_ESS(dsp))
-            {
+            if (!IS_ESS(dsp)) {
                 dsp->sb_irq16 = 0;
                 if (!dsp->sb_irq8)
                     dsp->irq_update(dsp->irq_priv, 0);
@@ -1869,8 +1856,8 @@ sb_read(uint16_t a, void *priv)
         default:
             break;
     }
-    
-    //pclog("sb: port read %03x %02x\n", a, ret);
+
+    // pclog("sb: port read %03x %02x\n", a, ret);
 
     return ret;
 }
@@ -2068,16 +2055,13 @@ sb_ess_finish_dma(sb_dsp_t *dsp)
 void
 sb_espcm_fifoctl_run(sb_dsp_t *dsp)
 {
-    if (fifo_get_empty(dsp->espcm_fifo) && !dsp->sb_8_pause)
-    {
-        while (!fifo_get_full(dsp->espcm_fifo))
-        {
+    if (fifo_get_empty(dsp->espcm_fifo) && !dsp->sb_8_pause) {
+        while (!fifo_get_full(dsp->espcm_fifo)) {
             int32_t val;
             val = dsp->dma_readb(dsp->dma_priv);
             dsp->ess_dma_counter++;
             fifo_write(val & 0xff, dsp->espcm_fifo);
-            if (val & DMA_OVER)
-            {
+            if (val & DMA_OVER) {
                 break;
             }
         }
@@ -2098,8 +2082,7 @@ pollsb(void *priv)
 
         switch (dsp->sb_8_format) {
             case 0x00: /* Mono unsigned */
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     data[0] = dsp->dma_readb(dsp->dma_priv);
                     /* Needed to prevent clicking in Worms, which programs the DSP to
                     auto-init DMA but programs the DMA controller to single cycle */
@@ -2108,7 +2091,7 @@ pollsb(void *priv)
                     dsp->sbdat = (data[0] ^ 0x80) << 8;
                     if (dsp->stereo) {
                         sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
-                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                                   dsp->sbleftright ? "left" : "right", dsp->sbdat);
                         if (dsp->sbleftright)
                             dsp->sbdatl = dsp->sbdat;
                         else
@@ -2121,15 +2104,14 @@ pollsb(void *priv)
                 }
                 break;
             case 0x10: /* Mono signed */
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     data[0] = dsp->dma_readb(dsp->dma_priv);
                     if (data[0] == DMA_NODATA)
                         break;
                     dsp->sbdat = data[0] << 8;
                     if (dsp->stereo) {
                         sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
-                                dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
+                                   dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
                         if (dsp->sbleftright)
                             dsp->sbdatl = dsp->sbdat;
                         else
@@ -2142,8 +2124,7 @@ pollsb(void *priv)
                 }
                 break;
             case 0x20: /* Stereo unsigned */
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     data[0] = dsp->dma_readb(dsp->dma_priv);
                     data[1] = dsp->dma_readb(dsp->dma_priv);
                     if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
@@ -2155,8 +2136,7 @@ pollsb(void *priv)
                 }
                 break;
             case 0x30: /* Stereo signed */
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     data[0] = dsp->dma_readb(dsp->dma_priv);
                     data[1] = dsp->dma_readb(dsp->dma_priv);
                     if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
@@ -2169,8 +2149,7 @@ pollsb(void *priv)
                 break;
 
             case ADPCM_4:
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     if (dsp->sbdacpos)
                         tempi = (dsp->sbdat2 & 0xF) + dsp->sbstep;
                     else
@@ -2202,7 +2181,7 @@ pollsb(void *priv)
 
                     if (dsp->stereo) {
                         sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
-                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                                   dsp->sbleftright ? "left" : "right", dsp->sbdat);
                         if (dsp->sbleftright)
                             dsp->sbdatl = dsp->sbdat;
                         else
@@ -2214,8 +2193,7 @@ pollsb(void *priv)
                 break;
 
             case ADPCM_26:
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     if (!dsp->sbdacpos)
                         tempi = (dsp->sbdat2 >> 5) + dsp->sbstep;
                     else if (dsp->sbdacpos == 1)
@@ -2249,7 +2227,7 @@ pollsb(void *priv)
 
                     if (dsp->stereo) {
                         sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
-                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                                   dsp->sbleftright ? "left" : "right", dsp->sbdat);
                         if (dsp->sbleftright)
                             dsp->sbdatl = dsp->sbdat;
                         else
@@ -2261,8 +2239,7 @@ pollsb(void *priv)
                 break;
 
             case ADPCM_2:
-                if (!dsp->sb_8_pause)
-                {
+                if (!dsp->sb_8_pause) {
                     tempi = ((dsp->sbdat2 >> ((3 - dsp->sbdacpos) * 2)) & 3) + dsp->sbstep;
                     if (tempi < 0)
                         tempi = 0;
@@ -2290,7 +2267,7 @@ pollsb(void *priv)
 
                     if (dsp->stereo) {
                         sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
-                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                                   dsp->sbleftright ? "left" : "right", dsp->sbdat);
                         if (dsp->sbleftright)
                             dsp->sbdatl = dsp->sbdat;
                         else
@@ -2302,97 +2279,77 @@ pollsb(void *priv)
                 break;
 
             case ESPCM_4:
-                if (dsp->espcm_sample_idx >= 19)
-                {
+                if (dsp->espcm_sample_idx >= 19) {
                     dsp->espcm_sample_idx = 0;
                 }
-                if (dsp->espcm_sample_idx == 0)
-                {
+                if (dsp->espcm_sample_idx == 0) {
                     sb_espcm_fifoctl_run(dsp);
-                    if (fifo_get_empty(dsp->espcm_fifo))
-                    {
+                    if (fifo_get_empty(dsp->espcm_fifo)) {
                         break;
                     }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
 
                     dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
-                    tempi = dsp->espcm_byte_buffer[0] >> 4;
-                }
-                else if (dsp->espcm_sample_idx & 1)
-                {
+                    tempi            = dsp->espcm_byte_buffer[0] >> 4;
+                } else if (dsp->espcm_sample_idx & 1) {
                     sb_espcm_fifoctl_run(dsp);
-                    if (fifo_get_empty(dsp->espcm_fifo))
-                    {
+                    if (fifo_get_empty(dsp->espcm_fifo)) {
                         break;
                     }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
                     dsp->sb_8_length--;
 
                     tempi = dsp->espcm_byte_buffer[0] & 0x0F;
-                }
-                else
-                {
+                } else {
                     tempi = dsp->espcm_byte_buffer[0] >> 4;
                 }
 
-                if (dsp->espcm_sample_idx == 18)
-                {
+                if (dsp->espcm_sample_idx == 18) {
                     dsp->sb_8_length--;
                 }
 
                 dsp->espcm_sample_idx++;
 
                 tempi |= (dsp->espcm_range << 4);
-                data[0] = espcm_range_map[tempi];
+                data[0]    = espcm_range_map[tempi];
                 dsp->sbdat = data[0] << 8;
-                if (dsp->stereo)
-                {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ESPCM 4, dsp->stereo, %s channel, %04X\n",
-                            dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
                         dsp->sbdatl = dsp->sbdat;
                     else
                         dsp->sbdatr = dsp->sbdat;
                     dsp->sbleftright = !dsp->sbleftright;
-                }
-                else
-                {
+                } else {
                     dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
                 }
                 break;
 
             case ESPCM_3:
-                if (dsp->espcm_sample_idx >= 19)
-                {
+                if (dsp->espcm_sample_idx >= 19) {
                     dsp->espcm_sample_idx = 0;
                 }
-                if (dsp->espcm_sample_idx == 0)
-                {
+                if (dsp->espcm_sample_idx == 0) {
                     sb_espcm_fifoctl_run(dsp);
-                    if (fifo_get_empty(dsp->espcm_fifo))
-                    {
+                    if (fifo_get_empty(dsp->espcm_fifo)) {
                         break;
                     }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
 
-                    dsp->espcm_range = dsp->espcm_byte_buffer[0] & 0x0F;
-                    tempi = dsp->espcm_byte_buffer[0] >> 4;
+                    dsp->espcm_range      = dsp->espcm_byte_buffer[0] & 0x0F;
+                    tempi                 = dsp->espcm_byte_buffer[0] >> 4;
                     dsp->espcm_last_value = tempi;
-                }
-                else if (dsp->espcm_sample_idx == 1)
-                {
-                    for (tempi = 0; tempi < 4; tempi++)
-                    {
+                } else if (dsp->espcm_sample_idx == 1) {
+                    for (tempi = 0; tempi < 4; tempi++) {
                         sb_espcm_fifoctl_run(dsp);
-                        if (fifo_get_empty(dsp->espcm_fifo))
-                        {
+                        if (fifo_get_empty(dsp->espcm_fifo)) {
                             break;
                         }
                         dsp->espcm_byte_buffer[tempi] = fifo_read(dsp->espcm_fifo);
                         dsp->sb_8_length--;
                     }
-                    if (tempi < 4)
-                    {
+                    if (tempi < 4) {
                         break;
                     }
 
@@ -2409,24 +2366,19 @@ pollsb(void *priv)
                     dsp->espcm_code_buffer[8] = (dsp->espcm_byte_buffer[3] >> 2) & 0x07;
                     dsp->espcm_code_buffer[9] = (dsp->espcm_byte_buffer[3] >> 5) & 0x07;
 
-                    tempi = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[0];
-                    tempi = espcm3_dpcm_tables[tempi];
+                    tempi                 = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[0];
+                    tempi                 = espcm3_dpcm_tables[tempi];
                     dsp->espcm_last_value = tempi;
-                }
-                else if (dsp->espcm_sample_idx == 11)
-                {
-                    for (tempi = 1; tempi < 4; tempi++)
-                    {
+                } else if (dsp->espcm_sample_idx == 11) {
+                    for (tempi = 1; tempi < 4; tempi++) {
                         sb_espcm_fifoctl_run(dsp);
-                        if (fifo_get_empty(dsp->espcm_fifo))
-                        {
+                        if (fifo_get_empty(dsp->espcm_fifo)) {
                             break;
                         }
                         dsp->espcm_byte_buffer[tempi] = fifo_read(dsp->espcm_fifo);
                         dsp->sb_8_length--;
                     }
-                    if (tempi < 4)
-                    {
+                    if (tempi < 4) {
                         break;
                     }
 
@@ -2439,53 +2391,44 @@ pollsb(void *priv)
                     dsp->espcm_code_buffer[6] = (dsp->espcm_byte_buffer[3] >> 2) & 0x07;
                     dsp->espcm_code_buffer[7] = (dsp->espcm_byte_buffer[3] >> 5) & 0x07;
 
-                    tempi = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[0];
-                    tempi = espcm3_dpcm_tables[tempi];
+                    tempi                 = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[0];
+                    tempi                 = espcm3_dpcm_tables[tempi];
                     dsp->espcm_last_value = tempi;
-                }
-                else
-                {
-                    tempi = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[(dsp->espcm_sample_idx - 1) % 10];
-                    tempi = espcm3_dpcm_tables[tempi];
+                } else {
+                    tempi                 = (dsp->espcm_table_index << 8) | (dsp->espcm_last_value << 3) | dsp->espcm_code_buffer[(dsp->espcm_sample_idx - 1) % 10];
+                    tempi                 = espcm3_dpcm_tables[tempi];
                     dsp->espcm_last_value = tempi;
                 }
 
-                if (dsp->espcm_sample_idx == 18)
-                {
+                if (dsp->espcm_sample_idx == 18) {
                     dsp->sb_8_length--;
                 }
 
                 dsp->espcm_sample_idx++;
 
                 tempi |= (dsp->espcm_range << 4);
-                data[0] = espcm_range_map[tempi];
+                data[0]    = espcm_range_map[tempi];
                 dsp->sbdat = data[0] << 8;
-                if (dsp->stereo)
-                {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ESPCM 3, dsp->stereo, %s channel, %04X\n",
-                            dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
                         dsp->sbdatl = dsp->sbdat;
                     else
                         dsp->sbdatr = dsp->sbdat;
                     dsp->sbleftright = !dsp->sbleftright;
-                }
-                else
-                {
+                } else {
                     dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
                 }
                 break;
 
             case ESPCM_1:
-                if (dsp->espcm_sample_idx >= 19)
-                {
+                if (dsp->espcm_sample_idx >= 19) {
                     dsp->espcm_sample_idx = 0;
                 }
-                if (dsp->espcm_sample_idx == 0)
-                {
+                if (dsp->espcm_sample_idx == 0) {
                     sb_espcm_fifoctl_run(dsp);
-                    if (fifo_get_empty(dsp->espcm_fifo))
-                    {
+                    if (fifo_get_empty(dsp->espcm_fifo)) {
                         break;
                     }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
@@ -2494,12 +2437,9 @@ pollsb(void *priv)
                     dsp->espcm_byte_buffer[0] >>= 5;
                     tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xC : 0x4;
                     dsp->espcm_byte_buffer[0] >>= 1;
-                }
-                else if (dsp->espcm_sample_idx == 3 | dsp->espcm_sample_idx == 11)
-                {
+                } else if (dsp->espcm_sample_idx == 3 | dsp->espcm_sample_idx == 11) {
                     sb_espcm_fifoctl_run(dsp);
-                    if (fifo_get_empty(dsp->espcm_fifo))
-                    {
+                    if (fifo_get_empty(dsp->espcm_fifo)) {
                         break;
                     }
                     dsp->espcm_byte_buffer[0] = fifo_read(dsp->espcm_fifo);
@@ -2507,35 +2447,29 @@ pollsb(void *priv)
 
                     tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xC : 0x4;
                     dsp->espcm_byte_buffer[0] >>= 1;
-                }
-                else
-                {
+                } else {
                     tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xC : 0x4;
                     dsp->espcm_byte_buffer[0] >>= 1;
                 }
 
-                if (dsp->espcm_sample_idx == 18)
-                {
+                if (dsp->espcm_sample_idx == 18) {
                     dsp->sb_8_length--;
                 }
 
                 dsp->espcm_sample_idx++;
 
                 tempi |= (dsp->espcm_range << 4);
-                data[0] = espcm_range_map[tempi];
+                data[0]    = espcm_range_map[tempi];
                 dsp->sbdat = data[0] << 8;
-                if (dsp->stereo)
-                {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ESPCM 1, dsp->stereo, %s channel, %04X\n",
-                            dsp->sbleftright ? "left" : "right", dsp->sbdat);
+                               dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
                         dsp->sbdatl = dsp->sbdat;
                     else
                         dsp->sbdatr = dsp->sbdat;
                     dsp->sbleftright = !dsp->sbleftright;
-                }
-                else
-                {
+                } else {
                     dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
                 }
                 break;
@@ -2543,7 +2477,6 @@ pollsb(void *priv)
             default:
                 break;
         }
-
 
         if (dsp->sb_8_length < 0 && !dsp->ess_playback_mode) {
             if (dsp->sb_8_autoinit)
@@ -2556,23 +2489,19 @@ pollsb(void *priv)
             sb_irq(dsp, 1);
             dsp->ess_irq_generic = true;
         }
-        if (dsp->ess_dma_counter > 0xffff)
-        {
-            if (dsp->ess_playback_mode)
-            {
-                if (!dsp->sb_8_autoinit)
-                {
+        if (dsp->ess_dma_counter > 0xffff) {
+            if (dsp->ess_playback_mode) {
+                if (!dsp->sb_8_autoinit) {
                     dsp->sb_8_enable = 0;
                     timer_disable(&dsp->output_timer);
                     sb_ess_finish_dma(dsp);
                 }
-                if (ESSreg(0xB1) & 0x40)
-                {
+                if (ESSreg(0xB1) & 0x40) {
                     sb_irq(dsp, 1);
                     dsp->ess_irq_dmactr = true;
                 }
             }
-            uint32_t temp = dsp->ess_dma_counter & 0xffff;
+            uint32_t temp        = dsp->ess_dma_counter & 0xffff;
             dsp->ess_dma_counter = sb_ess_get_dma_counter(dsp);
             dsp->ess_dma_counter += temp;
         }
@@ -2634,23 +2563,19 @@ pollsb(void *priv)
             sb_irq(dsp, 0);
             dsp->ess_irq_generic = true;
         }
-        if (dsp->ess_dma_counter > 0xffff)
-        {
-            if (dsp->ess_playback_mode)
-            {
-                if (!dsp->sb_16_autoinit)
-                {
+        if (dsp->ess_dma_counter > 0xffff) {
+            if (dsp->ess_playback_mode) {
+                if (!dsp->sb_16_autoinit) {
                     dsp->sb_16_enable = 0;
                     timer_disable(&dsp->output_timer);
                     sb_ess_finish_dma(dsp);
                 }
-                if (ESSreg(0xB1) & 0x40)
-                {
+                if (ESSreg(0xB1) & 0x40) {
                     sb_irq(dsp, 0);
                     dsp->ess_irq_dmactr = true;
                 }
             }
-            uint32_t temp = dsp->ess_dma_counter & 0xffff;
+            uint32_t temp        = dsp->ess_dma_counter & 0xffff;
             dsp->ess_dma_counter = sb_ess_get_dma_counter(dsp);
             dsp->ess_dma_counter += temp;
         }
@@ -2714,60 +2639,47 @@ sb_poll_i(void *priv)
                 dsp->espcm_sample_idx++;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
-                if (dsp->espcm_sample_idx >= 19)
-                {
-                    int i, bit, table_addr, sigma, last_sigma;
-                    int8_t min_sample = 127, max_sample = -128, s;
+                if (dsp->espcm_sample_idx >= 19) {
+                    int     i, bit, table_addr, sigma, last_sigma;
+                    int8_t  min_sample = 127, max_sample = -128, s;
                     uint8_t b;
 
-                    for (i = 0; i < 19; i++)
-                    {
+                    for (i = 0; i < 19; i++) {
                         s = dsp->espcm_sample_buffer[i];
-                        if (s < min_sample)
-                        {
+                        if (s < min_sample) {
                             min_sample = s;
                         }
-                        if (s > max_sample)
-                        {
+                        if (s > max_sample) {
                             max_sample = s;
                         }
                     }
-                    if (min_sample < 0)
-                    {
+                    if (min_sample < 0) {
                         min_sample = -min_sample;
                     }
-                    if (max_sample < 0)
-                    {
+                    if (max_sample < 0) {
                         max_sample = -max_sample;
                     }
-                    if (min_sample > max_sample)
-                    {
+                    if (min_sample > max_sample) {
                         max_sample = min_sample;
                     }
 
-                    for (table_addr = 15; table_addr < 256; table_addr += 16)
-                    {
-                        if (max_sample <= espcm_range_map[table_addr])
-                        {
+                    for (table_addr = 15; table_addr < 256; table_addr += 16) {
+                        if (max_sample <= espcm_range_map[table_addr]) {
                             break;
                         }
                     }
                     dsp->espcm_range = table_addr >> 4;
 
-                    for (i = 0; i < 19; i++)
-                    {
+                    for (i = 0; i < 19; i++) {
                         table_addr = dsp->espcm_range << 4;
                         last_sigma = 9999;
-                        s = dsp->espcm_sample_buffer[i];
-                        for (; (table_addr >> 4) == dsp->espcm_range; table_addr++)
-                        {
+                        s          = dsp->espcm_sample_buffer[i];
+                        for (; (table_addr >> 4) == dsp->espcm_range; table_addr++) {
                             sigma = espcm_range_map[table_addr] - s;
-                            if (sigma < 0)
-                            {
+                            if (sigma < 0) {
                                 sigma = -sigma;
                             }
-                            if (sigma > last_sigma)
-                            {
+                            if (sigma > last_sigma) {
                                 break;
                             }
                             last_sigma = sigma;
@@ -2781,8 +2693,7 @@ sb_poll_i(void *priv)
                     dsp->sb_8_length--;
                     dsp->ess_dma_counter++;
 
-                    for (i = 1; i < 10; i++)
-                    {
+                    for (i = 1; i < 10; i++) {
                         b = dsp->espcm_code_buffer[i * 2 - 1] | (dsp->espcm_code_buffer[i * 2] << 4);
                         dsp->dma_writeb(dsp->dma_priv, b);
                         dsp->sb_8_length--;
@@ -2807,23 +2718,19 @@ sb_poll_i(void *priv)
             sb_irq(dsp, 1);
             dsp->ess_irq_generic = true;
         }
-        if (dsp->ess_dma_counter > 0xffff)
-        {
-            if (dsp->ess_playback_mode)
-            {
-                if (!dsp->sb_8_autoinit)
-                {
+        if (dsp->ess_dma_counter > 0xffff) {
+            if (dsp->ess_playback_mode) {
+                if (!dsp->sb_8_autoinit) {
                     dsp->sb_8_enable = 0;
                     timer_disable(&dsp->input_timer);
                     sb_ess_finish_dma(dsp);
                 }
-                if (ESSreg(0xB1) & 0x40)
-                {
+                if (ESSreg(0xB1) & 0x40) {
                     sb_irq(dsp, 1);
                     dsp->ess_irq_dmactr = true;
                 }
             }
-            uint32_t temp = dsp->ess_dma_counter & 0xffff;
+            uint32_t temp        = dsp->ess_dma_counter & 0xffff;
             dsp->ess_dma_counter = sb_ess_get_dma_counter(dsp);
             dsp->ess_dma_counter += temp;
         }
@@ -2881,23 +2788,19 @@ sb_poll_i(void *priv)
             sb_irq(dsp, 0);
             dsp->ess_irq_generic = true;
         }
-        if (dsp->ess_dma_counter > 0xffff)
-        {
-            if (dsp->ess_playback_mode)
-            {
-                if (!dsp->sb_16_autoinit)
-                {
+        if (dsp->ess_dma_counter > 0xffff) {
+            if (dsp->ess_playback_mode) {
+                if (!dsp->sb_16_autoinit) {
                     dsp->sb_16_enable = 0;
                     timer_disable(&dsp->input_timer);
                     sb_ess_finish_dma(dsp);
                 }
-                if (ESSreg(0xB1) & 0x40)
-                {
+                if (ESSreg(0xB1) & 0x40) {
                     sb_irq(dsp, 0);
                     dsp->ess_irq_dmactr = true;
                 }
             }
-            uint32_t temp = dsp->ess_dma_counter & 0xffff;
+            uint32_t temp        = dsp->ess_dma_counter & 0xffff;
             dsp->ess_dma_counter = sb_ess_get_dma_counter(dsp);
             dsp->ess_dma_counter += temp;
         }

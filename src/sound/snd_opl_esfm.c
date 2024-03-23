@@ -7,8 +7,8 @@
  *          This file is part of the 86Box distribution.
  *
  *          ESFMu ESFM emulator.
- * 
- * 
+ *
+ *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Alexey Khokholov (Nuke.YKT)
@@ -29,19 +29,18 @@
 #include "esfmu/esfm.h"
 
 #define HAVE_STDARG_H
-#define NO_SOFTFLOAT_INCLUDE
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/snd_opl.h>
 
-#define RSM_FRAC    10
+#define RSM_FRAC 10
 
 typedef struct {
     esfm_chip opl;
-    int8_t  flags;
-    int8_t  pad;
+    int8_t    flags;
+    int8_t    pad;
 
     uint16_t port;
     uint8_t  status;
@@ -180,7 +179,7 @@ static void *
 esfm_drv_init(const device_t *info)
 {
     esfm_drv_t *dev = (esfm_drv_t *) calloc(1, sizeof(esfm_drv_t));
-    dev->flags       = FLAG_CYCLES | FLAG_OPL3;
+    dev->flags      = FLAG_CYCLES | FLAG_OPL3;
 
     /* Initialize the ESFMu object. */
     ESFM_init(&dev->opl);
@@ -207,8 +206,8 @@ esfm_drv_update(void *priv)
         return dev->buffer;
 
     esfm_drv_generate_stream(dev,
-                          &dev->buffer[dev->pos * 2],
-                          music_pos_global - dev->pos);
+                             &dev->buffer[dev->pos * 2],
+                             music_pos_global - dev->pos);
 
     for (; dev->pos < music_pos_global; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
@@ -217,7 +216,6 @@ esfm_drv_update(void *priv)
 
     return dev->buffer;
 }
-
 
 static void
 esfm_drv_reset_buffer(void *priv)
@@ -239,8 +237,7 @@ esfm_drv_read(uint16_t port, void *priv)
 
     uint8_t ret = 0xff;
 
-    switch (port & 0x0003)
-    {
+    switch (port & 0x0003) {
         case 0x0000:
             ret = dev->status;
             if (dev->status & STAT_TMR_OVER)
@@ -248,8 +245,7 @@ esfm_drv_read(uint16_t port, void *priv)
             break;
         case 0x0001:
             ret = ESFM_read_port(&dev->opl, port & 3);
-            switch (dev->opl.addr_latch & 0x5ff)
-            {
+            switch (dev->opl.addr_latch & 0x5ff) {
                 case 0x402:
                     ret = dev->timer_count[0];
                     break;
@@ -277,14 +273,12 @@ esfm_drv_write_buffered(esfm_drv_t *dev, uint8_t val)
 
     ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
 
-    if (dev->opl.native_mode)
-    {
+    if (dev->opl.native_mode) {
         p -= 0x400;
         p &= 0x1ff;
     }
 
-    switch (p)
-    {
+    switch (p) {
         case 0x002: /* Timer 1 */
             dev->timer_count[0] = val;
             esfm_log("Timer 0 count now: %i\n", dev->timer_count[0]);
