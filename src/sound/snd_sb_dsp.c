@@ -367,7 +367,6 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     if (IS_ESS(dsp) && dsp->sb_subtype != SB_SUBTYPE_ESS_ES1688
         && !(ESSreg(0xB1) & 0x10)) // if ESS playback, and IRQ disabled, do not fire
     {
-        pclog("ess: IRQ was masked\n");
         return;
     }
 
@@ -394,7 +393,6 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
         if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
             if (!(ESSreg(0xB1) & 0x40)) // if ESS playback, and IRQ disabled, do not fire
             {
-                pclog("ess: IRQ was masked\n");
                 return;
             }
         }
@@ -409,7 +407,6 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
 void
 sb_irq(sb_dsp_t *dsp, int irq8)
 {
-    pclog("sb: IRQ raised\n");
     sb_update_status(dsp, !irq8, 1);
 }
 
@@ -862,7 +859,6 @@ static uint8_t sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
 {
     switch (reg) {
         default:
-            pclog("ESS register read reg=%02xh val=%02xh\n",reg, ESSreg(reg));
             return ESSreg(reg);
     }
 
@@ -876,7 +872,6 @@ static void sb_ess_update_autolen(sb_dsp_t *dsp) {
 static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
 {
     uint8_t chg = 0x00;
-    pclog("ESS register write reg=%02xh val=%02xh\n",reg,data);
 
     switch (reg) {
         case 0xA1: /* Extended Mode Sample Rate Generator */
@@ -890,7 +885,6 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             temp = 1000000.0 / dsp->sb_freq;
             dsp->sblatchi = dsp->sblatcho = TIMER_USEC * temp;
             dsp->sb_timei = dsp->sb_timeo;
-            pclog("ess: Sample rate - %ihz (%f)\n", dsp->sb_freq, dsp->sblatcho);
             break;
         }
         case 0xA2: /* Filter divider (effectively, a hardware lowpass filter under S/W control) */
@@ -901,7 +895,6 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
         case 0xA5: /* DMA Transfer Count Reload (high) */
             ESSreg(reg) = data;
             sb_ess_update_autolen(dsp);
-            pclog("ess: DMA Transfer Count Reload length set to %d samples (0x%x)\n", sb_ess_get_dma_len(dsp), sb_ess_get_dma_counter(dsp));
             if ((dsp->sb_16_length < 0 && !dsp->sb_16_enable) && (dsp->sb_8_length < 0 && !dsp->sb_8_enable))
                 dsp->ess_reload_len = 1;
             break;
@@ -950,7 +943,6 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
                 dsp->sb_irqnum = 10;
                 break;
             }
-            pclog("ess: IRQ set to %d\n", dsp->sb_irqnum);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
             break;
         case 0xB2: /* DRQ Control */
@@ -971,7 +963,6 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
                 dsp->sb_8_dmanum = 3;
                 break;
             }
-            pclog("ess: DMA set to %d\n", dsp->sb_8_dmanum);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
             if (chg & 0x40) sb_ess_update_dma_status(dsp);
             break;
@@ -1053,7 +1044,7 @@ static void sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
             break;
 
         default:
-            pclog("UNKNOWN ESS register write reg=%02xh val=%02xh\n",reg,data);
+            sb_dsp_log("UNKNOWN ESS register write reg=%02xh val=%02xh\n",reg,data);
             break;
     }
 }
@@ -1071,20 +1062,6 @@ sb_exec_command(sb_dsp_t *dsp)
     if (dsp->sb_type >= SB16)
     {
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
-    }
-    
-    {
-        int i, l, s = 0;
-        char data_s[256], *dsptr = data_s;
-        data_s[0] = '\0';
-
-        for (i = 0; i < sb_commands[dsp->sb_command]; i++)
-        {
-            l = snprintf(dsptr, 256 - s, " 0x%02X", dsp->sb_data[i]);
-            s += l;
-            dsptr += l;
-        }
-        pclog("dsp->sb_command = 0x%02X%s, length %d\n", dsp->sb_command, data_s, sb_commands[dsp->sb_command]);
     }
 
     if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
@@ -1320,7 +1297,6 @@ sb_exec_command(sb_dsp_t *dsp)
             temp                          = 256 - dsp->sb_data[0];
             temp                          = 1000000 / temp;
             sb_dsp_log("Sample rate - %ihz (%f)\n", temp, dsp->sblatcho);
-            pclog("Sample rate - %ihz (%f)\n", temp, dsp->sblatcho);
             // if ((dsp->sb_freq != temp) && (IS_ESS(dsp) || (dsp->sb_type >= SB16)))
             if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16))
                 recalc_sb16_filter(0, temp);
@@ -1334,7 +1310,6 @@ sb_exec_command(sb_dsp_t *dsp)
             if (dsp->sb_type >= SB16) {
                 dsp->sblatcho = (uint64_t) (TIMER_USEC * (1000000.0f / (float) (dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
                 sb_dsp_log("Sample rate - %ihz (%f)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
-                pclog("Sample rate - %ihz (%f)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
                 temp          = dsp->sb_freq;
                 dsp->sb_freq  = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
                 dsp->sb_timeo = 256LL + dsp->sb_freq;
@@ -1360,7 +1335,6 @@ sb_exec_command(sb_dsp_t *dsp)
                 if (dsp->espcm_mode != ESPCM_4
                     || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
-                    pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1375,7 +1349,6 @@ sb_exec_command(sb_dsp_t *dsp)
                 if (dsp->espcm_mode != ESPCM_3
                     || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
-                    pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1390,7 +1363,6 @@ sb_exec_command(sb_dsp_t *dsp)
                 if (dsp->espcm_mode != ESPCM_1
                     || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
-                    pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1405,7 +1377,6 @@ sb_exec_command(sb_dsp_t *dsp)
                 if (dsp->espcm_mode != ESPCM_4E
                     || (dsp->sb_8_enable && dsp->sb_8_pause))
                 {
-                    pclog("ess: ESPCM FIFO reset\n");
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1652,11 +1623,9 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xF2: /* Trigger 8-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
             if (IS_ESS(dsp)) {
-                if (timer_is_enabled(&dsp->irq_timer))
-                    pclog("F2 already written\n");
-                else {
+                if (!timer_is_enabled(&dsp->irq_timer))
+                {
                     timer_set_delay_u64(&dsp->irq_timer, (100ULL * TIMER_USEC));
-                    pclog("F2 written\n");
                 }
             } else {
                 sb_irq(dsp, 1);
@@ -1665,7 +1634,6 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0xF3: /* Trigger 16-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
-            sb_irq(dsp, 0);
             dsp->ess_irq_generic = true;
             break;
         case 0xF8:
@@ -1812,10 +1780,6 @@ sb_read(uint16_t a, void *priv)
     uint8_t   ret = 0x00;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((a & 0xF) == 0x9 || (a & 0xF) == 0xB)
-    {
-        pclog("ess: Read-Sequence-Key? port 0x%X", a);
-    }
     if (dsp->sb_type < SB16)
     {
         /* Exception: ESS AudioDrive does not alias port base+0xf */
@@ -1880,10 +1844,6 @@ sb_read(uint16_t a, void *priv)
             break;
         case 0xE: /* Read data ready */
             dsp->irq_update(dsp->irq_priv, 0);
-            if (dsp->sb_irq8 || dsp->sb_irq16)
-            {
-                pclog("sb: IRQ acknowledged\n");
-            }
             dsp->sb_irq8 = dsp->sb_irq16 = 0;
             dsp->ess_irq_generic = dsp->ess_irq_dmactr = false;
             /* Only bit 7 is defined but aztech diagnostics fail if the others are set. Keep the original behavior to not interfere with what's already working. */
@@ -1898,10 +1858,6 @@ sb_read(uint16_t a, void *priv)
         case 0xF: /* 16-bit ack */
             if (!IS_ESS(dsp))
             {
-                if (dsp->sb_irq16)
-                {
-                    pclog("sb: 16-bit IRQ acknowledged");
-                }
                 dsp->sb_irq16 = 0;
                 if (!dsp->sb_irq8)
                     dsp->irq_update(dsp->irq_priv, 0);
@@ -2107,7 +2063,6 @@ sb_ess_finish_dma(sb_dsp_t *dsp)
         return;
     ESSreg(0xB8) &= ~0x01;
     dma_set_drq(dsp->sb_8_dmanum, 0);
-    pclog("ess: DMA finished");
 }
 
 void
@@ -2615,7 +2570,6 @@ pollsb(void *priv)
                 {
                     sb_irq(dsp, 1);
                     dsp->ess_irq_dmactr = true;
-                    pclog("IRQ fired via ESS DMA counter, next IRQ in %d samples\n", sb_ess_get_dma_len(dsp));
                 }
             }
             uint32_t temp = dsp->ess_dma_counter & 0xffff;

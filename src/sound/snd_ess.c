@@ -167,7 +167,6 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
             mixer->regs[mixer->index] = val;
-            pclog("ess: Mixer Register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
             switch (mixer->index) {
                 /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
@@ -322,7 +321,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     }
 
                 default:
-                    pclog("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    //pclog("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -378,30 +377,25 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x36:
         case 0x38:
         case 0x3e:
-            pclog("ess: Mixer Register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             return mixer->regs[mixer->index];
 
         case 0x40:
 
-            if (0)
+            if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688)
             {
-                /* not on ES1688 */
                 uint8_t val = mixer->ess_id_str[mixer->ess_id_str_pos];
-                uint8_t pos_log = mixer->ess_id_str_pos; /* TODO remove */
                 mixer->ess_id_str_pos++;
                 if (mixer->ess_id_str_pos >= 4)
                     mixer->ess_id_str_pos = 0;
-                pclog("ess: ID READ: %02X (pos %d)\n", val, pos_log);
                 return val;
             }
             else
             {
-                pclog("ess: Mixer Register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                 return mixer->regs[mixer->index];
             }
 
         default:
-            pclog("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            //pclog("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             break;
     }
 
