@@ -4880,7 +4880,7 @@ const device_t sb_awe64_gold_device = {
 };
 
 const device_t ess_1688_device = {
-    .name          = "ESS Technology ES1688",
+    .name          = "ESS AudioDrive ES1688",
     .internal_name = "ess_es1688",
     .flags         = DEVICE_ISA,
     .local         = 0,
