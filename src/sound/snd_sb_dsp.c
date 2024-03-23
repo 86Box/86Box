@@ -2625,7 +2625,7 @@ sb_poll_i(void *priv)
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 if (dsp->espcm_sample_idx >= 19) {
-                    int     i, bit, table_addr, sigma, last_sigma;
+                    int     i, table_addr, sigma, last_sigma;
                     int8_t  min_sample = 127, max_sample = -128, s;
                     uint8_t b;
 

@@ -141,8 +141,6 @@ typedef struct modem_t
     netcard_t *card;
 } modem_t;
 
-static modem_t *instance;
-
 #define MREG_AUTOANSWER_COUNT 0
 #define MREG_RING_COUNT 1
 #define MREG_ESCAPE_CHAR 2
@@ -576,7 +574,6 @@ modem_dial(modem_t* modem, const char* str)
     else
     {
         char buf[128] = "";
-        const char *destination = buf;
         strcpy(buf, str);
         // Scan host for port
         uint16_t port;
@@ -1106,7 +1103,6 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
 {
 #if 1
     modem_t* modem = (modem_t*)priv;
-    uint8_t c = 0;
     uint32_t i = 0;
 
     if (modem->tcpIpMode)
