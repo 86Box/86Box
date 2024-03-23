@@ -696,6 +696,9 @@ static void *
 pitf_init(const device_t *info)
 {
     pitf_t *dev = (pitf_t *) malloc(sizeof(pitf_t));
+
+    pitf_set_pit_const(dev, PITCONST);
+
     pitf_reset(dev);
 
     dev->flags = info->local;
