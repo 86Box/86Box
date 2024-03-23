@@ -74,7 +74,7 @@ int16_t ESFM_get_channel_output_native(esfm_chip *chip, int channel_idx);
 
 // These are fake types just for syntax sugar.
 // Beware of their underlying types when reading/writing to them.
-typedef uint8_t flag;
+typedef uint8_t ebit;
 typedef uint8_t uint2;
 typedef uint8_t uint3;
 typedef uint8_t uint4;
@@ -110,7 +110,7 @@ typedef struct _esfm_write_buf
 	uint64_t timestamp;
 	uint16_t address;
 	uint8_t data;
-	flag valid;
+	ebit valid;
 
 } esfm_write_buf;
 
@@ -137,16 +137,16 @@ typedef struct _esfm_slot_internal
 
 	uint19 phase_acc;
 	uint10 phase_out;
-	flag phase_reset;
-	flag *key_on;
-	flag key_on_gate;
+	ebit phase_reset;
+	ebit *key_on;
+	ebit key_on_gate;
 
 	uint2 eg_state;
-	flag eg_delay_run;
-	flag eg_delay_transitioned_10;
-	flag eg_delay_transitioned_10_gate;
-	flag eg_delay_transitioned_01;
-	flag eg_delay_transitioned_01_gate;
+	ebit eg_delay_run;
+	ebit eg_delay_transitioned_10;
+	ebit eg_delay_transitioned_10_gate;
+	ebit eg_delay_transitioned_01;
+	ebit eg_delay_transitioned_01_gate;
 	uint16 eg_delay_counter;
 	uint16 eg_delay_counter_compare;
 
@@ -178,18 +178,18 @@ struct _esfm_slot
 	uint4 sustain_lvl;
 	uint4 release_rate;
 
-	flag tremolo_en;
-	flag tremolo_deep;
-	flag vibrato_en;
-	flag vibrato_deep;
-	flag emu_connection_typ;
-	flag env_sustaining;
-	flag ksr;
+	ebit tremolo_en;
+	ebit tremolo_deep;
+	ebit vibrato_en;
+	ebit vibrato_deep;
+	ebit emu_connection_typ;
+	ebit env_sustaining;
+	ebit ksr;
 	uint2 ksl;
 	uint3 env_delay;
 	// overlaps with env_delay bit 0
 	// TODO: check if emu mode only uses this, or if it actually overwrites the channel field used by native mode
-	flag emu_key_on;
+	ebit emu_key_on;
 
 	// Internal state
 	esfm_slot_internal in;
@@ -201,11 +201,11 @@ struct _esfm_channel
 	esfm_slot slots[4];
 	uint5 channel_idx;
 	int16 output[2];
-	flag key_on;
-	flag emu_mode_4op_enable;
+	ebit key_on;
+	ebit emu_mode_4op_enable;
 	// Only for 17th and 18th channels
-	flag key_on_2;
-	flag emu_mode_4op_enable_2;
+	ebit key_on_2;
+	ebit emu_mode_4op_enable_2;
 };
 
 #define ESFM_WRITEBUF_SIZE 1024
@@ -217,66 +217,66 @@ struct _esfm_chip
 	int32 output_accm[2];
 	uint16 addr_latch;
 
-	flag emu_wavesel_enable;
-	flag emu_newmode;
-	flag native_mode;
+	ebit emu_wavesel_enable;
+	ebit emu_newmode;
+	ebit native_mode;
 
-	flag keyscale_mode;
+	ebit keyscale_mode;
 
 	// Global state
 	uint36 eg_timer;
 	uint10 global_timer;
 	uint8 eg_clocks;
-	flag eg_tick;
-	flag eg_timer_overflow;
+	ebit eg_tick;
+	ebit eg_timer_overflow;
 	uint8 tremolo;
 	uint8 tremolo_pos;
 	uint8 vibrato_pos;
 	uint23 lfsr;
 
-	flag rm_hh_bit2;
-	flag rm_hh_bit3;
-	flag rm_hh_bit7;
-	flag rm_hh_bit8;
-	flag rm_tc_bit3;
-	flag rm_tc_bit5;
+	ebit rm_hh_bit2;
+	ebit rm_hh_bit3;
+	ebit rm_hh_bit7;
+	ebit rm_hh_bit8;
+	ebit rm_tc_bit3;
+	ebit rm_tc_bit5;
 
 	// 0xbd register in emulation mode, exposed in 0x4bd in native mode
 	// ("bass drum" register)
 	uint8 emu_rhy_mode_flags;
 
-	flag emu_vibrato_deep;
-	flag emu_tremolo_deep;
+	ebit emu_vibrato_deep;
+	ebit emu_tremolo_deep;
 
 	double timer_accumulator[2];
 	uint8 timer_reload[2];
 	uint8 timer_counter[2];
-	flag timer_enable[2];
-	flag timer_mask[2];
-	flag timer_overflow[2];
-	flag irq_bit;
+	ebit timer_enable[2];
+	ebit timer_mask[2];
+	ebit timer_overflow[2];
+	ebit irq_bit;
 
 	// -- Test bits (NOT IMPLEMENTED) --
 	// Halts the envelope generators from advancing. Written on bit 0, read back from bit 5.
-	flag test_bit_w0_r5_eg_halt;
+	ebit test_bit_w0_r5_eg_halt;
 	/*
 	 * Activates some sort of waveform test mode that amplifies the output volume greatly
 	 * and continuously shifts the waveform table downwards, possibly also outputting the
 	 * waveform's derivative? (it's so weird!)
 	 */
-	flag test_bit_1_distort;
+	ebit test_bit_1_distort;
 	// Seems to do nothing.
-	flag test_bit_2;
+	ebit test_bit_2;
 	// Seems to do nothing.
-	flag test_bit_3;
+	ebit test_bit_3;
 	// Appears to attenuate the output by about 3 dB.
-	flag test_bit_4_attenuate;
+	ebit test_bit_4_attenuate;
 	// Written on bit 5, read back from bit 0. Seems to do nothing.
-	flag test_bit_w5_r0;
+	ebit test_bit_w5_r0;
 	// Resets all phase generators and holds them in the reset state while this bit is set.
-	flag test_bit_6_phase_stop_reset;
+	ebit test_bit_6_phase_stop_reset;
 	// Seems to do nothing.
-	flag test_bit_7;
+	ebit test_bit_7;
 
 	esfm_write_buf write_buf[ESFM_WRITEBUF_SIZE];
 	size_t write_buf_start;
