@@ -15,7 +15,7 @@
 %global romver 4.1
 
 Name:		86Box
-Version:	4.1.1
+Version:	4.2
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -121,5 +121,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Fri Feb 23 2024 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.1.1-1
+* Sat Mar 23 2024 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.2-1
 - Bump release
