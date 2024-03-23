@@ -124,6 +124,7 @@ extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[2];                 /* (C) graphics/video card */
 extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
+extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */

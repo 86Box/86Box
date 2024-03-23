@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: fi_FI\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Toiminto"
 
@@ -40,14 +48,11 @@ msgstr "&Muista koko ja sijainti"
 msgid "Re&nderer"
 msgstr "&Renderöijä"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (ohjelmistopohjainen)"
+msgid "&Qt (Software)"
+msgstr "&Qt (ohjelmistopohjainen)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&laitteistokiihdytetty)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -589,9 +594,6 @@ msgstr "Tarkista BPB"
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-asemat:"
 
-msgid "Earlier drive"
-msgstr "Aiemmat asemat"
-
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
 
@@ -624,12 +626,6 @@ msgstr "ISABugger-laite"
 
 msgid "POST card"
 msgstr "POST-kortti"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -724,11 +720,11 @@ msgstr "Muut oheislaitteet"
 msgid "Click to capture mouse"
 msgstr "Kaappaa hiiri klikkaamalla"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Paina F8+F12 vapauttaaksesi hiiren"
+msgid "Press %1 to release mouse"
+msgstr "Paina %1 vapauttaaksesi hiiren"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Paina F8+F12 tai keskipainiketta vapauttaaksesi hiiren"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Paina %1 tai keskipainiketta vapauttaaksesi hiiren"
 
 msgid "Bus"
 msgstr "Väylä"
@@ -760,9 +756,6 @@ msgstr "%i odotustilaa"
 msgid "Type"
 msgstr "Tyyppi"
 
-msgid "Failed to set up PCap"
-msgstr "PCap-asennus epäonnistui"
-
 msgid "No PCap devices found"
 msgstr "PCap-laitteita ei löytynyt"
 
@@ -792,15 +785,6 @@ msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
 msgstr "Ei mikään"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "Näppäinkiihdyttimien lataus epäonnistui"
-
-msgid "Unable to register raw input."
-msgstr "Raakasyötteen rekisteröinti epäonnistui"
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u Mt (CHS: %i, %i, %i)"
@@ -862,26 +846,14 @@ msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), 
 msgid "Hardware not available"
 msgstr "Laitteisto ei ole saatavilla"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Varmista, että libpcap on asennettu ja että verkkoyhteytesi on libpcap-yhteensopiva."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Varmista, että %1 on asennettu ja että verkkoyhteytesi on %1-yhteensopiva."
 
 msgid "Invalid configuration"
 msgstr "Virheelliset määritykset"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
 
 msgid "Entering fullscreen mode"
 msgstr "Siirrytään koko näytön tilaan"
@@ -901,8 +873,8 @@ msgstr "Älä käynnistä uudelleen"
 msgid "CD-ROM images"
 msgstr "CD-ROM-levykuvat"
 
-msgid "%hs Device Configuration"
-msgstr "%hs - Laitteen määritykset"
+msgid "%1 Device Configuration"
+msgstr "%1 - Laitteen määritykset"
 
 msgid "Monitor in sleep mode"
 msgstr "Näyttö lepotilassa"
@@ -958,14 +930,8 @@ msgstr "Kylmä uudelleenkäynnistys"
 msgid "ACPI shutdown"
 msgstr "ACPI-sammutus"
 
-msgid "Hard disk (%s)"
-msgstr "Kiintolevy (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Kiintolevy (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
@@ -999,9 +965,6 @@ msgstr "Tiedostoon ei voi kirjoittaa"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512"
-
-msgid "USB is not yet supported"
-msgstr "USB-tukea ei vielä ole"
 
 msgid "Disk image file already exists"
 msgstr "Levykuva on jo olemassa"
@@ -1075,9 +1038,6 @@ msgstr "Ylä- ja alatason levyjen aikaleimat eivät täsmää"
 msgid "Could not fix VHD timestamp."
 msgstr "VHD aikaleimaa ei pystytty korjaamaan."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1092,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"

@@ -663,9 +663,9 @@ load_network(void)
             if (nc->net_type == NET_TYPE_PCAP) {
                 if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                     if (network_ndev == 1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES), plat_get_string(STRING_PCAP_ERROR_DESC));
                     else if (network_dev_to_id(p) == -1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE), plat_get_string(STRING_PCAP_ERROR_DESC));
                     strcpy(nc->host_dev_name, "none");
                 } else
                     strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
@@ -710,9 +710,9 @@ load_network(void)
             if (nc->net_type == NET_TYPE_PCAP) {
                 if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                     if (network_ndev == 1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES), plat_get_string(STRING_PCAP_ERROR_DESC));
                     else if (network_dev_to_id(p) == -1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE), plat_get_string(STRING_PCAP_ERROR_DESC));
                     strcpy(nc->host_dev_name, "none");
                 } else
                     strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
@@ -1570,9 +1570,10 @@ load_other_peripherals(void)
     char         *p;
     char          temp[512];
 
-    bugger_enabled     = !!ini_section_get_int(cat, "bugger_enabled", 0);
-    postcard_enabled   = !!ini_section_get_int(cat, "postcard_enabled", 0);
-    unittester_enabled = !!ini_section_get_int(cat, "unittester_enabled", 0);
+    bugger_enabled         = !!ini_section_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled       = !!ini_section_get_int(cat, "postcard_enabled", 0);
+    unittester_enabled     = !!ini_section_get_int(cat, "unittester_enabled", 0);
+    novell_keycard_enabled = !!ini_section_get_int(cat, "novell_keycard_enabled", 0);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
@@ -2371,6 +2372,11 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "unittester_enabled");
     else
         ini_section_set_int(cat, "unittester_enabled", unittester_enabled);
+
+    if (novell_keycard_enabled == 0)
+        ini_section_delete_var(cat, "novell_keycard_enabled");
+    else
+        ini_section_set_int(cat, "novell_keycard_enabled", novell_keycard_enabled);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
