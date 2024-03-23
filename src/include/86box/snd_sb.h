@@ -142,6 +142,7 @@ typedef struct ess_mixer_t {
     double mic_r;
     double auxb_l;
     double auxb_r;
+    double speaker;
     /*see sb_ct1745_mixer for values for input selector*/
     int32_t input_selector;
     /* extra values for input selector */

@@ -42,7 +42,6 @@ typedef struct {
     int8_t    flags;
     int8_t    pad;
 
-    uint16_t port;
     uint8_t  status;
     uint8_t  timer_ctrl;
     uint16_t timer_count[2];
@@ -269,14 +268,12 @@ esfm_drv_read(uint16_t port, void *priv)
 static void
 esfm_drv_write_buffered(esfm_drv_t *dev, uint8_t val)
 {
-    uint16_t p = dev->port;
-
-    ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
+    uint16_t p = dev->opl.addr_latch & 0x07ff;
 
     if (dev->opl.native_mode) {
         p -= 0x400;
-        p &= 0x1ff;
     }
+    p &= 0x1ff;
 
     switch (p) {
         case 0x002: /* Timer 1 */
@@ -304,6 +301,8 @@ esfm_drv_write_buffered(esfm_drv_t *dev, uint8_t val)
         default:
             break;
     }
+
+    ESFM_write_reg_buffered_fast(&dev->opl, dev->opl.addr_latch, val);
 }
 
 static void
@@ -321,14 +320,12 @@ esfm_drv_write(uint16_t port, uint8_t val, void *priv)
             esfm_drv_write_buffered(dev, val);
         else {
             ESFM_write_port(&dev->opl, port & 3, val);
-            dev->port = dev->opl.addr_latch & 0x07ff;
         }
     } else {
         if ((port & 0x0001) == 0x0001)
             esfm_drv_write_buffered(dev, val);
         else {
             ESFM_write_port(&dev->opl, port & 3, val);
-            dev->port = dev->opl.addr_latch & 0x01ff;
         }
     }
 }

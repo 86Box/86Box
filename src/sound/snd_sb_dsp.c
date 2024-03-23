@@ -29,11 +29,13 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
+/* NON-PCM SAMPLE FORMATS */
 #define ADPCM_4  1
 #define ADPCM_26 2
 #define ADPCM_2  3
 #define ESPCM_4  4
 #define ESPCM_3  5
+/*      ESPCM_2?   */
 #define ESPCM_1  7
 #define ESPCM_4E 8 // for differentiating between 4-bit encoding and decoding modes
 
@@ -1596,10 +1598,6 @@ sb_exec_command(sb_dsp_t *dsp)
                 switch (dsp->sb_subtype) {
                     default:
                         break;
-                    case SB_SUBTYPE_ESS_ES688:
-                        sb_add_data(dsp, 0x68);
-                        sb_add_data(dsp, 0x80 | 0x04);
-                        break;
                     case SB_SUBTYPE_ESS_ES1688:
                         // Determined via Windows driver debugging.
                         sb_add_data(dsp, 0x68);
@@ -1792,11 +1790,11 @@ sb_read(uint16_t a, void *priv)
                 }
                 uint8_t busy_flag   = dsp->wb_full ? 0x80 : 0x00;
                 uint8_t data_rdy    = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x40;
-                uint8_t fifo_full   = 0; // Unimplemented
-                uint8_t fifo_empty  = 0;
-                uint8_t fifo_half   = 0;
+                uint8_t fifo_full   = 0; /* Unimplemented */
+                uint8_t fifo_empty  = 0; /* (this is for the 256-byte extended mode FIFO, */
+                uint8_t fifo_half   = 0; /* not the standard 64-byte FIFO) */
                 uint8_t irq_generic = dsp->ess_irq_generic ? 0x04 : 0x00;
-                uint8_t irq_fifohe  = 0; // Unimplemented
+                uint8_t irq_fifohe  = 0; /* Unimplemented (ditto) */
                 uint8_t irq_dmactr  = dsp->ess_irq_dmactr ? 0x01 : 0x00;
 
                 return busy_flag | data_rdy | fifo_full | fifo_empty | fifo_half | irq_generic | irq_fifohe | irq_dmactr;

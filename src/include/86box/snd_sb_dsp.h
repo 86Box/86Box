@@ -7,11 +7,10 @@
 #define SB_SUBTYPE_DEFAULT             0 /*Handle as a Creative card*/
 #define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /*Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone*/
 #define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /*Aztech Sound Galaxy Nova 16 Extra / Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone*/
-#define SB_SUBTYPE_ESS_ES688           3 /* ESS Technology ES688 */
-#define SB_SUBTYPE_ESS_ES1688          4 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_ESS_ES1688          3 /* ESS Technology ES1688 */
 
 /* ESS-related */
-#define IS_ESS(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_ESS_ES688 || (dsp)->sb_subtype == SB_SUBTYPE_ESS_ES1688) /* check for future ESS cards here */
+#define IS_ESS(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_ESS_ES1688) /* check for future ESS cards here */
 
 /* aztech-related */
 #define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) /* check for future AZT cards here */
@@ -149,13 +148,15 @@ typedef struct sb_dsp_t {
     uint8_t  ess_extended_mode;
     uint8_t  ess_reload_len;
     uint32_t ess_dma_counter;
-    int      ess_irq_generic;
-    int      ess_irq_dmactr;
 
-    // ESPCM
+    /* IRQ status flags (0x22C) */
+    uint8_t  ess_irq_generic;
+    uint8_t  ess_irq_dmactr;
+
+    /* ESPCM */
     fifo64_t *espcm_fifo;
-    int       espcm_fifo_reset;
-    int       espcm_mode;
+    uint8_t   espcm_fifo_reset;
+    uint8_t   espcm_mode;              /* see ESPCM in "NON-PCM SAMPLE FORMATS" deflist in snd_sb_dsp.c */
     uint8_t   espcm_sample_idx;
     uint8_t   espcm_range;
     uint8_t   espcm_byte_buffer[4];

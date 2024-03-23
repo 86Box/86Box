@@ -89,6 +89,11 @@ static const double sb_att_2dbstep_4bits[] = {
       164.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
      6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
 };
+
+/* Attenuation table for ESS 3-bit PC speaker volume. */
+static const double sb_att_3dbstep_3bits[] = {
+        0.0,  4125.0,  5826.0,  8230.0, 11626.0, 16422.0, 23197.0, 32767.0
+};
 // clang-format on
 
 static const uint16_t sb_mcv_addr[8]     = { 0x200, 0x210, 0x220, 0x230, 0x240, 0x250, 0x260, 0x270 };
@@ -730,12 +735,10 @@ sb_get_music_buffer_ess(int32_t *buffer, int len, void *priv)
         out_l = 0.0;
         out_r = 0.0;
 
-        {
-            out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
-            out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
-            if (ess->opl_mix && ess->opl_mixer)
-                ess->opl_mix(ess->opl_mixer, &out_l, &out_r);
-        }
+        out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
+        out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+        if (ess->opl_mix && ess->opl_mixer)
+            ess->opl_mix(ess->opl_mixer, &out_l, &out_r);
 
         /* TODO: recording from the mixer. */
         out_l *= mixer->master_l;
@@ -1421,11 +1424,12 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x26] = mixer->regs[0x28] = 0xee;
             mixer->regs[0x2e]                     = 0x00;
 
-            /* Initialize ESS regs. */
-            mixer->regs[0x14] = mixer->regs[0x32] = 0x88;
-            mixer->regs[0x36]                     = 0x88;
-            mixer->regs[0x38]                     = 0x88;
+            /* Initialize ESS regs
+             * Defaulting to 0dB instead of the standard -11dB. */
+            mixer->regs[0x14] = mixer->regs[0x32] = 0xff;
+            mixer->regs[0x36] = mixer->regs[0x38] = 0xff;
             mixer->regs[0x3a]                     = 0x00;
+            mixer->regs[0x3c]                     = 0x05;
             mixer->regs[0x3e]                     = 0x00;
 
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
@@ -1460,6 +1464,14 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                             mixer->input_selector = INPUT_MIC;
                             break;
                     }
+                    mixer->input_filter   = !(mixer->regs[0xC] & 0x20);
+                    mixer->in_filter_freq = ((mixer->regs[0xC] & 0x8) == 0) ? 3200 : 8800;
+                    break;
+
+                case 0x0E:
+                    mixer->output_filter  = !(mixer->regs[0xE] & 0x20);
+                    mixer->stereo         = mixer->regs[0xE] & 2;
+                    sb_dsp_set_stereo(&ess->dsp, val & 2);
                     break;
 
                 case 0x14:
@@ -1495,8 +1507,6 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                    SoundBlaster Pro selects register 020h for 030h, 022h for 032h,
                    026h for 036h, and 028h for 038h. */
                 case 0x30:
-                    mixer->regs[mixer->index - 0x10] = (val & 0xee);
-                    break;
                 case 0x32:
                 case 0x36:
                 case 0x38:
@@ -1505,13 +1515,11 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x3a:
+                case 0x3c:
                     break;
 
                 case 0x00:
                 case 0x04:
-                    break;
-
-                case 0x0e:
                     break;
 
                 case 0x64:
@@ -1587,19 +1595,13 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
         mixer->fm_r     = sb_att_2dbstep_4bits[mixer->regs[0x36] & 0x0F] / 32767.0;
         mixer->cd_l     = sb_att_2dbstep_4bits[(mixer->regs[0x38] >> 4) & 0x0F] / 32767.0;
         mixer->cd_r     = sb_att_2dbstep_4bits[mixer->regs[0x38] & 0x0F] / 32767.0;
-        mixer->line_l   = sb_att_2dbstep_4bits[(mixer->regs[0x3e] >> 4) & 0x0F] / 32767.0;
-        mixer->line_r   = sb_att_2dbstep_4bits[mixer->regs[0x3e] & 0x0F] / 32767.0;
         mixer->auxb_l   = sb_att_2dbstep_4bits[(mixer->regs[0x3a] >> 4) & 0x0F] / 32767.0;
         mixer->auxb_r   = sb_att_2dbstep_4bits[mixer->regs[0x3a] & 0x0F] / 32767.0;
+        mixer->line_l   = sb_att_2dbstep_4bits[(mixer->regs[0x3e] >> 4) & 0x0F] / 32767.0;
+        mixer->line_r   = sb_att_2dbstep_4bits[mixer->regs[0x3e] & 0x0F] / 32767.0;
+        mixer->speaker  = sb_att_3dbstep_3bits[mixer->regs[0x3c] & 0x07] / 32767.0;
 
-        mixer->output_filter  = !(mixer->regs[0xe] & 0x20);
-        mixer->input_filter   = !(mixer->regs[0xc] & 0x20);
-        mixer->in_filter_freq = ((mixer->regs[0xc] & 0x8) == 0) ? 3200 : 8800;
-        mixer->stereo         = mixer->regs[0xe] & 2;
-        if (mixer->index == 0xe)
-            sb_dsp_set_stereo(&ess->dsp, val & 2);
-
-        /* TODO: pcspeaker volume? Or is it not worth? */
+        /* TODO: PC Speaker volume */
     }
 }
 
