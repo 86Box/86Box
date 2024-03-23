@@ -49,6 +49,8 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
+#    define sb_log(fmt, ...)
+
 // clang-format off
 static const double sb_att_4dbstep_3bits[] = {
       164.0,  2067.0,  3276.0,  5193.0,  8230.0, 13045.0, 20675.0, 32767.0
@@ -302,7 +304,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     }
 
                 default:
-                    // pclog("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    sb_log("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -373,7 +375,7 @@ ess_mixer_read(uint16_t addr, void *priv)
             }
 
         default:
-            // pclog("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            sb_log("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             break;
     }
 

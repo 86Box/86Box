@@ -35,7 +35,7 @@
 #define ESPCM_4  4
 #define ESPCM_3  5
 #define ESPCM_1  7
-#define ESPCM_4E 8 // for encoding mode switching
+#define ESPCM_4E 8 // for differentiating between 4-bit encoding and decoding modes
 
 /*The recording safety margin is intended for uneven "len" calls to the get_buffer mixer calls on sound_sb*/
 #define SB_DSP_REC_SAFEFTY_MARGIN 4096
@@ -687,8 +687,9 @@ int
 sb_16_read_dma(void *priv)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
-    int             temp, ret         = 0;
-    int             dma_flags, dma_ch = dsp->sb_16_dmanum;
+
+    int temp, ret         = 0;
+    int dma_flags, dma_ch = dsp->sb_16_dmanum;
 
     if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
         ret = dma_channel_read(dma_ch);
@@ -722,8 +723,9 @@ int
 sb_16_write_dma(void *priv, uint16_t val)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
-    int             temp, ret = 0;
-    int             dma_ch = dsp->sb_16_dmanum;
+
+    int temp, ret = 0;
+    int dma_ch = dsp->sb_16_dmanum;
 
     if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
         ret = dma_channel_write(dma_ch, val) == DMA_NODATA;
@@ -793,7 +795,6 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
 void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
-    uint8_t t = 0x00;
     sb_dsp_log("IRQ now: %i\n", irq);
     dsp->sb_irqnum = irq;
 
@@ -805,7 +806,6 @@ sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 void
 sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
 {
-    uint8_t t = 0x00;
     sb_dsp_log("8-bit DMA now: %i\n", dma);
     dsp->sb_8_dmanum = dma;
 
@@ -881,8 +881,6 @@ sb_ess_read_reg(sb_dsp_t *dsp, uint8_t reg)
         default:
             return ESSreg(reg);
     }
-
-    return 0xFF;
 }
 
 static void
@@ -907,7 +905,8 @@ sb_ess_write_reg(sb_dsp_t *dsp, uint8_t reg, uint8_t data)
                     dsp->sb_freq = 397700UL / (128ul - data);
                 temp          = 1000000.0 / dsp->sb_freq;
                 dsp->sblatchi = dsp->sblatcho = TIMER_USEC * temp;
-                dsp->sb_timei                 = dsp->sb_timeo;
+
+                dsp->sb_timei = dsp->sb_timeo;
                 break;
             }
         case 0xA2: /* Filter divider (effectively, a hardware lowpass filter under S/W control) */
@@ -1305,7 +1304,6 @@ sb_exec_command(sb_dsp_t *dsp)
             temp                          = 256 - dsp->sb_data[0];
             temp                          = 1000000 / temp;
             sb_dsp_log("Sample rate - %ihz (%f)\n", temp, dsp->sblatcho);
-            // if ((dsp->sb_freq != temp) && (IS_ESS(dsp) || (dsp->sb_type >= SB16)))
             if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16))
                 recalc_sb16_filter(0, temp);
             dsp->sb_freq = temp;
@@ -1339,8 +1337,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x65: /* 4-bit ESPCM output with reference */
         case 0x64: /* 4-bit ESPCM output */
             if (IS_ESS(dsp)) {
-                if (dsp->espcm_mode != ESPCM_4
-                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
+                if (dsp->espcm_mode != ESPCM_4 || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1351,8 +1348,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x67: /* 3-bit ESPCM output with reference */
         case 0x66: /* 3-bit ESPCM output */
             if (IS_ESS(dsp)) {
-                if (dsp->espcm_mode != ESPCM_3
-                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
+                if (dsp->espcm_mode != ESPCM_3 || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1363,8 +1359,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x6D: /* 1-bit ESPCM output with reference */
         case 0x6C: /* 1-bit ESPCM output */
             if (IS_ESS(dsp)) {
-                if (dsp->espcm_mode != ESPCM_1
-                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
+                if (dsp->espcm_mode != ESPCM_1 || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
@@ -1375,14 +1370,12 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x6F: /* 4-bit ESPCM input with reference */
         case 0x6E: /* 4-bit ESPCM input */
             if (IS_ESS(dsp)) {
-                if (dsp->espcm_mode != ESPCM_4E
-                    || (dsp->sb_8_enable && dsp->sb_8_pause)) {
+                if (dsp->espcm_mode != ESPCM_4E || (dsp->sb_8_enable && dsp->sb_8_pause)) {
                     fifo_reset(dsp->espcm_fifo);
                     dsp->espcm_sample_idx = 0;
                 }
                 dsp->espcm_mode = ESPCM_4E;
                 sb_start_dma_i(dsp, 1, 0, ESPCM_4E, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-                dsp->espcm_sample_idx = 0;
             }
             break;
         case 0x75: /* 4-bit ADPCM output with reference */
@@ -1598,7 +1591,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xE4: /* Write test register */
             dsp->sb_test = dsp->sb_data[0];
             break;
-        case 0xE7: /* ???? */ /* ESS detect/read config on ESS cards */
+        case 0xE7: /* ESS detect/read config on ESS cards */
             if (IS_ESS(dsp)) {
                 switch (dsp->sb_subtype) {
                     default:
@@ -1682,8 +1675,6 @@ sb_write(uint16_t a, uint8_t v, void *priv)
     if (dsp->sb_type < SB16 && (!IS_ESS(dsp) || (IS_ESS(dsp) && ((a & 0xF) != 0xE))))
         a &= 0xfffe;
 
-    // pclog("sb: port write %03x %02x\n", a, v);
-
     switch (a & 0xF) {
         case 6: /* Reset */
             if (!dsp->uart_midi) {
@@ -1729,17 +1720,16 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                         sb_commands[dsp->sb_command] = 2;
                 }
                 if (IS_ESS(dsp) && dsp->sb_command >= 0x64 && dsp->sb_command <= 0x6F) {
-                    if (dsp->sb_subtype == SB_SUBTYPE_ESS_ES1688) {
-                        sb_commands[dsp->sb_command] = 2;
-                    } else {
-                        sb_commands[dsp->sb_command] = 2;
-                    }
+                    sb_commands[dsp->sb_command] = 2;
                 } else if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
-                    if (dsp->sb_command <= 0xC0 || dsp->sb_command == 0xC2
+                    if (dsp->sb_command <= 0xC0
+                        || dsp->sb_command == 0xC2
                         || dsp->sb_command == 0xCF) {
                         sb_commands[dsp->sb_command] = 1;
-                    } else if (dsp->sb_command == 0xC3 || dsp->sb_command == 0xC6
-                               || dsp->sb_command == 0xC7 || dsp->sb_command == 0xCE) {
+                    } else if (dsp->sb_command == 0xC3
+                               || dsp->sb_command == 0xC6
+                               || dsp->sb_command == 0xC7
+                               || dsp->sb_command == 0xCE) {
                         sb_commands[dsp->sb_command] = 0;
                     } else {
                         sb_commands[dsp->sb_command] = -1;
@@ -1809,8 +1799,7 @@ sb_read(uint16_t a, void *priv)
                 uint8_t irq_fifohe  = 0; // Unimplemented
                 uint8_t irq_dmactr  = dsp->ess_irq_dmactr ? 0x01 : 0x00;
 
-                return busy_flag | data_rdy | fifo_full | fifo_empty
-                    | fifo_half | irq_generic | irq_fifohe | irq_dmactr;
+                return busy_flag | data_rdy | fifo_full | fifo_empty | fifo_half | irq_generic | irq_fifohe | irq_dmactr;
             }
             if (dsp->wb_full || (dsp->busy_count & 2)) {
                 dsp->wb_full = timer_is_enabled(&dsp->wb_timer);
@@ -1856,8 +1845,6 @@ sb_read(uint16_t a, void *priv)
         default:
             break;
     }
-
-    // pclog("sb: port read %03x %02x\n", a, ret);
 
     return ret;
 }
