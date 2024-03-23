@@ -66,7 +66,7 @@ static const double sb_att_1p4dbstep_4bits[] = {
     10603.0, 12458.0, 14637.0, 17196.0, 20204.0, 23738.0, 27889.0, 32767.0
 };
 
-/* Attenuation table for 4-bit mixer avolume.
+/* Attenuation table for 4-bit mixer volume.
  * The last step is a jump to -48 dB. */
 static const double sb_att_2dbstep_4bits[] = {
       164.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
@@ -104,14 +104,8 @@ typedef struct ess_mixer_t {
     uint8_t index;
     uint8_t regs[256];
 
-    uint8_t ess_id_str[256];
+    uint8_t ess_id_str[4];
     uint8_t ess_id_str_pos;
-
-#if 0
-    int record_pos_write_cd;
-    double record_pos_write_cd_sigma;
-    int record_pos_write_music;
-#endif
 } ess_mixer_t;
 
 typedef struct ess_t {
@@ -448,12 +442,6 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
     ess_t                    *ess    = (ess_t *) priv;
     const ess_mixer_t        *mixer = &ess->mixer_sbpro;
-#if 0
-    int                      rec_pos = ess->mixer_sbpro.record_pos_write_music;
-    int                      c_record;
-    int32_t                  in_l;
-    int32_t                  in_r;
-#endif
     double                   out_l = 0.0;
     double                   out_r = 0.0;
     const int32_t           *opl_buf = NULL;
@@ -475,51 +463,9 @@ ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
 
-#if 0
-        // Pull input after applying mixer's master volume scaling
-        in_l = (mixer->input_selector & INPUT_MIXER_L) ? ((int32_t) out_l) : 0;
-        in_r = (mixer->input_selector & INPUT_MIXER_R) ? ((int32_t) out_l) : 0;
-
-        if (ess->dsp.sb_enable_i) {
-            // NOTE: this is nearest-neighbor sampling. This is gonna generate aliasing like HECK. Is this what the real card does?
-            c_record = rec_pos + ((c * ess->dsp.sb_freq) / MUSIC_FREQ);
-
-            ess->dsp.record_buffer[c_record & 0xfffe]       += in_l;
-            ess->dsp.record_buffer[(c_record & 0xfffe) + 1] += in_r;
-
-            if (ess->dsp.record_buffer[c_record & 0xfffe] < -32768)
-            {
-                ess->dsp.record_buffer[c_record & 0xfffe] = -32768;
-            }
-            else if (ess->dsp.record_buffer[c_record & 0xfffe] > 32767)
-            {
-                ess->dsp.record_buffer[c_record & 0xfffe] = 32767;
-            }
-
-            if (ess->dsp.record_buffer[(c_record & 0xfffe) + 1] < -32768)
-            {
-                ess->dsp.record_buffer[(c_record & 0xfffe) + 1] = -32768;
-            }
-            else if (ess->dsp.record_buffer[(c_record & 0xfffe) + 1] > 32767)
-            {
-                ess->dsp.record_buffer[(c_record & 0xfffe) + 1] = 32767;
-            }
-       }
-#endif
-
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
     }
-
-#if 0
-    ess->mixer_sbpro.record_pos_write_music += ((len * 2 * ess->dsp.sb_freq) / MUSIC_FREQ);
-    ess->mixer_sbpro.record_pos_write_music &= 0xfffe;
-
-    if (ess->mixer_sbpro.record_pos_write_music < ess->mixer_sbpro.record_pos_write_cd)
-    {
-        ess->dsp.record_pos_write = ess->mixer_sbpro.record_pos_write_music;
-    }
-#endif
 
     ess->opl.reset_buffer(ess->opl.priv);
 }
@@ -530,51 +476,11 @@ ess_filter_cd_audio(int channel, double *buffer, void *priv)
     const ess_t                    *ess    = (ess_t *) priv;
     const ess_mixer_t        *mixer = &ess->mixer_sbpro;
     double                   c;
-#if 0
-    double                   rec_pos = ess->mixer_sbpro.record_pos_write_cd;
-    double                   rec_pos_sigma = ess->mixer_sbpro.record_pos_write_cd_sigma;
-    int                      c_record;
-    int                      selector = channel ? INPUT_MIXER_R : INPUT_MIXER_L;
-    int                      rec_buf_pos;
-    int32_t                  in;
-#endif
     double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
     double                   master = channel ? mixer->master_r : mixer->master_l;
 
     c = (*buffer * cd) / 3.0;
     *buffer = c * master;
-#if 0
-    in = (mixer->input_selector & selector) ? (int32_t)(c * master) : 0;
-
-    if (ess->dsp.sb_enable_i)
-    {
-        // NOTE: this is nearest-neighbor sampling. This is gonna generate aliasing like HECK. Is this what the real card does?
-        c_record = (int)(rec_pos + rec_pos_sigma);
-        rec_buf_pos = channel ? ((c_record & 0xfffe) + 1) : (c_record & 0xfffe);
-
-        ess->dsp.record_buffer[rec_buf_pos] += in;
-
-        if (ess->dsp.record_buffer[rec_buf_pos] < -32768)
-        {
-            ess->dsp.record_buffer[rec_buf_pos] = -32768;
-        }
-        else if (ess->dsp.record_buffer[rec_buf_pos] > 32767)
-        {
-            ess->dsp.record_buffer[rec_buf_pos] = 32767;
-        }
-    }
-
-    ess->mixer_sbpro.record_pos_write_cd += ((2 * (double)ess->dsp.sb_freq) / MUSIC_FREQ) + rec_pos_sigma;
-    ess->mixer_sbpro.record_pos_write_cd &= ~1;
-    ess->mixer_sbpro.record_pos_write_cd_sigma = (double)rec_pos + ((2 * (double)ess->dsp.sb_freq) / MUSIC_FREQ) + rec_pos_sigma - ess->mixer_sbpro.record_pos_write_cd;
-
-    ess->mixer_sbpro.record_pos_write_cd &= 0xfffe;
-
-    if (ess->mixer_sbpro.record_pos_write_cd < ess->mixer_sbpro.record_pos_write_music)
-    {
-        ess->dsp.record_pos_write = ess->mixer_sbpro.record_pos_write_cd;
-    }
-#endif
 }
 
 static void *
@@ -633,11 +539,6 @@ ess_1688_init(UNUSED(const device_t *info))
         ess->mixer_sbpro.ess_id_str[2] = (addr >> 8) & 0xff;
         ess->mixer_sbpro.ess_id_str[3] = addr & 0xff;
     }
-
-#if 0
-    ess->mixer_sbpro.record_pos_write_cd = ess->dsp.record_pos_write;
-    ess->mixer_sbpro.record_pos_write_music = ess->dsp.record_pos_write;
-#endif
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(ess->mpu, 0, -1, M_UART, 1);
