@@ -2424,7 +2424,7 @@ pollsb(void *priv)
                     dsp->espcm_byte_buffer[0] >>= 5;
                     tempi = dsp->espcm_byte_buffer[0] & 1 ? 0xC : 0x4;
                     dsp->espcm_byte_buffer[0] >>= 1;
-                } else if (dsp->espcm_sample_idx == 3 | dsp->espcm_sample_idx == 11) {
+                } else if ((dsp->espcm_sample_idx == 3) | (dsp->espcm_sample_idx == 11)) {
                     sb_espcm_fifoctl_run(dsp);
                     if (fifo_get_empty(dsp->espcm_fifo)) {
                         break;
