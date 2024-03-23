@@ -682,7 +682,7 @@ sb16_awe32_filter_pc_speaker(int channel, double *buffer, void *priv)
 }
 
 void
-ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
+sb_get_buffer_ess(int32_t *buffer, int len, void *priv)
 {
     sb_t              *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
@@ -716,7 +716,7 @@ ess_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 }
 
 void
-ess_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
+sb_get_music_buffer_ess(int32_t *buffer, int len, void *priv)
 {
     sb_t              *ess     = (sb_t *) priv;
     const ess_mixer_t *mixer   = &ess->mixer_ess;
@@ -3153,8 +3153,8 @@ ess_1688_init(UNUSED(const device_t *info))
                   ess_mixer_read, NULL, NULL,
                   ess_mixer_write, NULL, NULL,
                   ess);
-    sound_add_handler(ess_get_buffer_sbpro, ess);
-    music_add_handler(ess_get_music_buffer_sbpro, ess);
+    sound_add_handler(sb_get_buffer_ess, ess);
+    music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
 
     if (device_get_config_int("receive_input")) {
