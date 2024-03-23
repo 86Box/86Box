@@ -63,8 +63,7 @@ jobs:
             slug: -Qt
             packages: >-
               qt5-static:p
-#              qt5-base:p
-#              qt5-tools:p
+              vulkan-headers:p
         environment:
 #          - msystem: MSYS
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
