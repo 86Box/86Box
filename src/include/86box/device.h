@@ -72,6 +72,7 @@
 #define CONFIG_SUBTYPE_MASK (CONFIG_IS_STRING - 1)
 
 #define CONFIG_DEP          (16 << CONFIG_SHIFT)
+#define CONFIG_RUNTIME      (32 << CONFIG_SHIFT)
 #define CONFIG_TYPE_MASK    (CONFIG_DEP - 1)
 
 // #define CONFIG_ONBOARD    256      /* only avaialble on the on-board variant */
@@ -101,6 +102,7 @@ enum {
     DEVICE_LPT       = 0x200000,   /* requires a parallel port */
     DEVICE_KBC       = 0x400000,   /* is a keyboard controller */
 
+    DEVICE_RTCONFIG  = 0x10000000, /* can reload settings at run-time. */
     DEVICE_ONBOARD   = 0x20000000, /* is on-board */
     DEVICE_EXTPARAMS = 0x40000000, /* accepts extended parameters */
 
@@ -182,6 +184,7 @@ typedef struct _device_ {
     };
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
+    void (*reload_config)(void *priv);
 
     const device_config_t *config;
 } device_t;

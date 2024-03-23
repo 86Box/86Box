@@ -150,6 +150,99 @@ fluidsynth_sysex(uint8_t *data, unsigned int len)
     fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
 }
 
+void
+fluidsynth_reload_config(UNUSED(void* priv))
+{
+    fluidsynth_t *data = &fsdev;
+
+    fluid_synth_sfunload(data->synth, data->sound_font, 1);
+
+    fluid_settings_setnum(data->settings, "synth.gain", device_get_config_int("output_gain") / 100.0f);
+
+    const char *sound_font = device_get_config_string("sound_font");
+#ifdef __unix__
+    if (!sound_font || sound_font[0] == 0)
+        sound_font = (access("/usr/share/sounds/sf2/FluidR3_GM.sf2", F_OK) == 0 ? "/usr/share/sounds/sf2/FluidR3_GM.sf2" :
+                      (access("/usr/share/soundfonts/default.sf2", F_OK) == 0 ? "/usr/share/soundfonts/default.sf2" : ""));
+#endif
+    data->sound_font = fluid_synth_sfload(data->synth, sound_font, 1);
+
+    if (device_get_config_int("chorus")) {
+#ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_chorus_on(data->synth, -1, 1);
+#else
+        fluid_synth_set_chorus_on(data->synth, 1);
+#endif
+
+        int    chorus_voices = device_get_config_int("chorus_voices");
+        double chorus_level  = device_get_config_int("chorus_level") / 100.0;
+        double chorus_speed  = device_get_config_int("chorus_speed") / 100.0;
+        double chorus_depth  = device_get_config_int("chorus_depth") / 10.0;
+
+        int chorus_waveform = FLUID_CHORUS_MOD_SINE;
+        if (device_get_config_int("chorus_waveform") == 0)
+            chorus_waveform = FLUID_CHORUS_MOD_SINE;
+        else
+            chorus_waveform = FLUID_CHORUS_MOD_TRIANGLE;
+
+#ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_set_chorus_group_nr(data->synth, -1, chorus_voices);
+        fluid_synth_set_chorus_group_level(data->synth, -1, chorus_level);
+        fluid_synth_set_chorus_group_speed(data->synth, -1, chorus_speed);
+        fluid_synth_set_chorus_group_depth(data->synth, -1, chorus_depth);
+        fluid_synth_set_chorus_group_type(data->synth, -1, chorus_waveform);
+#else
+        fluid_synth_set_chorus(data->synth, chorus_voices, chorus_level, chorus_speed, chorus_depth, chorus_waveform);
+#endif
+    } else
+#ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_chorus_on(data->synth, -1, 0);
+#else
+        fluid_synth_set_chorus_on(data->synth, 0);
+#endif
+
+    if (device_get_config_int("reverb")) {
+#ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_reverb_on(data->synth, -1, 1);
+#else
+        fluid_synth_set_reverb_on(data->synth, 1);
+#endif
+
+        double reverb_room_size = device_get_config_int("reverb_room_size") / 100.0;
+        double reverb_damping   = device_get_config_int("reverb_damping") / 100.0;
+        double reverb_width     = device_get_config_int("reverb_width") / 10.0;
+        double reverb_level     = device_get_config_int("reverb_level") / 100.0;
+
+#ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_set_reverb_group_roomsize(data->synth, -1, reverb_room_size);
+        fluid_synth_set_reverb_group_damp(data->synth, -1, reverb_damping);
+        fluid_synth_set_reverb_group_width(data->synth, -1, reverb_width);
+        fluid_synth_set_reverb_group_level(data->synth, -1, reverb_level);
+#else
+        fluid_synth_set_reverb(data->synth, reverb_room_size, reverb_damping, reverb_width, reverb_level);
+#endif
+    } else
+#ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_reverb_on(data->synth, -1, 0);
+#else
+        fluid_synth_set_reverb_on(data->synth, 0);
+#endif
+
+    int interpolation    = device_get_config_int("interpolation");
+    int fs_interpolation = FLUID_INTERP_4THORDER;
+
+    if (interpolation == 0)
+        fs_interpolation = FLUID_INTERP_NONE;
+    else if (interpolation == 1)
+        fs_interpolation = FLUID_INTERP_LINEAR;
+    else if (interpolation == 2)
+        fs_interpolation = FLUID_INTERP_4THORDER;
+    else if (interpolation == 3)
+        fs_interpolation = FLUID_INTERP_7THORDER;
+
+    fluid_synth_set_interp_method(data->synth, -1, fs_interpolation);
+}
+
 void *
 fluidsynth_init(UNUSED(const device_t *info))
 {
@@ -323,14 +416,14 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "sound_font",
         .description = "Sound Font",
-        .type = CONFIG_FNAME,
+        .type = CONFIG_FNAME | CONFIG_RUNTIME,
         .default_string = "",
         .file_filter = "SF2 Sound Fonts (*.sf2)|*.sf2"
     },
     {
         .name = "output_gain",
         .description = "Output Gain",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -341,13 +434,13 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "chorus",
         .description = "Chorus",
-        .type = CONFIG_BINARY,
+        .type = CONFIG_BINARY | CONFIG_RUNTIME,
         .default_int = 1
     },
     {
         .name = "chorus_voices",
         .description = "Chorus Voices",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -358,7 +451,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "chorus_level",
         .description = "Chorus Level",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -369,7 +462,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "chorus_speed",
         .description = "Chorus Speed",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 10,
@@ -380,7 +473,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "chorus_depth",
         .description = "Chorus Depth",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -391,7 +484,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "chorus_waveform",
         .description = "Chorus Waveform",
-        .type = CONFIG_SELECTION,
+        .type = CONFIG_SELECTION | CONFIG_RUNTIME,
         .selection =
         {
             {
@@ -408,13 +501,13 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "reverb",
         .description = "Reverb",
-        .type = CONFIG_BINARY,
+        .type = CONFIG_BINARY | CONFIG_RUNTIME,
         .default_int = 1
     },
     {
         .name = "reverb_room_size",
         .description = "Reverb Room Size",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -425,7 +518,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "reverb_damping",
         .description = "Reverb Damping",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -436,7 +529,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "reverb_width",
         .description = "Reverb Width",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -447,7 +540,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "reverb_level",
         .description = "Reverb Level",
-        .type = CONFIG_SPINNER,
+        .type = CONFIG_SPINNER | CONFIG_RUNTIME,
         .spinner =
         {
             .min = 0,
@@ -458,7 +551,7 @@ static const device_config_t fluidsynth_config[] = {
     {
         .name = "interpolation",
         .description = "Interpolation Method",
-        .type = CONFIG_SELECTION,
+        .type = CONFIG_SELECTION | CONFIG_RUNTIME,
         .selection =
         {
             {
@@ -487,7 +580,7 @@ static const device_config_t fluidsynth_config[] = {
 const device_t fluidsynth_device = {
     .name          = "FluidSynth",
     .internal_name = "fluidsynth",
-    .flags         = 0,
+    .flags         = DEVICE_RTCONFIG,
     .local         = 0,
     .init          = fluidsynth_init,
     .close         = fluidsynth_close,
@@ -495,6 +588,7 @@ const device_t fluidsynth_device = {
     { .available = fluidsynth_available },
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .reload_config = fluidsynth_reload_config,
     .config        = fluidsynth_config
 };
 

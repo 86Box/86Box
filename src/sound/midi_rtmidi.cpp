@@ -145,6 +145,35 @@ rtmidi_out_get_dev_name(int num, char *s)
 }
 
 void
+rtmidi_out_reload_config(UNUSED(void* priv))
+{
+    if (!midiout)
+        return;
+
+    midiout->closePort();
+
+    try {
+        midiout->openPort(config_get_int((char *) SYSTEM_MIDI_NAME, (char *) "midi", 0));
+        midi_out_id = config_get_int((char *) SYSTEM_MIDI_NAME, (char *) "midi", 0);
+    } catch (RtMidiError &error) {
+        try {
+            pclog("Fallback to previous MIDI output port: %s\n", error.getMessage().c_str());
+            midiout->openPort(midi_out_id);
+        } catch (RtMidiError &error) {
+            pclog("Fallback to default MIDI output port: %s\n", error.getMessage().c_str());
+
+            try {
+                midiout->openPort(0);
+            } catch (RtMidiError &error) {
+                pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
+                delete midiout;
+                midiout = nullptr;
+            }
+        }
+    }
+}
+
+void
 rtmidi_input_callback(UNUSED(double timeStamp), std::vector<unsigned char> *message, UNUSED(void *userData))
 {
     if (message->front() == 0xF0)
@@ -201,13 +230,47 @@ rtmidi_input_init(UNUSED(const device_t *info))
 void
 rtmidi_input_close(UNUSED(void *priv))
 {
+    if (!midiin)
+        return;
+
     midiin->cancelCallback();
     midiin->closePort();
 
     delete midiin;
     midiin = nullptr;
 
-    midi_out_close();
+    midi_in_close();
+}
+
+void
+rtmidi_in_reload_config(UNUSED(void* priv))
+{
+    if (!midiin)
+        return;
+
+    midiin->cancelCallback();
+    midiin->closePort();
+
+    try {
+        midiin->openPort(config_get_int((char *) MIDI_INPUT_NAME, (char *) "midi_input", 0));
+        midi_in_id = config_get_int((char *) MIDI_INPUT_NAME, (char *) "midi_input", 0);
+    } catch (RtMidiError &error) {
+        try {
+            pclog("Fallback to previous MIDI input port: %s\n", error.getMessage().c_str());
+            midiin->openPort(midi_in_id);
+        } catch (RtMidiError &error) {
+            pclog("Fallback to default MIDI input port: %s\n", error.getMessage().c_str());
+
+            try {
+                midiin->openPort(0);
+            } catch (RtMidiError &error) {
+                pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
+                delete midiin;
+                midiin = nullptr;
+                return;
+            }
+        }
+    }
 }
 
 int
@@ -235,7 +298,7 @@ static const device_config_t system_midi_config[] = {
     {
         .name = "midi",
         .description = "MIDI out device",
-        .type = CONFIG_MIDI_OUT,
+        .type = CONFIG_MIDI_OUT | CONFIG_RUNTIME,
         .default_string = "",
         .default_int = 0
     },
@@ -248,28 +311,28 @@ static const device_config_t midi_input_config[] = {
     {
         .name = "midi_input",
         .description = "MIDI in device",
-        .type = CONFIG_MIDI_IN,
+        .type = CONFIG_MIDI_IN | CONFIG_RUNTIME,
         .default_string = "",
         .default_int = 0
     },
     {
         .name = "realtime",
         .description = "MIDI Real time",
-        .type = CONFIG_BINARY,
+        .type = CONFIG_BINARY | CONFIG_RUNTIME,
         .default_string = "",
         .default_int = 0
     },
     {
         .name = "thruchan",
         .description = "MIDI Thru",
-        .type = CONFIG_BINARY,
+        .type = CONFIG_BINARY | CONFIG_RUNTIME,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "clockout",
         .description = "MIDI Clockout",
-        .type = CONFIG_BINARY,
+        .type = CONFIG_BINARY | CONFIG_RUNTIME,
         .default_string = "",
         .default_int = 1
     },
@@ -280,7 +343,7 @@ static const device_config_t midi_input_config[] = {
 const device_t rtmidi_output_device = {
     .name          = SYSTEM_MIDI_NAME,
     .internal_name = SYSTEM_MIDI_INTERNAL_NAME,
-    .flags         = 0,
+    .flags         = DEVICE_RTCONFIG,
     .local         = 0,
     .init          = rtmidi_output_init,
     .close         = rtmidi_output_close,
@@ -288,13 +351,14 @@ const device_t rtmidi_output_device = {
     { .available = rtmidi_out_get_num_devs },
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .reload_config = rtmidi_out_reload_config,
     .config        = system_midi_config
 };
 
 const device_t rtmidi_input_device = {
     .name          = MIDI_INPUT_NAME,
     .internal_name = MIDI_INPUT_INTERNAL_NAME,
-    .flags         = 0,
+    .flags         = DEVICE_RTCONFIG,
     .local         = 0,
     .init          = rtmidi_input_init,
     .close         = rtmidi_input_close,
@@ -302,6 +366,7 @@ const device_t rtmidi_input_device = {
     { .available = rtmidi_in_get_num_devs },
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .reload_config = rtmidi_in_reload_config,
     .config        = midi_input_config
 };
 
