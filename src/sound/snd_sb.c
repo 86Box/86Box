@@ -1523,7 +1523,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
-                        if (0) {
+                        if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688) {
                             /* Not on ES1688. */
                             io_removehandler(0x0388, 0x0004,
                                              ess->opl.read, NULL, NULL,
@@ -3112,12 +3112,6 @@ sb_awe32_pnp_init(const device_t *info)
 static void *
 ess_1688_init(UNUSED(const device_t *info))
 {
-    /* SB Pro 2 port mappings, 220h or 240h.
-       2x0 to 2x3 -> FM chip (18 voices)
-       2x4 to 2x5 -> Mixer interface
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip (9 voices)
-       2x0+10 to 2x0+13 CDROM interface. */
     sb_t    *ess  = calloc(sizeof(sb_t), 1);
     uint16_t addr = device_get_config_hex16("base");
 
@@ -4463,16 +4457,16 @@ static const device_config_t ess_1688_config[] = {
                 .value       = 0x220
             },
             {
+                .description = "0x230",
+                .value       = 0x230
+            },
+            {
                 .description = "0x240",
                 .value       = 0x240
             },
             {
-                .description = "0x260",
-                .value       = 0x260
-            },
-            {
-                .description = "0x280",
-                .value       = 0x280
+                .description = "0x250",
+                .value       = 0x250
             },
             { .description = "" }
         }
