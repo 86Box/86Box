@@ -908,6 +908,7 @@ static void *
 pit_init(const device_t *info)
 {
     pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
+
     pit_reset(dev);
 
     pit_set_pit_const(dev, PITCONST);
