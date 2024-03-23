@@ -61,6 +61,7 @@ MediaMenu::MediaMenu(QWidget *parent)
     : QObject(parent)
 {
     parentWidget = parent;
+    connect(this, &MediaMenu::onCdromUpdateUi, this, &MediaMenu::cdromUpdateUi, Qt::QueuedConnection);
 }
 
 void
@@ -522,6 +523,23 @@ MediaMenu::cdromReload(int index, int slot)
 }
 
 void
+MediaMenu::cdromUpdateUi(int i)
+{
+    cdrom_t *drv = &cdrom[i];
+
+    if (drv->host_drive == 0) {
+        mhm.addImageToHistory(i, ui::MediaType::Optical, drv->prev_image_path, QString());
+        ui_sb_update_icon_state(SB_CDROM | i, 1);
+    } else {
+        mhm.addImageToHistory(i, ui::MediaType::Optical, drv->prev_image_path, drv->image_path);
+        ui_sb_update_icon_state(SB_CDROM | i, 0);
+    }
+
+    cdromUpdateMenu(i);
+    ui_sb_update_tip(SB_CDROM | i);
+}
+
+void
 MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
 {
     QMenu      *menu;
@@ -891,11 +909,64 @@ MediaMenu::getMediaOpenDirectory()
 
 // callbacks from 86box C code
 extern "C" {
+void
+cassette_mount(char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->cassetteMount(QString(fn), wp);
+}
+
+void
+cassette_eject(void)
+{
+    MediaMenu::ptr->cassetteEject();
+}
+
+void
+cartridge_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->cartridgeMount(id, QString(fn));
+}
+
+void
+cartridge_eject(uint8_t id)
+{
+    MediaMenu::ptr->cartridgeEject(id);
+}
+
+void
+floppy_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->floppyMount(id, QString(fn), wp);
+}
+
+void
+floppy_eject(uint8_t id)
+{
+    MediaMenu::ptr->floppyEject(id);
+}
+
+void
+cdrom_mount(uint8_t id, char *fn)
+{
+    MediaMenu::ptr->cdromMount(id, QString(fn));
+}
+
+void
+plat_cdrom_ui_update(uint8_t id, uint8_t reload)
+{
+    emit MediaMenu::ptr->onCdromUpdateUi(id);
+}
 
 void
 zip_eject(uint8_t id)
 {
     MediaMenu::ptr->zipEject(id);
+}
+
+void
+zip_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->zipMount(id, QString(fn), wp);
 }
 
 void
@@ -908,6 +979,12 @@ void
 mo_eject(uint8_t id)
 {
     MediaMenu::ptr->moEject(id);
+}
+
+void
+mo_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->moMount(id, QString(fn), wp);
 }
 
 void

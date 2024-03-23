@@ -123,10 +123,8 @@ extern const device_t cms_device;
 /* Gravis UltraSound and UltraSound Max */
 extern const device_t gus_device;
 
-#    if defined(DEV_BRANCH) && defined(USE_PAS16)
 /* Pro Audio Spectrum 16 */
 extern const device_t pas16_device;
-#    endif
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;

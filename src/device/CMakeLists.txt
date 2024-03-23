@@ -22,7 +22,8 @@ add_library(dev OBJECT bugger.c cassette.c cartridge.c hasp.c hwm.c hwm_lm75.c h
     kbc_at.c kbc_at_dev.c
     keyboard_at.c
     mouse.c mouse_bus.c mouse_serial.c mouse_ps2.c nec_mate_unk.c phoenix_486_jumper.c
-    serial_passthrough.c)
+    serial_passthrough.c
+    novell_cardkey.c)
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_link_libraries(86Box atomic)

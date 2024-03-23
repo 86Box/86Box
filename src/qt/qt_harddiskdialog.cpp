@@ -516,8 +516,8 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
         fp = _wfopen(wopenfilestring, L"rb");
         if (fp != NULL) {
             fclose(fp);
-            if (settings_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/ * yes * /
-                return FALSE;
+            if (settings_msgbox_ex(MBX_QUESTION_YN, L"Disk image file already exists", L"The selected file will be overwritten. Are you sure you want to use it?", L"Overwrite", L"Don't overwrite", NULL) != 0)	/ * yes * /
+                return false;
         }
     }
 
@@ -525,8 +525,8 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     if (fp == NULL) {
     hdd_add_file_open_error:
         fclose(fp);
-        settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
-        return TRUE;
+        settings_msgbox_header(MBX_ERROR, (existing & 1) ? L"Make sure the file exists and is readable." : L"Make sure the file is being saved to a writable directory.", (existing & 1) ? L"Unable to read file" : L"Unable to write file");
+        return true;
     }
 #endif
 

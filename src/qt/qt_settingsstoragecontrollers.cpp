@@ -206,7 +206,6 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         ui->checkBoxCassette->setEnabled(false);
     }
 
-    ui->checkBoxLbaEnhancer->setEnabled(device_available(&lba_enhancer_device));
     ui->checkBoxLbaEnhancer->setChecked(lba_enhancer_enabled > 0 && device_available(&lba_enhancer_device));
     ui->pushButtonConfigureLbaEnhancer->setEnabled(ui->checkBoxLbaEnhancer->isChecked());
 }

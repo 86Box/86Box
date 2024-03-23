@@ -90,6 +90,26 @@ machine_at_asus386_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_tandy4000_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tandy4000/BIOS Tandy 4000 v1.03.01.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 static void
 machine_at_sis401_common_init(const machine_t *model)
 {

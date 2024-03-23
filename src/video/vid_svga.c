@@ -957,7 +957,7 @@ svga_recalctimings(svga_t *svga)
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
-            ui_sb_set_text_w(plat_get_string(IDS_2143));
+            ui_sb_set_text_w(plat_get_string(STRING_MONITOR_SLEEP));
         }
     } else if (svga->dpms_ui) {
         svga->dpms_ui = 0;

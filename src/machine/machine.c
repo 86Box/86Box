@@ -156,7 +156,7 @@ machine_available(int m)
 }
 
 void
-pit_irq0_timer(int new_out, int old_out)
+pit_irq0_timer(int new_out, int old_out, UNUSED(void *priv))
 {
     if (new_out && !old_out)
         picint(1);

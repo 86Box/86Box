@@ -149,9 +149,7 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16s_device        },
     { &sb_vibra16xv_device       },
     { &ssi2001_device            },
-#if defined(DEV_BRANCH) && defined(USE_PAS16)
     { &pas16_device              },
-#endif
     { &pssj_isa_device           },
     { &tndy_device               },
     { &wss_device                },
