@@ -126,7 +126,7 @@ static int
 pitf_read_timer(ctrf_t *ctr)
 {
     if (ctr->using_timer && !(ctr->m == 3 && !ctr->gate) && timer_is_enabled(&ctr->timer)) {
-        int read = (int) ((timer_get_remaining_u64(&ctr->timer)) / PITCONST);
+        int read = (int) ((timer_get_remaining_u64(&ctr->timer)) / ctr->pit_const);
         if (ctr->m == 2)
             read++;
         if (read < 0)
@@ -168,7 +168,7 @@ pitf_ctr_load(ctrf_t *ctr, void *priv)
         case 0: /*Interrupt on terminal count*/
             ctr->count = l;
             if (ctr->using_timer)
-                timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                timer_set_delay_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
             pitf_ctr_set_out(ctr, 0, pit);
             ctr->thit    = 0;
             ctr->enabled = ctr->gate;
@@ -180,7 +180,7 @@ pitf_ctr_load(ctrf_t *ctr, void *priv)
             if (ctr->initial) {
                 ctr->count = l - 1;
                 if (ctr->using_timer)
-                    timer_set_delay_u64(&ctr->timer, (uint64_t) ((l - 1) * PITCONST));
+                    timer_set_delay_u64(&ctr->timer, (uint64_t) ((l - 1) * ctr->pit_const));
                 pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
@@ -190,7 +190,7 @@ pitf_ctr_load(ctrf_t *ctr, void *priv)
             if (ctr->initial) {
                 ctr->count = l;
                 if (ctr->using_timer)
-                    timer_set_delay_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
+                    timer_set_delay_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * ctr->pit_const));
                 pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
@@ -202,7 +202,7 @@ pitf_ctr_load(ctrf_t *ctr, void *priv)
             else {
                 ctr->count = l;
                 if (ctr->using_timer)
-                    timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                    timer_set_delay_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
                 pitf_ctr_set_out(ctr, 0, pit);
                 ctr->thit = 0;
             }
@@ -240,7 +240,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate, void *priv)
         case 0: /*Interrupt on terminal count*/
         case 4: /*Software triggered stobe*/
             if (ctr->using_timer && !ctr->running)
-                timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                timer_set_delay_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
             ctr->enabled = gate;
             break;
         case 1: /*Hardware retriggerable one-shot*/
@@ -248,7 +248,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate, void *priv)
             if (gate && !ctr->gate) {
                 ctr->count = l;
                 if (ctr->using_timer)
-                    timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                    timer_set_delay_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
                 pitf_ctr_set_out(ctr, 0, pit);
                 ctr->thit    = 0;
                 ctr->enabled = 1;
@@ -258,7 +258,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate, void *priv)
             if (gate && !ctr->gate) {
                 ctr->count = l - 1;
                 if (ctr->using_timer)
-                    timer_set_delay_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                    timer_set_delay_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
                 pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
@@ -268,7 +268,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate, void *priv)
             if (gate && !ctr->gate) {
                 ctr->count = l;
                 if (ctr->using_timer)
-                    timer_set_delay_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
+                    timer_set_delay_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * ctr->pit_const));
                 pitf_ctr_set_out(ctr, 1, pit);
                 ctr->thit = 0;
             }
@@ -306,7 +306,7 @@ pitf_over(ctrf_t *ctr, void *priv)
     if (ctr->disabled) {
         ctr->count += 0xffff;
         if (ctr->using_timer)
-            timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * PITCONST));
+            timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * ctr->pit_const));
         return;
     }
 
@@ -318,12 +318,12 @@ pitf_over(ctrf_t *ctr, void *priv)
             ctr->thit = 1;
             ctr->count += 0xffff;
             if (ctr->using_timer)
-                timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * PITCONST));
+                timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * ctr->pit_const));
             break;
         case 2: /*Rate generator*/
             ctr->count += l;
             if (ctr->using_timer)
-                timer_advance_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                timer_advance_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
             pitf_ctr_set_out(ctr, 0, pit);
             pitf_ctr_set_out(ctr, 1, pit);
             break;
@@ -332,16 +332,16 @@ pitf_over(ctrf_t *ctr, void *priv)
                 pitf_ctr_set_out(ctr, 0, pit);
                 ctr->count += (l >> 1);
                 if (ctr->using_timer)
-                    timer_advance_u64(&ctr->timer, (uint64_t) ((l >> 1) * PITCONST));
+                    timer_advance_u64(&ctr->timer, (uint64_t) ((l >> 1) * ctr->pit_const));
             } else {
                 pitf_ctr_set_out(ctr, 1, pit);
                 ctr->count += ((l + 1) >> 1);
                 if (ctr->using_timer)
-                    timer_advance_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
+                    timer_advance_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * ctr->pit_const));
             }
 #if 0
             if (!t)
-                pclog("pit_over: square wave mode c=%x  %lli  %f\n", pit.c[t], tsc, PITCONST);
+                pclog("pit_over: square wave mode c=%x  %lli  %f\n", pit.c[t], tsc, ctr->pit_const);
 #endif
             break;
         case 4: /*Software triggered strove*/
@@ -353,12 +353,12 @@ pitf_over(ctrf_t *ctr, void *priv)
                 ctr->newcount = 0;
                 ctr->count += l;
                 if (ctr->using_timer)
-                    timer_advance_u64(&ctr->timer, (uint64_t) (l * PITCONST));
+                    timer_advance_u64(&ctr->timer, (uint64_t) (l * ctr->pit_const));
             } else {
                 ctr->thit = 1;
                 ctr->count += 0xffff;
                 if (ctr->using_timer)
-                    timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * PITCONST));
+                    timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * ctr->pit_const));
             }
             break;
         case 5: /*Hardware triggered strove*/
@@ -369,7 +369,7 @@ pitf_over(ctrf_t *ctr, void *priv)
             ctr->thit = 1;
             ctr->count += 0xffff;
             if (ctr->using_timer)
-                timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * PITCONST));
+                timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * ctr->pit_const));
             break;
 
         default:
@@ -659,6 +659,24 @@ pitf_reset(pitf_t *dev)
     dev->counters[2].gate = 0;
 }
 
+void
+pitf_set_pit_const(void *data, uint64_t pit_const)
+{
+    pitf_t *pit = (pitf_t *) data;
+    ctrf_t *ctr;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        ctr = &pit->counters[i];
+        ctr->pit_const = pit_const;
+    }
+}
+
+static void
+pitf_speed_changed(void *priv)
+{
+    pitf_set_pit_const(priv, PITCONST);
+}
+
 static void
 pitf_close(void *priv)
 {
@@ -707,7 +725,7 @@ const device_t i8253_fast_device = {
     .close         = pitf_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -721,7 +739,7 @@ const device_t i8254_fast_device = {
     .close         = pitf_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -735,7 +753,7 @@ const device_t i8254_sec_fast_device = {
     .close         = pitf_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -763,7 +781,7 @@ const device_t i8254_ps2_fast_device = {
     .close         = pitf_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -777,5 +795,6 @@ const pit_intf_t pit_fast_intf = {
     &pitf_ctr_set_out_func,
     &pitf_ctr_set_load_func,
     &pitf_ctr_clock,
+    &pitf_set_pit_const,
     NULL,
 };

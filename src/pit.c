@@ -47,6 +47,7 @@ pit_intf_t pit_devs[2];
 
 double cpuclock;
 double PITCONSTD;
+double PAS16CONSTD;
 double SYSCLK;
 double isa_timing;
 double bus_timing;
@@ -56,6 +57,7 @@ double PCICLK;
 double AGPCLK;
 
 uint64_t PITCONST;
+uint64_t PAS16CONST;
 uint64_t ISACONST;
 uint64_t CGACONST;
 uint64_t MDACONST;
@@ -523,7 +525,7 @@ pit_timer_over(void *priv)
     for (uint8_t i = 0; i < 3; i++)
         pit_ctr_set_clock_common(&dev->counters[i], dev->clock, dev);
 
-    timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
+    timer_advance_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
 }
 
 static void
@@ -873,6 +875,20 @@ pit_handler(int set, uint16_t base, int size, void *priv)
     io_handler(set, base, size, pit_read, NULL, NULL, pit_write, NULL, NULL, priv);
 }
 
+void
+pit_set_pit_const(void *data, uint64_t pit_const)
+{
+    pit_t *pit = (pit_t *) data;
+
+    pit->pit_const = pit_const;
+}
+
+static void
+pit_speed_changed(void *priv)
+{
+    pit_set_pit_const(priv, PITCONST);
+}
+
 static void
 pit_close(void *priv)
 {
@@ -896,7 +912,7 @@ pit_init(const device_t *info)
 
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
-        timer_set_delay_u64(&dev->callback_timer, PITCONST >> 1ULL);
+        timer_set_delay_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
     }
 
     dev->flags = info->local;
@@ -919,7 +935,7 @@ const device_t i8253_device = {
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -947,7 +963,7 @@ const device_t i8254_device = {
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -961,7 +977,7 @@ const device_t i8254_sec_device = {
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -989,7 +1005,7 @@ const device_t i8254_ps2_device = {
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -1072,6 +1088,12 @@ pit_ps2_init(int type)
     ps2_pit->set_out_func(ps2_pit->data, 0, pit_nmi_timer_ps2);
 
     return pit;
+}
+
+void
+pit_change_pas16_const(double prescale)
+{
+    PAS16CONST  = (uint64_t) ((PITCONSTD / prescale) * (double) (1ULL << 32));
 }
 
 void
@@ -1169,6 +1191,9 @@ pit_set_clock(uint32_t clock)
 
     TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ULL << 32));
 
+    PAS16CONSTD = (cpuclock / 441000.0);
+    PAS16CONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)
         bus_timing = (cpuclock / (cpu_busspeed / 2));
@@ -1200,5 +1225,6 @@ const pit_intf_t pit_classic_intf = {
     &pit_ctr_set_out_func,
     &pit_ctr_set_load_func,
     &ctr_clock,
+    &pit_set_pit_const,
     NULL,
 };

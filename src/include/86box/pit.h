@@ -71,6 +71,9 @@ typedef struct PIT {
     ctr_t counters[3];
 
     uint8_t ctrl;
+
+    uint64_t   pit_const;
+
     void *dev_priv;
 } pit_t;
 
@@ -97,6 +100,7 @@ typedef struct pit_intf_t {
     /* Sets a counter's load count handler. */
     void (*set_load_func)(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count));
     void (*ctr_clock)(void *data, int counter_id);
+    void (*set_pit_const)(void *data, uint64_t pit_const);
     void *data;
 } pit_intf_t;
 
@@ -108,6 +112,7 @@ extern double PCICLK;
 extern double AGPCLK;
 
 extern uint64_t PITCONST;
+extern uint64_t PAS16CONST;
 extern uint64_t ISACONST;
 extern uint64_t CGACONST;
 extern uint64_t MDACONST;
@@ -117,6 +122,10 @@ extern uint64_t VGACONST2;
 extern uint64_t RTCCONST;
 
 extern int refresh_at_enable;
+
+extern void pit_change_pas16_const(double prescale);
+
+extern void pit_set_pit_const(void *data, uint64_t pit_const);
 
 /* Sets a counter's CLOCK input. */
 extern void pit_ctr_set_clock(ctr_t *ctr, int clock, void *priv);

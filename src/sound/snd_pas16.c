@@ -354,7 +354,6 @@ static void
 pas16_out(uint16_t port, uint8_t val, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
-    pit_t *pit = (pit_t *) pas16->pit;
     pas16_log("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS, cpu_state.pc);
     switch (port) {
         case 0x388:
@@ -728,6 +727,28 @@ pas16_get_music_buffer(int32_t *buffer, int len, void *priv)
     pas16->opl.reset_buffer(pas16->opl.priv);
 }
 
+static void
+pas16_speed_changed(void *priv)
+{
+    pas16_t *pas16 = (pas16_t *) priv;
+
+    /* TODO: In PAS16 mode:
+        pit_change_pas16_const(prescale);
+        pit_set_pit_const(pas16->pit, PAS16CONST);
+     */
+
+    pit_set_pit_const(pas16->pit, PITCONST);
+}
+
+static void
+pas16_reset(void *priv)
+{
+    pas16_t *pas16 = (pas16_t *) priv;
+
+    /* TODO: Reset the entire PAS16 state here. */
+    pit_set_pit_const(pas16->pit, PITCONST);
+}
+
 static void *
 pas16_init(UNUSED(const device_t *info))
 {
@@ -743,6 +764,7 @@ pas16_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
 
     pas16->pit = device_add(&i8254_ext_io_device);
+    pit_set_pit_const(pas16->pit, PITCONST);
     pas16->pit->dev_priv = pas16;
     pas16->irq = 10;
     pas16->dma = 3;
@@ -798,9 +820,9 @@ const device_t pas16_device = {
     .local         = 0,
     .init          = pas16_init,
     .close         = pas16_close,
-    .reset         = NULL,
+    .reset         = pas16_reset,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config
 };
