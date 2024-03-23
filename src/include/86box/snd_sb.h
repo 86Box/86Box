@@ -126,6 +126,43 @@ typedef struct sb_ct1745_mixer_t {
     int output_filter; /* for clones */
 } sb_ct1745_mixer_t;
 
+/* ESS AudioDrive */
+typedef struct ess_mixer_t {
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
+    double mic_l;
+    double mic_r;
+    double auxb_l;
+    double auxb_r;
+    double speaker;
+    /*see sb_ct1745_mixer for values for input selector*/
+    int32_t input_selector;
+    /* extra values for input selector */
+    #define INPUT_MIXER_L 128
+    #define INPUT_MIXER_R 256
+
+    int input_filter;
+    int in_filter_freq;
+    int output_filter;
+
+    int stereo;
+    int stereo_isleft;
+
+    uint8_t index;
+    uint8_t regs[256];
+
+    uint8_t ess_id_str[4];
+    uint8_t ess_id_str_pos;
+} ess_mixer_t;
+
 typedef struct sb_t {
     uint8_t  cms_enabled;
     uint8_t  opl_enabled;
@@ -138,6 +175,7 @@ typedef struct sb_t {
         sb_ct1335_mixer_t mixer_sb2;
         sb_ct1345_mixer_t mixer_sbpro;
         sb_ct1745_mixer_t mixer_sb16;
+        ess_mixer_t       mixer_ess;
     };
     mpu_t  *mpu;
     emu8k_t emu8k;
@@ -162,6 +200,10 @@ extern void    sb_ct1345_mixer_reset(sb_t *sb);
 extern void    sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ct1745_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ct1745_mixer_reset(sb_t *sb);
+
+extern void    sb_ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
+extern void    sb_ess_mixer_reset(sb_t *sb);
 
 extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv);
 extern void sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv);

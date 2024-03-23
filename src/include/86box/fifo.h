@@ -1,3 +1,6 @@
+#ifndef FIFO_H
+#define FIFO_H
+
 /*
  * 86Box    A hypervisor and IBM PC system emulator that specializes in
  *          running old operating systems and software designed for IBM
@@ -71,3 +74,5 @@ extern void       fifo_reset(void *priv);
 extern void       fifo_reset_evt(void *priv);
 extern void       fifo_close(void *priv);
 extern void      *fifo_init(int len);
+
+#endif /*FIFO_H*/

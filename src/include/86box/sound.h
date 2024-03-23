@@ -182,6 +182,10 @@ extern const device_t cmi8338_onboard_device;
 extern const device_t cmi8738_device;
 extern const device_t cmi8738_onboard_device;
 extern const device_t cmi8738_6ch_onboard_device;
+
+/* ESS Technology */
+extern const device_t ess_1688_device;
+
 #endif
 
 #endif /*EMU_SOUND_H*/
