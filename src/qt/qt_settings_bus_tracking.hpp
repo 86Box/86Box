@@ -28,6 +28,8 @@ public:
     explicit SettingsBusTracking();
     ~SettingsBusTracking() = default;
 
+    QList<int> busChannelsInUse(int bus);
+
     /* These return 0xff is none is free. */
     uint8_t next_free_mfm_channel();
     uint8_t next_free_esdi_channel();

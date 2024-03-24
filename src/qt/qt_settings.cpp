@@ -153,6 +153,10 @@ Settings::Settings(QWidget *parent)
             &SettingsStorageControllers::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
             &SettingsOtherPeripherals::onCurrentMachineChanged);
+    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
            [this](const QModelIndex &current, const QModelIndex &previous) {
