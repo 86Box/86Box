@@ -198,6 +198,45 @@ SettingsBusTracking::scsi_bus_full()
     return (count == 64);
 }
 
+QList<int> SettingsBusTracking::busChannelsInUse(const int bus) {
+
+    QList<int> channelsInUse;
+    int        element;
+    uint64_t   mask;
+    switch (bus) {
+        case HDD_BUS_IDE:
+            for (uint8_t i = 0; i < 32; i++) {
+                element = ((i << 3) >> 6);
+                mask = ((uint64_t) DEV_HDD) << ((uint64_t) ((i << 3) & 0x3f));
+                if (ide_tracking[element] & mask) {
+                    channelsInUse.append(i);
+                }
+            }
+            break;
+        case HDD_BUS_ATAPI:
+            for (uint8_t i = 0; i < 32; i++) {
+                element = ((i << 3) >> 6);
+                mask = ((uint64_t) DEV_CDROM) << ((uint64_t) ((i << 3) & 0x3f));
+                if (ide_tracking[element] & mask) {
+                    channelsInUse.append(i);
+                }
+            }
+            break;
+        case HDD_BUS_SCSI:
+            for (uint8_t i = 0; i < 64; i++) {
+                element = ((i << 3) >> 6);
+                mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (scsi_tracking[element] & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        default:
+            break;
+    }
+
+    return channelsInUse;
+}
+
 void
 SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channel)
 {
