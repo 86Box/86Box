@@ -91,9 +91,7 @@ video_cards[] = {
     { &ati28800_wonderxl24_device                      },
 #endif
     { &ati18800_device                                 },
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     { &ati18800_wonder_device                          },
-#endif
     { &cga_device                                      },
     { &sega_device                                     },
     { &gd5401_isa_device                               },

@@ -320,9 +320,7 @@ extern const device_t mach64gx_pci_device;
 extern const device_t mach64vt2_device;
 
 /* ATi 18800 */
-#    if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 extern const device_t ati18800_wonder_device;
-#    endif
 extern const device_t ati18800_vga88_device;
 extern const device_t ati18800_device;
 
