@@ -79,9 +79,9 @@ jobs:
 #          - msystem: CLANG64
 #            prefix: mingw-w64-clang-x86_64
 #            toolchain: ./cmake/llvm-win32-x86_64.cmake
-          - msystem: UCRT64
-            prefix: mingw-w64-ucrt-x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
+#          - msystem: UCRT64
+#            prefix: mingw-w64-ucrt-x86_64
+#            toolchain: ./cmake/flags-gcc-x86_64.cmake
 
     steps:
       - name: Prepare MSYS2 environment
