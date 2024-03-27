@@ -2759,7 +2759,6 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     return;
                 } else if ((svga->seqaddr == 0x0d) && (svga->seqregs[0x08] == 0x06)) {
                     svga->seqregs[svga->seqaddr] = val;
-                    svga->dpms                   = ((s3->chip >= S3_VISION964) && (svga->seqregs[0x0d] & 0x50)) || (svga->crtc[0x56] & ((s3->chip >= S3_TRIO32) ? 0x06 : 0x20));
                     svga_recalctimings(svga);
                     return;
                 }
@@ -3003,7 +3002,6 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x56:
-                    svga->dpms = ((s3->chip >= S3_VISION964) && (svga->seqregs[0x0d] & 0x50)) || (svga->crtc[0x56] & ((s3->chip >= S3_TRIO32) ? 0x06 : 0x20));
                     old        = ~val; /* force recalc */
                     break;
 
@@ -3204,6 +3202,8 @@ s3_recalctimings(svga_t *svga)
     s3_t *s3      = (s3_t *) svga->priv;
     int   clk_sel = (svga->miscout >> 2) & 3;
     uint8_t mask = 0xc0;
+
+    svga->dpms = ((s3->chip >= S3_VISION964) && (svga->seqregs[0x0d] & 0x50)) || (svga->crtc[0x56] & ((s3->chip >= S3_TRIO32) ? 0x06 : 0x20));
 
     if (svga->crtc[0x33] & 0x20) {
         /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
@@ -4128,6 +4128,7 @@ s3_trio64v_recalctimings(svga_t *svga)
     s3_t *s3            = (s3_t *) svga->priv;
     int         clk_sel = (svga->miscout >> 2) & 3;
 
+    svga->dpms = ((svga->seqregs[0x0d] & 0x50)) || (svga->crtc[0x56] & (0x06));
     if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
         svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
@@ -9518,6 +9519,8 @@ s3_reset(void *priv)
 
     mem_mapping_disable(&s3->mmio_mapping);
     mem_mapping_disable(&s3->new_mmio_mapping);
+
+    svga_recalctimings(&s3->svga);
 }
 
 static void *

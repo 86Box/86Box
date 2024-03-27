@@ -457,6 +457,8 @@ et3000_recalctimings(svga_t *svga)
             default:
                 break;
         }
+
+        svga->dpms = !(svga->crtc[0x17] & 0x80);
     }
 
     et3000_log("HDISP = %i, HTOTAL = %i, ROWOFFSET = %i, INTERLACE = %i\n",
@@ -476,6 +478,24 @@ et3000_recalctimings(svga_t *svga)
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
     }
+}
+
+static void
+et3000_reset(void *priv)
+{
+    et3000_t *dev  = (et3000_t *) priv;
+    svga_t   *svga = (svga_t*) &dev->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0x17]  = 0x0;
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
 }
 
 static void *
@@ -570,7 +590,7 @@ const device_t et3000_isa_device = {
     .local         = 0,
     .init          = et3000_init,
     .close         = et3000_close,
-    .reset         = NULL,
+    .reset         = et3000_reset,
     { .available = et3000_available },
     .speed_changed = et3000_speed_changed,
     .force_redraw  = et3000_force_redraw,

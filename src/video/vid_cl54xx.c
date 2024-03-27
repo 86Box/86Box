@@ -987,7 +987,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
 
                     case 0x0e:
                         if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429) {
-                            svga->dpms = (val & 0x06) && ((svga->miscout & ((val & 0x06) << 5)) != 0xc0);
                             svga_recalctimings(svga);
                         }
                         break;
@@ -1751,6 +1750,7 @@ gd54xx_recalctimings(svga_t *svga)
     uint8_t         linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
 
     svga->hblankstart = svga->crtc[2];
+    svga->dpms = (svga->gdcreg[0x0e] & 0x06) && ((svga->miscout & ((svga->gdcreg[0x0e] & 0x06) << 5)) != 0xc0);
 
     if (svga->crtc[0x1b] & ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5424) ? 0xa0 : 0x20)) {
         /* Special blanking mode: the blank start and end become components of the window generator,
@@ -4024,6 +4024,9 @@ gd54xx_reset(void *priv)
         gd54xx->unlocked = 1;
     else
         gd54xx->unlocked = 0;
+    
+    gd54xx->ramdac.ctrl = 0;
+    svga_recalctimings(svga);
 }
 
 static void *

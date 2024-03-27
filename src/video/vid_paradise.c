@@ -581,6 +581,21 @@ paradise_readw(uint32_t addr, void *priv)
     return svga_readw_linear(addr, svga);
 }
 
+static void
+paradise_reset(void *priv)
+{
+    paradise_t  *paradise  = (paradise_t *) priv;
+    svga_t *svga = (svga_t*) &paradise->svga;
+    
+    svga->crtc[0x17]  &= ~0x80;
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 void *
 paradise_init(const device_t *info, uint32_t memsize)
 {
@@ -859,7 +874,7 @@ const device_t paradise_pvga1a_ncr3302_device = {
     .local         = PVGA1A,
     .init          = paradise_pvga1a_ncr3302_init,
     .close         = paradise_close,
-    .reset         = NULL,
+    .reset         = paradise_reset,
     { .available = NULL },
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
@@ -873,7 +888,7 @@ const device_t paradise_pvga1a_device = {
     .local         = PVGA1A,
     .init          = paradise_pvga1a_standalone_init,
     .close         = paradise_close,
-    .reset         = NULL,
+    .reset         = paradise_reset,
     { .available = paradise_pvga1a_standalone_available },
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
@@ -887,7 +902,7 @@ const device_t paradise_wd90c11_megapc_device = {
     .local         = WD90C11,
     .init          = paradise_wd90c11_megapc_init,
     .close         = paradise_close,
-    .reset         = NULL,
+    .reset         = paradise_reset,
     { .available = NULL },
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
@@ -901,7 +916,7 @@ const device_t paradise_wd90c11_device = {
     .local         = WD90C11,
     .init          = paradise_wd90c11_standalone_init,
     .close         = paradise_close,
-    .reset         = NULL,
+    .reset         = paradise_reset,
     { .available = paradise_wd90c11_standalone_available },
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
@@ -942,7 +957,7 @@ const device_t paradise_wd90c30_device = {
     .local         = WD90C30,
     .init          = paradise_wd90c30_standalone_init,
     .close         = paradise_close,
-    .reset         = NULL,
+    .reset         = paradise_reset,
     { .available = paradise_wd90c30_standalone_available },
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,

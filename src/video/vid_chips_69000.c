@@ -2434,6 +2434,21 @@ chips_69000_line_compare(svga_t* svga)
     return 1;
 }
 
+static void
+chips_69000_reset(void *priv)
+{
+    chips_69000_t *chips = (chips_69000_t *) priv;
+    svga_t        *svga  = (svga_t*) &chips->svga;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 chips_69000_init(const device_t *info)
 {
@@ -2529,7 +2544,7 @@ const device_t chips_69000_device = {
     .local         = 0,
     .init          = chips_69000_init,
     .close         = chips_69000_close,
-    .reset         = NULL,
+    .reset         = chips_69000_reset,
     { .available = chips_69000_available },
     .speed_changed = chips_69000_speed_changed,
     .force_redraw  = chips_69000_force_redraw,
@@ -2543,7 +2558,7 @@ const device_t chips_69000_onboard_device = {
     .local         = 1,
     .init          = chips_69000_init,
     .close         = chips_69000_close,
-    .reset         = NULL,
+    .reset         = chips_69000_reset,
     { .available = chips_69000_available },
     .speed_changed = chips_69000_speed_changed,
     .force_redraw  = chips_69000_force_redraw,

@@ -736,6 +736,11 @@ et4000_recalctimings(svga_t *svga)
         else if (svga->render == svga_render_8bpp_highres)
             svga->render = svga_render_8bpp_tseng_highres;
     }
+
+    /* From ET4000 docs:
+        Bit 7 of the CRTC Mode register is set to 0 to place all horizontal and vertical timing control circuitry into a hold state.
+    */
+   svga->dpms = !(svga->crtc[0x17] & 0x80);
 }
 
 static void
@@ -780,6 +785,24 @@ static uint8_t
 et4000_mca_feedb(UNUSED(void *priv))
 {
     return 1;
+}
+
+static void
+et4000_reset(void *priv)
+{
+    et4000_t *dev  = (et4000_t *) priv;
+    svga_t   *svga = (svga_t*) &dev->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0x17]  = 0x0;
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
 }
 
 static void *
@@ -1074,7 +1097,7 @@ const device_t et4000_tc6058af_isa_device = {
     .local         = 0,
     .init          = et4000_init,
     .close         = et4000_close,
-    .reset         = NULL,
+    .reset         = et4000_reset,
     { .available = NULL },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
@@ -1088,7 +1111,7 @@ const device_t et4000_isa_device = {
     .local         = ET4000_TYPE_ISA,
     .init          = et4000_init,
     .close         = et4000_close,
-    .reset         = NULL,
+    .reset         = et4000_reset,
     { .available = NULL },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
@@ -1102,7 +1125,7 @@ const device_t et4000_mca_device = {
     .local         = ET4000_TYPE_MCA,
     .init          = et4000_init,
     .close         = et4000_close,
-    .reset         = NULL,
+    .reset         = et4000_reset,
     { .available = et4000_available },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
@@ -1116,7 +1139,7 @@ const device_t et4000k_isa_device = {
     .local         = ET4000_TYPE_KOREAN,
     .init          = et4000_init,
     .close         = et4000_close,
-    .reset         = NULL,
+    .reset         = et4000_reset,
     { .available = et4000k_available },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
@@ -1130,7 +1153,7 @@ const device_t et4000k_tg286_isa_device = {
     .local         = ET4000_TYPE_TRIGEM,
     .init          = et4000_init,
     .close         = et4000_close,
-    .reset         = NULL,
+    .reset         = et4000_reset,
     { .available = et4000k_available },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
@@ -1144,7 +1167,7 @@ const device_t et4000_kasan_isa_device = {
     .local         = ET4000_TYPE_KASAN,
     .init          = et4000_init,
     .close         = et4000_close,
-    .reset         = NULL,
+    .reset         = et4000_reset,
     { .available = et4000_kasan_available },
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,

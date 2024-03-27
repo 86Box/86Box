@@ -510,6 +510,8 @@ mach64_recalctimings(svga_t *svga)
 {
     const mach64_t *mach64 = (mach64_t *) svga->priv;
 
+    svga->dpms = !!(mach64->crtc_gen_cntl & 0x0c);
+
     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3) {
         svga->vtotal     = (mach64->crtc_v_total_disp & 2047) + 1;
         svga->dispend    = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
@@ -3110,7 +3112,6 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga->fb_only = 1;
                 else
                     svga->fb_only = 0;
-                svga->dpms = !!(mach64->crtc_gen_cntl & 0x0c);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
@@ -4392,6 +4393,22 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
     }
 }
 
+static void
+mach64_common_reset(void *priv)
+{
+    mach64_t *mach64 = (mach64_t *) priv;
+    svga_t   *svga   = (svga_t*) &mach64->svga;
+
+    mach64->crtc_gen_cntl = 0;
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 static void *
 mach64_common_init(const device_t *info)
 {
@@ -4619,7 +4636,7 @@ const device_t mach64gx_isa_device = {
     .local         = 0,
     .init          = mach64gx_init,
     .close         = mach64_close,
-    .reset         = NULL,
+    .reset         = mach64_common_reset,
     { .available = mach64gx_isa_available },
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
@@ -4633,7 +4650,7 @@ const device_t mach64gx_vlb_device = {
     .local         = 0,
     .init          = mach64gx_init,
     .close         = mach64_close,
-    .reset         = NULL,
+    .reset         = mach64_common_reset,
     { .available = mach64gx_vlb_available },
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
@@ -4647,7 +4664,7 @@ const device_t mach64gx_pci_device = {
     .local         = 0,
     .init          = mach64gx_init,
     .close         = mach64_close,
-    .reset         = NULL,
+    .reset         = mach64_common_reset,
     { .available = mach64gx_available },
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
@@ -4661,7 +4678,7 @@ const device_t mach64vt2_device = {
     .local         = 0,
     .init          = mach64vt2_init,
     .close         = mach64_close,
-    .reset         = NULL,
+    .reset         = mach64_common_reset,
     { .available = mach64vt2_available },
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,

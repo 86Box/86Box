@@ -653,7 +653,7 @@ ht216_recalctimings(svga_t *svga)
 
     ht216->adjust_cursor = 0;
 
-    if (!svga->scrblank && svga->attr_palette_enable) {
+    if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
             if (svga->seqregs[1] & 8) /*40 column*/ {
                 svga->render = svga_render_text_40;
@@ -1470,6 +1470,24 @@ radius_mca_feedb(UNUSED(void *priv))
     return 1;
 }
 
+static void
+ht216_reset(void *priv)
+{
+    ht216_t *ht216 = (ht216_t *) priv;
+    svga_t  *svga  = (svga_t*) &ht216->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0x17]  = 0x0;
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 void *
 ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
 {
@@ -1757,7 +1775,7 @@ const device_t g2_gc205_device = {
     .local         = 0x7070,
     .init          = g2_gc205_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     { .available = g2_gc205_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1771,7 +1789,7 @@ const device_t v7_vga_1024i_device = {
     .local         = 0x7140,
     .init          = v7_vga_1024i_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     { .available = v7_vga_1024i_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1785,7 +1803,7 @@ const device_t ht216_32_pb410a_device = {
     .local         = 0x7861, /*HT216-32*/
     .init          = ht216_pb410a_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     { .available = NULL },
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1799,7 +1817,7 @@ const device_t ht216_32_standalone_device = {
     .local         = 0x7861, /*HT216-32*/
     .init          = ht216_standalone_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     { .available = ht216_standalone_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1813,7 +1831,7 @@ const device_t radius_svga_multiview_isa_device = {
     .local         = 0x7152, /*HT209*/
     .init          = radius_svga_multiview_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     { .available = radius_svga_multiview_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1827,7 +1845,7 @@ const device_t radius_svga_multiview_mca_device = {
     .local         = 0x7152, /*HT209*/
     .init          = radius_svga_multiview_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     { .available = radius_svga_multiview_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,

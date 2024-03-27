@@ -510,6 +510,23 @@ ati28800_recalctimings(svga_t *svga)
 }
 
 static void
+ati28800_reset(void *priv)
+{
+    ati28800_t *ati28800  = (ati28800_t *) priv;
+    svga_t     *svga = (svga_t*) &ati28800->svga;
+    
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->attrregs, 0x00, sizeof(svga->attrregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
+static void
 ati28800k_recalctimings(svga_t *svga)
 {
     const ati28800_t *ati28800 = (ati28800_t *) svga->priv;
@@ -788,7 +805,7 @@ const device_t ati28800_device = {
     .local         = 0,
     .init          = ati28800_init,
     .close         = ati28800_close,
-    .reset         = NULL,
+    .reset         = ati28800_reset,
     { .available = ati28800_available },
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
@@ -802,7 +819,7 @@ const device_t ati28800k_device = {
     .local         = 0,
     .init          = ati28800k_init,
     .close         = ati28800_close,
-    .reset         = NULL,
+    .reset         = ati28800_reset,
     { .available = ati28800k_available },
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
@@ -816,7 +833,7 @@ const device_t ati28800k_spc4620p_device = {
     .local         = 1,
     .init          = ati28800k_init,
     .close         = ati28800_close,
-    .reset         = NULL,
+    .reset         = ati28800_reset,
     { .available = NULL },
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
@@ -830,7 +847,7 @@ const device_t ati28800k_spc6033p_device = {
     .local         = 2,
     .init          = ati28800k_init,
     .close         = ati28800_close,
-    .reset         = NULL,
+    .reset         = ati28800_reset,
     { .available = NULL },
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
@@ -844,7 +861,7 @@ const device_t compaq_ati28800_device = {
     .local         = VGAWONDERXL,
     .init          = ati28800_init,
     .close         = ati28800_close,
-    .reset         = NULL,
+    .reset         = ati28800_reset,
     { .available = compaq_ati28800_available },
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
@@ -859,7 +876,7 @@ const device_t ati28800_wonderxl24_device = {
     .local         = VGAWONDERXL24,
     .init          = ati28800_init,
     .close         = ati28800_close,
-    .reset         = NULL,
+    .reset         = ati28800_reset,
     { .available = ati28800_wonderxl24_available },
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,

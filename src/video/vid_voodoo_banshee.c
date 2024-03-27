@@ -543,6 +543,8 @@ banshee_recalctimings(svga_t *svga)
     banshee_t      *banshee = (banshee_t *) svga->priv;
     const voodoo_t *voodoo  = banshee->voodoo;
 
+    svga->dpms       = !!(banshee->dacMode & 0x0a);
+
     /*7 R/W Horizontal Retrace End bit 5. -
       6 R/W Horizontal Retrace Start bit 8 0x4
       5 R/W Horizontal Blank End bit 6. -
@@ -858,7 +860,6 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 
         case DAC_dacMode:
             banshee->dacMode = val;
-            svga->dpms       = !!(val & 0x0a);
             svga_recalctimings(svga);
             break;
         case DAC_dacAddr:
@@ -3026,6 +3027,23 @@ banshee_pci_write(int func, int addr, uint8_t val, void *priv)
     }
 }
 
+static void
+banshee_reset(void *priv)
+{
+    banshee_t *banshee = (banshee_t *) priv;
+    svga_t    *svga    = (svga_t*) &banshee->svga;
+    
+    banshee->vidProcCfg = 0;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0]     = 63;
+    svga->crtc[6]     = 255;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
+    svga->bpp         = 8;
+    svga_recalctimings(svga);
+}
+
 // clang-format off
 static const device_config_t banshee_sgram_config[] = {
     {
@@ -3552,7 +3570,7 @@ const device_t voodoo_banshee_device = {
     .local         = 0,
     .init          = banshee_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = banshee_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3566,7 +3584,7 @@ const device_t creative_voodoo_banshee_device = {
     .local         = 0,
     .init          = creative_banshee_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = creative_banshee_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3580,7 +3598,7 @@ const device_t voodoo_3_1000_device = {
     .local         = 0,
     .init          = v3_1000_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_1000_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3594,7 +3612,7 @@ const device_t voodoo_3_1000_agp_device = {
     .local         = 0,
     .init          = v3_1000_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_1000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3608,7 +3626,7 @@ const device_t voodoo_3_2000_device = {
     .local         = 0,
     .init          = v3_2000_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_2000_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3622,7 +3640,7 @@ const device_t voodoo_3_2000_agp_device = {
     .local         = 0,
     .init          = v3_2000_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_2000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3636,7 +3654,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     .local         = 8,
     .init          = v3_2000_agp_onboard_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = NULL },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3650,7 +3668,7 @@ const device_t voodoo_3_3000_device = {
     .local         = 0,
     .init          = v3_3000_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_3000_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3664,7 +3682,7 @@ const device_t voodoo_3_3000_agp_device = {
     .local         = 0,
     .init          = v3_3000_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_3000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3678,7 +3696,7 @@ const device_t voodoo_3_3500_agp_ntsc_device = {
     .local         = 0,
     .init          = v3_3500_agp_ntsc_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_3500_agp_ntsc_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3692,7 +3710,7 @@ const device_t voodoo_3_3500_agp_pal_device = {
     .local         = 0,
     .init          = v3_3500_agp_pal_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_3500_agp_pal_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3706,7 +3724,7 @@ const device_t compaq_voodoo_3_3500_agp_device = {
     .local         = 0,
     .init          = compaq_v3_3500_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = compaq_v3_3500_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3720,7 +3738,7 @@ const device_t voodoo_3_3500_se_agp_device = {
     .local         = 0,
     .init          = v3_3500_se_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_3500_se_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3734,7 +3752,7 @@ const device_t voodoo_3_3500_si_agp_device = {
     .local         = 0,
     .init          = v3_3500_si_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = v3_3500_si_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3748,7 +3766,7 @@ const device_t velocity_100_agp_device = {
     .local         = 0,
     .init          = velocity_100_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = velocity_100_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
@@ -3762,7 +3780,7 @@ const device_t velocity_200_agp_device = {
     .local         = 0,
     .init          = velocity_200_agp_init,
     .close         = banshee_close,
-    .reset         = NULL,
+    .reset         = banshee_reset,
     { .available = velocity_200_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
