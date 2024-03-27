@@ -467,8 +467,7 @@ device_has_config(const device_t *dev)
     config = dev->config;
 
     while (config->type != -1) {
-        if (config->type != CONFIG_MAC)
-            c++;
+        c++;
         config++;
     }
 
