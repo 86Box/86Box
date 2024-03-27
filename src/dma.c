@@ -1398,6 +1398,29 @@ dma_advance(dma_t *dma_c)
 }
 
 int
+dma_channel_readable(int channel)
+{
+    dma_t   *dma_c = &dma[channel];
+
+    if (channel < 4) {
+        if (dma_command[0] & 0x04)
+            return 0;
+    } else {
+        if (dma_command[1] & 0x04)
+            return 0;
+    }
+
+    if (!(dma_e & (1 << channel)))
+        return 0;
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
+        return 0;
+    if ((dma_c->mode & 0xC) != 8)
+        return 0;
+
+    return 1;
+}
+
+int
 dma_channel_read(int channel)
 {
     dma_t   *dma_c = &dma[channel];
