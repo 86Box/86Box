@@ -99,7 +99,7 @@ pitf_ctr_get_count(void *data, int counter_id)
     return (uint16_t) ctr->l;
 }
 
-static void
+void
 pitf_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv))
 {
     if (data == NULL)
@@ -111,7 +111,7 @@ pitf_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int 
     ctr->out_func = func;
 }
 
-static void
+void
 pitf_ctr_set_using_timer(void *data, int counter_id, int using_timer)
 {
     if (tsc > 0)
@@ -284,7 +284,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate, void *priv)
         pitf_dump_and_disable_timer(ctr);
 }
 
-static void
+void
 pitf_ctr_set_gate(void *data, int counter_id, int gate)
 {
     pitf_t *pit = (pitf_t *) data;
@@ -619,7 +619,7 @@ pitf_timer_over(void *priv)
     pitf_over(ctr, pit);
 }
 
-static void
+void
 pitf_ctr_clock(void *data, int counter_id)
 {
     pitf_t *pit = (pitf_t *) data;
@@ -690,6 +690,12 @@ pitf_close(void *priv)
 
     if (dev != NULL)
         free(dev);
+}
+
+void
+pitf_handler(int set, uint16_t base, int size, void *priv)
+{
+    io_handler(set, base, size, pitf_read, NULL, NULL, pitf_write, NULL, NULL, priv);
 }
 
 static void *

@@ -48,6 +48,7 @@ pit_intf_t pit_devs[2];
 double cpuclock;
 double PITCONSTD;
 double PAS16CONSTD;
+double PAS16CONST2D;
 double SYSCLK;
 double isa_timing;
 double bus_timing;
@@ -58,6 +59,7 @@ double AGPCLK;
 
 uint64_t PITCONST;
 uint64_t PAS16CONST;
+uint64_t PAS16CONST2;
 uint64_t ISACONST;
 uint64_t CGACONST;
 uint64_t MDACONST;
@@ -309,7 +311,7 @@ ctr_tick(ctr_t *ctr, void *priv)
     }
 }
 
-static void
+void
 ctr_clock(void *data, int counter_id)
 {
     pit_t *pit = (pit_t *) data;
@@ -535,8 +537,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
     int    t   = (addr & 3);
     ctr_t *ctr;
 
-    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
         pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
+    }
 
     switch (addr & 3) {
         case 3: /* control */
@@ -552,8 +555,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                             ctr_latch_count(&dev->counters[1]);
                         if (val & 8)
                             ctr_latch_count(&dev->counters[2]);
-                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                             pit_log("PIT %i: Initiated readback command\n", t);
+                        }
                     }
                     if (!(val & 0x10)) {
                         if (val & 2)
@@ -570,9 +574,10 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 
                 if (!(dev->ctrl & 0x30)) {
                     ctr_latch_count(ctr);
-                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                         pit_log("PIT %i: Initiated latched read, %i bytes latched\n",
                             t, ctr->latched);
+                    }
                 } else {
                     ctr->ctrl = val;
                     ctr->rm = ctr->wm = (ctr->ctrl >> 4) & 3;
@@ -584,13 +589,15 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     ctr_set_out(ctr, !!ctr->m, dev);
                     ctr->state = 0;
                     if (ctr->latched) {
-                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                             pit_log("PIT %i: Reload while counter is latched\n", t);
+                        }
                         ctr->rl--;
                     }
 
-                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                         pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
+                    }
                 }
             }
             break;
@@ -608,8 +615,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     ctr->l = val;
                     ctr->lback = ctr->l;
                     ctr->lback2 = ctr->l;
-                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                         pit_log("PIT %i (1): Written byte %02X, latch now %04X\n", t, val, ctr->l);
+                    }
                     if (ctr->m == 0)
                         ctr_set_out(ctr, 0, dev);
                     ctr_load(ctr);
@@ -618,8 +626,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     ctr->l = (val << 8);
                     ctr->lback = ctr->l;
                     ctr->lback2 = ctr->l;
-                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                         pit_log("PIT %i (2): Written byte %02X, latch now %04X\n", t, val, ctr->l);
+                    }
                     if (ctr->m == 0)
                         ctr_set_out(ctr, 0, dev);
                     ctr_load(ctr);
@@ -630,15 +639,17 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                         ctr->l = (ctr->l & 0x00ff) | (val << 8);
                         ctr->lback = ctr->l;
                         ctr->lback2 = ctr->l;
-                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                             pit_log("PIT %i (0x83): Written high byte %02X, latch now %04X\n", t, val, ctr->l);
+                        }
                         ctr_load(ctr);
                     } else {
                         ctr->l = (ctr->l & 0xff00) | val;
                         ctr->lback = ctr->l;
                         ctr->lback2 = ctr->l;
-                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
                             pit_log("PIT %i (3): Written low byte %02X, latch now %04X\n", t, val, ctr->l);
+                        }
                         if (ctr->m == 0) {
                             ctr->state = 0;
                             ctr_set_out(ctr, 0, dev);
@@ -774,8 +785,9 @@ pit_read(uint16_t addr, void *priv)
             break;
     }
 
-    if ((dev->flags & (PIT_8254 | PIT_EXT_IO)))
+    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
         pit_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+    }
 
     return ret;
 }
@@ -853,6 +865,15 @@ ctr_reset(ctr_t *ctr)
 
     ctr->s1_det = 0;
     ctr->l_det  = 0;
+}
+
+void
+pit_device_reset(pit_t *dev)
+{
+    dev->clock = 0;
+
+    for (uint8_t i = 0; i < 3; i++)
+        ctr_reset(&dev->counters[i]);
 }
 
 void
@@ -1094,9 +1115,10 @@ pit_ps2_init(int type)
 }
 
 void
-pit_change_pas16_const(double prescale)
+pit_change_pas16_consts(double prescale)
 {
-    PAS16CONST  = (uint64_t) ((PITCONSTD / prescale) * (double) (1ULL << 32));
+    PAS16CONST  = (uint64_t) ((PAS16CONSTD / prescale) * (double) (1ULL << 32));
+    PAS16CONST2 = (uint64_t) ((PAS16CONST2D / prescale) * (double) (1ULL << 32));
 }
 
 void
@@ -1195,7 +1217,10 @@ pit_set_clock(uint32_t clock)
     TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ULL << 32));
 
     PAS16CONSTD = (cpuclock / 441000.0);
-    PAS16CONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+    PAS16CONST  = (uint64_t) (PAS16CONSTD * (double) (1ULL << 32));
+
+    PAS16CONST2D = (cpuclock / 1008000.0);
+    PAS16CONST2  = (uint64_t) (PAS16CONST2D * (double) (1ULL << 32));
 
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)

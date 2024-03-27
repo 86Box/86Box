@@ -422,4 +422,31 @@ low_fir_sb16(int c, int i, double NewSample)
     return out;
 }
 
+extern double low_fir_pas16_coef[4][SB16_NCoef];
+
+static inline double
+low_fir_pas16(int c, int i, double NewSample)
+{
+    static double x[4][2][SB16_NCoef + 1]; // input samples
+    static int    pos[4] = { 0, 0, 0, 0 };
+    double        out    = 0.0;
+    int           n;
+
+    /* Calculate the new output */
+    x[c][i][pos[c]] = NewSample;
+
+    for (n = 0; n < ((SB16_NCoef + 1) - pos[c]) && n < SB16_NCoef; n++)
+        out += low_fir_pas16_coef[c][n] * x[c][i][n + pos[c]];
+    for (; n < SB16_NCoef; n++)
+        out += low_fir_pas16_coef[c][n] * x[c][i][(n + pos[c]) - (SB16_NCoef + 1)];
+
+    if (i == 1) {
+        pos[c]++;
+        if (pos[c] > SB16_NCoef)
+            pos[c] = 0;
+    }
+
+    return out;
+}
+
 #endif /*EMU_FILTERS_H*/

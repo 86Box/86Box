@@ -124,6 +124,7 @@ extern const device_t cms_device;
 extern const device_t gus_device;
 
 /* Pro Audio Spectrum 16 */
+extern const device_t pasplus_device;
 extern const device_t pas16_device;
 
 /* IBM PS/1 Audio Card */

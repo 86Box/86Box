@@ -113,6 +113,7 @@ extern double AGPCLK;
 
 extern uint64_t PITCONST;
 extern uint64_t PAS16CONST;
+extern uint64_t PAS16CONST2;
 extern uint64_t ISACONST;
 extern uint64_t CGACONST;
 extern uint64_t MDACONST;
@@ -123,12 +124,18 @@ extern uint64_t RTCCONST;
 
 extern int refresh_at_enable;
 
-extern void pit_change_pas16_const(double prescale);
+extern void pit_device_reset(pit_t *dev);
+
+extern void pit_change_pas16_consts(double prescale);
 
 extern void pit_set_pit_const(void *data, uint64_t pit_const);
 
+extern void ctr_clock(void *data, int counter_id);
+
 /* Sets a counter's CLOCK input. */
 extern void pit_ctr_set_clock(ctr_t *ctr, int clock, void *priv);
+
+extern void pit_ctr_set_gate(void *data, int counter_id, int gate);
 
 extern void pit_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv));
 
