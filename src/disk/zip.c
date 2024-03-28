@@ -532,6 +532,11 @@ zip_load(zip_t *dev, char *fn)
         fatal("zip_load(): Error seeking to the beginning of the file\n");
 
     strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+    // After using strncpy, dev->drv->image_path needs to be explicitly null terminated to make gcc happy.
+    // In the event strlen(dev->drv->image_path) == sizeof(dev->drv->image_path) (no null terminator)
+    // it is placed at the very end. Otherwise, it is placed right after the string.
+    const size_t term = strlen(dev->drv->image_path) == sizeof(dev->drv->image_path) ? sizeof(dev->drv->image_path) - 1 : strlen(dev->drv->image_path);
+    dev->drv->image_path[term] = '\0';
 
     return 1;
 }
