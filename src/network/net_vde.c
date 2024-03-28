@@ -274,7 +274,7 @@ void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, c
 
     vde_args.group = 0;
     vde_args.port  = 0;
-    vde_args.mode  = 0;
+    vde_args.mode  = 0700;  // Allow the switch to connect back to our socket if it is run by the same user
 
     // We are calling vde_open_real(), not the vde_open() macro...
     if ((vde->vdeconn = f_vde_open(socket_name, VDE_DESCRIPTION, 
