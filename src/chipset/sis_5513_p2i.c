@@ -1197,7 +1197,8 @@ sis_5513_pci_to_isa_close(void *priv)
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
     FILE      *fp  = NULL;
 
-    fp = nvr_fopen(dev->fn, "wb");
+    if (dev->fn != NULL)
+        fp = nvr_fopen(dev->fn, "wb");
 
     if (fp != NULL) {
         (void) fwrite(dev->apc_regs, 256, 1, fp);
