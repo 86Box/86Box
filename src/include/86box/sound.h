@@ -30,7 +30,7 @@ extern int sound_gain;
 #define FREQ_88200  88200
 #define FREQ_96000  96000
 
-#define SOUND_FREQ  FREQ_48000
+#define SOUND_FREQ  FREQ_44100
 #define SOUNDBUFLEN (SOUND_FREQ / 50)
 
 #define MUSIC_FREQ  FREQ_49716
