@@ -29,7 +29,9 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QDir>
+#include <QPushButton>
 #include <QSettings>
+#include <QSizePolicy>
 
 extern "C" {
 #include <86box/86box.h>
@@ -38,6 +40,7 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/midi_rtmidi.h>
 #include <86box/mem.h>
+#include <86box/random.h>
 #include <86box/rom.h>
 }
 
@@ -116,6 +119,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     device_set_context(&device_context, device, instance);
 
     auto device_label = new QLabel(device->name);
+    device_label->setAlignment(Qt::AlignCenter);
     dc.ui->formLayout->addRow(device_label);
     auto line = new QFrame;
     line->setFrameShape(QFrame::HLine);
@@ -291,6 +295,33 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
+            case CONFIG_MAC:
+            {
+                // QHBoxLayout for the line edit widget and the generate button
+                auto hboxLayout     = new QHBoxLayout();
+                auto generateButton = new QPushButton(tr("Generate"));
+                auto lineEdit       = new QLineEdit;
+                // Allow the line edit to expand and fill available space
+                lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding,QSizePolicy::Preferred);
+                lineEdit->setInputMask("HH:HH:HH;0");
+                lineEdit->setObjectName(config->name);
+                // Display the current or generated MAC in uppercase
+                // When stored it will be converted to lowercase
+                if (config_get_mac(device_context.name, config->name, config->default_int) & 0xFF000000) {
+                    lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(), random_generate(), random_generate()));
+                } else {
+                    auto current_mac = QString(config_get_string(device_context.name, config->name, const_cast<char *>(config->default_string)));
+                    lineEdit->setText(current_mac.toUpper());
+                }
+                // Action for the generate button
+                connect(generateButton, &QPushButton::clicked, [lineEdit] {
+                    lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(), random_generate(), random_generate()));
+                });
+                hboxLayout->addWidget(lineEdit);
+                hboxLayout->addWidget(generateButton);
+                dc.ui->formLayout->addRow(config->description, hboxLayout);
+                break;
+            }
         }
         ++config;
     }
@@ -360,6 +391,14 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     {
                         auto *spinBox = dc.findChild<QSpinBox *>(config->name);
                         config_set_int(device_context.name, const_cast<char *>(config->name), spinBox->value());
+                        break;
+                    }
+                case CONFIG_MAC:
+                    {
+                        const auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
+                        // Store the mac address as lowercase
+                        auto macText = lineEdit->displayText().toLower();
+                        config_set_string(device_context.name, config->name, macText.toUtf8().constData());
                         break;
                     }
             }
