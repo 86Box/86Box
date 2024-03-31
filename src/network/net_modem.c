@@ -391,6 +391,7 @@ modem_data_mode_process_byte(modem_t* modem, uint8_t data)
             modem->plusinc = 0;
         }
     }
+    modem->cmdpause = 0;
 
     if (modem->tx_count < 0x10000 && modem->connected) {
         modem->tx_pkt_ser_line[modem->tx_count++] = data;
@@ -597,6 +598,7 @@ modem_reset(modem_t* modem)
 	modem->cmdpos = 0;
 	modem->cmdbuf[0] = 0;
 	modem->flowcontrol = 0;
+	modem->cmdpause = 0;
 	modem->plusinc = 0;
     modem->dtrmode = 2;
 
