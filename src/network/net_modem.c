@@ -74,11 +74,13 @@ typedef enum modem_slip_stage_t
     MODEM_SLIP_STAGE_USERNAME,
     MODEM_SLIP_STAGE_PASSWORD
 } modem_slip_stage_t;
+#define NUMBER_BUFFER_SIZE 128
+#define PHONEBOOK_SIZE 200
 
 typedef struct modem_phonebook_entry_t
 {
-    char phone[1024];
-    char address[1024];
+    char phone[NUMBER_BUFFER_SIZE];
+    char address[NUMBER_BUFFER_SIZE];
 } modem_phonebook_entry_t;
 
 typedef struct modem_t
@@ -135,7 +137,7 @@ typedef struct modem_t
 		uint8_t command;
 	} telClient;
 
-    modem_phonebook_entry_t entries[20];
+    modem_phonebook_entry_t entries[PHONEBOOK_SIZE];
     uint32_t entries_num;
     
     netcard_t *card;
@@ -155,39 +157,92 @@ static void modem_accept_incoming_call(modem_t* modem);
 
 extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
 
+// https://stackoverflow.com/a/122974
+char *trim(char *str)
+{
+    size_t len = 0;
+    char *frontp = str;
+    char *endp = NULL;
+
+    if( str == NULL ) { return NULL; }
+    if( str[0] == '\0' ) { return str; }
+
+    len = strlen(str);
+    endp = str + len;
+
+    /* Move the front and back pointers to address the first non-whitespace
+     * characters from each end.
+     */
+    while( isspace((unsigned char) *frontp) ) { ++frontp; }
+    if( endp != frontp )
+    {
+        while( isspace((unsigned char) *(--endp)) && endp != frontp ) {}
+    }
+
+    if( frontp != str && endp == frontp )
+            *str = '\0';
+    else if( str + len - 1 != endp )
+            *(endp + 1) = '\0';
+
+    /* Shift the string so that it starts at str so that if it's dynamically
+     * allocated, we can still free it on the returned pointer.  Note the reuse
+     * of endp to mean the front of the string buffer now.
+     */
+    endp = str;
+    if( frontp != str )
+    {
+            while( *frontp ) { *endp++ = *frontp++; }
+            *endp = '\0';
+    }
+
+    return str;
+}
+
 static void
 modem_read_phonebook_file(modem_t* modem, const char* path)
 {
     FILE* file = plat_fopen(path, "r");
-    char* buf = NULL;
+    char* buf  = NULL;
+    char* buf2 = NULL;
     size_t size = 0;
     if (!file)
         return;
 
     modem->entries_num = 0;
 
+    pclog("Phonebook: Reading file %s...\n", path);
     while (local_getline(&buf, &size, file) != -1) {
         modem_phonebook_entry_t entry = { { 0 }, { 0 } };
-        int res = 0;
-        buf[strcspn(buf, "\r\n")] = 0;
+        buf[strcspn(buf, "\r\n")] = '\0';
 
-        res = sscanf(buf, "%s %s", entry.phone, entry.address);
+        /* Remove surrounding whitespace from the input line and find the address part. */
+        buf = trim(buf);
+        buf2 = &buf[strcspn(buf, " \t")];
 
-        if (res == 0 || res == 1) {
+        /* Remove surrounding whitespace and any extra text from the address part, then store it. */
+        buf2 = trim(buf2);
+        buf2[strcspn(buf2, " \t")] = '\0';
+        strncpy(entry.address, buf2, sizeof(entry.address) - 1);
+
+        /* Split the line to get the phone number part, then store it. */
+        buf2[0] = '\0';
+        strncpy(entry.phone, buf, sizeof(entry.phone) - 1);
+
+        if ((entry.phone[0] == '\0') || (entry.address[0] == '\0')) {
             /* Appears to be a bad line. */
+            pclog("Phonebook: Skipped a bad line\n");
             continue;
         }
-
-        if (res == EOF)
-            break;
 
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
+            pclog("Phonebook: Invalid character in phone number %s\n", entry.phone);
             continue;
         }
         
+        pclog("Phonebook: Mapped phone number %s to address %s\n", entry.phone, entry.address);
         modem->entries[modem->entries_num++] = entry;
-        if (modem->entries_num >= 20)
+        if (modem->entries_num >= PHONEBOOK_SIZE)
             break;
     }
     fclose(file);
@@ -573,8 +628,8 @@ modem_dial(modem_t* modem, const char* str)
     }
     else
     {
-        char buf[128] = "";
-        strcpy(buf, str);
+        char buf[NUMBER_BUFFER_SIZE] = "";
+        strncpy(buf, str, sizeof(buf) - 1);
         // Scan host for port
         uint16_t port;
         char * hasport = strrchr(buf,':');
@@ -613,47 +668,6 @@ is_next_token(const char* a, size_t N, const char *b)
 	if (strnlen(b, N) < N_without_null)
 		return false;
 	return (strncmp(a, b, N_without_null) == 0);
-}
-
-// https://stackoverflow.com/a/122974
-char *trim(char *str)
-{
-    size_t len = 0;
-    char *frontp = str;
-    char *endp = NULL;
-
-    if( str == NULL ) { return NULL; }
-    if( str[0] == '\0' ) { return str; }
-
-    len = strlen(str);
-    endp = str + len;
-
-    /* Move the front and back pointers to address the first non-whitespace
-     * characters from each end.
-     */
-    while( isspace((unsigned char) *frontp) ) { ++frontp; }
-    if( endp != frontp )
-    {
-        while( isspace((unsigned char) *(--endp)) && endp != frontp ) {}
-    }
-
-    if( frontp != str && endp == frontp )
-            *str = '\0';
-    else if( str + len - 1 != endp )
-            *(endp + 1) = '\0';
-
-    /* Shift the string so that it starts at str so that if it's dynamically
-     * allocated, we can still free it on the returned pointer.  Note the reuse
-     * of endp to mean the front of the string buffer now.
-     */
-    endp = str;
-    if( frontp != str )
-    {
-            while( *frontp ) { *endp++ = *frontp++; }
-            *endp = '\0';
-    }
-
-    return str;
 }
 
 static const char *modem_get_address_from_phonebook(modem_t* modem, const char *input) {
@@ -710,8 +724,8 @@ modem_do_command(modem_t* modem)
                 modem_send_res(modem, ResERROR);
                 return;
             case 'D': { // Dial.
-                char buffer[128];
-                char obuffer[128];
+                char buffer[NUMBER_BUFFER_SIZE];
+                char obuffer[NUMBER_BUFFER_SIZE];
                 char * foundstr = &scanbuf[0];
                 const char *mappedaddr = NULL;
                 size_t i = 0;
@@ -719,7 +733,8 @@ modem_do_command(modem_t* modem)
                 if (*foundstr == 'T' || *foundstr == 'P')
                     foundstr++;
                 
-                if ((!foundstr[0]) || (strlen(foundstr) > 253)) {
+                if ((!foundstr[0]) || (strlen(foundstr) > (NUMBER_BUFFER_SIZE - 1))) {
+                    // Check for empty or too long strings
                     modem_send_res(modem, ResERROR);
                     return;
                 }
@@ -739,7 +754,12 @@ modem_do_command(modem_t* modem)
                     for (i = 0; i < fl; i++)
                         if (foundstr[i] < '0' || foundstr[i] > '9')
                             isNum = false;
-                    if (isNum) {
+                    if (isNum && (fl > (NUMBER_BUFFER_SIZE - 5))) {
+                        // Check if the number is long enough to cause buffer
+                        // overflows during the number => IP transformation
+                        modem_send_res(modem, ResERROR);
+                        return;
+                    } else if (isNum) {
                         // Parameter is a number with at least 12 digits => this cannot
                         // be a valid IP/name
                         // Transform by adding dots
