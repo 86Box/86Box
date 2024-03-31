@@ -795,7 +795,7 @@ modem_do_command(modem_t* modem)
                     }
                 }
                 modem_dial(modem, foundstr);
-                break;
+                return;
             }
             case 'I': // Some strings about firmware
                 switch (modem_scan_number(&scanbuf)) {
