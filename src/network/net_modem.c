@@ -757,7 +757,7 @@ modem_do_command(modem_t *modem, int repeat)
 
     if (repeat) {
         /* Handle the case of A/ being invoked without a previous command to run */
-        if ((modem->prevcmdbuf[0] == '\0')) {
+        if (modem->prevcmdbuf[0] == '\0') {
             modem_send_res(modem, ResOK);
             return;
         }
