@@ -90,6 +90,7 @@ svga_set_override(svga_t *svga, int val)
         svga->fullchange = svga->monitor->mon_changeframecount;
     svga->override = val;
 
+#ifdef OVERRIDE_OVERSCAN
     if (!val) {
         /* Override turned off, restore overscan X and Y per the CRTC. */
         svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
@@ -104,6 +105,7 @@ svga_set_override(svga_t *svga, int val)
     } else
         svga->monitor->mon_overscan_x = svga->monitor->mon_overscan_y = 16;
     /* Override turned off, fix overcan X and Y to 16. */
+#endif
 }
 
 void
