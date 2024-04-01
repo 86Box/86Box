@@ -39,6 +39,24 @@
 #include <86box/plat_unused.h>
 #include <86box/plat_netsocket.h>
 
+#ifdef ENABLE_MODEM_LOG
+int modem_do_log = ENABLE_MODEM_LOG;
+
+static void
+modem_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (modem_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define modem_log(fmt, ...)
+#endif
+
 /* From RFC 1055. */
 #define END             0300    /* indicates end of packet */
 #define ESC             0333    /* indicates byte stuffing */
@@ -217,7 +235,7 @@ modem_read_phonebook_file(modem_t* modem, const char* path)
 
     modem->entries_num = 0;
 
-    pclog("Phonebook: Reading file %s...\n", path);
+    modem_log("Modem: Reading phone book file %s...\n", path);
     while (local_getline(&buf, &size, file) != -1) {
         modem_phonebook_entry_t entry = { { 0 }, { 0 } };
         buf[strcspn(buf, "\r\n")] = '\0';
@@ -237,17 +255,17 @@ modem_read_phonebook_file(modem_t* modem, const char* path)
 
         if ((entry.phone[0] == '\0') || (entry.address[0] == '\0')) {
             /* Appears to be a bad line. */
-            pclog("Phonebook: Skipped a bad line\n");
+            modem_log("Modem: Skipped a bad line\n");
             continue;
         }
 
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
-            pclog("Phonebook: Invalid character in phone number %s\n", entry.phone);
+            modem_log("Modem: Invalid character in phone number %s\n", entry.phone);
             continue;
         }
         
-        pclog("Phonebook: Mapped phone number %s to address %s\n", entry.phone, entry.address);
+        modem_log("Modem: Mapped phone number %s to address %s\n", entry.phone, entry.address);
         modem->entries[modem->entries_num++] = entry;
         if (modem->entries_num >= PHONEBOOK_SIZE)
             break;
@@ -338,7 +356,7 @@ process_tx_packet(modem_t *modem, uint8_t *p, uint32_t len)
     uint8_t *processed_tx_packet = calloc(len, 1);
     uint8_t  c                   = 0;
 
-    pclog("Processing SLIP packet of %u bytes\n", len);
+    modem_log("Processing SLIP packet of %u bytes\n", len);
 
     while (pos < len) {
         c = p[pos];
@@ -461,7 +479,7 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 				if (txval == '/') {
 					// Repeat the last command.
 					modem_echo(modem, txval);
-					pclog("Repeat last command (%s)\n", modem->prevcmdbuf);
+					modem_log("Repeat last command (%s)\n", modem->prevcmdbuf);
 					modem_do_command(modem, 1);
 				} else {
 					modem_echo(modem, modem->reg[MREG_BACKSPACE_CHAR]);
@@ -524,7 +542,7 @@ void modem_send_res(modem_t* modem, const ResTypes response) {
 			response == ResCONNECT || response == ResNOCARRIER)) {
 			return;
 		}
-		pclog("Modem response: %s\n", response_str);
+		modem_log("Modem response: %s\n", response_str);
 		if (modem->numericresponse && code != ~0) {
 			modem_send_number(modem, code);
 		} else if (response_str != NULL) {
@@ -643,7 +661,7 @@ modem_dial(modem_t* modem, const char* str)
     modem->tcpIpMode = false;
     if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1))
     {
-        pclog("Turning on SLIP\n");
+        modem_log("Turning on SLIP\n");
         modem_enter_connected_state(modem);
         modem->numberinprogress[0] = 0;
         modem->tcpIpMode = false;
@@ -653,7 +671,7 @@ modem_dial(modem_t* modem, const char* str)
         char buf[NUMBER_BUFFER_SIZE] = "";
         strncpy(buf, str, sizeof(buf) - 1);
         strncpy(modem->lastnumber, str, sizeof(modem->lastnumber) - 1);
-        pclog("Connecting to %s...\n", buf);
+        modem_log("Connecting to %s...\n", buf);
 
         // Scan host for port
         uint16_t port;
@@ -738,7 +756,7 @@ modem_do_command(modem_t* modem, int repeat)
 		return;
 	}
 
-    pclog("Command received: %s (doresponse = %d)\n", modem->cmdbuf, modem->doresponse);
+    modem_log("Command received: %s (doresponse = %d)\n", modem->cmdbuf, modem->doresponse);
 
     scanbuf = &modem->cmdbuf[2];
 
@@ -777,7 +795,7 @@ modem_do_command(modem_t* modem, int repeat)
                     if (modem->lastnumber[0] == 0)
                         modem_send_res(modem, ResERROR);
                     else {
-                        pclog("Redialing number %s\n", modem->lastnumber);
+                        modem_log("Redialing number %s\n", modem->lastnumber);
                         modem_dial(modem, modem->lastnumber);
                     }
                     return;
@@ -795,7 +813,7 @@ modem_do_command(modem_t* modem, int repeat)
                 // Check for ; and return to command mode if found
                 char *semicolon = strchr(foundstr, ';');
                 if (semicolon != NULL) {
-                    pclog("Semicolon found in number, returning to command mode\n");
+                    modem_log("Semicolon found in number, returning to command mode\n");
                     strncat(modem->numberinprogress, foundstr, strcspn(foundstr, ";"));
                     scanbuf = semicolon + 1;
                     break;
@@ -804,7 +822,7 @@ modem_do_command(modem_t* modem, int repeat)
                     foundstr = modem->numberinprogress;
                 }
 
-                pclog("Dialing number %s\n", foundstr);
+                modem_log("Dialing number %s\n", foundstr);
                 mappedaddr = modem_get_address_from_phonebook(modem, foundstr);
                 if (mappedaddr) {
                     modem_dial(modem, mappedaddr);
@@ -1046,16 +1064,16 @@ modem_dtr_callback_timer(void* priv)
     if (dev->connected) {
 		switch (dev->dtrmode) {
             case 1:
-                pclog("DTR dropped, returning to command mode (dtrmode = %i)\n", dev->dtrmode);
+                modem_log("DTR dropped, returning to command mode (dtrmode = %i)\n", dev->dtrmode);
                 dev->mode = MODEM_MODE_COMMAND;
                 break;
             case 2:
-                pclog("DTR dropped, hanging up (dtrmode = %i)\n", dev->dtrmode);
+                modem_log("DTR dropped, hanging up (dtrmode = %i)\n", dev->dtrmode);
                 modem_send_res(dev, ResNOCARRIER);
                 modem_enter_idle_state(dev);
                 break;
             case 3:
-                pclog("DTR dropped, resetting modem (dtrmode = %i)\n", dev->dtrmode);
+                modem_log("DTR dropped, resetting modem (dtrmode = %i)\n", dev->dtrmode);
                 modem_send_res(dev, ResNOCARRIER);
                 modem_reset(dev);
                 break;
@@ -1211,7 +1229,7 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
 
     if (!modem->connected) {
         /* Drop packet. */
-        pclog("Dropping %d bytes\n", io_len - 14);
+        modem_log("Dropping %d bytes\n", io_len - 14);
         return 0;
     }
 
@@ -1220,11 +1238,11 @@ modem_rx(void *priv, uint8_t *buf, int io_len)
     }
 
     if (!(buf[12] == 0x08 && buf[13] == 0x00)) {
-        pclog("Dropping %d bytes (non-IP packet (ethtype 0x%02X%02X))\n", io_len - 14, buf[12], buf[13]);
+        modem_log("Dropping %d bytes (non-IP packet (ethtype 0x%02X%02X))\n", io_len - 14, buf[12], buf[13]);
         return 0;
     }
 
-    pclog("Receiving %d bytes\n", io_len - 14);
+    modem_log("Receiving %d bytes\n", io_len - 14);
     /* Strip the Ethernet header. */
     io_len -= 14;
     buf += 14;
@@ -1398,7 +1416,7 @@ modem_cmdpause_timer_callback(void *priv)
 		if (modem->plusinc == 0) {
 			modem->plusinc = 1;
 		} else if (modem->plusinc == 4) {
-			pclog("Escape sequence triggered, returning to command mode\n");
+			modem_log("Escape sequence triggered, returning to command mode\n");
 			modem->mode = MODEM_MODE_COMMAND;
 			modem_send_res(modem, ResOK);
 			modem->plusinc = 0;
@@ -1453,6 +1471,7 @@ void modem_close(void *priv)
     free(priv);
 }
 
+// clang-format off
 static const device_config_t modem_config[] = {
     {
         .name = "port",
@@ -1522,6 +1541,7 @@ static const device_config_t modem_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t modem_device = {
     .name          = "Standard Hayes-compliant Modem",
