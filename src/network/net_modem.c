@@ -105,6 +105,7 @@ typedef struct modem_t
     Fifo8 data_pending; /* Data yet to be sent to the host. */
 
     char cmdbuf[512];
+    char numberinprogress[NUMBER_BUFFER_SIZE];
 	uint32_t cmdpos;
     uint32_t port;
     int plusinc, flowcontrol;
@@ -597,6 +598,7 @@ modem_reset(modem_t* modem)
     modem_enter_idle_state(modem);
 	modem->cmdpos = 0;
 	modem->cmdbuf[0] = 0;
+    modem->numberinprogress[0] = 0;
 	modem->flowcontrol = 0;
 	modem->cmdpause = 0;
 	modem->plusinc = 0;
@@ -626,6 +628,7 @@ modem_dial(modem_t* modem, const char* str)
     {
         pclog("Turning on SLIP\n");
         modem_enter_connected_state(modem);
+        modem->numberinprogress[0] = 0;
         modem->tcpIpMode = false;
     }
     else
@@ -643,6 +646,7 @@ modem_dial(modem_t* modem, const char* str)
             port = 23;
         }
 
+        modem->numberinprogress[0] = 0;
         modem->clientsocket = plat_netsocket_create(NET_SOCKET_TCP);
         if (modem->clientsocket == -1) {
             pclog("Failed to create client socket\n");
@@ -734,14 +738,27 @@ modem_do_command(modem_t* modem)
 
                 if (*foundstr == 'T' || *foundstr == 'P')
                     foundstr++;
-                
-                if ((!foundstr[0]) || (strlen(foundstr) > (NUMBER_BUFFER_SIZE - 1))) {
+
+                if ((!foundstr[0] && !modem->numberinprogress[0]) || ((strlen(modem->numberinprogress) + strlen(foundstr)) > (NUMBER_BUFFER_SIZE - 1))) {
                     // Check for empty or too long strings
                     modem_send_res(modem, ResERROR);
+                    modem->numberinprogress[0] = 0;
                     return;
                 }
 
                 foundstr = trim(foundstr);
+
+                // Check for ; and return to command mode if found
+                char *semicolon = strchr(foundstr, ';');
+                if (semicolon != NULL) {
+                    pclog("Semicolon found in number, returning to command mode\n");
+                    strncat(modem->numberinprogress, foundstr, strcspn(foundstr, ";"));
+                    scanbuf = semicolon + 1;
+                    break;
+                } else {
+                    strcat(modem->numberinprogress, foundstr);
+                    foundstr = modem->numberinprogress;
+                }
 
                 mappedaddr = modem_get_address_from_phonebook(modem, foundstr);
                 if (mappedaddr) {
@@ -760,6 +777,7 @@ modem_do_command(modem_t* modem)
                         // Check if the number is long enough to cause buffer
                         // overflows during the number => IP transformation
                         modem_send_res(modem, ResERROR);
+                        modem->numberinprogress[0] = 0;
                         return;
                     } else if (isNum) {
                         // Parameter is a number with at least 12 digits => this cannot
@@ -818,6 +836,7 @@ modem_do_command(modem_t* modem)
             case 'H': // Hang up
                 switch (modem_scan_number(&scanbuf)) {
                 case 0:
+                    modem->numberinprogress[0] = 0;
                     if (modem->connected) {
                         modem_send_res(modem, ResNOCARRIER);
                         modem_enter_idle_state(modem);
