@@ -106,6 +106,7 @@ typedef struct modem_t
 
     char cmdbuf[512];
     char numberinprogress[NUMBER_BUFFER_SIZE];
+    char lastnumber[NUMBER_BUFFER_SIZE];
 	uint32_t cmdpos;
     uint32_t port;
     int plusinc, flowcontrol;
@@ -600,6 +601,7 @@ modem_reset(modem_t* modem)
     modem_enter_idle_state(modem);
 	modem->cmdpos = 0;
 	modem->cmdbuf[0] = 0;
+    modem->lastnumber[0] = 0;
     modem->numberinprogress[0] = 0;
 	modem->flowcontrol = 0;
 	modem->cmdpause = 0;
@@ -637,6 +639,7 @@ modem_dial(modem_t* modem, const char* str)
     {
         char buf[NUMBER_BUFFER_SIZE] = "";
         strncpy(buf, str, sizeof(buf) - 1);
+        strncpy(modem->lastnumber, str, sizeof(modem->lastnumber) - 1);
         // Scan host for port
         uint16_t port;
         char * hasport = strrchr(buf,':');
@@ -738,8 +741,17 @@ modem_do_command(modem_t* modem)
                 const char *mappedaddr = NULL;
                 size_t i = 0;
 
-                if (*foundstr == 'T' || *foundstr == 'P')
+                if (*foundstr == 'T' || *foundstr == 'P') // Tone/pulse dialing
                     foundstr++;
+                else if (*foundstr == 'L') { // Redial last number
+                    if (modem->lastnumber[0] == 0)
+                        modem_send_res(modem, ResERROR);
+                    else {
+                        pclog("Redialing number %s\n", modem->lastnumber);
+                        modem_dial(modem, modem->lastnumber);
+                    }
+                    return;
+                }
 
                 if ((!foundstr[0] && !modem->numberinprogress[0]) || ((strlen(modem->numberinprogress) + strlen(foundstr)) > (NUMBER_BUFFER_SIZE - 1))) {
                     // Check for empty or too long strings
