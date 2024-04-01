@@ -35,6 +35,7 @@
 #include <86box/serial.h>
 #include <86box/plat.h>
 #include <86box/network.h>
+#include <86box/version.h>
 #include <86box/plat_unused.h>
 #include <86box/plat_netsocket.h>
 
@@ -523,6 +524,7 @@ void modem_send_res(modem_t* modem, const ResTypes response) {
 			response == ResCONNECT || response == ResNOCARRIER)) {
 			return;
 		}
+		pclog("Modem response: %s\n", response_str);
 		if (modem->numericresponse && code != ~0) {
 			modem_send_number(modem, code);
 		} else if (response_str != NULL) {
@@ -651,6 +653,8 @@ modem_dial(modem_t* modem, const char* str)
         char buf[NUMBER_BUFFER_SIZE] = "";
         strncpy(buf, str, sizeof(buf) - 1);
         strncpy(modem->lastnumber, str, sizeof(modem->lastnumber) - 1);
+        pclog("Connecting to %s...\n", buf);
+
         // Scan host for port
         uint16_t port;
         char * hasport = strrchr(buf,':');
@@ -800,6 +804,7 @@ modem_do_command(modem_t* modem, int repeat)
                     foundstr = modem->numberinprogress;
                 }
 
+                pclog("Dialing number %s\n", foundstr);
                 mappedaddr = modem_get_address_from_phonebook(modem, foundstr);
                 if (mappedaddr) {
                     modem_dial(modem, mappedaddr);
@@ -858,7 +863,7 @@ modem_do_command(modem_t* modem, int repeat)
             case 'I': // Some strings about firmware
                 switch (modem_scan_number(&scanbuf)) {
                 case 3: modem_send_line(modem, "86Box Emulated Modem Firmware V1.00"); break;
-                case 4: modem_send_line(modem, "Modem compiled for 86Box"); break;
+                case 4: modem_send_line(modem, "Modem compiled for 86Box version " EMU_VERSION); break;
                 }
                 break;
             case 'E': // Echo on/off
@@ -902,6 +907,8 @@ modem_do_command(modem_t* modem, int repeat)
                 break;
             case 'M': // Monitor
             case 'L': // Volume
+            case 'W':
+            case 'X':
                 modem_scan_number(&scanbuf);
                 break;
             case 'A': // Answer call
@@ -1039,13 +1046,16 @@ modem_dtr_callback_timer(void* priv)
     if (dev->connected) {
 		switch (dev->dtrmode) {
             case 1:
+                pclog("DTR dropped, returning to command mode (dtrmode = %i)\n", dev->dtrmode);
                 dev->mode = MODEM_MODE_COMMAND;
                 break;
             case 2:
+                pclog("DTR dropped, hanging up (dtrmode = %i)\n", dev->dtrmode);
                 modem_send_res(dev, ResNOCARRIER);
                 modem_enter_idle_state(dev);
                 break;
             case 3:
+                pclog("DTR dropped, resetting modem (dtrmode = %i)\n", dev->dtrmode);
                 modem_send_res(dev, ResNOCARRIER);
                 modem_reset(dev);
                 break;
@@ -1388,6 +1398,7 @@ modem_cmdpause_timer_callback(void *priv)
 		if (modem->plusinc == 0) {
 			modem->plusinc = 1;
 		} else if (modem->plusinc == 4) {
+			pclog("Escape sequence triggered, returning to command mode\n");
 			modem->mode = MODEM_MODE_COMMAND;
 			modem_send_res(modem, ResOK);
 			modem->plusinc = 0;
