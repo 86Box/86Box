@@ -110,6 +110,7 @@ typedef struct modem_t
     uint32_t port;
     int plusinc, flowcontrol;
     int in_warmup, dtrmode;
+    int dcdmode;
 
     bool connected, ringing;
     bool echo, numericresponse;
@@ -571,7 +572,7 @@ modem_enter_idle_state(modem_t* modem)
 
     serial_set_cts(modem->serial, 1);
     serial_set_dsr(modem->serial, 1);
-    serial_set_dcd(modem->serial, 0);
+    serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
     serial_set_ri(modem->serial, 0);
 }
 
@@ -595,6 +596,7 @@ modem_enter_connected_state(modem_t* modem)
 void
 modem_reset(modem_t* modem)
 {
+    modem->dcdmode = 1;
     modem_enter_idle_state(modem);
 	modem->cmdpos = 0;
 	modem->cmdbuf[0] = 0;
@@ -930,6 +932,16 @@ modem_do_command(modem_t* modem)
 		    case '&': { // & escaped commands
 		    	char cmdchar = modem_fetch_character(&scanbuf);
 		    	switch(cmdchar) {
+		    		case 'C': {
+		    		        const uint32_t val = modem_scan_number(&scanbuf);
+		    		        if (val < 2)
+		    			        modem->dcdmode = val;
+		    		        else {
+		    			        modem_send_res(modem, ResERROR);
+		    			        return;
+		    		        }
+		    		        break;
+		    	    }
 		    		case 'K': {
 		    		        const uint32_t val = modem_scan_number(&scanbuf);
 		    		        if (val < 5)
