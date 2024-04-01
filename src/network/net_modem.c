@@ -74,6 +74,8 @@ typedef enum modem_slip_stage_t
     MODEM_SLIP_STAGE_USERNAME,
     MODEM_SLIP_STAGE_PASSWORD
 } modem_slip_stage_t;
+
+#define COMMAND_BUFFER_SIZE 512
 #define NUMBER_BUFFER_SIZE 128
 #define PHONEBOOK_SIZE 200
 
@@ -104,7 +106,8 @@ typedef struct modem_t
 
     Fifo8 data_pending; /* Data yet to be sent to the host. */
 
-    char cmdbuf[512];
+    char cmdbuf[COMMAND_BUFFER_SIZE];
+    char prevcmdbuf[COMMAND_BUFFER_SIZE];
     char numberinprogress[NUMBER_BUFFER_SIZE];
     char lastnumber[NUMBER_BUFFER_SIZE];
 	uint32_t cmdpos;
@@ -155,7 +158,7 @@ typedef struct modem_t
 #define MREG_GUARD_TIME 12
 #define MREG_DTR_DELAY 25
 
-static void modem_do_command(modem_t* modem);
+static void modem_do_command(modem_t* modem, int repeat);
 static void modem_accept_incoming_call(modem_t* modem);
 
 extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
@@ -454,8 +457,15 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 			}
 
 			if (modem->cmdpos == 1 && toupper(txval) != 'T') {
-				modem_echo(modem, modem->reg[MREG_BACKSPACE_CHAR]);
-				modem->cmdpos = 0;
+				if (txval == '/') {
+					// Repeat the last command.
+					modem_echo(modem, txval);
+					pclog("Repeat last command (%s)\n", modem->prevcmdbuf);
+					modem_do_command(modem, 1);
+				} else {
+					modem_echo(modem, modem->reg[MREG_BACKSPACE_CHAR]);
+					modem->cmdpos = 0;
+				}
 				return;
 			}
         } else {
@@ -474,7 +484,7 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 
 			if (txval == modem->reg[MREG_CR_CHAR]) {
 				modem_echo(modem, txval);
-				modem_do_command(modem);
+				modem_do_command(modem, 0);
 				return;
 			}
 		}
@@ -601,6 +611,7 @@ modem_reset(modem_t* modem)
     modem_enter_idle_state(modem);
 	modem->cmdpos = 0;
 	modem->cmdbuf[0] = 0;
+	modem->prevcmdbuf[0] = 0;
     modem->lastnumber[0] = 0;
     modem->numberinprogress[0] = 0;
 	modem->flowcontrol = 0;
@@ -692,11 +703,26 @@ static const char *modem_get_address_from_phonebook(modem_t* modem, const char *
 }
 
 static void
-modem_do_command(modem_t* modem)
+modem_do_command(modem_t* modem, int repeat)
 {
     int i = 0;
     char *scanbuf = NULL;
-    modem->cmdbuf[modem->cmdpos] = 0;
+
+    if (repeat) {
+        /* Handle the case of A/ being invoked without a previous command to run */
+        if ((modem->prevcmdbuf[0] == '\0')) {
+            modem_send_res(modem, ResOK);
+            return;
+        }
+        /* Load the stored previous command line */
+        strncpy(modem->cmdbuf, modem->prevcmdbuf, sizeof(modem->cmdbuf) - 1);
+        modem->cmdbuf[COMMAND_BUFFER_SIZE - 1] = '\0';
+    } else {
+        /* Store the command line to be recalled */
+        strncpy(modem->prevcmdbuf, modem->cmdbuf, sizeof(modem->prevcmdbuf) - 1);
+        modem->prevcmdbuf[COMMAND_BUFFER_SIZE - 1] = '\0';
+        modem->cmdbuf[modem->cmdpos] = modem->prevcmdbuf[modem->cmdpos] = '\0';
+    }
     modem->cmdpos = 0;
     for (i = 0; i < sizeof(modem->cmdbuf); i++) {
         modem->cmdbuf[i] = toupper(modem->cmdbuf[i]);
