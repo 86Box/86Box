@@ -35,6 +35,7 @@
 #include <86box/serial.h>
 #include <86box/plat.h>
 #include <86box/network.h>
+#include <86box/version.h>
 #include <86box/plat_unused.h>
 #include <86box/plat_netsocket.h>
 
@@ -74,6 +75,8 @@ typedef enum modem_slip_stage_t
     MODEM_SLIP_STAGE_USERNAME,
     MODEM_SLIP_STAGE_PASSWORD
 } modem_slip_stage_t;
+
+#define COMMAND_BUFFER_SIZE 512
 #define NUMBER_BUFFER_SIZE 128
 #define PHONEBOOK_SIZE 200
 
@@ -104,11 +107,15 @@ typedef struct modem_t
 
     Fifo8 data_pending; /* Data yet to be sent to the host. */
 
-    char cmdbuf[512];
+    char cmdbuf[COMMAND_BUFFER_SIZE];
+    char prevcmdbuf[COMMAND_BUFFER_SIZE];
+    char numberinprogress[NUMBER_BUFFER_SIZE];
+    char lastnumber[NUMBER_BUFFER_SIZE];
 	uint32_t cmdpos;
     uint32_t port;
     int plusinc, flowcontrol;
     int in_warmup, dtrmode;
+    int dcdmode;
 
     bool connected, ringing;
     bool echo, numericresponse;
@@ -152,7 +159,7 @@ typedef struct modem_t
 #define MREG_GUARD_TIME 12
 #define MREG_DTR_DELAY 25
 
-static void modem_do_command(modem_t* modem);
+static void modem_do_command(modem_t* modem, int repeat);
 static void modem_accept_incoming_call(modem_t* modem);
 
 extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
@@ -451,8 +458,15 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 			}
 
 			if (modem->cmdpos == 1 && toupper(txval) != 'T') {
-				modem_echo(modem, modem->reg[MREG_BACKSPACE_CHAR]);
-				modem->cmdpos = 0;
+				if (txval == '/') {
+					// Repeat the last command.
+					modem_echo(modem, txval);
+					pclog("Repeat last command (%s)\n", modem->prevcmdbuf);
+					modem_do_command(modem, 1);
+				} else {
+					modem_echo(modem, modem->reg[MREG_BACKSPACE_CHAR]);
+					modem->cmdpos = 0;
+				}
 				return;
 			}
         } else {
@@ -471,7 +485,7 @@ modem_write(UNUSED(serial_t *s), void *priv, uint8_t txval)
 
 			if (txval == modem->reg[MREG_CR_CHAR]) {
 				modem_echo(modem, txval);
-				modem_do_command(modem);
+				modem_do_command(modem, 0);
 				return;
 			}
 		}
@@ -510,6 +524,7 @@ void modem_send_res(modem_t* modem, const ResTypes response) {
 			response == ResCONNECT || response == ResNOCARRIER)) {
 			return;
 		}
+		pclog("Modem response: %s\n", response_str);
 		if (modem->numericresponse && code != ~0) {
 			modem_send_number(modem, code);
 		} else if (response_str != NULL) {
@@ -570,7 +585,7 @@ modem_enter_idle_state(modem_t* modem)
 
     serial_set_cts(modem->serial, 1);
     serial_set_dsr(modem->serial, 1);
-    serial_set_dcd(modem->serial, 0);
+    serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
     serial_set_ri(modem->serial, 0);
 }
 
@@ -594,9 +609,13 @@ modem_enter_connected_state(modem_t* modem)
 void
 modem_reset(modem_t* modem)
 {
+    modem->dcdmode = 1;
     modem_enter_idle_state(modem);
 	modem->cmdpos = 0;
 	modem->cmdbuf[0] = 0;
+	modem->prevcmdbuf[0] = 0;
+    modem->lastnumber[0] = 0;
+    modem->numberinprogress[0] = 0;
 	modem->flowcontrol = 0;
 	modem->cmdpause = 0;
 	modem->plusinc = 0;
@@ -626,12 +645,16 @@ modem_dial(modem_t* modem, const char* str)
     {
         pclog("Turning on SLIP\n");
         modem_enter_connected_state(modem);
+        modem->numberinprogress[0] = 0;
         modem->tcpIpMode = false;
     }
     else
     {
         char buf[NUMBER_BUFFER_SIZE] = "";
         strncpy(buf, str, sizeof(buf) - 1);
+        strncpy(modem->lastnumber, str, sizeof(modem->lastnumber) - 1);
+        pclog("Connecting to %s...\n", buf);
+
         // Scan host for port
         uint16_t port;
         char * hasport = strrchr(buf,':');
@@ -643,6 +666,7 @@ modem_dial(modem_t* modem, const char* str)
             port = 23;
         }
 
+        modem->numberinprogress[0] = 0;
         modem->clientsocket = plat_netsocket_create(NET_SOCKET_TCP);
         if (modem->clientsocket == -1) {
             pclog("Failed to create client socket\n");
@@ -683,11 +707,26 @@ static const char *modem_get_address_from_phonebook(modem_t* modem, const char *
 }
 
 static void
-modem_do_command(modem_t* modem)
+modem_do_command(modem_t* modem, int repeat)
 {
     int i = 0;
     char *scanbuf = NULL;
-    modem->cmdbuf[modem->cmdpos] = 0;
+
+    if (repeat) {
+        /* Handle the case of A/ being invoked without a previous command to run */
+        if ((modem->prevcmdbuf[0] == '\0')) {
+            modem_send_res(modem, ResOK);
+            return;
+        }
+        /* Load the stored previous command line */
+        strncpy(modem->cmdbuf, modem->prevcmdbuf, sizeof(modem->cmdbuf) - 1);
+        modem->cmdbuf[COMMAND_BUFFER_SIZE - 1] = '\0';
+    } else {
+        /* Store the command line to be recalled */
+        strncpy(modem->prevcmdbuf, modem->cmdbuf, sizeof(modem->prevcmdbuf) - 1);
+        modem->prevcmdbuf[COMMAND_BUFFER_SIZE - 1] = '\0';
+        modem->cmdbuf[modem->cmdpos] = modem->prevcmdbuf[modem->cmdpos] = '\0';
+    }
     modem->cmdpos = 0;
     for (i = 0; i < sizeof(modem->cmdbuf); i++) {
         modem->cmdbuf[i] = toupper(modem->cmdbuf[i]);
@@ -732,17 +771,40 @@ modem_do_command(modem_t* modem)
                 const char *mappedaddr = NULL;
                 size_t i = 0;
 
-                if (*foundstr == 'T' || *foundstr == 'P')
+                if (*foundstr == 'T' || *foundstr == 'P') // Tone/pulse dialing
                     foundstr++;
-                
-                if ((!foundstr[0]) || (strlen(foundstr) > (NUMBER_BUFFER_SIZE - 1))) {
+                else if (*foundstr == 'L') { // Redial last number
+                    if (modem->lastnumber[0] == 0)
+                        modem_send_res(modem, ResERROR);
+                    else {
+                        pclog("Redialing number %s\n", modem->lastnumber);
+                        modem_dial(modem, modem->lastnumber);
+                    }
+                    return;
+                }
+
+                if ((!foundstr[0] && !modem->numberinprogress[0]) || ((strlen(modem->numberinprogress) + strlen(foundstr)) > (NUMBER_BUFFER_SIZE - 1))) {
                     // Check for empty or too long strings
                     modem_send_res(modem, ResERROR);
+                    modem->numberinprogress[0] = 0;
                     return;
                 }
 
                 foundstr = trim(foundstr);
 
+                // Check for ; and return to command mode if found
+                char *semicolon = strchr(foundstr, ';');
+                if (semicolon != NULL) {
+                    pclog("Semicolon found in number, returning to command mode\n");
+                    strncat(modem->numberinprogress, foundstr, strcspn(foundstr, ";"));
+                    scanbuf = semicolon + 1;
+                    break;
+                } else {
+                    strcat(modem->numberinprogress, foundstr);
+                    foundstr = modem->numberinprogress;
+                }
+
+                pclog("Dialing number %s\n", foundstr);
                 mappedaddr = modem_get_address_from_phonebook(modem, foundstr);
                 if (mappedaddr) {
                     modem_dial(modem, mappedaddr);
@@ -760,6 +822,7 @@ modem_do_command(modem_t* modem)
                         // Check if the number is long enough to cause buffer
                         // overflows during the number => IP transformation
                         modem_send_res(modem, ResERROR);
+                        modem->numberinprogress[0] = 0;
                         return;
                     } else if (isNum) {
                         // Parameter is a number with at least 12 digits => this cannot
@@ -800,7 +863,7 @@ modem_do_command(modem_t* modem)
             case 'I': // Some strings about firmware
                 switch (modem_scan_number(&scanbuf)) {
                 case 3: modem_send_line(modem, "86Box Emulated Modem Firmware V1.00"); break;
-                case 4: modem_send_line(modem, "Modem compiled for 86Box"); break;
+                case 4: modem_send_line(modem, "Modem compiled for 86Box version " EMU_VERSION); break;
                 }
                 break;
             case 'E': // Echo on/off
@@ -818,6 +881,7 @@ modem_do_command(modem_t* modem)
             case 'H': // Hang up
                 switch (modem_scan_number(&scanbuf)) {
                 case 0:
+                    modem->numberinprogress[0] = 0;
                     if (modem->connected) {
                         modem_send_res(modem, ResNOCARRIER);
                         modem_enter_idle_state(modem);
@@ -843,6 +907,8 @@ modem_do_command(modem_t* modem)
                 break;
             case 'M': // Monitor
             case 'L': // Volume
+            case 'W':
+            case 'X':
                 modem_scan_number(&scanbuf);
                 break;
             case 'A': // Answer call
@@ -911,6 +977,16 @@ modem_do_command(modem_t* modem)
 		    case '&': { // & escaped commands
 		    	char cmdchar = modem_fetch_character(&scanbuf);
 		    	switch(cmdchar) {
+		    		case 'C': {
+		    		        const uint32_t val = modem_scan_number(&scanbuf);
+		    		        if (val < 2)
+		    			        modem->dcdmode = val;
+		    		        else {
+		    			        modem_send_res(modem, ResERROR);
+		    			        return;
+		    		        }
+		    		        break;
+		    	    }
 		    		case 'K': {
 		    		        const uint32_t val = modem_scan_number(&scanbuf);
 		    		        if (val < 5)
@@ -970,13 +1046,16 @@ modem_dtr_callback_timer(void* priv)
     if (dev->connected) {
 		switch (dev->dtrmode) {
             case 1:
+                pclog("DTR dropped, returning to command mode (dtrmode = %i)\n", dev->dtrmode);
                 dev->mode = MODEM_MODE_COMMAND;
                 break;
             case 2:
+                pclog("DTR dropped, hanging up (dtrmode = %i)\n", dev->dtrmode);
                 modem_send_res(dev, ResNOCARRIER);
                 modem_enter_idle_state(dev);
                 break;
             case 3:
+                pclog("DTR dropped, resetting modem (dtrmode = %i)\n", dev->dtrmode);
                 modem_send_res(dev, ResNOCARRIER);
                 modem_reset(dev);
                 break;
@@ -1319,6 +1398,7 @@ modem_cmdpause_timer_callback(void *priv)
 		if (modem->plusinc == 0) {
 			modem->plusinc = 1;
 		} else if (modem->plusinc == 4) {
+			pclog("Escape sequence triggered, returning to command mode\n");
 			modem->mode = MODEM_MODE_COMMAND;
 			modem_send_res(modem, ResOK);
 			modem->plusinc = 0;
