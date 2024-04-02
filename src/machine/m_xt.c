@@ -369,6 +369,21 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 }
 
 int
+machine_xt_pravetz16s_cpu12_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pravetz16s/PR16S.BIN",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_init_ex(model);
+    return ret;
+}
+
+int
 machine_xt_micoms_xl7turbo_init(const machine_t *model)
 {
     int ret;
