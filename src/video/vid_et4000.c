@@ -652,7 +652,9 @@ et4000_recalctimings(svga_t *svga)
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
 
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
+    svga->hblankstart = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
+
+    svga->ps_bit_bug = (dev->type == ET4000_TYPE_TC6058AF) && svga->lowres && ((svga->gdcreg[5] & 0x60) >= 0x40);
 
     if (svga->crtc[0x35] & 1)
         svga->vblankstart |= 0x400;
@@ -664,7 +666,7 @@ et4000_recalctimings(svga_t *svga)
         svga->vsyncstart |= 0x400;
     if (svga->crtc[0x35] & 0x10)
         svga->split |= 0x400;
-    if (!svga->rowoffset)
+    if (!svga->rowoffset && !svga->ps_bit_bug)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
         svga->htotal |= 0x100;
@@ -728,13 +730,6 @@ et4000_recalctimings(svga_t *svga)
         svga->ma_latch <<= 1;
         svga->rowoffset <<= 1;
         svga->render = svga_render_8bpp_highres;
-    }
-
-    if (dev->type == ET4000_TYPE_TC6058AF) {
-        if (svga->render == svga_render_8bpp_lowres)
-            svga->render = svga_render_8bpp_tseng_lowres;
-        else if (svga->render == svga_render_8bpp_highres)
-            svga->render = svga_render_8bpp_tseng_highres;
     }
 }
 
@@ -963,6 +958,10 @@ static const device_config_t et4000_tc6058af_config[] = {
                 .value = 512
             },
             {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
                 .description = ""
             }
         }
@@ -1071,7 +1070,7 @@ const device_t et4000_tc6058af_isa_device = {
     .name          = "Tseng Labs ET4000AX (TC6058AF) (ISA)",
     .internal_name = "et4000ax_tc6058af",
     .flags         = DEVICE_ISA,
-    .local         = 0,
+    .local         = ET4000_TYPE_TC6058AF,
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
