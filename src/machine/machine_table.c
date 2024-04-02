@@ -1340,11 +1340,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Pravetz 16S / CPU12+",
+        .name = "[8088] Pravetz 16S / CPU12 Plus",
         .internal_name = "pravetz16s",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_xt_pravetz16s_cpu12_init,
+        .init = machine_xt_pravetz16s_cpu12p_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,

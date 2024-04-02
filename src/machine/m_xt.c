@@ -369,7 +369,7 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 }
 
 int
-machine_xt_pravetz16s_cpu12_init(const machine_t *model)
+machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
 {
     int ret;
 
