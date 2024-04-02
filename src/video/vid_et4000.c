@@ -664,8 +664,6 @@ et4000_recalctimings(svga_t *svga)
         svga->vsyncstart |= 0x400;
     if (svga->crtc[0x35] & 0x10)
         svga->split |= 0x400;
-    if (!svga->rowoffset)
-        svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
         svga->htotal |= 0x100;
     if (svga->attrregs[0x16] & 0x20) {
