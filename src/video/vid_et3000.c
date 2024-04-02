@@ -557,8 +557,6 @@ static const device_config_t et3000_config[] = {
               .value       = 256 },
           { .description = "512 KB",
               .value       = 512 },
-          { .description = "1 MB",
-              .value       = 1024 },
           { .description = "" } } },
     { .type = CONFIG_END }
 };
