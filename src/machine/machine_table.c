@@ -1340,7 +1340,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Pravetz 16S / CPU12",
+        .name = "[8088] Pravetz 16S / CPU12+",
         .internal_name = "pravetz16s",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
@@ -1352,8 +1352,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_8088,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
+            .min_bus = 4772728,
+            .max_bus = 12000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -1362,9 +1362,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
-            .min = 64,
-            .max = 640,
-            .step = 64
+            .min = 512,
+            .max = 1024,
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
