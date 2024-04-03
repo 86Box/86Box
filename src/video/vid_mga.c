@@ -337,7 +337,7 @@
 #define MACCESS_NODITHER              (1 << 30)
 #define MACCESS_DIT555                (1 << 31)
 
-#define PITCH_MASK                    0x7e0
+#define PITCH_MASK                    0xfe0
 #define PITCH_YLIN                    (1 << 15)
 
 #define SGN_SDYDXL                    (1 << 0)
