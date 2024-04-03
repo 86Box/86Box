@@ -23,6 +23,11 @@ these four paragraphs for those parts of this code that are retained.
  *            Stanislav Shwartsman [sshwarts at sourceforge net]
  * ==========================================================================*/
 
+#include <stdio.h>
+#include <stdint.h>
+#include <86box/86box.h>
+#include "../cpu.h"
+
 #include "softfloatx80.h"
 #include "softfloat-round-pack.h"
 #include "softfloat-macros.h"
@@ -304,6 +309,18 @@ int floatx80_compare(floatx80 a, floatx80 b, int quiet, struct float_status_t *s
 {
     float_class_t aClass = floatx80_class(a);
     float_class_t bClass = floatx80_class(b);
+
+    if (fpu_type < FPU_287XL) {
+        if ((aClass == float_positive_inf) && (bClass == float_negative_inf))
+        {
+            return float_relation_equal;
+        }
+
+        if ((aClass == float_negative_inf) && (bClass == float_positive_inf))
+        {
+            return float_relation_equal;
+        }
+    }
 
     if (aClass == float_SNaN || bClass == float_SNaN)
     {

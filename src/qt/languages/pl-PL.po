@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: pl_PL\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Akcje"
 
@@ -40,14 +48,11 @@ msgstr "P&amiętaj rozmiar &i pozycję"
 msgid "Re&nderer"
 msgstr "Re&nderer"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -123,6 +128,9 @@ msgstr "&Kwadratowe piksele (Zachowaj proporcje)"
 
 msgid "&Integer scale"
 msgstr "&Skalowanie całkowite"
+
+msgid "4:&3 Integer scale"
+msgstr "Skalowanie całkowite 4:&3"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "Ustawienia E&GA/(S)VGA"
@@ -349,6 +357,9 @@ msgstr "Rodzaj procesora:"
 msgid "Speed:"
 msgstr "Szybkość:"
 
+msgid "Frequency:"
+msgstr "Częstotliwość:"
+
 msgid "FPU:"
 msgstr "Jednostka FPU:"
 
@@ -382,8 +393,8 @@ msgstr "Wideo:"
 msgid "Voodoo Graphics"
 msgstr "Grafika Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Grafika IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Grafika IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Grafika XGA"
@@ -406,16 +417,16 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Karta dźwiękowa 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Karta dźwiękowa 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Karta dźwiękowa 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Karta dźwiękowa 4:"
 
 msgid "MIDI Out Device:"
@@ -583,9 +594,6 @@ msgstr "Sprawdzaj BPB"
 msgid "CD-ROM drives:"
 msgstr "Napędy CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Wcześniejszy napęd"
-
 msgid "MO drives:"
 msgstr "Napędy MO:"
 
@@ -618,12 +626,6 @@ msgstr "Urządzenie ISABugger"
 
 msgid "POST card"
 msgstr "Karta POST"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -718,11 +720,11 @@ msgstr "Inne urządzenia peryferyjne"
 msgid "Click to capture mouse"
 msgstr "Kliknij w celu przechwycenia myszy"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Naciśnij klawisze F8+F12 w celu uwolnienia myszy"
+msgid "Press %1 to release mouse"
+msgstr "Naciśnij klawisze %1 w celu uwolnienia myszy"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Naciśnij klawisze F8+F12 lub środkowy przycisk w celu uwolnienia myszy"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Naciśnij klawisze %1 lub środkowy przycisk w celu uwolnienia myszy"
 
 msgid "Bus"
 msgstr "Magistrala"
@@ -754,9 +756,6 @@ msgstr "%i Stany oczekiwania"
 msgid "Type"
 msgstr "Rodzaj"
 
-msgid "Failed to set up PCap"
-msgstr "Nie udało się ustawić PCap"
-
 msgid "No PCap devices found"
 msgstr "Nie znaleziono urządzeń PCap"
 
@@ -787,15 +786,6 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Żaden"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "Nie można załadować akceleratorów klawiaturowych."
-
-msgid "Unable to register raw input."
-msgstr "Nie można zarejestrować surowych danych wejściowych."
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
 
@@ -807,9 +797,6 @@ msgstr "Zaawansowane obrazy sektorów"
 
 msgid "Flux images"
 msgstr "Flux images"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Nie można zainicjować SDL, wymagany SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Jesteś pewien że chcesz wykonać twardy reset emulowanej maszyny?"
@@ -859,26 +846,14 @@ msgstr "Emulator starych komputerów\n\nAutorzy: Miran Grča (OBattler), Richard
 msgid "Hardware not available"
 msgstr "Sprzęt niedostępny"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Sprawdź, czy libpcap jest zainstalowany i czy posiadasz połączenie sieciowe kompatybilne z libpcap."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Sprawdź, czy %1 jest zainstalowany i czy posiadasz połączenie sieciowe kompatybilne z %1."
 
 msgid "Invalid configuration"
 msgstr "Nieprawidłowa konfiguracja"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
 
 msgid "Entering fullscreen mode"
 msgstr "Przechodzenie do trybu pełnoekranowego"
@@ -898,8 +873,8 @@ msgstr "Nie przywracaj"
 msgid "CD-ROM images"
 msgstr "Obrazy CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Konfiguracja urządzenia %hs"
+msgid "%1 Device Configuration"
+msgstr "Konfiguracja urządzenia %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor w trybie czuwania"
@@ -955,14 +930,8 @@ msgstr "Twardy reset"
 msgid "ACPI shutdown"
 msgstr "Wyłączenie ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Dysk twardy (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Dysk twardy (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "Napędy CD-ROM MFM/RLL lub ESDI nigdy nie istniały"
@@ -996,9 +965,6 @@ msgstr "Nie można zapisać pliku"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Obrazy HDI lub HDX z rozmiarem sektora innym niż 512 nie są wspierane."
-
-msgid "USB is not yet supported"
-msgstr "USB nie jest jeszcze wspierane"
 
 msgid "Disk image file already exists"
 msgstr "Plik obrazu dysku już istnieje"
@@ -1072,9 +1038,6 @@ msgstr "Sygnatury czasowe dysku nadrzędnego i podrzędnego nie zgadzają się"
 msgid "Could not fix VHD timestamp."
 msgstr "Nie można naprawić sygnatury czasowej VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1089,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
@@ -1219,3 +1164,11 @@ msgstr "Powolny"
 msgid "Fast"
 msgstr "Szybki"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatyczna pauza po utracie fokusu"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox nie jest już wspierany"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Rozwój menedżera WinBox został zatrzymany w 2022 roku z powodu braku opiekunów. Ponieważ kierujemy nasze wysiłki na uczynienie 86Box jeszcze lepszym, podjęliśmy decyzję o zaprzestaniu wspierania WinBox jako menedżera.\n\nŻadne dalsze aktualizacje nie będą dostarczane za pośrednictwem WinBox i możesz napotkać nieprawidłowe zachowanie, jeśli będziesz go nadal używać z nowszymi wersjami 86Box. Wszelkie zgłoszenia błędów związane z działaniem WinBox zostaną zamknięte jako nieważne.\n\nLista innych menedżerów, z których można korzystać, znajduje się na stronie 86box.net."

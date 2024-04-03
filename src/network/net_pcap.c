@@ -122,15 +122,15 @@ struct pcap_if {
 };
 
 struct pcap_send_queue {
-    u_int maxlen; /* Maximum size of the queue, in bytes. This
+    unsigned int maxlen; /* Maximum size of the queue, in bytes. This
              variable contains the size of the buffer field. */
-    u_int len;    /* Current size of the queue, in bytes. */
+    unsigned int len;    /* Current size of the queue, in bytes. */
     char *buffer; /* Buffer containing the packets to be sent. */
 };
 
 typedef struct pcap_send_queue pcap_send_queue;
 
-typedef void (*pcap_handler)(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
+typedef void (*pcap_handler)(unsigned char *user, const struct pcap_pkthdr *h, const unsigned char *bytes);
 #endif
 
 typedef struct {
@@ -169,15 +169,15 @@ static int (*f_pcap_setnonblock)(void *, int, char *);
 static int (*f_pcap_set_immediate_mode)(void *, int);
 static int (*f_pcap_set_promisc)(void *, int);
 static int (*f_pcap_set_snaplen)(void *, int);
-static int (*f_pcap_dispatch)(void *, int, pcap_handler callback, u_char *user);
+static int (*f_pcap_dispatch)(void *, int, pcap_handler callback, unsigned char *user);
 static void *(*f_pcap_create)(const char *, char *);
 static int (*f_pcap_activate)(void *);
 static void *(*f_pcap_geterr)(void *);
 #ifdef _WIN32
 static HANDLE (*f_pcap_getevent)(void *);
 static int (*f_pcap_sendqueue_queue)(void *, void *, void *);
-static u_int (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
-static void *(*f_pcap_sendqueue_alloc)(u_int memsize);
+static unsigned int (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
+static void *(*f_pcap_sendqueue_alloc)(unsigned int memsize);
 static void (*f_pcap_sendqueue_destroy)(void *);
 #else
 static int (*f_pcap_get_selectable_fd)(void *);
@@ -294,7 +294,7 @@ net_pcap_thread(void *priv)
                 break;
 
             case NET_EVENT_RX:
-                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
+                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (unsigned char *) pcap);
                 break;
 
             default:
@@ -341,7 +341,7 @@ net_pcap_thread(void *priv)
         }
 
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
-            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
+            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (unsigned char *) pcap);
         }
     }
 
@@ -365,7 +365,13 @@ net_pcap_prepare(netdev_t *list)
 
     /* Try loading the DLL. */
 #ifdef _WIN32
+    /* Add the Npcap directory to the DLL search path. */
+    char npcap_dir[512];
+    GetSystemDirectoryA(npcap_dir, 480);
+    strcat(npcap_dir, "\\Npcap");
+    SetDllDirectoryA(npcap_dir);
     libpcap_handle = dynld_module("wpcap.dll", pcap_imports);
+    SetDllDirectoryA(NULL); /* reset the DLL search path */
 #elif defined __APPLE__
     libpcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
@@ -494,7 +500,7 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *
     pcap_log("PCAP: installing filter for MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
              mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     sprintf(filter_exp,
-            "( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
+            "( ((ether broadcast) or (ether multicast) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5],
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     if (f_pcap_compile(pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {

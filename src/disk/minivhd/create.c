@@ -315,7 +315,7 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
 {
     uint8_t footer_buff[MVHD_FOOTER_SIZE] = {0};
     uint8_t sparse_buff[MVHD_SPARSE_SIZE] = {0};
-    uint8_t bat_sect[MVHD_SECTOR_SIZE];
+    uint8_t bat_sect[MVHD_SECTOR_SIZE] = {0};
     MVHDGeom par_geom = {0};
     memset(bat_sect, 0xffffffff, sizeof bat_sect);
     MVHDMeta* vhdm = NULL;

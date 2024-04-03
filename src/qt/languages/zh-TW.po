@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: zh_TW\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "動作(&A)"
 
@@ -40,17 +48,14 @@ msgstr "記住視窗大小和位置(&E)"
 msgid "Re&nderer"
 msgstr "渲染器(&N)"
 
-msgid "&SDL (Software)"
-msgstr "SDL (軟體)(&S)"
+msgid "&Qt (Software)"
+msgstr "Qt (軟體)(&Q)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (硬體)(&H)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (OpenGL)(&O)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 核心)(&G)"
+msgstr "OpenGL (3.0 Core)(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
@@ -123,6 +128,9 @@ msgstr "保持比例(&S)"
 
 msgid "&Integer scale"
 msgstr "整數比例(&I)"
+
+msgid "4:&3 Integer scale"
+msgstr "4:3 整數比例(&3)"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "EGA/(S)VGA 設定(&G)"
@@ -349,6 +357,9 @@ msgstr "CPU 類型:"
 msgid "Speed:"
 msgstr "速度:"
 
+msgid "Frequency:"
+msgstr "頻率:"
+
 msgid "FPU:"
 msgstr "浮點處理器 (FPU):"
 
@@ -365,7 +376,7 @@ msgid "Time synchronization"
 msgstr "時間同步"
 
 msgid "Disabled"
-msgstr "禁用"
+msgstr "停用"
 
 msgid "Enabled (local time)"
 msgstr "啟用 (本地時間)"
@@ -382,8 +393,8 @@ msgstr "顯示卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a Graphics"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
 msgstr "XGA Graphics"
@@ -406,16 +417,16 @@ msgstr "搖桿 3..."
 msgid "Joystick 4..."
 msgstr "搖桿 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "音效卡 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "音效卡 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "音效卡 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "音效卡 4:"
 
 msgid "MIDI Out Device:"
@@ -583,9 +594,6 @@ msgstr "檢查 BPB"
 msgid "CD-ROM drives:"
 msgstr "光碟機:"
 
-msgid "Earlier drive"
-msgstr "早先的光碟機"
-
 msgid "MO drives:"
 msgstr "磁光碟機:"
 
@@ -618,12 +626,6 @@ msgstr "ISABugger 裝置"
 
 msgid "POST card"
 msgstr "自檢 (POST) 卡"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Microsoft JhengHei"
 
 msgid "86Box"
 msgstr "86Box"
@@ -718,11 +720,11 @@ msgstr "其他周邊裝置"
 msgid "Click to capture mouse"
 msgstr "點擊視窗捕捉滑鼠"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "按下 F8+F12 釋放滑鼠"
+msgid "Press %1 to release mouse"
+msgstr "按下 %1 釋放滑鼠"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "按下 F8+F12 或滑鼠中鍵釋放滑鼠"
+msgid "Press %1 or middle button to release mouse"
+msgstr "按下 %1 或滑鼠中鍵釋放滑鼠"
 
 msgid "Bus"
 msgstr "匯流排"
@@ -754,9 +756,6 @@ msgstr "%i 等待狀態 (WS)"
 msgid "Type"
 msgstr "類型"
 
-msgid "Failed to set up PCap"
-msgstr "設定 PCap 失敗"
-
 msgid "No PCap devices found"
 msgstr "未找到 PCap 裝置"
 
@@ -787,15 +786,6 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "無"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "無法載入鍵盤加速器。"
-
-msgid "Unable to register raw input."
-msgstr "無法註冊原始輸入。"
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
 
@@ -807,9 +797,6 @@ msgstr "進階磁區映像"
 
 msgid "Flux images"
 msgstr "Flux 映像"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "無法初始化 SDL，需要 SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "確定要硬重設模擬器嗎？"
@@ -859,26 +846,14 @@ msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG
 msgid "Hardware not available"
 msgstr "硬體不可用"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "請確認 libpcap 已安裝且使用相容 libpcap 的網路連線。"
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "請確認 %1 已安裝且使用相容 libpcap 的網路連線。"
 
 msgid "Invalid configuration"
 msgstr "無效設定"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
 
 msgid "Entering fullscreen mode"
 msgstr "正在進入全螢幕模式"
@@ -898,8 +873,8 @@ msgstr "不重設"
 msgid "CD-ROM images"
 msgstr "光碟映像"
 
-msgid "%hs Device Configuration"
-msgstr "%hs 裝置設定"
+msgid "%1 Device Configuration"
+msgstr "%1 裝置設定"
 
 msgid "Monitor in sleep mode"
 msgstr "顯示器處在睡眠狀態"
@@ -914,7 +889,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "正在載入一個不受支援的設定"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "此模擬電腦禁用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
+msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
 
 msgid "Continue"
 msgstr "繼續"
@@ -935,7 +910,7 @@ msgid "Error initializing renderer"
 msgstr "初始化渲染器時出錯"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "無法初始化 OpenGL (3.0 核心) 渲染器。請使用其他渲染器。"
+msgstr "無法初始化 OpenGL (3.0 Core) 渲染器。請使用其他渲染器。"
 
 msgid "Resume execution"
 msgstr "恢復執行"
@@ -955,14 +930,8 @@ msgstr "硬重設"
 msgid "ACPI shutdown"
 msgstr "ACPI 關機"
 
-msgid "Hard disk (%s)"
-msgstr "硬碟 (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "硬碟 (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "不存在 MFM/RLL 或 ESDI CD-ROM 光碟機"
@@ -996,9 +965,6 @@ msgstr "無法寫入檔案"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 映像。"
-
-msgid "USB is not yet supported"
-msgstr "尚未支援 USB"
 
 msgid "Disk image file already exists"
 msgstr "磁碟映像檔案已存在"
@@ -1072,9 +1038,6 @@ msgstr "父碟與子碟的時間戳不匹配"
 msgid "Could not fix VHD timestamp."
 msgstr "無法修復 VHD 時間戳。"
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1089,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "光碟 %i (%s): %s"
@@ -1219,3 +1164,11 @@ msgstr "慢"
 msgid "Fast"
 msgstr "快"
 
+msgid "&Auto-pause on focus loss"
+msgstr "失去焦點時自動暫停(&A)"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox is no longer supported"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."

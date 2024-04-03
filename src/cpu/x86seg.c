@@ -78,6 +78,10 @@ x86seg_log(const char *fmt, ...)
 #    define x86seg_log(fmt, ...)
 #endif
 
+#ifdef USE_DYNAREC
+extern int cpu_block_end;
+#endif
+
 void
 #ifdef OPS_286_386
 x86_doabrt_2386(int x86_abrt)
@@ -1796,7 +1800,9 @@ pmodeiret(int is32)
     }
 
     if (cpu_state.flags & NT_FLAG) {
+        cpl_override = 1;
         seg  = readmemw(tr.base, 0);
+        cpl_override = 0;
         addr = seg & 0xfff8;
         if (seg & 0x0004) {
             x86seg_log("TS LDT %04X %04X IRET\n", seg, gdt.limit);
@@ -1809,8 +1815,8 @@ pmodeiret(int is32)
             }
             addr += gdt.base;
         }
-        cpl_override = 1;
         read_descriptor(addr, segdat, segdat32, 1);
+        cpl_override = 1;
         op_taskswitch286(seg, segdat, segdat[2] & 0x0800);
         cpl_override = 0;
         return;
@@ -2086,6 +2092,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     uint32_t      new_edi;
     uint32_t      new_pc;
     uint32_t      new_flags;
+    uint32_t      t_bit;
     uint32_t      addr;
     uint32_t     *segdat232 = (uint32_t *) segdat2;
     const x86seg *dt;
@@ -2187,6 +2194,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         new_fs  = readmemw(base, 0x58);
         new_gs  = readmemw(base, 0x5C);
         new_ldt = readmemw(base, 0x60);
+        t_bit   = readmemb(base, 0x64) & 1;
 
         cr0 |= 8;
 
@@ -2277,6 +2285,19 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         op_loadseg(new_ds, &cpu_state.seg_ds);
         op_loadseg(new_fs, &cpu_state.seg_fs);
         op_loadseg(new_gs, &cpu_state.seg_gs);
+
+        if (!cpu_use_exec)
+            rf_flag_no_clear = 1;
+
+        if (t_bit) {
+            if (cpu_use_exec)
+                trap = 2;
+            else
+                trap |= 2;
+#ifdef USE_DYNAREC
+            cpu_block_end = 1;
+#endif
+        }
     } else {
         if (limit < 43) {
             x86ts(NULL, seg);
@@ -2380,7 +2401,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
             ldt.base |= (readmemb(0, templ + 7) << 24);
         }
 
-        if (!(new_cs & 0xfff8)) {
+        if (!(new_cs & 0xfff8) && !(new_cs & 0x0004)) {
             x86ts(NULL, 0);
             return;
         }
@@ -2452,6 +2473,8 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     tr.limit   = limit;
     tr.access  = segdat[2] >> 8;
     tr.ar_high = segdat[3] & 0xff;
+    if (!cpu_use_exec)
+        dr[7] &= 0xFFFFFFAA;
 }
 
 void

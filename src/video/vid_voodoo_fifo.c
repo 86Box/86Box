@@ -160,7 +160,7 @@ cmdfifo_get(voodoo_t *voodoo)
     uint32_t val;
 
     if (!voodoo->cmdfifo_in_sub) {
-        while (voodoo->cmdfifo_depth_rd == voodoo->cmdfifo_depth_wr) {
+        while (voodoo->fifo_thread_run && (voodoo->cmdfifo_depth_rd == voodoo->cmdfifo_depth_wr)) {
             thread_wait_event(voodoo->wake_fifo_thread, -1);
             thread_reset_event(voodoo->wake_fifo_thread);
         }

@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: fi_FI\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Toiminto"
 
@@ -40,14 +48,11 @@ msgstr "&Muista koko ja sijainti"
 msgid "Re&nderer"
 msgstr "&Renderöijä"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (ohjelmistopohjainen)"
+msgid "&Qt (Software)"
+msgstr "&Qt (ohjelmistopohjainen)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&laitteistokiihdytetty)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -123,6 +128,9 @@ msgstr "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)"
 
 msgid "&Integer scale"
 msgstr "&Kokonaislukuskaalaus"
+
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Kokonaislukuskaalaus"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "&EGA/(S)VGA-asetukset"
@@ -349,6 +357,9 @@ msgstr "Suorittimen tyyppi:"
 msgid "Speed:"
 msgstr "Nopeus:"
 
+msgid "Frequency:"
+msgstr "Taajuus:"
+
 msgid "FPU:"
 msgstr "Apusuoritin:"
 
@@ -382,8 +393,8 @@ msgstr "Näytönohjain:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-grafiikkasuoritin"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a-grafiikkasuoritin"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A-grafiikkasuoritin"
 
 msgid "XGA Graphics"
 msgstr "XGA-grafiikkasuoritin"
@@ -406,16 +417,16 @@ msgstr "Peliohjain 3..."
 msgid "Joystick 4..."
 msgstr "Peliohjain 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Äänikortti 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Äänikortti 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Äänikortti 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Äänikortti 4:"
 
 msgid "MIDI Out Device:"
@@ -583,9 +594,6 @@ msgstr "Tarkista BPB"
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-asemat:"
 
-msgid "Earlier drive"
-msgstr "Aiemmat asemat"
-
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
 
@@ -618,12 +626,6 @@ msgstr "ISABugger-laite"
 
 msgid "POST card"
 msgstr "POST-kortti"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -718,11 +720,11 @@ msgstr "Muut oheislaitteet"
 msgid "Click to capture mouse"
 msgstr "Kaappaa hiiri klikkaamalla"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Paina F8+F12 vapauttaaksesi hiiren"
+msgid "Press %1 to release mouse"
+msgstr "Paina %1 vapauttaaksesi hiiren"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Paina F8+F12 tai keskipainiketta vapauttaaksesi hiiren"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Paina %1 tai keskipainiketta vapauttaaksesi hiiren"
 
 msgid "Bus"
 msgstr "Väylä"
@@ -754,9 +756,6 @@ msgstr "%i odotustilaa"
 msgid "Type"
 msgstr "Tyyppi"
 
-msgid "Failed to set up PCap"
-msgstr "PCap-asennus epäonnistui"
-
 msgid "No PCap devices found"
 msgstr "PCap-laitteita ei löytynyt"
 
@@ -787,15 +786,6 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Ei mikään"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "Näppäinkiihdyttimien lataus epäonnistui"
-
-msgid "Unable to register raw input."
-msgstr "Raakasyötteen rekisteröinti epäonnistui"
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u Mt (CHS: %i, %i, %i)"
 
@@ -807,9 +797,6 @@ msgstr "Kehittyneet sektorilevykuvat"
 
 msgid "Flux images"
 msgstr "Flux-levykuvat"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
@@ -859,26 +846,14 @@ msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), 
 msgid "Hardware not available"
 msgstr "Laitteisto ei ole saatavilla"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Varmista, että libpcap on asennettu ja että verkkoyhteytesi on libpcap-yhteensopiva."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Varmista, että %1 on asennettu ja että verkkoyhteytesi on %1-yhteensopiva."
 
 msgid "Invalid configuration"
 msgstr "Virheelliset määritykset"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
 
 msgid "Entering fullscreen mode"
 msgstr "Siirrytään koko näytön tilaan"
@@ -898,8 +873,8 @@ msgstr "Älä käynnistä uudelleen"
 msgid "CD-ROM images"
 msgstr "CD-ROM-levykuvat"
 
-msgid "%hs Device Configuration"
-msgstr "%hs - Laitteen määritykset"
+msgid "%1 Device Configuration"
+msgstr "%1 - Laitteen määritykset"
 
 msgid "Monitor in sleep mode"
 msgstr "Näyttö lepotilassa"
@@ -955,14 +930,8 @@ msgstr "Kylmä uudelleenkäynnistys"
 msgid "ACPI shutdown"
 msgstr "ACPI-sammutus"
 
-msgid "Hard disk (%s)"
-msgstr "Kiintolevy (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Kiintolevy (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
@@ -996,9 +965,6 @@ msgstr "Tiedostoon ei voi kirjoittaa"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512"
-
-msgid "USB is not yet supported"
-msgstr "USB-tukea ei vielä ole"
 
 msgid "Disk image file already exists"
 msgstr "Levykuva on jo olemassa"
@@ -1072,9 +1038,6 @@ msgstr "Ylä- ja alatason levyjen aikaleimat eivät täsmää"
 msgid "Could not fix VHD timestamp."
 msgstr "VHD aikaleimaa ei pystytty korjaamaan."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1089,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
@@ -1219,3 +1164,11 @@ msgstr "Hidas"
 msgid "Fast"
 msgstr "Nopea"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Automaattinen tauko tarkennuksen hävitessä"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBoxia ei enää tueta"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "WinBox-managerin kehitys lopetettiin vuonna 2022, koska ylläpitäjiä ei ollut riittävästi. Koska suuntaamme ponnistuksemme 86Boxin parantamiseen entisestään, olemme päättäneet olla enää tukematta WinBoxia managerina.\n\nWinBoxin kautta ei enää toimiteta päivityksiä, ja saatat kohdata virheellistä käyttäytymistä, jos jatkat sen käyttöä 86Boxin uudemmissa versioissa. Kaikki WinBoxin käyttäytymiseen liittyvät vikailmoitukset suljetaan virheellisinä.\n\nSiirry osoitteeseen 86box.net saadaksesi luettelon muista käyttämistäsi hallintaohjelmista."

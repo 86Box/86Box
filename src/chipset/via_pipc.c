@@ -210,10 +210,9 @@ pipc_reset_hard(void *priv)
     pipc_log("PIPC: reset_hard()\n");
 
     pipc_t  *dev      = (pipc_t *) priv;
-    uint16_t old_base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
 
-    sff_bus_master_reset(dev->bm[0], old_base);
-    sff_bus_master_reset(dev->bm[1], old_base + 8);
+    sff_bus_master_reset(dev->bm[0]);
+    sff_bus_master_reset(dev->bm[1]);
 
     memset(dev->pci_isa_regs, 0, 256);
     memset(dev->ide_regs, 0, 256);
@@ -237,7 +236,8 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x4a] = 0x04;
     dev->pci_isa_regs[0x4f] = 0x03;
 
-    dev->pci_isa_regs[0x50] = (dev->local >= VIA_PIPC_686A) ? 0x0e : 0x24; /* 686A/B default value does not line up with default bits */
+    /* 686A/B default value does not line up with default bits */
+    dev->pci_isa_regs[0x50] = (dev->local >= VIA_PIPC_686A) ? 0x0e : 0x24;
     dev->pci_isa_regs[0x59] = 0x04;
     if (dev->local >= VIA_PIPC_686A)
         dev->pci_isa_regs[0x5a] = dev->pci_isa_regs[0x5f] = 0x04;
@@ -566,19 +566,17 @@ pipc_ide_handlers(pipc_t *dev)
 static void
 pipc_ide_irqs(pipc_t *dev)
 {
-    int irq_mode[2] = { 0, 0 };
+    int irq_mode[2] = { IRQ_MODE_LEGACY, IRQ_MODE_LEGACY };
 
     if (dev->ide_regs[0x09] & 0x01)
-        irq_mode[0] = (dev->ide_regs[0x3d] & 0x01);
+        irq_mode[0] = (dev->ide_regs[0x3d] & 0x01) ? IRQ_MODE_PCI_IRQ_PIN : IRQ_MODE_LEGACY;
 
     if (dev->ide_regs[0x09] & 0x04)
-        irq_mode[1] = (dev->ide_regs[0x3d] & 0x01);
+        irq_mode[1] = (dev->ide_regs[0x3d] & 0x01) ? IRQ_MODE_PCI_IRQ_PIN : IRQ_MODE_LEGACY;
 
-    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[0], irq_mode[0]);
 
-    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[1], irq_mode[1]);
 }
 
 static void
@@ -1638,21 +1636,19 @@ pipc_init(const device_t *info)
     pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev, &dev->pci_slot);
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[0], 1, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
     sff_set_irq_pin(dev->bm[0], PCI_INTA);
 
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
-    sff_set_irq_mode(dev->bm[1], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 1, 0);
+    sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
     sff_set_irq_pin(dev->bm[1], PCI_INTA);
-
-    dev->nvr = device_add(&via_nvr_device);
 
     if (dev->local == VIA_PIPC_686B)
         dev->smbus = device_add(&via_smbus_device);
     else if (dev->local >= VIA_PIPC_596A)
         dev->smbus = device_add(&piix4_smbus_device);
+
+    dev->nvr = device_add(&via_nvr_device);
 
     if (dev->local >= VIA_PIPC_596A) {
         dev->acpi = device_add(&acpi_via_596b_device);

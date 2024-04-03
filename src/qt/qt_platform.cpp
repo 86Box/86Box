@@ -50,6 +50,7 @@
 #include "qt_util.hpp"
 
 #ifdef Q_OS_UNIX
+#    include <pthread.h>
 #    include <sys/mman.h>
 #endif
 
@@ -146,6 +147,11 @@ strnicmp(const char *s1, const char *s2, size_t n)
 #else
     return strncasecmp(s1, s2, n);
 #endif
+}
+
+void
+do_start(void)
+{
 }
 
 void
@@ -371,7 +377,7 @@ plat_pause(int p)
     wchar_t        title[1024];
     wchar_t        paused_msg[512];
 
-    if (p == dopause) {
+    if ((!!p) == dopause) {
 #ifdef Q_OS_WINDOWS
         if (source_hwnd)
             PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());
@@ -382,7 +388,7 @@ plat_pause(int p)
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-    dopause = p;
+    do_pause(p);
     if (p) {
         if (mouse_capture)
             plat_mouse_capture(0);
@@ -408,14 +414,11 @@ plat_pause(int p)
 #endif
 }
 
-// because we can't include nvr.h because it's got fields named new
-extern int nvr_save(void);
-
 void
 plat_power_off(void)
 {
     plat_mouse_capture(0);
-    confirm_exit = 0;
+    confirm_exit_cmdl = 0;
     nvr_save();
     config_save();
 
@@ -425,12 +428,6 @@ plat_power_off(void)
 
     cpu_thread_run = 0;
     QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
-}
-
-void
-set_language(uint32_t id)
-{
-    lang_id = id;
 }
 
 extern "C++" {
@@ -583,11 +580,17 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 #ifdef _WIN32
-#    define LIB_NAME_GS          "gsdll32.dll"
+#    if defined(__amd64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
+#        define LIB_NAME_GS "gsdll64.dll"
+#    else
+#        define LIB_NAME_GS "gsdll32.dll"
+#    endif
+#    define LIB_NAME_PCAP        "Npcap"
 #    define MOUSE_CAPTURE_KEYSEQ "F8+F12"
 #else
 #    define LIB_NAME_GS          "libgs"
-#    define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
+#    define LIB_NAME_PCAP        "libpcap"
+#    define MOUSE_CAPTURE_KEYSEQ "Ctrl+End"
 #endif
 
 QMap<int, std::wstring> ProgSettings::translatedstrings;
@@ -596,33 +599,23 @@ void
 ProgSettings::reloadStrings()
 {
     translatedstrings.clear();
-    translatedstrings[IDS_2077] = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
-    translatedstrings[IDS_2078] = QCoreApplication::translate("", "Press F8+F12 to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
-    translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
-    translatedstrings[IDS_2131] = QCoreApplication::translate("", "Invalid configuration").toStdWString();
-    translatedstrings[IDS_4099] = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
-    translatedstrings[IDS_2094] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
-    translatedstrings[IDS_2095] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
-    translatedstrings[IDS_2096] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
-    translatedstrings[IDS_2112] = QCoreApplication::translate("", "Unable to initialize SDL, libsdl2 is required").toStdWString();
-    translatedstrings[IDS_2130] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
-    translatedstrings[IDS_2115] = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
-    translatedstrings[IDS_2063] = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
-    translatedstrings[IDS_2064] = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
-    translatedstrings[IDS_2163] = QCoreApplication::translate("", "Video card #2 \"%hs\"  is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
-    translatedstrings[IDS_2129] = QCoreApplication::translate("", "Hardware not available").toStdWString();
-    translatedstrings[IDS_2143] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
-    translatedstrings[IDS_2121] = QCoreApplication::translate("", "No ROMs found").toStdWString();
-    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
-    translatedstrings[IDS_2167] = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
-    translatedstrings[IDS_2168] = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
-
-    auto gsstr             = QCoreApplication::translate("", " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.");
-    if (gsstr.contains("libgs")) {
-        gsstr.replace("libgs", LIB_NAME_GS);
-    } else
-        gsstr.prepend(LIB_NAME_GS);
-    translatedstrings[IDS_2133] = gsstr.toStdWString();
+    translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
+    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
+    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
+    translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toStdWString();
+    translatedstrings[STRING_NO_ST506_ESDI_CDROM]       = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
+    translatedstrings[STRING_PCAP_ERROR_NO_DEVICES]     = QCoreApplication::translate("", "No PCap devices found").toStdWString();
+    translatedstrings[STRING_PCAP_ERROR_INVALID_DEVICE] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
+    translatedstrings[STRING_PCAP_ERROR_DESC]           = QCoreApplication::translate("", "Make sure %1 is installed and that you are on a %1-compatible network connection.").arg(LIB_NAME_PCAP).toStdWString();
+    translatedstrings[STRING_GHOSTSCRIPT_ERROR_TITLE]   = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
+    translatedstrings[STRING_GHOSTSCRIPT_ERROR_DESC]    = QCoreApplication::translate("", "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.").arg(LIB_NAME_GS).toStdWString();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_MACHINE]  = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO]    = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO2]   = QCoreApplication::translate("", "Video card #2 \"%hs\"  is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_TITLE]    = QCoreApplication::translate("", "Hardware not available").toStdWString();
+    translatedstrings[STRING_MONITOR_SLEEP]             = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
+    translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
+    translatedstrings[STRING_NET_ERROR_DESC]            = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
 }
 
 wchar_t *
@@ -740,8 +733,47 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
 
 }
 
-double
-plat_get_dpi(void)
+void
+plat_set_thread_name(void *thread, const char *name)
 {
-    return util::screenOfWidget(main_window)->devicePixelRatio();
+#ifdef Q_OS_WINDOWS
+    /* SetThreadDescription was added in 14393. Revisit if we ever start requiring 10. */
+    static void *kernel32_handle = NULL;
+    static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
+    static dllimp_t kernel32_imports[] = {
+      // clang-format off
+        { "SetThreadDescription", &pSetThreadDescription },
+        { NULL,                   NULL                   }
+      // clang-format on
+    };
+
+    if (!kernel32_handle) {
+        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
+        if (!kernel32_handle) {
+            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription = NULL;
+        }
+    }
+
+    if (pSetThreadDescription) {
+        size_t len = strlen(name) + 1;
+        wchar_t wname[len + 1];
+        mbstowcs(wname, name, len);
+        pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
+    }
+#else
+#    ifdef Q_OS_DARWIN
+    if (thread) /* Apple pthread can only set self's name */
+        return;
+    char truncated[64];
+#    else
+    char truncated[16];
+#    endif
+    strncpy(truncated, name, sizeof(truncated) - 1);
+#    ifdef Q_OS_DARWIN
+    pthread_setname_np(truncated);
+#    else
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
+#    endif
+#endif
 }

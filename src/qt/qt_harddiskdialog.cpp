@@ -516,8 +516,8 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
         fp = _wfopen(wopenfilestring, L"rb");
         if (fp != NULL) {
             fclose(fp);
-            if (settings_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/ * yes * /
-                return FALSE;
+            if (settings_msgbox_ex(MBX_QUESTION_YN, L"Disk image file already exists", L"The selected file will be overwritten. Are you sure you want to use it?", L"Overwrite", L"Don't overwrite", NULL) != 0)	/ * yes * /
+                return false;
         }
     }
 
@@ -525,8 +525,8 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     if (fp == NULL) {
     hdd_add_file_open_error:
         fclose(fp);
-        settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
-        return TRUE;
+        settings_msgbox_header(MBX_ERROR, (existing & 1) ? L"Make sure the file exists and is readable." : L"Make sure the file is being saved to a writable directory.", (existing & 1) ? L"Unable to read file" : L"Unable to write file");
+        return true;
     }
 #endif
 
@@ -567,7 +567,7 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     } else if (image_is_vhd(fileNameUtf8.data(), 1)) {
         MVHDMeta *vhd = mvhd_open(fileNameUtf8.data(), 0, &vhd_error);
         if (vhd == nullptr) {
-            QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable"));
+            QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
             return;
         } else if (vhd_error == MVHD_ERR_TIMESTAMP) {
             QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Parent and child disk timestamps do not match"), tr("This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"), QMessageBox::Yes | QMessageBox::No);
@@ -618,7 +618,7 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     }
 
     if ((sectors > max_sectors) || (heads > max_heads) || (cylinders > max_cylinders)) {
-        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable"));
+        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
         return;
     }
 

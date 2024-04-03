@@ -145,10 +145,8 @@ cdrom_interface_reset(void)
             cdrom_interface_current);
 
     /* If we have a valid controller, add its device. */
-    if (!controllers[cdrom_interface_current].device)
-        return;
-
-    device_add(controllers[cdrom_interface_current].device);
+    if ((cdrom_interface_current > 0) && controllers[cdrom_interface_current].device)
+        device_add(controllers[cdrom_interface_current].device);
 }
 
 const char *
@@ -444,7 +442,7 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len)
 {
     int ret = 1;
 
-    if (!dev->sound_on || (dev->cd_status != CD_STATUS_PLAYING)) {
+    if (!dev->sound_on || (dev->cd_status != CD_STATUS_PLAYING) || dev->audio_muted_soft) {
         cdrom_log("CD-ROM %i: Audio callback while not playing\n", dev->id);
         if (dev->cd_status == CD_STATUS_PLAYING)
             dev->seek_pos += (len >> 11);
@@ -559,6 +557,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         len += pos;
     }
 
+    dev->audio_muted_soft = 0;
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
@@ -580,6 +579,7 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
     int m = 0;
     int s = 0;
     int f = 0;
+    uint32_t pos2 = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -616,8 +616,21 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
             break;
     }
 
-    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
-       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
+    pos2 = pos - 1;
+    if (pos2 == 0xffffffff)
+        pos2 = pos + 1;
+
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos2) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: Track Search: LBA %08X not on an audio track\n", dev->id, pos);
+        dev->audio_muted_soft = 1;
+        if (dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)
+            dev->audio_muted_soft = 0;
+    } else
+        dev->audio_muted_soft = 0;
+
+    cdrom_log("Track Search Toshiba: Muted?=%d, LBA=%08X.\n", dev->audio_muted_soft, pos);
     dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
     return 1;
@@ -643,6 +656,15 @@ cdrom_audio_track_search_pioneer(cdrom_t *dev, uint32_t pos, uint8_t playbit)
 
     dev->seek_pos = pos;
 
+    dev->audio_muted_soft = 0;
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+        cdrom_stop(dev);
+        return 0;
+    }
+
     dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
     return 1;
@@ -664,6 +686,7 @@ cdrom_audio_play_pioneer(cdrom_t *dev, uint32_t pos)
     pos = MSFtoLBA(m, s, f) - 150;
     dev->cd_end = pos;
 
+    dev->audio_muted_soft = 0;
     dev->cd_buflen = 0;
     dev->cd_status = CD_STATUS_PLAYING;
     return 1;
@@ -705,10 +728,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
             break;
     }
 
-    cdrom_log("Toshiba/NEC Play Audio: MSF = %06x, type = %02x, cdstatus = %02x\n", pos, type, dev->cd_status);
-
-    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
-       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
+    cdrom_log("Toshiba Play Audio: Muted?=%d, LBA=%08X.\n", dev->audio_muted_soft, pos);
     dev->cd_buflen = 0;
     dev->cd_status = CD_STATUS_PLAYING;
     return 1;
@@ -752,6 +772,7 @@ cdrom_audio_scan(cdrom_t *dev, uint32_t pos, int type)
             break;
     }
 
+    dev->audio_muted_soft = 0;
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
@@ -989,6 +1010,11 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     else
         ret = (dev->cd_status == CD_STATUS_PLAYING) ? 0x00 : dev->audio_op;
 
+    /*If a valid audio track is detected with audio on, unmute it.*/
+    if (dev->ops->track_type(dev, dev->seek_pos) & CD_TRACK_AUDIO)
+        dev->audio_muted_soft = 0;
+
+    cdrom_log("SubCodeQ: Play Status: Seek LBA=%08x, CDEND=%08x, mute=%d.\n", dev->seek_pos, dev->cd_end, dev->audio_muted_soft);
     b[0] = subc.attr;
     b[1] = bin2bcd(subc.track);
     b[2] = bin2bcd(subc.index);
@@ -1114,7 +1140,7 @@ read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
         b[len++] = 0;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) { /*NEC*/
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
             m = ti.m;
             s = ti.s;
             f = ti.f;
@@ -1376,6 +1402,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
     int          m = 0;
     int          s = 0;
     int          f = 0;
+    uint32_t     temp;
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
@@ -1415,11 +1442,32 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
             b[3] = ti.attr;
             cdrom_log("CD-ROM %i: Returned Toshiba/NEC disc information (type 2) at %02i:%02i.%02i, track=%d, m=%02i,s=%02i,f=%02i, tno=%02x.\n", dev->id, b[0], b[1], b[2], bcd2bin(track), m, s, f, ti.attr);
             break;
-        case 3:
-            b[0] = 0x00; /*TODO: correct it further, mark it as CD-Audio/CD-ROM disc for now*/
-            b[1] = 0;
-            b[2] = 0;
-            b[3] = 0;
+        case 3: /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
+            switch (dev->type) {
+                case CDROM_TYPE_NEC_25_10a:
+                case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
+                case CDROM_TYPE_NEC_211_100:
+                case CDROM_TYPE_NEC_464_105:
+                    dev->ops->get_track_info(dev, 1, 0, &ti);
+                    b[0x0e] = 0;
+                    temp    = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+                    b[0x0f] = temp >> 24;
+                    b[0x10] = temp >> 16;
+                    b[0x11] = temp >> 8;
+                    b[0x12] = temp;
+                    break;
+
+                default:
+                    dev->ops->get_track_info(dev, 1, 0, &ti);
+                    b[0] = 0;
+                    temp = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+                    b[1] = temp >> 24;
+                    b[2] = temp >> 16;
+                    b[3] = temp >> 8;
+                    break;
+            }
             break;
         default:
             break;
@@ -1912,8 +1960,18 @@ cdrom_hard_reset(void)
 
             dev->cd_status = CD_STATUS_EMPTY;
 
-            if (dev->host_drive == 200)
+            if (dev->host_drive == 200) {
+#ifdef _WIN32
+                if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+                    dev->image_path[strlen(dev->image_path) - 1] = '\\';
+#else
+                if ((strlen(dev->image_path) >= 1) &&
+                    (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+                    dev->image_path[strlen(dev->image_path) - 1] = '/';
+#endif
+
                 cdrom_image_open(dev, dev->image_path);
+            }
         }
     }
 
@@ -2002,6 +2060,15 @@ cdrom_reload(uint8_t id)
     if (dev->prev_host_drive == 200) {
         /* Reload a previous image. */
         strcpy(dev->image_path, dev->prev_image_path);
+
+#ifdef _WIN32
+        if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+            dev->image_path[strlen(dev->image_path) - 1] = '\\';
+#else
+         if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+            dev->image_path[strlen(dev->image_path) - 1] = '/';
+#endif
+
         cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);

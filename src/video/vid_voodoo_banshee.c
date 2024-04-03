@@ -211,6 +211,7 @@ enum {
     Agp_agpGraphicsStride  = 0x10,
 };
 
+#define VGAINIT0_RAMDAC_8BIT                (1 << 2)
 #define VGAINIT0_EXTENDED_SHIFT_OUT         (1 << 12)
 
 #define VIDPROCCFG_VIDPROC_ENABLE           (1 << 0)
@@ -218,7 +219,9 @@ enum {
 #define VIDPROCCFG_INTERLACE                (1 << 3)
 #define VIDPROCCFG_HALF_MODE                (1 << 4)
 #define VIDPROCCFG_OVERLAY_ENABLE           (1 << 8)
+#define VIDPROCCFG_DESKTOP_CLUT_BYPASS      (1 << 10)
 #define VIDPROCCFG_OVERLAY_CLUT_BYPASS      (1 << 11)
+#define VIDPROCCFG_DESKTOP_CLUT_SEL         (1 << 12)
 #define VIDPROCCFG_OVERLAY_CLUT_SEL         (1 << 13)
 #define VIDPROCCFG_H_SCALE_ENABLE           (1 << 14)
 #define VIDPROCCFG_V_SCALE_ENABLE           (1 << 15)
@@ -465,6 +468,32 @@ banshee_updatemapping(banshee_t *banshee)
     mem_mapping_set_addr(&banshee->reg_mapping_high, banshee->memBaseAddr0 + 0xc00000, 20 << 20);
 }
 
+uint32_t
+banshee_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    banshee_t *banshee = (banshee_t *) svga->priv;
+    uint32_t ret = 0x00000000;
+    uint16_t src_b = (color & 0x1f) << 3;
+    uint16_t src_g = (color & 0x7e0) >> 3;
+    uint16_t src_r = (color & 0xf800) >> 8;
+
+    if (banshee->vidProcCfg & VIDPROCCFG_DESKTOP_CLUT_SEL) {
+        src_b += 256;
+        src_g += 256;
+        src_r += 256;
+    }
+
+    if (svga->lut_map) {
+        uint8_t b = getcolr(svga->pallook[src_b]);
+        uint8_t g = getcolg(svga->pallook[src_g]);
+        uint8_t r = getcolb(svga->pallook[src_r]);
+        ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+    } else
+        ret = video_16to32[color];
+
+    return ret;
+}
+
 static void
 banshee_render_16bpp_tiled(svga_t *svga)
 {
@@ -481,6 +510,9 @@ banshee_render_16bpp_tiled(svga_t *svga)
     else
         addr = banshee->desktop_addr + (banshee->desktop_y & 31) * 128 + ((banshee->desktop_y >> 5) * banshee->desktop_stride_tiled);
 
+    if (addr >= svga->vram_max)
+        return;
+
     for (int x = 0; x <= svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
@@ -488,7 +520,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
             const uint16_t *vram_p = (uint16_t *) &svga->vram[addr & svga->vram_display_mask];
 
             for (uint8_t xx = 0; xx < 64; xx++)
-                *p++ = video_16to32[*vram_p++];
+                *p++ = banshee_conv_16to32(svga, *vram_p++, 16);
 
             drawn = 1;
         } else
@@ -514,7 +546,7 @@ banshee_recalctimings(svga_t *svga)
     /*7 R/W Horizontal Retrace End bit 5. -
       6 R/W Horizontal Retrace Start bit 8 0x4
       5 R/W Horizontal Blank End bit 6. -
-      4 R/W Horizontal Blank Start bit 8. 0x3
+      4 R/W Horizontal Blank Start bit 8. 0x3 ---- Erratum: Actually, 0x02!
       3 R/W Reserved. -
       2 R/W Horizontal Display Enable End bit 8. 0x1
       1 R/W Reserved. -
@@ -523,6 +555,44 @@ banshee_recalctimings(svga_t *svga)
         svga->htotal += 0x100;
     if (svga->crtc[0x1a] & 0x04)
         svga->hdisp += 0x100;
+
+     if (banshee->vidProcCfg & VIDPROCCFG_VIDPROC_ENABLE) {
+        /* Video processing mode - assume timings akin to Cirrus' special blanking mode,
+           that is, no overscan and relying on display end to blank. */
+        if (banshee->vgaInit0 & 0x40) {
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ +
+                                   (((svga->crtc[0x1a] & 0x04) >> 2) << 8);
+            svga->hblank_end_mask = 0x0000007f;
+        } else {
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/;
+            svga->hblank_end_mask = 0x0000003f;
+        }
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
+
+        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+        if (!svga->scrblank && svga->attr_palette_enable)
+            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+
+        svga->monitor->mon_overscan_y = 0;
+        svga->monitor->mon_overscan_x = 0;
+
+        /* Also make sure vertical blanking starts on display end. */
+        svga->vblankstart = svga->dispend;
+
+        svga->linedbl     = 0;
+     } else {
+        if (banshee->vgaInit0 & 0x40) {
+            svga->hblankstart     = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2];
+            svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                    (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
+            svga->hblank_end_mask = 0x0000007f;
+        } else {
+            svga->hblankstart     =  svga->crtc[2];
+            svga->hblank_end_val  =  (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+            svga->hblank_end_mask =  0x0000003f;
+        }
+    }
+
     /*6 R/W Vertical Retrace Start bit 10 0x10
       5 R/W Reserved. -
       4 R/W Vertical Blank Start bit 10. 0x15
@@ -538,6 +608,7 @@ banshee_recalctimings(svga_t *svga)
         svga->vblankstart += 0x400;
     if (svga->crtc[0x1b] & 0x40)
         svga->vsyncstart += 0x400;
+
 #if 0
     banshee_log("svga->hdisp=%i\n", svga->hdisp);
 #endif
@@ -584,7 +655,7 @@ banshee_recalctimings(svga_t *svga)
 
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
-            svga->htotal *= 2;
+            svga->dots_per_clock *= 2;
         }
 
         svga->interlace = !!(banshee->vidProcCfg & VIDPROCCFG_INTERLACE);
@@ -765,6 +836,8 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             break;
         case Init_vgaInit0:
             banshee->vgaInit0 = val;
+            svga_set_ramdac_type(svga, (val & VGAINIT0_RAMDAC_8BIT ? RAMDAC_8BIT : RAMDAC_6BIT));
+            svga_recalctimings(svga);
             break;
         case Init_vgaInit1:
             banshee->vgaInit1   = val;
@@ -804,6 +877,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             banshee->overlay_pix_fmt = (val & VIDPROCCFG_OVERLAY_PIX_FORMAT_MASK) >> VIDPROCCFG_OVERLAY_PIX_FORMAT_SHIFT;
             svga->hwcursor.ena       = val & VIDPROCCFG_HWCURSOR_ENA;
             svga->fullchange         = changeframecount;
+            svga->lut_map            = !(val & VIDPROCCFG_DESKTOP_CLUT_BYPASS) && (svga->bpp < 24);
             svga_recalctimings(svga);
             break;
 
@@ -3188,6 +3262,8 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->i2c_ddc = i2c_gpio_init("ddc_voodoo_banshee");
     banshee->ddc     = ddc_init(i2c_gpio_get_bus(banshee->i2c_ddc));
 
+    banshee->svga.conv_16to32 = banshee_conv_16to32;
+
     switch (type) {
         case TYPE_BANSHEE:
             if (has_sgram) {
@@ -3470,7 +3546,7 @@ banshee_force_redraw(void *priv)
 }
 
 const device_t voodoo_banshee_device = {
-    .name          = "3dfx Voodoo Banshee",
+    .name          = "3Dfx Voodoo Banshee",
     .internal_name = "voodoo_banshee_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,

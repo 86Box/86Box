@@ -106,13 +106,13 @@ static void
 smsc_ide_irqs(piix_t *dev)
 {
     int irq_line = 3;
-    uint8_t irq_mode[2] = { 0, 0 };
+    uint8_t irq_mode[2] = { IRQ_MODE_LEGACY, IRQ_MODE_LEGACY };
 
     if (dev->regs[1][0x09] & 0x01)
-        irq_mode[0] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
+        irq_mode[0] = (dev->regs[0][0xe1] & 0x01) ? IRQ_MODE_PCI_IRQ_LINE : IRQ_MODE_PCI_IRQ_PIN;
 
     if (dev->regs[1][0x09] & 0x04)
-        irq_mode[1] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
+        irq_mode[1] = (dev->regs[0][0xe1] & 0x01) ? IRQ_MODE_PCI_IRQ_LINE : IRQ_MODE_PCI_IRQ_PIN;
 
     switch ((dev->regs[0][0xe1] >> 1) & 0x07) {
         case 0x00:
@@ -144,12 +144,10 @@ smsc_ide_irqs(piix_t *dev)
     }
 
     sff_set_irq_line(dev->bm[0], irq_line);
-    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[0], irq_mode[0]);
 
     sff_set_irq_line(dev->bm[1], irq_line);
-    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[1], irq_mode[1]);
 }
 
 static void
@@ -599,6 +597,12 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), PCI_IRQ_DISABLED);
                     else
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), val & 0xf);
+                    if (dev->type == 3) {
+                        if (val & 0x20)
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
+                        else
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+                    }
                     piix_log("MIRQ%i is %s\n", addr & 0x01, (val & 0x20) ? "disabled" : "enabled");
                 }
                 break;
@@ -1008,11 +1012,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0xc0:
                 if (dev->type <= 4)
-                    fregs[0xc0] = (fregs[0xc0] & ~(val & 0xbf)) | (val & 0x20);
+                    fregs[0xc0] = (fregs[0xc0] & 0x40) | (val & 0xbf);
                 break;
             case 0xc1:
                 if (dev->type <= 4)
-                    fregs[0xc1] &= ~val;
+                    fregs[0xc1] = (fregs[0xc0] & ~(val & 0x8f)) | (val & 0x20);
                 break;
             case 0xff:
                 if (dev->type == 4) {
@@ -1174,8 +1178,6 @@ piix_read(int func, int addr, void *priv)
     if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
         fregs = (uint8_t *) dev->regs[func];
         ret   = fregs[addr];
-        if ((func == 2) && (addr == 0xff))
-            ret |= 0xef;
 
         piix_log("PIIX function %i read: %02X from %02X\n", func, ret, addr);
     }
@@ -1213,23 +1215,19 @@ piix_reset_hard(piix_t *dev)
 {
     uint8_t *fregs;
 
-    uint16_t old_base = (dev->regs[1][0x20] & 0xf0) | (dev->regs[1][0x21] << 8);
-
-    sff_bus_master_reset(dev->bm[0], old_base);
-    sff_bus_master_reset(dev->bm[1], old_base + 8);
+    sff_bus_master_reset(dev->bm[0]);
+    sff_bus_master_reset(dev->bm[1]);
 
     if (dev->type >= 4) {
         sff_set_slot(dev->bm[0], dev->pci_slot);
         sff_set_irq_pin(dev->bm[0], PCI_INTA);
         sff_set_irq_line(dev->bm[0], 14);
-        sff_set_irq_mode(dev->bm[0], 0, 0);
-        sff_set_irq_mode(dev->bm[0], 1, 0);
+        sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
         sff_set_slot(dev->bm[1], dev->pci_slot);
         sff_set_irq_pin(dev->bm[1], PCI_INTA);
         sff_set_irq_line(dev->bm[1], 14);
-        sff_set_irq_mode(dev->bm[1], 0, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
     }
 
 #ifdef ENABLE_PIIX_LOG
@@ -1504,16 +1502,12 @@ piix_reset(void *priv)
         piix_write(3, 0xd2, 0x00, priv);
     }
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 0, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    if (dev->no_mirq0 || (dev->type >= 4)) {
-        sff_set_irq_mode(dev->bm[0], 1, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
-    } else {
-        sff_set_irq_mode(dev->bm[0], 1, 2);
-        sff_set_irq_mode(dev->bm[1], 1, 2);
-    }
+    if (dev->no_mirq0 || (dev->type >= 4))
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+    else
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 }
 
 static void
@@ -1567,16 +1561,12 @@ piix_init(const device_t *info)
         ide_board_set_force_ata3(1, 1);
     }
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 0, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    if (dev->no_mirq0 || (dev->type >= 4)) {
-        sff_set_irq_mode(dev->bm[0], 1, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
-    } else {
-        sff_set_irq_mode(dev->bm[0], 1, 2);
-        sff_set_irq_mode(dev->bm[1], 1, 2);
-    }
+    if (dev->no_mirq0 || (dev->type >= 4))
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+    else
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 
     if (dev->type >= 3)
         dev->usb   = device_add(&usb_device);
@@ -1588,7 +1578,16 @@ piix_init(const device_t *info)
         dev->acpi = device_add(&acpi_intel_device);
         acpi_set_slot(dev->acpi, dev->pci_slot);
         acpi_set_nvr(dev->acpi, dev->nvr);
-        acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
+        /*
+           TriGem Richmond:
+           - Bit 5: Manufacturing jumper, must be set;
+           - Bit 4: CMOS clear jumper, must be clear;
+           - Bit 0: Password switch, must be clear.
+         */
+        if (!strcmp(machine_get_internal_name(), "richmond"))
+            acpi_set_gpireg2_default(dev->acpi, 0xee);
+        else
+            acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
         acpi_set_trap_update(dev->acpi, piix_trap_update, dev);
 
         dev->ddma = device_add(&ddma_device);
@@ -1614,7 +1613,10 @@ piix_init(const device_t *info)
 
     dev->port_92 = device_add(&port_92_pci_device);
 
-    cpu_set_isa_pci_div(4);
+    if (cpu_busspeed > 50000000)
+        cpu_set_isa_pci_div(4);
+    else
+        cpu_set_isa_pci_div(3);
 
     dma_alias_set();
 

@@ -4,13 +4,14 @@
     <metadata_license>CC0-1.0</metadata_license>
     <project_license>GPL-2.0-or-later</project_license>
     <name>86Box</name>
+    <developer_name>86Box developers</developer_name>
     <summary>An emulator for classic IBM PC clones</summary>
     <categories>
-      <category>Emulation</category>
+      <category>Emulator</category>
     </categories>
     <launchable type="desktop-id">net.86box.86Box.desktop</launchable>
     <releases>
-      <release version="4.0.1" date="2023-10-12"/>
+      <release version="4.2" date="2024-03-23"/>
     </releases>
     <content_rating type="oars-1.1" />
     <description>

@@ -50,7 +50,7 @@ uint16_t           pfq_ip                = 0x0000;
 uint16_t           pfq_in                = 0x0000;
 
 int                bus_request_type      = 0;
-int                in_lock               = 0;
+
 int                pic_data              = -1;
 int                biu_queue_preload     = 0;
 

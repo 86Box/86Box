@@ -422,11 +422,11 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
         buffer += 12;
         FRAMES_TO_MSF(sector + 150, &m, &s, &f);
         /* These have to be BCD. */
-        buffer[12] = CDROM_BCD(m & 0xff);
-        buffer[13] = CDROM_BCD(s & 0xff);
-        buffer[14] = CDROM_BCD(f & 0xff);
+        buffer[0] = CDROM_BCD(m & 0xff);
+        buffer[1] = CDROM_BCD(s & 0xff);
+        buffer[2] = CDROM_BCD(f & 0xff);
         /* Data, should reflect the actual sector type. */
-        buffer[15] = trk->mode2 ? 2 : 1;
+        buffer[3] = trk->mode2 ? 2 : 1;
         return 1;
     } else if (!raw && track_is_raw)
         return trk->file->read(trk->file, buffer, seek + offset, length);

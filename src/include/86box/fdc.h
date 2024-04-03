@@ -65,76 +65,86 @@ typedef struct fdc_t {
     uint8_t st0;
     uint8_t swap;
     uint8_t dtl;
+
     uint8_t swwp;
     uint8_t disable_write;
     uint8_t st5;
     uint8_t st6;
     uint8_t error;
-    uint8_t params[8];
-    uint8_t res[11];
-    uint8_t specify[2];
     uint8_t config;
     uint8_t pretrk;
-    uint8_t fifobuf[16];
+    uint8_t power_down;
+
+    uint8_t head;
+    uint8_t lastdrive;
+    uint8_t sector;
+    uint8_t drive;
+    uint8_t rate;
+    uint8_t tc;
+    uint8_t pnum;
+    uint8_t ptot;
+
+    uint8_t reset_stat;
+    uint8_t seek_dir;
+    uint8_t perp;
+    uint8_t format_state;
+    uint8_t format_n;
+    uint8_t step;
+    uint8_t noprec;
+    uint8_t data_ready;
+
+    uint8_t paramstogo;
+    uint8_t enh_mode;
+    uint8_t dma;
+    uint8_t densel_polarity;
+    uint8_t densel_force;
+    uint8_t fifo;
+    uint8_t tfifo;
+    uint8_t fifobufpos;
+
+    uint8_t drv2en;
+    uint8_t gap;
+    uint8_t enable_3f1;
+    uint8_t format_sectors;
+    uint8_t mfm;
+    uint8_t deleted;
+    uint8_t wrong_am;
+    uint8_t sc;
+
+    uint8_t fintr;
+    uint8_t rw_drive;
+
+    uint8_t lock;
+    uint8_t dsr;
+
+    uint8_t params[15];
+    uint8_t specify[2];
+    uint8_t res[11];
+    uint8_t eot[4];
+    uint8_t rwc[4];
+
+    uint16_t pcn[4];
 
     uint16_t base_address;
+    uint16_t rw_track;
 
-    int head;
-    int sector;
-    int drive;
-    int lastdrive;
-    int pcn[4];
-    int eot[4];
-    int rw_track;
-    int pos;
-    int pnum;
-    int ptot;
-    int rate;
-    int reset_stat;
-    int lock;
-    int perp;
-    int format_state;
-    int format_n;
-    int step;
-    int seek_dir;
-    int tc;
-    int noprec;
+    int bit_rate;    /* Should be 250 at start. */
 
-    int data_ready;
-    int inread;
     int bitcell_period;
-    int enh_mode;
-    int rwc[4];
-    int drvrate[4];
     int boot_drive;
-    int dma;
-    int densel_polarity;
-    int densel_force;
-    int fifo;
-    int tfifo;
-    int fifobufpos;
-    int drv2en;
 
-    int gap;
-    int enable_3f1;
-    int format_sectors;
     int max_track;
-    int mfm;
-    int deleted;
-    int wrong_am;
-    int sc;
     int satisfying_sectors;
-    int fintr;
-    int rw_drive;
 
     int flags;
     int interrupt;
 
-    int irq;    /* Should be 6 by default. */
-    int dma_ch; /* Should be 2 by default. */
+    int irq;         /* Should be 6 by default. */
+    int dma_ch;      /* Should be 2 by default. */
 
-    int bit_rate; /* Should be 250 at start. */
-    int paramstogo;
+    int drvrate[4];
+
+    void *fifo_p;
 
     sector_id_t read_track_sector;
     sector_id_t format_sector_id;
@@ -183,6 +193,7 @@ extern int         fdc_get_compare_condition(fdc_t *fdc);
 extern int         fdc_is_deleted(fdc_t *fdc);
 extern int         fdc_is_sk(fdc_t *fdc);
 extern void        fdc_set_wrong_am(fdc_t *fdc);
+extern void        fdc_set_power_down(fdc_t *fdc, uint8_t power_down);
 extern int         fdc_get_drive(fdc_t *fdc);
 extern int         fdc_get_perp(fdc_t *fdc);
 extern int         fdc_get_format_n(fdc_t *fdc);

@@ -24,6 +24,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
+#include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -99,17 +100,16 @@ static const struct {
     { &ide_isa_device              },
     { &ide_isa_2ch_device          },
     { &xtide_at_device             },
-    { &xtide_at_386_device         },
     { &xtide_at_ps2_device         },
     { &xta_wdxt150_device          },
     { &xtide_acculogic_device      },
     { &xtide_device                },
-    { &xtide_plus_device           },
     { &esdi_ps2_device             },
     { &ide_pci_device              },
     { &ide_pci_2ch_device          },
     { &ide_vlb_device              },
     { &ide_vlb_2ch_device          },
+    { &mcide_device                },
     { NULL                         }
     // clang-format on
 };

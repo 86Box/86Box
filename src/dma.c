@@ -949,16 +949,47 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
     uint8_t convert[8] = CHANNELS;
     uint8_t ret        = 0xff;
 
-    addr &= 0x0f;
-    ret = dmaregs[2][addr];
+    if (((addr & 0xfffc) == 0x80) && (CS == 0xf000) &&
+        ((cpu_state.pc & 0xfffffff8) == 0x00007278) &&
+        !strcmp(machine_get_internal_name(), "megapc"))  switch (addr) {
+        /* The Amstrad MegaPC Quadtel BIOS times a sequence of:
+               mov ax,di
+               div bx
+           And expects this value to be at least 0x06e0 for 20 MHz,
+           and at least 0x0898 for 25 MHz, everything below 0x06e0
+           is assumed to be 16 MHz. Given that for some reason, this
+           does not occur on 86Box, we have to work around it here,
+           we return 0x0580 for 16 MHz, because it logically follows
+           in the sequence (0x06e0 = 0x0898 * (20 / 25), and
+           0x0580 = 0x06e0 * (16 / 20)). */
+        case 0x0081:
+            if (cpu_busspeed >= 25000000)
+                ret = 0x98;
+            else if (cpu_busspeed >= 20000000)
+                ret = 0xe0;
+            else
+                ret = 0x80;
+            break;
+        case 0x0082:
+            if (cpu_busspeed >= 25000000)
+                ret = 0x08;
+            else if (cpu_busspeed >= 20000000)
+                ret = 0x06;
+            else
+                ret = 0x05;
+            break;
+    } else {
+        addr &= 0x0f;
+        ret = dmaregs[2][addr];
 
-    if (addr >= 8)
-        addr = convert[addr & 0x07] | 4;
-    else
-        addr = convert[addr & 0x07];
+        if (addr >= 8)
+            addr = convert[addr & 0x07] | 4;
+        else
+            addr = convert[addr & 0x07];
 
-    if (addr < 8)
-        ret = dma[addr].page_l;
+        if (addr < 8)
+            ret = dma[addr].page_l;
+    }
 
     return ret;
 }
@@ -1364,6 +1395,29 @@ dma_advance(dma_t *dma_c)
         dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac + as) & 0xffff);
     else
         dma_c->ac = ((dma_c->ac & 0xffff0000) & dma_mask) | ((dma_c->ac + as) & 0xffff);
+}
+
+int
+dma_channel_readable(int channel)
+{
+    dma_t   *dma_c = &dma[channel];
+
+    if (channel < 4) {
+        if (dma_command[0] & 0x04)
+            return 0;
+    } else {
+        if (dma_command[1] & 0x04)
+            return 0;
+    }
+
+    if (!(dma_e & (1 << channel)))
+        return 0;
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
+        return 0;
+    if ((dma_c->mode & 0xC) != 8)
+        return 0;
+
+    return 1;
 }
 
 int

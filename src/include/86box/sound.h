@@ -33,6 +33,9 @@ extern int sound_gain;
 #define SOUND_FREQ  FREQ_48000
 #define SOUNDBUFLEN (SOUND_FREQ / 50)
 
+#define MUSIC_FREQ  FREQ_49716
+#define MUSICBUFLEN (MUSIC_FREQ / 36)
+
 #define CD_FREQ     FREQ_44100
 #define CD_BUFLEN   (CD_FREQ / 10)
 
@@ -47,14 +50,27 @@ extern int speakval;
 extern int speakon;
 
 extern int sound_pos_global;
+extern int music_pos_global;
+
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *priv),
                               void *priv);
+
+extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
+                                                 int len, void *priv),
+                              void *priv);
+
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
                                                      double *buffer, void *priv),
                                       void *priv);
+extern void sound_set_pc_speaker_filter(void (*filter)(int     channel,
+                                                       double *buffer, void *priv),
+                                        void *priv);
+
+extern void (*filter_pc_speaker)(int channel, double *buffer, void *priv);
+extern void *filter_pc_speaker_p;
 
 extern int sound_card_available(int card);
 #ifdef EMU_DEVICE_H
@@ -79,6 +95,7 @@ extern void sound_cd_thread_reset(void);
 extern void closeal(void);
 extern void inital(void);
 extern void givealbuffer(void *buf);
+extern void givealbuffer_music(void *buf);
 extern void givealbuffer_cd(void *buf);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
@@ -106,10 +123,9 @@ extern const device_t cms_device;
 /* Gravis UltraSound and UltraSound Max */
 extern const device_t gus_device;
 
-#    if defined(DEV_BRANCH) && defined(USE_PAS16)
 /* Pro Audio Spectrum 16 */
+extern const device_t pasplus_device;
 extern const device_t pas16_device;
-#    endif
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
@@ -167,6 +183,10 @@ extern const device_t cmi8338_onboard_device;
 extern const device_t cmi8738_device;
 extern const device_t cmi8738_onboard_device;
 extern const device_t cmi8738_6ch_onboard_device;
+
+/* ESS Technology */
+extern const device_t ess_1688_device;
+
 #endif
 
 #endif /*EMU_SOUND_H*/

@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: ru_RU\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Действие"
 
@@ -31,6 +39,9 @@ msgstr "&Скрыть строку состояния"
 msgid "Hide &toolbar"
 msgstr "С&крыть панель инструментов"
 
+msgid "Show non-primary monitors"
+msgstr "&Показывать неосновные мониторы"
+
 msgid "&Resizeable window"
 msgstr "&Изменяемый размер окна"
 
@@ -40,14 +51,11 @@ msgstr "&Запомнить размер и положение"
 msgid "Re&nderer"
 msgstr "&Рендеринг"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0)"
@@ -55,8 +63,32 @@ msgstr "Open&GL (3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
+msgid "Renderer options..."
+msgstr "Параметры рендеринга..."
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "Параметры рендеринга OpenGL 3.0"
+
+msgid "Render behavior"
+msgstr "Режим рендеринга"
+
+msgid "Synchronize with video"
+msgstr "Синхронизировать с видео"
+
+msgid "Use target framerate:"
+msgstr "Использовать целевую частоту кадров:"
+
+msgid "VSync"
+msgstr "Вертикальная синхронизация"
+
+msgid "Shaders"
+msgstr "Шейдеры"
+
+msgid "No shader selected"
+msgstr "Шейдер не выбран"
+
 msgid "Specify dimensions..."
-msgstr "&Указать размеры..."
+msgstr "&Указать размеры главного окна..."
 
 msgid "F&orce 4:3 display ratio"
 msgstr "У&становить соотношение сторон 4:3"
@@ -124,6 +156,12 @@ msgstr "&Квадратные пиксели (сохранить соотнош�
 msgid "&Integer scale"
 msgstr "&Целочисленное масштабирование"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Целочисленное масштабирование"
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Применить полноэкранный режим растяжения при разворачивании окна"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Настройки E&GA/(S)VGA"
 
@@ -190,6 +228,9 @@ msgstr "Включить интеграцию &Discord"
 msgid "Sound &gain..."
 msgstr "&Усиление звука..."
 
+msgid "Open screenshots folder..."
+msgstr "Открыть папку скриншотов..."
+
 msgid "Begin trace\tCtrl+T"
 msgstr "Начать трассировку\tCtrl+T"
 
@@ -229,6 +270,9 @@ msgstr "&Перемотка в конец"
 msgid "E&ject"
 msgstr "И&звлечь"
 
+msgid "Eject %s"
+msgstr "Извлечь %s"
+
 msgid "&Image..."
 msgstr "&Образ..."
 
@@ -237,6 +281,9 @@ msgstr "Э&кспорт в 86F..."
 
 msgid "&Mute"
 msgstr "О&тключить звук"
+
+msgid "&Unmute"
+msgstr "В&ключить звук"
 
 msgid "E&mpty"
 msgstr "П&устой"
@@ -349,6 +396,9 @@ msgstr "Тип ЦП:"
 msgid "Speed:"
 msgstr "Скорость:"
 
+msgid "Frequency:"
+msgstr "Частота:"
+
 msgid "FPU:"
 msgstr "FPU:"
 
@@ -365,25 +415,28 @@ msgid "Time synchronization"
 msgstr "Синхронизация времени"
 
 msgid "Disabled"
-msgstr "Отключить"
+msgstr "Отключено"
 
 msgid "Enabled (local time)"
-msgstr "Включить (местное)"
+msgstr "Включено (местное)"
 
 msgid "Enabled (UTC)"
-msgstr "Включить (UTC)"
+msgstr "Включено (UTC)"
 
 msgid "Dynamic Recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "Video:"
-msgstr "Видеокарта:"
+msgstr "Видеокарта 1:"
+
+msgid "Video #2:"
+msgstr "Видеокарта 2:"
 
 msgid "Voodoo Graphics"
 msgstr "Ускоритель Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Ускоритель IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Ускоритель IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Ускоритель XGA"
@@ -406,23 +459,23 @@ msgstr "Джойстик 3..."
 msgid "Joystick 4..."
 msgstr "Джойстик 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Звуковая карта 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Звуковая карта 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Звуковая карта 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Звуковая карта 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out устр-во:"
+msgstr "MIDI Out устройство:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In устр-во:"
+msgstr "MIDI In устройство:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -437,7 +490,7 @@ msgid "Nuked (more accurate)"
 msgstr "Nuked (более точный)"
 
 msgid "YMFM (faster)"
-msgstr "YMFM (быстрей)"
+msgstr "YMFM (быстрее)"
 
 msgid "Network type:"
 msgstr "Тип сети:"
@@ -447,6 +500,30 @@ msgstr "Устройство PCap:"
 
 msgid "Network adapter:"
 msgstr "Сетевая карта:"
+
+msgid "Network Card #1"
+msgstr "Сетевая карта 1:"
+
+msgid "Network Card #2"
+msgstr "Сетевая карта 2:"
+
+msgid "Network Card #3"
+msgstr "Сетевая карта 3:"
+
+msgid "Network Card #4"
+msgstr "Сетевая карта 4:"
+
+msgid "Mode"
+msgstr "Режим:"
+
+msgid "Interface"
+msgstr "Интерфейс:"
+
+msgid "Adapter"
+msgstr "Адаптер:"
+
+msgid "VDE Socket"
+msgstr "VDE Socket:"
 
 msgid "COM1 Device:"
 msgstr "Устройство COM1:"
@@ -473,16 +550,28 @@ msgid "LPT4 Device:"
 msgstr "Устройство LPT4:"
 
 msgid "Serial port 1"
-msgstr "Последов. порт COM1"
+msgstr "Последовательный порт COM1"
 
 msgid "Serial port 2"
-msgstr "Последов. порт COM2"
+msgstr "Последовательный порт COM2"
 
 msgid "Serial port 3"
-msgstr "Последов. порт COM3"
+msgstr "Последовательный порт COM3"
 
 msgid "Serial port 4"
-msgstr "Последов. порт COM4"
+msgstr "Последовательный порт COM4"
+
+msgid "Serial port passthrough 1"
+msgstr "Сквозной последовательный порт COM1"
+
+msgid "Serial port passthrough 2"
+msgstr "Сквозной последовательный порт COM2"
+
+msgid "Serial port passthrough 3"
+msgstr "Сквозной последовательный порт COM3"
+
+msgid "Serial port passthrough 4"
+msgstr "Сквозной последовательный порт COM4"
 
 msgid "Parallel port 1"
 msgstr "Параллельный порт LPT1"
@@ -535,8 +624,14 @@ msgstr "&Создать..."
 msgid "&Existing..."
 msgstr "&Выбрать..."
 
+msgid "Browse..."
+msgstr "Выбрать..."
+
 msgid "&Remove"
-msgstr "&Убрать"
+msgstr "&Удалить"
+
+msgid "Remove"
+msgstr "Удалить"
 
 msgid "Bus:"
 msgstr "Шина:"
@@ -551,7 +646,7 @@ msgid "&Specify..."
 msgstr "&Указать..."
 
 msgid "Sectors:"
-msgstr "Сектора:"
+msgstr "Секторы:"
 
 msgid "Heads:"
 msgstr "Головки:"
@@ -583,9 +678,6 @@ msgstr "Проверять BPB"
 msgid "CD-ROM drives:"
 msgstr "Дисководы CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Предыдущий дисковод"
-
 msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
@@ -599,7 +691,7 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "Карта расширения памяти (ISA)"
+msgstr "Карта расширения памяти ISA"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -619,11 +711,8 @@ msgstr "Устройство ISABugger"
 msgid "POST card"
 msgstr "Карта POST"
 
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
+msgid "86Box Unit Tester"
+msgstr "Модульный Тестер 86Box"
 
 msgid "86Box"
 msgstr "86Box"
@@ -654,6 +743,9 @@ msgstr "86Box не смог найти ни одного подходящего 
 
 msgid "(empty)"
 msgstr "(пусто)"
+
+msgid "Clear image history"
+msgstr "Очистить историю образов"
 
 msgid "All files"
 msgstr "Все файлы"
@@ -710,7 +802,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "Гибкие диски и CD-ROM"
 
 msgid "Other removable devices"
-msgstr "Другие съёмные устр-ва"
+msgstr "Другие съёмные устройства"
 
 msgid "Other peripherals"
 msgstr "Другая периферия"
@@ -718,11 +810,11 @@ msgstr "Другая периферия"
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Нажмите F8+F12 чтобы освободить курсор"
+msgid "Press %1 to release mouse"
+msgstr "Нажмите %1, чтобы освободить курсор"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Нажмите F8+F12 или среднюю кнопку мыши чтобы освободить курсор"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Нажмите %1 или среднюю кнопку мыши, чтобы освободить курсор"
 
 msgid "Bus"
 msgstr "Шина"
@@ -754,9 +846,6 @@ msgstr "%i WS"
 msgid "Type"
 msgstr "Тип"
 
-msgid "Failed to set up PCap"
-msgstr "Не удалось настроить PCap"
-
 msgid "No PCap devices found"
 msgstr "Устройства PCap не найдены"
 
@@ -782,19 +871,10 @@ msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
-msgstr "Система управления полетом Thrustmaster"
+msgstr "Система управления полётом Thrustmaster"
 
 msgid "None"
 msgstr "Нет"
-
-msgid "Unable to load keyboard accelerators."
-msgstr "Невозможно загрузить ускорители клавиатуры."
-
-msgid "Unable to register raw input."
-msgstr "Невозможно зарегистрировать необработанный (RAW) ввод."
-
-msgid "%u"
-msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u МБ (CHS: %i, %i, %i)"
@@ -807,9 +887,6 @@ msgstr "Расширенные образы секторов"
 
 msgid "Flux images"
 msgstr "Образы Flux"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Невозможно инициализировать SDL, требуется SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Вы уверены, что хотите выполнить холодную перезагрузку эмулируемой машины?"
@@ -842,7 +919,7 @@ msgid "Do you want to save the settings?"
 msgstr "Хотите ли вы сохранить настройки?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Это приведет к холодной перезагрузке эмулируемой машины."
+msgstr "Это приведёт к холодной перезагрузке эмулируемой машины."
 
 msgid "Save"
 msgstr "Сохранить"
@@ -851,7 +928,7 @@ msgid "About 86Box"
 msgstr "О 86Box"
 
 msgid "86Box v"
-msgstr "86Box v."
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Эмулятор старых компьютеров\n\nАвторы: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nВыпускается под лицензией GNU General Public License версии 2 или более поздней. Дополнительную информацию см. в файле LICENSE."
@@ -859,26 +936,14 @@ msgstr "Эмулятор старых компьютеров\n\nАвторы: Mi
 msgid "Hardware not available"
 msgstr "Оборудование недоступно"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Убедитесь, что libpcap установлен и ваше сетевое соединение, совместимо с libpcap."
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Убедитесь, что %1 установлен и ваше сетевое соединение совместимо с %1."
 
 msgid "Invalid configuration"
 msgstr "Недопустимая конфигурация"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " требуется для автоматического преобразования файлов PostScript в PDF.\n\nВсе документы, отправленные на общий принтер PostScript, будут сохранены в виде файлов PostScript (.ps)."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Для автоматического преобразования файлов PostScript в PDF требуется %1.\n\nВсе документы, отправленные на общий принтер PostScript, будут сохранены в виде файлов PostScript (.ps)."
 
 msgid "Entering fullscreen mode"
 msgstr "Вход в полноэкранный режим"
@@ -898,8 +963,8 @@ msgstr "Не перезагружать"
 msgid "CD-ROM images"
 msgstr "Образы CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Конфигурация устройства %hs"
+msgid "%1 Device Configuration"
+msgstr "Конфигурация устройства %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Монитор в спящем режиме"
@@ -955,14 +1020,8 @@ msgstr "Холодная перезагрузка"
 msgid "ACPI shutdown"
 msgstr "Сигнал завершения ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Жёсткий диск (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Жёсткий диск (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL или ESDI дисководов CD-ROM никогда не существовало"
@@ -996,9 +1055,6 @@ msgstr "Невозможно записать файл"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Образы HDI или HDX с размером сектора, отличным от 512, не поддерживаются."
-
-msgid "USB is not yet supported"
-msgstr "USB пока не поддерживается"
 
 msgid "Disk image file already exists"
 msgstr "Файл образа диска уже существует"
@@ -1072,9 +1128,6 @@ msgstr "Временные метки родительского и дочерн
 msgid "Could not fix VHD timestamp."
 msgstr "Не удалось исправить временную метку VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1089,24 +1142,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
@@ -1219,3 +1254,11 @@ msgstr "Медленный"
 msgid "Fast"
 msgstr "Быстрый"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Автопауза при потере фокуса"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox больше не поддерживается"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Разработка менеджера WinBox прекратилась в 2022 году из-за отсутствия сопровождающих. Поскольку мы направляем наши усилия на то, чтобы сделать 86Box еще лучше, мы приняли решение больше не поддерживать WinBox в качестве менеджера.\n\nWinBox больше не будет обновляться, и вы можете столкнуться с некорректным поведением, если продолжите использовать его с новыми версиями 86Box. Любые сообщения об ошибках, связанных с поведением WinBox, будут закрыты как недействительные.\n\nПерейдите на сайт 86box.net для получения списка других менеджеров, которые вы можете использовать."

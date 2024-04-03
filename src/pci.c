@@ -56,6 +56,8 @@ typedef struct pci_card_desc_t {
 typedef struct pci_mirq_t {
     uint8_t     enabled;
     uint8_t     irq_line;
+    uint8_t     irq_level;
+    uint8_t     pad;
 } pci_mirq_t;
 
 int         pci_burst_time;
@@ -131,9 +133,21 @@ pci_enable_mirq(int mirq)
 }
 
 void
-pci_set_mirq_routing(int mirq, int irq)
+pci_set_mirq_routing(int mirq, uint8_t irq)
 {
     pci_mirqs[mirq].irq_line = irq;
+}
+
+uint8_t
+pci_get_mirq_level(int mirq)
+{
+    return pci_mirqs[mirq].irq_level;
+}
+
+void
+pci_set_mirq_level(int mirq, uint8_t level)
+{
+    pci_mirqs[mirq].irq_level = level;
 }
 
 /* PCI raise IRQ: the first parameter is slot if < PCI_MIRQ_BASE, MIRQ if >= PCI_MIRQ_BASE
@@ -410,6 +424,9 @@ pci_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             }
             break;
         case 0xcf9:
+            if (pci_flags & FLAG_TRC_CONTROLS_CPURST)
+                cpu_cpurst_on_sr = !(val & 0x10);
+
             if (!(pci_trc_reg & 4) && (val & 4))
                 pci_trc_reset(val);
 
@@ -817,10 +834,12 @@ pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, void *priv), voi
     pci_card_t *card;
     uint8_t bridge_slot = agp ? pci_find_slot(PCI_ADD_AGPBRIDGE, 0xff) : last_normal_pci_card_id;
 
-    card = &pci_cards[bridge_slot];
-    card->read  = read;
-    card->write = write;
-    card->priv  = priv;
+    if (bridge_slot != PCI_CARD_INVALID) {
+        card = &pci_cards[bridge_slot];
+        card->read  = read;
+        card->write = write;
+        card->priv  = priv;
+    }
 
     *slot = bridge_slot;
 }

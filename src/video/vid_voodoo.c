@@ -505,6 +505,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 voodoo->videoDimensions = val;
                 voodoo->h_disp          = (val & 0xfff) + 1;
                 voodoo->v_disp          = (val >> 16) & 0xfff;
+                if ((voodoo->v_disp == 386) || (voodoo->v_disp == 402) ||
+                    (voodoo->v_disp == 482) || (voodoo->v_disp == 602))
+                    voodoo->v_disp     -= 2;
                 break;
             case SST_fbiInit0:
                 if (voodoo->initEnable & 0x01) {
@@ -772,7 +775,7 @@ voodoo_pci_read(int func, int addr, void *priv)
 
     switch (addr) {
         case 0x00:
-            return 0x1a; /*3dfx*/
+            return 0x1a; /*3Dfx*/
         case 0x01:
             return 0x12;
 
@@ -1310,7 +1313,7 @@ static const device_config_t voodoo_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "Voodoo Graphics",
+                .description = "3Dfx Voodoo Graphics",
                 .value = VOODOO_1
             },
             {
@@ -1318,7 +1321,7 @@ static const device_config_t voodoo_config[] = {
                 .value = VOODOO_SB50
             },
             {
-                .description = "Voodoo 2",
+                .description = "3Dfx Voodoo 2",
                 .value = VOODOO_2
             },
             {
@@ -1427,7 +1430,7 @@ static const device_config_t voodoo_config[] = {
 };
 
 const device_t voodoo_device = {
-    .name          = "3DFX Voodoo Graphics",
+    .name          = "3Dfx Voodoo Graphics",
     .internal_name = "voodoo",
     .flags         = DEVICE_PCI,
     .local         = 0,

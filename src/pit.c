@@ -47,6 +47,8 @@ pit_intf_t pit_devs[2];
 
 double cpuclock;
 double PITCONSTD;
+double PAS16CONSTD;
+double PAS16CONST2D;
 double SYSCLK;
 double isa_timing;
 double bus_timing;
@@ -56,6 +58,8 @@ double PCICLK;
 double AGPCLK;
 
 uint64_t PITCONST;
+uint64_t PAS16CONST;
+uint64_t PAS16CONST2;
 uint64_t ISACONST;
 uint64_t CGACONST;
 uint64_t MDACONST;
@@ -94,13 +98,16 @@ pit_log(const char *fmt, ...)
 #endif
 
 static void
-ctr_set_out(ctr_t *ctr, int out)
+ctr_set_out(ctr_t *ctr, int out, void *priv)
 {
+    pit_t *pit = (pit_t *)priv;
+
     if (ctr == NULL)
         return;
 
     if (ctr->out_func != NULL)
-        ctr->out_func(out, ctr->out);
+        ctr->out_func(out, ctr->out, pit);
+
     ctr->out = out;
 }
 
@@ -146,8 +153,9 @@ ctr_load_count(ctr_t *ctr)
 }
 
 static void
-ctr_tick(ctr_t *ctr)
+ctr_tick(ctr_t *ctr, void *priv)
 {
+    pit_t *pit = (pit_t *)priv;
     uint8_t state = ctr->state;
 
     if ((state & 0x03) == 0x01) {
@@ -155,7 +163,7 @@ ctr_tick(ctr_t *ctr)
         ctr_load_count(ctr);
         ctr->state++;
         if (((ctr->m & 0x07) == 0x01) && (ctr->state == 2))
-            ctr_set_out(ctr, 0);
+            ctr_set_out(ctr, 0, pit);
     } else  switch (ctr->m & 0x07) {
         case 0:
             /* Interrupt on terminal count */
@@ -165,7 +173,7 @@ ctr_tick(ctr_t *ctr)
                         ctr_decrease_count(ctr);
                         if (ctr->count < 1) {
                             ctr->state = 3;
-                            ctr_set_out(ctr, 1);
+                            ctr_set_out(ctr, 1, pit);
                         }
                     }
                     break;
@@ -185,7 +193,7 @@ ctr_tick(ctr_t *ctr)
                         ctr_decrease_count(ctr);
                         if (ctr->count < 1) {
                             ctr->state = 3;
-                            ctr_set_out(ctr, 1);
+                            ctr_set_out(ctr, 1, pit);
                         }
                     }
                     break;
@@ -205,7 +213,7 @@ ctr_tick(ctr_t *ctr)
                 case 3:
                     ctr_load_count(ctr);
                     ctr->state = 2;
-                    ctr_set_out(ctr, 1);
+                    ctr_set_out(ctr, 1, pit);
                     break;
                 case 2:
                     if (ctr->gate == 0)
@@ -214,7 +222,7 @@ ctr_tick(ctr_t *ctr)
                         ctr_decrease_count(ctr);
                         if (ctr->count < 2) {
                             ctr->state = 3;
-                            ctr_set_out(ctr, 0);
+                            ctr_set_out(ctr, 0, pit);
                         }
                     }
                     break;
@@ -240,7 +248,7 @@ ctr_tick(ctr_t *ctr)
                         if (ctr->count < 0) {
                             ctr_load_count(ctr);
                             ctr->state = 3;
-                            ctr_set_out(ctr, 0);
+                            ctr_set_out(ctr, 0, pit);
                         } else if (ctr->newcount)
                             ctr->newcount = 0;
                     }
@@ -259,7 +267,7 @@ ctr_tick(ctr_t *ctr)
                         if (ctr->count < 0) {
                             ctr_load_count(ctr);
                             ctr->state = 2;
-                            ctr_set_out(ctr, 1);
+                            ctr_set_out(ctr, 1, pit);
                         } else if (ctr->newcount)
                             ctr->newcount = 0;
                     }
@@ -284,13 +292,13 @@ ctr_tick(ctr_t *ctr)
                             ctr_decrease_count(ctr);
                             if (ctr->count < 1) {
                                 ctr->state = 3;
-                                ctr_set_out(ctr, 0);
+                                ctr_set_out(ctr, 0, pit);
                             }
                         }
                         break;
                     case 3:
                         ctr->state = 0;
-                        ctr_set_out(ctr, 1);
+                        ctr_set_out(ctr, 1, pit);
                         break;
 
                     default:
@@ -303,7 +311,7 @@ ctr_tick(ctr_t *ctr)
     }
 }
 
-static void
+void
 ctr_clock(void *data, int counter_id)
 {
     pit_t *pit = (pit_t *) data;
@@ -316,7 +324,7 @@ ctr_clock(void *data, int counter_id)
     if (ctr->using_timer)
         return;
 
-    ctr_tick(ctr);
+    ctr_tick(ctr, pit);
 }
 
 static void
@@ -351,7 +359,7 @@ ctr_load(ctr_t *ctr)
     if (ctr->load_func != NULL)
         ctr->load_func(ctr->m, ctr->l ? ctr->l : 0x10000);
 
-    pit_log("Counter loaded, state = %i, gate = %i\n", ctr->state, ctr->gate);
+    pit_log("Counter loaded, state = %i, gate = %i, latch = %i\n", ctr->state, ctr->gate, ctr->latch);
 }
 
 static __inline void
@@ -390,7 +398,7 @@ ctr_latch_count(ctr_t *ctr)
             break;
     }
 
-    pit_log("latched counter = %04X\n", ctr->rl & 0xffff);
+    pit_log("rm = %x, latched counter = %04X\n", ctr->rm & 0x03, ctr->rl & 0xffff);
 }
 
 uint16_t
@@ -415,7 +423,7 @@ pit_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, in
 }
 
 void
-pit_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out))
+pit_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv))
 {
     if (data == NULL)
         return;
@@ -448,14 +456,14 @@ pit_ctr_set_gate(void *data, int counter_id, int gate)
                 /* Here we handle the rising edges. */
                 if (mode & 1) {
                     if (mode != 1)
-                        ctr_set_out(ctr, 1);
+                        ctr_set_out(ctr, 1, pit);
                     ctr->state = 1;
                 } else if (mode == 2)
                     ctr->state = 3;
             } else if (old && !gate) {
                 /* Here we handle the lowering edges. */
                 if (mode & 2)
-                    ctr_set_out(ctr, 1);
+                    ctr_set_out(ctr, 1, pit);
             }
             break;
 
@@ -465,8 +473,9 @@ pit_ctr_set_gate(void *data, int counter_id, int gate)
 }
 
 static __inline void
-pit_ctr_set_clock_common(ctr_t *ctr, int clock)
+pit_ctr_set_clock_common(ctr_t *ctr, int clock, void *priv)
 {
+    pit_t *pit = (pit_t *)priv;
     int old = ctr->clock;
 
     ctr->clock = clock;
@@ -484,18 +493,18 @@ pit_ctr_set_clock_common(ctr_t *ctr, int clock)
                 ctr->s1_det++; /* Falling edge. */
                 if (ctr->s1_det >= 2) {
                     ctr->s1_det = 0;
-                    ctr_tick(ctr);
+                    ctr_tick(ctr, pit);
                 }
             }
         } else if (old && !ctr->clock)
-            ctr_tick(ctr);
+            ctr_tick(ctr, pit);
     }
 }
 
 void
-pit_ctr_set_clock(ctr_t *ctr, int clock)
+pit_ctr_set_clock(ctr_t *ctr, int clock, void *priv)
 {
-    pit_ctr_set_clock_common(ctr, clock);
+    pit_ctr_set_clock_common(ctr, clock, priv);
 }
 
 void
@@ -516,9 +525,9 @@ pit_timer_over(void *priv)
     dev->clock ^= 1;
 
     for (uint8_t i = 0; i < 3; i++)
-        pit_ctr_set_clock_common(&dev->counters[i], dev->clock);
+        pit_ctr_set_clock_common(&dev->counters[i], dev->clock, dev);
 
-    timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
+    timer_advance_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
 }
 
 static void
@@ -528,7 +537,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
     int    t   = (addr & 3);
     ctr_t *ctr;
 
-    pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
+    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+        pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
+    }
 
     switch (addr & 3) {
         case 3: /* control */
@@ -544,7 +555,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                             ctr_latch_count(&dev->counters[1]);
                         if (val & 8)
                             ctr_latch_count(&dev->counters[2]);
-                        pit_log("PIT %i: Initiated readback command\n", t);
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                            pit_log("PIT %i: Initiated readback command\n", t);
+                        }
                     }
                     if (!(val & 0x10)) {
                         if (val & 2)
@@ -561,8 +574,10 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 
                 if (!(dev->ctrl & 0x30)) {
                     ctr_latch_count(ctr);
-                    pit_log("PIT %i: Initiated latched read, %i bytes latched\n",
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                        pit_log("PIT %i: Initiated latched read, %i bytes latched\n",
                             t, ctr->latched);
+                    }
                 } else {
                     ctr->ctrl = val;
                     ctr->rm = ctr->wm = (ctr->ctrl >> 4) & 3;
@@ -571,14 +586,18 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                         ctr->m &= 3;
                     ctr->null_count = 1;
                     ctr->bcd        = (ctr->ctrl & 0x01);
-                    ctr_set_out(ctr, !!ctr->m);
+                    ctr_set_out(ctr, !!ctr->m, dev);
                     ctr->state = 0;
                     if (ctr->latched) {
-                        pit_log("PIT %i: Reload while counter is latched\n", t);
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                            pit_log("PIT %i: Reload while counter is latched\n", t);
+                        }
                         ctr->rl--;
                     }
 
-                    pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                        pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
+                    }
                 }
             }
             break;
@@ -594,31 +613,48 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 1:
                     ctr->l = val;
+                    ctr->lback = ctr->l;
+                    ctr->lback2 = ctr->l;
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                        pit_log("PIT %i (1): Written byte %02X, latch now %04X\n", t, val, ctr->l);
+                    }
                     if (ctr->m == 0)
-                        ctr_set_out(ctr, 0);
+                        ctr_set_out(ctr, 0, dev);
                     ctr_load(ctr);
                     break;
                 case 2:
                     ctr->l = (val << 8);
+                    ctr->lback = ctr->l;
+                    ctr->lback2 = ctr->l;
+                    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                        pit_log("PIT %i (2): Written byte %02X, latch now %04X\n", t, val, ctr->l);
+                    }
                     if (ctr->m == 0)
-                        ctr_set_out(ctr, 0);
+                        ctr_set_out(ctr, 0, dev);
                     ctr_load(ctr);
                     break;
                 case 3:
                 case 0x83:
                     if (ctr->wm & 0x80) {
                         ctr->l = (ctr->l & 0x00ff) | (val << 8);
-                        pit_log("PIT %i: Written high byte %02X, latch now %04X\n", t, val, ctr->l);
+                        ctr->lback = ctr->l;
+                        ctr->lback2 = ctr->l;
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                            pit_log("PIT %i (0x83): Written high byte %02X, latch now %04X\n", t, val, ctr->l);
+                        }
                         ctr_load(ctr);
                     } else {
                         ctr->l = (ctr->l & 0xff00) | val;
-                        pit_log("PIT %i: Written low byte %02X, latch now %04X\n", t, val, ctr->l);
+                        ctr->lback = ctr->l;
+                        ctr->lback2 = ctr->l;
+                        if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+                            pit_log("PIT %i (3): Written low byte %02X, latch now %04X\n", t, val, ctr->l);
+                        }
                         if (ctr->m == 0) {
                             ctr->state = 0;
-                            ctr_set_out(ctr, 0);
+                            ctr_set_out(ctr, 0, dev);
                         }
                     }
-
                     if (ctr->wm & 0x80)
                         ctr->wm &= ~0x80;
                     else
@@ -636,6 +672,42 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 extern uint8_t *ram;
+
+uint8_t
+pit_read_reg(void *priv, uint8_t reg)
+{
+    pit_t  *dev = (pit_t *) priv;
+    uint8_t ret = 0xff;
+
+    switch (reg) {
+        case 0x00:
+        case 0x02:
+        case 0x04:
+            ret = dev->counters[reg >> 1].l & 0xff;
+            break;
+        case 0x01:
+        case 0x03:
+        case 0x05:
+            ret = (dev->counters[reg >> 1].l >> 8) & 0xff;
+            break;
+        case 0x06:
+            ret = dev->ctrl;
+            break;
+        case 0x07:
+            /* The SiS 551x datasheet is unclear about how exactly
+               this register is structured.
+               Update: But the SiS 5571 datasheet is clear. */
+            ret = (dev->counters[0].rm & 0x80) ? 0x01 : 0x00;
+            ret |= (dev->counters[1].rm & 0x80) ? 0x02 : 0x00;
+            ret |= (dev->counters[2].rm & 0x80) ? 0x04 : 0x00;
+            ret |= (dev->counters[0].wm & 0x80) ? 0x08 : 0x00;
+            ret |= (dev->counters[1].wm & 0x80) ? 0x10 : 0x00;
+            ret |= (dev->counters[2].wm & 0x80) ? 0x20 : 0x00;
+            break;
+    }
+
+    return ret;
+}
 
 static uint8_t
 pit_read(uint16_t addr, void *priv)
@@ -713,13 +785,15 @@ pit_read(uint16_t addr, void *priv)
             break;
     }
 
-    pit_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+    if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
+        pit_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+    }
 
     return ret;
 }
 
 void
-pit_irq0_timer_ps2(int new_out, int old_out)
+pit_irq0_timer_ps2(int new_out, int old_out, UNUSED(void *priv))
 {
     if (new_out && !old_out) {
         picint(1);
@@ -734,21 +808,21 @@ pit_irq0_timer_ps2(int new_out, int old_out)
 }
 
 void
-pit_refresh_timer_xt(int new_out, int old_out)
+pit_refresh_timer_xt(int new_out, int old_out, UNUSED(void *priv))
 {
     if (new_out && !old_out)
         dma_channel_read(0);
 }
 
 void
-pit_refresh_timer_at(int new_out, int old_out)
+pit_refresh_timer_at(int new_out, int old_out, UNUSED(void *priv))
 {
     if (refresh_at_enable && new_out && !old_out)
         ppi.pb ^= 0x10;
 }
 
 void
-pit_speaker_timer(int new_out, UNUSED(int old_out))
+pit_speaker_timer(int new_out, UNUSED(int old_out), UNUSED(void *priv))
 {
     int l;
 
@@ -768,7 +842,7 @@ pit_speaker_timer(int new_out, UNUSED(int old_out))
 }
 
 void
-pit_nmi_timer_ps2(int new_out, UNUSED(int old_out))
+pit_nmi_timer_ps2(int new_out, UNUSED(int old_out), UNUSED(void *priv))
 {
     nmi = new_out;
 
@@ -794,6 +868,15 @@ ctr_reset(ctr_t *ctr)
 }
 
 void
+pit_device_reset(pit_t *dev)
+{
+    dev->clock = 0;
+
+    for (uint8_t i = 0; i < 3; i++)
+        ctr_reset(&dev->counters[i]);
+}
+
+void
 pit_reset(pit_t *dev)
 {
     memset(dev, 0, sizeof(pit_t));
@@ -811,6 +894,20 @@ void
 pit_handler(int set, uint16_t base, int size, void *priv)
 {
     io_handler(set, base, size, pit_read, NULL, NULL, pit_write, NULL, NULL, priv);
+}
+
+void
+pit_set_pit_const(void *data, uint64_t pit_const)
+{
+    pit_t *pit = (pit_t *) data;
+
+    pit->pit_const = pit_const;
+}
+
+static void
+pit_speed_changed(void *priv)
+{
+    pit_set_pit_const(priv, PITCONST);
 }
 
 static void
@@ -832,14 +929,18 @@ static void *
 pit_init(const device_t *info)
 {
     pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
+
     pit_reset(dev);
+
+    pit_set_pit_const(dev, PITCONST);
 
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
-        timer_set_delay_u64(&dev->callback_timer, PITCONST >> 1ULL);
+        timer_set_delay_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
     }
 
     dev->flags = info->local;
+    dev->dev_priv = NULL;
 
     if (!(dev->flags & PIT_EXT_IO)) {
         io_sethandler((dev->flags & PIT_SECONDARY) ? 0x0048 : 0x0040, 0x0004,
@@ -852,8 +953,22 @@ pit_init(const device_t *info)
 const device_t i8253_device = {
     .name          = "Intel 8253/8253-5 Programmable Interval Timer",
     .internal_name = "i8253",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8253,
+    .init          = pit_init,
+    .close         = pit_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = pit_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t i8253_ext_io_device = {
+    .name          = "Intel 8253 Programmable Interval Timer (External I/O)",
+    .internal_name = "i8253_ext_io",
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8253 | PIT_EXT_IO,
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
@@ -866,13 +981,13 @@ const device_t i8253_device = {
 const device_t i8254_device = {
     .name          = "Intel 8254 Programmable Interval Timer",
     .internal_name = "i8254",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8254,
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -886,7 +1001,7 @@ const device_t i8254_sec_device = {
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
@@ -914,13 +1029,13 @@ const device_t i8254_ps2_device = {
     .close         = pit_close,
     .reset         = NULL,
     { .available = NULL },
-    .speed_changed = NULL,
+    .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
 pit_t *
-pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out))
+pit_common_init(int type, void (*out0)(int new_out, int old_out, void *priv), void (*out1)(int new_out, int old_out, void *priv))
 {
     void *pit;
 
@@ -1000,11 +1115,18 @@ pit_ps2_init(int type)
 }
 
 void
-pit_set_clock(int clock)
+pit_change_pas16_consts(double prescale)
+{
+    PAS16CONST  = (uint64_t) ((PAS16CONSTD / prescale) * (double) (1ULL << 32));
+    PAS16CONST2 = (uint64_t) ((PAS16CONST2D / prescale) * (double) (1ULL << 32));
+}
+
+void
+pit_set_clock(uint32_t clock)
 {
     /* Set default CPU/crystal clock and xt_cpu_multi. */
     if (cpu_s->cpu_type >= CPU_286) {
-        int remainder = (clock % 100000000);
+        uint32_t remainder = (clock % 100000000);
         if (remainder == 66666666)
             cpuclock = (double) (clock - remainder) + (200000000.0 / 3.0);
         else if (remainder == 33333333)
@@ -1094,6 +1216,12 @@ pit_set_clock(int clock)
 
     TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ULL << 32));
 
+    PAS16CONSTD = (cpuclock / 441000.0);
+    PAS16CONST  = (uint64_t) (PAS16CONSTD * (double) (1ULL << 32));
+
+    PAS16CONST2D = (cpuclock / 1008000.0);
+    PAS16CONST2  = (uint64_t) (PAS16CONST2D * (double) (1ULL << 32));
+
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)
         bus_timing = (cpuclock / (cpu_busspeed / 2));
@@ -1125,5 +1253,6 @@ const pit_intf_t pit_classic_intf = {
     &pit_ctr_set_out_func,
     &pit_ctr_set_load_func,
     &ctr_clock,
+    &pit_set_pit_const,
     NULL,
 };

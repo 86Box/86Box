@@ -23,6 +23,8 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/isamem.h>
 #include <86box/isartc.h>
+#include <86box/unittester.h>
+#include <86box/novell_cardkey.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -44,7 +46,12 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     bool machineHasIsa = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
     ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
+    ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
+    ui->checkBoxKeyCard->setChecked((machineHasIsa && (novell_keycard_enabled > 0)) ? true : false);
     ui->checkBoxISABugger->setEnabled(machineHasIsa);
+    ui->checkBoxKeyCard->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureKeyCard->setEnabled(novell_keycard_enabled > 0);
+    ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->comboBoxRTC->setEnabled(machineHasIsa);
     ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
 
@@ -112,9 +119,11 @@ void
 SettingsOtherPeripherals::save()
 {
     /* Other peripherals category */
-    bugger_enabled   = ui->checkBoxISABugger->isChecked() ? 1 : 0;
-    postcard_enabled = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
-    isartc_type      = ui->comboBoxRTC->currentData().toInt();
+    bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;
+    postcard_enabled       = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
+    unittester_enabled     = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
+    novell_keycard_enabled = ui->checkBoxKeyCard->isChecked() ? 1 : 0;
+    isartc_type            = ui->comboBoxRTC->currentData().toInt();
 
     /* ISA memory boards. */
     for (int i = 0; i < ISAMEM_MAX; i++) {
@@ -197,3 +206,26 @@ SettingsOtherPeripherals::on_pushButtonConfigureCard4_clicked()
 {
     DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
 }
+
+void
+SettingsOtherPeripherals::on_checkBoxUnitTester_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureUT->setEnabled(arg1 != 0);
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
+{
+    DeviceConfig::ConfigureDevice(&unittester_device);
+}
+
+void SettingsOtherPeripherals::on_pushButtonConfigureKeyCard_clicked()
+{
+    DeviceConfig::ConfigureDevice(&novell_keycard_device);
+}
+
+void SettingsOtherPeripherals::on_checkBoxKeyCard_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureKeyCard->setEnabled(arg1 != 0);
+}
+

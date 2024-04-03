@@ -73,10 +73,20 @@ RendererCommon::onResize(int width, int height)
         double gw  = source.width();
         double gh  = source.height();
         double hsr = hw / hh;
+        double r43 = 4.0 / 3.0;
 
         switch (video_fullscreen_scale) {
             case FULLSCR_SCALE_INT:
+            case FULLSCR_SCALE_INT43:
                 gsr = gw / gh;
+
+                if (video_fullscreen_scale == FULLSCR_SCALE_INT43) {
+                    gh = gw / r43;
+//                  gw = gw;
+
+                    gsr = r43;
+                }
+
                 if (gsr <= hsr) {
                     dw = hh * gsr;
                     dh = hh;
@@ -84,8 +94,10 @@ RendererCommon::onResize(int width, int height)
                     dw = hw;
                     dh = hw / gsr;
                 }
+
                 integer_scale(&dw, &gw);
                 integer_scale(&dh, &gh);
+
                 dx = (hw - dw) / 2.0;
                 dy = (hh - dh) / 2.0;
                 destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
@@ -93,7 +105,7 @@ RendererCommon::onResize(int width, int height)
             case FULLSCR_SCALE_43:
             case FULLSCR_SCALE_KEEPRATIO:
                 if (video_fullscreen_scale == FULLSCR_SCALE_43)
-                    gsr = 4.0 / 3.0;
+                    gsr = r43;
                 else
                     gsr = gw / gh;
 
@@ -138,5 +150,4 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
             result = QApplication::sendEvent(parentWidget, event);
             return true;
     }
-    return false;
 }

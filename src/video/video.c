@@ -78,8 +78,11 @@
 
 volatile int screenshots = 0;
 uint8_t      edatlookup[4][4];
+uint8_t      egaremap2bpp[256];
 uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
+uint8_t      fontdat2[2048][8];           /* IBM CGA 2nd instance font */
+uint8_t      fontdatm2[2048][16];         /* IBM MDA 2nd instance font */
 uint8_t      fontdatw[512][32];           /* Wyse700 font */
 uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
 uint8_t      fontdat12x18[256][36];       /* IM1024 font */
@@ -598,8 +601,27 @@ cgapal_rebuild_monitor(int monitor_index)
         }
     }
 
-    if (cga_palette_monitor == 7)
+    if (cga_palette_monitor == 8)
         palette_lookup[0x16] = makecol(video_6to8[42], video_6to8[42], video_6to8[0]);
+    else if (cga_palette_monitor == 10) {
+        /* IBM 5153 CRT, colors by VileR */
+        palette_lookup[0x10] = 0x00000000;
+        palette_lookup[0x11] = 0x000000c4;
+        palette_lookup[0x12] = 0x0000c400;
+        palette_lookup[0x13] = 0x0000c4c4;
+        palette_lookup[0x14] = 0x00c40000;
+        palette_lookup[0x15] = 0x00c400c4;
+        palette_lookup[0x16] = 0x00c47e00;
+        palette_lookup[0x17] = 0x00c4c4c4;
+        palette_lookup[0x18] = 0x004e4e4e;
+        palette_lookup[0x19] = 0x004e4edc;
+        palette_lookup[0x1a] = 0x004edc4e;
+        palette_lookup[0x1b] = 0x004ef3f3;
+        palette_lookup[0x1c] = 0x00dc4e4e;
+        palette_lookup[0x1d] = 0x00f34ef3;
+        palette_lookup[0x1e] = 0x00f3f34e;
+        palette_lookup[0x1f] = 0x00ffffff;
+    }
 }
 
 void
@@ -809,9 +831,9 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
+    bitmap_t *b = calloc(sizeof(bitmap_t), (y * sizeof(uint32_t *)));
 
-    b->dat = malloc((size_t) x * y * 4);
+    b->dat = calloc((size_t) x * y, 4);
     for (int c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;
@@ -911,6 +933,18 @@ video_init(void)
             if (d & 2)
                 edatlookup[c][d] |= 0x20;
         }
+    }
+
+    for (uint16_t c = 0; c < 256; c++) {
+        egaremap2bpp[c] = 0;
+        if (c & 0x01)
+            egaremap2bpp[c] |= 0x01;
+        if (c & 0x04)
+            egaremap2bpp[c] |= 0x02;
+        if (c & 0x10)
+            egaremap2bpp[c] |= 0x04;
+        if (c & 0x40)
+            egaremap2bpp[c] |= 0x08;
     }
 
     video_6to8 = malloc(4 * 256);
@@ -1087,6 +1121,19 @@ loadfont_common(FILE *f, int format)
             for (c = 0; c < 1024; c++) /* Allow up to 1024 chars */
                 for (d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(f) & 0xff;
+            break;
+
+
+        case 11: /* PC200 */
+            for (d = 0; d < 4; d++) {
+                /* There are 4 fonts in the ROM */
+                for (c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
+                    (void) !fread(&fontdatm2[256 * d + c][0], 1, 16, f);
+                for (c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
+                    (void) !fread(&fontdat2[256 * d + c][0], 1, 8, f);
+                    fseek(f, 8, SEEK_CUR);
+                }
+            }
             break;
     }
 

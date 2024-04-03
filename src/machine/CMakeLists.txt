@@ -37,6 +37,10 @@ if(LASERXT)
     target_compile_definitions(mch PRIVATE USE_LASERXT)
 endif()
 
+if(OLIVETTI)
+    target_compile_definitions(mch PRIVATE USE_OLIVETTI)
+endif()
+
 if(OPEN_AT)
     target_compile_definitions(mch PRIVATE USE_OPEN_AT)
 endif()

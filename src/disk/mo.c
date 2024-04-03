@@ -49,6 +49,8 @@
 #    include <unistd.h>
 #endif
 
+#define IDE_ATAPI_IS_EARLY             id->sc->pad0
+
 mo_drive_t mo_drives[MO_NUM];
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
@@ -341,6 +343,11 @@ mo_load(mo_t *dev, char *fn)
     uint32_t     size  = 0;
     unsigned int found = 0;
 
+    if (!dev->drv) {
+        mo_eject(dev->id);
+        return 0;
+    }
+
     is_mdi = image_is_mdi(fn);
 
     dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
@@ -401,7 +408,7 @@ mo_disk_reload(mo_t *dev)
 void
 mo_disk_unload(mo_t *dev)
 {
-    if (dev->drv->fp) {
+    if (dev->drv && dev->drv->fp) {
         fclose(dev->drv->fp);
         dev->drv->fp = NULL;
     }
@@ -410,7 +417,7 @@ mo_disk_unload(mo_t *dev)
 void
 mo_disk_close(mo_t *dev)
 {
-    if (dev->drv->fp) {
+    if (dev->drv && dev->drv->fp) {
         mo_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
@@ -443,11 +450,11 @@ mo_init(mo_t *dev)
         dev->drv->bus_mode |= 1;
     mo_log("MO %i: Bus type %i, bus mode %i\n", dev->id, dev->drv->bus_type, dev->drv->bus_mode);
     if (dev->drv->bus_type < MO_BUS_SCSI) {
-        dev->phase          = 1;
-        dev->request_length = 0xEB14;
+        dev->tf->phase          = 1;
+        dev->tf->request_length = 0xEB14;
     }
-    dev->status        = READY_STAT | DSC_STAT;
-    dev->pos           = 0;
+    dev->tf->status    = READY_STAT | DSC_STAT;
+    dev->tf->pos       = 0;
     dev->packet_status = PHASE_NONE;
     mo_sense_key = mo_asc = mo_ascq = dev->unit_attention = 0;
 }
@@ -477,36 +484,9 @@ mo_current_mode(mo_t *dev)
     if (!mo_supports_pio(dev) && mo_supports_dma(dev))
         return 2;
     if (mo_supports_pio(dev) && mo_supports_dma(dev)) {
-        mo_log("MO %i: Drive supports both, setting to %s\n", dev->id, (dev->features & 1) ? "DMA" : "PIO");
-        return (dev->features & 1) ? 2 : 1;
-    }
-
-    return 0;
-}
-
-/* Translates ATAPI phase (DRQ, I/O, C/D) to SCSI phase (MSG, C/D, I/O). */
-int
-mo_atapi_phase_to_scsi(mo_t *dev)
-{
-    if (dev->status & 8) {
-        switch (dev->phase & 3) {
-            case 0:
-                return 0;
-            case 1:
-                return 2;
-            case 2:
-                return 1;
-            case 3:
-                return 7;
-
-            default:
-                break;
-        }
-    } else {
-        if ((dev->phase & 3) == 3)
-            return 3;
-        else
-            return 4;
+        mo_log("MO %i: Drive supports both, setting to %s\n", dev->id,
+               (dev->tf->features & 1) ? "DMA" : "PIO");
+        return (dev->tf->features & 1) ? 2 : 1;
     }
 
     return 0;
@@ -622,7 +602,7 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
     int bt;
     int min_len = 0;
 
-    dev->max_transfer_len = dev->request_length;
+    dev->max_transfer_len = dev->tf->request_length;
 
     /* For media access commands, make sure the requested DRQ length matches the block length. */
     switch (dev->current_cdb[0]) {
@@ -666,9 +646,9 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
         dev->max_transfer_len = 65534;
 
     if ((len <= dev->max_transfer_len) && (len >= min_len))
-        dev->request_length = dev->max_transfer_len = len;
+        dev->tf->request_length = dev->max_transfer_len = len;
     else if (len > dev->max_transfer_len)
-        dev->request_length = dev->max_transfer_len;
+        dev->tf->request_length = dev->max_transfer_len;
 
     return;
 }
@@ -699,9 +679,9 @@ mo_command_common(mo_t *dev)
     double bytes_per_second;
     double period;
 
-    dev->status = BUSY_STAT;
-    dev->phase  = 1;
-    dev->pos    = 0;
+    dev->tf->status = BUSY_STAT;
+    dev->tf->phase  = 1;
+    dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
     else {
@@ -763,8 +743,8 @@ static void
 mo_data_command_finish(mo_t *dev, int len, int block_len, int alloc_len, int direction)
 {
     mo_log("MO %i: Finishing command (%02X): %i, %i, %i, %i, %i\n",
-           dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->request_length);
-    dev->pos = 0;
+           dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->tf->request_length);
+    dev->tf->pos = 0;
     if (alloc_len >= 0) {
         if (alloc_len < len)
             len = alloc_len;
@@ -793,7 +773,8 @@ mo_data_command_finish(mo_t *dev, int len, int block_len, int alloc_len, int dir
     }
 
     mo_log("MO %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n",
-           dev->id, dev->packet_status, dev->request_length, dev->packet_len, dev->pos, dev->phase);
+           dev->id, dev->packet_status, dev->tf->request_length, dev->packet_len, dev->tf->pos,
+           dev->tf->phase);
 }
 
 static void
@@ -818,14 +799,14 @@ static void
 mo_cmd_error(mo_t *dev)
 {
     mo_set_phase(dev, SCSI_PHASE_STATUS);
-    dev->error = ((mo_sense_key & 0xf) << 4) | ABRT_ERR;
+    dev->tf->error = ((mo_sense_key & 0xf) << 4) | ABRT_ERR;
     if (dev->unit_attention)
-        dev->error |= MCR_ERR;
-    dev->status        = READY_STAT | ERR_STAT;
-    dev->phase         = 3;
-    dev->pos           = 0;
-    dev->packet_status = PHASE_ERROR;
-    dev->callback      = 50.0 * MO_TIME;
+        dev->tf->error |= MCR_ERR;
+    dev->tf->status        = READY_STAT | ERR_STAT;
+    dev->tf->phase         = 3;
+    dev->tf->pos           = 0;
+    dev->packet_status     = PHASE_ERROR;
+    dev->callback          = 50.0 * MO_TIME;
     mo_set_callback(dev);
     ui_sb_update_icon(SB_MO | dev->id, 0);
     mo_log("MO %i: [%02X] ERROR: %02X/%02X/%02X\n", dev->id, dev->current_cdb[0], mo_sense_key, mo_asc, mo_ascq);
@@ -835,14 +816,14 @@ static void
 mo_unit_attention(mo_t *dev)
 {
     mo_set_phase(dev, SCSI_PHASE_STATUS);
-    dev->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
+    dev->tf->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
     if (dev->unit_attention)
-        dev->error |= MCR_ERR;
-    dev->status        = READY_STAT | ERR_STAT;
-    dev->phase         = 3;
-    dev->pos           = 0;
-    dev->packet_status = PHASE_ERROR;
-    dev->callback      = 50.0 * MO_TIME;
+        dev->tf->error |= MCR_ERR;
+    dev->tf->status        = READY_STAT | ERR_STAT;
+    dev->tf->phase         = 3;
+    dev->tf->pos           = 0;
+    dev->packet_status     = PHASE_ERROR;
+    dev->callback          = 50.0 * MO_TIME;
     mo_set_callback(dev);
     ui_sb_update_icon(SB_MO | dev->id, 0);
     mo_log("MO %i: UNIT ATTENTION\n", dev->id);
@@ -928,7 +909,7 @@ mo_invalid_field(mo_t *dev)
     mo_asc       = ASC_INV_FIELD_IN_CMD_PACKET;
     mo_ascq      = 0;
     mo_cmd_error(dev);
-    dev->status = 0x53;
+    dev->tf->status = 0x53;
 }
 
 static void
@@ -938,7 +919,7 @@ mo_invalid_field_pl(mo_t *dev)
     mo_asc       = ASC_INV_FIELD_IN_PARAMETER_LIST;
     mo_ascq      = 0;
     mo_cmd_error(dev);
-    dev->status = 0x53;
+    dev->tf->status = 0x53;
 }
 
 static int
@@ -1112,7 +1093,8 @@ mo_pre_execution_check(mo_t *dev, uint8_t *cdb)
     int ready = 0;
 
     if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
-        mo_log("MO %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id, ((dev->request_length >> 5) & 7));
+        mo_log("MO %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id,
+               ((dev->tf->request_length >> 5) & 7));
         mo_invalid_lun(dev);
         return 0;
     }
@@ -1202,14 +1184,14 @@ mo_reset(scsi_common_t *sc)
     mo_t *dev = (mo_t *) sc;
 
     mo_rezero(dev);
-    dev->status   = 0;
-    dev->callback = 0.0;
+    dev->tf->status         = 0;
+    dev->callback           = 0.0;
     mo_set_callback(dev);
-    dev->phase          = 1;
-    dev->request_length = 0xEB14;
-    dev->packet_status  = PHASE_NONE;
-    dev->unit_attention = 0;
-    dev->cur_lun        = SCSI_LUN_USE_CDB;
+    dev->tf->phase          = 1;
+    dev->tf->request_length = 0xEB14;
+    dev->packet_status      = PHASE_NONE;
+    dev->unit_attention     = 0;
+    dev->cur_lun            = SCSI_LUN_USE_CDB;
 }
 
 static void
@@ -1302,11 +1284,11 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     uint8_t  scsi_id      = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == MO_BUS_SCSI) {
-        BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
-        dev->status &= ~ERR_STAT;
+        BufLen          = &scsi_devices[scsi_bus][scsi_id].buffer_length;
+        dev->tf->status &= ~ERR_STAT;
     } else {
-        BufLen     = &blen;
-        dev->error = 0;
+        BufLen         = &blen;
+        dev->tf->error = 0;
     }
 
     dev->packet_len  = 0;
@@ -1319,7 +1301,7 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     if (cdb[0] != 0) {
         mo_log("MO %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n",
                dev->id, cdb[0], mo_sense_key, mo_asc, mo_ascq, dev->unit_attention);
-        mo_log("MO %i: Request length: %04X\n", dev->id, dev->request_length);
+        mo_log("MO %i: Request length: %04X\n", dev->id, dev->tf->request_length);
 
         mo_log("MO %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", dev->id,
                cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
@@ -1857,10 +1839,10 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     }
 
 #if 0
-    mo_log("MO %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length);
+    mo_log("MO %i: Phase: %02X, request length: %i\n", dev->id, dev->tf->phase, dev->tf->request_length);
 #endif
 
-    if (mo_atapi_phase_to_scsi(dev) == SCSI_PHASE_STATUS)
+    if ((dev->packet_status == PHASE_COMPLETE) || (dev->packet_status == PHASE_ERROR))
         mo_buf_free(dev);
 }
 
@@ -2099,6 +2081,9 @@ mo_drive_reset(int c)
     dev->cur_lun = SCSI_LUN_USE_CDB;
 
     if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+        if (!dev->tf)
+            dev->tf        = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
+
         /* SCSI MO, attach to the SCSI bus. */
         sd = &scsi_devices[scsi_bus][scsi_id];
 
@@ -2117,6 +2102,8 @@ mo_drive_reset(int c)
            that's not attached to anything. */
         if (id) {
             id->sc               = (scsi_common_t *) dev;
+            dev->tf              = id->tf;
+            IDE_ATAPI_IS_EARLY   = 0;
             id->get_max          = mo_get_max;
             id->get_timings      = mo_get_timings;
             id->identify         = mo_identify;
@@ -2165,6 +2152,9 @@ mo_hard_reset(void)
 
             dev = (mo_t *) mo_drives[c].priv;
 
+            if (dev->tf == NULL)
+                continue;
+
             dev->id  = c;
             dev->drv = &mo_drives[c];
 
@@ -2202,6 +2192,9 @@ mo_close(void)
 
         if (dev) {
             mo_disk_unload(dev);
+
+            if (dev->tf)
+                free(dev->tf);
 
             free(dev);
             mo_drives[c].priv = NULL;

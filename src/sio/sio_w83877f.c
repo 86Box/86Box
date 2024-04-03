@@ -78,12 +78,12 @@ w83877f_remap(w83877f_t *dev)
 {
     uint8_t hefras = HEFRAS;
 
-    io_removehandler(0x250, 0x0002,
+    io_removehandler(0x250, 0x0003,
                      w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
     io_removehandler(FDC_PRIMARY_ADDR, 0x0002,
                      w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
     dev->base_address = (hefras ? FDC_PRIMARY_ADDR : 0x250);
-    io_sethandler(dev->base_address, 0x0002,
+    io_sethandler(dev->base_address, hefras ? 0x0002 : 0x0003,
                   w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
     dev->key_times = hefras + 1;
     dev->key       = (hefras ? 0x86 : 0x88) | HEFERE;
@@ -155,8 +155,9 @@ static void
 w83877f_fdc_handler(w83877f_t *dev)
 {
     fdc_remove(dev->fdc);
-    if (!(dev->regs[6] & 0x08) && (dev->regs[0x20] & 0xc0))
-        fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
+    if (dev->regs[0x20] & 0xc0)
+        fdc_set_base(dev->fdc, make_port(dev, 0x20));
+    fdc_set_power_down(dev->fdc, !!(dev->regs[6] & 0x08));
 }
 
 static void
@@ -252,7 +253,7 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
             if (dev->cur_reg == 0x29)
                 return;
             if (dev->cur_reg == 6)
-                val &= 0xF3;
+                val &= 0xFB;
             valxor                  = val ^ dev->regs[dev->cur_reg];
             dev->regs[dev->cur_reg] = val;
         } else

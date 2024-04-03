@@ -176,6 +176,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                 valxor = val ^ dev->regs[rel_reg];
                 if (rel_reg == 0x19)
                     dev->regs[rel_reg] &= ~val;
+                else if (rel_reg == 0x00)
+                    dev->regs[rel_reg] = (dev->regs[rel_reg] & 0x1f) | (val & 0xe0);
                 else
                     dev->regs[rel_reg] = val;
 

@@ -53,9 +53,11 @@ typedef struct {
 
 int sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int sound_pos_global                   = 0;
+int music_pos_global                   = 0;
 int sound_gain                         = 0;
 
 static sound_handler_t sound_handlers[8];
+static sound_handler_t music_handlers[8];
 
 static thread_t  *sound_cd_thread_h;
 static event_t   *sound_cd_event;
@@ -63,9 +65,15 @@ static event_t   *sound_cd_start_event;
 static int32_t   *outbuffer;
 static float     *outbuffer_ex;
 static int16_t   *outbuffer_ex_int16;
+static int32_t   *outbuffer_m;
+static float     *outbuffer_m_ex;
+static int16_t   *outbuffer_m_ex_int16;
 static int        sound_handlers_num;
+static int        music_handlers_num;
 static pc_timer_t sound_poll_timer;
 static uint64_t   sound_poll_latch;
+static pc_timer_t music_poll_timer;
+static uint64_t   music_poll_latch;
 
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
@@ -77,7 +85,10 @@ static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
 static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
-static void *filter_cd_audio_p                                       = NULL;
+static void *filter_cd_audio_p                                          = NULL;
+
+void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
+void *filter_pc_speaker_p                                          = NULL;
 
 static const device_t sound_none_device = {
     .name          = "None",
@@ -138,9 +149,8 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16s_device        },
     { &sb_vibra16xv_device       },
     { &ssi2001_device            },
-#if defined(DEV_BRANCH) && defined(USE_PAS16)
+    { &pasplus_device            },
     { &pas16_device              },
-#endif
     { &pssj_isa_device           },
     { &tndy_device               },
     { &wss_device                },
@@ -154,6 +164,7 @@ static const SOUND_CARD sound_cards[] = {
     { &es1371_device             },
     { &ad1881_device             },
     { &cs4297a_device            },
+    { &ess_1688_device           },
     { NULL                       }
     // clang-format on
 };
@@ -222,13 +233,13 @@ sound_card_get_from_internal_name(const char *s)
 void
 sound_card_init(void)
 {
-    if ((sound_card_current[0] != SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
+    if ((sound_card_current[0] > SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
         device_add(sound_cards[sound_card_current[0]].device);
-    if (sound_cards[sound_card_current[1]].device)
+    if ((sound_card_current[1] > SOUND_INTERNAL) && (sound_cards[sound_card_current[1]].device))
         device_add(sound_cards[sound_card_current[1]].device);
-    if (sound_cards[sound_card_current[2]].device)
+    if ((sound_card_current[2] > SOUND_INTERNAL) && (sound_cards[sound_card_current[2]].device))
         device_add(sound_cards[sound_card_current[2]].device);
-    if (sound_cards[sound_card_current[3]].device)
+    if ((sound_card_current[3] > SOUND_INTERNAL) && (sound_cards[sound_card_current[3]].device))
         device_add(sound_cards[sound_card_current[3]].device);
 }
 
@@ -392,6 +403,28 @@ sound_realloc_buffers(void)
     }
 }
 
+static void
+music_realloc_buffers(void)
+{
+    if (outbuffer_m_ex != NULL) {
+        free(outbuffer_m_ex);
+        outbuffer_m_ex = NULL;
+    }
+
+    if (outbuffer_m_ex_int16 != NULL) {
+        free(outbuffer_m_ex_int16);
+        outbuffer_m_ex_int16 = NULL;
+    }
+
+    if (sound_is_float) {
+        outbuffer_m_ex = calloc(MUSICBUFLEN * 2, sizeof(float));
+        memset(outbuffer_m_ex, 0x00, MUSICBUFLEN * 2 * sizeof(float));
+    } else {
+        outbuffer_m_ex_int16 = calloc(MUSICBUFLEN * 2, sizeof(int16_t));
+        memset(outbuffer_m_ex_int16, 0x00, MUSICBUFLEN * 2 * sizeof(int16_t));
+    }
+}
+
 void
 sound_init(void)
 {
@@ -400,9 +433,17 @@ sound_init(void)
     outbuffer_ex       = NULL;
     outbuffer_ex_int16 = NULL;
 
+    outbuffer_m_ex       = NULL;
+    outbuffer_m_ex_int16 = NULL;
+
     outbuffer = NULL;
     outbuffer = calloc(SOUNDBUFLEN * 2, sizeof(int32_t));
     memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
+
+    outbuffer_m = NULL;
+    outbuffer_m = calloc(MUSICBUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
+
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
@@ -436,11 +477,28 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void
 }
 
 void
+music_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void *priv)
+{
+    music_handlers[music_handlers_num].get_buffer = get_buffer;
+    music_handlers[music_handlers_num].priv       = priv;
+    music_handlers_num++;
+}
+
+void
 sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
         filter_cd_audio   = filter;
         filter_cd_audio_p = priv;
+    }
+}
+
+void
+sound_set_pc_speaker_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_pc_speaker == NULL) || (filter == NULL)) {
+        filter_pc_speaker   = filter;
+        filter_pc_speaker_p = priv;
     }
 }
 
@@ -491,15 +549,55 @@ sound_poll(UNUSED(void *priv))
 }
 
 void
+music_poll(UNUSED(void *priv))
+{
+    timer_advance_u64(&music_poll_timer, music_poll_latch);
+
+    music_pos_global++;
+    if (music_pos_global == MUSICBUFLEN) {
+        int c;
+
+        memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
+
+        for (c = 0; c < music_handlers_num; c++)
+            music_handlers[c].get_buffer(outbuffer_m, MUSICBUFLEN, music_handlers[c].priv);
+
+        for (c = 0; c < MUSICBUFLEN * 2; c++) {
+            if (sound_is_float)
+                outbuffer_m_ex[c] = ((float) outbuffer_m[c]) / (float) 32768.0;
+            else {
+                if (outbuffer_m[c] > 32767)
+                    outbuffer_m[c] = 32767;
+                if (outbuffer_m[c] < -32768)
+                    outbuffer_m[c] = -32768;
+
+                outbuffer_m_ex_int16[c] = outbuffer_m[c];
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer_music(outbuffer_m_ex);
+        else
+            givealbuffer_music(outbuffer_m_ex_int16);
+
+        music_pos_global = 0;
+    }
+}
+
+void
 sound_speed_changed(void)
 {
     sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
+
+    music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
 }
 
 void
 sound_reset(void)
 {
     sound_realloc_buffers();
+
+    music_realloc_buffers();
 
     midi_out_device_init();
     midi_in_device_init();
@@ -511,8 +609,16 @@ sound_reset(void)
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, 8 * sizeof(sound_handler_t));
 
+    timer_add(&music_poll_timer, music_poll, NULL, 1);
+
+    music_handlers_num = 0;
+    memset(music_handlers, 0x00, 8 * sizeof(sound_handler_t));
+
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;
+
+    filter_pc_speaker   = NULL;
+    filter_pc_speaker_p = NULL;
 
     sound_set_cd_volume(65535, 65535);
 

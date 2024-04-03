@@ -159,15 +159,16 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     bool videoCardHas8514 = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_8514A) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_8514));
     bool videoCardHasXga  = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_XGA) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_XGA));
 
-    ui->checkBox8514->setEnabled((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
-    if (machineHasIsa16 || machineHasMca)
-        ui->checkBox8514->setChecked(ibm8514_standalone_enabled && !videoCardHas8514);
+    bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
+    bool machineSupportsXga  = (((machineHasIsa16 && device_available(&xga_isa_device)) || (machineHasMca && device_available(&xga_device))) && !videoCardHasXga);
 
-    ui->checkBoxXga->setEnabled((machineHasIsa16 || machineHasMca) && !videoCardHasXga);
-    if (machineHasIsa16 || machineHasMca)
-        ui->checkBoxXga->setChecked(xga_standalone_enabled && !videoCardHasXga);
+    ui->checkBox8514->setEnabled(machineSupports8514);
+    ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
 
-    ui->pushButtonConfigureXga->setEnabled((machineHasIsa16 || machineHasMca) && ui->checkBoxXga->isChecked() && !videoCardHasXga);
+    ui->checkBoxXga->setEnabled(machineSupportsXga);
+    ui->checkBoxXga->setChecked(xga_standalone_enabled && machineSupportsXga);
+
+    ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
 
     int c = 2;
 

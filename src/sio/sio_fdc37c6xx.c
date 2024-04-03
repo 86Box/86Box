@@ -394,6 +394,20 @@ const device_t fdc37c661_ide_device = {
     .config        = NULL
 };
 
+const device_t fdc37c661_ide_sec_device = {
+    .name          = "SMC FDC37C661 Super I/O (With Secondary IDE)",
+    .internal_name = "fdc37c661_ide_sec",
+    .flags         = 0,
+    .local         = 0x261,
+    .init          = fdc37c6xx_init,
+    .close         = fdc37c6xx_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t fdc37c663_device = {
     .name          = "SMC FDC37C663 Super I/O",
     .internal_name = "fdc37c663",
@@ -455,6 +469,20 @@ const device_t fdc37c665_ide_pri_device = {
     .internal_name = "fdc37c665_ide_pri",
     .flags         = 0,
     .local         = 0x165,
+    .init          = fdc37c6xx_init,
+    .close         = fdc37c6xx_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc37c665_ide_sec_device = {
+    .name          = "SMC FDC37C665 Super I/O (With Secondary IDE)",
+    .internal_name = "fdc37c665_ide_sec",
+    .flags         = 0,
+    .local         = 0x265,
     .init          = fdc37c6xx_init,
     .close         = fdc37c6xx_close,
     .reset         = NULL,

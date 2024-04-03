@@ -40,6 +40,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -48,9 +49,9 @@
 #define ROM_PATH_XT     "roms/hdd/xtide/ide_xt.bin"
 #define ROM_PATH_XTP    "roms/hdd/xtide/ide_xtp.bin"
 #define ROM_PATH_AT     "roms/hdd/xtide/ide_at.bin"
+#define ROM_PATH_AT_386 "roms/hdd/xtide/ide_386.bin"
 #define ROM_PATH_PS2    "roms/hdd/xtide/SIDE1V12.BIN"
 #define ROM_PATH_PS2AT  "roms/hdd/xtide/ide_at_1_1_5.bin"
-#define ROM_PATH_AT_386 "roms/hdd/xtide/ide_386.bin"
 
 typedef struct xtide_t {
     void   *ide_board;
@@ -135,13 +136,9 @@ xtide_init(const device_t *info)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    if (info->local == 1) {
-        rom_init(&xtide->bios_rom, ROM_PATH_XTP,
+        rom_init(&xtide->bios_rom,
+                 device_get_bios_file(info, device_get_config_bios("bios"), 0),
                  0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
-    } else {
-        rom_init(&xtide->bios_rom, ROM_PATH_XT,
-                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
-    }
 
     xtide->ide_board = ide_xtide_init();
 
@@ -152,18 +149,6 @@ xtide_init(const device_t *info)
     return xtide;
 }
 
-static int
-xtide_available(void)
-{
-    return (rom_present(ROM_PATH_XT));
-}
-
-static int
-xtide_plus_available(void)
-{
-    return (rom_present(ROM_PATH_XTP));
-}
-
 static void *
 xtide_at_init(const device_t *info)
 {
@@ -171,29 +156,13 @@ xtide_at_init(const device_t *info)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    if (info->local == 1) {
-        rom_init(&xtide->bios_rom, ROM_PATH_AT_386,
+        rom_init(&xtide->bios_rom,
+                 device_get_bios_file(info, device_get_config_bios("bios"), 0),
                  0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
-    } else {
-        rom_init(&xtide->bios_rom, ROM_PATH_AT,
-                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
-    }
 
     device_add(&ide_isa_2ch_device);
 
     return xtide;
-}
-
-static int
-xtide_at_available(void)
-{
-    return (rom_present(ROM_PATH_AT));
-}
-
-static int
-xtide_at_386_available(void)
-{
-    return (rom_present(ROM_PATH_AT_386));
 }
 
 static void *
@@ -260,6 +229,50 @@ xtide_at_close(void *priv)
     free(xtide);
 }
 
+static const device_config_t xtide_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS",
+        .type = CONFIG_BIOS,
+        .default_string = "xt",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Regular XT", .internal_name = "xt", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XT, "" } },
+            { .name = "XT+ (V20/V30/8018x)", .internal_name = "xt_plus", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XTP, "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t xtide_at_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS",
+        .type = CONFIG_BIOS,
+        .default_string = "at",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Regular AT", .internal_name = "at", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT, "" } },
+            { .name = "386", .internal_name = "at_386", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT_386, "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
 const device_t xtide_device = {
     .name          = "PC/XT XTIDE",
     .internal_name = "xtide",
@@ -268,24 +281,10 @@ const device_t xtide_device = {
     .init          = xtide_init,
     .close         = xtide_close,
     .reset         = NULL,
-    { .available = xtide_available },
+    { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t xtide_plus_device = {
-    .name          = "PC/XT XTIDE (V20/V30/8018x)",
-    .internal_name = "xtide_plus",
-    .flags         = DEVICE_ISA,
-    .local         = 1,
-    .init          = xtide_init,
-    .close         = xtide_close,
-    .reset         = NULL,
-    { .available = xtide_plus_available },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
+    .config        = xtide_config
 };
 
 const device_t xtide_at_device = {
@@ -296,24 +295,10 @@ const device_t xtide_at_device = {
     .init          = xtide_at_init,
     .close         = xtide_at_close,
     .reset         = NULL,
-    { .available = xtide_at_available },
+    { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t xtide_at_386_device = {
-    .name          = "PC/AT XTIDE (386)",
-    .internal_name = "xtide_at_386",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
-    .init          = xtide_at_init,
-    .close         = xtide_at_close,
-    .reset         = NULL,
-    { .available = xtide_at_386_available },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
+    .config        = xtide_at_config
 };
 
 const device_t xtide_acculogic_device = {

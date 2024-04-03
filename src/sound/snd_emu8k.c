@@ -2172,7 +2172,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     int            c;
     double         out;
 
-    fp = rom_fopen("roms/sound/creative/awe32.raw", "rb");
+    fp = rom_fopen(EMU8K_ROM_PATH, "rb");
     if (!fp)
         fatal("AWE32.RAW not found\n");
 

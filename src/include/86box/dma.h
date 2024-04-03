@@ -118,4 +118,6 @@ void dma_high_page_init(void);
 void dma_remove_sg(void);
 void dma_set_sg_base(uint8_t sg_base);
 
+extern int dma_channel_readable(int channel);
+
 #endif /*EMU_DMA_H*/

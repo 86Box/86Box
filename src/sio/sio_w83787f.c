@@ -215,8 +215,9 @@ static void
 w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
-    if (!(dev->regs[0] & 0x20) && !(dev->regs[6] & 0x08))
+    if (!(dev->regs[0] & 0x20))
         fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR);
+    fdc_set_power_down(dev->fdc, !!(dev->regs[6] & 0x08));
 }
 
 static void
@@ -258,10 +259,10 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
         return;
     } else {
         if (dev->locked) {
-            if (dev->rw_locked)
+            if (dev->rw_locked && (dev->cur_reg <= 0x0b))
                 return;
             if (dev->cur_reg == 6)
-                val &= 0xF3;
+                val &= 0xFB;
             valxor                  = val ^ dev->regs[dev->cur_reg];
             dev->regs[dev->cur_reg] = val;
         } else
@@ -363,7 +364,7 @@ w83787f_read(uint16_t port, void *priv)
         else if (port == 0x252) {
             if (dev->cur_reg == 7)
                 ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2));
-            else if (!dev->rw_locked)
+            else if (!dev->rw_locked || (dev->cur_reg > 0x0b))
                 ret = dev->regs[dev->cur_reg];
         }
     }
@@ -374,6 +375,8 @@ w83787f_read(uint16_t port, void *priv)
 static void
 w83787f_reset(w83787f_t *dev)
 {
+    uint16_t hefere = dev->reg_init & 0x0100;
+
     lpt1_remove();
     lpt1_init(LPT1_ADDR);
     lpt1_irq(LPT1_IRQ);
@@ -404,13 +407,14 @@ w83787f_reset(w83787f_t *dev)
         dev->regs[0x00] = 0xd0;
 
     fdc_reset(dev->fdc);
+    w83787f_fdc_handler(dev);
 
     dev->regs[0x01] = 0x2C;
     dev->regs[0x03] = 0x70;
     dev->regs[0x07] = 0xF5;
     dev->regs[0x09] = dev->reg_init & 0xff;
     dev->regs[0x0a] = 0x1F;
-    dev->regs[0x0c] = 0x2C;
+    dev->regs[0x0c] = 0x0C | (hefere >> 3);
     dev->regs[0x0d] = 0xA3;
 
     gameport_remap(dev->gameport, 0);
@@ -420,7 +424,7 @@ w83787f_reset(w83787f_t *dev)
 
     w83787f_lpt_handler(dev);
 
-    dev->key = 0x89;
+    dev->key = 0x88 | (hefere >> 8);
 
     w83787f_remap(dev);
 
@@ -456,17 +460,31 @@ w83787f_init(const device_t *info)
 
     dev->ide_start = !!(info->local & 0x40);
 
-    dev->reg_init = info->local & 0x0f;
+    dev->reg_init = info->local & 0x010f;
     w83787f_reset(dev);
 
     return dev;
 }
 
+const device_t w83787f_88h_device = {
+    .name          = "Winbond W83787F/IF Super I/O",
+    .internal_name = "w83787f",
+    .flags         = 0,
+    .local         = 0x0009,
+    .init          = w83787f_init,
+    .close         = w83787f_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t w83787f_device = {
     .name          = "Winbond W83787F/IF Super I/O",
     .internal_name = "w83787f",
     .flags         = 0,
-    .local         = 0x09,
+    .local         = 0x0109,
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
@@ -480,7 +498,7 @@ const device_t w83787f_ide_device = {
     .name          = "Winbond W83787F/IF Super I/O (With IDE)",
     .internal_name = "w83787f_ide",
     .flags         = 0,
-    .local         = 0x19,
+    .local         = 0x0119,
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
@@ -494,7 +512,7 @@ const device_t w83787f_ide_en_device = {
     .name          = "Winbond W83787F/IF Super I/O (With IDE Enabled)",
     .internal_name = "w83787f_ide_en",
     .flags         = 0,
-    .local         = 0x59,
+    .local         = 0x0159,
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
@@ -508,7 +526,7 @@ const device_t w83787f_ide_sec_device = {
     .name          = "Winbond W83787F/IF Super I/O (With Secondary IDE)",
     .internal_name = "w83787f_ide_sec",
     .flags         = 0,
-    .local         = 0x39,
+    .local         = 0x0139,
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,

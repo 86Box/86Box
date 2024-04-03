@@ -296,6 +296,12 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
             fatal("rom_load_linear_inverted(): Error reading the upper half of the data\n");
         if (fread(ptr + addr, sz >> 1, 1, fp) > (sz >> 1))
             fatal("rom_load_linear_inverted(): Error reading the lower half of the data\n");
+        if (sz == 0x40000) {
+            if (fread(ptr + addr + 0x30000, 1, sz >> 1, fp) > (sz >> 1))
+                fatal("rom_load_linear_inverted(): Error reading the upper half of the data\n");
+            if (fread(ptr + addr + 0x20000, sz >> 1, 1, fp) > (sz >> 1))
+                fatal("rom_load_linear_inverted(): Error reading the lower half of the data\n");
+        }
     }
 
     (void) fclose(fp);

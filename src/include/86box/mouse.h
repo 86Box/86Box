@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 extern int    mouse_type;
-extern int    mouse_mode; /* 1 = Absolute, 0 = Relative */
+extern int    mouse_input_mode; /* 1 = Absolute, 0 = Relative */
 extern int    mouse_timed; /* 1 = Timed, 0 = Constant */
 extern int    mouse_tablet_in_proximity;
 extern double mouse_x_abs;
@@ -93,6 +93,7 @@ extern void            mouse_scale_x(int x);
 extern void            mouse_scale_y(int y);
 extern void            mouse_scalef(double x, double y);
 extern void            mouse_scale(int x, int y);
+extern void            mouse_scale_axis(int axis, int val);
 extern void            mouse_set_z(int z);
 extern void            mouse_clear_z(void);
 extern void            mouse_subtract_z(int *delta_z, int min, int max, int invert);

@@ -667,7 +667,11 @@ opPOP_SS_w(uint32_t fetchdat)
     cpu_state.pc++;
     if (cpu_state.abrt)
         return 1;
+#ifdef OPS_286_386
+    x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#else
     x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#endif
 
     return 1;
 }
@@ -695,7 +699,11 @@ opPOP_SS_l(uint32_t fetchdat)
     cpu_state.pc++;
     if (cpu_state.abrt)
         return 1;
+#ifdef OPS_286_386
+    x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#else
     x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#endif
 
     return 1;
 }

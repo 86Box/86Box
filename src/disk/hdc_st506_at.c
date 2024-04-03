@@ -134,26 +134,27 @@ st506_at_log(const char *fmt, ...)
 #    define st506_at_log(fmt, ...)
 #endif
 
-static inline void
+static __inline void
 irq_raise(mfm_t *mfm)
 {
-    if (!(mfm->fdisk & 2))
-        picint(1 << 14);
-
     mfm->irqstat = 1;
+    if (!(mfm->fdisk & 2))
+        picint_common(1 << 14, PIC_IRQ_EDGE, 1, NULL);
 }
 
-static inline void
-irq_lower(UNUSED(mfm_t *mfm))
+static __inline void
+irq_lower(mfm_t *mfm)
 {
-    picintc(1 << 14);
+    mfm->irqstat = 0;
+    if (!(mfm->fdisk & 2))
+        picint_common(1 << 14, PIC_IRQ_EDGE, 0, NULL);
 }
 
-static void
+static __inline void
 irq_update(mfm_t *mfm)
 {
-    if (mfm->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(mfm->fdisk & 2))
-        picint(1 << 14);
+    uint8_t set = !(mfm->fdisk & 2) && mfm->irqstat;
+    picint_common(1 << 14, PIC_IRQ_EDGE, set, NULL);
 }
 
 /*
@@ -378,6 +379,7 @@ static void
 mfm_write(uint16_t port, uint8_t val, void *priv)
 {
     mfm_t *mfm = (mfm_t *) priv;
+    uint8_t old;
 
     st506_at_log("WD1003 write(%04x, %02x)\n", port, val);
 
@@ -408,7 +410,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x01f6: /* drive/head */
             mfm->head   = val & 0xF;
-            mfm->drvsel = (val & 0x10) ? 1 : 0;
+            mfm->drvsel = !!(val & 0x10);
             if (mfm->drives[mfm->drvsel].present)
                 mfm->status = STAT_READY | STAT_DSC;
             else
@@ -425,15 +427,15 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
                 timer_set_delay_u64(&mfm->callback_timer, 500 * MFM_TIME);
                 mfm->reset  = 1;
                 mfm->status = STAT_BUSY;
-            }
-
-            if (val & 0x04) {
+            } else if (!(mfm->fdisk & 0x04) && (val & 0x04)) {
                 /* Drive held in reset. */
                 timer_disable(&mfm->callback_timer);
                 mfm->status = STAT_BUSY;
             }
+            old = mfm->fdisk;
             mfm->fdisk = val;
-            irq_update(mfm);
+            if (!(val & 0x02) && (old & 0x02))
+                irq_update(mfm);
             break;
 
         default:

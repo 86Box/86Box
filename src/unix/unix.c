@@ -21,6 +21,10 @@
 #include <pwd.h>
 #include <stdatomic.h>
 
+#ifdef __APPLE__
+#    include "macOSXGlue.h"
+#endif
+
 #include <86box/86box.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -41,9 +45,8 @@
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
-#ifdef __APPLE__
-#    include "macOSXGlue.h"
-#endif
+#define __USE_GNU 1 /* shouldn't be done, yet it is */
+#include <pthread.h>
 
 static int      first_use = 1;
 static uint64_t StartingTime;
@@ -191,6 +194,7 @@ dynld_module(const char *name, dllimp_t *table)
 {
     dllimp_t *imp;
     void     *modhandle = dlopen(name, RTLD_LAZY | RTLD_GLOBAL);
+
     if (modhandle) {
         for (imp = table; imp->name != NULL; imp++) {
             if ((*(void **) imp->func = dlsym(modhandle, imp->name)) == NULL) {
@@ -199,6 +203,7 @@ dynld_module(const char *name, dllimp_t *table)
             }
         }
     }
+
     return modhandle;
 }
 
@@ -241,37 +246,33 @@ wchar_t *
 plat_get_string(int i)
 {
     switch (i) {
-        case IDS_2077:
+        case STRING_MOUSE_CAPTURE:
             return L"Click to capture mouse";
-        case IDS_2078:
+        case STRING_MOUSE_RELEASE:
             return L"Press CTRL-END to release mouse";
-        case IDS_2079:
+        case STRING_MOUSE_RELEASE_MMB:
             return L"Press CTRL-END or middle button to release mouse";
-        case IDS_2131:
+        case STRING_INVALID_CONFIG:
             return L"Invalid configuration";
-        case IDS_4099:
+        case STRING_NO_ST506_ESDI_CDROM:
             return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case IDS_2094:
-            return L"Failed to set up PCap";
-        case IDS_2095:
+        case STRING_PCAP_ERROR_NO_DEVICES:
             return L"No PCap devices found";
-        case IDS_2096:
+        case STRING_PCAP_ERROR_INVALID_DEVICE:
             return L"Invalid PCap device";
-        case IDS_2112:
-            return L"Unable to initialize SDL, libsdl2 is required";
-        case IDS_2133:
+        case STRING_GHOSTSCRIPT_ERROR_DESC:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case IDS_2130:
+        case STRING_PCAP_ERROR_DESC:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case IDS_2115:
+        case STRING_GHOSTSCRIPT_ERROR_TITLE:
             return L"Unable to initialize Ghostscript";
-        case IDS_2063:
+        case STRING_HW_NOT_AVAILABLE_MACHINE:
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
-        case IDS_2064:
+        case STRING_HW_NOT_AVAILABLE_VIDEO:
             return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
-        case IDS_2129:
+        case STRING_HW_NOT_AVAILABLE_TITLE:
             return L"Hardware not available";
-        case IDS_2143:
+        case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
     }
     return L"";
@@ -405,7 +406,7 @@ plat_mmap(size_t size, uint8_t executable)
 #if defined __APPLE__ && defined MAP_JIT
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
 #else
-    void *ret                    = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
+    void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #endif
     return (ret < 0) ? NULL : ret;
 }
@@ -427,6 +428,7 @@ plat_get_ticks_common(void)
 {
     uint64_t EndingTime;
     uint64_t ElapsedMicroseconds;
+
     if (first_use) {
         Frequency    = SDL_GetPerformanceFrequency();
         StartingTime = SDL_GetPerformanceCounter();
@@ -434,6 +436,7 @@ plat_get_ticks_common(void)
     }
     EndingTime          = SDL_GetPerformanceCounter();
     ElapsedMicroseconds = ((EndingTime - StartingTime) * 1000000) / Frequency;
+
     return ElapsedMicroseconds;
 }
 
@@ -441,12 +444,6 @@ uint32_t
 plat_get_ticks(void)
 {
     return (uint32_t) (plat_get_ticks_common() / 1000);
-}
-
-uint32_t
-plat_get_micro_ticks(void)
-{
-    return (uint32_t) plat_get_ticks_common();
 }
 
 void
@@ -458,11 +455,13 @@ plat_remove(char *path)
 void
 ui_sb_update_icon_state(int tag, int state)
 {
+    /* No-op. */
 }
 
 void
 ui_sb_update_icon(int tag, int active)
 {
+    /* No-op. */
 }
 
 void
@@ -474,25 +473,26 @@ plat_delay_ms(uint32_t count)
 void
 ui_sb_update_tip(int arg)
 {
+    /* No-op. */
 }
 
 void
 ui_sb_update_panes(void)
 {
+    /* No-op. */
 }
 
 void
 ui_sb_update_text(void)
 {
+    /* No-op. */
 }
 
 void
 path_get_dirname(char *dest, const char *path)
 {
     int   c = (int) strlen(path);
-    char *ptr;
-
-    ptr = (char *) path;
+    char *ptr = (char *) path;
 
     while (c > 0) {
         if (path[c] == '/' || path[c] == '\\') {
@@ -511,6 +511,7 @@ volatile int cpu_thread_run = 1;
 void
 ui_sb_set_text_w(wchar_t *wstr)
 {
+    /* No-op. */
 }
 
 int
@@ -569,9 +570,9 @@ main_thread(void *param)
         /* If needed, handle a screen resize. */
         if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
             if (vid_resize & 2)
-                plat_resize(fixed_size_x, fixed_size_y);
+                plat_resize(fixed_size_x, fixed_size_y, 0);
             else
-                plat_resize(scrnsz_x, scrnsz_y);
+                plat_resize(scrnsz_x, scrnsz_y, 0);
             atomic_store(&doresize_monitors[0], 1);
         }
     }
@@ -634,12 +635,10 @@ ui_msgbox_header(int flags, void *header, void *message)
 {
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
+
     if (!header)
-        header = (void *) (flags & MBX_ANSI) ? "86Box" : L"86Box";
-    if (header <= (void *) 7168)
-        header = (void *) plat_get_string((int) header);
-    if (message <= (void *) 7168)
-        message = (void *) plat_get_string((int) message);
+        header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
+
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
     msgbtn.flags    = 0;
@@ -679,13 +678,14 @@ void
 plat_get_exe_name(char *s, int size)
 {
     char *basepath = SDL_GetBasePath();
+
     snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? "86box" : "/86box");
 }
 
 void
 plat_power_off(void)
 {
-    confirm_exit = 0;
+    confirm_exit_cmdl = 0;
     nvr_save();
     config_save();
 
@@ -699,6 +699,7 @@ plat_power_off(void)
 void
 ui_sb_bugui(char *str)
 {
+    /* No-op. */
 }
 
 extern void sdl_blit(int x, int y, int w, int h);
@@ -709,13 +710,17 @@ typedef struct mouseinputdata {
     int deltaz;
     int mousebuttons;
 } mouseinputdata;
-SDL_mutex            *mousemutex;
-int real_sdl_w;
-int real_sdl_h;
+
+SDL_mutex *mousemutex;
+int        real_sdl_w;
+int        real_sdl_h;
+
 void
 ui_sb_set_ready(int ready)
 {
+    /* No-op. */
 }
+
 char *xargv[512];
 
 // From musl.
@@ -724,6 +729,7 @@ local_strsep(char **str, const char *sep)
 {
     char *s = *str;
     char *end;
+
     if (!s)
         return NULL;
     end = s + strcspn(s, sep);
@@ -732,6 +738,7 @@ local_strsep(char **str, const char *sep)
     else
         end = 0;
     *str = end;
+
     return s;
 }
 
@@ -741,10 +748,13 @@ plat_pause(int p)
     static wchar_t oldtitle[512];
     wchar_t        title[512];
 
+    if ((!!p) == dopause)
+        return;
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-    dopause = p;
+    do_pause(p);
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
@@ -761,6 +771,7 @@ plat_init_rom_paths(void)
 #ifndef __APPLE__
     if (getenv("XDG_DATA_HOME")) {
         char xdg_rom_path[1024] = { 0 };
+
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
         path_slash(xdg_rom_path);
         strncat(xdg_rom_path, "86Box/", 1024);
@@ -774,6 +785,7 @@ plat_init_rom_paths(void)
         rom_add_path(xdg_rom_path);
     } else {
         char home_rom_path[1024] = { 0 };
+
         snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
 
         if (!plat_dir_check(home_rom_path))
@@ -788,11 +800,12 @@ plat_init_rom_paths(void)
         char *xdg_rom_paths      = strdup(getenv("XDG_DATA_DIRS"));
         char *xdg_rom_paths_orig = xdg_rom_paths;
         char *cur_xdg_rom_path   = NULL;
+
         if (xdg_rom_paths) {
             while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
                 xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
             }
-            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
+            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ":")) != NULL) {
                 char real_xdg_rom_path[1024] = { '\0' };
                 strcat(real_xdg_rom_path, cur_xdg_rom_path);
                 path_slash(real_xdg_rom_path);
@@ -806,7 +819,7 @@ plat_init_rom_paths(void)
         rom_add_path("/usr/share/86Box/roms/");
     }
 #else
-    char  default_rom_path[1024] = { '\0 ' };
+    char  default_rom_path[1024] = { '\0' };
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
@@ -828,7 +841,9 @@ bool
 process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
 {
     bool err = false;
+
     *id      = atoi(xargv[1]);
+
     if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
         for (int curarg = 2; curarg < cmdargc; curarg++) {
             if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
@@ -868,6 +883,7 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
+
 uint32_t
 timer_onesec(uint32_t interval, void *param)
 {
@@ -882,19 +898,25 @@ monitor_thread(void *param)
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
         char  *line = NULL;
         size_t n;
+
         printf("86Box monitor console.\n");
         while (!exit_event) {
             if (feof(stdin))
                 break;
+#ifdef ENABLE_READLINE
             if (f_readline)
                 line = f_readline("(86Box) ");
             else {
+#endif
                 printf("(86Box) ");
-                getline(&line, &n, stdin);
+                (void) !getline(&line, &n, stdin);
+#ifdef ENABLE_READLINE
             }
+#endif
             if (line) {
                 int   cmdargc = 0;
                 char *linecpy;
+
                 line[strcspn(line, "\r\n")] = '\0';
                 linecpy                     = strdup(line);
                 if (!linecpy) {
@@ -989,6 +1011,7 @@ monitor_thread(void *param)
                     memset(fn, 0, sizeof(fn));
                     if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
                         int curarg = 2;
+
                         for (curarg = 2; curarg < cmdargc; curarg++) {
                             if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
                                 err = true;
@@ -1031,7 +1054,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1051,7 +1076,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1071,7 +1098,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1091,7 +1120,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1122,9 +1153,12 @@ main(int argc, char **argv)
 {
     SDL_Event event;
     void     *libedithandle;
+    int      ret = 0;
 
     SDL_Init(0);
-    pc_init(argc, argv);
+    ret = pc_init(argc, argv);
+    if (ret == 0)
+        return 0;
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
@@ -1159,7 +1193,7 @@ main(int argc, char **argv)
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
-    // plat_pause(0);
+    plat_pause(0);
 
     /* Initialize the rendering window, or fullscreen. */
 
@@ -1170,6 +1204,7 @@ main(int argc, char **argv)
     SDL_AddTimer(1000, timer_onesec, NULL);
     while (!is_quit) {
         static int mouse_inside = 0;
+
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_QUIT:
@@ -1244,6 +1279,7 @@ main(int argc, char **argv)
                 case SDL_RENDER_TARGETS_RESET:
                     {
                         extern void sdl_reinit_texture(void);
+
                         sdl_reinit_texture();
                         break;
                     }
@@ -1251,6 +1287,7 @@ main(int argc, char **argv)
                 case SDL_KEYUP:
                     {
                         uint16_t xtkey = 0;
+
                         switch (event.key.keysym.scancode) {
                             default:
                                 xtkey = sdl_to_xt[event.key.keysym.scancode];
@@ -1309,12 +1346,6 @@ plat_vidapi_name(int i)
     return "default";
 }
 
-void
-set_language(uint32_t id)
-{
-    lang_id = id;
-}
-
 /* Sets up the program language before initialization. */
 uint32_t
 plat_language_code(char *langcode)
@@ -1326,7 +1357,26 @@ plat_language_code(char *langcode)
 void
 plat_get_cpu_string(char *outbuf, uint8_t len) {
     char cpu_string[] = "Unknown";
+
     strncpy(outbuf, cpu_string, len);
+}
+
+void
+plat_set_thread_name(void *thread, const char *name)
+{
+#ifdef __APPLE__
+    if (thread) /* Apple pthread can only set self's name */
+        return;
+    char truncated[64];
+#else
+    char truncated[16];
+#endif
+    strncpy(truncated, name, sizeof(truncated) - 1);
+#ifdef __APPLE__
+    pthread_setname_np(truncated);
+#else
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
+#endif
 }
 
 /* Converts back the language code to LCID */
@@ -1340,15 +1390,21 @@ plat_language_code_r(uint32_t lcid, char *outbuf, int len)
 void
 joystick_init(void)
 {
+    /* No-op. */
 }
+
 void
 joystick_close(void)
 {
+    /* No-op. */
 }
+
 void
 joystick_process(void)
 {
+    /* No-op. */
 }
+
 void
 startblit(void)
 {
@@ -1365,9 +1421,11 @@ endblit(void)
 void
 ui_sb_mt32lcd(char *str)
 {
+    /* No-op. */
 }
 
 void
 ui_hard_reset_completed(void)
 {
+    /* No-op. */
 }

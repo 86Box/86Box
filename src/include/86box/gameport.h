@@ -24,6 +24,10 @@
 #define MAX_PLAT_JOYSTICKS  8
 #define MAX_JOYSTICKS       4
 
+#define MAX_JOY_AXES    16
+#define MAX_JOY_BUTTONS 32
+#define MAX_JOY_POVS    4
+
 #define JS_TYPE_NONE               0
 #define JS_TYPE_2AXIS_4BUTTON      1
 #define JS_TYPE_2AXIS_6BUTTON      2
@@ -36,7 +40,6 @@
 
 #define POV_X               0x80000000
 #define POV_Y               0x40000000
-#define SLIDER              0x20000000
 
 #define AXIS_NOT_PRESENT    -99999
 
@@ -47,46 +50,39 @@
 typedef struct plat_joystick_t {
     char name[260];
 
-    int a[8];
-    int b[32];
-    int p[4];
-    int s[2];
+    int a[MAX_JOY_AXES];
+    int b[MAX_JOY_BUTTONS];
+    int p[MAX_JOY_POVS];
 
     struct {
         char name[260];
         int  id;
-    } axis[8];
+    } axis[MAX_JOY_AXES];
 
     struct {
         char name[260];
         int  id;
-    } button[32];
+    } button[MAX_JOY_BUTTONS];
 
     struct {
         char name[260];
         int  id;
-    } pov[4];
-
-    struct {
-        char name[260];
-        int  id;
-    } slider[2];
+    } pov[MAX_JOY_POVS];
 
     int nr_axes;
     int nr_buttons;
     int nr_povs;
-    int nr_sliders;
 } plat_joystick_t;
 
 typedef struct joystick_t {
-    int axis[8];
-    int button[32];
-    int pov[4];
+    int axis[MAX_JOY_AXES];
+    int button[MAX_JOY_BUTTONS];
+    int pov[MAX_JOY_POVS];
 
     int plat_joystick_nr;
-    int axis_mapping[8];
-    int button_mapping[32];
-    int pov_mapping[4][2];
+    int axis_mapping[MAX_JOY_AXES];
+    int button_mapping[MAX_JOY_BUTTONS];
+    int pov_mapping[MAX_JOY_POVS][2];
 } joystick_t;
 
 typedef struct joystick_if_t {
@@ -104,9 +100,9 @@ typedef struct joystick_if_t {
     int         button_count;
     int         pov_count;
     int         max_joysticks;
-    const char *axis_names[8];
-    const char *button_names[32];
-    const char *pov_names[4];
+    const char *axis_names[MAX_JOY_AXES];
+    const char *button_names[MAX_JOY_BUTTONS];
+    const char *pov_names[MAX_JOY_POVS];
 } joystick_if_t;
 
 #ifdef __cplusplus
@@ -158,6 +154,19 @@ extern void  gameport_update_joystick_type(void);
 extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 
+extern const joystick_if_t joystick_2axis_2button;
+extern const joystick_if_t joystick_2axis_4button;
+extern const joystick_if_t joystick_3axis_2button;
+extern const joystick_if_t joystick_3axis_4button;
+extern const joystick_if_t joystick_4axis_4button;
+extern const joystick_if_t joystick_2axis_6button;
+extern const joystick_if_t joystick_2axis_8button;
+
+extern const joystick_if_t joystick_ch_flightstick_pro;
+
+extern const joystick_if_t joystick_sw_pad;
+
+extern const joystick_if_t joystick_tm_fcs;
 #ifdef __cplusplus
 }
 #endif

@@ -11,7 +11,10 @@
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/prt_devs.h>
-#include <86box/net_plip.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/network.h>
 
 lpt_port_t lpt_ports[PARALLEL_MAX];
 
@@ -161,6 +164,15 @@ lpt_read(uint16_t port, void *priv)
         default:
             break;
     }
+
+    return ret;
+}
+
+uint8_t
+lpt_read_port(int port, uint16_t reg)
+{
+    lpt_port_t *dev = &(lpt_ports[port]);
+    uint8_t ret = lpt_read(reg, dev);
 
     return ret;
 }

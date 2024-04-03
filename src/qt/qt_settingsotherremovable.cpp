@@ -140,8 +140,8 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 
     model = new QStandardItemModel(0, 2, this);
     ui->tableViewZIP->setModel(model);
-    model->setHeaderData(0, Qt::Horizontal, "Bus");
-    model->setHeaderData(1, Qt::Horizontal, "Type");
+    model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Type"));
     model->insertRows(0, ZIP_NUM);
     for (int i = 0; i < ZIP_NUM; i++) {
         auto idx = model->index(i, 0);

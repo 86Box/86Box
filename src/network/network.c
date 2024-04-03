@@ -67,11 +67,8 @@
 #include <86box/ui.h>
 #include <86box/timer.h>
 #include <86box/network.h>
-#include <86box/net_3c501.h>
-#include <86box/net_3c503.h>
 #include <86box/net_ne2000.h>
 #include <86box/net_pcnet.h>
-#include <86box/net_plip.h>
 #include <86box/net_wd8003.h>
 
 #ifdef _WIN32
@@ -115,6 +112,9 @@ static const device_t *net_cards[] = {
     &threec503_device,
     &pcnet_am79c960_device,
     &pcnet_am79c961_device,
+    &de220p_device,
+    &ne1000_compat_device,
+    &ne2000_compat_device,
     &ne1000_device,
     &ne2000_device,
     &pcnet_am79c960_eb_device,
@@ -129,8 +129,14 @@ static const device_t *net_cards[] = {
     &wd8013epa_device,
     &pcnet_am79c973_device,
     &pcnet_am79c970a_device,
+    &dec_tulip_device,
     &rtl8029as_device,
+    &rtl8139c_plus_device,
+    &dec_tulip_21140_device,
+    &dec_tulip_21140_vpc_device,
+    &dec_tulip_21040_device,
     &pcnet_am79c960_vlb_device,
+    &modem_device,
     NULL
 };
 
@@ -448,6 +454,7 @@ netcard_t *
 network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
 {
     netcard_t *card       = calloc(1, sizeof(netcard_t));
+    int net_type          = net_cards_conf[net_card_current].net_type;
     card->queued_pkt.data = calloc(1, NET_MAX_FRAME);
     card->card_drv        = card_drv;
     card->rx              = rx;
@@ -464,7 +471,12 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
         network_queue_init(&card->queues[i]);
     }
 
-    switch (net_cards_conf[net_card_current].net_type) {
+    if (!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem") && net_type >= NET_TYPE_PCAP) {
+        /* Force SLiRP here. Modem only operates on non-Ethernet frames. */
+        net_type = NET_TYPE_SLIRP;
+    }
+
+    switch (net_type) {
         case NET_TYPE_SLIRP:
             card->host_drv      = net_slirp_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, NULL, net_drv_error);
@@ -492,7 +504,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
-            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:<br /><br />%s<br /><br />%ls", plat_get_string(IDS_2167), net_drv_error, plat_get_string(IDS_2168));
+            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:<br /><br />%s<br /><br />%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
             ui_msgbox(MBX_ERROR, tempmsg);
             net_cards_conf[net_card_current].net_type = NET_TYPE_NONE;
         }
@@ -579,7 +591,8 @@ network_reset(void)
         }
 
         net_card_current = i;
-        device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
+        if (net_cards_conf[i].device_num > NET_INTERNAL)
+            device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
     }
 }
 
@@ -684,7 +697,8 @@ network_dev_available(int id)
 {
     int available = (net_cards_conf[id].device_num > 0);
 
-    if (net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0))
+    if ((net_cards_conf[id].net_type == NET_TYPE_PCAP) &&
+        (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0))
         available = 0;
 
     // TODO: Handle VDE device

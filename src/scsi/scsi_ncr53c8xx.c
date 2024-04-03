@@ -280,6 +280,7 @@ typedef struct ncr53c8xx_t {
     uint8_t swide;
     uint8_t gpcntl;
     uint8_t last_command;
+    uint8_t sodl;
 
     int                command_complete;
     ncr53c8xx_request *current;
@@ -1704,6 +1705,8 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
             dev->stest3 = val;
             break;
         case 0x54:
+            dev->sodl = val;
+            break;
         case 0x55:
             break;
             CASE_SET_REG32(scratchb, 0x5c)
@@ -1989,6 +1992,9 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             if ((dev->sstat1 & PHASE_MASK) == PHASE_MI) {
                 ncr53c8xx_log("NCR 810: Read SBDL %02X\n", dev->msg[0]);
                 return dev->msg[0];
+            } else if (dev->stest2 & 0x80) {
+                ncr53c8xx_log("NCR 810: Read SBDL %02X\n", dev->sodl);
+                return dev->sodl;
             }
             ncr53c8xx_log("NCR 810: Read SBDL 00\n");
             return 0;
@@ -2622,6 +2628,8 @@ ncr53c8xx_init(const device_t *info)
     ncr53c8xx_soft_reset(dev);
 
     timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
+
+    scsi_bus_set_speed(dev->bus, 10000000.0);
 
     return dev;
 }

@@ -44,6 +44,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_8514a.h>
@@ -73,16 +74,16 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 
     switch (addr) {
         case 0:
-            svga_out((dev && dev->on) ? 0x2ec : 0x3c8, val, svga);
+            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2ec : 0x3c8, val, svga);
             break;
         case 1:
-            svga_out((dev && dev->on) ? 0x2ed : 0x3c9, val, svga);
+            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2ed : 0x3c9, val, svga);
             break;
         case 2:
-            svga_out((dev && dev->on) ? 0x2ea : 0x3c6, val, svga);
+            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2ea : 0x3c6, val, svga);
             break;
         case 3:
-            svga_out((dev && dev->on) ? 0x2eb : 0x3c7, val, svga);
+            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2eb : 0x3c7, val, svga);
             break;
         default:
             ramdac->regs[addr & 0xf] = val;
@@ -129,7 +130,8 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
                             ramdac->render = svga_render_4bpp_highres;
                             break;
                         case 0x83:
-                            ramdac->render = svga_render_8bpp_highres;
+                            /*FIXME*/
+                            ramdac->render = svga_render_8bpp_clone_highres;
                             break;
                         case 0xa0:
                         case 0xb0:
@@ -154,7 +156,8 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
                             ramdac->render = svga_render_RGBA8888_highres;
                             break;
                         default:
-                            ramdac->render = svga_render_8bpp_highres;
+                            /*FIXME*/
+                            ramdac->render = svga_render_8bpp_clone_highres;
                             break;
                     }
                     break;
@@ -178,16 +181,16 @@ ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 
     switch (addr) {
         case 0:
-            temp = svga_in((dev && dev->on) ? 0x2ec : 0x3c8, svga);
+            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2ec : 0x3c8, svga);
             break;
         case 1:
-            temp = svga_in((dev && dev->on) ? 0x2ed : 0x3c9, svga);
+            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2ed : 0x3c9, svga);
             break;
         case 2:
-            temp = svga_in((dev && dev->on) ? 0x2ea : 0x3c6, svga);
+            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2ea : 0x3c6, svga);
             break;
         case 3:
-            temp = svga_in((dev && dev->on) ? 0x2eb : 0x3c7, svga);
+            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2eb : 0x3c7, svga);
             break;
         case 4:
         case 8:
@@ -234,7 +237,8 @@ ati68860_ramdac_init(UNUSED(const device_t *info))
     ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) malloc(sizeof(ati68860_ramdac_t));
     memset(ramdac, 0, sizeof(ati68860_ramdac_t));
 
-    ramdac->render = svga_render_8bpp_highres;
+    /*FIXME*/
+    ramdac->render = svga_render_8bpp_clone_highres;
 
     return ramdac;
 }

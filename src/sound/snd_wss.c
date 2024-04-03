@@ -80,21 +80,28 @@ static void
 wss_get_buffer(int32_t *buffer, int len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
-    const int32_t *opl_buf = NULL;
-
-    if (wss->opl_enabled)
-        opl_buf = wss->opl.update(wss->opl.priv);
 
     ad1848_update(&wss->ad1848);
+    for (int c = 0; c < len * 2; c++)
+        buffer[c] += wss->ad1848.buffer[c] / 2;
+
+    wss->ad1848.pos = 0;
+}
+
+static void
+wss_get_music_buffer(int32_t *buffer, int len, void *priv)
+{
+    wss_t *wss = (wss_t *) priv;
+    const int32_t *opl_buf = NULL;
+
+    opl_buf = wss->opl.update(wss->opl.priv);
+
     for (int c = 0; c < len * 2; c++) {
         if (opl_buf)
             buffer[c] += opl_buf[c];
-        buffer[c] += wss->ad1848.buffer[c] / 2;
     }
 
-    if (wss->opl_enabled)
-        wss->opl.reset_buffer(wss->opl.priv);
-    wss->ad1848.pos = 0;
+    wss->opl.reset_buffer(wss->opl.priv);
 }
 
 void *
@@ -130,6 +137,9 @@ wss_init(UNUSED(const device_t *info))
                   &wss->ad1848);
 
     sound_add_handler(wss_get_buffer, wss);
+
+    if (wss->opl_enabled)
+        music_add_handler(wss_get_music_buffer, wss);
 
     return wss;
 }
@@ -213,6 +223,9 @@ ncr_audio_init(UNUSED(const device_t *info))
     wss->pos_regs[1] = 0x51;
 
     sound_add_handler(wss_get_buffer, wss);
+
+    if (wss->opl_enabled)
+        music_add_handler(wss_get_music_buffer, wss);
 
     return wss;
 }

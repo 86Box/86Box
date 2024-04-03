@@ -55,7 +55,8 @@
 #define WRBUF_DELAY 1
 #define RSM_FRAC    10
 
-#define OPL_FREQ FREQ_48000
+// #define OPL_FREQ FREQ_48000
+#define OPL_FREQ FREQ_49716
 
 // Channel types
 enum {
@@ -189,7 +190,7 @@ typedef struct {
     pc_timer_t timers[2];
 
     int     pos;
-    int32_t buffer[SOUNDBUFLEN * 2];
+    int32_t buffer[MUSICBUFLEN * 2];
 } nuked_drv_t;
 
 enum {
@@ -1382,10 +1383,19 @@ nuked_generate_resampled(nuked_t *dev, int32_t *bufp)
 }
 
 void
+nuked_generate_raw(nuked_t *dev, int32_t *bufp)
+{
+    nuked_generate(dev, dev->samples);
+
+    bufp[0] = (int32_t) dev->samples[0];
+    bufp[1] = (int32_t) dev->samples[1];
+}
+
+void
 nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 {
     for (uint32_t i = 0; i < num; i++) {
-        nuked_generate_resampled(dev, sndptr);
+        nuked_generate_raw(dev, sndptr);
         sndptr += 2;
     }
 }
@@ -1533,14 +1543,14 @@ nuked_drv_update(void *priv)
 {
     nuked_drv_t *dev = (nuked_drv_t *) priv;
 
-    if (dev->pos >= sound_pos_global)
+    if (dev->pos >= music_pos_global)
         return dev->buffer;
 
     nuked_generate_stream(&dev->opl,
                           &dev->buffer[dev->pos * 2],
-                          sound_pos_global - dev->pos);
+                          music_pos_global - dev->pos);
 
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < music_pos_global; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }
@@ -1581,17 +1591,17 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
         nuked_write_reg_buffered(&dev->opl, dev->port, val);
 
         switch (dev->port) {
-            case 0x02: /* Timer 1 */
+            case 0x002: /* Timer 1 */
                 dev->timer_count[0] = val;
                 nuked_log("Timer 0 count now: %i\n", dev->timer_count[0]);
                 break;
 
-            case 0x03: /* Timer 2 */
+            case 0x003: /* Timer 2 */
                 dev->timer_count[1] = val;
                 nuked_log("Timer 1 count now: %i\n", dev->timer_count[1]);
                 break;
 
-            case 0x04: /* Timer control */
+            case 0x004: /* Timer control */
                 if (val & CTRL_RESET) {
                     nuked_log("Resetting timer status...\n");
                     dev->status &= ~STAT_TMR_OVER;
@@ -1601,6 +1611,10 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
                     nuked_timer_control(dev, 1, val & CTRL_TMR2_START);
                     nuked_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
                 }
+                break;
+
+            case 0x105:
+                dev->opl.newm = val & 0x01;
                 break;
 
             default:
@@ -1656,5 +1670,6 @@ const fm_drv_t nuked_opl_drv = {
     &nuked_drv_update,
     &nuked_drv_reset_buffer,
     &nuked_drv_set_do_cycles,
+    NULL,
     NULL,
 };

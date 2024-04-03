@@ -156,7 +156,7 @@ machine_available(int m)
 }
 
 void
-pit_irq0_timer(int new_out, int old_out)
+pit_irq0_timer(int new_out, int old_out, UNUSED(void *priv))
 {
     if (new_out && !old_out)
         picint(1);
@@ -168,13 +168,16 @@ pit_irq0_timer(int new_out, int old_out)
 void
 machine_common_init(UNUSED(const machine_t *model))
 {
+    uint8_t cpu_requires_fast_pit = is486 || (!is286 && is8086 && (cpu_s->rspeed >= 8000000));
+    cpu_requires_fast_pit = cpu_requires_fast_pit && !cpu_16bitbus;
+
     /* System devices first. */
     pic_init();
     dma_init();
 
     int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
     /* Select fast PIT if needed */
-    if (((pit_mode == -1) && is486) || (pit_mode == 1))
+    if (((pit_mode == -1) && cpu_requires_fast_pit) || (pit_mode == 1))
         pit_type += 2;
 
     pit_common_init(pit_type, pit_irq0_timer, NULL);

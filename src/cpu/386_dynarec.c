@@ -48,6 +48,7 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
@@ -226,12 +227,12 @@ fetch_ea_16_long(uint32_t rmdat)
 #define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 #ifdef USE_DYNAREC
-int             cycles_main = 0;
-static int      cycles_old  = 0;
+int32_t         cycles_main = 0;
+static int32_t  cycles_old  = 0;
 static uint64_t tsc_old     = 0;
 
 #    ifdef USE_ACYCS
-int acycs = 0;
+int32_t acycs = 0;
 #    endif
 
 void
@@ -267,6 +268,12 @@ exec386_dynarec_int(void)
 {
     cpu_block_end = 0;
     x86_was_reset = 0;
+
+    if (trap == 2) {
+        /* Handle the T bit in the new TSS first. */
+        CPU_BLOCK_END();
+        goto block_ended;
+    }
 
     while (!cpu_block_end) {
 #    ifndef USE_NEW_DYNAREC
@@ -321,13 +328,14 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
     }
 
+block_ended:
     if (!cpu_state.abrt && trap) {
+        dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
         trap = 0;
 #    ifndef USE_NEW_DYNAREC
         oldcs = CS;
 #    endif
         cpu_state.oldpc = cpu_state.pc;
-        dr[6] |= 0x4000;
         x86_int(1);
     }
 
@@ -542,7 +550,7 @@ exec386_dynarec_dyn(void)
 #    endif
                 CPU_BLOCK_END();
 
-            if (cpu_state.flags & T_FLAG)
+            if ((cpu_state.flags & T_FLAG) || (trap == 2))
                 CPU_BLOCK_END();
             if (smi_line)
                 CPU_BLOCK_END();
@@ -676,24 +684,24 @@ exec386_dynarec_dyn(void)
 }
 
 void
-exec386_dynarec(int cycs)
+exec386_dynarec(int32_t cycs)
 {
     int      vector;
     int      tempi;
-    int      cycdiff;
-    int      oldcyc;
-    int      oldcyc2;
+    int32_t  cycdiff;
+    int32_t  oldcyc;
+    int32_t  oldcyc2;
     uint64_t oldtsc;
     uint64_t delta;
 
-    int cyc_period = cycs / 2000; /*5us*/
+    int32_t cyc_period = cycs / 2000; /*5us*/
 
 #    ifdef USE_ACYCS
     acycs = 0;
 #    endif
     cycles_main += cycs;
     while (cycles_main > 0) {
-        int cycles_start;
+        int32_t cycles_start;
 
         cycles += cyc_period;
         cycles_start = cycles;
@@ -711,7 +719,7 @@ exec386_dynarec(int cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (!CACHE_ON()) /*Interpret block*/
+            if ((!CACHE_ON()) || cpu_override_dynarec) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
@@ -799,14 +807,14 @@ exec386_dynarec(int cycs)
 #endif
 
 void
-exec386(int cycs)
+exec386(int32_t cycs)
 {
     int      vector;
     int      tempi;
-    int      cycdiff;
-    int      oldcyc;
-    int      cycle_period;
-    int      ins_cycles;
+    int32_t  cycdiff;
+    int32_t  oldcyc;
+    int32_t  cycle_period;
+    int32_t  ins_cycles;
     uint32_t addr;
 
     cycles += cycs;

@@ -130,8 +130,16 @@ extern const device_t sis_85c471_device;
 extern const device_t sis_85c496_device;
 extern const device_t sis_85c496_ls486e_device;
 extern const device_t sis_85c50x_device;
+extern const device_t sis_550x_85c503_device;
+extern const device_t sis_85c50x_5503_device;
+extern const device_t sis_550x_device;
 extern const device_t sis_5511_device;
 extern const device_t sis_5571_device;
+extern const device_t sis_5581_device;
+extern const device_t sis_5591_1997_device;
+extern const device_t sis_5591_device;
+extern const device_t sis_5600_1997_device;
+extern const device_t sis_5600_device;
 
 /* ST */
 extern const device_t stpc_client_device;
@@ -144,6 +152,8 @@ extern const device_t stpc_lpt_device;
 /* UMC */
 extern const device_t umc_8886f_device;
 extern const device_t umc_8886af_device;
+extern const device_t umc_8886bf_device;
+extern const device_t umc_8890_device;
 extern const device_t umc_hb4_device;
 
 /* VIA */
@@ -174,6 +184,8 @@ extern const device_t vlsi_scamp_device;
 extern const device_t wd76c10_device;
 
 /* Miscellaneous Hardware */
+extern const device_t nec_mate_unk_device;
+
 extern const device_t phoenix_486_jumper_device;
 extern const device_t phoenix_486_jumper_pci_device;
 

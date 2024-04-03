@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: sk_SK\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Podujatia"
 
@@ -40,14 +48,11 @@ msgstr "&Pamätať si veľkosť a polohu"
 msgid "Re&nderer"
 msgstr "&Renderer"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -123,6 +128,9 @@ msgstr "&Zachovať pomer strán"
 
 msgid "&Integer scale"
 msgstr "&Celočíselné škálovanie"
+
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Celočíselné škálovanie"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "Nastavenia pre E&GA a (S)VGA"
@@ -349,6 +357,9 @@ msgstr "Procesor:"
 msgid "Speed:"
 msgstr "Rýchlosť:"
 
+msgid "Frequency:"
+msgstr "Frekvencia:"
+
 msgid "FPU:"
 msgstr "Koprocesor:"
 
@@ -382,8 +393,8 @@ msgstr "Grafika:"
 msgid "Voodoo Graphics"
 msgstr "Použiť grafický akcelerátor Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Grafika IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Grafika IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Grafika XGA"
@@ -406,16 +417,16 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Zvuková karta 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Zvuková karta 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Zvuková karta 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"
@@ -583,9 +594,6 @@ msgstr "Kontrola BPB"
 msgid "CD-ROM drives:"
 msgstr "Mechaniky CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Skorá mechanika"
-
 msgid "MO drives:"
 msgstr "Magnetooptické mechaniky:"
 
@@ -618,12 +626,6 @@ msgstr "Zariadenie ISABugger"
 
 msgid "POST card"
 msgstr "Karta pre kódy POST"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -718,11 +720,11 @@ msgstr "Iné príslušenstvo"
 msgid "Click to capture mouse"
 msgstr "Kliknite pre zabráni myši"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Stlačte F8+F12 pre uvoľnenie myši"
+msgid "Press %1 to release mouse"
+msgstr "Stlačte %1 pre uvoľnenie myši"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Stlačte F8+F12 alebo prostredné tlačidlo na uvoľnenie myši"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Stlačte %1 alebo prostredné tlačidlo na uvoľnenie myši"
 
 msgid "Bus"
 msgstr "Zbernica"
@@ -754,9 +756,6 @@ msgstr "%i čakací stav(y)"
 msgid "Type"
 msgstr "Typ"
 
-msgid "Failed to set up PCap"
-msgstr "Nastala chyba pri inicializácii knižnice PCap"
-
 msgid "No PCap devices found"
 msgstr "Neboli nájdené žiadne PCap zariadenia"
 
@@ -787,15 +786,6 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Žiadne"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "Nebolo možné nahrať klávesnicové skratky."
-
-msgid "Unable to register raw input."
-msgstr "Nebolo možné zaregistrovať raw input."
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
 
@@ -807,9 +797,6 @@ msgstr "Rozšírené sektorové obrazy"
 
 msgid "Flux images"
 msgstr "Obrazy magnetického toku"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Nastala chyba pri inicializácii knižnice SDL, je potreba SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Naozaj chcete resetovať emulovaný počítač?"
@@ -859,26 +846,14 @@ msgstr "Emulátor starých počítačov\n\nAutori: Miran Grča (OBattler), Richa
 msgid "Hardware not available"
 msgstr "Hardvér nie je dostupný"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Uistite sa, že je nainštalovaný libpcap a používate sieťové pripojenie s ním kompatibilné."
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "Uistite sa, že je nainštalovaný %1 a používate sieťové pripojenie s ním kompatibilné."
 
 msgid "Invalid configuration"
 msgstr "Neplatná konfigurácia"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " je potrebná pre automatický prevod PostScript dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PostScriptovú tlačiareň budú uložené ako PostScript (.ps) súbory."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 je potrebná pre automatický prevod PostScript dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PostScriptovú tlačiareň budú uložené ako PostScript (.ps) súbory."
 
 msgid "Entering fullscreen mode"
 msgstr "Vstup do režimu celej obrazovky"
@@ -898,8 +873,8 @@ msgstr "Neresetovať"
 msgid "CD-ROM images"
 msgstr "Obraz CD-ROM disku"
 
-msgid "%hs Device Configuration"
-msgstr "Konfigurácia zariadenia %hs"
+msgid "%1 Device Configuration"
+msgstr "Konfigurácia zariadenia %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor je v režime spánku"
@@ -955,14 +930,8 @@ msgstr "Resetovať"
 msgid "ACPI shutdown"
 msgstr "Vypnúť cez rozhranie ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Pevný disk (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Pevný disk (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "CD-ROM mechaniky pre rozhranie MFM/RLL alebo ESDI nikdy neexistovali"
@@ -996,9 +965,6 @@ msgstr "Nebolo možné zapisovať do súboru"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Obraz disku vo formáte HDI alebo HDX s veľkosťou sektora inou ako 512 bajtov nie sú podporované."
-
-msgid "USB is not yet supported"
-msgstr "USB zatiaľ nie je podporované."
 
 msgid "Disk image file already exists"
 msgstr "Súbor obrazu disku už existuje"
@@ -1072,9 +1038,6 @@ msgstr "Časové pečiatky nadradeného a podradeného disku nesúhlasia"
 msgid "Could not fix VHD timestamp."
 msgstr "Nebolo možné opraviť časovú pečiatku VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1089,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
@@ -1218,3 +1163,12 @@ msgstr "Pomalý"
 
 msgid "Fast"
 msgstr "Rýchly"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatická pauza pri strate fokusu okna"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox už nie je podporovaný"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Vývoj správcu WinBox sa zastavil v roku 2022 z dôvodu nedostatku správcov. Keďže naše úsilie smerujeme k ešte lepšiemu systému 86Box, rozhodli sme sa, že správca WinBox už nebude podporovaný.\n\nProstredníctvom WinBoxu nebudú poskytované žiadne ďalšie aktualizácie a v prípade, že ho budete naďalej používať s novšími verziami programu 86Box, môžete sa stretnúť s nesprávnym správaním. Všetky hlásenia o chybách týkajúce sa správania WinBoxu budú uzavreté ako neplatné.\n\nNa stránke 86box.net nájdete zoznam iných správcov, ktoré môžete používať."

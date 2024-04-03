@@ -45,7 +45,7 @@ void
 machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 {
     machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | pci_switch);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -58,31 +58,6 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
     device_add(&sio_zb_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_ami_device);
-}
-
-void
-machine_at_award_common_init(const machine_t *model)
-{
-    machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
-
-    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 03 = Slot 1 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 04 = Slot 2 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 06 = Slot 4 */
-    pci_register_slot(0x07, PCI_CARD_SCSI,        1, 2, 3, 4); /* 07 = SCSI   */
-    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-
-    if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-#if 0
-    device_add(&keyboard_ps2_pci_device);
-#endif
-    device_add(&keyboard_ps2_ami_pci_device);
 }
 
 void
@@ -181,7 +156,7 @@ machine_at_dellxp60_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -290,8 +265,8 @@ machine_at_revenge_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/revenge/1009af2_.bio",
-                                    "roms/machines/revenge/1009af2_.bi1",
+    ret = bios_load_linear_combined("roms/machines/revenge/1013af2_.bio",
+                                    "roms/machines/revenge/1013af2_.bi1",
                                     0x1c000, 128);
 
     if (bios_only || !ret)
@@ -304,12 +279,34 @@ machine_at_revenge_init(const machine_t *model)
     return ret;
 }
 
+void
+machine_at_award_common_init(const machine_t *model)
+{
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 03 = Slot 1 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 04 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 06 = Slot 4 */
+    pci_register_slot(0x07, PCI_CARD_SCSI,        1, 2, 3, 4); /* 07 = SCSI   */
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sio_zb_device);
+    device_add(&intel_flash_bxt_device);
+}
+
 int
-machine_at_586mc1_init(const machine_t *model)
+machine_at_586is_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/586mc1/IS.34",
+    ret = bios_load_linear("roms/machines/586is/IS.34",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -317,8 +314,6 @@ machine_at_586mc1_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
-    device_add(&sio_device);
-    device_add(&intel_flash_bxt_device);
     device_add(&i430lx_device);
 
     return ret;

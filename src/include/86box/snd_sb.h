@@ -25,15 +25,18 @@
 #include <86box/snd_opl.h>
 #include <86box/snd_sb_dsp.h>
 
-#define SADLIB  1 /* No DSP */
-#define SB1     2 /* DSP v1.05 */
-#define SB15    3 /* DSP v2.00 */
-#define SB2     4 /* DSP v2.01 - needed for high-speed DMA */
-#define SBPRO   5 /* DSP v3.00 */
-#define SBPRO2  6 /* DSP v3.02 + OPL3 */
-#define SB16    7 /* DSP v4.05 + OPL3 */
-#define SBAWE32 8 /* DSP v4.13 + OPL3 */
-#define SBAWE64 9 /* DSP v4.16 + OPL3 */
+enum {
+    SADLIB  = 1,     /* No DSP */
+    SB1,             /* DSP v1.05 */
+    SB15,            /* DSP v2.00 */
+    SB2,             /* DSP v2.01 - needed for high-speed DMA */
+    SBPRO,           /* DSP v3.00 */
+    SBPRO2,          /* DSP v3.02 + OPL3 */
+    SB16,            /* DSP v4.05 + OPL3 */
+    SBAWE32,         /* DSP v4.12 + OPL3 */
+    SBAWE32PNP,      /* DSP v4.13 + OPL3 */
+    SBAWE64          /* DSP v4.16 + OPL3 */
+};
 
 /* SB 2.0 CD version */
 typedef struct sb_ct1335_mixer_t {
@@ -123,6 +126,43 @@ typedef struct sb_ct1745_mixer_t {
     int output_filter; /* for clones */
 } sb_ct1745_mixer_t;
 
+/* ESS AudioDrive */
+typedef struct ess_mixer_t {
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
+    double mic_l;
+    double mic_r;
+    double auxb_l;
+    double auxb_r;
+    double speaker;
+    /*see sb_ct1745_mixer for values for input selector*/
+    int32_t input_selector;
+    /* extra values for input selector */
+    #define INPUT_MIXER_L 128
+    #define INPUT_MIXER_R 256
+
+    int input_filter;
+    int in_filter_freq;
+    int output_filter;
+
+    int stereo;
+    int stereo_isleft;
+
+    uint8_t index;
+    uint8_t regs[256];
+
+    uint8_t ess_id_str[4];
+    uint8_t ess_id_str_pos;
+} ess_mixer_t;
+
 typedef struct sb_t {
     uint8_t  cms_enabled;
     uint8_t  opl_enabled;
@@ -135,12 +175,13 @@ typedef struct sb_t {
         sb_ct1335_mixer_t mixer_sb2;
         sb_ct1345_mixer_t mixer_sbpro;
         sb_ct1745_mixer_t mixer_sb16;
+        ess_mixer_t       mixer_ess;
     };
     mpu_t  *mpu;
     emu8k_t emu8k;
     void   *gameport;
 
-    int pos;
+    int pnp;
 
     uint8_t pos_regs[8];
     uint8_t pnp_rom[512];
@@ -160,7 +201,12 @@ extern void    sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ct1745_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ct1745_mixer_reset(sb_t *sb);
 
+extern void    sb_ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
+extern void    sb_ess_mixer_reset(sb_t *sb);
+
 extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv);
+extern void sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);

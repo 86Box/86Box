@@ -1,3 +1,11 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: uk_UA\n"
+"X-Source-Language: en_US\n"
+
 msgid "&Action"
 msgstr "&Дія"
 
@@ -40,14 +48,11 @@ msgstr "&Запам'ятати розмір і становище"
 msgid "Re&nderer"
 msgstr "&Рендеринг"
 
-msgid "&SDL (Software)"
-msgstr "&SDL (Software)"
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
 
-msgid "SDL (&Hardware)"
-msgstr "SDL (&Hardware)"
-
-msgid "SDL (&OpenGL)"
-msgstr "SDL (&OpenGL)"
+msgid "Qt (&OpenGL)"
+msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0)"
@@ -123,6 +128,9 @@ msgstr "&Квадратні пікселі (зберегти відношенн�
 
 msgid "&Integer scale"
 msgstr "&Цілісночисленне масштабування"
+
+msgid "4:&3 Integer scale"
+msgstr "Цілісночисленне масштабування 4:&3"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "Налаштування E&GA/(S)VGA"
@@ -349,6 +357,9 @@ msgstr "Тип ЦП:"
 msgid "Speed:"
 msgstr "Швидкість:"
 
+msgid "Frequency:"
+msgstr "Частота:"
+
 msgid "FPU:"
 msgstr "FPU:"
 
@@ -382,8 +393,8 @@ msgstr "Відеокарта:"
 msgid "Voodoo Graphics"
 msgstr "Прискорювач Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Прискорювач IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Прискорювач IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Прискорювач XGA"
@@ -406,16 +417,16 @@ msgstr "Джойстик 3..."
 msgid "Joystick 4..."
 msgstr "Джойстик 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Звукова карта 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Звукова карта 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Звукова карта 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Звукова карта 4:"
 
 msgid "MIDI Out Device:"
@@ -583,9 +594,6 @@ msgstr "Перевіряти BPB"
 msgid "CD-ROM drives:"
 msgstr "Дисководи CD-ROM:"
 
-msgid "Earlier drive"
-msgstr "Більш ранній дисковод"
-
 msgid "MO drives:"
 msgstr "Магнітооптичні дисководи:"
 
@@ -618,12 +626,6 @@ msgstr "Пристрій ISABugger"
 
 msgid "POST card"
 msgstr "Карта POST"
-
-msgid "FONT_SIZE"
-msgstr "9"
-
-msgid "FONT_NAME"
-msgstr "Segoe UI"
 
 msgid "86Box"
 msgstr "86Box"
@@ -718,11 +720,11 @@ msgstr "Інша периферія"
 msgid "Click to capture mouse"
 msgstr "Клацніть мишею для захвату курсора"
 
-msgid "Press F8+F12 to release mouse"
-msgstr "Натисніть F8+F12, щоб звільнити курсор"
+msgid "Press %1 to release mouse"
+msgstr "Натисніть %1, щоб звільнити курсор"
 
-msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Натисніть F8+F12 або середню кнопку миші, щоб звільнити курсор"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Натисніть %1 або середню кнопку миші, щоб звільнити курсор"
 
 msgid "Bus"
 msgstr "Шина"
@@ -754,9 +756,6 @@ msgstr "%i WS"
 msgid "Type"
 msgstr "Тип"
 
-msgid "Failed to set up PCap"
-msgstr "Не вдалося налаштувати PCap"
-
 msgid "No PCap devices found"
 msgstr "Пристрої PCap не знайдені"
 
@@ -787,15 +786,6 @@ msgstr "Система управління польотом Thrustmaster"
 msgid "None"
 msgstr "Ні"
 
-msgid "Unable to load keyboard accelerators."
-msgstr "Неможливо завантажити прискорювачі клавіатури."
-
-msgid "Unable to register raw input."
-msgstr "Неможливо зарреєструвати необроблене (RAW) введення."
-
-msgid "%u"
-msgstr "%u"
-
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u МБ (CHS: %i, %i, %i)"
 
@@ -807,9 +797,6 @@ msgstr "Розширені образи секторів"
 
 msgid "Flux images"
 msgstr "Образи Flux"
-
-msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Неможливо ініціалізувати SDL, потрібно SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Ви впевнені, що хочете виконати холодне перезавантаження емульованої машини?"
@@ -851,7 +838,7 @@ msgid "About 86Box"
 msgstr "Про 86Box"
 
 msgid "86Box v"
-msgstr "86Box v."
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
@@ -859,26 +846,14 @@ msgstr "Емулятор старих комп'ютерів\n\nАвтори: Mir
 msgid "Hardware not available"
 msgstr "Обладнання недоступне"
 
-msgid "WinPcap"
-msgstr "WinPcap"
-
-msgid "libpcap"
-msgstr "libpcap"
-
-msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Переконайтесь, що libpcap встановлений і ваше мережеве з'єднання, сумісне з libpcap."
+msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+msgstr "Переконайтесь, що %1 встановлений і ваше мережеве з'єднання, сумісне з libpcap."
 
 msgid "Invalid configuration"
 msgstr "Неприпустима конфігурація"
 
-msgid "gsdll32.dll"
-msgstr "gsdll32.dll"
-
-msgid "libgs"
-msgstr "libgs"
-
-msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " потрібно для автоматичного перетворення файлів PostScript в PDF.\n\nВсі документи, відправлені на загальний принтер PostScript, будуть збережені у вигляді файлів PostScript (.ps)."
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 потрібно для автоматичного перетворення файлів PostScript в PDF.\n\nВсі документи, відправлені на загальний принтер PostScript, будуть збережені у вигляді файлів PostScript (.ps)."
 
 msgid "Entering fullscreen mode"
 msgstr "Вхід у повноекранний режим"
@@ -898,8 +873,8 @@ msgstr "Не перезавантажувати"
 msgid "CD-ROM images"
 msgstr "Образи CD-ROM"
 
-msgid "%hs Device Configuration"
-msgstr "Конфігурація пристрою %hs"
+msgid "%1 Device Configuration"
+msgstr "Конфігурація пристрою %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Монітор у сплячому режимі"
@@ -955,14 +930,8 @@ msgstr "Холодне перезавантаження"
 msgid "ACPI shutdown"
 msgstr "Сигнал завершення ACPI"
 
-msgid "Hard disk (%s)"
-msgstr "Жорсткий диск (%s)"
-
-msgid "%01i:%01i"
-msgstr "%01i:%01i"
-
-msgid "%01i"
-msgstr "%01i"
+msgid "Hard disk (%1)"
+msgstr "Жорсткий диск (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL або ESDI дисководів CD-ROM ніколи не існувало"
@@ -996,9 +965,6 @@ msgstr "Неможливо записати файл"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Образи HDI або HDX з розміром сектора, відмінним від 512, не підтримуються."
-
-msgid "USB is not yet supported"
-msgstr "USB поки не підтримується"
 
 msgid "Disk image file already exists"
 msgstr "Файл образу диска вже існує"
@@ -1072,9 +1038,6 @@ msgstr "Тимчасові мітки батьківського та дочір
 msgid "Could not fix VHD timestamp."
 msgstr "Не вдалося виправити тимчасову позначку VHD."
 
-msgid "%01i:%02i"
-msgstr "%01i:%02i"
-
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
 
@@ -1089,24 +1052,6 @@ msgstr "IDE"
 
 msgid "ATAPI"
 msgstr "ATAPI"
-
-msgid "MFM/RLL (%01i:%01i)"
-msgstr "MFM/RLL (%01i:%01i)"
-
-msgid "XTA (%01i:%01i)"
-msgstr "XTA (%01i:%01i)"
-
-msgid "ESDI (%01i:%01i)"
-msgstr "ESDI (%01i:%01i)"
-
-msgid "IDE (%01i:%01i)"
-msgstr "IDE (%01i:%01i)"
-
-msgid "ATAPI (%01i:%01i)"
-msgstr "ATAPI (%01i:%01i)"
-
-msgid "SCSI (%01i:%02i)"
-msgstr "SCSI (%01i:%02i)"
 
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
@@ -1219,3 +1164,11 @@ msgstr "Повільний"
 msgid "Fast"
 msgstr "Швидкий"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Автопауза при втраті фокусу"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox більше не підтримується"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Розробку менеджера WinBox було припинено у 2022 році через брак супровідників. Оскільки ми спрямовуємо наші зусилля на те, щоб зробити 86Box ще кращим, ми прийняли рішення більше не підтримувати WinBox як менеджер.\n\nБільше ніяких оновлень не буде надаватися через WinBox, і ви можете зіткнутися з некоректною поведінкою, якщо продовжите використовувати його з новими версіями 86Box. Будь-які повідомлення про помилки, пов'язані з поведінкою WinBox, будуть закриті як недійсні.\n\nПерейдіть на 86box.net для отримання списку інших менеджерів, які ви можете використовувати."

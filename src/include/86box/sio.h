@@ -19,17 +19,21 @@
 extern void vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv);
 
 extern const device_t acc3221_device;
+extern const device_t ali5105_device;
 extern const device_t ali5123_device;
 extern const device_t f82c710_device;
 extern const device_t f82c606_device;
 extern const device_t fdc37c651_device;
 extern const device_t fdc37c651_ide_device;
 extern const device_t fdc37c661_device;
+extern const device_t fdc37c661_ide_device;
+extern const device_t fdc37c661_ide_sec_device;
 extern const device_t fdc37c663_device;
 extern const device_t fdc37c663_ide_device;
 extern const device_t fdc37c665_device;
 extern const device_t fdc37c665_ide_device;
 extern const device_t fdc37c665_ide_pri_device;
+extern const device_t fdc37c665_ide_sec_device;
 extern const device_t fdc37c666_device;
 extern const device_t fdc37c67x_device;
 extern const device_t fdc37c669_device;
@@ -42,6 +46,7 @@ extern const device_t fdc37c935_device;
 extern const device_t fdc37m60x_device;
 extern const device_t fdc37m60x_370_device;
 extern const device_t it8661f_device;
+extern const device_t it8671f_device;
 extern const device_t i82091aa_device;
 extern const device_t i82091aa_398_device;
 extern const device_t i82091aa_ide_pri_device;
@@ -70,8 +75,17 @@ extern const device_t ps1_m2133_sio;
 #if defined(DEV_BRANCH) && defined(USE_SIO_DETECT)
 extern const device_t sio_detect_device;
 #endif
+extern const device_t um8663af_device;
+extern const device_t um8663af_ide_device;
+extern const device_t um8663af_sec_device;
+extern const device_t um8663bf_device;
+extern const device_t um8663bf_ide_device;
+extern const device_t um8663bf_sec_device;
 extern const device_t um8669f_device;
+extern const device_t um8669f_ide_device;
+extern const device_t um8669f_ide_sec_device;
 extern const device_t via_vt82c686_sio_device;
+extern const device_t w83787f_88h_device;
 extern const device_t w83787f_device;
 extern const device_t w83787f_ide_device;
 extern const device_t w83787f_ide_en_device;

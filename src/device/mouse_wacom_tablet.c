@@ -215,7 +215,7 @@ wacom_process_settings_dword(mouse_wacom_t *wacom, uint32_t dword)
             break;
     }
 
-    mouse_mode = !wacom->settings_bits.coord_sys;
+    mouse_input_mode = !wacom->settings_bits.coord_sys;
     wacom->x_res = wacom->y_res = wacom_resolution_values[wacom->settings_bits.resolution];
 }
 
@@ -235,7 +235,7 @@ wacom_reset(mouse_wacom_t *wacom)
     wacom->settings_bits.remote_mode = wacom->remote_req = 0;
     wacom->settings_bits.out_of_range_data               = 0;
 
-    mouse_mode = 1;
+    mouse_input_mode = 1;
     wacom_process_settings_dword(wacom, 0xA21BC800);
 }
 
@@ -257,7 +257,7 @@ wacom_reset_artpad(mouse_wacom_t *wacom)
     wacom->settings_bits.out_of_range_data = 0;
 
     wacom_process_settings_dword(wacom, 0xE203C000);
-    mouse_mode = 1;
+    mouse_input_mode = 1;
 }
 
 static void
@@ -364,8 +364,8 @@ wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
         } else if (!memcmp(wacom->data_rec, "IT", 2)) {
             sscanf((const char *) wacom->data_rec, "IT%d", &wacom->interval);
         } else if (!memcmp(wacom->data_rec, "DE", 2) && wacom->settings_bits.cmd_set == WACOM_CMDSET_IIS) {
-            sscanf((const char *) wacom->data_rec, "DE%d", &mouse_mode);
-            mouse_mode = !mouse_mode;
+            sscanf((const char *) wacom->data_rec, "DE%d", &mouse_input_mode);
+            mouse_input_mode = !mouse_input_mode;
             plat_mouse_capture(0);
         } else if (!memcmp(wacom->data_rec, "SU", 2)) {
             sscanf((const char *) wacom->data_rec, "SU%d", &wacom->suppressed_increment);
@@ -520,7 +520,7 @@ wacom_transmit_prepare(mouse_wacom_t *wacom, int x, int y)
         data[1] = ((x & 0x3F80) >> 7) & 0x7F;
         data[0] |= (((x & 0xC000) >> 14) & 3);
 
-        if (mouse_mode == 0 && wacom->settings_bits.cmd_set == WACOM_CMDSET_IIS) {
+        if (mouse_input_mode == 0 && wacom->settings_bits.cmd_set == WACOM_CMDSET_IIS) {
             data[0] |= (!!(x < 0)) << 2;
             data[3] |= (!!(y < 0)) << 2;
         }
@@ -563,7 +563,7 @@ wacom_report_timer(void *priv)
 {
     mouse_wacom_t *wacom           = (mouse_wacom_t *) priv;
     double         milisecond_diff = ((double) (tsc - wacom->old_tsc)) / cpuclock * 1000.0;
-    int            relative_mode   = (mouse_mode == 0);
+    int            relative_mode   = (mouse_input_mode == 0);
     int            x               = (relative_mode ? wacom->rel_x : wacom->abs_x);
     int            y               = (relative_mode ? wacom->rel_y : wacom->abs_y);
     int            x_diff          = abs(relative_mode ? wacom->rel_x : (wacom->abs_x - wacom->last_abs_x));
