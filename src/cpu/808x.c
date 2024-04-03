@@ -493,7 +493,7 @@ reset_808x(int hard)
         _opseg[3] = &cpu_state.seg_ds;
     }
 
-#if 0
+#if 1
     load_cs(0xFFFF);
     cpu_state.pc = 0;
 #else

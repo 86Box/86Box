@@ -358,8 +358,8 @@ biu_print_cycle(void)
     if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
         if (biu_state >= BIU_STATE_PF) {
             if (biu_wait)
-                pclog("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
-                      pfq_pos, lpBiuStates[BIU_STATE_WAIT]);
+                pclog("[%04X:%04X] [%i, %i] (%i) %s (%i)\n", CS, cpu_state.pc, dma_state, dma_wait_states,
+                      pfq_pos, lpBiuStates[BIU_STATE_WAIT], wait_states);
             else {
                 char temp[16] = { 0 };
 
@@ -381,6 +381,9 @@ do_wait(void)
 
     if (dma_wait_states > 0)
         dma_wait_states--;
+
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H))
+        pclog("BIU: do_wait(): %i, %i\n", wait_states, dma_wait_states);
 }
 
 static void
@@ -485,7 +488,6 @@ do_bus_access(void)
                     pfq_in = readmembf(pfq_ip);
                 break;
             case BUS_IO:
-                wait_states++;
                 bus_do_io(io_type);
                 // if (cpu_state.eaaddr == 0x41)
                     // pclog("I/O port 41h: First Tw: cycles = %i\n", cycles_ex);
@@ -519,6 +521,8 @@ biu_queue_has_room(void)
     else
         return pfq_pos < 4;
 }
+
+static int bus_access_done = 0;
 
 static void
 biu_do_cycle(void)
@@ -588,6 +592,11 @@ biu_do_cycle(void)
                     biu_state = biu_next_state;
                 }
 
+                if ((BUS_CYCLE == BUS_T3) && (biu_state == BIU_STATE_EU)) {
+                    if ((bus_request_type != 0) && ((bus_request_type & BUS_ACCESS_TYPE) == BUS_IO))
+                        wait_states++;
+                }
+
                 if ((BUS_CYCLE == BUS_T3) && ((wait_states != 0) || (dma_wait_states != 0)))
                     biu_wait = 1;
                 else {
@@ -595,6 +604,9 @@ biu_do_cycle(void)
                     BUS_CYCLE_NEXT;
                 }
             }
+
+            if (bus_access_done && !biu_wait)
+                bus_access_done = 0;
             break;
     }
 }
@@ -611,8 +623,12 @@ biu_cycle(void)
     if (biu_state >= BIU_STATE_PF) {
         if (BUS_CYCLE == BUS_T2)
             pfq_schedule();
-        else if ((BUS_CYCLE == BUS_T3) || biu_is_last_tw())
-            do_bus_access();
+        else if (((BUS_CYCLE == BUS_T3) && !biu_wait) || biu_is_last_tw()) {
+            if (!bus_access_done) {
+                do_bus_access();
+                bus_access_done = 1;
+            }
+        }
     }
 
     run_dma_cycle();

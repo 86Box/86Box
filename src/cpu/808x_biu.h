@@ -17,7 +17,7 @@
 #ifndef EMU_808X_BIU_H
 #define EMU_808X_BIU_H
 
-#define DEBUG_SEG 0x0000
+#define DEBUG_SEG 0xd000
 // #define DEBUG_SEG 0x0f3c
 // #define DEBUG_SEG 0x1e1f
 // #define DEBUG_SEG 0xf000
@@ -33,8 +33,8 @@
 // #define DEBUG_OFF_H 0xefff
 // #define DEBUG_OFF_L 0x0000
 // #define DEBUG_OFF_H 0xffff
-#define DEBUG_OFF_L 0x1000
-#define DEBUG_OFF_H 0x1364
+#define DEBUG_OFF_L 0x0000
+#define DEBUG_OFF_H 0xffff
 
 #define BUS_OUT         1
 #define BUS_HIGH        2
