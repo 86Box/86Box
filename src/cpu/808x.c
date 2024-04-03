@@ -1646,7 +1646,7 @@ daa(void)
     if (old_cf) {
         if ((AL >= 0x1a) && (AL <= 0x7f))
             cpu_state.flags |= V_FLAG;
-    } else if ((AL >= 0x1a) && (AL <= 0x7f))
+    } else if ((AL >= 0x7a) && (AL <= 0x7f))
         cpu_state.flags |= V_FLAG;
 
     if (((AL & 0x0f) > 9) || (cpu_state.flags & A_FLAG)) {
@@ -1678,7 +1678,7 @@ das(void)
         if ((AL >= 0x9a) && (AL <= 0xdf))
             cpu_state.flags |= V_FLAG;
     } else if (old_af && !old_cf) {
-        if (((AL >= 0x80) && (AL <= 0x85)) || ((AL >= 0x80) && (AL <= 0xe5)))
+        if (((AL >= 0x80) && (AL <= 0x85)) || ((AL >= 0xa0) && (AL <= 0xe5)))
             cpu_state.flags |= V_FLAG;
     } else if (!old_af && old_cf) {
         if ((AL >= 0x80) && (AL <= 0xdf))
@@ -1696,7 +1696,7 @@ das(void)
         cpu_state.flags &= ~A_FLAG;
 
     if ((old_al > al_check) || old_cf) {
-        AL -= 60;
+        AL -= 0x60;
         cpu_state.flags |= C_FLAG;
     } else
         cpu_state.flags &= ~C_FLAG;
