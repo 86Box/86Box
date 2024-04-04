@@ -8,10 +8,15 @@
 
 class QScreen;
 namespace util {
+static constexpr auto UUID_MIN_LENGTH = 36;
 /* Creates extension list for qt filedialog */
 QString DlgFilter(std::initializer_list<QString> extensions, bool last = false);
 /* Returns screen the widget is on */
 QScreen *screenOfWidget(QWidget *widget);
+QString currentUuid();
+void storeCurrentUuid();
+bool compareUuid();
+void generateNewMacAdresses();
 };
 
 #endif
