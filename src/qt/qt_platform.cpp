@@ -686,7 +686,7 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
         return;
     }
     QByteArray result = process->readAll();
-    auto command_result = QString(result).split(": ").last();
+    auto command_result = QString(result).split(": ").last().trimmed();
     if(!command_result.isEmpty()) {
         cpu_string = command_result;
     }

@@ -77,6 +77,7 @@
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
 #include <86box/snd_opl.h>
+#include <86box/version.h>
 
 static int   cx;
 static int   cy;
@@ -1884,7 +1885,16 @@ save_general(void)
     else
         ini_section_delete_var(cat, "do_auto_pause");
 
-    if (strnlen(uuid, sizeof(uuid) - 1) > 0)
+    char cpu_buf[128] = { 0 };
+    plat_get_cpu_string(cpu_buf, 128);
+    ini_section_set_string(cat, "host_cpu", cpu_buf);
+
+    if (EMU_BUILD_NUM != 0)
+        ini_section_set_int(cat, "emu_build_num", EMU_BUILD_NUM);
+    else
+        ini_section_delete_var(cat, "emu_build_num");
+
+  if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
     else
         ini_section_delete_var(cat, "uuid");
