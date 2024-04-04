@@ -35,6 +35,7 @@ private slots:
 
 private slots:
     void on_comboBoxMachineType_currentIndexChanged(int index);
+    void on_checkBoxFPUSoftfloat_stateChanged(int state);
 
 private:
     Ui::SettingsMachine *ui;
