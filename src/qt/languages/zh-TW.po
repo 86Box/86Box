@@ -439,10 +439,10 @@ msgid "Standalone MPU-401"
 msgstr "獨立 MPU-401"
 
 msgid "Use FLOAT32 sound"
-msgstr "使用單精度浮點 (FLOAT32)"
+msgstr "使用單精度浮點 (FLOAT32) 音訊"
 
 msgid "FM synth driver"
-msgstr "調頻合成器驅動器"
+msgstr "FM synth driver"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (更準確)"
