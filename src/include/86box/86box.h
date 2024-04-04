@@ -35,6 +35,9 @@
 #define MAX_PREV_IMAGES    4
 #define MAX_IMAGE_PATH_LEN 2048
 
+/* Max UUID Length */
+#define MAX_UUID_LEN 64
+
 /* Default language 0xFFFF = from system, 0x409 = en-US */
 #define DEFAULT_LANGUAGE 0x0409
 
@@ -167,10 +170,11 @@ extern uint16_t key_prefix_2_2;
 extern uint16_t key_uncapture_1;
 extern uint16_t key_uncapture_2;
 
-extern char exe_path[2048];    /* path (dir) of executable */
-extern char usr_path[1024];    /* path (dir) of user data */
-extern char cfg_path[1024];    /* full path of config file */
-extern int  open_dir_usr_path; /* default file open dialog directory of usr_path */
+extern char exe_path[2048];     /* path (dir) of executable */
+extern char usr_path[1024];     /* path (dir) of user data */
+extern char cfg_path[1024];     /* full path of config file */
+extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
+extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif

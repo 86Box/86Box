@@ -65,7 +65,7 @@ machine_at_sp4_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     /* Excluded: 02, 03, 04, 05, 06, 07, 08, 09, 0A, 0B, 0C, 0D, 0E, 0F, 10, 11, 12, 13, 14 */
@@ -422,7 +422,7 @@ machine_at_excaliburpci2_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1994_nvr_device);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x08, PCI_CARD_IDE,         0, 0, 0, 0);

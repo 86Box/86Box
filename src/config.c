@@ -210,6 +210,12 @@ load_general(void)
     ini_section_delete_var(cat, "window_coordinates");
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
+
+    p = ini_section_get_string(cat, "uuid", NULL);
+    if (p != NULL)
+        strncpy(uuid, p, sizeof(uuid) - 1);
+    else
+        strncpy(uuid, "", sizeof(uuid) - 1);
 }
 
 /* Load monitor section. */
@@ -1887,6 +1893,11 @@ save_general(void)
         ini_section_set_int(cat, "emu_build_num", EMU_BUILD_NUM);
     else
         ini_section_delete_var(cat, "emu_build_num");
+
+  if (strnlen(uuid, sizeof(uuid) - 1) > 0)
+        ini_section_set_string(cat, "uuid", uuid);
+    else
+        ini_section_delete_var(cat, "uuid");
 
     ini_delete_section_if_empty(config, cat);
 }

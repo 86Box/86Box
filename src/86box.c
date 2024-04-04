@@ -206,6 +206,7 @@ int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether
                                                                          also apply when maximized. */
 int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
                                                                          loss */
+char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 
 /* Statistics. */
 extern int mmuflush;

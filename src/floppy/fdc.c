@@ -780,24 +780,26 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             }
             return;
         case 4:
-            if (!(val & 0x80)) {
-                timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                fdc->interrupt = -6;
-            }
-            if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
-                if (fdc->power_down) {
-                    timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                    fdc->interrupt = -5;
-                } else {
+            if (!(fdc->flags & FDC_FLAG_PS1)) {
+                if (!(val & 0x80)) {
                     timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                    fdc->interrupt = -1;
+                    fdc->interrupt = -6;
+                }
+                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
+                    if (fdc->power_down) {
+                        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+                        fdc->interrupt = -5;
+                    } else {
+                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                        fdc->interrupt = -1;
 
-                    fdc->perp &= 0xfc;
+                        fdc->perp &= 0xfc;
 
-                    for (i = 0; i < FDD_NUM; i++)
-                        ui_sb_update_icon(SB_FLOPPY | i, 0);
+                        for (i = 0; i < FDD_NUM; i++)
+                            ui_sb_update_icon(SB_FLOPPY | i, 0);
 
-                    fdc_ctrl_reset(fdc);
+                        fdc_ctrl_reset(fdc);
+                    }
                 }
             }
             fdc->dsr = val;

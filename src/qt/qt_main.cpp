@@ -30,6 +30,7 @@
 #include <QFont>
 #include <QDialog>
 #include <QMessageBox>
+#include <QPushButton>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -71,6 +72,7 @@ extern "C" {
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
 #include "qt_unixmanagerfilter.hpp"
+#include "qt_util.hpp"
 
 // Void Cast
 #define VC(x) const_cast<wchar_t *>(x)
@@ -218,6 +220,25 @@ main(int argc, char *argv[])
         fatalbox.setTextFormat(Qt::TextFormat::RichText);
         fatalbox.exec();
         return 6;
+    }
+
+    // UUID / copy / move detection
+    if(!util::compareUuid()) {
+        QMessageBox movewarnbox;
+        movewarnbox.setIcon(QMessageBox::Icon::Warning);
+        movewarnbox.setText("This machine might have been moved or copied.");
+        movewarnbox.setInformativeText("In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure.");
+        const QPushButton *movedButton  = movewarnbox.addButton(QObject::tr("I Moved It"), QMessageBox::AcceptRole);
+        const QPushButton *copiedButton = movewarnbox.addButton(QObject::tr("I Copied It"), QMessageBox::DestructiveRole);
+        QPushButton       *cancelButton = movewarnbox.addButton(QObject::tr("Cancel"), QMessageBox::RejectRole);
+        movewarnbox.setDefaultButton(cancelButton);
+        movewarnbox.exec();
+        if (movewarnbox.clickedButton() == copiedButton) {
+            util::storeCurrentUuid();
+            util::generateNewMacAdresses();
+        } else if (movewarnbox.clickedButton() == movedButton) {
+            util::storeCurrentUuid();
+        }
     }
 
 #ifdef Q_OS_WINDOWS
