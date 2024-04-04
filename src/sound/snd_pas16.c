@@ -154,10 +154,14 @@ typedef struct pas16_t {
 
     uint16_t base;
     uint16_t new_base;
+    uint16_t sb_compat_base;
+    uint16_t mpu401_base;
+    uint16_t dma8_dat;
+    uint16_t ticks;
     uint16_t pcm_dat_l;
     uint16_t pcm_dat_r;
 
-    int16_t  pcm_buffer[2][SOUNDBUFLEN * 2];
+    int32_t  pcm_buffer[2][SOUNDBUFLEN * 2];
 
     int      pos;
     int      midi_r;
@@ -371,7 +375,11 @@ pas16_in(uint16_t port, void *priv)
             break;
 
         case 0xec03:
-            ret = pas16->type ? 0x0c : 0x04;
+#ifdef NEWER_PAS16
+            ret = pas16->type ? 0x0c : 0x06;
+#else
+            ret = pas16->type ? 0x0f : 0x06;
+#endif
             break;
 
         case 0xf000:
@@ -390,7 +398,13 @@ pas16_in(uint16_t port, void *priv)
             break;
 
         case 0xf400:
-            ret = pas16->compat;
+            ret = (pas16->compat & 0xf3);
+
+            if (pas16->dsp.sb_irqm8 || pas16->dsp.sb_irqm16 || pas16->dsp.sb_irqm401)
+                ret |= 0x04;
+
+            if (pas16->mpu->mode == M_UART)
+                ret |= 0x08;
             break;
         case 0xf401:
             ret = pas16->compat_base;
@@ -402,11 +416,13 @@ pas16_in(uint16_t port, void *priv)
 
         case 0xfc00:    /* Board model */
             /* PAS16 or PASPlus */
-            ret = pas16->type ? 0x04 : 0x01;
+            ret = pas16->type ? 0x0c : 0x01;
             break;
         case 0xfc03:    /* Master mode read */
             /* AT bus, XT/AT timing */
-            ret = pas16->type ? (0x20 | 0x10 | 0x01) : (0x10 | 0x01);
+            ret = 0x11;
+            if (pas16->type)
+                ret |= 0x20;
             break;
 
         default:
@@ -458,7 +474,6 @@ pas16_reset_pcm(void *priv)
     pas16->pcm_ctrl = 0x00;
 
     pas16->stereo_lr = 0;
-    pas16->dma8_ff = 0;
 
     pas16->irq_stat &= 0xd7;
 
@@ -490,6 +505,7 @@ pas16_reset_regs(void *priv)
     pitf_ctr_set_gate(pit, 1, 0);
 
     pas16_reset_pcm(pas16);
+    pas16->dma8_ff = 0;
 
     pas16->irq_ena = 0x00;
     pas16->irq_stat = 0x00;
@@ -522,6 +538,11 @@ pas16_reset(void *priv)
     pas16_io_handler(pas16, 1);
 
     pas16->new_base = 0x0388;
+
+    pas16->sb_compat_base = 0x0220;
+    pas16->compat = 0x02;
+    pas16->compat_base = 0x02;
+    sb_dsp_setaddr(&pas16->dsp, pas16->sb_compat_base);
 }
 
 static void
@@ -546,25 +567,25 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x0801:
             pas16->irq_stat &= ~val;
+            if (!(pas16->irq_stat & 0x1f))
+                picintc(1 << pas16->irq);
             break;
         case 0x0802:
+            pas16_update(pas16);
+
+            pitf_ctr_set_gate(pas16->pit, 1, !!(val & 0x80));
+            pitf_ctr_set_gate(pas16->pit, 0, !!(val & 0x40));
+
+            pas16->stereo_lr = 0;
+            pas16->dma8_ff = 0;
+
             if ((val & 0x20) && !(pas16->audiofilt & 0x20)) {
                 pas16_log("Reset.\n");
-                val = 0x20;
                 pas16_reset_regs(pas16);
             }
 
-            pas16_update(pas16);
-            pitf_ctr_set_gate(pas16->pit, 0, 1);
-            pitf_ctr_set_gate(pas16->pit, 1, 1);
-            // pas16->pit->counters[0].gate = !!(val & 0x40);
-            // pas16->pit->counters[0].enabled = !!(val & 0x40);
-            // pas16->pit->counters[1].gate = !!(val & 0x80);
-            // pas16->pit->counters[1].enabled = !!(val & 0x80);
-            pas16->stereo_lr = 0;
-            pas16->irq_stat &= 0xdf;
-            pas16->dma8_ff = 0;
             pas16->audiofilt = val;
+
             if (val & 0x1f) {
                 pas16->filter = 1;
                 switch (val & 0x1f) {
@@ -595,6 +616,10 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x0803:
             pas16->irq_ena = val & 0x1f;
+            pas16->irq_stat &= ((val & 0x1f) | 0xe0);
+
+            if (!(pas16->irq_stat & 0x1f))
+                picintc(1 << pas16->irq);
             break;
 
         case 0x0c00:
@@ -607,7 +632,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             if ((val & PAS16_PCM_ENA) && !(pas16->pcm_ctrl & PAS16_PCM_ENA)) {
                 /* Guess */
                 pas16->stereo_lr = 0;
-                pas16->irq_stat &= 0xdf;
+                pas16->irq_stat &= 0xd7;
                 /* Needed for 8-bit DMA to work correctly on a 16-bit DMA channel. */
                 pas16->dma8_ff = 0;
             }
@@ -713,10 +738,10 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xf400:
-            pas16->compat = val;
+            pas16->compat = val & 0xf3;
             pas16_log("PCM compression is now %sabled\n", (val & 0x10) ? "en" : "dis");
             if (pas16->compat & 0x02)
-                sb_dsp_setaddr(&pas16->dsp, ((pas16->compat_base & 0xf) << 4) | 0x200);
+                sb_dsp_setaddr(&pas16->dsp, pas16->sb_compat_base);
             else
                 sb_dsp_setaddr(&pas16->dsp, 0);
             if (pas16->compat & 0x01)
@@ -726,14 +751,17 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0xf401:
             pas16->compat_base = val;
+            pas16->sb_compat_base = ((pas16->compat_base & 0xf) << 4) | 0x200;
+            pas16_log("SB Compatibility base: %04X\n", pas16->sb_compat_base);
             if (pas16->compat & 0x02)
-                sb_dsp_setaddr(&pas16->dsp, ((pas16->compat_base & 0xf) << 4) | 0x200);
+                sb_dsp_setaddr(&pas16->dsp, pas16->sb_compat_base);
             if (pas16->compat & 0x01)
                 mpu401_change_addr(pas16->mpu, ((pas16->compat_base & 0xf0) | 0x300));
             break;
 
         case 0xf802:
             pas16->sb_irqdma = val;
+            mpu401_setirq(pas16->mpu, pas16_sb_irqs[val & 7]);
             sb_dsp_setirq(&pas16->dsp, pas16_sb_irqs[(val >> 3) & 7]);
             sb_dsp_setdma8(&pas16->dsp, pas16_sb_dmas[(val >> 6) & 3]);
             pas16_log("pas16_out : set SB IRQ %i DMA %i.\n", pas16_sb_irqs[(val >> 3) & 7],
@@ -775,17 +803,32 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
     - A 16-bit sample always takes two ctr_clock() ticks.
  */
 static uint16_t
+pas16_dma_channel_read(pas16_t *pas16, int channel)
+{
+    int status;
+    uint16_t ret;
+
+    if (pas16->pcm_ctrl & PAS16_PCM_DMA_ENA) {
+        if (pas16->dma >= 5) {
+            dma_channel_advance(pas16->dma);
+            status = dma_channel_read_only(pas16->dma);
+        } else
+            status = dma_channel_read(pas16->dma);
+        ret = (status == DMA_NODATA) ? 0x0000 : (status & 0xffff);
+    } else
+        ret = 0x0000;
+
+    return ret;
+}
+
+static uint16_t
 pas16_dma_readb(pas16_t *pas16, uint8_t timer1_ticks)
 {
     uint16_t ret;
 
-    if (pas16->pcm_ctrl & PAS16_PCM_DMA_ENA)
-        ret = dma_channel_read(pas16->dma);
-    else
-        ret = 0x0000;
+    ret = pas16_dma_channel_read(pas16, pas16->dma);
 
-    for (uint8_t i = 0; i < timer1_ticks; i++)
-        pitf_ctr_clock(pas16->pit, 1);
+    pas16->ticks += timer1_ticks;
 
     return ret;
 }
@@ -795,16 +838,14 @@ pas16_dma_readw(pas16_t *pas16, uint8_t timer1_ticks)
 {
     uint16_t ret;
 
-    if (pas16->pcm_ctrl & PAS16_PCM_DMA_ENA) {
-        ret = dma_channel_read(pas16->dma);
+    if (pas16->dma >= 5)
+        ret = pas16_dma_channel_read(pas16, pas16->dma);
+    else {
+        ret = pas16_dma_channel_read(pas16, pas16->dma);
+        ret |= (pas16_dma_channel_read(pas16, pas16->dma) << 8);
+    }
 
-        if (pas16->dma < 5)
-            ret |= (dma_channel_read(pas16->dma) << 8);
-    } else
-        ret = 0x0000;
-
-    for (uint8_t i = 0; i < timer1_ticks; i++)
-        pitf_ctr_clock(pas16->pit, 1);
+    pas16->ticks += timer1_ticks;
 
     return ret;
 }
@@ -812,20 +853,19 @@ pas16_dma_readw(pas16_t *pas16, uint8_t timer1_ticks)
 static uint16_t
 pas16_readdmab(pas16_t *pas16)
 {
-    static uint16_t temp;
     uint16_t ret;
 
     if (pas16->dma >= 5) {
         if (pas16->dma8_ff)
-            temp >>= 8;
+            pas16->dma8_dat >>= 8;
         else
-            temp = pas16_dma_readb(pas16, 1);
+            pas16->dma8_dat = pas16_dma_readb(pas16, 1);
 
         pas16->dma8_ff = !pas16->dma8_ff;
     } else
-        temp = pas16_dma_readb(pas16, 1);
+        pas16->dma8_dat = pas16_dma_readb(pas16, 1);
 
-    ret = ((temp & 0xff) ^ 0x80) << 8;
+    ret = ((pas16->dma8_dat & 0xff) ^ 0x80) << 8;
 
     return ret;
 }
@@ -844,8 +884,9 @@ static uint16_t
 pas16_readdmaw_stereo(pas16_t *pas16)
 {
     uint16_t ret;
+    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 2;
 
-    ret = pas16_dma_readw(pas16, 2);
+    ret = pas16_dma_readw(pas16, ticks);
 
     return ret;
 }
@@ -895,17 +936,17 @@ pas16_pit_timer0(int new_out, UNUSED(int old_out), void *priv)
     pas16_t *pas16 = (pas16_t *) pit->dev_priv;
     uint16_t temp;
 
-    pas16_update(pas16);
+    if (!pas16->pit->counters[0].gate)
+        return;
+
+    if (!dma_channel_readable(pas16->dma))
+        return;
+
     pas16_update_irq(pas16);
 
-    pas16->irq_stat |= PAS16_INT_SAMP;
-    if (pas16->irq_ena & PAS16_INT_SAMP) {
-        pas16_log("INT SAMP.\n");
-        picint(1 << pas16->irq);
-    }
+    if (((pas16->pcm_ctrl & PAS16_PCM_ENA) == PAS16_PCM_ENA) && (pit->counters[1].m & 2) && new_out) {
+        pas16->ticks = 0;
 
-    if (((pas16->pcm_ctrl & PAS16_PCM_AND_DMA_ENA) == PAS16_PCM_AND_DMA_ENA) &&
-        dma_channel_readable(pas16->dma) && (pit->counters[1].m & 2) && new_out) {
         if (pas16->pcm_ctrl & PAS16_PCM_MONO) {
             temp = pas16_readdma_mono(pas16);
 
@@ -929,7 +970,22 @@ pas16_pit_timer0(int new_out, UNUSED(int old_out), void *priv)
                 pas16->irq_stat = (pas16->irq_stat & 0xdf) | (pas16->stereo_lr << 5);
             }
         }
-    }     
+
+        if (pas16->ticks) {
+            for (uint8_t i = 0; i < pas16->ticks; i++)
+                pitf_ctr_clock(pas16->pit, 1);
+
+            pas16->ticks = 0;
+        }
+
+        pas16->irq_stat |= PAS16_INT_SAMP;
+        if (pas16->irq_ena & PAS16_INT_SAMP) {
+            pas16_log("INT SAMP.\n");
+            picint(1 << pas16->irq);
+        }
+
+        pas16_update(pas16);
+    }
 }
 
 static void
@@ -938,16 +994,15 @@ pas16_pit_timer1(int new_out, UNUSED(int old_out), void *priv)
     pitf_t *pit = (pitf_t * )priv;
     pas16_t *pas16 = (pas16_t *) pit->dev_priv;
 
+    if (!pas16->pit->counters[1].gate)
+        return;
+
     /* At new_out = 0, it's in the counter reload phase. */
     if ((pas16->pcm_ctrl & PAS16_PCM_ENA) && (pit->counters[1].m & 2) && new_out) {
         if (pas16->irq_ena & PAS16_INT_PCM) {
             pas16->irq_stat |= PAS16_INT_PCM;
             pas16_log("pas16_pcm_poll : cause IRQ %i %02X\n", pas16->irq, 1 << pas16->irq);
             picint(1 << pas16->irq);
-
-            pas16->stereo_lr = 0;
-            pas16->irq_stat &= 0xdf;
-            pas16->dma8_ff = 0;
         }
     }
 }
@@ -1019,14 +1074,19 @@ pas16_update(pas16_t *pas16)
         for (; pas16->pos < sound_pos_global; pas16->pos++) {
             pas16->pcm_buffer[0][pas16->pos] = 0;
             pas16->pcm_buffer[1][pas16->pos] = 0;
+#ifdef CROSS_CHANNEL
             if (pas16->pcm_ctrl & 0x08)
-                pas16->pcm_buffer[0][pas16->pos] += pas16->pcm_dat_l;
+                pas16->pcm_buffer[0][pas16->pos] += (int16_t) pas16->pcm_dat_l;
             if (pas16->pcm_ctrl & 0x04)
-                pas16->pcm_buffer[0][pas16->pos] += pas16->pcm_dat_r;
+                pas16->pcm_buffer[0][pas16->pos] += (int16_t) pas16->pcm_dat_r;
             if (pas16->pcm_ctrl & 0x02)
-                pas16->pcm_buffer[1][pas16->pos] += pas16->pcm_dat_l;
+                pas16->pcm_buffer[1][pas16->pos] += (int16_t) pas16->pcm_dat_l;
             if (pas16->pcm_ctrl & 0x01)
-                pas16->pcm_buffer[1][pas16->pos] += pas16->pcm_dat_r;
+                pas16->pcm_buffer[1][pas16->pos] += (int16_t) pas16->pcm_dat_r;
+#else
+            pas16->pcm_buffer[0][pas16->pos] += (int16_t) pas16->pcm_dat_l;
+            pas16->pcm_buffer[1][pas16->pos] += (int16_t) pas16->pcm_dat_r;
+#endif
         }
     }
 }
@@ -1039,11 +1099,11 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (int c = 0; c < len * 2; c++) {
-        buffer[c] += (int16_t) (sb_iir(0, c & 1, (double) pas16->dsp.buffer[c]) / 1.3) / 2;
+        buffer[c] += (int32_t) (sb_iir(0, c & 1, (double) pas16->dsp.buffer[c]) / 1.3) / 2;
         if (pas16->filter)
-            buffer[c] += (low_fir_pas16(0, c & 1, (double) pas16->pcm_buffer[c & 1][c >> 1])) / 2.0;
+            buffer[c] += (low_fir_pas16(0, c & 1, (double) pas16->pcm_buffer[c & 1][c >> 1]) / 1.3) / 2.0;
         else
-            buffer[c] += (pas16->pcm_buffer[c & 1][c >> 1] / 2);
+            buffer[c] += ((pas16->pcm_buffer[c & 1][c >> 1] / 1.3) / 2);
     }
 
     pas16->pos = 0;
@@ -1086,8 +1146,10 @@ pas16_init(const device_t *info)
     sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
     pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(pas16->mpu, 0, sizeof(mpu_t));
-    mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    mpu401_init(pas16->mpu, 0, 0, M_INTELLIGENT, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
+
+    pas16->sb_compat_base = 0x0000;
 
     io_sethandler(0x9a01, 0x0001, NULL, NULL, NULL, pas16_out_base, NULL, NULL, pas16);
     pas16->this_id = 0xbc + pas16_next;

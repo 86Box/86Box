@@ -246,9 +246,9 @@ ctr_tick(ctr_t *ctr, void *priv)
                         } else
                             ctr->count -= (ctr->newcount ? 1 : 2);
                         if (ctr->count < 0) {
+                            ctr_set_out(ctr, 0, pit);
                             ctr_load_count(ctr);
                             ctr->state = 3;
-                            ctr_set_out(ctr, 0, pit);
                         } else if (ctr->newcount)
                             ctr->newcount = 0;
                     }
@@ -265,9 +265,9 @@ ctr_tick(ctr_t *ctr, void *priv)
                         } else
                             ctr->count -= (ctr->newcount ? 3 : 2);
                         if (ctr->count < 0) {
+                            ctr_set_out(ctr, 1, pit);
                             ctr_load_count(ctr);
                             ctr->state = 2;
-                            ctr_set_out(ctr, 1, pit);
                         } else if (ctr->newcount)
                             ctr->newcount = 0;
                     }
@@ -443,8 +443,6 @@ pit_ctr_set_gate(void *data, int counter_id, int gate)
     int     old  = ctr->gate;
     uint8_t mode = ctr->m & 3;
 
-    ctr->gate = gate;
-
     switch (mode) {
         case 1:
         case 2:
@@ -470,6 +468,8 @@ pit_ctr_set_gate(void *data, int counter_id, int gate)
         default:
             break;
     }
+
+    ctr->gate = gate;
 }
 
 static __inline void
