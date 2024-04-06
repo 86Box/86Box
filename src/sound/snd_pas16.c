@@ -309,7 +309,7 @@ pas16_in(uint16_t port, void *priv)
             ret = pas16->audiofilt;
             break;
         case 0x0803:
-            ret = pas16->irq_ena | (pas16->type ? 0x20 : 0x00);
+            ret = pas16->irq_ena | 0x20;
             pas16_log("IRQ Mask read=%02x.\n", ret);
             break;
 
