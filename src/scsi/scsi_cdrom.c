@@ -1001,7 +1001,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     case CDROM_TYPE_TOSHIBA_XM3301TA_0272:
                     case CDROM_TYPE_TOSHIBA_XM5701TA_3136:
                     case CDROM_TYPE_TOSHIBA_SDM1401_1008:
-                        bytes_per_second = 176.0 * 1024.0;
+                        bytes_per_second = 176400.0;
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }

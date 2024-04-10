@@ -82,6 +82,7 @@ static SCSI_CARD scsi_cards[] = {
     { &scsi_rt1000b_device,      },
     { &scsi_rt1000mc_device,     },
     { &scsi_t128_device,         },
+    { &scsi_t228_device,         },
     { &scsi_t130b_device,        },
     { &aha1640_device,           },
     { &buslogic_640a_device,     },
