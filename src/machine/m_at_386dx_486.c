@@ -399,8 +399,9 @@ machine_at_d824_init(const machine_t *model)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_device);
-    device_add(&fdc37c651_device);
+
     device_add(&ide_isa_device);
+    device_add(&fdc37c651_device);
     
     return ret;
 }
