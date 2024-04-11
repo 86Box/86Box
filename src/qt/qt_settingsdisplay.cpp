@@ -148,10 +148,6 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     else
         ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
-    ui->checkBoxVoodoo->setEnabled(machineHasPci);
-    if (machineHasPci) {
-        ui->checkBoxVoodoo->setChecked(voodoo_enabled);
-    }
     ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
 
     bool machineHasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
@@ -225,7 +221,10 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         }
         ui->checkBoxVoodoo->setDisabled(true);
     } else {
-        ui->checkBoxVoodoo->setDisabled(false);
+        ui->checkBoxVoodoo->setEnabled(machineHasPci);
+        if (machineHasPci) {
+            ui->checkBoxVoodoo->setChecked(voodoo_enabled);
+        }
     }
 }
 
