@@ -1235,7 +1235,7 @@ scat_in(uint16_t port, void *priv)
                     break;
 
                 default:
-                    if (dev->index <= dev->max_reg)
+                    if (dev->indx <= dev->max_reg)
                         ret = dev->regs[dev->indx];
                     break;
             }
