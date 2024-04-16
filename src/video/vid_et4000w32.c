@@ -42,7 +42,7 @@
 #define BIOS_ROM_PATH_W32                      "roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
 #define BIOS_ROM_PATH_W32I_ISA                 "roms/video/et4000w32/ET4KW32I.VBI"
 #define BIOS_ROM_PATH_W32I_VLB                 "roms/video/et4000w32/tseng.u41.bin"
-#define BIOS_ROM_PATH_W32P_VIDEOMAGIC_REVB_VLB "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.BIN"
+#define BIOS_ROM_PATH_W32P_VIDEOMAGIC_REVB_VLB "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.bin"
 #define BIOS_ROM_PATH_W32P                     "roms/video/et4000w32/ET4K_W32.BIN"
 #define BIOS_ROM_PATH_W32P_REVC                "roms/video/et4000w32/et4000w32pcardex.BIN"
 
