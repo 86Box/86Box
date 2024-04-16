@@ -41,8 +41,12 @@ endif()
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
 
 find_package(Threads REQUIRED)
-find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
+find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL Gui REQUIRED)
 find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+if(NOT USE_QT6)
+    # For <qpa/qplatformwindow.h>  in src/qt/qt_mainwindow.cpp
+    include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+endif ()
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
