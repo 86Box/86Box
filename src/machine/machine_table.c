@@ -4416,7 +4416,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name = "[NEAT] DTK 386SX clone",
+        .name = "[NEAT] DTK PM-1630C",
         .internal_name = "dtk386",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_NEAT,
