@@ -1986,6 +1986,18 @@ kbc_at_close(void *priv)
     free(dev);
 }
 
+void
+kbc_at_handler(int set, void *priv)
+{
+    io_removehandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+    io_removehandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+
+    if (set) {
+        io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+        io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+    }
+}
+
 static void *
 kbc_at_init(const device_t *info)
 {
@@ -2003,8 +2015,7 @@ kbc_at_init(const device_t *info)
     if (info->flags & DEVICE_PCI)
         dev->misc_flags |= FLAG_PCI;
 
-    io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
-    io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
+    kbc_at_handler(1, dev);
 
     timer_add(&dev->kbc_poll_timer, kbc_at_poll, dev, 1);
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);

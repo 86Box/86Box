@@ -276,6 +276,7 @@ extern int      keyboard_isfsexit_up(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 
+extern void         kbc_at_handler(int set, void *priv);
 extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
 extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);
 extern void         kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa);
