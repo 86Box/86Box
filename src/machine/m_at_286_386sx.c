@@ -70,7 +70,7 @@ machine_at_headland_common_init(int type)
 {
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if ((type != 2) && (fdc_type == FDC_INTERNAL))
         device_add(&fdc_at_device);
 
     if (type == 2)
@@ -116,6 +116,8 @@ machine_at_ama932j_init(const machine_t *model)
         device_add(&oti067_ama932j_device);
 
     machine_at_headland_common_init(2);
+
+    device_add(&ali5105_device);
 
     return ret;
 }
