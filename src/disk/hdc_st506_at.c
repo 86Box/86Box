@@ -277,13 +277,9 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     switch (val & 0xf0) {
         case CMD_RESTORE:
             drive->steprate = (val & 0x0f);
-            st506_at_log("WD1003(%d) restore, step=%d\n",
-                         mfm->drvsel, drive->steprate);
-            drive->curcyl = 0;
-            mfm->cylinder = 0;
-            mfm->status   = STAT_READY | STAT_DSC;
             mfm->command &= 0xf0;
-            irq_raise(mfm);
+            mfm->status = STAT_BUSY;
+            timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
             break;
 
         case CMD_SEEK:
@@ -340,38 +336,8 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
                     break;
 
                 case CMD_SET_PARAMETERS:
-                    /*
-                     * NOTE:
-                     *
-                     * We currently just set these parameters, and
-                     * never bother to check if they "fit within"
-                     * the actual parameters, as determined by the
-                     * image loader.
-                     *
-                     * The difference in parameters is OK, and
-                     * occurs when the BIOS or operating system
-                     * decides to use a different translation
-                     * scheme, but either way, it SHOULD always
-                     * fit within the actual parameters!
-                     *
-                     * We SHOULD check that here!! --FvK
-                     */
-                    if (drive->cfg_spt == 0) {
-                        /* Only accept after RESET or DIAG. */
-                        drive->cfg_spt = mfm->secount;
-                        drive->cfg_hpc = mfm->head + 1;
-                        st506_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
-                                     mfm->drvsel, drive->tracks,
-                                     drive->cfg_spt, drive->cfg_hpc);
-                    } else {
-                        st506_at_log("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
-                                     mfm->drvsel, drive->tracks,
-                                     drive->cfg_spt, drive->cfg_hpc);
-                    }
-                    mfm->command = 0x00;
-                    mfm->status  = STAT_READY | STAT_DSC;
-                    mfm->error   = 1;
-                    irq_raise(mfm);
+                    mfm->status = STAT_BUSY;
+                    timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
                     break;
 
                 default:
@@ -596,6 +562,15 @@ do_callback(void *priv)
     }
 
     switch (mfm->command) {
+        case CMD_RESTORE:
+            st506_at_log("WD1003(%d) restore, step=%d\n",
+                         mfm->drvsel, drive->steprate);
+            drive->curcyl = 0;
+            mfm->cylinder = 0;
+            mfm->status   = STAT_READY | STAT_DSC;
+            irq_raise(mfm);
+            break;
+
         case CMD_SEEK:
             st506_at_log("WD1003(%d) seek, step=%d\n",
                          mfm->drvsel, drive->steprate);
@@ -688,6 +663,41 @@ do_callback(void *priv)
             drive->steprate = 0x0f;
             mfm->error      = 1;
             mfm->status     = STAT_READY | STAT_DSC;
+            irq_raise(mfm);
+            break;
+
+        case CMD_SET_PARAMETERS:
+            /*
+             * NOTE:
+             *
+             * We currently just set these parameters, and
+             * never bother to check if they "fit within"
+             * the actual parameters, as determined by the
+             * image loader.
+             *
+             * The difference in parameters is OK, and
+             * occurs when the BIOS or operating system
+             * decides to use a different translation
+             * scheme, but either way, it SHOULD always
+             * fit within the actual parameters!
+             *
+             * We SHOULD check that here!! --FvK
+             */
+            if (drive->cfg_spt == 0) {
+                /* Only accept after RESET or DIAG. */
+                drive->cfg_spt = mfm->secount;
+                drive->cfg_hpc = mfm->head + 1;
+                st506_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
+                             mfm->drvsel, drive->tracks,
+                             drive->cfg_spt, drive->cfg_hpc);
+            } else {
+                st506_at_log("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
+                             mfm->drvsel, drive->tracks,
+                             drive->cfg_spt, drive->cfg_hpc);
+            }
+            mfm->command = 0x00;
+            mfm->status  = STAT_READY | STAT_DSC;
+            mfm->error   = 1;
             irq_raise(mfm);
             break;
 
