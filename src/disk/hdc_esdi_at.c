@@ -214,6 +214,41 @@ get_sector(esdi_t *esdi, off64_t *addr)
     return 0;
 }
 
+static int
+get_sector_format(esdi_t *esdi, off64_t *addr)
+{
+    const drive_t *drive   = &esdi->drives[esdi->drive_sel];
+    int            heads   = drive->cfg_hpc;
+    int            sectors = drive->cfg_spt;
+    int            c;
+    int            h;
+    int            s;
+
+    if (esdi->head > heads) {
+        esdi_at_log("esdi_get_sector: past end of configured heads\n");
+        return 1;
+    }
+
+    if (drive->cfg_spt == drive->real_spt && drive->cfg_hpc == drive->real_hpc) {
+        *addr = ((((off64_t) esdi->cylinder * heads) + esdi->head) * sectors);
+    } else {
+        /*
+         * When performing translation, the firmware seems to leave 1
+         * sector per track inaccessible (spare sector)
+         */
+
+        *addr = ((((off64_t) esdi->cylinder * heads) + esdi->head) * sectors);
+
+        s = *addr % (drive->real_spt - 1);
+        h = (*addr / (drive->real_spt - 1)) % drive->real_hpc;
+        c = (*addr / (drive->real_spt - 1)) / drive->real_hpc;
+
+        *addr = ((((off64_t) c * drive->real_hpc) + h) * drive->real_spt) + s;
+    }
+
+    return 0;
+}
+
 /* Move to the next sector using CHS addressing. */
 static void
 next_sector(esdi_t *esdi)
@@ -655,7 +690,7 @@ esdi_callback(void *priv)
                 irq_raise(esdi);
                 break;
             } else {
-                if (get_sector(esdi, &addr)) {
+                if (get_sector_format(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);

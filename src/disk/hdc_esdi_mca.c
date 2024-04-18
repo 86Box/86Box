@@ -831,14 +831,12 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    dev->rba = hdd_image_get_last_sector(drive->hdd_num);
 
-                    dev->sector_count = dev->cmd_data[1];
-
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
-                        rba_out_of_range(dev);
-                        return;
-                    }
+                    if (dev->command == CMD_FORMAT_UNIT)
+                        dev->sector_count = dev->cmd_data[1];
+                    else
+                        dev->sector_count = 0;
 
                     dev->status          = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
                     dev->irq_status      = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
@@ -855,7 +853,8 @@ esdi_callback(void *priv)
                         return;
                     }
 
-                    hdd_image_zero(drive->hdd_num, dev->rba, dev->sector_count);
+                    if (dev->command == CMD_FORMAT_UNIT)
+                        hdd_image_zero(drive->hdd_num, 0, hdd_image_get_last_sector(drive->hdd_num) + 1);
 
                     dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;

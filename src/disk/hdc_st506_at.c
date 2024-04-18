@@ -187,7 +187,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    if (mfm->sector >= drive->cfg_spt + 1) {
+    if (mfm->sector >= (drive->cfg_spt + 1)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured sectors\n",
                      mfm->drvsel);
         return 1;
@@ -199,12 +199,41 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    if (mfm->sector >= drive->spt + 1) {
+    if (mfm->sector >= (drive->spt + 1)) {
         st506_at_log("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
         return 1;
     }
 
     *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
+
+    return 0;
+}
+
+static int
+get_sector_format(mfm_t *mfm, off64_t *addr)
+{
+    const drive_t *drive = &mfm->drives[mfm->drvsel];
+
+    /* FIXME: See if this is even needed - if the code is present, IBM AT
+              diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
+    if (drive->curcyl != mfm->cylinder) {
+        st506_at_log("WD1003(%d) sector: wrong cylinder\n");
+        return 1;
+    }
+
+    if (mfm->head > drive->cfg_hpc) {
+        st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
+                     mfm->drvsel);
+        return 1;
+    }
+
+    /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
+    if (mfm->head > drive->hpc) {
+        st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
+        return 1;
+    }
+
+    *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt);
 
     return 0;
 }
@@ -634,7 +663,7 @@ do_callback(void *priv)
             st506_at_log("WD1003(%d) format(%d,%d)\n",
                          mfm->drvsel, mfm->cylinder, mfm->head);
             do_seek(mfm);
-            if (get_sector(mfm, &addr)) {
+            if (get_sector_format(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
