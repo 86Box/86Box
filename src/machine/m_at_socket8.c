@@ -175,7 +175,7 @@ machine_at_acerv60n_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model,2 );
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -187,7 +187,6 @@ machine_at_acerv60n_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      2, 3, 4, 1);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c935_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -366,7 +365,7 @@ machine_at_m6mi_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -377,7 +376,6 @@ machine_at_m6mi_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c935_device);
     device_add(&intel_flash_bxt_device);
 

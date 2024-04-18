@@ -309,13 +309,14 @@ typedef struct local_t {
     uint8_t irq_state;
     uint8_t smi_status;
 
-    uint8_t  addr[8];
     uint8_t  wp[2];
     uint8_t  bank[8];
     uint8_t *lock;
 
     int16_t count;
     int16_t state;
+
+    uint16_t  addr[8];
 
     int32_t smi_enable;
 
