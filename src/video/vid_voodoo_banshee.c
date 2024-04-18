@@ -2109,10 +2109,12 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
         for (x = 0; x < 64; x += 8) {
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
-                    if (!(plane0[x >> 3] & (1 << 7)))
-                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
-                    else if (plane1[x >> 3] & (1 << 7))
-                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                    if (((x_off + xx + svga->x_add) >= 0) && ((x_off + xx + svga->x_add) <= 2047)) {
+                        if (!(plane0[x >> 3] & (1 << 7)))
+                            (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        else if (plane1[x >> 3] & (1 << 7))
+                            (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                    }
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;

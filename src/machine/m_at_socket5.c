@@ -64,8 +64,8 @@ machine_at_dellplato_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.bio",
-                                    "roms/machines/dellplato/1016AX1J.bi1",
+    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.BIO",
+                                    "roms/machines/dellplato/1016AX1J.BI1",
                                     0x1d000, 128);
 
     if (bios_only || !ret)
