@@ -737,7 +737,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
     const char *df_priority[]  = { "good", "acceptable", "sub-optimal", "unknown priority" };
     const char *mem_control[]  = { "8-bit", "16-bit", "8/16-bit", "32-bit" };
-    const char *dma_transfer[] = { "8-bit", "8/16-bit", "16-bit", "unknown" };
+    const char *dma_transfer[] = { "8-bit", "8/16-bit", "16-bit", "Reserved" };
     const char *dma_speed[]    = { "compatibility", "Type A", "Type B", "Type F" };
 #endif
     uint16_t         i        = 9;
@@ -937,9 +937,9 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                 case 0x05: /* DMA */
                     isapnp_log("ISAPnP: >>%s DMA index %d with mask %02X, %s, %sbus master, %scount by byte, %scount by word, %s speed\n", in_df ? ">" : "", dma++, card->rom[i + 1],
                                dma_transfer[card->rom[i + 2] & 3],
-                               (card->rom[i + 2] & 0x04) ? "not " : "",
-                               (card->rom[i + 2] & 0x08) ? "not " : "",
-                               (card->rom[i + 2] & 0x10) ? "not " : "",
+                               (card->rom[i + 2] & 0x04) ? "" : "not ",
+                               (card->rom[i + 2] & 0x08) ? "" : "not ",
+                               (card->rom[i + 2] & 0x10) ? "" : "not ",
                                dma_speed[(card->rom[i + 2] >> 5) & 3]);
                     break;
 #endif
@@ -999,6 +999,29 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 
                     if (card->rom[i + 7] > ld->io_len[io])
                         ld->io_len[io] = card->rom[i + 7];
+
+                    io++;
+
+                    break;
+
+                case 0x09: /* Fixed I/O port */
+                    if (!ld) {
+                        isapnp_log("ISAPnP: >>%s Fixed I/O descriptor with no logical device\n", in_df ? ">" : "");
+                        break;
+                    }
+
+                    if (io > 7) {
+                        isapnp_log("ISAPnP: >>%s Fixed I/O descriptor overflow (%d)\n", in_df ? ">" : "", io++);
+                        break;
+                    }
+
+                    isapnp_log("ISAPnP: >>%s Fixed I/O range %d with %d ports at %04X\n", in_df ? ">" : "", io, card->rom[i + 3], *((uint16_t *) &card->rom[i + 1]));
+
+                    /* Fixed I/O port ranges of this kind are always 10-bit. */
+                    ld->io_16bit &= ~(1 << io);
+
+                    if (card->rom[i + 3] > ld->io_len[io])
+                        ld->io_len[io] = card->rom[i + 3];
 
                     io++;
 

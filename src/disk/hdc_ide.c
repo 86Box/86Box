@@ -738,6 +738,22 @@ ide_get_sector(ide_t *ide)
     }
 }
 
+static off64_t
+ide_get_sector_format(ide_t *ide)
+{
+    uint32_t heads;
+    uint32_t sectors;
+
+    if (ide->tf->lba)
+        return (off64_t) ide->lba_addr;
+    else {
+        heads   = ide->cfg_hpc;
+        sectors = ide->cfg_spt;
+
+        return ((((off64_t) ide->tf->cylinder * heads) + (off64_t) ide->tf->head) * sectors);
+    }
+}
+
 /**
  * Move to the next sector using CHS addressing
  */
@@ -2147,8 +2163,9 @@ ide_callback(void *priv)
             if (ide->type == IDE_ATAPI)
                 atapi_error_no_ready(ide);
             else {
-                if (chk_chs && ((ide->tf->cylinder >= ide->tracks) || (ide->tf->head >= ide->hpc) ||
-                    !ide->tf->sector || (ide->tf->sector > ide->spt)))
+                /* The J-Bond PCI400C-A Phoenix BIOS implies that this command is supposed to
+                   ignore the sector number. */
+                if (chk_chs && ((ide->tf->cylinder >= ide->tracks) || (ide->tf->head >= ide->hpc)))
                     err = IDNF_ERR;
                 else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
@@ -2434,7 +2451,7 @@ ide_callback(void *priv)
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
                 err = IDNF_ERR;
             else {
-                hdd_image_zero(ide->hdd_num, ide_get_sector(ide), ide->tf->secount);
+                hdd_image_zero(ide->hdd_num, ide_get_sector_format(ide), ide->tf->secount);
 
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
@@ -2628,6 +2645,15 @@ ide_set_base_addr(int board, int base, uint16_t port)
         ide_boards[board]->base[base] = port;
 }
 
+void
+ide_set_irq(int board, int irq)
+{
+    ide_log("ide_set_irq(%i, %i)\n", board, irq);
+
+    if (ide_boards[board] != NULL)
+        ide_boards[board]->irq = irq;
+}
+
 static void
 ide_clear_bus_master(int board)
 {
@@ -2801,6 +2827,36 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type, int b
     ide_board_setup(board);
 
     ide_boards[board]->inited = 1;
+}
+
+/* Needed for ESS ES1688/968 PnP. */
+void
+ide_pnp_config_changed_1addr(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    intptr_t board = (intptr_t) priv;
+
+    if (ld)
+        return;
+
+    if (ide_boards[board]->base[0] || ide_boards[board]->base[1]) {
+        ide_remove_handlers(board);
+        ide_boards[board]->base[0] = ide_boards[board]->base[1] = 0;
+    }
+
+    ide_boards[board]->irq = -1;
+
+    if (config->activate) {
+        ide_boards[board]->base[0] = (config->io[0].base != ISAPNP_IO_DISABLED) ?
+                                     config->io[0].base : 0x0000;
+        ide_boards[board]->base[1] = (config->io[0].base != ISAPNP_IO_DISABLED) ?
+                                     (config->io[0].base + 0x0206) : 0x0000;
+
+        if (ide_boards[board]->base[0] && ide_boards[board]->base[1])
+            ide_set_handlers(board);
+
+        if (config->irq[0].irq != ISAPNP_IRQ_DISABLED)
+            ide_boards[board]->irq = config->irq[0].irq;
+    }
 }
 
 void
@@ -3526,5 +3582,5 @@ const device_t ide_qua_pnp_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ide_qua_config
+    .config        = NULL
 };

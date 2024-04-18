@@ -457,6 +457,37 @@ get_chs(hdc_t *dev, drive_t *drive)
     return 1;
 }
 
+static int
+get_chs_format(hdc_t *dev, drive_t *drive)
+{
+    dev->err_bv = 0x80;
+
+    dev->head = dev->command[1] & 0x1f;
+    /* 6 bits are used for the sector number even on the IBM PC controller. */
+    dev->sector = 1;
+    dev->count  = dev->command[4];
+    if (((dev->type == ST506_XT_TYPE_ST11M) || (dev->type == ST506_XT_TYPE_ST11R)) && (dev->command[0] >= 0xf0))
+        dev->cylinder = 0;
+    else {
+        dev->cylinder = dev->command[3] | ((dev->command[2] & 0xc0) << 2);
+        dev->cylinder += dev->cyl_off; /* for ST-11 */
+    }
+
+    if (dev->cylinder >= drive->cfg_cyl) {
+        /*
+         * This really is an error, we cannot move
+         * past the end of the drive, which should
+         * result in an ERR_ILLEGAL_ADDR.  --FvK
+         */
+        drive->cylinder = drive->cfg_cyl - 1;
+        return 0;
+    }
+
+    drive->cylinder = dev->cylinder;
+
+    return 1;
+}
+
 static void
 st506_callback(void *priv)
 {
@@ -628,7 +659,7 @@ st506_callback(void *priv)
         case CMD_FORMAT_BAD_TRACK:
             switch (dev->state) {
                 case STATE_START_COMMAND:
-                    (void) get_chs(dev, drive);
+                    (void) get_chs_format(dev, drive);
                     st506_xt_log("ST506: FORMAT_%sTRACK(%i, %i/%i)\n",
                                  (dev->command[0] == CMD_FORMAT_BAD_TRACK) ? "BAD_" : "",
                                  dev->drive_sel, dev->cylinder, dev->head);

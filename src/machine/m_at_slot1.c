@@ -143,8 +143,7 @@ machine_at_spitfire_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440lx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_pci_device);
-    device_add(&fdc37c935_device);
+    device_add(&fdc37c935_no_nvr_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&lm78_device); /* no reporting in BIOS */

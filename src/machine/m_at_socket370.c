@@ -127,13 +127,13 @@ machine_at_p6bap_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 5);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 5);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 5, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 5, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 5, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 5, 3, 2, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 5);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
     device_add(&via_apro133a_device);  /* Rebranded as ET82C693A */
     device_add(&via_vt82c596b_device); /* Rebranded as ET82C696B */
     device_add(&w83977ef_device);
@@ -162,13 +162,13 @@ machine_at_p6bat_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 5);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 5);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 5, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 5, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 5, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 5, 3, 2, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 5);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
     device_add(&via_apro133_device);
     device_add(&via_vt82c596b_device);
     device_add(&w83977ef_device);

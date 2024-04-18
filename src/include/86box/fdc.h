@@ -55,6 +55,8 @@ extern int fdc_type;
 #define FDC_FLAG_SEC            0x1000 /* Is Secondary */
 #define FDC_FLAG_TER            0x2000 /* Is Tertiary */
 #define FDC_FLAG_QUA            0x3000 /* Is Quaternary */
+#define FDC_FLAG_CHANNEL        0x3000 /* Channel mask */
+#define FDC_FLAG_NO_DSR_RESET   0x4000 /* Has no DSR reset */
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -251,6 +253,7 @@ extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
 extern const device_t fdc_at_ps1_device;
+extern const device_t fdc_at_ps1_2121_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
