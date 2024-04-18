@@ -24,6 +24,7 @@ extern "C" {
 }
 
 #include <QAbstractItemModel>
+#include <QStandardItemModel>
 
 void
 Harddrives::populateBuses(QAbstractItemModel *model)
@@ -96,7 +97,7 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
 }
 
 void
-Harddrives::populateBusChannels(QAbstractItemModel *model, int bus)
+Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt)
 {
     model->removeRows(0, model->rowCount());
 
@@ -104,6 +105,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus)
     int shifter         = 1;
     int orer            = 1;
     int subChannelWidth = 1;
+    QList<int> busesToCheck;
+    QList<int> channelsInUse;
     switch (bus) {
         case HDD_BUS_MFM:
         case HDD_BUS_XTA:
@@ -111,15 +114,29 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus)
             busRows = 2;
             break;
         case HDD_BUS_IDE:
+            busRows = 8;
+            busesToCheck.append(HDD_BUS_ATAPI);
+            busesToCheck.append(HDD_BUS_IDE);
+            break;
         case HDD_BUS_ATAPI:
             busRows = 8;
+            busesToCheck.append(HDD_BUS_IDE);
+            busesToCheck.append(HDD_BUS_ATAPI);
             break;
         case HDD_BUS_SCSI:
             shifter         = 4;
             orer            = 15;
             busRows         = 64;
             subChannelWidth = 2;
+            busesToCheck.append(HDD_BUS_SCSI);
             break;
+        default:
+            break;
+    }
+    if(sbt != nullptr && !busesToCheck.empty()) {
+        for (auto const &checkBus : busesToCheck) {
+            channelsInUse.append(sbt->busChannelsInUse(checkBus));
+        }
     }
 
     model->insertRows(0, busRows);
@@ -127,6 +144,11 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus)
         auto idx = model->index(i, 0);
         model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
+        const auto *channelModel = qobject_cast<QStandardItemModel*>(model);
+        auto *channelItem = channelModel->item(i);
+        if(channelItem) {
+            channelItem->setEnabled(!channelsInUse.contains(i));
+        }
     }
 }
 
