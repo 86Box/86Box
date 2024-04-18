@@ -378,7 +378,7 @@ ps1_setup(int model)
         if (gfxcard[0] == VID_INTERNAL)
             device_add(&ibm_ps1_2121_device);
 
-        device_add(&fdc_at_ps1_device);
+        device_add(&fdc_at_ps1_2121_device);
 
         device_add(&ide_isa_device);
 
