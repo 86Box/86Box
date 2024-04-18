@@ -506,7 +506,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430NX:
-                        pclog("52 = %02X\n", val);
                         regs[0x52] = (regs[0x52] & 0xe0) | (val & 0x1f);
                         cpu_cache_ext_enabled = val & 0x01;
                         cpu_update_waitstates();
