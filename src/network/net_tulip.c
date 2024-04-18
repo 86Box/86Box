@@ -1530,6 +1530,9 @@ nic_init(const device_t *info)
             s->eeprom_data[40] = 0x00;
             s->eeprom_data[41] = 0x00;
         } else {
+            /*SROM Format Version 3*/
+            s->eeprom_data[18] = 0x03;
+
             /*Block Count*/
             s->eeprom_data[32] = 0x01;
 
@@ -1677,7 +1680,7 @@ static const device_config_t dec_tulip_21140_config[] = {
 // clang-format on
 
 const device_t dec_tulip_device = {
-    .name          = "DE500A Fast Ethernet (DECchip 21143 \"Tulip\")",
+    .name          = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")",
     .internal_name = "dec_21143_tulip",
     .flags         = DEVICE_PCI,
     .local         = 0,
