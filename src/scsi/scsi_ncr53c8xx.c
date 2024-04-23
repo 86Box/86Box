@@ -2567,28 +2567,39 @@ ncr53c8xx_init(const device_t *info)
     else
         pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev, &dev->pci_slot);
 
-    if (dev->chip == CHIP_875) {
-        dev->chip_rev = 0x04;
-        dev->nvr_path = "ncr53c875.nvr";
-        dev->wide     = 1;
-    } else if (dev->chip == CHIP_860) {
-        dev->chip_rev = 0x04;
-        dev->nvr_path = "ncr53c860.nvr";
-        dev->wide     = 1;
-    } else if (dev->chip == CHIP_820) {
-        dev->nvr_path = "ncr53c820.nvr";
-        dev->wide     = 1;
-    } else if (dev->chip == CHIP_825) {
-        dev->chip_rev = 0x26;
-        dev->nvr_path = "ncr53c825a.nvr";
-        dev->wide     = 1;
-    } else if (dev->chip == CHIP_810) {
-        dev->nvr_path = "ncr53c810.nvr";
-        dev->wide     = 0;
-    } else if (dev->chip == CHIP_815) {
-        dev->chip_rev = 0x04;
-        dev->nvr_path = "ncr53c815.nvr";
-        dev->wide     = 0;
+    scsi_bus_set_speed(dev->bus, 10000000.0);
+
+    switch (dev->chip) {
+        case CHIP_810:
+            dev->nvr_path = "ncr53c810.nvr";
+            dev->wide     = 0;
+            break;
+        case CHIP_815:
+            dev->chip_rev = 0x04;
+            dev->nvr_path = "ncr53c815.nvr";
+            dev->wide     = 0;
+            break;
+        case CHIP_820:
+            dev->nvr_path = "ncr53c820.nvr";
+            dev->wide     = 1;
+            break;
+        case CHIP_825:
+            dev->chip_rev = 0x26;
+            dev->nvr_path = "ncr53c825a.nvr";
+            dev->wide     = 1;
+            break;
+        case CHIP_860:
+            scsi_bus_set_speed(dev->bus, 20000000.0);
+            dev->chip_rev = 0x04;
+            dev->nvr_path = "ncr53c860.nvr";
+            dev->wide     = 1;
+            break;
+        case CHIP_875:
+            scsi_bus_set_speed(dev->bus, 40000000.0);
+            dev->chip_rev = 0x04;
+            dev->nvr_path = "ncr53c875.nvr";
+            dev->wide     = 1;
+            break;
     }
 
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
@@ -2628,8 +2639,6 @@ ncr53c8xx_init(const device_t *info)
     ncr53c8xx_soft_reset(dev);
 
     timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
-
-    scsi_bus_set_speed(dev->bus, 10000000.0);
 
     return dev;
 }
