@@ -816,7 +816,10 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
-            svga_recalctimings(svga);
+            if (!((mystique->type >= MGA_1064SG) && (mystique->crtcext_idx == 0) &&
+                (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE)))
+                svga_recalctimings(svga);
+
             break;
 
         default:
