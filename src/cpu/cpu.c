@@ -1803,7 +1803,8 @@ cpu_set(void)
         } else
 #endif
             /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
-            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC)) {
+            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL) ||
+                cpu_iscyrix || (cpu_s->cpu_type > CPU_486DLC)) {
                 cpu_exec = exec386;
                 cpu_use_exec = 1;
             } else
