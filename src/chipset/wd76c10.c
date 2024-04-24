@@ -324,6 +324,9 @@ wd76c10_dis_mem_recalc(wd76c10_t *dev)
     }
 
     dev->mem_top = mem_top;
+
+    if (cpu_use_exec)
+        wd76c10_recalc_exec(dev, 128 * 1024, (640 - 128) * 1024);
 }
 
 static void
