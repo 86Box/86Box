@@ -187,6 +187,7 @@ int cpu_64bitbus;
 int cpu_cyrix_alignment;
 int cpu_cpurst_on_sr;
 int cpu_use_exec = 0;
+int cpu_override_interpreter;
 int CPUID;
 
 int is186;
@@ -1804,7 +1805,7 @@ cpu_set(void)
 #endif
             /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
             if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL) ||
-                cpu_iscyrix || (cpu_s->cpu_type > CPU_486DLC)) {
+                cpu_iscyrix || (cpu_s->cpu_type > CPU_486DLC) || cpu_override_interpreter) {
                 cpu_exec = exec386;
                 cpu_use_exec = 1;
             } else
