@@ -830,6 +830,7 @@ extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
 
 extern int in_lock;
+extern int cpu_override_interpreter;
 
 extern int is_lock_legal(uint32_t fetchdat);
 
