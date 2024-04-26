@@ -2441,7 +2441,7 @@ xga_hwcursor_draw(svga_t *svga, int displine)
     if (xga->interlace && xga->hwcursor_oddeven)
         xga->hwcursor_latch.addr += 16;
 
-    for (uint8_t x = 0; x < xga->hwcursor_latch.cur_xsize; x++) {
+    for (int x = 0; x < xga->hwcursor_latch.cur_xsize; x++) {
         dat = cd[xga->hwcursor_latch.addr & 0x3ff];
 
         comb = (dat >> ((x & 0x03) << 1)) & 0x03;
