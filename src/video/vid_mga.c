@@ -816,7 +816,10 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
-            svga_recalctimings(svga);
+            if (!((mystique->type >= MGA_1064SG) && (mystique->crtcext_idx == 0) &&
+                (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE)))
+                svga_recalctimings(svga);
+
             break;
 
         default:
@@ -1559,14 +1562,14 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
         switch (addr & 0x3fff) {
             case REG_FIFOSTATUS:
                 fifocount = FIFO_SIZE - FIFO_ENTRIES;
-                if (fifocount > 64)
-                    fifocount = 64;
+                if (fifocount > (mystique->type <= MGA_1064SG ? 32 : 64))
+                    fifocount = (mystique->type <= MGA_1064SG ? 32 : 64);
                 ret = fifocount;
                 break;
             case REG_FIFOSTATUS + 1:
                 if (FIFO_EMPTY)
                     ret |= 2;
-                else if (FIFO_ENTRIES >= 64)
+                else if (FIFO_ENTRIES >= (mystique->type <= MGA_1064SG ? 32 : 64))
                     ret |= 1;
                 break;
             case REG_FIFOSTATUS + 2:
@@ -1580,6 +1583,10 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
                     ret |= REG_STATUS_VSYNCSTS;
                 if (ret & 1)
                     mystique->softrap_status_read = 1;
+                if (mystique->softrap_status_read == 0 && !(ret & 1)) {
+                    mystique->softrap_status_read = 1;
+                    ret |= 1;
+                }
                 break;
             case REG_STATUS + 1:
                 ret = (mystique->status >> 8) & 0xff;

@@ -123,6 +123,8 @@ uint8_t high_page = 0; /* if a high (> 4 gb) page was detected */
 mem_mapping_t        *read_mapping[MEM_MAPPINGS_NO];
 mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
 
+uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
+
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static uint8_t       *page_lookupp; /* pagetable mmu_perm lookup */
 static uint8_t       *readlookupp;
@@ -131,7 +133,6 @@ static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
-static uint8_t       *_mem_exec[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp_bus[MEM_MAPPINGS_NO];
 static uint8_t        ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };

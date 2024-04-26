@@ -1393,7 +1393,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, int first_batch, int ven
         type  = (dev->current_cdb[1] >> 2) & 7;
         flags = dev->current_cdb[9] | (((uint32_t) dev->current_cdb[10]) << 8);
     } else {
-        type  = 8;
+        type  = 8; /* Internal type code indicating both Mode 1 and Mode 2 Form 1 are allowed. */
         flags = 0x10;
     }
 

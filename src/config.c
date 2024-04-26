@@ -314,9 +314,10 @@ load_machine(void)
         }
     }
 
-    cpu_override = ini_section_get_int(cat, "cpu_override", 0);
-    cpu_f        = NULL;
-    p            = ini_section_get_string(cat, "cpu_family", NULL);
+    cpu_override             = ini_section_get_int(cat, "cpu_override", 0);
+    cpu_override_interpreter = ini_section_get_int(cat, "cpu_override_interpreter", 0);
+    cpu_f                    = NULL;
+    p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
         /* Migrate CPU family changes. */
         if ((!strcmp(machines[machine].internal_name, "deskpro386") ||
@@ -1626,6 +1627,8 @@ config_load(void)
         dpi_scale       = 1;
         do_auto_pause   = 0;
 
+        cpu_override_interpreter = 0;
+
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
         gfxcard[0]             = video_get_video_from_internal_name("cga");
         vid_api                = plat_vidapi("default");
@@ -1948,6 +1951,10 @@ save_machine(void)
         ini_section_set_int(cat, "cpu_override", cpu_override);
     else
         ini_section_delete_var(cat, "cpu_override");
+    if (cpu_override_interpreter)
+        ini_section_set_int(cat, "cpu_override_interpreter", cpu_override);
+    else
+        ini_section_delete_var(cat, "cpu_override_interpreter");
 
     /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");

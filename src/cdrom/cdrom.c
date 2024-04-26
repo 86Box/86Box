@@ -1524,8 +1524,9 @@ static void
 read_sector_to_buffer(cdrom_t *dev, uint8_t *rbuf, uint32_t msf, uint32_t lba, int mode2, int len)
 {
     uint8_t *bb = rbuf;
+    const int offset = (!!(mode2 & 0x03)) ? 24 : 16;
 
-    dev->ops->read_sector(dev, CD_READ_DATA, rbuf + 16, lba);
+    dev->ops->read_sector(dev, CD_READ_DATA, rbuf + offset, lba);
 
     /* Sync bytes */
     bb[0] = 0;

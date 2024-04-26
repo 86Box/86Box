@@ -84,6 +84,7 @@ typedef struct
     uint8_t bios_states[8];
     uint8_t high_bios_states[8];
     uint8_t mem_pages[1024];
+    uint8_t ram_state[4192];
 
     uint16_t toggle, cpuclk, fpu_ctl, mem_ctl,
              split_sa, sh_wp, hmwpb, npmdmt,
@@ -226,6 +227,34 @@ wd76c10_write_ramw(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
+wd76c10_set_mem_state(wd76c10_t *dev, uint32_t base, uint32_t size, uint32_t access, uint8_t present)
+{
+    mem_set_mem_state_both(base, size, access);
+
+    for (uint32_t i = base; i < (base + size); i += 4096)
+        dev->ram_state[i >> 12] = present;
+}
+
+static void
+wd76c10_recalc_exec(wd76c10_t *dev, uint32_t base, uint32_t size)
+{
+    uint32_t logical_addr = wd76c10_calc_addr(dev, base);
+    void *exec;
+
+    if (logical_addr != WD76C10_ADDR_INVALID)
+        exec = &(ram[logical_addr]);
+    else
+        exec = NULL;
+
+    for (uint32_t i = base; i < (base + size); i += 4096)
+        if (dev->ram_state[i >> 12])
+            _mem_exec[i >> 12] = exec;
+
+    if (cpu_use_exec)
+        flushmmucache_nopc();
+}
+
+static void
 wd76c10_banks_recalc(wd76c10_t *dev)
 {
     for (uint8_t i = 0; i < 4; i++) {
@@ -235,6 +264,9 @@ wd76c10_banks_recalc(wd76c10_t *dev)
         bit = i + 12;
         rb->enable = (dev->split_sa >> bit) & 0x01;
         rb->virt_addr = ((uint32_t) dev->bank_bases[i]) << 17;
+
+        if (cpu_use_exec)
+            wd76c10_recalc_exec(dev, rb->virt_addr, rb->virt_size);
     }
 }
 
@@ -245,8 +277,12 @@ wd76c10_split_recalc(wd76c10_t *dev)
     uint32_t split_size = ((sp_size - 1) * 65536);
     ram_bank_t *rb = &(dev->ram_banks[4]);
 
-    if (rb->enable && (rb->virt_size != 0x00000000))
-        mem_set_mem_state(rb->virt_addr, rb->virt_size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+    if (rb->enable && (rb->virt_size != 0x00000000)) {
+        wd76c10_set_mem_state(dev, rb->virt_addr, rb->virt_size, MEM_READ_EXTANY | MEM_WRITE_EXTANY, 0);
+
+        if (cpu_use_exec)
+            wd76c10_recalc_exec(dev, rb->virt_addr, rb->virt_size);
+    }
     rb->virt_addr = ((uint32_t) ((dev->split_sa >> 2) & 0x3f)) << 19;
     switch (sp_size) {
         case 0x00:
@@ -257,8 +293,12 @@ wd76c10_split_recalc(wd76c10_t *dev)
             break;
     }
     rb->enable = !!sp_size;
-    if (rb->enable && (rb->virt_size != 0x00000000))
-        mem_set_mem_state(rb->virt_addr, rb->virt_size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    if (rb->enable && (rb->virt_size != 0x00000000)) {
+        wd76c10_set_mem_state(dev, rb->virt_addr, rb->virt_size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL, 1);
+
+        if (cpu_use_exec)
+            wd76c10_recalc_exec(dev, rb->virt_addr, rb->virt_size);
+    }
 }
 
 static void
@@ -284,10 +324,13 @@ wd76c10_dis_mem_recalc(wd76c10_t *dev)
     }
 
     dev->mem_top = mem_top;
+
+    if (cpu_use_exec)
+        wd76c10_recalc_exec(dev, 128 * 1024, (640 - 128) * 1024);
 }
 
 static void
-wd76c10_shadow_ram_do_recalc(uint8_t *new_st, uint8_t *old_st, uint8_t min, uint8_t max, uint32_t addr)
+wd76c10_shadow_ram_do_recalc(wd76c10_t *dev, uint8_t *new_st, uint8_t *old_st, uint8_t min, uint8_t max, uint32_t addr)
 {
     uint32_t base = 0x00000000;
     int flags = 0;
@@ -300,7 +343,9 @@ wd76c10_shadow_ram_do_recalc(uint8_t *new_st, uint8_t *old_st, uint8_t min, uint
                     ((new_st[i] & 0x04) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL);
             flags |= (new_st[i] & 0x02) ? MEM_WRITE_INTERNAL :
                      ((new_st[i] & 0x04) ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL);
-            mem_set_mem_state_both(base, 0x00004000, flags);
+            wd76c10_set_mem_state(dev, base, 0x00004000, flags, new_st[i] & 0x01);
+            if (cpu_use_exec)
+                wd76c10_recalc_exec(dev, base, 0x000040000);
         }
     }
 }
@@ -366,11 +411,11 @@ wd76c10_shadow_ram_recalc(wd76c10_t *dev)
             break;
     }
 
-   wd76c10_shadow_ram_do_recalc(vbios_states, dev->vbios_states, 0, 4, 0x000c0000);
-   wd76c10_shadow_ram_do_recalc(bios_states, dev->bios_states, 0, 8, 0x000e0000);
+   wd76c10_shadow_ram_do_recalc(dev, vbios_states, dev->vbios_states, 0, 4, 0x000c0000);
+   wd76c10_shadow_ram_do_recalc(dev, bios_states, dev->bios_states, 0, 8, 0x000e0000);
 
    /* This is not shadowed, but there is a CSPROM# (= ROMCS#) toggle. */
-   wd76c10_shadow_ram_do_recalc(high_bios_states, dev->high_bios_states, 0, 8, 0x00fe0000);
+   wd76c10_shadow_ram_do_recalc(dev, high_bios_states, dev->high_bios_states, 0, 8, 0x00fe0000);
 
    flushmmucache_nopc();
 }
@@ -385,8 +430,14 @@ wd76c10_high_mem_wp_recalc(wd76c10_t *dev)
     /* ACCESS_NORMAL means both ACCESS_BUS and ACCESS_CPU are set. */
     mem_set_wp(dev->hmwp_base, size, ACCESS_NORMAL, 0);
 
+    if (cpu_use_exec)
+        wd76c10_recalc_exec(dev, dev->hmwp_base, size);
+
     size = 0x01000000 - base;
     mem_set_wp(base, size, ACCESS_NORMAL, hm_wp);
+
+    if (cpu_use_exec)
+        wd76c10_recalc_exec(dev, base, size);
 
     dev->hmwp_base = base;
 }
@@ -399,7 +450,10 @@ wd76c10_pf_loc_reset(wd76c10_t *dev)
     for (uint8_t i = 0x031; i <= 0x03b; i++) {
         dev->mem_pages[i] = 0xff;
         base = ((uint32_t) i) << 14;
-        mem_set_mem_state(base, 0x00004000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        wd76c10_set_mem_state(dev, base, 0x00004000, MEM_READ_EXTANY | MEM_WRITE_EXTANY, 0);
+
+        if (cpu_use_exec)
+            wd76c10_recalc_exec(dev, base, 0x00004000);
     }
 
     /* Re-apply any ROMCS#, etc. flags. */
@@ -419,9 +473,13 @@ wd76c10_pf_loc_recalc(wd76c10_t *dev)
         dev->mem_pages[i] = ems_page;
         base = ((uint32_t) i) << 14;
         dev->ems_pages[ems_page].virt = base;
-        if ((ems_en >= 0x02) && dev->ems_pages[ems_page].enabled)
-            mem_set_mem_state(dev->ems_pages[ems_page].virt, 0x00004000,
-                              MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        if ((ems_en >= 0x02) && dev->ems_pages[ems_page].enabled) {
+            wd76c10_set_mem_state(dev, dev->ems_pages[ems_page].virt,
+                                  0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL, 1);
+
+            if (cpu_use_exec)
+                wd76c10_recalc_exec(dev, dev->ems_pages[ems_page].virt, 0x00004000);
+        }
     }
 }
 
@@ -436,6 +494,9 @@ wd76c10_low_pages_recalc(wd76c10_t *dev)
         dev->mem_pages[i] = ems_page;
         base = ((uint32_t) i) << 14;
         dev->ems_pages[ems_page].virt = base;
+
+        if (cpu_use_exec)
+            wd76c10_recalc_exec(dev, dev->ems_pages[ems_page].virt, 0x00004000);
     }
 }
 
@@ -947,6 +1008,8 @@ wd76c10_init(const device_t *info)
     mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
     mem_mapping_enable(&dev->ram_mapping);
+
+    memset(dev->ram_state, 0x00, sizeof(dev->ram_state));
 
     return dev;
 }
