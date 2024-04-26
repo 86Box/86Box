@@ -110,6 +110,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
     ncr53c400_t         *ncr400     = (ncr53c400_t *) priv;
     ncr_t               *ncr        = &ncr400->ncr;
     scsi_device_t       *dev        = &scsi_devices[ncr->bus][ncr->target_id];
+    int                  actual_block = 0;
 
     addr &= 0x3fff;
 
@@ -129,7 +130,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                 if (!(ncr400->status_ctrl & CTRL_DATA_DIR) && (ncr400->buffer_host_pos < MIN(128, dev->buffer_length))) {
                     ncr400->buffer[ncr400->buffer_host_pos++] = val;
 
-                    ncr53c400_log("Write host pos = %i, val = %02x\n", ncr400->buffer_host_pos, val);
+                    ncr53c400_log("Write host pos=%i, val=%02x.\n", ncr400->buffer_host_pos, val);
 
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -141,7 +142,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* Control */
-                        ncr53c400_log("NCR 53c400 control = %02x, mode = %02x.\n", val, ncr->mode);
+                        ncr53c400_log("NCR 53c400 control=%02x, mode=%02x.\n", val, ncr->mode);
                         if ((val & CTRL_DATA_DIR) && !(ncr400->status_ctrl & CTRL_DATA_DIR)) {
                             ncr400->buffer_host_pos = MIN(128, dev->buffer_length);
                             ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -153,7 +154,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0x3981: /* block counter register */
-                        ncr53c400_log("Write block counter register: val=%d, dma mode=%x, period=%lf\n", val, ncr->dma_mode, ncr->period);
+                        ncr53c400_log("Write block counter register: val=%d, dma mode=%x, period=%lf.\n", val, ncr->dma_mode, ncr->period);
                         ncr400->block_count        = val;
                         ncr400->block_count_loaded = 1;
 
@@ -164,10 +165,19 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                             ncr400->buffer_host_pos = 0;
                             ncr400->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
                         }
-                        if ((ncr->mode & MODE_DMA) && !timer_is_on(&ncr400->timer) && (dev->buffer_length > 0)) {
+                        if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0) && !timer_is_on(&ncr400->timer)) {
                             memset(ncr400->buffer, 0, MIN(128, dev->buffer_length));
-                            ncr53c400_log("DMA timer on\n");
-                            timer_on_auto(&ncr400->timer, ncr->period);
+                            ncr53c400_log("DMA timer on, callback=%lf, scsi buflen=%d.\n", scsi_device_get_callback(dev), dev->buffer_length);
+                            actual_block = ncr400->block_count;
+                            if (!actual_block)
+                                actual_block = 256;
+
+                            /*Sometimes the actual block count doesn't match the SCSI buffer length / 128.*/
+                            if (actual_block != (dev->buffer_length / 128)) {
+                                /*FIXME: To be improved further, this is just to workaround callback de-syncs when split transfers occur.*/
+                                timer_on_auto(&ncr400->timer, (ncr->period / ((double)(actual_block * 40.0))));
+                            } else
+                                timer_on_auto(&ncr400->timer, ncr->period);
                         }
                         break;
 
@@ -202,12 +212,12 @@ ncr53c400_read(uint32_t addr, void *priv)
     else {
         switch (addr & 0x3f80) {
             case 0x3800:
-                ncr53c400_log("Read intRAM %02x %02x\n", addr & 0x3f, ncr400->int_ram[addr & 0x3f]);
+                ncr53c400_log("Read intRAM %02x %02x.\n", addr & 0x3f, ncr400->int_ram[addr & 0x3f]);
                 ret = ncr400->int_ram[addr & 0x3f];
                 break;
 
             case 0x3880:
-                ncr53c400_log("Read 5380 %04x\n", addr);
+                ncr53c400_log("Read 5380 %04x.\n", addr);
                 ret = ncr5380_read(addr, ncr);
                 break;
 
@@ -217,11 +227,11 @@ ncr53c400_read(uint32_t addr, void *priv)
                     ncr53c400_log("No Read.\n");
                 } else {
                     ret = ncr400->buffer[ncr400->buffer_host_pos++];
-                    ncr53c400_log("Read host pos = %i, ret = %02x\n", ncr400->buffer_host_pos, ret);
+                    ncr53c400_log("Read host pos=%i, ret=%02x.\n", ncr400->buffer_host_pos, ret);
 
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
-                        ncr53c400_log("Transfer busy read, status = %02x\n", ncr400->status_ctrl);
+                        ncr53c400_log("Transfer busy read, status = %02x.\n", ncr400->status_ctrl);
                     }
                 }
                 break;
@@ -230,7 +240,7 @@ ncr53c400_read(uint32_t addr, void *priv)
                 switch (addr) {
                     case 0x3980: /* status */
                         ret = ncr400->status_ctrl;
-                        ncr53c400_log("NCR status ctrl read=%02x\n", ncr400->status_ctrl & STATUS_BUFFER_NOT_READY);
+                        ncr53c400_log("NCR status ctrl read=%02x.\n", ncr400->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr400->busy)
                             ret |= STATUS_5380_ACCESSIBLE;
                         if (ncr->mode & 0x30) {            /*Parity bits*/
@@ -239,11 +249,12 @@ ncr53c400_read(uint32_t addr, void *priv)
                                 ncr->mode = 0;             /*Required by RTASPI10.SYS otherwise it won't initialize.*/
                             }
                         }
-                        ncr53c400_log("NCR 53c400 status = %02x.\n", ret);
+                        ncr53c400_log("NCR 53c400 status=%02x.\n", ret);
                         break;
 
                     case 0x3981: /* block counter register*/
                         ret = ncr400->block_count;
+                        ncr53c400_log("NCR 53c400 block count read=%02x.\n", ret);
                         break;
 
                     case 0x3982: /* switch register read */
@@ -394,7 +405,7 @@ ncr53c400_timer_on_auto(void *ext_priv, double period)
 {
     ncr53c400_t *ncr400 = (ncr53c400_t *) ext_priv;
 
-    ncr53c400_log("53c400: PERIOD=%lf.\n", period);
+    ncr53c400_log("53c400: PERIOD=%lf, timer=%x.\n", period, !!timer_is_on(&ncr400->timer));
     if (period == 0.0)
         timer_stop(&ncr400->timer);
     else
