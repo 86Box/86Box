@@ -438,8 +438,6 @@ bochs_vbe_inl(const uint16_t addr, void *priv)
     else
         ret = dev->vram_size;
 
-    pclog("[%04X:%08X] [R] %04X = %08X\n", CS, cpu_state.pc, addr, ret);
-
     return ret;
 }
 
@@ -672,9 +670,6 @@ bochs_vbe_pci_read(const int func, const int addr, void *priv)
     } else
         ret = 0xff;
 
-    if (func == 0x00)
-        pclog("[R] %02X = %02X\n", addr, ret);
-
     return ret;
 }
 
@@ -691,19 +686,20 @@ bochs_vbe_disable_handlers(bochs_vbe_t *dev)
     mem_mapping_disable(&dev->svga.mapping);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
+    /* Save all the mappings and the timers because they are part of linked lists. */
     reset_state->linear_mapping_2 = dev->linear_mapping_2;
-    reset_state->linear_mapping = dev->linear_mapping;
-    reset_state->svga.mapping = dev->svga.mapping;
+    reset_state->linear_mapping   = dev->linear_mapping;
+    reset_state->svga.mapping     = dev->svga.mapping;
     reset_state->bios_rom.mapping = dev->bios_rom.mapping;
+
+    reset_state->svga.timer       = dev->svga.timer;
+    reset_state->svga.timer8514   = dev->svga.timer8514;
 }
 
 static void
 bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *priv)
 {
     bochs_vbe_t *dev = (bochs_vbe_t *) priv;
-
-    if (func == 0x00)
-        pclog("[W] %02X = %02X\n", addr, val);
 
     if (func == 0x00)  switch (addr) {
         default:
