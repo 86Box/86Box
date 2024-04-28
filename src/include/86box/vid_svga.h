@@ -29,6 +29,7 @@
 #    define FLAG_ATI          128
 #    define FLAG_S3_911_16BIT 256
 #    define FLAG_512K_MASK    512
+#    define FLAG_NO_SHIFT3    1024 /* Needed for Bochs VBE. */
 struct monitor_t;
 
 typedef struct hwcursor_t {
