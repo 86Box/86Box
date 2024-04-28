@@ -623,16 +623,16 @@ bochs_vbe_pci_read(const int func, const int addr, void *priv)
         default:
             break;
         case 0x00:
-            ret = 0x34;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x34 : 0xee;
             break;
         case 0x01:
-            ret = 0x12;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x12 : 0x80;
             break;
         case 0x02:
-            ret = 0x11;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xef;
             break;
         case 0x03:
-            ret = 0x11;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xbe;
             break;
         case 0x04:
             ret = (dev->pci_conf_status & 0b11100011) | 0x80;
