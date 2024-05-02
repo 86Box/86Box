@@ -455,6 +455,7 @@ QMap<uint32_t, QPair<QString, QString>> ProgSettings::lcid_langcode = {
     { 0x0C0A, { "es-ES", "Spanish (Spain, Modern Sort)" } },
     { 0x041F, { "tr-TR", "Turkish (Turkey)" }        },
     { 0x0422, { "uk-UA", "Ukrainian (Ukraine)" }     },
+    { 0x042A, { "vi-VN", "Vietnamese (Vietnam)" }    },
     { 0xFFFF, { "system", "(System Default)" }       },
 };
 }

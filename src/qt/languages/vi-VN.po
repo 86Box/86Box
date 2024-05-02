@@ -490,7 +490,7 @@ msgid "Serial port 2"
 msgstr "Cổng serial 2"
 
 msgid "Serial port 3"
-msgstr "Puerto serie 3"
+msgstr "Cổng serial 3"
 
 msgid "Serial port 4"
 msgstr "Cổng serial 4"
@@ -607,7 +607,7 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr Mở rộng bộ nhớ qua ISA"
+msgstr "Mở rộng bộ nhớ qua ISA"
 
 msgid "Card 1:"
 msgstr "Thẻ 1:"
