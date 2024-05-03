@@ -2329,7 +2329,7 @@ pas16_init(const device_t *info)
     }
 
     pas16->type = info->local & 0xff;
-    pas16->has_scsi = (!pas16->type) || (pas16->type & 0x0f);
+    pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
