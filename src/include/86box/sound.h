@@ -189,9 +189,10 @@ extern const device_t ps1snd_device;
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;
 
-/* Pro Audio Spectrum 16 */
+/* Pro Audio Spectrum Plus, 16, and 16D */
 extern const device_t pasplus_device;
 extern const device_t pas16_device;
+extern const device_t pas16d_device;
 
 /* Tandy PSSJ */
 extern const device_t pssj_device;
