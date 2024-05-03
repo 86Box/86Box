@@ -2466,8 +2466,8 @@ const device_t pas16_device = {
 };
 
 const device_t pas16d_device = {
-    .name          = "Pro Audio Spectrum 16",
-    .internal_name = "pas16",
+    .name          = "Pro Audio Spectrum 16D",
+    .internal_name = "pas16d",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 0x0c,
     .init          = pas16_init,
