@@ -348,9 +348,11 @@ device_reset_all(uint32_t match_flags)
         }
     }
 
+#ifdef UNCOMMENT_LATER
     /* TODO: Actually convert the LPT devices to device_t's. */
     if ((match_flags == DEVICE_ALL) || (match_flags == DEVICE_PCI))
         lpt_reset();
+#endif
 }
 
 void *
