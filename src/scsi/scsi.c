@@ -171,11 +171,6 @@ scsi_card_init(void)
 {
     int max = SCSI_CARD_MAX;
 
-    /* On-board SCSI controllers get the first bus, so if one is present,
-       increase our instance number here. */
-    // if (machine_has_flags(machine, MACHINE_SCSI))
-        // max--;
-
     /* Do not initialize any controllers if we have do not have any SCSI
            bus left. */
     if (max > 0) {
