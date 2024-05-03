@@ -8,7 +8,7 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
-      - .github/workflows/cmake.yml
+      - .github/workflows/cmake_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
 
@@ -19,7 +19,7 @@ on:
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
       - .github/workflows/**
-      - .github/workflows/cmake.yml
+      - .github/workflows/cmake_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
 
