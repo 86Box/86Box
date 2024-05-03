@@ -4,13 +4,16 @@
 #include <86box/fifo.h>
 
 /*Sound Blaster Clones, for quirks*/
-#define SB_SUBTYPE_DEFAULT             0 /*Handle as a Creative card*/
-#define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /*Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone*/
-#define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /*Aztech Sound Galaxy Nova 16 Extra / Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone*/
-#define SB_SUBTYPE_ESS_ES1688          3 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_DEFAULT             0 /* Handle as a Creative card */
+#define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /* Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone */
+#define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /* Aztech Sound Galaxy Nova 16 Extra /
+                                            Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone */
+#define SB_SUBTYPE_ESS_ES688           3 /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688          4 /* ESS Technology ES1688 */
 
 /* ESS-related */
-#define IS_ESS(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_ESS_ES1688) /* check for future ESS cards here */
+#define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
+#define IS_NOT_ESS(dsp) ((dsp)->sb_subtype < SB_SUBTYPE_ESS_ES688) /* Check for future ESS cards here */
 
 /* aztech-related */
 #define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) /* check for future AZT cards here */
@@ -51,6 +54,10 @@ typedef struct sb_dsp_t {
     void *dma_priv;
 
     uint8_t sb_read_data[256];
+
+    uint8_t dma_ff;
+    int     dma_data;
+
     int     sb_read_wp;
     int     sb_read_rp;
     int     sb_speaker;
@@ -115,6 +122,8 @@ typedef struct sb_dsp_t {
 
     int sbenable;
     int sb_enable_i;
+
+    int state;
 
     pc_timer_t output_timer;
     pc_timer_t input_timer;

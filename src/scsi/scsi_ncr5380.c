@@ -68,14 +68,22 @@ void
 ncr5380_irq(ncr_t *ncr, int set_irq)
 {
     if (set_irq) {
+        ncr->irq_state = 1;
         ncr->isr |= STATUS_INT;
         if (ncr->irq != -1)
             picint(1 << ncr->irq);
     } else {
+        ncr->irq_state = 0;
         ncr->isr &= ~STATUS_INT;
         if (ncr->irq != 1)
             picintc(1 << ncr->irq);
     }
+}
+
+void
+ncr5380_set_irq(ncr_t *ncr, int irq)
+{
+    ncr->irq = irq;
 }
 
 static int
@@ -318,6 +326,19 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                             ncr5380_log("SCSI ID %i: command 0x%02x for p = %lf, update = %lf, len = %i, dmamode = %x\n", ncr->target_id, ncr->command[0], scsi_device_get_callback(dev), ncr->period, dev->buffer_length, ncr->dma_mode);
                         }
                     }
+
+                    if (ncr->simple_pseudo_dma) {
+                        if (dev->phase == SCSI_PHASE_DATA_IN) {
+                            ncr->block_count = dev->buffer_length / 512;
+
+                            ncr->dma_init_ext(ncr, ncr->priv, 1);
+                        } else if (dev->phase == SCSI_PHASE_DATA_OUT) {
+                            ncr->block_count = dev->buffer_length / 512;
+
+                            ncr->dma_init_ext(ncr, ncr->priv, 0);
+                        }
+                    }
+
                     ncr->new_phase = dev->phase;
                 }
             }
@@ -337,7 +358,10 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                     if (ncr->dma_mode == DMA_IDLE) { /*If a data in command that is not read 6/10 has been issued*/
                         ncr->data_wait |= 1;
                         ncr5380_log("DMA mode idle in\n");
-                        ncr->timer(ncr->priv, ncr->period);
+                        if (ncr->simple_pseudo_dma)
+                            ncr->dma_init_ext(ncr, ncr->priv, 1);
+                        else
+                            ncr->timer(ncr->priv, ncr->period);
                     } else {
                         ncr5380_log("DMA mode IN.\n");
                         ncr->clear_req = 3;
@@ -364,7 +388,10 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                     if (ncr->dma_mode == DMA_IDLE) { /*If a data out command that is not write 6/10 has been issued*/
                         ncr->data_wait |= 1;
                         ncr5380_log("DMA mode idle out\n");
-                        ncr->timer(ncr->priv, ncr->period);
+                        if (!ncr->simple_pseudo_dma)
+                            ncr->timer(ncr->priv, ncr->period);
+                        if (ncr->simple_pseudo_dma)
+                            ncr->dma_init_ext(ncr, ncr->priv, 0);
                     } else
                         ncr->clear_req = 3;
 
@@ -488,6 +515,21 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
 
     bus_host = ncr5380_get_bus_host(ncr);
     ncr5380_bus_update(ncr, bus_host);
+}
+
+uint8_t
+ncr5380_drq(ncr_t *ncr)
+{
+    uint8_t    ret          = 0;
+    int        bus;
+
+    ncr5380_bus_read(ncr);
+    bus = ncr->cur_bus;
+
+    if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA))
+        ret = 1;
+
+    return ret;
 }
 
 uint8_t

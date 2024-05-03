@@ -368,6 +368,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     setCDROMType(ui->tableViewCDROM->model(),
                  ui->tableViewCDROM->selectionModel()->currentIndex(),
                  ui->comboBoxCDROMType->currentData().toUInt());
+    emit cdromChannelChanged();
 }
 
 void

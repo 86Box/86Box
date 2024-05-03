@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"

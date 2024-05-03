@@ -208,6 +208,11 @@ int      do_auto_pause                          = 0;              /* (C) Auto-pa
                                                                          loss */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 
+int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
+                                                                     present */
+int      other_scsi_present = 0;                                  /* SCSI controllers from non-SCSI cards are
+                                                                     present */
+
 /* Statistics. */
 extern int mmuflush;
 extern int readlnum;
@@ -1080,17 +1085,21 @@ pc_reset_hard_close(void)
     /* Close all the memory mappings. */
     mem_close();
 
+    suppress_overscan = 0;
+
     /* Turn off timer processing to avoid potential segmentation faults. */
     timer_close();
 
-    suppress_overscan = 0;
+    lpt_devices_close();
+
+#ifdef UNCOMMENT_LATER
+    lpt_close();
+#endif
 
     nvr_save();
     nvr_close();
 
     mouse_close();
-
-    lpt_devices_close();
 
     device_close_all();
 
@@ -1131,6 +1140,9 @@ pc_reset_hard_init(void)
      * the actual machine, but which support some of the
      * modules that are.
      */
+
+    /* Reset the IDE and SCSI presences */
+    other_ide_present = other_scsi_present = 0;
 
     /* Mark ACPI as unavailable */
     acpi_enabled = 0;

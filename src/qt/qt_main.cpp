@@ -91,26 +91,23 @@ void qt_set_sequence_auto_mnemonic(bool b);
 void
 main_thread_fn()
 {
-    uint64_t old_time;
-    uint64_t new_time;
-    int      drawits;
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
-    plat_set_thread_name(NULL, "main_thread_fn");
+    plat_set_thread_name(nullptr, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
-    old_time = elapsed_timer.elapsed();
-    drawits = frames = 0;
+    uint64_t old_time = elapsed_timer.elapsed();
+    int drawits = frames = 0;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
-        new_time = elapsed_timer.elapsed();
+        const uint64_t new_time = elapsed_timer.elapsed();
 #ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
             drawits = 10;
         else
 #endif
-            drawits += (new_time - old_time);
+            drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
@@ -395,7 +392,7 @@ main(int argc, char *argv[])
             plat_pause(0);
     });
 
-    auto ret       = app.exec();
+    const auto ret       = app.exec();
     cpu_thread_run = 0;
     main_thread->join();
     pc_close(nullptr);

@@ -252,7 +252,7 @@ void
 MediaMenu::cassetteUpdateMenu()
 {
     QString name        = cassette_fname;
-    QString mode        = cassette_mode;
+    const QString mode  = cassette_mode;
     auto    childs      = cassetteMenu->children();
     auto   *recordMenu  = dynamic_cast<QAction *>(childs[cassetteRecordPos]);
     auto   *playMenu    = dynamic_cast<QAction *>(childs[cassettePlayPos]);
@@ -266,11 +266,12 @@ MediaMenu::cassetteUpdateMenu()
     fastFwdMenu->setEnabled(!name.isEmpty());
     ejectMenu->setEnabled(!name.isEmpty());
 
-    bool isSaving = mode == QStringLiteral("save");
+    const bool isSaving = (mode == QStringLiteral("save"));
     recordMenu->setChecked(isSaving);
     playMenu->setChecked(!isSaving);
 
-    cassetteMenu->setTitle(QString::asprintf(tr("Cassette: %s").toUtf8().constData(), (name.isEmpty() ? tr("(empty)") : name).toUtf8().constData()));
+    cassetteMenu->setTitle(QString::asprintf(tr("Cassette: %s").toUtf8().constData(),
+                           (name.isEmpty() ? tr("(empty)") : name).toUtf8().constData()));
 }
 
 void
@@ -289,7 +290,7 @@ MediaMenu::cartridgeMount(int i, const QString &filename)
 void
 MediaMenu::cartridgeSelectImage(int i)
 {
-    auto filename = QFileDialog::getOpenFileName(
+    const auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
         getMediaOpenDirectory(),
@@ -314,8 +315,8 @@ MediaMenu::cartridgeEject(int i)
 void
 MediaMenu::cartridgeUpdateMenu(int i)
 {
-    QString name      = cart_fns[i];
-    auto   *menu      = cartridgeMenus[i];
+    const QString name = cart_fns[i];
+    auto   *menu       = cartridgeMenus[i];
     auto    childs    = menu->children();
     auto   *ejectMenu = dynamic_cast<QAction *>(childs[cartridgeEjectPos]);
     ejectMenu->setEnabled(!name.isEmpty());
@@ -328,8 +329,10 @@ MediaMenu::floppyNewImage(int i)
 {
     NewFloppyDialog dialog(NewFloppyDialog::MediaType::Floppy, parentWidget);
     switch (dialog.exec()) {
+        default:
+            break;
         case QDialog::Accepted:
-            QByteArray filename = dialog.fileName().toUtf8();
+            const QByteArray filename = dialog.fileName().toUtf8();
             floppyMount(i, filename, false);
             break;
     }
@@ -516,7 +519,7 @@ MediaMenu::cdromEject(int i)
 void
 MediaMenu::cdromReload(int index, int slot)
 {
-    QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Optical);
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Optical);
     cdromMount(index, filename.toUtf8().constData());
     cdromUpdateMenu(index);
     ui_sb_update_tip(SB_CDROM | index);
@@ -572,7 +575,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             return;
     }
 
-    QString menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
+    const QString menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
     imageHistoryUpdatePos->setText(QString::asprintf(tr("%s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
     imageHistoryUpdatePos->setVisible(!fi.fileName().isEmpty());
     imageHistoryUpdatePos->setVisible(fi.exists());
@@ -602,8 +605,8 @@ MediaMenu::cdromUpdateMenu(int i)
 
     auto *imageMenu = dynamic_cast<QAction *>(childs[cdromImagePos]);
     imageMenu->setEnabled(!name.isEmpty());
-    QString menu_item_name = name.isEmpty() ? QString().toUtf8().constData() : fi.fileName().toUtf8().constData();
-    auto    menu_icon      = fi.isDir() ? QApplication::style()->standardIcon(QStyle::SP_DirIcon) : ProgSettings::loadIcon("/cdrom.ico");
+    const QString menu_item_name = name.isEmpty() ? QString().toUtf8().constData() : fi.fileName().toUtf8().constData();
+    const auto    menu_icon      = fi.isDir() ? QApplication::style()->standardIcon(QStyle::SP_DirIcon) : ProgSettings::loadIcon("/cdrom.ico");
     imageMenu->setIcon(menu_icon);
     imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
 
@@ -613,15 +616,17 @@ MediaMenu::cdromUpdateMenu(int i)
 
     QString busName = tr("Unknown Bus");
     switch (cdrom[i].bus_type) {
+        default:
+            break;
         case CDROM_BUS_ATAPI:
             busName = "ATAPI";
             break;
         case CDROM_BUS_SCSI:
             busName = "SCSI";
             break;
-	    case CDROM_BUS_MITSUMI:
-	        busName = "Mitsumi";
-	        break;
+        case CDROM_BUS_MITSUMI:
+	    busName = "Mitsumi";
+	    break;
     }
 
     // menu->setTitle(tr("CD-ROM %1 (%2): %3").arg(QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name));
@@ -633,6 +638,8 @@ MediaMenu::zipNewImage(int i)
 {
     NewFloppyDialog dialog(NewFloppyDialog::MediaType::Zip, parentWidget);
     switch (dialog.exec()) {
+        default:
+            break;
         case QDialog::Accepted:
             QByteArray filename = dialog.fileName().toUtf8();
             zipMount(i, filename, false);
@@ -643,7 +650,7 @@ MediaMenu::zipNewImage(int i)
 void
 MediaMenu::zipSelectImage(int i, bool wp)
 {
-    auto filename = QFileDialog::getOpenFileName(
+    const auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
         QString(),
@@ -656,7 +663,7 @@ MediaMenu::zipSelectImage(int i, bool wp)
 void
 MediaMenu::zipMount(int i, const QString &filename, bool wp)
 {
-    zip_t *dev = (zip_t *) zip_drives[i].priv;
+    const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
 
     zip_disk_close(dev);
     zip_drives[i].read_only = wp;
@@ -676,7 +683,7 @@ MediaMenu::zipMount(int i, const QString &filename, bool wp)
 void
 MediaMenu::zipEject(int i)
 {
-    zip_t *dev = (zip_t *) zip_drives[i].priv;
+    const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
 
     zip_disk_close(dev);
     zip_drives[i].image_path[0] = 0;
@@ -694,7 +701,7 @@ MediaMenu::zipEject(int i)
 void
 MediaMenu::zipReload(int i)
 {
-    zip_t *dev = (zip_t *) zip_drives[i].priv;
+    const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
 
     zip_disk_reload(dev);
     if (strlen(zip_drives[i].image_path) == 0) {
@@ -712,8 +719,8 @@ MediaMenu::zipReload(int i)
 void
 MediaMenu::zipUpdateMenu(int i)
 {
-    QString name      = zip_drives[i].image_path;
-    QString prev_name = zip_drives[i].prev_image_path;
+    const QString name      = zip_drives[i].image_path;
+    const QString prev_name = zip_drives[i].prev_image_path;
     if (!zipMenus.contains(i))
         return;
     auto *menu   = zipMenus[i];
@@ -726,6 +733,8 @@ MediaMenu::zipUpdateMenu(int i)
 
     QString busName = tr("Unknown Bus");
     switch (zip_drives[i].bus_type) {
+        default:
+            break;
         case ZIP_BUS_ATAPI:
             busName = "ATAPI";
             break;
@@ -743,6 +752,8 @@ MediaMenu::moNewImage(int i)
 {
     NewFloppyDialog dialog(NewFloppyDialog::MediaType::Mo, parentWidget);
     switch (dialog.exec()) {
+        default:
+            break;
         case QDialog::Accepted:
             QByteArray filename = dialog.fileName().toUtf8();
             moMount(i, filename, false);
@@ -753,7 +764,7 @@ MediaMenu::moNewImage(int i)
 void
 MediaMenu::moSelectImage(int i, bool wp)
 {
-    auto filename = QFileDialog::getOpenFileName(
+    const auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
         getMediaOpenDirectory(),
@@ -769,7 +780,7 @@ MediaMenu::moSelectImage(int i, bool wp)
 void
 MediaMenu::moMount(int i, const QString &filename, bool wp)
 {
-    mo_t *dev = (mo_t *) mo_drives[i].priv;
+    const auto dev = static_cast<mo_t *>(mo_drives[i].priv);
 
     mo_disk_close(dev);
     mo_drives[i].read_only = wp;
@@ -789,7 +800,7 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
 void
 MediaMenu::moEject(int i)
 {
-    mo_t *dev = (mo_t *) mo_drives[i].priv;
+    const auto dev = static_cast<mo_t *>(mo_drives[i].priv);
 
     mo_disk_close(dev);
     mo_drives[i].image_path[0] = 0;
@@ -839,6 +850,8 @@ MediaMenu::moUpdateMenu(int i)
 
     QString busName = tr("Unknown Bus");
     switch (mo_drives[i].bus_type) {
+        default:
+            break;
         case MO_BUS_ATAPI:
             busName = "ATAPI";
             break;
@@ -876,6 +889,8 @@ MediaMenu::nicUpdateMenu(int i)
 
     QString netType = tr("Null Driver");
     switch (net_cards_conf[i].net_type) {
+        default:
+            break;
         case NET_TYPE_SLIRP:
             netType = "SLiRP";
             break;
@@ -901,9 +916,10 @@ QString
 MediaMenu::getMediaOpenDirectory()
 {
     QString openDirectory;
-    if (open_dir_usr_path > 0) {
+
+    if (open_dir_usr_path > 0)
         openDirectory = QString::fromUtf8(usr_path);
-    }
+
     return openDirectory;
 }
 

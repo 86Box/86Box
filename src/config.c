@@ -745,7 +745,6 @@ load_ports(void)
     char         *p;
     char          temp[512];
     int           c;
-    int           d;
 
     memset(temp, 0, sizeof(temp));
 
@@ -768,14 +767,6 @@ load_ports(void)
         p                   = ini_section_get_string(cat, temp, "none");
         lpt_ports[c].device = lpt_device_get_from_internal_name(p);
     }
-
-    /* Legacy config compatibility. */
-    d = ini_section_get_int(cat, "lpt_enabled", 2);
-    if (d < 2) {
-        for (c = 0; c < PARALLEL_MAX; c++)
-            lpt_ports[c].enabled = d;
-    }
-    ini_section_delete_var(cat, "lpt_enabled");
 }
 
 /* Load "Storage Controllers" section. */
@@ -790,7 +781,7 @@ load_storage_controllers(void)
     int           min = 0;
     int           free_p = 0;
 
-    for (c = min; c < SCSI_BUS_MAX; c++) {
+    for (c = min; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
@@ -2288,7 +2279,7 @@ save_storage_controllers(void)
 
     ini_section_delete_var(cat, "scsicard");
 
-    for (c = 0; c < SCSI_BUS_MAX; c++) {
+    for (c = 0; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         if (scsi_card_current[c] == 0)

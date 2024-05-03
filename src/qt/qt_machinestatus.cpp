@@ -272,13 +272,13 @@ MachineStatus::hasCassette()
 bool
 MachineStatus::hasIDE()
 {
-    return machine_has_flags(machine, MACHINE_IDE_QUAD) > 0;
+    return (machine_has_flags(machine, MACHINE_IDE_QUAD) > 0) || other_ide_present;
 }
 
 bool
 MachineStatus::hasSCSI()
 {
-    return machine_has_flags(machine, MACHINE_SCSI) > 0;
+    return (machine_has_flags(machine, MACHINE_SCSI) > 0) || other_scsi_present;
 }
 
 void

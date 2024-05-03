@@ -20,13 +20,15 @@ class DeviceConfig : public QDialog {
 
 public:
     explicit DeviceConfig(QWidget *parent = nullptr);
-    ~DeviceConfig();
+    ~DeviceConfig() override;
 
-    static void    ConfigureDevice(const _device_ *device, int instance = 0, Settings *settings = nullptr);
+    static void    ConfigureDevice(const _device_ *device, int instance = 0,
+                                   Settings *settings = nullptr);
     static QString DeviceName(const _device_ *device, const char *internalName, int bus);
 
 private:
     Ui::DeviceConfig *ui;
+    void   ProcessConfig(void *dc, const void *c, bool is_dep);
 };
 
 #endif // QT_DEVICECONFIG_HPP

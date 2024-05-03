@@ -41,6 +41,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
+#include <86box/scsi_ncr53c400.h>
 
 #define LCS6821N_ROM            "roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
 #define COREL_LS2000_ROM        "roms/scsi/ncr5380/Corel LS2000 - BIOS ROM - Ver 1.65.bin"
@@ -48,42 +49,13 @@
 #define RT1000B_820R_ROM        "roms/scsi/ncr5380/RTBIOS82.ROM"
 #define T130B_ROM               "roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin"
 
-#define CTRL_DATA_DIR           0x40
-#define STATUS_BUFFER_NOT_READY 0x04
-#define STATUS_5380_ACCESSIBLE  0x80
-
 enum {
     ROM_LCS6821N = 0,
     ROM_LS2000,
     ROM_RT1000B,
-    ROM_T130B
+    ROM_T130B,
+    ROM_PAS
 };
-
-typedef struct ncr53c400_t {
-    rom_t         bios_rom;
-    mem_mapping_t mapping;
-    ncr_t   ncr;
-    uint8_t buffer[128];
-    uint8_t int_ram[0x40];
-    uint8_t ext_ram[0x600];
-
-    uint32_t rom_addr;
-    uint16_t base;
-
-    int8_t  type;
-    uint8_t block_count;
-    uint8_t status_ctrl;
-
-    int block_count_loaded;
-
-    int buffer_pos;
-    int buffer_host_pos;
-
-    int     busy;
-    uint8_t pos_regs[8];
-
-    pc_timer_t timer;
-} ncr53c400_t;
 
 #ifdef ENABLE_NCR53C400_LOG
 int ncr53c400_do_log = ENABLE_NCR53C400_LOG;
@@ -103,8 +75,29 @@ ncr53c400_log(const char *fmt, ...)
 #    define ncr53c400_log(fmt, ...)
 #endif
 
+void
+ncr53c400_simple_write(uint8_t val, void *priv)
+{
+    ncr53c400_t         *ncr400     = (ncr53c400_t *) priv;
+    ncr_t               *ncr        = &ncr400->ncr;
+    scsi_device_t       *dev        = &scsi_devices[ncr->bus][ncr->target_id];
+
+    if (ncr400->buffer_host_pos < MIN(512, dev->buffer_length)) {
+        ncr400->buffer[ncr400->buffer_host_pos++] = val;
+
+        ncr53c400_log("Write host pos = %i, val = %02x\n", ncr400->buffer_host_pos, val);
+
+        if (ncr400->buffer_host_pos == MIN(512, dev->buffer_length)) {
+            ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
+            ncr400->busy = 1;
+
+            ncr53c400_callback(priv);
+        }
+    }
+}
+
 /* Memory-mapped I/O WRITE handler. */
-static void
+void
 ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
 {
     ncr53c400_t         *ncr400     = (ncr53c400_t *) priv;
@@ -192,8 +185,30 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
     }
 }
 
+uint8_t
+ncr53c400_simple_read(void *priv)
+{
+    ncr53c400_t         *ncr400     = (ncr53c400_t *) priv;
+    ncr_t               *ncr        = &ncr400->ncr;
+    scsi_device_t       *dev        = &scsi_devices[ncr->bus][ncr->target_id];
+    uint8_t              ret        = 0xff;
+
+    if (ncr400->buffer_host_pos < MIN(512, dev->buffer_length)) {
+        ret = ncr400->buffer[ncr400->buffer_host_pos++];
+        ncr53c400_log("Read host pos = %i, ret = %02x\n", ncr400->buffer_host_pos, ret);
+
+        if (ncr400->buffer_host_pos == MIN(512, dev->buffer_length)) {
+            ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
+            ncr53c400_log("Transfer busy read, status = %02x\n", ncr400->status_ctrl);
+            ncr53c400_callback(priv);
+        }
+    }
+
+    return ret;
+}
+
 /* Memory-mapped I/O READ handler. */
-static uint8_t
+uint8_t
 ncr53c400_read(uint32_t addr, void *priv)
 {
     ncr53c400_t         *ncr400     = (ncr53c400_t *) priv;
@@ -386,6 +401,34 @@ t130b_in(uint16_t port, void *priv)
 }
 
 static void
+ncr53c400_dma_init_ext(void *priv, void *ext_priv, int send)
+{
+    ncr53c400_t *ncr400 = (ncr53c400_t *) ext_priv;
+    ncr_t   *ncr        = (ncr_t *) priv;
+    scsi_device_t  *dev        = &scsi_devices[ncr->bus][ncr->target_id];
+    uint8_t val = send ? CTRL_DATA_DIR : 0x00;
+
+    ncr53c400_log("NCR 53c400 control = %02x, mode = %02x.\n", val, ncr->mode);
+    ncr400->status_ctrl = (ncr400->status_ctrl & 0x87) | (val & 0x78);
+
+    ncr400->block_count_loaded = 1;
+
+    if (ncr400->status_ctrl & CTRL_DATA_DIR) {
+        ncr400->buffer_host_pos = MIN(512, dev->buffer_length);
+        ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
+    } else {
+        ncr400->buffer_host_pos = 0;
+        ncr400->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+    }
+    if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
+        memset(ncr400->buffer, 0, MIN(512, dev->buffer_length));
+        ncr53c400_log("DMA buffer init\n");
+        ncr->timer(ncr->priv, ncr->period);
+    }
+    ncr53c400_log("NCR DMA init\n");
+}
+
+static void
 ncr53c400_dma_mode_ext(void *priv, void *ext_priv)
 {
     ncr53c400_t *ncr400 = (ncr53c400_t *) ext_priv;
@@ -412,17 +455,21 @@ ncr53c400_timer_on_auto(void *ext_priv, double period)
         timer_on_auto(&ncr400->timer, period);
 }
 
-static void
+void
 ncr53c400_callback(void *priv)
 {
     ncr53c400_t    *ncr400     = (void *) priv;
     ncr_t          *ncr        = &ncr400->ncr;
     scsi_device_t  *dev        = &scsi_devices[ncr->bus][ncr->target_id];
     int            bus;
+    int            blocks_left;
     uint8_t        c;
     uint8_t        temp;
+    const int      buf_len     = ncr400->simple_ctrl ? 512 : 128;
 
-    if (ncr->dma_mode != DMA_IDLE)
+    ncr53c400_log("DMA mode = %i\n", ncr->dma_mode);
+
+    if (!ncr400->simple_ctrl && (ncr->dma_mode != DMA_IDLE))
         timer_on_auto(&ncr400->timer, 1.0);
 
     if (ncr->data_wait & 1) {
@@ -441,7 +488,7 @@ ncr53c400_callback(void *priv)
 
     switch (ncr->dma_mode) {
         case DMA_SEND:
-            if (ncr400->status_ctrl & CTRL_DATA_DIR) {
+            if (!ncr400->simple_ctrl && (ncr400->status_ctrl & CTRL_DATA_DIR)) {
                 ncr53c400_log("DMA_SEND with DMA direction set wrong\n");
                 break;
             }
@@ -475,14 +522,20 @@ ncr53c400_callback(void *priv)
                 ncr400->buffer_pos++;
                 ncr53c400_log("NCR 53c400 Buffer pos for writing = %d\n", ncr400->buffer_pos);
 
-                if (ncr400->buffer_pos == MIN(128, dev->buffer_length)) {
+                if (ncr400->buffer_pos == MIN(buf_len, dev->buffer_length)) {
                     ncr400->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
                     ncr400->buffer_pos      = 0;
                     ncr400->buffer_host_pos = 0;
                     ncr400->busy    = 0;
-                    ncr400->block_count = (ncr400->block_count - 1) & 0xff;
-                    ncr53c400_log("NCR 53c400 Remaining blocks to be written=%d\n", ncr400->block_count);
-                    if (!ncr400->block_count) {
+                    if (ncr400->simple_ctrl) {
+                        ncr->block_count = (ncr->block_count - 1) & 0xffffffff;
+                        blocks_left = ncr->block_count;
+                    } else {
+                        ncr400->block_count = (ncr400->block_count - 1) & 0xff;
+                        blocks_left = ncr400->block_count;
+                    }
+                    ncr53c400_log("NCR 53c400 Remaining blocks to be written=%d\n", blocks_left);
+                    if (blocks_left == 0) {
                         ncr400->block_count_loaded = 0;
                         ncr53c400_log("IO End of write transfer\n");
                         ncr->tcr |= TCR_LAST_BYTE_SENT;
@@ -499,7 +552,7 @@ ncr53c400_callback(void *priv)
             break;
 
         case DMA_INITIATOR_RECEIVE:
-            if (!(ncr400->status_ctrl & CTRL_DATA_DIR)) {
+            if (!ncr400->simple_ctrl && !(ncr400->status_ctrl & CTRL_DATA_DIR)) {
                 ncr53c400_log("DMA_INITIATOR_RECEIVE with DMA direction set wrong\n");
                 break;
             }
@@ -515,8 +568,10 @@ ncr53c400_callback(void *priv)
             while (1) {
                 for (c = 0; c < 10; c++) {
                     ncr5380_bus_read(ncr);
-                    if (ncr->cur_bus & BUS_REQ)
+                    if (ncr->cur_bus & BUS_REQ) {
+                        ncr53c400_log("ncr->cur_bus & BUS_REQ\n");
                         break;
+                    }
                 }
 
                 /* Data ready. */
@@ -531,13 +586,19 @@ ncr53c400_callback(void *priv)
                 ncr400->buffer[ncr400->buffer_pos++] = temp;
                 ncr53c400_log("NCR 53c400 Buffer pos for reading = %d\n", ncr400->buffer_pos);
 
-                if (ncr400->buffer_pos == MIN(128, dev->buffer_length)) {
+                if (ncr400->buffer_pos == MIN(buf_len, dev->buffer_length)) {
                     ncr400->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
                     ncr400->buffer_pos      = 0;
                     ncr400->buffer_host_pos = 0;
-                    ncr400->block_count = (ncr400->block_count - 1) & 0xff;
-                    ncr53c400_log("NCR 53c400 Remaining blocks to be read=%d\n", ncr400->block_count);
-                    if (!ncr400->block_count) {
+                    if (ncr400->simple_ctrl) {
+                        ncr->block_count = (ncr->block_count - 1) & 0xffffffff;
+                        blocks_left = ncr->block_count;
+                    } else {
+                        ncr400->block_count = (ncr400->block_count - 1) & 0xff;
+                        blocks_left = ncr400->block_count;
+                    }
+                    ncr53c400_log("NCR 53c400 Remaining blocks to be read=%d\n", blocks_left);
+                    if (blocks_left == 0) {
                         ncr400->block_count_loaded = 0;
                         ncr53c400_log("IO End of read transfer\n");
                         ncr->isr |= STATUS_END_OF_DMA;
@@ -562,6 +623,8 @@ ncr53c400_callback(void *priv)
         ncr53c400_log("Updating DMA\n");
         ncr->mode &= ~MODE_DMA;
         ncr->dma_mode = DMA_IDLE;
+        if (ncr400->simple_ctrl)
+            ncr400->block_count_loaded = 0;
     }
 }
 
@@ -656,7 +719,6 @@ ncr53c400_init(const device_t *info)
                             ncr400->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr400);
             break;
 
-
         case ROM_LS2000: /* Corel LS2000 */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
             ncr->irq         = device_get_config_int("irq");
@@ -713,6 +775,13 @@ ncr53c400_init(const device_t *info)
 
             io_sethandler(ncr400->base, 16,
                           t130b_in, NULL, NULL, t130b_out, NULL, NULL, ncr400);
+            break;
+
+        case ROM_PAS: /* Pro Audio Spectrum Plus/16 SCSI controller */
+            ncr400->simple_ctrl = 1;
+            ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
+            ncr->simple_pseudo_dma = 1;
+            ncr->dma_init_ext = ncr53c400_dma_init_ext;
             break;
 
         default:
@@ -1006,4 +1075,18 @@ const device_t scsi_ls2000_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ncr53c400_mmio_config
+};
+
+const device_t scsi_pas_device = {
+    .name          = "Pro Audio Spectrum Plus/16 SCSI",
+    .internal_name = "scsi_pas",
+    .flags         = DEVICE_ISA,
+    .local         = ROM_PAS,
+    .init          = ncr53c400_init,
+    .close         = ncr53c400_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

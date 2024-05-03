@@ -49,6 +49,7 @@ double cpuclock;
 double PITCONSTD;
 double PAS16CONSTD;
 double PAS16CONST2D;
+double PASSCSICONSTD;
 double SYSCLK;
 double isa_timing;
 double bus_timing;
@@ -60,6 +61,7 @@ double AGPCLK;
 uint64_t PITCONST;
 uint64_t PAS16CONST;
 uint64_t PAS16CONST2;
+uint64_t PASSCSICONST;
 uint64_t ISACONST;
 uint64_t CGACONST;
 uint64_t MDACONST;
@@ -1221,6 +1223,9 @@ pit_set_clock(uint32_t clock)
 
     PAS16CONST2D = (cpuclock / 1008000.0);
     PAS16CONST2  = (uint64_t) (PAS16CONST2D * (double) (1ULL << 32));
+
+    PASSCSICONSTD = (cpuclock / (28224000.0 / 14.0));
+    PASSCSICONST  = (uint64_t) (PASSCSICONSTD * (double) (1ULL << 32));
 
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)

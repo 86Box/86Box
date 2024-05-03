@@ -52,7 +52,7 @@ void
 SettingsStorageControllers::save()
 {
     /* Storage devices category */
-    for (int i = 0; i < SCSI_BUS_MAX; ++i) {
+    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
@@ -161,7 +161,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxCDInterface->setCurrentIndex(-1);
     ui->comboBoxCDInterface->setCurrentIndex(selectedRow);
 
-    for (int i = 0; i < SCSI_BUS_MAX; ++i) {
+    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
         auto *cbox  = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         model       = cbox->model();
         removeRows  = model->rowCount();
