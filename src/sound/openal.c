@@ -307,17 +307,17 @@ givealbuffer_music(const void *buf)
 void
 givealbuffer_wt(const void *buf)
 {
-    givealbuffer_common(buf, 1, WTBUFLEN << 1, WT_FREQ);
+    givealbuffer_common(buf, 2, WTBUFLEN << 1, WT_FREQ);
 }
 
 void
 givealbuffer_cd(const void *buf)
 {
-    givealbuffer_common(buf, 2, CD_BUFLEN << 1, CD_FREQ);
+    givealbuffer_common(buf, 3, CD_BUFLEN << 1, CD_FREQ);
 }
 
 void
 givealbuffer_midi(const void *buf, const uint32_t size)
 {
-    givealbuffer_common(buf, 3, (int) size, midi_freq);
+    givealbuffer_common(buf, 4, (int) size, midi_freq);
 }
