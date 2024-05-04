@@ -1,0 +1,279 @@
+
+/* TODO: 
+    MN, SS, SF commands (sensitivity-related).
+    GP/SP commands (formats are not documented at all).
+    GF, FQF, FQP (what are those for?)
+*/
+#include <ctype.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <stdbool.h>
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/mouse.h>
+#include <86box/serial.h>
+#include <86box/plat.h>
+#include <86box/fifo8.h>
+#include <86box/fifo.h>
+
+enum mtouch_modes
+{
+    MODE_TABLET = 1,
+    MODE_RAW = 2
+};
+
+typedef struct mouse_microtouch_t {
+    double      abs_x;
+    double      abs_y;
+    int         oldb;
+    int         b;
+    char        cmd[512];
+    int         bits;
+    int         baud_rate_sel;
+    int         cmd_pos;
+    int         mode;
+    double      rate;
+    bool        soh;
+    bool        in_reset;
+    serial_t   *serial;
+    Fifo8       resp;
+    pc_timer_t  host_to_serial_timer;
+    pc_timer_t  reset_timer;
+} mouse_microtouch_t;
+
+static mouse_microtouch_t* mtouch_inst = NULL;
+
+void microtouch_reset_complete(void *priv)
+{
+    mouse_microtouch_t *mtouch = (mouse_microtouch_t*)priv;
+
+    mtouch->in_reset = false;    
+    fifo8_push(&mtouch->resp, 1);
+    fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+}
+
+void microtouch_process_commands(mouse_microtouch_t* mtouch)
+{
+    int i = 0;
+    mtouch->cmd[strcspn(mtouch->cmd, "\r")] = '\0';
+    mtouch->cmd_pos = 0;
+    pclog("Command received: %s\n", mtouch->cmd);
+    for (i = 0; i < strlen(mtouch->cmd); i++) {
+        mtouch->cmd[i] = toupper(mtouch->cmd[i]);
+    }
+    /* Re-enable and finish this if actually needed by TouchPen. */
+    if (mtouch->cmd[0] == 'Z' || (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O')) {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "QM****00\r", sizeof("QM****00\r") - 1);
+    }
+    if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "Q10200\r", sizeof("Q10200\r") - 1);
+    }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') {
+        mtouch->mode = MODE_TABLET;
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'R') {
+        mtouch->in_reset = true;
+        mtouch->mode = MODE_TABLET;
+        timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
+    }
+    if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'N' && mtouch->cmd[1] == 'M') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "1\r", 2);
+    }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'Q') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "1\r", 2);
+    }
+    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'F') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "1\r", 2);
+    }
+}
+
+void mtouch_write_to_host(void *priv)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t*)priv;
+    if ((dev->serial->type >= SERIAL_16550) && dev->serial->fifo_enabled) {
+        if (fifo_get_full(dev->serial->rcvr_fifo)) {
+            goto no_write_to_machine;
+        }
+    } else {
+        if (dev->serial->lsr & 1) {
+            goto no_write_to_machine;
+        }
+    }
+
+    if (dev->in_reset)
+        goto no_write_to_machine;
+
+    if (fifo8_num_used(&dev->resp)) {
+        serial_write_fifo(dev->serial, fifo8_pop(&dev->resp));
+    }
+
+no_write_to_machine:
+    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) 9600.0) * (double) (1 + 8 + 1));
+}
+
+void mtouch_write(serial_t* serial, void* priv, uint8_t data)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t*)priv;
+    if (!dev->soh && data == 0x11) {
+        pclog("<XON>\n");
+    }
+    if (data == '\x1'){
+        dev->soh = 1;
+    } else if (dev->soh) {
+        if (data != '\r') {
+            dev->cmd[dev->cmd_pos++] = data;
+        } else {
+            dev->cmd[dev->cmd_pos++] = data;
+            microtouch_process_commands(dev);
+        }
+    }
+}
+
+static int
+mtouch_poll(void *priv)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t*)priv;
+
+    if (dev->mode != MODE_RAW && fifo8_num_free(&dev->resp) >= 10) {
+        unsigned int abs_x_int = 0, abs_y_int = 0;
+        double abs_x;
+        double abs_y;
+        int b = mouse_get_buttons_ex();
+        mouse_get_abs_coords(&abs_x, &abs_y);
+        dev->b |= b & 1;
+        if (abs_x >= 1.0)
+            abs_x = 1.0;
+        if (abs_y >= 1.0)
+            abs_y = 1.0;
+        if (abs_x <= 0.0)
+            abs_x = 0.0;
+        if (abs_y <= 0.0)
+            abs_y = 0.0;
+        if (b & 1) {
+            dev->abs_x = abs_x;
+            dev->abs_y = abs_y;
+            dev->b |= 1;
+            
+            abs_x_int = abs_x * 16383;
+            abs_y_int = 16383 - abs_y * 16383;
+
+            fifo8_push(&dev->resp, 0b11000000);
+            fifo8_push(&dev->resp, abs_x_int & 0b1111111);
+            fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, abs_y_int & 0b1111111);
+            fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
+        } else if ((dev->b & 1) && !(b & 1)) {
+            dev->b &= ~1;
+            abs_x_int = dev->abs_x * 16383;
+            abs_y_int = 16383 - dev->abs_y * 16383;
+            fifo8_push(&dev->resp, 0b11000000);
+            fifo8_push(&dev->resp, abs_x_int & 0b1111111);
+            fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, abs_y_int & 0b1111111);
+            fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, 0b10000000);
+            fifo8_push(&dev->resp, abs_x_int & 0b1111111);
+            fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, abs_y_int & 0b1111111);
+            fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
+        }
+    }
+    return 0;
+}
+
+static void mtouch_poll_global(void)
+{
+    mtouch_poll(mtouch_inst);
+}
+
+void* mtouch_init(const device_t* info)
+{
+    mouse_microtouch_t *dev = calloc(1, sizeof(mouse_microtouch_t));
+
+    dev->serial = serial_attach(device_get_config_int("port"), NULL, mtouch_write, dev);
+    fifo8_create(&dev->resp, 512);
+    timer_add(&dev->host_to_serial_timer, mtouch_write_to_host, dev, 0);
+    timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
+    timer_on_auto(&dev->host_to_serial_timer, (1000000. / 9600.) * 10);
+    dev->mode = MODE_TABLET;
+    mouse_input_mode = 1;
+    mouse_set_buttons(2);
+    mouse_set_poll_ex(mtouch_poll_global);
+
+    mtouch_inst = dev;
+
+    return dev;
+}
+
+void mtouch_close(void* priv)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+
+    fifo8_destroy(&dev->resp);
+    /* Detach serial port from the mouse. */
+    if (dev && dev->serial && dev->serial->sd)
+        memset(dev->serial->sd, 0, sizeof(serial_device_t));
+
+    free(dev);
+    mtouch_inst = NULL;
+}
+
+static const device_config_t mtouch_config[] = {
+  // clang-format off
+    {
+        .name = "port",
+        .description = "Serial Port",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "COM1", .value = 0 },
+            { .description = "COM2", .value = 1 },
+            { .description = "COM3", .value = 2 },
+            { .description = "COM4", .value = 3 },
+            { .description = ""                 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+const device_t mouse_mtouch_device = {
+    .name          = "3M MicroTouch SMT3",
+    .internal_name = "microtouch_touchpen",
+    .flags         = DEVICE_COM,
+    .local         = 0,
+    .init          = mtouch_init,
+    .close         = mtouch_close,
+    .reset         = NULL,
+    { .poll = mtouch_poll },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mtouch_config
+};
+
