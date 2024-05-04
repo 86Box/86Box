@@ -8,7 +8,7 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
-      - .github/workflows/cmake.yml
+      - .github/workflows/cmake_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
 
@@ -19,7 +19,7 @@ on:
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
       - .github/workflows/**
-      - .github/workflows/cmake.yml
+      - .github/workflows/cmake_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
 
@@ -138,7 +138,7 @@ jobs:
         run: cmake --install build
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
           path: build/artifacts/**
