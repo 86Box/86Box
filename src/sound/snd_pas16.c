@@ -115,7 +115,6 @@
 #include <86box/snd_opl.h>
 #include <86box/snd_sb.h>
 #include <86box/snd_sb_dsp.h>
-#include <86box/snd_sb_dsp.h>
 
 typedef struct nsc_mixer_t {
     double master_l;
@@ -549,7 +548,6 @@ static const double lmc1982_att_2dbstep_6bits[] = {
     in said cut in the below values.
  */
 static const double lmc835_att_1dbstep_7bits[128] = {
-                 0.0,
     /* Flat */
     [0x40] =  8230.0,    /*       Flat  */
     /* Boost */
@@ -586,10 +584,10 @@ static const double lmc835_att_1dbstep_7bits[128] = {
     /* The Win95 drivers use D5-D0 = 1D instead of 2D, datasheet erratum? */
     [0x1d] =  7335.0,    /*  1 dB Cut   */
     [0x2f] =  8230.0,    /*       Flat  */
+                 0.0
 };
 
 static const double lmc835_att_05dbstep_7bits[128] = {
-              0.0                               ,
     /* Flat */
     [0x40] =  8230.0,    /*        Flat  */
     /* Boost */
@@ -626,6 +624,7 @@ static const double lmc835_att_05dbstep_7bits[128] = {
     /* The Win95 drivers use D5-D0 = 1D instead of 2D, datasheet erratum? */
     [0x1d] =  7770.0,    /* 0.5 dB Cut   */
     [0x2f] =  8230.0,    /*        Flat  */
+                 0.0
 };
 
 static __inline double
@@ -1826,7 +1825,7 @@ pas16_pit_timer0(const int new_out, UNUSED(int old_out), void *priv)
         }
 
         if (pas16->ticks) {
-            for (uint8_t i = 0; i < pas16->ticks; i++)
+            for (uint16_t i = 0; i < pas16->ticks; i++)
                 pitf_ctr_clock(pas16->pit, 1);
 
             pas16->ticks = 0;
@@ -1939,18 +1938,13 @@ pasplus_get_buffer(int32_t *buffer, int len, void *priv)
 {
     pas16_t *          pas16   = (pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
-    double             out_l   = 0.0;
-    double             out_r   = 0.0;
     double             bass_treble;
 
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (int c = 0; c < len * 2; c += 2) {
-        out_l = 0.0;
-        out_r = 0.0;
-
-        out_l += pas16->dsp.buffer[c];
-        out_r += pas16->dsp.buffer[c + 1];
+        double out_l = pas16->dsp.buffer[c];
+        double out_r = pas16->dsp.buffer[c + 1];
 
         if (pas16->filter) {
             /* We divide by 3 to get the volume down to normal. */
@@ -2004,16 +1998,11 @@ pasplus_get_music_buffer(int32_t *buffer, int len, void *priv)
     const pas16_t *    pas16   = (const pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     const int32_t *    opl_buf = pas16->opl.update(pas16->opl.priv);
-    double             out_l   = 0.0;
-    double             out_r   = 0.0;
     double             bass_treble;
 
     for (int c = 0; c < len * 2; c += 2) {
-        out_l = 0.0;
-        out_r = 0.0;
-
-        out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
-        out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+        double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
+        double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
 
         /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
         out_l *= mixer->master_l;
@@ -2127,18 +2116,13 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 {
     pas16_t *            pas16 =  (pas16_t *) priv;
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
-    double               out_l   = 0.0;
-    double               out_r   = 0.0;
     double               bass_treble;
 
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (int c = 0; c < len * 2; c += 2) {
-        out_l = 0.0;
-        out_r = 0.0;
-
-        out_l += (pas16->dsp.buffer[c] * mixer->sb_l) / 3.0;
-        out_r += (pas16->dsp.buffer[c + 1] * mixer->sb_r) / 3.0;
+        double out_l = (pas16->dsp.buffer[c] * mixer->sb_l) / 3.0;
+        double out_r = (pas16->dsp.buffer[c + 1] * mixer->sb_r) / 3.0;
 
         if (pas16->filter) {
             /* We divide by 3 to get the volume down to normal. */
@@ -2192,16 +2176,11 @@ pas16_get_music_buffer(int32_t *buffer, int len, void *priv)
     const pas16_t *      pas16   = (const pas16_t *) priv;
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
     const int32_t *      opl_buf = pas16->opl.update(pas16->opl.priv);
-    double               out_l   = 0.0;
-    double               out_r   = 0.0;
     double               bass_treble;
 
     for (int c = 0; c < len * 2; c += 2) {
-        out_l = 0.0;
-        out_r = 0.0;
-
-        out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
-        out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+        double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
+        double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
 
         /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
         out_l *= mixer->master_l;
