@@ -37,6 +37,7 @@ typedef struct mouse_microtouch_t {
     int         baud_rate_sel;
     int         cmd_pos;
     int         mode;
+    uint8_t     cal_cntr;
     double      rate;
     bool        soh;
     bool        in_reset;
@@ -55,6 +56,17 @@ void microtouch_reset_complete(void *priv)
     mtouch->in_reset = false;    
     fifo8_push(&mtouch->resp, 1);
     fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+}
+
+void microtouch_calibrate_timer(void *priv)
+{
+    mouse_microtouch_t *mtouch = (mouse_microtouch_t*)priv;
+
+    if (!fifo8_num_used(&mtouch->resp)) {
+        mtouch->cal_cntr--;
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "1\r", 2);
+    }
 }
 
 void microtouch_process_commands(mouse_microtouch_t* mtouch)
@@ -83,19 +95,13 @@ void microtouch_process_commands(mouse_microtouch_t* mtouch)
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
     }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') {
+        mtouch->mode = MODE_RAW;
+        mtouch->cal_cntr = 0;
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') {
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
-    }
-    if (mtouch->cmd[0] == 'P' && mtouch->cmd[1] == 'F') {
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
-    }
-    if (mtouch->cmd[0] == 'P' && mtouch->cmd[1] == 'O') {
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
-    }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') {
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
     }
@@ -119,6 +125,15 @@ void microtouch_process_commands(mouse_microtouch_t* mtouch)
     if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'F') {
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t*) "1\r", 2);
+    }
+    if (mtouch->cmd[0] == 'P') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+        mtouch->cal_cntr = 2;
     }
 }
 
@@ -206,6 +221,15 @@ mtouch_poll(void *priv)
                 abs_x = 1.0;
             if (abs_y >= 1.0)
                 abs_y = 1.0;
+        }
+        if (dev->cal_cntr && (!(dev->b & 1) && (b & 1))) {
+            dev->b |= 1;
+        } else if (dev->cal_cntr && ((dev->b & 1) && !(b & 1))) {
+            dev->b &= ~1;
+            microtouch_calibrate_timer(dev);
+        }
+        if (dev->cal_cntr) {
+            return 0;
         }
         if (b & 1) {
             dev->abs_x = abs_x;
