@@ -19,6 +19,7 @@
 #include <86box/plat.h>
 #include <86box/fifo8.h>
 #include <86box/fifo.h>
+#include <86box/video.h> /* Needed to account for overscan. */
 
 enum mtouch_modes
 {
@@ -65,7 +66,6 @@ void microtouch_process_commands(mouse_microtouch_t* mtouch)
     for (i = 0; i < strlen(mtouch->cmd); i++) {
         mtouch->cmd[i] = toupper(mtouch->cmd[i]);
     }
-    /* Re-enable and finish this if actually needed by TouchPen. */
     if (mtouch->cmd[0] == 'Z' || (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O')) {
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
@@ -84,6 +84,18 @@ void microtouch_process_commands(mouse_microtouch_t* mtouch)
         fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
     }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'P' && mtouch->cmd[1] == 'F') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'P' && mtouch->cmd[1] == 'O') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') {
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t*) "0\r", 2);
     }
@@ -172,6 +184,29 @@ mtouch_poll(void *priv)
             abs_x = 0.0;
         if (abs_y <= 0.0)
             abs_y = 0.0;
+        if (enable_overscan) {
+            int index = mouse_tablet_in_proximity - 1;
+            if (mouse_tablet_in_proximity == -1)
+                mouse_tablet_in_proximity = 0;
+
+            abs_x *= monitors[index].mon_unscaled_size_x - 1;
+            abs_y *= monitors[index].mon_efscrnsz_y - 1;
+
+            if (abs_x <= (monitors[index].mon_overscan_x / 2.)) {
+                abs_x = (monitors[index].mon_overscan_x / 2.);
+            }
+            if (abs_y <= (monitors[index].mon_overscan_y / 2.)) {
+                abs_y = (monitors[index].mon_overscan_y / 2.);
+            }
+            abs_x -= (monitors[index].mon_overscan_x / 2.);
+            abs_y -= (monitors[index].mon_overscan_y / 2.);
+            abs_x  = abs_x / (double)monitors[index].mon_xsize;
+            abs_y  = abs_y / (double)monitors[index].mon_ysize;
+            if (abs_x >= 1.0)
+                abs_x = 1.0;
+            if (abs_y >= 1.0)
+                abs_y = 1.0;
+        }
         if (b & 1) {
             dev->abs_x = abs_x;
             dev->abs_y = abs_y;
