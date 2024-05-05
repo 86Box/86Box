@@ -1,15 +1,28 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          3M MicroTouch SMT3 emulation.
+ *
+ *
+ *
+ * Authors: Cacodemon345
+ *
+ *          Copyright 2024 Cacodemon345
+ */
 
 /* TODO: 
-    MN, SS, SF commands (sensitivity-related).
-    GP/SP commands (formats are not documented at all).
-    GF, FQF, FQP (what are those for?)
+    GP/SP commands (formats are not documented at all, like anywhere).
 */
 #include <ctype.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 #include <stdbool.h>
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -30,15 +43,11 @@ enum mtouch_modes
 typedef struct mouse_microtouch_t {
     double      abs_x;
     double      abs_y;
-    int         oldb;
     int         b;
     char        cmd[512];
-    int         bits;
-    int         baud_rate_sel;
     int         cmd_pos;
     int         mode;
     uint8_t     cal_cntr;
-    double      rate;
     bool        soh;
     bool        in_reset;
     serial_t   *serial;
@@ -108,6 +117,7 @@ void microtouch_process_commands(mouse_microtouch_t* mtouch)
     if (mtouch->cmd[0] == 'R') {
         mtouch->in_reset = true;
         mtouch->mode = MODE_TABLET;
+        mtouch->cal_cntr = 0;
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
     }
     if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) {
@@ -164,9 +174,6 @@ no_write_to_machine:
 void mtouch_write(serial_t* serial, void* priv, uint8_t data)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t*)priv;
-    if (!dev->soh && data == 0x11) {
-        pclog("<XON>\n");
-    }
     if (data == '\x1'){
         dev->soh = 1;
     } else if (dev->soh) {
