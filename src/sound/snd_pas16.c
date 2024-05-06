@@ -108,8 +108,9 @@
 #include <86box/pit.h>
 #include <86box/pit_fast.h>
 #include <86box/rom.h>
+#include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
-#include <86box/scsi_ncr53c400.h>
+#include <86box/scsi_t128.h>
 #include <86box/snd_mpu401.h>
 #include <86box/sound.h>
 #include <86box/snd_opl.h>
@@ -247,7 +248,7 @@ typedef struct pas16_t {
 
     pitf_t * pit;
 
-    ncr53c400_t *scsi;
+    t128_t * scsi;
 
     pc_timer_t scsi_timer;
 } pas16_t;
@@ -705,7 +706,6 @@ pas16_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
     uint8_t  ret   = 0xff;
-    ncr53c400_t *dev = (ncr53c400_t *) pas16->scsi;
 
     port -= pas16->base;
 
@@ -763,10 +763,8 @@ pas16_in(uint16_t port, void *priv)
 
         case 0x1c00 ... 0x1c03:    /* NCR5380 ports 0 to 3. */
         case 0x3c00 ... 0x3c03:    /* NCR5380 ports 4 to 7. */
-            if (pas16->has_scsi) {
-                port = (port & 0x0003) | ((port & 0x2000) >> 11);
-                ret = ncr5380_read(port, &pas16->scsi->ncr);
-            }
+            if (pas16->has_scsi)
+                ret = ncr5380_read((port & 0x0003) | ((port & 0x2000) >> 11), &pas16->scsi->ncr);
             break;
 
         case 0x2401:    /* Board revision */
@@ -782,20 +780,12 @@ pas16_in(uint16_t port, void *priv)
 
         case 0x5c00:
             if (pas16->has_scsi)
-                ret = ncr53c400_simple_read(pas16->scsi);
+                ret = t128_read(0x1e00, pas16->scsi);
             break;
         case 0x5c01:
-            if (pas16->has_scsi) {
-                ret = ((dev->ncr.dma_mode != DMA_IDLE) && !(dev->status_ctrl & STATUS_BUFFER_NOT_READY)) << 7;
-                if (!(ret & 0x80)) {
-                    ncr53c400_callback(pas16->scsi);
-                    if ((dev->ncr.dma_mode != DMA_IDLE) && !(dev->status_ctrl & STATUS_BUFFER_NOT_READY)) {
-                        timer_stop(&pas16->scsi_timer);
-                        pas16->timeout_status &= 0x7f;
-                    }
-
-                }
-            }
+            if (pas16->has_scsi)
+                /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
+                ret = (((pas16->scsi->ncr.dma_mode != DMA_IDLE) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
             break;
         case 0x5c03:
             if (pas16->has_scsi)
@@ -1188,6 +1178,20 @@ lmc835_update_reg(nsc_mixer_t *mixer)
 }
 
 static void
+pas16_scsi_callback(void *priv)
+{
+    pas16_t *      pas16 = (pas16_t *) priv;
+    t128_t  *      dev   = pas16->scsi;
+
+    t128_callback(pas16->scsi);
+
+    if ((dev->ncr.dma_mode != DMA_IDLE) && (dev->status & 0x04)) {
+        timer_stop(&pas16->scsi_timer);
+        pas16->timeout_status &= 0x7f;
+    }
+}
+
+static void
 pas16_timeout_callback(void *priv)
 {
     pas16_t *      pas16       = (pas16_t *) priv;
@@ -1491,10 +1495,8 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 
         case 0x1c00 ... 0x1c03:    /* NCR5380 ports 0 to 3. */
         case 0x3c00 ... 0x3c03:    /* NCR5380 ports 4 to 7. */
-            if (pas16->has_scsi) {
-                port = (port & 0x0003) | ((port & 0x2000) >> 11);
-                ncr5380_write(port, val, &pas16->scsi->ncr);
-            }
+            if (pas16->has_scsi)
+                ncr5380_write((port & 0x0003) | ((port & 0x2000) >> 11), val, &pas16->scsi->ncr);
             break;
 
         case 0x4000:
@@ -1516,7 +1518,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 
         case 0x5c00:
             if (pas16->has_scsi)
-                ncr53c400_simple_write(val, pas16->scsi);
+                t128_write(0x1e00, val, pas16->scsi);
             break;
         case 0x5c03:
             if (pas16->has_scsi) {
@@ -2324,6 +2326,7 @@ pas16_init(const device_t *info)
 
     if (pas16->has_scsi) {
         pas16->scsi = device_add(&scsi_pas_device);
+        timer_add(&pas16->scsi->timer, pas16_scsi_callback, pas16, 0);
         timer_add(&pas16->scsi_timer, pas16_timeout_callback, pas16, 0);
         other_scsi_present++;
     }

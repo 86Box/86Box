@@ -161,8 +161,28 @@ ncr5380_get_bus_host(ncr_t *ncr)
     if (ncr->icr & ICR_BSY)
         bus_host |= BUS_BSY;
 
-    if (ncr->icr & ICR_ATN)
-        bus_host |= BUS_ATN;
+    /*
+       TODO: See which method of fixing this is the most correct.
+
+             The #define's come from PCem and, for some reason, define
+             BUS_ATN to the same value as BUS_ACK (0x200). This breaks
+             the Corel driver for the Pro Audio Spectrum Trantor SCSI
+             controller, as it first asserts ATN without ACK, then ACK
+             without ATN, which should by definition result in ACK going
+             ON and OFF but because of these ambiguous #define's, it
+             instead manifests as ACK stuck on, therefore never clearing
+             BUS_REQ and progressing to the next phase.
+
+             Since I have no idea why BUS_ATN was #define's to the same
+             value as BUS_ACK, and the problem appears to only occur in
+             the Message Out phase, where ATN is not used, I have decided
+             to solve this by never asserting ATN in the Message Out phase
+             for time being.
+     */
+    if (ncr->state != STATE_MESSAGEOUT) {
+        if (ncr->icr & ICR_ATN)
+            bus_host |= BUS_ATN;
+    }
 
     if (ncr->icr & ICR_ACK)
         bus_host |= BUS_ACK;
@@ -326,19 +346,6 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                             ncr5380_log("SCSI ID %i: command 0x%02x for p = %lf, update = %lf, len = %i, dmamode = %x\n", ncr->target_id, ncr->command[0], scsi_device_get_callback(dev), ncr->period, dev->buffer_length, ncr->dma_mode);
                         }
                     }
-
-                    if (ncr->simple_pseudo_dma) {
-                        if (dev->phase == SCSI_PHASE_DATA_IN) {
-                            ncr->block_count = dev->buffer_length / 512;
-
-                            ncr->dma_init_ext(ncr, ncr->priv, 1);
-                        } else if (dev->phase == SCSI_PHASE_DATA_OUT) {
-                            ncr->block_count = dev->buffer_length / 512;
-
-                            ncr->dma_init_ext(ncr, ncr->priv, 0);
-                        }
-                    }
-
                     ncr->new_phase = dev->phase;
                 }
             }
@@ -358,10 +365,7 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                     if (ncr->dma_mode == DMA_IDLE) { /*If a data in command that is not read 6/10 has been issued*/
                         ncr->data_wait |= 1;
                         ncr5380_log("DMA mode idle in\n");
-                        if (ncr->simple_pseudo_dma)
-                            ncr->dma_init_ext(ncr, ncr->priv, 1);
-                        else
-                            ncr->timer(ncr->priv, ncr->period);
+                        ncr->timer(ncr->priv, ncr->period);
                     } else {
                         ncr5380_log("DMA mode IN.\n");
                         ncr->clear_req = 3;
@@ -388,10 +392,7 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                     if (ncr->dma_mode == DMA_IDLE) { /*If a data out command that is not write 6/10 has been issued*/
                         ncr->data_wait |= 1;
                         ncr5380_log("DMA mode idle out\n");
-                        if (!ncr->simple_pseudo_dma)
-                            ncr->timer(ncr->priv, ncr->period);
-                        if (ncr->simple_pseudo_dma)
-                            ncr->dma_init_ext(ncr, ncr->priv, 0);
+                        ncr->timer(ncr->priv, ncr->period);
                     } else
                         ncr->clear_req = 3;
 
@@ -518,21 +519,6 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
 }
 
 uint8_t
-ncr5380_drq(ncr_t *ncr)
-{
-    uint8_t    ret          = 0;
-    int        bus;
-
-    ncr5380_bus_read(ncr);
-    bus = ncr->cur_bus;
-
-    if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA))
-        ret = 1;
-
-    return ret;
-}
-
-uint8_t
 ncr5380_read(uint16_t port, ncr_t *ncr)
 {
     uint8_t    ret          = 0xff;
@@ -579,6 +565,8 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
                 ret |= BUS_SEL;
             if (ncr->icr & ICR_BSY)
                 ret |= BUS_BSY;
+            // if ((ret & SCSI_PHASE_MESSAGE_IN) == SCSI_PHASE_MESSAGE_IN)
+                // ret &= ~BUS_REQ;
             break;
 
         case 5: /* Bus and Status register */

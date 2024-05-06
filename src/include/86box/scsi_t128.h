@@ -18,45 +18,34 @@
  *          Copyright 2017-2024 TheCollector1995.
  */
 
-#ifndef SCSI_NCR53C400_H
-#define SCSI_NCR53C400_H
+#ifndef SCSI_T128_H
+#define SCSI_T128_H
 
-typedef struct ncr53c400_t {
-    rom_t         bios_rom;
-    mem_mapping_t mapping;
+typedef struct t128_t {
     ncr_t   ncr;
+    rom_t   bios_rom;
+    mem_mapping_t mapping;
+
+    uint8_t ctrl;
+    uint8_t status;
     uint8_t buffer[512];
-    uint8_t int_ram[0x40];
-    uint8_t ext_ram[0x600];
+    uint8_t ext_ram[0x80];
+    uint8_t block_count;
+
+    int block_loaded;
+    int pos, host_pos;
 
     uint32_t rom_addr;
-    uint16_t base;
 
-    int8_t  type;
-    uint8_t block_count;
-    uint8_t status_ctrl;
-
-    int simple_ctrl;
-
-    int block_count_loaded;
-
-    int buffer_pos;
-    int buffer_host_pos;
-
-    int     busy;
+    int bios_enabled;
     uint8_t pos_regs[8];
 
     pc_timer_t timer;
-} ncr53c400_t;
+} t128_t;
 
-#define CTRL_DATA_DIR           0x40
-#define STATUS_BUFFER_NOT_READY 0x04
-#define STATUS_5380_ACCESSIBLE  0x80
+extern void    t128_write(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t t128_read(uint32_t addr, void *priv);
 
-extern void    ncr53c400_simple_write(uint8_t val, void *priv);
-extern void    ncr53c400_write(uint32_t addr, uint8_t val, void *priv);
-extern uint8_t ncr53c400_simple_read(void *priv);
-extern uint8_t ncr53c400_read(uint32_t addr, void *priv);
-extern void    ncr53c400_callback(void *priv);
+extern void    t128_callback(void *priv);
 
-#endif /*SCSI_NCR53C400_H*/
+#endif /*SCSI_T128_H*/
