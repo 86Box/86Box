@@ -391,13 +391,13 @@ msgid "Video:"
 msgstr "Video:"
 
 msgid "Voodoo Graphics"
-msgstr "Voodoo đồ họa"
+msgstr "Đồ họa Voodoo"
 
 msgid "IBM 8514/A Graphics"
-msgstr "IBM 8514/A đồ họa"
+msgstr "Đồ họa IBM 8514/A"
 
 msgid "XGA Graphics"
-msgstr "XGA đồ họa"
+msgstr "Đồ họa XGA"
 
 msgid "Mouse:"
 msgstr "Chuột:"
@@ -442,7 +442,7 @@ msgid "Use FLOAT32 sound"
 msgstr "Dùng âm FLOAT32"
 
 msgid "FM synth driver"
-msgstr "Driver bộ tổng hợp (synth) FM"
+msgstr "Driver bộ tổng hợp âm FM"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (chính xác hơn)"
@@ -508,10 +508,10 @@ msgid "Parallel port 4"
 msgstr "Cổng parallel 4"
 
 msgid "HD Controller:"
-msgstr "Bộ điều khiển HD:"
+msgstr "Bộ điều khiển ổ cứng:"
 
 msgid "FD Controller:"
-msgstr "Bộ điều khiển FD:"
+msgstr "Bộ điều khiển ổ mềm:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Bộ điều khiển IDE thứ ba"
@@ -841,7 +841,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Trình giả lập các dòng máy tính cổ.\n\nTác giả: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, y otros.\n\nCùng với những đóng góp cốt cán từ Sarah Walker, leilei, JohnElliott, greatpsycho, và một số người khác.\n\nPhát hành dưới giấy phép GNU General Public License version 2 trở đi. Đọc LICENSE để biết thêm thông tin."
+msgstr "Trình giả lập các dòng máy tính cổ.\n\nTác giả: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, cùng những người khác.\n\nCùng với những đóng góp cốt cán từ Sarah Walker, leilei, JohnElliott, greatpsycho, và một số người khác.\n\nPhát hành dưới giấy phép GNU General Public License version 2 trở đi. Đọc LICENSE để biết thêm thông tin."
 
 msgid "Hardware not available"
 msgstr "Phần cứng không có sẵn"
@@ -889,7 +889,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Bạn đang load tinh chỉnh không được hỗ trợ."
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Phần chọn loại CPU dựa trên mẫu máy đã chọn bị vô hiệu hóa.\n\nỞ đây bạn có thể chọn loại CPU có thể không tương thích với mẫu máy hiện tại. Tuy nhiên bạn có thể gặp vấn đề tương khắc với BIOS hay phần mềm khác.\n\nViệc bật tùy chọn này lên không được khuyến cáo chính thức và các bản bug report (báo lỗi) với nội dung tương tự sẽ bị closed as invalid (đóng vì phạm quy)."
+msgstr "Phần chọn loại CPU dựa trên mẫu máy đã chọn bị vô hiệu hóa.\n\nỞ đây bạn có thể chọn loại CPU có thể không tương thích với mẫu máy hiện tại. Tuy nhiên bạn có thể gặp vấn đề tương khắc với BIOS hay phần mềm khác.\n\nViệc bật tùy chọn này lên không được khuyến cáo chính thức và các bản bug report (báo lỗi) với nội dung tương tự sẽ bị coi là phạm quy và đóng."
 
 msgid "Continue"
 msgstr "Tiếp tục"
@@ -916,7 +916,7 @@ msgid "Resume execution"
 msgstr "Tiếp tục chạy thực thi"
 
 msgid "Pause execution"
-msgstr "Dừng chạy thực thi"
+msgstr "Tạm dừng thực thi"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Nhấn Ctrl+Alt+Del"
