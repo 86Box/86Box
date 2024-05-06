@@ -161,28 +161,8 @@ ncr5380_get_bus_host(ncr_t *ncr)
     if (ncr->icr & ICR_BSY)
         bus_host |= BUS_BSY;
 
-    /*
-       TODO: See which method of fixing this is the most correct.
-
-             The #define's come from PCem and, for some reason, define
-             BUS_ATN to the same value as BUS_ACK (0x200). This breaks
-             the Corel driver for the Pro Audio Spectrum Trantor SCSI
-             controller, as it first asserts ATN without ACK, then ACK
-             without ATN, which should by definition result in ACK going
-             ON and OFF but because of these ambiguous #define's, it
-             instead manifests as ACK stuck on, therefore never clearing
-             BUS_REQ and progressing to the next phase.
-
-             Since I have no idea why BUS_ATN was #define's to the same
-             value as BUS_ACK, and the problem appears to only occur in
-             the Message Out phase, where ATN is not used, I have decided
-             to solve this by never asserting ATN in the Message Out phase
-             for time being.
-     */
-    if (ncr->state != STATE_MESSAGEOUT) {
-        if (ncr->icr & ICR_ATN)
-            bus_host |= BUS_ATN;
-    }
+    if (ncr->icr & ICR_ATN)
+        bus_host |= BUS_ATN;
 
     if (ncr->icr & ICR_ACK)
         bus_host |= BUS_ACK;
