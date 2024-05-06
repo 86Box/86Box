@@ -714,8 +714,9 @@ static const device_config_t a6pak_config[] = {
         {
             { "Disabled", -1 },
             { "IRQ2",      2 },
-            { "IRQ3",      3 },
+            { "IRQ4",      4 },
             { "IRQ5",      5 },
+            { "IRQ7",      7 },
             { ""             }
         },
     },
