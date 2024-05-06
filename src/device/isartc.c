@@ -89,6 +89,7 @@
 #define ISARTC_P5PAK   2
 #define ISARTC_A6PAK   3
 #define ISARTC_VENDEX  4
+#define ISARTC_MPLUS2  5
 #define ISARTC_MM58167 10
 
 #define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.5_NS_RP.ROM"
@@ -563,8 +564,9 @@ isartc_init(const device_t *info)
             dev->year        = MM67_AL_HUNTEN; /* year, NON STANDARD */
             break;
 
-        case ISARTC_P5PAK: /* Paradise Systems 5PAK */
-        case ISARTC_A6PAK: /* AST SixPakPlus */
+        case ISARTC_P5PAK:  /* Paradise Systems 5PAK */
+        case ISARTC_A6PAK:  /* AST SixPakPlus */
+        case ISARTC_MPLUS2: /* AST MegaPlus II */
             dev->flags |= FLAG_YEAR80;
             dev->base_addr   = 0x02c0;
             dev->base_addrsz = 32;
@@ -786,6 +788,42 @@ static const device_t a6pak_device = {
     .config        = a6pak_config
 };
 
+static const device_config_t mplus2_config[] = {
+  // clang-format off
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int    = -1,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t mplus2_device = {
+    .name          = "AST MegaPlus II",
+    .internal_name = "mplus2",
+    .flags         = DEVICE_ISA,
+    .local         = ISARTC_MPLUS2,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mplus2_config
+};
+
 static const device_config_t mm58167_config[] = {
   // clang-format off
     {
@@ -897,6 +935,7 @@ static const struct {
     { &pii147_device  },
     { &p5pak_device   },
     { &a6pak_device   },
+    { &mplus2_device  },
     { &mm58167_device },
     { NULL            }
     // clang-format on
