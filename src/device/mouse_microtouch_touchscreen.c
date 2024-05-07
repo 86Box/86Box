@@ -46,7 +46,7 @@ typedef struct mouse_microtouch_t {
     char       cmd[512];
     int        cmd_pos;
     int        mode;
-    uint8_t    cal_cntr;
+    uint8_t    cal_cntr, pen_mode;
     bool       soh;
     bool       in_reset;
     serial_t  *serial;
@@ -89,17 +89,22 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     for (i = 0; i < strlen(mtouch->cmd); i++) {
         mtouch->cmd[i] = toupper(mtouch->cmd[i]);
     }
-    if (mtouch->cmd[0] == 'Z' || (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O')) {
+    if (mtouch->cmd[0] == 'Z') {
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') {
+        mtouch->pen_mode = 1;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
     if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') {
         fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "QM****00\r", sizeof("QM****00\r") - 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "TP****00\r", sizeof("TP****00\r") - 1);
     }
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') {
         fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "Q10200\r", sizeof("Q10200\r") - 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "P50200\r", sizeof("P50200\r") - 1);
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') {
         mtouch->mode = MODE_TABLET;
@@ -120,6 +125,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mtouch->in_reset = true;
         mtouch->mode     = MODE_TABLET;
         mtouch->cal_cntr = 0;
+        mtouch->pen_mode = 3;
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
     }
     if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) {
@@ -139,6 +145,8 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
     }
     if (mtouch->cmd[0] == 'P') {
+        if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;
+        else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
@@ -212,7 +220,8 @@ mtouch_poll(void *priv)
         double       abs_y;
         int          b = mouse_get_buttons_ex();
         mouse_get_abs_coords(&abs_x, &abs_y);
-        dev->b |= b & 1;
+        dev->b |= !!(b & 3);
+        
         if (abs_x >= 1.0)
             abs_x = 1.0;
         if (abs_y >= 1.0)
@@ -244,16 +253,16 @@ mtouch_poll(void *priv)
             if (abs_y >= 1.0)
                 abs_y = 1.0;
         }
-        if (dev->cal_cntr && (!(dev->b & 1) && (b & 1))) {
+        if (dev->cal_cntr && (!(dev->b & 1) && !!(b & 3))) {
             dev->b |= 1;
-        } else if (dev->cal_cntr && ((dev->b & 1) && !(b & 1))) {
+        } else if (dev->cal_cntr && ((dev->b & 1) && !!(b & 3))) {
             dev->b &= ~1;
             microtouch_calibrate_timer(dev);
         }
         if (dev->cal_cntr) {
             return 0;
         }
-        if (b & 1) {
+        if (!!(b & 3)) {
             dev->abs_x = abs_x;
             dev->abs_y = abs_y;
             dev->b |= 1;
@@ -261,21 +270,21 @@ mtouch_poll(void *priv)
             abs_x_int = abs_x * 16383;
             abs_y_int = 16383 - abs_y * 16383;
 
-            fifo8_push(&dev->resp, 0b11000000);
+            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode & 2) ? ((1 << 5) | ((b & 3))) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
-        } else if ((dev->b & 1) && !(b & 1)) {
+        } else if ((dev->b & 1) && !(b & 3)) {
             dev->b &= ~1;
             abs_x_int = dev->abs_x * 16383;
             abs_y_int = 16383 - dev->abs_y * 16383;
-            fifo8_push(&dev->resp, 0b11000000);
+            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode & 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, 0b10000000);
+            fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode & 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
@@ -302,6 +311,7 @@ mtouch_init(const device_t *info)
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / 9600.) * 10);
     dev->mode        = MODE_TABLET;
+    dev->pen_mode    = 3;
     mouse_input_mode = 1;
     mouse_set_buttons(2);
     mouse_set_poll_ex(mtouch_poll_global);
@@ -348,7 +358,7 @@ static const device_config_t mtouch_config[] = {
 };
 
 const device_t mouse_mtouch_device = {
-    .name          = "3M MicroTouch SMT3",
+    .name          = "3M MicroTouch TouchPen 4",
     .internal_name = "microtouch_touchpen",
     .flags         = DEVICE_COM,
     .local         = 0,
