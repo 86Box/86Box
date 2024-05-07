@@ -657,7 +657,7 @@ machine_at_brio80xx_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add(&fdc37c935_370_device);
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -726,7 +726,7 @@ machine_at_pb810_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add(&fdc37c935_370_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
