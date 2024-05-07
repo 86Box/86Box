@@ -39,6 +39,7 @@
 #include <86box/spd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/keyboard.h>
 #include <86box/chipset.h>
 
 #ifdef ENABLE_SIS_85C50X_LOG
@@ -257,6 +258,7 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x5b:
                 dev->pci_conf[addr] = val;
+                kbc_at_set_fast_reset(!!(val & 0x40));
                 break;
             case 0x60: /* SMI */
                 if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {

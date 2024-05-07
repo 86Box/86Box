@@ -202,6 +202,14 @@ static const uint8_t nont_to_t[256] = {
     0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
 
+static uint8_t fast_reset = 0x00;
+
+void
+kbc_at_set_fast_reset(const uint8_t new_fast_reset)
+{
+    fast_reset = new_fast_reset;
+}
+
 #ifdef ENABLE_KBC_AT_LOG
 int kbc_at_do_log = ENABLE_KBC_AT_LOG;
 
@@ -748,7 +756,10 @@ write_p2(atkbc_t *dev, uint8_t val)
     /* AT, PS/2: Handle reset. */
     /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
        we just do everything on release. */
-    if (!cpu_cpurst_on_sr && ((old ^ val) & 0x01)) { /*Reset*/
+    /* TODO: The fast reset flag's condition should be reversed - the BCM SQ-588
+             enables the flag and the CPURST on soft reset flag but expects this
+             to still soft reset instead. */
+    if ((fast_reset || !cpu_cpurst_on_sr) && ((old ^ val) & 0x01)) { /*Reset*/
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbc_at_log("write_p2(): Pulse reset!\n");
@@ -765,11 +776,12 @@ write_p2(atkbc_t *dev, uint8_t val)
                 flushmmucache();
                 if (kbc_ven == KBC_VEN_ALI)
                     smbase = 0x00030000;
+
                 /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
                    and can find out what they actually did to make it boot from FFFFF0
                    correctly despite A20 being gated when the CPU is reset, this will
                    have to do. */
-                else if (kbc_ven == KBC_VEN_SIEMENS)
+                if (kbc_ven == KBC_VEN_SIEMENS)
                     is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
             }
         }
@@ -778,10 +790,10 @@ write_p2(atkbc_t *dev, uint8_t val)
     /* Do this here to avoid an infinite reset loop. */
     dev->p2 = val;
 
-    if (cpu_cpurst_on_sr && ((old ^ val) & 0x01)) { /*Reset*/
+    if (!fast_reset && cpu_cpurst_on_sr && ((old ^ val) & 0x01)) { /*Reset*/
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
-            pclog("write_p2(): Pulse reset!\n");
+            kbc_at_log("write_p2(): Pulse reset!\n");
             dma_reset();
             dma_set_at(1);
 
@@ -1833,24 +1845,8 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
             if (fast_a20 && dev->wantdata && (dev->command == 0xd1)) {
                 kbc_at_log("ATkbc: write P2\n");
 
-#if 0
-                /* Fast A20 - ignore all other bits. */
-                val = (val & 0x02) | (dev->p2 & 0xfd);
-
-                /* Bit 2 of AMI flags is P22-P23 blocked (1 = yes, 0 = no),
-                   discovered by reverse-engineering the AOpeN Vi15G BIOS. */
-                if (dev->ami_flags & 0x04) {
-                    /* If keyboard controller lines P22-P23 are blocked,
-                       we force them to remain unchanged. */
-                    val &= ~0x0c;
-                    val |= (dev->p2 & 0x0c);
-                }
-
-                write_p2_fast_a20(dev, val | 0x01);
-#else
                 /* Fast A20 - ignore all other bits. */
                 write_p2_fast_a20(dev, (dev->p2 & 0xfd) | (val & 0x02));
-#endif
 
                 dev->wantdata  = 0;                
                 dev->state     = STATE_MAIN_IBF;
@@ -1865,6 +1861,11 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
                 dev->wantdata  = 1;
                 dev->state     = STATE_KBC_PARAM;
                 dev->command = 0xd1;
+                return;
+            } else if (fast_reset && ((val & 0xf0) == 0xf0)) {
+                pulse_output(dev, val & 0x0f);
+
+                dev->state     = STATE_MAIN_IBF;
                 return;
             }
             break;
@@ -2112,6 +2113,8 @@ kbc_at_init(const device_t *info)
 
     /* The actual keyboard. */
     device_add(&keyboard_at_generic_device);
+
+    fast_reset = 0x00;
 
     return dev;
 }
