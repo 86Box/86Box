@@ -134,7 +134,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
         const int config_major_type = (config_type >> CONFIG_SHIFT) << CONFIG_SHIFT;
 
         int value = 0;
-        auto selected               = static_cast<const char *>(blank.toStdString().c_str());
+        auto selected = blank;
 
         switch (config_major_type) {
             default:
@@ -246,7 +246,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         p += !!rom_present(const_cast<char *>(bios->files[d]));
                     if (p == bios->files_no) {
                         const int row = Models::AddEntry(model, bios->name, q);
-                        if (!strcmp(selected, bios->internal_name))
+                        if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                             currentIndex = row;
                     }
                     q++;
