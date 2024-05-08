@@ -3103,6 +3103,61 @@ static const device_config_t banshee_sgram_config[] = {
     }
 };
 
+static const device_config_t banshee_sgram_16mbonly_config[] = {
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithersub",
+        .description = "Dither subtraction",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dacfilter",
+        .description = "Screen Filter",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "render_threads",
+        .description = "Render threads",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1",
+                .value = 1
+            },
+            {
+                .description = "2",
+                .value = 2
+            },
+            {
+                .description = "4",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
+        },
+        .default_int = 2
+    },
+#ifndef NO_CODEGEN
+    {
+        .name = "recompiler",
+        .description = "Recompiler",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+#endif
+    {
+        .type = CONFIG_END
+    }
+};
+
 static const device_config_t banshee_sdram_config[] = {
     {
         .name = "bilinear",
@@ -3181,7 +3236,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
 #endif
         mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
-        if (banshee->type == TYPE_VELOCITY100)
+        if ((banshee->type == TYPE_V3_1000) || (banshee->type == TYPE_VELOCITY200))
+            mem_size = 16; /* Our Voodoo 3 1000 and Velocity 200 bios'es are hardcoded to 16 MB. */
+        else if (banshee->type == TYPE_VELOCITY100)
             mem_size = 8; /* Velocity 100 only supports 8 MB */
         else
             mem_size = device_get_config_int("memory");
@@ -3600,7 +3657,7 @@ const device_t voodoo_3_1000_agp_device = {
     { .available = v3_1000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = banshee_sgram_16mbonly_config
 };
 
 const device_t voodoo_3_2000_device = {
@@ -3768,5 +3825,5 @@ const device_t velocity_200_agp_device = {
     { .available = velocity_200_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = banshee_sgram_16mbonly_config
 };
