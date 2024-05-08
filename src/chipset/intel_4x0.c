@@ -518,7 +518,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430FX:
                     case INTEL_430VX:
                     case INTEL_430TX:
-                        if (!strcmp(machine_get_internal_name(), "mb500n"))
+                        if (!strcmp(machine_get_internal_name(), "mb500n") || (strstr(machine_get_internal_name(), "mr") != NULL))
                             regs[0x52] = val;
                         else
                             regs[0x52] = (regs[0x52] & 0xf4) | (val & 0x0b);
