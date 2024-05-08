@@ -704,11 +704,11 @@ machine_at_pb450_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_vlb_onboard_device);
 
-    device_add(&opti602_device);
     device_add(&opti895_device);
+    device_add(&opti602_device);
     device_add(&opti822_device);
-    device_add(&keyboard_ps2_ami_device);
-    device_add(&fdc37c661_ide_device);
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_sec_device);
     device_add(&intel_flash_bxt_device);
     device_add(&phoenix_486_jumper_pci_device);

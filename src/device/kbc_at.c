@@ -133,9 +133,9 @@ typedef struct atkbc_t {
     uint8_t stat_hi;
     uint8_t pending;
     uint8_t irq_state;
+    uint8_t suppress_cmd_intr;
     uint8_t pad;
     uint8_t pad0;
-    uint8_t pad1;
 
     uint8_t mem[0x100];
 
@@ -200,6 +200,11 @@ static const uint8_t nont_to_t[256] = {
     0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
     0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
     0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
+};
+
+static const uint8_t multikey_vars[0x0b] = {
+    0x0a,
+    0x03, 0x1e, 0x27, 0x28, 0x29, 0x38, 0x39, 0x18, 0x19, 0x35
 };
 
 static uint8_t fast_reset = 0x00;
@@ -367,7 +372,7 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
                 picint_common(1 << 12, 0, 1, NULL);
             picint_common(1 << 1, 0, 0, NULL);
         } else {
-            if (dev->mem[0x20] & 0x01)
+            if ((!dev->suppress_cmd_intr || (dev->channel == 1)) && (dev->mem[0x20] & 0x01))
                 picint_common(1 << 1, 0, 1, NULL);
             picint_common(1 << 12, 0, 0, NULL);
         }
@@ -1349,6 +1354,206 @@ write64_ami(void *priv, uint8_t val)
 }
 
 static uint8_t
+write60_phoenix(void *priv, uint8_t val)
+{
+    atkbc_t *dev     = (atkbc_t *) priv;
+
+    switch (dev->command) {
+        /* TODO: Make this actually load the password. */
+        case 0xa3: /* Load Extended Password */
+            kbc_at_log("ATkbc: Phoenix - Load Extended Password\n");
+            if (val == 0x00)
+                dev->command_phase = 0;
+            else {
+                dev->wantdata      = 1;
+                dev->state         = STATE_KBC_PARAM;
+            }
+            return 0;
+
+        case 0xaf: /* Set Inactivity Timer */
+            kbc_at_log("ATkbc: Phoenix - Set Inactivity Timer\n");
+            dev->mem[0x3a]    = val;
+            dev->command_phase = 0;
+            return 0;
+
+        case 0xb8: /* Set Extended Memory Access Index */
+            kbc_at_log("ATkbc: Phoenix - Set Extended Memory Access Index\n");
+            dev->mem_addr      = val;
+            dev->command_phase = 0;
+            return 0;
+
+        case 0xbb: /* Set Extended Memory */
+            kbc_at_log("ATkbc: Phoenix - Set Extended Memory\n");
+            dev->mem[dev->mem_addr] = val;
+            dev->command_phase      = 0;
+            return 0;
+
+        case 0xbd: /* Set MultiKey Variable */
+            kbc_at_log("ATkbc: Phoenix - Set MultiKey Variable\n");
+            if ((dev->mem_addr > 0) && (dev->mem_addr <= multikey_vars[0x00]))
+                dev->mem[multikey_vars[dev->mem_addr]] = val;
+            else if (dev->mem_addr == 0x29)
+                dev->suppress_cmd_intr = !val;
+            dev->command_phase      = 0;
+            return 0;
+
+        case 0xc7: /* Set Port1 bits */
+            kbc_at_log("ATkbc: Phoenix - Set Port1 bits\n");
+            dev->p1           |= val;
+            dev->command_phase = 0;
+            return 0;
+
+        case 0xc8: /* Clear Port1 bits */
+            kbc_at_log("ATkbc: Phoenix - Clear Port1 bits\n");
+            dev->p1           &= ~val;
+            dev->command_phase = 0;
+            return 0;
+
+        case 0xc9: /* Set Port2 bits */
+            kbc_at_log("ATkbc: Phoenix - Set Port2 bits\n");
+            write_p2(dev, dev->p2 | val);
+            dev->command_phase = 0;
+            return 0;
+
+        case 0xca: /* Clear Port2 bits */
+            kbc_at_log("ATkbc: Phoenix - Clear Port2 bits\n");
+            write_p2(dev, dev->p2 & ~val);
+            dev->command_phase = 0;
+            return 0;
+
+        default:
+            break;
+    }
+
+    return 1;
+}
+
+static uint8_t
+write64_phoenix(void *priv, uint8_t val)
+{
+    atkbc_t *dev     = (atkbc_t *) priv;
+
+    switch (val) {
+        case 0x00 ... 0x1f:
+            kbc_at_log("ATkbc: Phoenix - alias read from %08X\n", val);
+            kbc_delay_to_ob(dev, dev->mem[val + 0x20], 0, 0x00);
+            return 0;
+
+        case 0x40 ... 0x5f:
+            kbc_at_log("ATkbc: Phoenix - alias write to %08X\n", dev->command);
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xa2: /* Test Extended Password */
+            kbc_at_log("ATkbc: Phoenix - Test Extended Password\n");
+            kbc_at_queue_add(dev, 0xf1); /* Extended Password not loaded */
+            return 0;
+
+        /* TODO: Make this actually load the password. */
+        case 0xa3: /* Load Extended Password */
+            kbc_at_log("ATkbc: Phoenix - Load Extended Password\n");
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xaf: /* Set Inactivity Timer */
+            kbc_at_log("ATkbc: Phoenix - Set Inactivity Timer\n");
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xb8: /* Set Extended Memory Access Index */
+            kbc_at_log("ATkbc: Phoenix - Set Extended Memory Access Index\n");
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xb9: /* Get Extended Memory Access Index */
+            kbc_at_log("ATkbc: Phoenix - Get Extended Memory Access Index\n");
+            kbc_at_queue_add(dev, dev->mem_addr);
+            return 0;
+
+        case 0xba: /* Get Extended Memory */
+            kbc_at_log("ATkbc: Phoenix - Get Extended Memory\n");
+            kbc_at_queue_add(dev, dev->mem[dev->mem_addr]);
+            return 0;
+
+        case 0xbb: /* Set Extended Memory */
+            kbc_at_log("ATkbc: Phoenix - Set Extended Memory\n");
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xbc: /* Get MultiKey Variable */
+            kbc_at_log("ATkbc: Phoenix - Get MultiKey Variable\n");
+            if (dev->mem_addr == 0)
+                kbc_at_queue_add(dev, multikey_vars[dev->mem_addr]);
+            else if (dev->mem_addr <= multikey_vars[dev->mem_addr])
+                kbc_at_queue_add(dev, dev->mem[multikey_vars[dev->mem_addr]]);
+            else
+                kbc_at_queue_add(dev, 0xff);
+            return 0;
+
+        case 0xbd: /* Set MultiKey Variable */
+            kbc_at_log("ATkbc: Phoenix - Set MultiKey Variable\n");
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xc7: /* Set Port1 bits */
+            kbc_at_log("ATkbc: Phoenix - Set Port1 bits\n");
+            dev->wantdata  = 1;
+            dev->state     = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xc8: /* Clear Port1 bits */
+            kbc_at_log("ATkbc: Phoenix - Clear Port1 bits\n");
+            dev->wantdata  = 1;
+            dev->state     = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xc9: /* Set Port2 bits */
+            kbc_at_log("ATkbc: Phoenix - Set Port2 bits\n");
+            dev->wantdata  = 1;
+            dev->state     = STATE_KBC_PARAM;
+            return 0;
+
+        case 0xca: /* Clear Port2 bits */
+            kbc_at_log("ATkbc: Phoenix - Clear Port2 bits\n");
+            dev->wantdata  = 1;
+            dev->state     = STATE_KBC_PARAM;
+            return 0;
+
+        /* TODO: Handle these three commands properly - configurable
+                 revision level and proper CPU bits. */
+        case 0xd5: /* Read MultiKey code revision level */
+            kbc_at_log("ATkbc: Phoenix - Read MultiKey code revision level\n");
+            kbc_at_queue_add(dev, 0x04);
+            kbc_at_queue_add(dev, 0x16);
+            return 0;
+
+        case 0xd6: /* Read Version Information */
+            kbc_at_log("ATkbc: Phoenix - Read Version Information\n");
+            kbc_at_queue_add(dev, 0x81);
+            kbc_at_queue_add(dev, 0xac);
+            return 0;
+
+        case 0xd7: /* Read MultiKey model numbers */
+            kbc_at_log("ATkbc: Phoenix - Read MultiKey model numbers\n");
+            kbc_at_queue_add(dev, 0x02);
+            kbc_at_queue_add(dev, 0x87);
+            kbc_at_queue_add(dev, 0x02);
+            return 0;
+
+        default:
+            break;
+    }
+
+    return write64_generic(dev, val);
+}
+
+static uint8_t
 write64_siemens(void *priv, uint8_t val)
 {
     atkbc_t *dev     = (atkbc_t *) priv;
@@ -1895,6 +2100,11 @@ kbc_at_read(uint16_t port, void *priv)
                      This also means that in AT mode, the IRQ is level-triggered. */
             if (!(dev->misc_flags & FLAG_PS2))
                 picintclevel(1 << 1, &dev->irq_state);
+            /* I"m not even sure if this is correct but the PB450 absolutely requires this. */
+            if (dev->suppress_cmd_intr) {
+                picint_common(1 << 1, 0, 1, NULL);
+                dev->suppress_cmd_intr = 0;
+            }
             if ((strstr(machine_get_internal_name(), "pb") != NULL) && (cpu_override_dynarec == 1))
                 cpu_override_dynarec = 0;
             break;
@@ -1936,6 +2146,8 @@ kbc_at_reset(void *priv)
     set_enable_aux(dev, 0);
 
     kbc_at_queue_reset(dev);
+
+    dev->suppress_cmd_intr = 0;
 
     dev->sc_or = 0;
 
@@ -2084,6 +2296,11 @@ kbc_at_init(const device_t *info)
 
             dev->write60_ven = write60_ami;
             dev->write64_ven = write64_ami;
+            break;
+
+        case KBC_VEN_PHOENIX:
+            dev->write60_ven = write60_phoenix;
+            dev->write64_ven = write64_phoenix;
             break;
 
         case KBC_VEN_QUADTEL:
@@ -2292,6 +2509,20 @@ const device_t keyboard_ps2_ami_device = {
     .internal_name = "keyboard_ps2_ami",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_ps2_phoenix_device = {
+    .name          = "PS/2 Keyboard (Phoenix)",
+    .internal_name = "keyboard_ps2_phoenix",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,

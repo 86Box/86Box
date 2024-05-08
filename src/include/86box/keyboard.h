@@ -245,6 +245,7 @@ extern const device_t keyboard_ps2_ami_device;
 extern const device_t keyboard_ps2_tg_ami_device;
 extern const device_t keyboard_ps2_tg_ami_green_device;
 extern const device_t keyboard_ps2_olivetti_device;
+extern const device_t keyboard_ps2_phoenix_device;
 extern const device_t keyboard_ps2_mca_2_device;
 extern const device_t keyboard_ps2_quadtel_device;
 extern const device_t keyboard_ps2_pci_device;
