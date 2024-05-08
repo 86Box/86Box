@@ -518,7 +518,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430FX:
                     case INTEL_430VX:
                     case INTEL_430TX:
-                        regs[0x52] = (regs[0x52] & 0xf0) | (val & 0x0b);
+                        if (!strcmp(machine_get_internal_name(), "mb500n"))
+                            regs[0x52] = val;
+                        else
+                            regs[0x52] = (regs[0x52] & 0xf4) | (val & 0x0b);
                         cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
                         cpu_update_waitstates();
                         break;
