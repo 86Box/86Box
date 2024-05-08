@@ -702,7 +702,7 @@ machine_at_pb450_init(const machine_t *model)
     pci_register_slot(0x12, PCI_CARD_NORMAL,      5, 6, 7, 8);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_vlb_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&opti895_device);
     device_add(&opti602_device);
@@ -2223,10 +2223,10 @@ machine_at_dvent4xx_init(const machine_t *model)
     device_add(&sis_85c471_device);
     device_add(&ide_cmd640_vlb_pri_device);
     device_add(&fdc37c665_ide_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_phoenix_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio32_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
