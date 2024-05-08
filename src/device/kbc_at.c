@@ -164,6 +164,8 @@ kbc_at_port_t  *kbc_at_ports[2] = { NULL, NULL };
 static uint8_t kbc_ami_revision   = '8';
 static uint8_t kbc_award_revision = 0x42;
 
+static uint8_t kbc_handler_set    = 0;
+
 static void (*kbc_at_do_poll)(atkbc_t *dev);
 
 /* Non-translated to translated scan codes. */
@@ -2202,10 +2204,14 @@ kbc_at_close(void *priv)
 void
 kbc_at_handler(int set, void *priv)
 {
-    io_removehandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
-    io_removehandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+    if (kbc_handler_set) {
+        io_removehandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+        io_removehandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+    }
 
-    if (set) {
+    kbc_handler_set = set;
+
+    if (kbc_handler_set) {
         io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
         io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
     }
@@ -2228,6 +2234,7 @@ kbc_at_init(const device_t *info)
     if (info->flags & DEVICE_PCI)
         dev->misc_flags |= FLAG_PCI;
 
+    kbc_handler_set = 0;
     kbc_at_handler(1, dev);
 
     timer_add(&dev->kbc_poll_timer, kbc_at_poll, dev, 1);
