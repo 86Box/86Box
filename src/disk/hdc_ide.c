@@ -516,24 +516,29 @@ ide_hd_identify(const ide_t *ide)
 {
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
     const ide_bm_t *bm      = ide_boards[ide->board]->bm;
-    const uint32_t d_spt    = ide->spt;
     uint64_t full_size      = (((uint64_t) hdd[ide->hdd_num].tracks) *
                               hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
-    uint32_t d_hpc;
-    uint32_t d_tracks;
 
     device_identify[6] = (ide->hdd_num / 10) + 0x30;
     device_identify[7] = (ide->hdd_num % 10) + 0x30;
     ide_log("IDE Identify: %s\n", device_identify);
 
-    if (ide->hpc <= 16) {
+    uint32_t d_hpc    = ide->hpc;
+    uint32_t d_spt    = ide->spt;
+    uint32_t d_tracks;
+
+    if ((ide->hpc <= 16) && (ide->spt <= 63)) {
         /* HPC <= 16, report as needed. */
         d_tracks = ide->tracks;
-        d_hpc    = ide->hpc;
     } else {
         /* HPC > 16, convert to 16 HPC. */
-        d_hpc    = 16;
-        d_tracks = (ide->tracks * ide->hpc) / 16;
+        if (ide->hpc > 16)
+            d_hpc = 16;
+        if (ide->spt > 63)
+            d_spt = 63;
+        d_tracks = (ide->tracks * ide->hpc * ide->spt) / (16 * 63);
+        if (d_tracks > 16383)
+            d_tracks = 16383;
     }
 
     /* Specify default CHS translation */
@@ -579,7 +584,7 @@ ide_hd_identify(const ide_t *ide)
          */
         ide->buffer[53] = 1;
 
-        if (ide->cfg_spt != 0) {
+        if (ide->params_specified) {
             ide->buffer[54] = (full_size / ide->cfg_hpc) / ide->cfg_spt;
             ide->buffer[55] = ide->cfg_hpc;
             ide->buffer[56] = ide->cfg_spt;
@@ -2427,10 +2432,12 @@ ide_callback(void *priv)
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
             else {
-                if (ide->cfg_spt == 0) {
-                    /* Only accept after RESET or DIAG. */
+                /* Only accept after RESET or DIAG. */
+                if (ide->params_specified) {
                     ide->cfg_spt = ide->tf->secount;
                     ide->cfg_hpc = ide->tf->head + 1;
+
+                    ide->params_specified = 1;
                 }
                 ide->command = 0x00;
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
@@ -2744,8 +2751,26 @@ ide_board_setup(const int board)
         dev->tf->error = 1;
         if (dev->type != IDE_HDD)
             dev->cfg_spt = dev->cfg_hpc = 0;
-        if (dev->type == IDE_HDD)
+        if (dev->type == IDE_HDD) {
             dev->blocksize = hdd[dev->hdd_num].max_multiple_block;
+
+            /* Calculate the default heads and sectors. */
+            uint32_t d_hpc    = dev->hpc;
+            uint32_t d_spt    = dev->spt;
+
+            if ((dev->hpc > 16) || (dev->spt > 63)) {
+                /* HPC > 16, convert to 16 HPC. */
+                if (dev->hpc > 16)
+                    d_hpc = 16;
+                if (dev->spt > 63)
+                    d_spt = 63;
+            }
+
+            dev->cfg_spt = d_spt;
+            dev->cfg_hpc = d_hpc;
+        }
+
+        dev->params_specified = 0;
     }
 }
 
