@@ -224,6 +224,10 @@ sis_5513_ide_write(int addr, uint8_t val, void *priv)
         case 0x20 ... 0x21:
             if (addr == 0x20)
                 dev->pci_conf[addr] = (val & 0xe0) | 0x01;
+            else if ((addr & 0x07) == 0x00)
+                dev->pci_conf[addr] = (val & 0xf8) | 0x01;
+            else if ((addr & 0x07) == 0x04)
+                dev->pci_conf[addr] = (val & 0xfc) | 0x01;
             else
                 dev->pci_conf[addr] = val;
             sis_5513_ide_handler(dev);
