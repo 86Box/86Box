@@ -88,6 +88,7 @@
 #define KBC_VEN_ALI        0x28
 #define KBC_VEN_SIEMENS    0x2c
 #define KBC_VEN_COMPAQ     0x30
+#define KBC_VEN_IBM        0x34
 #define KBC_VEN_MASK       0x7c
 
 #define FLAG_CLOCK         0x01
@@ -375,9 +376,22 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
     if (dev->misc_flags & FLAG_PS2) {
         if (channel >= 2) {
             dev->status |= STAT_MFULL;
-            dev->state   = STATE_AUX_IRQ;
-        } else if (channel == 1)
-            dev->state   = STATE_IRQ;
+            if ((kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM)) {
+                if (dev->mem[0x20] & 0x02)
+                    picint_common(1 << 12, 0, 1, NULL);
+                picint_common(1 << 1, 0, 0, NULL);
+                dev->state = STATE_MAIN_IBF;
+            } else
+                dev->state   = STATE_AUX_IRQ;
+        } else if (channel == 1) {
+            if ((kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM)) {
+                if (dev->mem[0x20] & 0x01)
+                    picint_common(1 << 1, 0, 1, NULL);
+                picint_common(1 << 12, 0, 0, NULL);
+                dev->state = STATE_MAIN_IBF;
+            } else
+                dev->state   = STATE_IRQ;
+        }
     } else if (dev->mem[0x20] & 0x01)
         picintlevel(1 << 1, &dev->irq_state); /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
 
@@ -2275,6 +2289,7 @@ kbc_at_init(const device_t *info)
 
         case KBC_VEN_ACER:
         case KBC_VEN_GENERIC:
+        case KBC_VEN_IBM:
         case KBC_VEN_NCR:
         case KBC_VEN_IBM_PS1:
         case KBC_VEN_COMPAQ:
@@ -2570,11 +2585,25 @@ const device_t keyboard_ps2_tg_ami_device = {
     .config        = NULL
 };
 
+const device_t keyboard_ps2_mca_1_device = {
+    .name          = "PS/2 Keyboard",
+    .internal_name = "keyboard_ps2",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t keyboard_ps2_mca_2_device = {
     .name          = "PS/2 Keyboard",
     .internal_name = "keyboard_ps2_mca_2",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_2 | KBC_VEN_GENERIC,
+    .local         = KBC_TYPE_PS2_2 | KBC_VEN_IBM,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
