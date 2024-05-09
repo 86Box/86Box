@@ -767,7 +767,7 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv),
     if (next_pci_card < PCI_CARDS_NUM) {
         dev = &pci_card_descs[next_pci_card];
 
-        dev->type = add_type;
+        dev->type = add_type | PCI_ADD_STRICT;
         dev->read  = read;
         dev->write = write;
         dev->priv  = priv;
