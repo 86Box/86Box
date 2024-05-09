@@ -518,15 +518,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430FX:
                     case INTEL_430VX:
                     case INTEL_430TX:
-                        if (!strcmp(machine_get_internal_name(), "mb500n") || (strstr(machine_get_internal_name(), "mr") != NULL))
-                            regs[0x52] = val;
-                        else
-                            regs[0x52] = (regs[0x52] & 0xf4) | (val & 0x0b);
+                        regs[0x52] = (regs[0x52] & 0x04) | (val & 0xfb);
                         cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
                         cpu_update_waitstates();
                         break;
                     case INTEL_430HX:
-                        regs[0x52] = (regs[0x52] & 0xf0) | (val & 0x0f);
+                        regs[0x52] = val;
                         cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
                         cpu_update_waitstates();
                         break;
