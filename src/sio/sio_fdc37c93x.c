@@ -54,6 +54,7 @@ typedef struct fdc37c93x_t {
     uint8_t       is_apm;
     uint8_t       has_nvr;
     uint8_t       tries;
+    uint8_t       port_370;
     uint8_t       gpio_regs[2];
     uint8_t       auxio_reg;
     uint8_t       regs[48];
@@ -785,7 +786,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->regs[0x21] = 0x01;
     dev->regs[0x22] = 0x39;
     dev->regs[0x24] = 0x04;
-    dev->regs[0x26] = 0xF0;
+    dev->regs[0x26] = dev->port_370 ? 0x70 : 0xF0;
     dev->regs[0x27] = 0x03;
 
     for (uint8_t i = 0; i < 11; i++)
@@ -940,13 +941,14 @@ fdc37c93x_init(const device_t *info)
 
     dev->fdc = device_add(&fdc_at_smc_device);
 
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    dev->uart[0]  = device_add_inst(&ns16550_device, 1);
+    dev->uart[1]  = device_add_inst(&ns16550_device, 2);
 
-    dev->chip_id = info->local & 0xff;
-    dev->is_apm  = (info->local >> 8) & 0x01;
-    is_compaq    = (info->local >> 8) & 0x02;
-    dev->has_nvr = !((info->local >> 8) & 0x04);
+    dev->chip_id  = info->local & 0xff;
+    dev->is_apm   = (info->local >> 8) & 0x01;
+    is_compaq     = (info->local >> 8) & 0x02;
+    dev->has_nvr  = !((info->local >> 8) & 0x04);
+    dev->port_370 = ((info->local >> 8) & 0x08);
 
     dev->gpio_regs[0] = 0xff;
 #if 0
@@ -1044,6 +1046,20 @@ const device_t fdc37c935_device = {
     .internal_name = "fdc37c935",
     .flags         = 0,
     .local         = 0x02,
+    .init          = fdc37c93x_init,
+    .close         = fdc37c93x_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc37c935_370_device = {
+    .name          = "SMC FDC37C935 Super I/O (Port 370h)",
+    .internal_name = "fdc37c935_370",
+    .flags         = 0,
+    .local         = 0x802,
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,

@@ -2124,21 +2124,6 @@ emu8k_update(emu8k_t *emu8k)
     emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, wavetable_pos_global - emu8k->pos);
     emu8k_work_eq(buf, wavetable_pos_global - emu8k->pos);
 
-    // Clip signal
-    for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
-        if (buf[0] < -32768)
-            buf[0] = -32768;
-        else if (buf[0] > 32767)
-            buf[0] = 32767;
-
-        if (buf[1] < -32768)
-            buf[1] = -32768;
-        else if (buf[1] > 32767)
-            buf[1] = 32767;
-
-        buf += 2;
-    }
-
     /* Update EMU clock. */
     emu8k->wc += (wavetable_pos_global - emu8k->pos);
 

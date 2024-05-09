@@ -109,14 +109,10 @@ typedef struct ncr_t {
     int     data_pos;
 
     int     irq;
-    int     simple_pseudo_dma;
-
-    uint32_t block_count;
 
     double  period;
 
     void   *priv;
-    void  (*dma_init_ext)(void *priv, void *ext_priv, int send);
     void  (*dma_mode_ext)(void *priv, void *ext_priv);
     int   (*dma_send_ext)(void *priv, void *ext_priv);
     int   (*dma_initiator_receive_ext)(void *priv, void *ext_priv);
@@ -131,11 +127,11 @@ extern uint32_t ncr5380_get_bus_host(ncr_t *ncr);
 extern void     ncr5380_bus_read(ncr_t *ncr);
 extern void     ncr5380_bus_update(ncr_t *ncr, int bus);
 extern void     ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr);
-extern uint8_t  ncr5380_drq(ncr_t *ncr);
 extern uint8_t  ncr5380_read(uint16_t port, ncr_t *ncr);
 
 #ifdef EMU_DEVICE_H
 extern const device_t scsi_lcs6821n_device;
+extern const device_t scsi_pas_device;
 extern const device_t scsi_rt1000b_device;
 extern const device_t scsi_rt1000mc_device;
 extern const device_t scsi_t128_device;
@@ -145,7 +141,6 @@ extern const device_t scsi_ls2000_device;
 #if defined(DEV_BRANCH) && defined(USE_SUMO)
 extern const device_t scsi_scsiat_device;
 #endif
-extern const device_t scsi_pas_device;
 #endif
 
 #endif /*SCSI_NCR5380_H*/

@@ -82,7 +82,7 @@ typedef struct ide_s {
     uint8_t  selected;
     uint8_t  command;
     uint8_t  head;
-    uint8_t  pad;
+    uint8_t  params_specified;
     int      type;
     int      board;
     int      irqstat;
