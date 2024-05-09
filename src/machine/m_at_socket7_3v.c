@@ -882,3 +882,34 @@ machine_at_5sbm2_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_pc140_6260_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc140_6260/LYKT32A.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_VIDEO,       0, 0, 0, 0); /* Onboard video */
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5436_onboard_pci_device);
+
+    device_add(&sis_5511_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c669_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
