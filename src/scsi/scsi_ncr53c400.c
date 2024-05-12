@@ -394,9 +394,8 @@ t130b_in(uint16_t port, void *priv)
 }
 
 static void
-ncr53c400_dma_mode_ext(void *priv, void *ext_priv)
+ncr53c400_dma_mode_ext(void *priv, UNUSED(void *ext_priv))
 {
-    ncr53c400_t *ncr400 = (ncr53c400_t *) ext_priv;
     ncr_t   *ncr        = (ncr_t *) priv;
 
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
@@ -405,8 +404,7 @@ ncr53c400_dma_mode_ext(void *priv, void *ext_priv)
         ncr->tcr &= ~TCR_LAST_BYTE_SENT;
         ncr->isr &= ~STATUS_END_OF_DMA;
         ncr->dma_mode = DMA_IDLE;
-    } else
-        ncr53c400_log("Continuing DMA, mode bit=%02x, block loaded=%d, waitcomplete=%d.\n", ncr->mode, ncr400->block_count_loaded, ncr->wait_complete);
+    }
 }
 
 static void
