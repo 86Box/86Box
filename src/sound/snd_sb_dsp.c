@@ -563,6 +563,8 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
             timer_set_delay_u64(&dsp->output_timer, (uint64_t) dsp->sblatcho);
         dsp->sbleftright = dsp->sbleftright_default;
         dsp->sbdacpos    = 0;
+
+        dma_set_drq(dsp->sb_8_dmanum, 1);
     } else {
         dsp->sb_16_length = dsp->sb_16_origlength = len;
         dsp->sb_16_format                         = format;
@@ -574,6 +576,11 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         dsp->sb_16_output = 1;
         if (!timer_is_enabled(&dsp->output_timer))
             timer_set_delay_u64(&dsp->output_timer, (uint64_t) dsp->sblatcho);
+
+        if (dsp->sb_16_dma_supported)
+            dma_set_drq(dsp->sb_16_dmanum, 1);
+        else
+            dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
 
     /* This will be set later for ESS playback/record modes. */
@@ -594,6 +601,8 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         dsp->sb_8_output = 0;
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, (uint64_t) dsp->sblatchi);
+
+        dma_set_drq(dsp->sb_8_dmanum, 1);
     } else {
         dsp->sb_16_length = dsp->sb_16_origlength = len;
         dsp->sb_16_format                         = format;
@@ -605,6 +614,11 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         dsp->sb_16_output = 0;
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, (uint64_t) dsp->sblatchi);
+
+        if (dsp->sb_16_dma_supported)
+            dma_set_drq(dsp->sb_16_dmanum, 1);
+        else
+            dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
 
     memset(dsp->record_buffer, 0, sizeof(dsp->record_buffer));
@@ -771,7 +785,10 @@ sb_16_write_dma(void *priv, uint16_t val)
 void
 sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
 {
-    uint8_t t = 0x00;
+    sb_t        *ess   = (sb_t *) dsp->parent;
+    ess_mixer_t *mixer = &ess->mixer_ess;
+    uint8_t      t     = 0x00;
+
     /* IRQ control */
     if (legacy) {
         t |= 0x80;
@@ -779,6 +796,7 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
     switch (dsp->sb_irqnum) {
         default:
             break;
+        case 2:
         case 9:
             t |= 0x0;
             break;
@@ -793,6 +811,8 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
             break;
     }
     ESSreg(0xB1) = (ESSreg(0xB1) & 0xF0) | t;
+    if ((mixer != NULL) && (ess->mpu != NULL) && (((mixer->regs[0x40] >> 5) & 0x7) == 2))
+        mpu401_setirq(ess->mpu, ess->dsp.sb_irqnum);
 
     /* DRQ control */
     t = 0x00;
@@ -1802,7 +1822,7 @@ sb_read(uint16_t a, void *priv)
 
     switch (a & 0xf) {
         case 0x6:
-            ret = 0xff;
+            ret = IS_ESS(dsp) ? 0x00 : 0xff;
             break;
         case 0xA: /* Read data */
             if (dsp->mpu && dsp->uart_midi)
@@ -1821,7 +1841,7 @@ sb_read(uint16_t a, void *priv)
                 dsp->state = DSP_S_NORMAL;
             break;
         case 0xC: /* Write data ready */
-            if (dsp->state == DSP_S_NORMAL) {
+            if ((dsp->state == DSP_S_NORMAL) || IS_ESS(dsp)) {
                 if (dsp->sb_8_enable || dsp->sb_type >= SB16)
                     dsp->busy_count = (dsp->busy_count + 1) & 3;
                 else
