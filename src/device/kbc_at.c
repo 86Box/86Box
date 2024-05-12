@@ -625,6 +625,8 @@ kbc_at_poll_ps2(atkbc_t *dev)
             fallthrough;
         case STATE_MAIN_IBF:
         default:
+            picint_common(1 << 1, 0, 0, NULL);
+            picint_common(1 << 12, 0, 0, NULL);
 ps2_main_ibf:
             if (dev->status & STAT_IFULL)
                 kbc_ibf_process(dev);
