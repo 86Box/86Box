@@ -679,9 +679,10 @@ ps2_main_ibf:
             dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
 #endif
             dev->pending = 0;
-            if (dev->flags & KBC_IS_ASIC)
+            if (dev->flags & KBC_IS_ASIC) {
                 dev->state = STATE_MAIN_IBF;
-            else
+                goto ps2_main_ibf;
+            } else
                 dev->state = STATE_KBC_DELAY_IRQ;
             break;
         case STATE_IRQ:
