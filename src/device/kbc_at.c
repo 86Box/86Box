@@ -91,6 +91,8 @@
 #define KBC_VEN_IBM        0x34
 #define KBC_VEN_MASK       0x7c
 
+#define KBC_IS_ASIC        0x80000000
+
 #define FLAG_CLOCK         0x01
 #define FLAG_CACHE         0x02
 #define FLAG_PS2           0x04
@@ -99,7 +101,7 @@
 enum {
     STATE_RESET = 0,       /* KBC reset state, only accepts command AA. */
     STATE_KBC_DELAY_OUT,   /* KBC is sending one single byte. */
-    STATE_IRQC_MAIN_IBF,   /* KBC checking if the input buffer is full, clear IRQ's first. */
+    STATE_KBC_AMI_OUT,     /* KBC waiting for OBF - needed for AMIKey commands that require clearing of the output byte. */
     STATE_MAIN_IBF,        /* KBC checking if the input buffer is full. */
     STATE_MAIN_KBD,        /* KBC checking if the keyboard has anything to send. */
     STATE_MAIN_AUX,        /* KBC checking if the auxiliary has anything to send. */
@@ -110,11 +112,10 @@ enum {
     STATE_SCAN_KBD,        /* KBC is waiting for the keyboard command response. */
     STATE_SEND_AUX,        /* KBC is sending command to the auxiliary device. */
     STATE_SCAN_AUX,        /* KBC is waiting for the auxiliary command response. */
-    STATE_IRQ,             /* KBC is raising the IRQ. */
+    STATE_IRQ = 0x10,      /* KBC is raising the IRQ. */
     STATE_KBC_IRQ,
     STATE_AUX_IRQ,
-    STATE_KBC_DELAY_IRQ,
-    STATE_IRQC_WAIT,
+    STATE_KBC_DELAY_IRQ
 };
 
 typedef struct atkbc_t {
@@ -379,23 +380,23 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
     if (dev->misc_flags & FLAG_PS2) {
         if (channel >= 2) {
             dev->status |= STAT_MFULL;
-            if ((kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM)) {
-                if (dev->mem[0x20] & 0x02) {
+            if ((kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM) || (dev->flags & KBC_IS_ASIC)) {
+                if (dev->mem[0x20] & 0x02)
                     picint_common(1 << 12, 0, 1, NULL);
-                    dev->state = STATE_IRQC_WAIT;
-                }
-                // picint_common(1 << 1, 0, 0, NULL);
+                picint_common(1 << 1, 0, 0, NULL);
             } else if (dev->mem[0x20] & 0x02)
                 dev->state   = STATE_AUX_IRQ;
         } else if (channel == 1) {
-            if ((kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM)) {
-                if (dev->mem[0x20] & 0x01) {
+            if ((kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM) || (dev->flags & KBC_IS_ASIC)) {
+                if (dev->mem[0x20] & 0x01)
                     picint_common(1 << 1, 0, 1, NULL);
-                    dev->state = STATE_IRQC_WAIT;
-                }
-                // picint_common(1 << 12, 0, 0, NULL);
+                picint_common(1 << 12, 0, 0, NULL);
             } else if (dev->mem[0x20] & 0x01)
                 dev->state   = STATE_IRQ;
+        } else if ((channel == 0) && (dev->flags & KBC_IS_ASIC)) {
+            if (dev->mem[0x20] & 0x01)
+                picint_common(1 << 1, 0, 1, NULL);
+            picint_common(1 << 12, 0, 0, NULL);
         }
     } else if (dev->mem[0x20] & 0x01)
         picintlevel(1 << 1, &dev->irq_state); /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
@@ -504,6 +505,10 @@ kbc_at_poll_at(atkbc_t *dev)
                     kbc_at_process_cmd(dev);
             }
             break;
+        case STATE_KBC_AMI_OUT:
+            if (dev->status & STAT_OFULL)
+                break;
+            fallthrough;
         case STATE_MAIN_IBF:
         default:
 at_main_ibf:
@@ -531,6 +536,9 @@ at_main_ibf:
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+#if 0
+            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto at_main_ibf;
@@ -609,8 +617,6 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 static void
 kbc_at_poll_ps2(atkbc_t *dev)
 {
-    static uint8_t phase = 0;
-
     switch (dev->state) {
         case STATE_RESET:
             if (dev->status & STAT_IFULL) {
@@ -619,16 +625,9 @@ kbc_at_poll_ps2(atkbc_t *dev)
                     kbc_at_process_cmd(dev);
             }
             break;
-        case STATE_IRQC_WAIT:
-            kbc_at_log("ATkbc: IRQ clear wait...\n");
-            phase = (phase + 1) & 1;
-            if (phase)
-                dev->state = STATE_IRQC_MAIN_IBF;
-            break;
-        case STATE_IRQC_MAIN_IBF:
-            kbc_at_log("ATkbc: Clearing IRQ 1 and 12 (Main/IBF)...\n");
-            picint_common(1 << 1, 0, 0, NULL);
-            picint_common(1 << 12, 0, 0, NULL);
+        case STATE_KBC_AMI_OUT:
+            if (dev->status & STAT_OFULL)
+                break;
             fallthrough;
         case STATE_MAIN_IBF:
         default:
@@ -676,41 +675,37 @@ ps2_main_ibf:
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+#if 0
+            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+#endif
             dev->pending = 0;
-            dev->state = STATE_KBC_DELAY_IRQ;
+            if (dev->flags & KBC_IS_ASIC)
+                dev->state = STATE_MAIN_IBF;
+            else
+                dev->state = STATE_KBC_DELAY_IRQ;
             break;
         case STATE_IRQ:
-            if (dev->mem[0x20] & 0x01) {
-                kbc_at_log("ATkbc: Raising IRQ 1  (keyboard)...\n");
+            kbc_at_log("ATkbc: Raising IRQ 1  (keyboard)...\n");
+            if (dev->mem[0x20] & 0x01)
                 picint_common(1 << 1, 0, 1, NULL);
-                dev->state = STATE_IRQC_WAIT;
-            } else {
-                kbc_at_log("ATkbc: Noping IRQ 1  (keyboard)...\n");
-                dev->state = STATE_MAIN_IBF;
-            }
+            picint_common(1 << 12, 0, 0, NULL);
+            dev->state = STATE_MAIN_IBF;
             break;
         case STATE_AUX_IRQ:
             kbc_at_log("ATkbc: Raising IRQ 12 (mouse)...\n");
-            if (dev->mem[0x20] & 0x02) {
+            if (dev->mem[0x20] & 0x02)
                 picint_common(1 << 12, 0, 1, NULL);
-                dev->state = STATE_IRQC_WAIT;
-            } else
-                dev->state = STATE_MAIN_IBF;
+            picint_common(1 << 1, 0, 0, NULL);
+            dev->state = STATE_MAIN_IBF;
             break;
         case STATE_KBC_DELAY_IRQ:
             kbc_at_log("ATkbc: Raising IRQ 1  (KBC delay)...\n");
-            if (dev->mem[0x20] & 0x01) {
+            if (dev->mem[0x20] & 0x01)
                 picint_common(1 << 1, 0, 1, NULL);
-                dev->state = STATE_IRQC_WAIT;
-                break;
-            } else {
-                dev->state = STATE_MAIN_IBF;
-                goto ps2_main_ibf;
-            }
-        case STATE_KBC_OUT:
-            kbc_at_log("ATkbc: Clearing IRQ 1 and 12 (KBC out)...\n");
-            picint_common(1 << 1, 0, 0, NULL);
             picint_common(1 << 12, 0, 0, NULL);
+            dev->state = STATE_MAIN_IBF;
+            goto ps2_main_ibf;
+        case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
                 /* Data from host aborts dumping. */
@@ -721,16 +716,22 @@ ps2_main_ibf:
             if (!(dev->status & STAT_OFULL)) {
                 kbc_at_log("ATkbc: %02X coming from channel 0\n", dev->key_ctrl_queue[dev->key_ctrl_queue_start] & 0xff);
                 kbc_send_to_ob(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
-                dev->state = STATE_KBC_IRQ;
+                if (dev->flags & KBC_IS_ASIC) {
+                    dev->key_ctrl_queue_start = (dev->key_ctrl_queue_start + 1) & 0x3f;
+                    if (dev->key_ctrl_queue_start == dev->key_ctrl_queue_end)
+                        dev->state = STATE_MAIN_IBF;
+                } else
+                    dev->state = STATE_KBC_IRQ;
             }
             break;
         case STATE_KBC_IRQ:
             kbc_at_log("ATkbc: Raising IRQ 1  (KBC)...\n");
             if (dev->mem[0x20] & 0x01)
                 picint_common(1 << 1, 0, 1, NULL);
+            picint_common(1 << 12, 0, 0, NULL);
             dev->key_ctrl_queue_start = (dev->key_ctrl_queue_start + 1) & 0x3f;
             if (dev->key_ctrl_queue_start == dev->key_ctrl_queue_end)
-                dev->state = STATE_IRQC_WAIT;
+                dev->state = STATE_MAIN_IBF;
             else
                 dev->state = STATE_KBC_OUT;
             break;
@@ -2563,6 +2564,20 @@ const device_t keyboard_ps2_ami_device = {
     .internal_name = "keyboard_ps2_ami",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_ps2_holtek_device = {
+    .name          = "PS/2 Keyboard (Holtek)",
+    .internal_name = "keyboard_ps2_holtek",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI | KBC_IS_ASIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
