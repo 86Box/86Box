@@ -826,15 +826,32 @@ plat_init_rom_paths(void)
 }
 
 void
-plat_get_global_config_dir(char *strptr)
+plat_get_global_config_dir(char *outbuf, const uint8_t len)
 {
-#ifdef __APPLE__
-    char *prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box");
-#else
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-#endif
-    strncpy(strptr, prefPath, 1024);
-    path_slash(strptr);
+    strncpy(outbuf, prefPath, len);
+    path_slash(outbuf);
+    SDL_free(prefPath);
+}
+
+void
+plat_get_global_data_dir(char *outbuf, const uint8_t len)
+{
+    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
+    strncpy(outbuf, prefPath, len);
+    path_slash(outbuf);
+    SDL_free(prefPath);
+}
+
+void
+plat_get_temp_dir(char *outbuf, uint8_t len)
+{
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL) {
+        tmpdir = "/tmp";
+    }
+    strncpy(outbuf, tmpdir, len);
+    path_slash(outbuf);
 }
 
 bool
