@@ -208,11 +208,17 @@ cdrom_ioctl_open_abort(cdrom_t *dev)
     return 1;
 }
 
+void
+cdrom_ioctl_eject(void)
+{
+    plat_cdrom_eject();
+}
+
 int
-cdrom_ioctl_open(cdrom_t *dev, char *path, int letter)
+cdrom_ioctl_open(cdrom_t *dev, int drive)
 {
     /* Open the image. */
-    int i = plat_cdrom_open(path, letter);
+    int i = plat_cdrom_set_drive(drive);
     if (!i)
         return cdrom_ioctl_open_abort(dev);
 

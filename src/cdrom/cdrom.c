@@ -1973,7 +1973,7 @@ cdrom_hard_reset(void)
 
                 cdrom_image_open(dev, dev->image_path);
             } else if (dev->host_drive == 201)
-                cdrom_ioctl_open(dev, dev->image_path, dev->letter);
+                cdrom_ioctl_open(dev, dev->drive);
         }
     }
 
@@ -2028,6 +2028,8 @@ cdrom_eject(uint8_t id)
 
     if (dev->host_drive == 200)
         strcpy(dev->prev_image_path, dev->image_path);
+    else if (dev->host_drive == 201)
+        cdrom_ioctl_eject();
 
     dev->prev_host_drive = dev->host_drive + (dev->host ? 1 : 0);
     dev->host_drive      = 0;
@@ -2049,7 +2051,7 @@ cdrom_reload(uint8_t id)
 {
     cdrom_t *dev = &cdrom[id];
 
-    if ((dev->host_drive == dev->prev_host_drive) || (dev->prev_host_drive == 0) || (dev->host_drive != 0)) {
+    if (!dev->host && ((dev->host_drive == dev->prev_host_drive) || (dev->prev_host_drive == 0) || (dev->host_drive != 0))) {
         /* Switch from empty to empty. Do nothing. */
         return;
     }
@@ -2061,7 +2063,8 @@ cdrom_reload(uint8_t id)
 
     if (dev->prev_host_drive >= 200) {
         /* Reload a previous image. */
-        strcpy(dev->image_path, dev->prev_image_path);
+        if (dev->prev_host_drive == 200)
+            strcpy(dev->image_path, dev->prev_image_path);
 
 #ifdef _WIN32
         if (dev->prev_host_drive == 200) {
@@ -2076,13 +2079,13 @@ cdrom_reload(uint8_t id)
 #endif
 
         if (dev->prev_host_drive > 200)
-            cdrom_ioctl_open(dev, dev->image_path, dev->letter);
+            cdrom_ioctl_open(dev, dev->drive);
         else
             cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);
 
-        if ((strlen(dev->image_path) == 0) && !dev->letter)
+        if ((strlen(dev->image_path) == 0) && !dev->drive)
             dev->host_drive = 0;
         else
             dev->host_drive = 200 + (dev->host ? 1 : 0);

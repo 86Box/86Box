@@ -247,7 +247,7 @@ typedef struct cdrom {
     int audio_muted_soft;
     int sony_msf;
     int host;
-    int letter;
+    int drive;
 
     const cdrom_ops_t *ops;
 
@@ -311,7 +311,7 @@ extern void cdrom_image_reset(cdrom_t *dev);
 
 extern void cdrom_ioctl_eject(void);
 extern void cdrom_ioctl_load(void);
-extern int  cdrom_ioctl_open(cdrom_t *dev, char *path, int letter);
+extern int  cdrom_ioctl_open(cdrom_t *dev, int drive);
 
 extern void cdrom_update_cdb(uint8_t *cdb, int lba_pos,
                              int number_of_blocks);

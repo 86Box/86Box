@@ -57,7 +57,7 @@ extern int plat_cdrom_get_audio_sub(uint32_t sector, uint8_t *attr, uint8_t *tra
 extern int plat_cdrom_get_sector_size(uint32_t sector);
 extern int plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector);
 extern void plat_cdrom_close(void);
-extern int plat_cdrom_open(char *path, int letter);
+extern int plat_cdrom_set_drive(int drive);
 
 #ifdef __cplusplus
 }

@@ -38,7 +38,22 @@
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 static HANDLE handle;
-static char ioctl_path[8];
+static WCHAR ioctl_path[256];
+
+static int
+plat_cdrom_open(void)
+{
+    plat_cdrom_close();
+
+    handle = CreateFileW((LPCWSTR)ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    pclog("handle=%p, error=%x.\n", handle, GetLastError());
+    if (handle != INVALID_HANDLE_VALUE) {
+        long size;
+        DeviceIoControl(handle, IOCTL_STORAGE_LOAD_MEDIA, NULL, 0, NULL, 0, (LPDWORD)&size, NULL);
+        return 1;
+    }
+    return 0;
+}
 
 int
 plat_cdrom_is_track_audio(uint32_t sector)
@@ -49,6 +64,7 @@ plat_cdrom_is_track_audio(uint32_t sector)
     int control = 0;
     uint32_t track_addr = 0;
 
+    plat_cdrom_open();
     DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
     plat_cdrom_close();
 
@@ -71,6 +87,7 @@ plat_cdrom_get_last_block(void)
 	long        size = 0;
 	uint32_t    address = 0;
 
+	plat_cdrom_open();
     DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
     plat_cdrom_close();
 
@@ -79,7 +96,7 @@ plat_cdrom_get_last_block(void)
         if (address > lb)
             lb = address;
     }
-    pclog("LBCapacity=%x.\n", lb);
+    pclog("LBCapacity=%d.\n", lb);
     return lb;
 }
 
@@ -89,6 +106,7 @@ plat_cdrom_get_audio_tracks(int *st_track, int *end, TMSF *lead_out)
 	CDROM_TOC toc;
 	long size       = 0;
 
+	plat_cdrom_open();
     DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
     plat_cdrom_close();
 
@@ -106,6 +124,7 @@ plat_cdrom_get_audio_track_info(UNUSED(int end), int track, int *track_num, TMSF
 	CDROM_TOC   toc;
 	long size = 0;
 
+	plat_cdrom_open();
     DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
     plat_cdrom_close();
 
@@ -132,6 +151,7 @@ plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track,
 
     insub.Format = IOCTL_CDROM_CURRENT_POSITION;
 
+	plat_cdrom_open();
 	DeviceIoControl(handle, IOCTL_CDROM_READ_Q_CHANNEL, &insub, sizeof(insub), &sub, sizeof(sub), (LPDWORD)&size, NULL);
     plat_cdrom_close();
 
@@ -155,7 +175,15 @@ plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track,
 int
 plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
 {
-    return COOKED_SECTOR_SIZE;
+    long size;
+    DISK_GEOMETRY dgCDROM;
+
+    plat_cdrom_open();
+	DeviceIoControl(handle, IOCTL_CDROM_GET_DRIVE_GEOMETRY, NULL, 0, &dgCDROM, sizeof(dgCDROM), (LPDWORD)&size, NULL);
+	plat_cdrom_close();
+
+	pclog("BytesPerSector=%d.\n", dgCDROM.BytesPerSector);
+    return dgCDROM.BytesPerSector;
 }
 
 int
@@ -167,6 +195,7 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
 
 	int	buflen = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
 
+	plat_cdrom_open();
 	if (!raw) {
         pclog("Cooked.\n");
 		// Cooked
@@ -186,10 +215,20 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
 		status = DeviceIoControl(handle, IOCTL_CDROM_RAW_READ, &in, sizeof(in),
 								buffer, buflen, (LPDWORD)&size, NULL);
 	}
-
     plat_cdrom_close();
 	pclog("ReadSector status=%d, sector=%d, size=%d.\n", status, sector, size);
 	return (size == buflen) && (status > 0);
+}
+
+void
+plat_cdrom_eject(void)
+{
+	long size;
+    int ret;
+
+    plat_cdrom_open();
+    DeviceIoControl(handle, IOCTL_STORAGE_EJECT_MEDIA, NULL, 0, NULL, 0, (LPDWORD)&size, NULL);
+    plat_cdrom_close();
 }
 
 void
@@ -201,21 +240,14 @@ plat_cdrom_close(void)
     }
 }
 
-static int
-plat_cdrom_load(char *path, int letter)
+int
+plat_cdrom_set_drive(int drive)
 {
     plat_cdrom_close();
-    strcpy(ioctl_path, "\\\\.\\");
-    strcat(ioctl_path, path);
 
-    /* Data track (shouldn't there be a lead in track?). */
-    handle = CreateFileW((LPCWSTR)ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-    pclog("handle=%p, error=%x, drive=%s.\n", handle, GetLastError(), ioctl_path);
-    return (handle != INVALID_HANDLE_VALUE);
-}
+    wsprintf(ioctl_path, L"\\\\.\\%c:", drive);
+    pclog("Path is %s\n", ioctl_path);
 
-int
-plat_cdrom_open(char *path, int letter)
-{
-    return plat_cdrom_load(path, letter);
+    plat_cdrom_open();
+    return 1;
 }

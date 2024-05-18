@@ -146,8 +146,8 @@ MediaMenu::refresh(QMenu *parentMenu)
         cdromMutePos = menu->children().count();
         menu->addAction(QApplication::style()->standardIcon(QStyle::SP_MediaVolumeMuted), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("&Image..."), [this, i]() { cdrom[i].host = 0; cdrom[i].letter = 0; cdromMount(i, 0); })->setCheckable(false);
-        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder..."), [this, i]() { cdrom[i].host = 0; cdrom[i].letter = 0; cdromMount(i, 1); })->setCheckable(false);
+        menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("&Image..."), [this, i]() { cdrom[i].host = 0; cdrom[i].drive = 0; cdromMount(i, 0); })->setCheckable(false);
+        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder..."), [this, i]() { cdrom[i].host = 0; cdrom[i].drive = 0; cdromMount(i, 1); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
@@ -160,7 +160,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         for (auto &letter : driveLetters) {
             auto drive =  QString::asprintf("%c:\\", letter).toUtf8().constData();
             if (GetDriveType(drive) == DRIVE_CDROM) {
-                menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter]() { cdrom[i].host = 1; cdrom[i].letter = letter; cdromMount(i, 0); })->setCheckable(false);
+                menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter]() { cdrom[i].host = 1; cdrom[i].drive = letter; cdromMount(i, 0); })->setCheckable(false);
             }
         }
         menu->addSeparator();
@@ -487,22 +487,22 @@ MediaMenu::cdromMount(int i, const QString &filename)
     cdrom[i].ops = nullptr;
     memset(cdrom[i].image_path, 0, sizeof(cdrom[i].image_path));
 #ifdef _WIN32
-    if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '/'))
+    if (!cdrom[i].host && (fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '/'))
         fn.data()[strlen(fn.data()) - 1] = '\\';
 #else
     if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '\\'))
         fn.data()[strlen(fn.data()) - 1] = '/';
 #endif
     if (cdrom[i].host)
-        cdrom_ioctl_open(&(cdrom[i]), fn.data(), cdrom[i].letter);
+        cdrom_ioctl_open(&(cdrom[i]), cdrom[i].drive);
     else
         cdrom_image_open(&(cdrom[i]), fn.data());
     /* Signal media change to the emulated machine. */
     if (cdrom[i].insert)
         cdrom[i].insert(cdrom[i].priv);
-    cdrom[i].host_drive = (strlen(cdrom[i].image_path) == 0 && !cdrom[i].letter) ? 0 : (200 + (cdrom[i].host ? 1 : 0));
+    cdrom[i].host_drive = (strlen(cdrom[i].image_path) == 0 && !cdrom[i].drive) ? 0 : (200 + (cdrom[i].host ? 1 : 0));
 
-    pclog("HostDrive=%d, letter=%d.\n", cdrom[i].host_drive, cdrom[i].letter);
+    pclog("HostDrive=%d, drive=%d.\n", cdrom[i].host_drive, cdrom[i].drive);
     if (cdrom[i].host_drive >= 200) {
         ui_sb_update_icon_state(SB_CDROM | i, 0);
     } else {
@@ -524,7 +524,7 @@ MediaMenu::cdromMount(int i, int dir)
 
     pclog("IsHost?=%d.\n", cdrom[i].host);
     if (cdrom[i].host) {
-        filename = QString(cdrom[i].letter);
+        filename = QString(cdrom[i].drive);
     } else {
         if (dir) {
             filename = QFileDialog::getExistingDirectory(
@@ -536,10 +536,11 @@ MediaMenu::cdromMount(int i, int dir)
                 QString(),
                 tr("CD-ROM images") % util::DlgFilter({ "iso", "cue" }) % tr("All files") % util::DlgFilter({ "*" }, true));
         }
+    }
 
-        if (filename.isEmpty()) {
-            return;
-        }
+    if (filename.isEmpty()) {
+        pclog("File is empty.\n");
+        return;
     }
 
     cdromMount(i, filename);
