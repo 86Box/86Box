@@ -1972,7 +1972,8 @@ cdrom_hard_reset(void)
 #endif
 
                 cdrom_image_open(dev, dev->image_path);
-            }
+            } else if (dev->host_drive == 201)
+                cdrom_ioctl_open(dev, dev->image_path, dev->letter);
         }
     }
 
@@ -2028,7 +2029,7 @@ cdrom_eject(uint8_t id)
     if (dev->host_drive == 200)
         strcpy(dev->prev_image_path, dev->image_path);
 
-    dev->prev_host_drive = dev->host_drive;
+    dev->prev_host_drive = dev->host_drive + (dev->host ? 1 : 0);
     dev->host_drive      = 0;
 
     dev->ops->exit(dev);
@@ -2058,26 +2059,33 @@ cdrom_reload(uint8_t id)
     dev->ops = NULL;
     memset(dev->image_path, 0, sizeof(dev->image_path));
 
-    if (dev->prev_host_drive == 200) {
+    if (dev->prev_host_drive >= 200) {
         /* Reload a previous image. */
         strcpy(dev->image_path, dev->prev_image_path);
 
 #ifdef _WIN32
-        if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
-            dev->image_path[strlen(dev->image_path) - 1] = '\\';
+        if (dev->prev_host_drive == 200) {
+            if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+                dev->image_path[strlen(dev->image_path) - 1] = '\\';
+        }
 #else
-         if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
-            dev->image_path[strlen(dev->image_path) - 1] = '/';
+        if (dev->prev_host_drive == 200) {
+             if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+                dev->image_path[strlen(dev->image_path) - 1] = '/';
+        }
 #endif
 
-        cdrom_image_open(dev, dev->image_path);
+        if (dev->prev_host_drive > 200)
+            cdrom_ioctl_open(dev, dev->image_path, dev->letter);
+        else
+            cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);
 
-        if (strlen(dev->image_path) == 0)
+        if ((strlen(dev->image_path) == 0) && !dev->letter)
             dev->host_drive = 0;
         else
-            dev->host_drive = 200;
+            dev->host_drive = 200 + (dev->host ? 1 : 0);
     }
 
     plat_cdrom_ui_update(id, 1);

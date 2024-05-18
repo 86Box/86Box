@@ -29,6 +29,21 @@
 #include <QStyle>
 
 extern "C" {
+#ifdef Q_OS_WINDOWS
+#define BITMAP WINDOWS_BITMAP
+#undef UNICODE
+#include <windows.h>
+#include <windowsx.h>
+#undef BITMAP
+#endif
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
@@ -131,14 +146,25 @@ MediaMenu::refresh(QMenu *parentMenu)
         cdromMutePos = menu->children().count();
         menu->addAction(QApplication::style()->standardIcon(QStyle::SP_MediaVolumeMuted), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("&Image..."), [this, i]() { cdromMount(i, 0); })->setCheckable(false);
-        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder..."), [this, i]() { cdromMount(i, 1); })->setCheckable(false);
+        menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("&Image..."), [this, i]() { cdrom[i].host = 0; cdrom[i].letter = 0; cdromMount(i, 0); })->setCheckable(false);
+        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder..."), [this, i]() { cdrom[i].host = 0; cdrom[i].letter = 0; cdromMount(i, 1); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
             menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { cdromReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
+#ifdef Q_OS_WINDOWS
+        /* Loop through each Windows drive letter and test to see if
+           it's a CDROM */
+        for (auto &letter : driveLetters) {
+            auto drive =  QString::asprintf("%c:\\", letter).toUtf8().constData();
+            if (GetDriveType(drive) == DRIVE_CDROM) {
+                menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter]() { cdrom[i].host = 1; cdrom[i].letter = letter; cdromMount(i, 0); })->setCheckable(false);
+            }
+        }
+        menu->addSeparator();
+#endif // _WIN32
         cdromImagePos = menu->children().count();
         cdromDirPos   = menu->children().count();
         menu->addAction(tr("E&ject"), [this, i]() { cdromEject(i); })->setCheckable(false);
@@ -467,17 +493,24 @@ MediaMenu::cdromMount(int i, const QString &filename)
     if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '\\'))
         fn.data()[strlen(fn.data()) - 1] = '/';
 #endif
-    cdrom_image_open(&(cdrom[i]), fn.data());
+    if (cdrom[i].host)
+        cdrom_ioctl_open(&(cdrom[i]), fn.data(), cdrom[i].letter);
+    else
+        cdrom_image_open(&(cdrom[i]), fn.data());
     /* Signal media change to the emulated machine. */
     if (cdrom[i].insert)
         cdrom[i].insert(cdrom[i].priv);
-    cdrom[i].host_drive = (strlen(cdrom[i].image_path) == 0) ? 0 : 200;
-    if (cdrom[i].host_drive == 200) {
+    cdrom[i].host_drive = (strlen(cdrom[i].image_path) == 0 && !cdrom[i].letter) ? 0 : (200 + (cdrom[i].host ? 1 : 0));
+
+    pclog("HostDrive=%d, letter=%d.\n", cdrom[i].host_drive, cdrom[i].letter);
+    if (cdrom[i].host_drive >= 200) {
         ui_sb_update_icon_state(SB_CDROM | i, 0);
     } else {
         ui_sb_update_icon_state(SB_CDROM | i, 1);
     }
-    mhm.addImageToHistory(i, ui::MediaType::Optical, cdrom[i].prev_image_path, cdrom[i].image_path);
+    if (!cdrom[i].host)
+        mhm.addImageToHistory(i, ui::MediaType::Optical, cdrom[i].prev_image_path, cdrom[i].image_path);
+
     cdromUpdateMenu(i);
     ui_sb_update_tip(SB_CDROM | i);
     config_save();
@@ -489,19 +522,24 @@ MediaMenu::cdromMount(int i, int dir)
     QString   filename;
     QFileInfo fi(cdrom[i].image_path);
 
-    if (dir) {
-        filename = QFileDialog::getExistingDirectory(
-            parentWidget);
+    pclog("IsHost?=%d.\n", cdrom[i].host);
+    if (cdrom[i].host) {
+        filename = QString(cdrom[i].letter);
     } else {
-        filename = QFileDialog::getOpenFileName(
-            parentWidget,
-            QString(),
-            QString(),
-            tr("CD-ROM images") % util::DlgFilter({ "iso", "cue" }) % tr("All files") % util::DlgFilter({ "*" }, true));
-    }
+        if (dir) {
+            filename = QFileDialog::getExistingDirectory(
+                parentWidget);
+        } else {
+            filename = QFileDialog::getOpenFileName(
+                parentWidget,
+                QString(),
+                QString(),
+                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+        }
 
-    if (filename.isEmpty()) {
-        return;
+        if (filename.isEmpty()) {
+            return;
+        }
     }
 
     cdromMount(i, filename);

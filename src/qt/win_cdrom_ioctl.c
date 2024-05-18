@@ -32,107 +32,89 @@
 #include <86box/plat_unused.h>
 #include <86box/plat_cdrom.h>
 
-static const char ioctl_path[8];
-static HANDLE    hIOCTL;
-static CDROM_TOC toc;
-
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
    there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
    of the audio while audio still plays. With an absolute conversion, the counter is fine. */
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
-static int
-plat_cdrom_get_track(uint32_t sector)
-{
-    int track = 0;
-    uint32_t track_addr;
-
-    for (int i = toc.FirstTrack; i < toc.LastTrack; i++) {
-        /* There must be at least two tracks - data and lead out. */
-        track_addr = MSFtoLBA(toc.TrackData[i].Address[1], toc.TrackData[i].Address[2], toc.TrackData[i].Address[3]);
-        if (track_addr <= sector) {
-            track = i;
-        }
-    }
-
-    pclog("GetTrack = %d.\n", track);
-    return track;
-}
+static HANDLE handle;
+static char ioctl_path[8];
 
 int
-plat_cdrom_get_audio_track(uint32_t sector)
+plat_cdrom_is_track_audio(uint32_t sector)
 {
+	CDROM_TOC toc;
+	long size = 0;
+    int ret;
     int control = 0;
-    uint32_t track_addr;
+    uint32_t track_addr = 0;
 
-    for (int i = 0; toc.TrackData[i].TrackNumber != 0xaa; i++) {
-        /* There must be at least two tracks - data and lead out. */
-        track_addr = MSFtoLBA(toc.TrackData[i].Address[1], toc.TrackData[i].Address[2], toc.TrackData[i].Address[3]);
-        if ((toc.TrackData[i].TrackNumber >= toc.FirstTrack) && (toc.TrackData[i].TrackNumber <= toc.LastTrack) &&
-            (track_addr >= sector)) {
-            control = toc.TrackData[i].Control;
+    DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
+    plat_cdrom_close();
+
+    for (int c = 0; toc.TrackData[c].TrackNumber != 0xaa; c++) {
+        track_addr = MSFtoLBA(toc.TrackData[c].Address[1], toc.TrackData[c].Address[2], toc.TrackData[c].Address[3]);
+        if ((toc.TrackData[c].TrackNumber >= toc.FirstTrack) && (toc.TrackData[c].TrackNumber <= toc.LastTrack) &&
+            (track_addr >= sector))
+            control = toc.TrackData[c].Control;
             break;
-        }
     }
-
-    return (control & 4) ? DATA_TRACK : AUDIO_TRACK;
+    ret = (control & 0x04) ? 0 : 1;
+    return ret;
 }
 
 int
-plat_cdrom_get_audio_sub(uint32_t sector, uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos)
+plat_cdrom_get_last_block(void)
 {
-	CDROM_SUB_Q_DATA_FORMAT insub;
-	SUB_Q_CHANNEL_DATA sub;
-	DWORD size;
-	int pos = 0;
-    int cur_track = plat_cdrom_get_track(sector);
+	CDROM_TOC   toc;
+	int         lb = 0;
+	long        size = 0;
+	uint32_t    address = 0;
 
-    insub.Format = IOCTL_CDROM_CURRENT_POSITION;
-    if (plat_cdrom_open())
-        return 0;
-	DeviceIoControl(hIOCTL,IOCTL_CDROM_READ_Q_CHANNEL, &insub, sizeof(insub), &sub, sizeof(sub), &size, NULL);
-    plat_cdrom_exit();
+    DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
+    plat_cdrom_close();
 
-    *attr  = sub.CurrentPosition.Control;
-    *track = (uint8_t)(cur_track + 1);
-    *index = sub.CurrentPosition.IndexNumber;
-
-    FRAMES_TO_MSF(sector + 150, &abs_pos->min, &abs_pos->sec, &abs_pos->fr);
-
-    /* Absolute position should be adjusted by 150, not the relative ones. */
-    FRAMES_TO_MSF(sector - toc.FirstTrack, &rel_pos->min, &rel_pos->sec, &rel_pos->fr);
-
-    return 1;
+    for (int c = 0; c <= toc.LastTrack; c++) {
+        address = MSFtoLBA(toc.TrackData[c].Address[1], toc.TrackData[c].Address[2], toc.TrackData[c].Address[3]);
+        if (address > lb)
+            lb = address;
+    }
+    pclog("LBCapacity=%x.\n", lb);
+    return lb;
 }
 
-int
+void
 plat_cdrom_get_audio_tracks(int *st_track, int *end, TMSF *lead_out)
 {
-    CDROM_TOC toc;
-    DWORD byteCount;
+	CDROM_TOC toc;
+	long size       = 0;
 
-    *st_track = toc.FirstTrack;
-    *end      = toc.LastTrack;
-    FRAMES_TO_MSF(toc.TrackData[*end].TrackNumber + 150, &lead_out->min, &lead_out->sec, &lead_out->fr);
+    DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
+    plat_cdrom_close();
 
-    return 1;
+    *st_track       = 1;
+    *end            = toc.LastTrack;
+    lead_out->min   = toc.TrackData[toc.LastTrack].Address[1];
+    lead_out->sec   = toc.TrackData[toc.LastTrack].Address[2];
+    lead_out->fr    = toc.TrackData[toc.LastTrack].Address[3];
 }
 
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
-plat_cdrom_get_audio_track_info(int end, int track, int *track_num, TMSF *start, uint8_t *attr)
+plat_cdrom_get_audio_track_info(UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
 {
-    int pos;
-    DWORD byteCount;
+	CDROM_TOC   toc;
+	long size = 0;
 
-    pclog("plat_cdrom_get_audio_track_info(): start track = %d, last track = %d.\n", track, end);
+    DeviceIoControl(handle, IOCTL_CDROM_READ_TOC, NULL, 0, &toc, sizeof(toc), (LPDWORD)&size, NULL);
+    plat_cdrom_close();
 
-    if ((track < 1) || (track > end))
+    if ((track < 1) || (track == 0xaa) || (track > (toc.LastTrack)))
         return 0;
 
-    pos = toc.FirstTrack + 150;
-
-    FRAMES_TO_MSF(pos, &start->min, &start->sec, &start->fr);
+    start->min = toc.TrackData[track - 1].Address[1];
+    start->sec = toc.TrackData[track - 1].Address[2];
+    start->fr  = toc.TrackData[track - 1].Address[3];
 
     *track_num = toc.TrackData[track - 1].TrackNumber;
     *attr      = toc.TrackData[track - 1].Control;
@@ -140,136 +122,100 @@ plat_cdrom_get_audio_track_info(int end, int track, int *track_num, TMSF *start,
     return 1;
 }
 
-uint32_t
-plat_get_sector_size(void)
+/* TODO: See if track start is adjusted by 150 or not. */
+int
+plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos)
 {
-	DISK_GEOMETRY dgCDROM;
-    DWORD size;
+	CDROM_SUB_Q_DATA_FORMAT insub;
+	SUB_Q_CHANNEL_DATA sub;
+	long size = 0;
 
-    if (plat_cdrom_open())
+    insub.Format = IOCTL_CDROM_CURRENT_POSITION;
+
+	DeviceIoControl(handle, IOCTL_CDROM_READ_Q_CHANNEL, &insub, sizeof(insub), &sub, sizeof(sub), (LPDWORD)&size, NULL);
+    plat_cdrom_close();
+
+    if (sub.CurrentPosition.TrackNumber < 1)
         return 0;
-	DeviceIoControl(hIOCTL, IOCTL_CDROM_GET_DRIVE_GEOMETRY, NULL, 0, &dgCDROM, sizeof(DISK_GEOMETRY), &size, NULL);
-    plat_cdrom_exit();
 
-	if (dgCDROM.MediaType != 11) // Removable Media Check
-        return 0;
+    *track = sub.CurrentPosition.TrackNumber;
+    *attr = sub.CurrentPosition.Control;
+    *index = sub.CurrentPosition.IndexNumber;
 
-	return dgCDROM.BytesPerSector;
+	rel_pos->min = sub.CurrentPosition.TrackRelativeAddress[1];
+	rel_pos->sec = sub.CurrentPosition.TrackRelativeAddress[2];
+	rel_pos->fr = sub.CurrentPosition.TrackRelativeAddress[3];
+	abs_pos->min = sub.CurrentPosition.AbsoluteAddress[1];
+	abs_pos->sec = sub.CurrentPosition.AbsoluteAddress[2];
+	abs_pos->fr = sub.CurrentPosition.AbsoluteAddress[3];
+
+    return 1;
+}
+
+int
+plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
+{
+    return COOKED_SECTOR_SIZE;
 }
 
 int
 plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
 {
-    int ret;
     LARGE_INTEGER pos;
-    RAW_READ_INFO in;
-    DWORD byteCount;
-    pclog("plat_cdrom_read_sector(): raw? = %d, sector = %02x.\n", raw, sector);
+    BOOL status;
+    long size = 0;
 
-    if (raw) {
-        in.TrackMode = CDDA;
-        in.SectorCount = 1;
-        in.DiskOffset.QuadPart = sector * RAW_SECTOR_SIZE;
-        if (plat_cdrom_open())
-            return 0;
-        ret = DeviceIoControl(hIOCTL, IOCTL_CDROM_RAW_READ, &in, sizeof(RAW_READ_INFO), buffer, RAW_SECTOR_SIZE, &byteCount, NULL);
-        plat_cdrom_exit();
-        return ret;
-    } else {
-        pos.QuadPart = sector * COOKED_SECTOR_SIZE;
-        if (plat_cdrom_open())
-            return 0;
-        SetFilePointer(hIOCTL, pos.LowPart, &pos.HighPart, FILE_BEGIN);
-        ret = ReadFile(hIOCTL, buffer, COOKED_SECTOR_SIZE, &byteCount, NULL);
-        plat_cdrom_exit();
-        pclog("plat_cdrom_read_sector(): ret = %x.\n", !ret);
-        return !ret;
-    }
-    return 0;
-}
+	int	buflen = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
 
-uint32_t
-plat_cdrom_get_capacity(void)
-{
-    DWORD size;
-    int c;
-    DISK_GEOMETRY dgCDROM;
-    uint32_t totals;
+	if (!raw) {
+        pclog("Cooked.\n");
+		// Cooked
+		int success = 0;
+		DWORD newPos = SetFilePointer(handle, sector * COOKED_SECTOR_SIZE, 0, FILE_BEGIN);
+		if (newPos != 0xFFFFFFFF)
+            success = ReadFile(handle, buffer, buflen, (LPDWORD)&size, NULL);
+		status = (success != 0);
+	} else {
+	    pclog("Raw.\n");
+		// Raw
+		RAW_READ_INFO in;
+		in.DiskOffset.LowPart	= sector * COOKED_SECTOR_SIZE;
+		in.DiskOffset.HighPart	= 0;
+		in.SectorCount			= 1;
+		in.TrackMode			= CDDA;
+		status = DeviceIoControl(handle, IOCTL_CDROM_RAW_READ, &in, sizeof(in),
+								buffer, buflen, (LPDWORD)&size, NULL);
+	}
 
-    if (plat_cdrom_open())
-        return 0;
-	DeviceIoControl(hIOCTL, IOCTL_CDROM_GET_DRIVE_GEOMETRY, NULL, 0, &dgCDROM, sizeof(DISK_GEOMETRY), &size, NULL);
-    plat_cdrom_exit();
-
-    totals = dgCDROM.SectorsPerTrack * dgCDROM.TracksPerCylinder * dgCDROM.Cylinders.QuadPart;
-
-    pclog("Total = %08x.\n", totals);
-	return totals;
-}
-
-int
-plat_cdrom_load(void)
-{
-    int ret;
-    DWORD size;
-
-    if (plat_cdrom_open())
-        return 0;
-    DeviceIoControl(hIOCTL, IOCTL_STORAGE_LOAD_MEDIA, NULL, 0, NULL, 0, &size, NULL);
-    plat_cdrom_exit();
-    return 1;
-}
-
-int
-plat_cdrom_eject(void)
-{
-    int ret;
-    DWORD size;
-
-    if (plat_cdrom_open())
-        return 0;
-    ret = DeviceIoControl(hIOCTL, IOCTL_STORAGE_EJECT_MEDIA, NULL, 0, NULL, 0, &size, NULL);
-    plat_cdrom_exit();
-    return ret;
-}
-
-void
-plat_cdrom_exit(void)
-{
-    if (hIOCTL) {
-        CloseHandle(hIOCTL);
-        hIOCTL = NULL;
-    }
+    plat_cdrom_close();
+	pclog("ReadSector status=%d, sector=%d, size=%d.\n", status, sector, size);
+	return (size == buflen) && (status > 0);
 }
 
 void
 plat_cdrom_close(void)
 {
-    plat_cdrom_exit();
+    if (handle != NULL) {
+        CloseHandle(handle);
+        handle = NULL;
+    }
+}
+
+static int
+plat_cdrom_load(char *path, int letter)
+{
+    plat_cdrom_close();
+    strcpy(ioctl_path, "\\\\.\\");
+    strcat(ioctl_path, path);
+
+    /* Data track (shouldn't there be a lead in track?). */
+    handle = CreateFileW((LPCWSTR)ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    pclog("handle=%p, error=%x, drive=%s.\n", handle, GetLastError(), ioctl_path);
+    return (handle != INVALID_HANDLE_VALUE);
 }
 
 int
-plat_cdrom_reset(void)
+plat_cdrom_open(char *path, int letter)
 {
-    CDROM_TOC ltoc;
-    DWORD size;
-
-    if (plat_cdrom_open())
-        return 0;
-    DeviceIoControl(hIOCTL, IOCTL_CDROM_READ_TOC, NULL, 0, &ltoc, sizeof(ltoc), &size, NULL);
-    plat_cdrom_exit();
-
-    toc = ltoc;
-    return 1;
-}
-
-int
-plat_cdrom_open(void)
-{
-    plat_cdrom_exit();
-    hIOCTL = CreateFile((LPCWSTR)ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hIOCTL == NULL)
-        return 1;
-
-    return 0;
+    return plat_cdrom_load(path, letter);
 }

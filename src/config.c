@@ -1263,7 +1263,7 @@ load_floppy_and_cdrom_drives(void)
             path_normalize(cdrom[c].image_path);
         }
 
-        if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
+        if (cdrom[c].host_drive && (cdrom[c].host_drive != 200) && (cdrom[c].host_drive != 201))
             cdrom[c].host_drive = 0;
 
         if ((cdrom[c].host_drive == 0x200) && (strlen(cdrom[c].image_path) == 0))
@@ -2575,7 +2575,7 @@ save_floppy_and_cdrom_drives(void)
 
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].host_drive != 200))
+        if ((cdrom[c].bus_type == 0) || ((cdrom[c].host_drive != 200) && (cdrom[c].host_drive != 201)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, cdrom[c].host_drive);
