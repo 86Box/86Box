@@ -367,6 +367,7 @@ op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
 
     switch (rmdat & 0x38) {
         case 0x00: /*SGDT*/
+            ILLEGAL_ON(cpu_mod == 3);
             if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
             seteaw(gdt.limit);
@@ -389,6 +390,7 @@ op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
             PREFETCH_RUN(7, 2, rmdat, 0, 0, 1, 1, ea32);
             break;
         case 0x10: /*LGDT*/
+            ILLEGAL_ON(cpu_mod == 3);
             if ((CPL || cpu_state.eflags & VM_FLAG) && (cr0 & 1)) {
                 x86gpf(NULL, 0);
                 break;

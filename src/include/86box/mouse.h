@@ -93,6 +93,7 @@ extern void            mouse_scale_x(int x);
 extern void            mouse_scale_y(int y);
 extern void            mouse_scalef(double x, double y);
 extern void            mouse_scale(int x, int y);
+extern void            mouse_scale_axis(int axis, int val);
 extern void            mouse_set_z(int z);
 extern void            mouse_clear_z(void);
 extern void            mouse_subtract_z(int *delta_z, int min, int max, int invert);

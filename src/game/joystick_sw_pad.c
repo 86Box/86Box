@@ -64,7 +64,6 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/gameport.h>
-#include <86box/joystick_sw_pad.h>
 #include <86box/plat_unused.h>
 
 typedef struct sw_data {

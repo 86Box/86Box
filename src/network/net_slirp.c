@@ -37,6 +37,7 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/video.h>
+#include <86box/bswap.h>
 
 #define _SSIZE_T_DEFINED
 #include <slirp/libslirp.h>
@@ -75,6 +76,29 @@ typedef struct net_slirp_t {
     struct pollfd *pfd;
 #endif
 } net_slirp_t;
+
+/* Pulled off from libslirp code. This is only needed for modem. */
+#pragma pack(push, 1)
+struct arphdr_local {
+    unsigned char h_dest[6]; /* destination eth addr */
+    unsigned char h_source[6]; /* source ether addr    */
+    unsigned short h_proto; /* packet type ID field */
+
+    unsigned short ar_hrd; /* format of hardware address */
+    unsigned short ar_pro; /* format of protocol address */
+    unsigned char ar_hln; /* length of hardware address */
+    unsigned char ar_pln; /* length of protocol address */
+    unsigned short ar_op; /* ARP opcode (command)       */
+
+    /*
+     *  Ethernet looks like this : This bit is variable sized however...
+     */
+    uint8_t ar_sha[6]; /* sender hardware address */
+    uint32_t ar_sip; /* sender IP address       */
+    uint8_t ar_tha[6]; /* target hardware address */
+    uint32_t ar_tip; /* target IP address       */
+};
+#pragma pack(pop)
 
 #ifdef ENABLE_SLIRP_LOG
 int slirp_do_log = ENABLE_SLIRP_LOG;
@@ -455,6 +479,32 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
 #ifdef _WIN32
     slirp->sock_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
+
+    if (!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem")) {
+        /* Send a gratuitous ARP here to make SLiRP work properly with SLIP connections. */
+        struct arphdr_local arphdr;
+        /* ARP part. */
+        arphdr.ar_hrd      = bswap16(1);
+        arphdr.ar_pro      = bswap16(0x0800);
+        arphdr.ar_hln      = 6;
+        arphdr.ar_pln      = 4;
+        arphdr.ar_op       = bswap16(1);
+        memcpy(&arphdr.ar_sha, mac_addr, 6);
+        memcpy(&arphdr.ar_tha, mac_addr, 6);
+        arphdr.ar_sip      = dhcp.s_addr;
+        arphdr.ar_tip      = dhcp.s_addr;
+
+        /* Ethernet header part. */
+        arphdr.h_proto     = bswap16(0x0806);
+        memset(arphdr.h_dest, 0xff, 6);
+        memset(arphdr.h_source, 0x52, 6);
+        arphdr.h_source[2] = 0x0a;
+        arphdr.h_source[3] = 0x00;
+        arphdr.h_source[4] = slirp_card_num;
+        arphdr.h_source[5] = 2;
+        slirp_input(slirp->slirp, (const uint8_t *)&arphdr, sizeof(struct arphdr_local));
+    }
+
     slirp_log("SLiRP: creating thread...\n");
     slirp->poll_tid = thread_create(net_slirp_thread, slirp);
 

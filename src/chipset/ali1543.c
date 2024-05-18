@@ -197,6 +197,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x44: /* Set IRQ Line for Primary IDE if it's on native mode */
             dev->pci_conf[addr] = val & 0xdf;
             soft_reset_pci      = !!(val & 0x80);
+            pci_set_mirq_level(PCI_MIRQ0, !(val & 0x10));
             pci_set_mirq_level(PCI_MIRQ2, !(val & 0x10));
             ali1543_log("INTAJ = IRQ %i\n", ali1533_irq_routing[val & 0x0f]);
             pci_set_mirq_routing(PCI_MIRQ0, ali1533_irq_routing[val & 0x0f]);
@@ -417,6 +418,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x75: /* Set IRQ Line for Secondary IDE if it's on native mode */
             dev->pci_conf[addr] = val & 0x1f;
+            pci_set_mirq_level(PCI_MIRQ1, !(val & 0x10));
             pci_set_mirq_level(PCI_MIRQ3, !(val & 0x10));
             ali1543_log("INTBJ = IRQ %i\n", ali1533_irq_routing[val & 0x0f]);
             pci_set_mirq_routing(PCI_MIRQ1, ali1533_irq_routing[val & 0x0f]);
@@ -489,12 +491,10 @@ static void
 ali5229_ide_irq_handler(ali1543_t *dev)
 {
     int ctl = 0;
-    int ch = 0;
     int bit = 0;
 
     if (dev->ide_conf[0x52] & 0x10) {
         ctl ^= 1;
-        ch ^= 1;
         bit ^= 5;
     }
 
@@ -706,7 +706,7 @@ ali5229_chip_reset(ali1543_t *dev)
     ali5229_write(0, 0x09, 0xfa, dev);
     ali5229_write(0, 0x52, 0x00, dev);
 
-    ali5229_write(0, 0x50, 0x00, dev);
+    ali5229_write(0, 0x50, 0x02, dev);
 
     sff_set_slot(dev->ide_controller[0], dev->ide_slot);
     sff_set_slot(dev->ide_controller[1], dev->ide_slot);
@@ -719,7 +719,7 @@ static void
 ali5229_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
-    ali1543_log("M5229: dev->ide_conf[%02x] = %02x\n", addr, val);
+    ali1543_log("M5229: [W] dev->ide_conf[%02x] = %02x\n", addr, val);
 
     if (func > 0)
         return;
@@ -758,6 +758,10 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
             ali5229_ide_irq_handler(dev);
             break;
 
+        case 0x0d: /* LT - Latency Timer */
+            dev->ide_conf[addr] = val;
+            break;
+
         /* Primary Base Address */
         case 0x10:
         case 0x11:
@@ -778,9 +782,9 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
             /* Datasheet erratum: the PCI BAR's actually have different sizes. */
             if (addr == 0x20)
                 dev->ide_conf[addr] = (val & 0xe0) | 0x01;
-            else if ((addr & 0x43) == 0x00)
+            else if ((addr & 0x07) == 0x00)
                 dev->ide_conf[addr] = (val & 0xf8) | 0x01;
-            else if ((addr & 0x43) == 0x40)
+            else if ((addr & 0x07) == 0x04)
                 dev->ide_conf[addr] = (val & 0xfc) | 0x01;
             else
                 dev->ide_conf[addr] = val;
@@ -889,13 +893,15 @@ ali5229_read(int func, int addr, void *priv)
     if (dev->ide_dev_enable && (func == 0)) {
         ret = dev->ide_conf[addr];
         if ((addr == 0x09) && !(dev->ide_conf[0x50] & 0x02))
-            ret &= 0x0f;
+            ret = (ret & 0x0f) | 0x80;
         else if (addr == 0x50)
             ret = (ret & 0xfe) | (dev->ide_dev_enable ? 0x01 : 0x00);
         else if (addr == 0x75)
             ret = ide_read_ali_75();
         else if (addr == 0x76)
             ret = ide_read_ali_76();
+
+        ali1543_log("M5229: [R] dev->ide_conf[%02x] = %02x\n", addr, ret);
     }
 
     return ret;
@@ -984,7 +990,7 @@ static void
 ali7101_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
-    ali1543_log("M7101: dev->pmu_conf[%02x] = %02x\n", addr, val);
+    ali1543_log("M7101: [W] dev->pmu_conf[%02x] = %02x\n", addr, val);
 
     if (func > 0)
         return;
@@ -1408,64 +1414,77 @@ ali7101_read(int func, int addr, void *priv)
     uint8_t    ret = 0xff;
 
     if (dev->pmu_dev_enable && (func == 0)) {
-        if ((dev->pmu_conf[0xc9] & 0x01) && (addr >= 0x40) && (addr != 0xc9))
-            return 0xff;
-
-        /* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
-        switch (addr) {
-            default:
-                ret = dev->pmu_conf[addr];
-                break;
-            case 0x42:
-                ret = (dev->pmu_conf[addr] & 0xf7) | (nvr_smi_status(dev->nvr) ? 0x08 : 0x00);
-                break;
-            case 0x43:
-                ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
-                break;
-            case 0x7f:
-                ret = 0x80;
-                break;
-            case 0xbc:
-                ret = inb(0x70);
-                break;
-        }
-
-        if (dev->pmu_conf[0x77] & 0x10) {
+        if (!(dev->pmu_conf[0xc9] & 0x01) || (addr < 0x40) || (addr == 0xc9)) {
+            /* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
             switch (addr) {
+                default:
+                    ret = dev->pmu_conf[addr];
+                    break;
+                case 0x10 ... 0x13:
+                    if (dev->pmu_conf[0x5b] & 0x02)
+                        ret = 0x00;
+                    else
+                        ret = dev->pmu_conf[addr];
+                    break;
+                case 0x14 ... 0x17:
+                    if (dev->pmu_conf[0x5b] & 0x04)
+                        ret = 0x00;
+                    else
+                        ret = dev->pmu_conf[addr];
+                    break;
                 case 0x42:
-                    dev->pmu_conf[addr] &= 0xe0;
+                    ret = (dev->pmu_conf[addr] & 0xf7) | (nvr_smi_status(dev->nvr) ? 0x08 : 0x00);
                     break;
                 case 0x43:
-                    dev->pmu_conf[addr] &= 0xef;
-                    acpi_ali_soft_smi_status_write(dev->acpi, 0);
+                    ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
                     break;
+                case 0x7f:
+                    ret = 0x80;
+                    break;
+                case 0xbc:
+                    ret = inb(0x70);
+                    break;
+            }
 
-                case 0x48:
-                    dev->pmu_conf[addr] = 0x00;
-                    break;
-                case 0x49:
-                    dev->pmu_conf[addr] &= 0x60;
-                    break;
-                case 0x4a:
-                    dev->pmu_conf[addr] &= 0xc7;
-                    break;
+            if (dev->pmu_conf[0x77] & 0x10) {
+                switch (addr) {
+                    case 0x42:
+                        dev->pmu_conf[addr] &= 0xe0;
+                        break;
+                    case 0x43:
+                        dev->pmu_conf[addr] &= 0xef;
+                        acpi_ali_soft_smi_status_write(dev->acpi, 0);
+                        break;
 
-                case 0x4e:
-                    dev->pmu_conf[addr] &= 0xfa;
-                    break;
-                case 0x4f:
-                    dev->pmu_conf[addr] &= 0xfe;
-                    break;
+                    case 0x48:
+                        dev->pmu_conf[addr] = 0x00;
+                        break;
+                    case 0x49:
+                        dev->pmu_conf[addr] &= 0x60;
+                        break;
+                    case 0x4a:
+                        dev->pmu_conf[addr] &= 0xc7;
+                        break;
 
-                case 0x74:
-                    dev->pmu_conf[addr] &= 0xcc;
-                    break;
+                    case 0x4e:
+                        dev->pmu_conf[addr] &= 0xfa;
+                        break;
+                    case 0x4f:
+                        dev->pmu_conf[addr] &= 0xfe;
+                        break;
 
-                default:
-                    break;
+                    case 0x74:
+                        dev->pmu_conf[addr] &= 0xcc;
+                        break;
+
+                    default:
+                        break;
+                }
             }
         }
     }
+
+    ali1543_log("M7101: [R] dev->pmu_conf[%02x] = %02x\n", addr, ret);
 
     return ret;
 }

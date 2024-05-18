@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
@@ -42,6 +43,7 @@ static int      dma_wp[2];
 static uint8_t  dma_stat;
 static uint8_t  dma_stat_rq;
 static uint8_t  dma_stat_rq_pc;
+static uint8_t  dma_stat_adv_pend;
 static uint8_t  dma_command[2];
 static uint8_t  dma_req_is_soft;
 static uint8_t  dma_advanced;
@@ -457,6 +459,7 @@ dma_read(uint16_t addr, UNUSED(void *priv))
 {
     int     channel = (addr >> 1) & 3;
     uint8_t temp;
+    int count;
 
     switch (addr & 0xf) {
         case 0:
@@ -473,10 +476,13 @@ dma_read(uint16_t addr, UNUSED(void *priv))
         case 5:
         case 7: /*Count registers*/
             dma_wp[0] ^= 1;
+            count = dma[channel].cc/* + 1*/;
+            // if (count > dma[channel].cb)
+                // count = 0x0000;
             if (dma_wp[0])
-                temp = dma[channel].cc & 0xff;
+                temp = count & 0xff;
             else
-                temp = dma[channel].cc >> 8;
+                temp = count >> 8;
             return temp;
 
         case 8: /*Status register*/
@@ -529,8 +535,10 @@ dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 
         case 8: /*Control register*/
             dma_command[0] = val;
+#ifdef ENABLE_DMA_LOG
             if (val & 0x01)
                 pclog("[%08X:%04X] Memory-to-memory enable\n", CS, cpu_state.pc);
+#endif
             return;
 
         case 9: /*Request register */
@@ -538,7 +546,9 @@ dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
             if (val & 4) {
                 dma_stat_rq_pc |= (1 << channel);
                 if ((channel == 0) && (dma_command[0] & 0x01)) {
+#ifdef ENABLE_DMA_LOG
                     pclog("Memory to memory transfer start\n");
+#endif
                     dma_mem_to_mem_transfer();
                 } else
                     dma_block_transfer(channel);
@@ -767,9 +777,16 @@ static uint8_t
 dma16_read(uint16_t addr, UNUSED(void *priv))
 {
     int     channel = ((addr >> 2) & 3) + 4;
-    uint8_t temp;
+#ifdef ENABLE_DMA_LOG
+    uint16_t port = addr;
+#endif
+    uint8_t ret;
+    int count;
 
     addr >>= 1;
+
+    ret = dmaregs[1][addr & 0xf];
+
     switch (addr & 0xf) {
         case 0:
         case 2:
@@ -778,41 +795,53 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
             dma_wp[1] ^= 1;
             if (dma_ps2.is_ps2) {
                 if (dma_wp[1])
-                    return (dma[channel].ac);
-                return ((dma[channel].ac >> 8) & 0xff);
-            }
-            if (dma_wp[1])
-                return ((dma[channel].ac >> 1) & 0xff);
-            return ((dma[channel].ac >> 9) & 0xff);
+                    ret = (dma[channel].ac);
+                else
+                    ret = ((dma[channel].ac >> 8) & 0xff);
+            } else if (dma_wp[1])
+                ret = ((dma[channel].ac >> 1) & 0xff);
+            else
+                ret = ((dma[channel].ac >> 9) & 0xff);
+            break;
 
         case 1:
         case 3:
         case 5:
         case 7: /*Count registers*/
             dma_wp[1] ^= 1;
+            count = dma[channel].cc/* + 1*/;
+            // if (count > dma[channel].cb)
+                // count = 0x0000;
             if (dma_wp[1])
-                temp = dma[channel].cc & 0xff;
+                ret = count & 0xff;
             else
-                temp = dma[channel].cc >> 8;
-            return temp;
+                ret = count >> 8;
+            break;
 
         case 8: /*Status register*/
-            temp = (dma_stat_rq_pc & 0xf0);
-            temp |= dma_stat >> 4;
+            ret = (dma_stat_rq_pc & 0xf0);
+            ret |= dma_stat >> 4;
             dma_stat &= ~0xf0;
-            return temp;
+            break;
 
         default:
             break;
     }
 
-    return (dmaregs[1][addr & 0xf]);
+#ifdef ENABLE_DMA_LOG
+    pclog("dma16_read(%08X) = %02X\n", port, ret);
+#endif
+
+    return ret;
 }
 
 static void
 dma16_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     int channel = ((addr >> 2) & 3) + 4;
+#ifdef ENABLE_DMA_LOG
+    pclog("dma16_write(%08X, %02X)\n", addr, val);
+#endif
     addr >>= 1;
 
     dmaregs[1][addr & 0xf] = val;
@@ -949,16 +978,47 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
     uint8_t convert[8] = CHANNELS;
     uint8_t ret        = 0xff;
 
-    addr &= 0x0f;
-    ret = dmaregs[2][addr];
+    if (((addr & 0xfffc) == 0x80) && (CS == 0xf000) &&
+        ((cpu_state.pc & 0xfffffff8) == 0x00007278) &&
+        !strcmp(machine_get_internal_name(), "megapc"))  switch (addr) {
+        /* The Amstrad MegaPC Quadtel BIOS times a sequence of:
+               mov ax,di
+               div bx
+           And expects this value to be at least 0x06e0 for 20 MHz,
+           and at least 0x0898 for 25 MHz, everything below 0x06e0
+           is assumed to be 16 MHz. Given that for some reason, this
+           does not occur on 86Box, we have to work around it here,
+           we return 0x0580 for 16 MHz, because it logically follows
+           in the sequence (0x06e0 = 0x0898 * (20 / 25), and
+           0x0580 = 0x06e0 * (16 / 20)). */
+        case 0x0081:
+            if (cpu_busspeed >= 25000000)
+                ret = 0x98;
+            else if (cpu_busspeed >= 20000000)
+                ret = 0xe0;
+            else
+                ret = 0x80;
+            break;
+        case 0x0082:
+            if (cpu_busspeed >= 25000000)
+                ret = 0x08;
+            else if (cpu_busspeed >= 20000000)
+                ret = 0x06;
+            else
+                ret = 0x05;
+            break;
+    } else {
+        addr &= 0x0f;
+        ret = dmaregs[2][addr];
 
-    if (addr >= 8)
-        addr = convert[addr & 0x07] | 4;
-    else
-        addr = convert[addr & 0x07];
+        if (addr >= 8)
+            addr = convert[addr & 0x07] | 4;
+        else
+            addr = convert[addr & 0x07];
 
-    if (addr < 8)
-        ret = dma[addr].page_l;
+        if (addr < 8)
+            ret = dma[addr].page_l;
+    }
 
     return ret;
 }
@@ -1045,11 +1105,12 @@ dma_reset(void)
         dma[c].transfer_mode = (c & 4) ? 0x0202 : 0x0101;
     }
 
-    dma_stat        = 0x00;
-    dma_stat_rq     = 0x00;
-    dma_stat_rq_pc  = 0x00;
-    dma_req_is_soft = 0;
-    dma_advanced    = 0;
+    dma_stat          = 0x00;
+    dma_stat_rq       = 0x00;
+    dma_stat_rq_pc    = 0x00;
+    dma_stat_adv_pend = 0x00;
+    dma_req_is_soft   = 0;
+    dma_advanced      = 0;
 
     memset(dma_buffer, 0x00, sizeof(dma_buffer));
     memset(dma16_buffer, 0x00, sizeof(dma16_buffer));
@@ -1367,6 +1428,136 @@ dma_advance(dma_t *dma_c)
 }
 
 int
+dma_channel_readable(int channel)
+{
+    dma_t   *dma_c = &dma[channel];
+    int      ret = 1;
+
+    if (channel < 4) {
+        if (dma_command[0] & 0x04)
+            ret = 0;
+    } else {
+        if (dma_command[1] & 0x04)
+            ret = 0;
+    }
+
+    if (!(dma_e & (1 << channel)))
+        ret = 0;
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
+        ret = 0;
+    if ((dma_c->mode & 0xC) != 8)
+        ret = 0;
+
+    return ret;
+}
+
+int
+dma_channel_read_only(int channel)
+{
+    dma_t   *dma_c = &dma[channel];
+    uint16_t temp;
+
+    if (channel < 4) {
+        if (dma_command[0] & 0x04)
+            return (DMA_NODATA);
+    } else {
+        if (dma_command[1] & 0x04)
+            return (DMA_NODATA);
+    }
+
+    if (!(dma_e & (1 << channel)))
+        return (DMA_NODATA);
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
+        return (DMA_NODATA);
+    if ((dma_c->mode & 0xC) != 8)
+        return (DMA_NODATA);
+
+    dma_channel_advance(channel);
+
+    if (!dma_at && !channel)
+        refreshread();
+
+    if (!dma_c->size) {
+        temp = _dma_read(dma_c->ac, dma_c);
+
+        if (dma_c->mode & 0x20) {
+            if (dma_ps2.is_ps2)
+                dma_c->ac--;
+            else if (dma_advanced)
+                dma_retreat(dma_c);
+            else
+                dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac - 1) & 0xffff);
+        } else {
+            if (dma_ps2.is_ps2)
+                dma_c->ac++;
+            else if (dma_advanced)
+                dma_advance(dma_c);
+            else
+                dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac + 1) & 0xffff);
+        }
+    } else {
+        temp = _dma_readw(dma_c->ac, dma_c);
+
+        if (dma_c->mode & 0x20) {
+            if (dma_ps2.is_ps2)
+                dma_c->ac -= 2;
+            else if (dma_advanced)
+                dma_retreat(dma_c);
+            else
+                dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac - 2) & 0x1ffff);
+        } else {
+            if (dma_ps2.is_ps2)
+                dma_c->ac += 2;
+            else if (dma_advanced)
+                dma_advance(dma_c);
+            else
+                dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
+        }
+    }
+
+    dma_stat_rq |= (1 << channel);
+
+    dma_stat_adv_pend |= (1 << channel);
+
+    return temp;
+}
+
+int
+dma_channel_advance(int channel)
+{
+    dma_t   *dma_c = &dma[channel];
+    int      tc = 0;
+
+    if (dma_stat_adv_pend & (1 << channel)) {
+        dma_c->cc--;
+        if (dma_c->cc < 0) {
+            if (dma_advanced && (dma_c->sg_status & 1) && !(dma_c->sg_status & 6))
+                dma_sg_next_addr(dma_c);
+            else {
+                tc = 1;
+                if (dma_c->mode & 0x10) { /*Auto-init*/
+                    dma_c->cc = dma_c->cb;
+                    dma_c->ac = dma_c->ab;
+                } else
+                    dma_m |= (1 << channel);
+                dma_stat |= (1 << channel);
+            }
+        }
+
+        if (tc) {
+            if (dma_advanced && (dma_c->sg_status & 1) && ((dma_c->sg_command & 0xc0) == 0x40)) {
+                picint(1 << 13);
+                dma_c->sg_status |= 8;
+            }
+        }
+
+        dma_stat_adv_pend &= ~(1 << channel);
+    }
+
+    return tc;
+}
+
+int
 dma_channel_read(int channel)
 {
     dma_t   *dma_c = &dma[channel];
@@ -1387,6 +1578,9 @@ dma_channel_read(int channel)
         return (DMA_NODATA);
     if ((dma_c->mode & 0xC) != 8)
         return (DMA_NODATA);
+
+    if (dma_stat_adv_pend & (1 << channel))
+        dma_channel_advance(channel);
 
     if (!dma_at && !channel)
         refreshread();
@@ -1518,6 +1712,8 @@ dma_channel_write(int channel, uint16_t val)
     }
 
     dma_stat_rq |= (1 << channel);
+
+    dma_stat_adv_pend &= ~(1 << channel);
 
     dma_c->cc--;
     if (dma_c->cc < 0) {

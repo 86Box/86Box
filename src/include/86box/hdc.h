@@ -60,6 +60,9 @@ extern const device_t ide_vlb_2ch_device;     /* vlb_ide_2ch */
 extern const device_t ide_pci_device;         /* pci_ide */
 extern const device_t ide_pci_2ch_device;     /* pci_ide_2ch */
 
+extern const device_t ide_ali1489_device;                       /* ALi M1489 */
+extern const device_t ide_ali5213_device;                       /* ALi M5213 */
+
 extern const device_t ide_cmd640_vlb_device;                    /* CMD PCI-640B VLB */
 extern const device_t ide_cmd640_vlb_178_device;                /* CMD PCI-640B VLB (Port 178h) */
 extern const device_t ide_cmd640_vlb_pri_device;                /* CMD PCI-640B VLB (Only primary channel) */
@@ -74,23 +77,34 @@ extern const device_t ide_cmd646_device;                        /* CMD PCI-646 *
 extern const device_t ide_cmd646_legacy_only_device;            /* CMD PCI-646 (Legacy Mode Only) */
 extern const device_t ide_cmd646_single_channel_device;         /* CMD PCI-646 (Only primary channel) */
 
-extern const device_t ide_opti611_vlb_device;     /* OPTi 82c611/611A VLB */
-extern const device_t ide_opti611_vlb_sec_device; /* OPTi 82c611/611A VLB (Secondary channel) */
+extern const device_t ide_opti611_vlb_device;                   /* OPTi 82c611/611A VLB */
+extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/611A VLB (Secondary channel) */
+
+extern const device_t ide_um8673f_device;                       /* UMC UM8673F */
+extern const device_t ide_um8886af_device;                      /* UMC UM8886AF */
+
+extern const device_t ide_w83769f_vlb_device;                   /* Winbond W83769F VLB */
+extern const device_t ide_w83769f_vlb_34_device;                /* Winbond W83769F VLB (Port 34h) */
+extern const device_t ide_w83769f_pci_device;                   /* Winbond W83769F PCI */
+extern const device_t ide_w83769f_pci_34_device;                /* Winbond W83769F PCI (Port 34h) */
 
 extern const device_t ide_ter_device;
 extern const device_t ide_ter_pnp_device;
 extern const device_t ide_qua_device;
 extern const device_t ide_qua_pnp_device;
 
+extern const device_t mcide_device;
+
 extern const device_t xta_wdxt150_device; /* xta_wdxt150 */
 extern const device_t xta_hd20_device;    /* EuroPC internal */
 
 extern const device_t xtide_device;           /* xtide_xt */
-extern const device_t xtide_plus_device;      /* xtide_xt_plus */
 extern const device_t xtide_at_device;        /* xtide_at */
-extern const device_t xtide_at_386_device;    /* xtide_at_386 */
 extern const device_t xtide_acculogic_device; /* xtide_ps2 */
 extern const device_t xtide_at_ps2_device;    /* xtide_at_ps2 */
+
+/* Miscellaneous */
+extern const device_t lba_enhancer_device;
 
 extern void hdc_init(void);
 extern void hdc_reset(void);

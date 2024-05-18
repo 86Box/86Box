@@ -1054,7 +1054,7 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     }
 
     mca_init(slots);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_mca_1_device);
 
     if (has_sec_nvram)
         device_add(&ps2_nvr_55ls_device);
@@ -1228,7 +1228,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_mca_1_device);
 
     ps2.planar_read  = model_70_type3_read;
     ps2.planar_write = model_70_type3_write;
@@ -1321,7 +1321,7 @@ ps2_mca_board_model_80_type2_init(void)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(8);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_mca_1_device);
 
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;

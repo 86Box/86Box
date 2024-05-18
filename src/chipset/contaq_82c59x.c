@@ -311,8 +311,10 @@ contaq_82c59x_close(void *priv)
 {
     contaq_82c59x_t *dev = (contaq_82c59x_t *) priv;
 
-    smram_del(dev->smram[1]);
-    smram_del(dev->smram[0]);
+    if (dev->green) {
+        smram_del(dev->smram[1]);
+        smram_del(dev->smram[0]);
+    }
 
     free(dev);
 }

@@ -263,6 +263,8 @@ nmc93cxx_eeprom_close(void *priv)
 uint16_t *
 nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *eeprom)
 {
+    if (UNLIKELY(!eeprom))
+        return NULL;
     /* Get EEPROM data array. */
     return &eeprom->dev.data[0];
 }

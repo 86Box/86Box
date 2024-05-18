@@ -37,14 +37,14 @@
      </item>
      <item>
       <widget class="QComboBox" name="comboBoxRTC">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="maxVisibleItems">
+        <number>30</number>
        </property>
       </widget>
      </item>
@@ -72,14 +72,14 @@
       </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="comboBoxCard2">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>
@@ -113,14 +113,14 @@
       </item>
       <item row="0" column="1">
        <widget class="QComboBox" name="comboBoxCard1">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>
@@ -133,27 +133,27 @@
       </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="comboBoxCard3">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
        </widget>
       </item>
       <item row="3" column="1">
        <widget class="QComboBox" name="comboBoxCard4">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>
@@ -187,6 +187,64 @@
       <widget class="QCheckBox" name="checkBoxPOSTCard">
        <property name="text">
         <string>POST card</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QCheckBox" name="checkBoxUnitTester">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>86Box Unit Tester</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonConfigureUT">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QCheckBox" name="checkBoxKeyCard">
+       <property name="text">
+        <string>Novell NetWare 2.x Key Card</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonConfigureKeyCard">
+       <property name="text">
+        <string>Configure</string>
        </property>
       </widget>
      </item>

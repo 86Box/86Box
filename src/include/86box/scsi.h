@@ -22,12 +22,14 @@
 #define EMU_SCSI_H
 
 /* Configuration. */
-#define SCSI_BUS_MAX 4 /* currently we support up to 4 controllers */
+#define SCSI_CARD_MAX 4
+#define SCSI_BUS_MAX  9 /* currently we support up to 9 controllers:
+                           up to 1 on-board + up to 4x pas plus/16 + up to 4 scsi controllers */
 
-#define SCSI_ID_MAX  16 /* 16 on wide buses */
-#define SCSI_LUN_MAX 8  /* always 8 */
+#define SCSI_ID_MAX   16 /* 16 on wide buses */
+#define SCSI_LUN_MAX  8  /* always 8 */
 
-extern int scsi_card_current[SCSI_BUS_MAX];
+extern int scsi_card_current[SCSI_CARD_MAX];
 
 extern int scsi_card_available(int card);
 #ifdef EMU_DEVICE_H

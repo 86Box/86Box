@@ -14,9 +14,10 @@
  *
  *          Copyright 2023 RichardG.
  */
+#include <inttypes.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -413,8 +414,10 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
         case 0x23:
             val &= (1 << dev->gpio_ldn) - 1;
             dev->global_regs[reg & 0x0f] = val;
+#ifdef ENABLE_IT86X1F_LOG
             if (val)
-                pclog("IT86x1F: Warning: ISAPnP mode enabled.\n");
+                it86x1f_log("IT86x1F: Warning: ISAPnP mode enabled.\n");
+#endif
             break;
 
         case 0x24:
@@ -805,10 +808,10 @@ it86x1f_init(UNUSED(const device_t *info))
             break;
     }
     if (i >= (sizeof(it86x1f_models) / sizeof(it86x1f_models[0]))) {
-        fatal("IT86x1F: Unknown type %04X selected\n", info->local);
+        fatal("IT86x1F: Unknown type %04" PRIXPTR " selected\n", info->local);
         return NULL;
     }
-    it86x1f_log("IT86x1F: init(%04X)\n", info->local);
+    it86x1f_log("IT86x1F: init(%04" PRIXPTR ")\n", info->local);
 
     /* Let the resource data parser figure out the ROM size. */
     dev->pnp_card = isapnp_add_card(it86x1f_models[i].pnp_rom, -1, it86x1f_models[i].pnp_config_changed, NULL, it86x1f_pnp_read_vendor_reg, it86x1f_pnp_write_vendor_reg, dev);

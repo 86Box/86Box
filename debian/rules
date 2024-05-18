@@ -25,7 +25,10 @@ endif
 	dh $@ --buildsystem cmake+ninja
 
 override_dh_auto_configure:
-	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR)
+	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR) -B .
+
+override_dh_auto_build:
+	dh_auto_build --buildsystem cmake+ninja
 
 override_dh_auto_test:
 

@@ -131,6 +131,9 @@ static char flash_path[1024];
 #define W29C020     0x4500
 #define W29C040     0x4600
 
+#define AMD         0x01 /* AMD Manufacturer's ID */
+#define AMD29F020A  0xb000
+
 #define SIZE_512K   0x010000
 #define SIZE_1M     0x020000
 #define SIZE_2M     0x040000
@@ -144,12 +147,32 @@ sst_sector_erase(sst_t *dev, uint32_t addr)
 {
     uint32_t base = addr & (dev->mask & ~0xfff);
 
-    if ((base < 0x2000) && (dev->bbp_first_8k & 0x01))
-        return;
-    else if ((base >= (dev->size - 0x2000)) && (dev->bbp_last_8k & 0x01))
-        return;
+    if (dev->manufacturer == AMD) {
+        base = addr & biosmask;
 
-    memset(&dev->array[base], 0xff, 4096);
+        if ((base >= 0x00000) && (base <= 0x0ffff))
+            memset(&dev->array[0x00000], 0xff, 65536);
+        else if ((base >= 0x10000) && (base <= 0x1ffff))
+            memset(&dev->array[0x10000], 0xff, 65536);
+        else if ((base >= 0x20000) && (base <= 0x2ffff))
+            memset(&dev->array[0x20000], 0xff, 65536);
+        else if ((base >= 0x30000) && (base <= 0x37fff))
+            memset(&dev->array[0x30000], 0xff, 32768);
+        else if ((base >= 0x38000) && (base <= 0x39fff))
+            memset(&dev->array[0x38000], 0xff, 8192);
+        else if ((base >= 0x3a000) && (base <= 0x3bfff))
+            memset(&dev->array[0x3a000], 0xff, 8192);
+        else if ((base >= 0x3c000) && (base <= 0x3ffff))
+            memset(&dev->array[0x3c000], 0xff, 16384);
+    } else {
+        if ((base < 0x2000) && (dev->bbp_first_8k & 0x01))
+            return;
+        else if ((base >= (dev->size - 0x2000)) && (dev->bbp_last_8k & 0x01))
+            return;
+
+        memset(&dev->array[base], 0xff, 4096);
+    }
+
     dev->dirty = 1;
 }
 
@@ -262,10 +285,14 @@ sst_read_id(uint32_t addr, void *priv)
 {
     const sst_t  *dev = (sst_t *) priv;
     uint8_t       ret = 0x00;
+    uint32_t      mask = 0xffff;
 
-    if ((addr & 0xffff) == 0)
+    if (dev->manufacturer == AMD)
+        mask >>= 8;
+
+    if ((addr & mask) == 0)
         ret = dev->manufacturer;
-    else if ((addr & 0xffff) == 1)
+    else if ((addr & mask) == 1)
         ret = dev->id;
 #ifdef UNKNOWN_FLASH
     else if ((addr & 0xffff) == 0x100)
@@ -278,6 +305,9 @@ sst_read_id(uint32_t addr, void *priv)
             ret = dev->bbp_first_8k;
         else if (addr == 0x3fff2)
             ret = dev->bbp_last_8k;
+    } else if (dev->manufacturer == AMD) {
+        if ((addr & mask) == 2)
+            ret = 0x00;
     }
 
     return ret;
@@ -300,6 +330,15 @@ static void
 sst_write(uint32_t addr, uint8_t val, void *priv)
 {
     sst_t *dev = (sst_t *) priv;
+    uint32_t mask = 0x7fff;
+    uint32_t addr0 = 0x5555;
+    uint32_t addr1 = 0x2aaa;
+
+    if (dev->manufacturer == AMD) {
+        mask >>= 4;
+        addr0 >>= 4;
+        addr1 >>= 4;
+    }
 
     switch (dev->command_state) {
         case 0:
@@ -309,7 +348,7 @@ sst_write(uint32_t addr, uint8_t val, void *priv)
                 if (dev->id_mode)
                     dev->id_mode = 0;
                 dev->command_state = 0;
-            } else if (((addr & 0x7fff) == 0x5555) && (val == 0xaa))
+            } else if (((addr & mask) == addr0) && (val == 0xaa))
                 dev->command_state++;
             else {
                 if (!dev->is_39 && !dev->sdp && (dev->command_state == 0)) {
@@ -326,7 +365,7 @@ sst_write(uint32_t addr, uint8_t val, void *priv)
         case 1:
         case 4:
             /* 2nd and 5th Bus Write Cycle */
-            if (((addr & 0x7fff) == 0x2aaa) && (val == 0x55))
+            if (((addr & mask) == addr1) && (val == 0x55))
                 dev->command_state++;
             else
                 dev->command_state = 0;
@@ -337,7 +376,7 @@ sst_write(uint32_t addr, uint8_t val, void *priv)
             if ((dev->command_state == 5) && (val == SST_SECTOR_ERASE)) {
                 /* Sector erase - can be on any address. */
                 sst_new_command(dev, addr, val);
-            } else if ((addr & 0x7fff) == 0x5555)
+            } else if ((addr & mask) == addr0)
                 sst_new_command(dev, addr, val);
             else
                 dev->command_state = 0;
@@ -481,6 +520,8 @@ sst_init(const device_t *info)
     dev->id           = (info->local >> 8) & 0xff;
     dev->has_bbp      = (dev->manufacturer == WINBOND) && ((info->local & 0xff00) >= W29C020);
     dev->is_39        = (dev->manufacturer == SST) && ((info->local & 0xff00) >= SST39SF512);
+    if (dev->manufacturer == AMD)
+        dev->is_39    = 1;
 
     dev->size = info->local & 0xffff0000;
     if ((dev->size == 0x20000) && (strstr(machine_get_internal_name_ex(machine), "xi8088")) && !xi8088_bios_128kb())
@@ -933,6 +974,20 @@ const device_t sst_flash_49lf160_device = {
     .internal_name = "sst_flash_49lf160",
     .flags         = 0,
     .local         = SST | SST49LF160 | SIZE_16M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t amd_flash_29f020a_device = {
+    .name          = "AMD 29F020a Flash BIOS",
+    .internal_name = "amd_flash_29f020a",
+    .flags         = 0,
+    .local         = AMD | AMD29F020A | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
     .reset         = NULL,

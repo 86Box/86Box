@@ -159,8 +159,8 @@ typedef struct hard_disk_t {
     char fn[1024];         /* Name of current image file */
     char vhd_parent[1041]; /* Differential VHD parent file */
 
-    uint32_t res0;
-    uint32_t pad1;
+    uint32_t seek_pos;
+    uint32_t seek_len;
     uint32_t base;
     uint32_t spt;
     uint32_t hpc; /* Physical geometry parameters */

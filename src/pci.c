@@ -424,6 +424,9 @@ pci_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             }
             break;
         case 0xcf9:
+            if (pci_flags & FLAG_TRC_CONTROLS_CPURST)
+                cpu_cpurst_on_sr = !(val & 0x10);
+
             if (!(pci_trc_reg & 4) && (val & 4))
                 pci_trc_reset(val);
 
@@ -764,7 +767,7 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv),
     if (next_pci_card < PCI_CARDS_NUM) {
         dev = &pci_card_descs[next_pci_card];
 
-        dev->type = add_type;
+        dev->type = add_type | PCI_ADD_STRICT;
         dev->read  = read;
         dev->write = write;
         dev->priv  = priv;

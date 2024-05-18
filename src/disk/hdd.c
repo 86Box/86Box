@@ -50,50 +50,31 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "none"))
         return HDD_BUS_DISABLED;
 
-    if (!strcmp(str, "mfm") || !strcmp(str, "rll")) {
+    if (!strcmp(str, "mfm")) {
         if (cdrom) {
 no_cdrom:
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2131, (wchar_t *) IDS_4099);
+            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_INVALID_CONFIG), plat_get_string(STRING_NO_ST506_ESDI_CDROM));
             return 0;
         }
 
         return HDD_BUS_MFM;
     }
 
-    /* FIXME: delete 'rll' in a year or so.. --FvK */
-    if (!strcmp(str, "esdi") || !strcmp(str, "rll")) {
+    if (!strcmp(str, "esdi")) {
         if (cdrom)
             goto no_cdrom;
 
         return HDD_BUS_ESDI;
     }
 
-    if (!strcmp(str, "ide_pio_only"))
-        return HDD_BUS_IDE;
-
     if (!strcmp(str, "ide"))
         return HDD_BUS_IDE;
-
-    if (!strcmp(str, "atapi_pio_only"))
-        return HDD_BUS_ATAPI;
 
     if (!strcmp(str, "atapi"))
         return HDD_BUS_ATAPI;
 
-    if (!strcmp(str, "eide"))
-        return HDD_BUS_IDE;
-
     if (!strcmp(str, "xta"))
         return HDD_BUS_XTA;
-
-    if (!strcmp(str, "atide"))
-        return HDD_BUS_IDE;
-
-    if (!strcmp(str, "ide_pio_and_dma"))
-        return HDD_BUS_IDE;
-
-    if (!strcmp(str, "atapi_pio_and_dma"))
-        return HDD_BUS_ATAPI;
 
     if (!strcmp(str, "scsi"))
         return HDD_BUS_SCSI;

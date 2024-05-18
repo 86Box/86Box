@@ -21,6 +21,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -276,6 +277,7 @@ ps2_write(void *priv)
                 break;
 
             default:
+                mouse_ps2_log("%s: Bad command: %02X\n", dev->name, val);
                 kbc_at_dev_queue_add(dev, 0xfe, 0);
         }
     }

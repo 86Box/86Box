@@ -56,6 +56,8 @@ typedef struct ega_t {
 
     uint8_t *vram;
 
+    uint16_t light_pen;
+
     int vidclock;
     int fast;
     int extvram;
@@ -109,6 +111,8 @@ typedef struct ega_t {
     int bpp;
     int index;
     int remap_required;
+    int actual_type;
+    int chipset;
 
     uint32_t charseta;
     uint32_t charsetb;
@@ -143,7 +147,7 @@ typedef struct ega_t {
 extern const device_t ega_device;
 extern const device_t cpqega_device;
 extern const device_t sega_device;
-extern const device_t atiega_device;
+extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
 #endif

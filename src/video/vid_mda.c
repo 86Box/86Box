@@ -386,7 +386,7 @@ static const device_config_t mda_config[] = {
 };
 
 const device_t mda_device = {
-    .name          = "MDA",
+    .name          = "IBM MDA",
     .internal_name = "mda",
     .flags         = DEVICE_ISA,
     .local         = 0,

@@ -33,7 +33,10 @@
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    4
-#define MAX_IMAGE_PATH_LEN 256
+#define MAX_IMAGE_PATH_LEN 2048
+
+/* Max UUID Length */
+#define MAX_UUID_LEN 64
 
 /* Default language 0xFFFF = from system, 0x409 = en-US */
 #define DEFAULT_LANGUAGE 0x0409
@@ -124,7 +127,9 @@ extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[2];                 /* (C) graphics/video card */
 extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
+extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
+extern int      unittester_enabled;         /* (C) enable unit tester device */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
@@ -139,10 +144,13 @@ extern int      fpu_type;                   /* (C) fpu type */
 extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
 extern int      hdd_format_type;            /* (C) hard disk file format */
+extern int      lba_enhancer_enabled;       /* (C) enable Vision Systems LBA Enhancer */
 extern int      confirm_reset;              /* (C) enable reset confirmation */
 extern int      confirm_exit;               /* (C) enable exit confirmation */
 extern int      confirm_save;               /* (C) enable save confirmation */
 extern int      enable_discord;             /* (C) enable Discord integration */
+extern int      other_ide_present;          /* IDE controllers from non-IDE cards are present */
+extern int      other_scsi_present;         /* SCSI controllers from non-SCSI cards are present */
 
 extern int    fixed_size_x;
 extern int    fixed_size_y;
@@ -164,10 +172,11 @@ extern uint16_t key_prefix_2_2;
 extern uint16_t key_uncapture_1;
 extern uint16_t key_uncapture_2;
 
-extern char exe_path[2048];    /* path (dir) of executable */
-extern char usr_path[1024];    /* path (dir) of user data */
-extern char cfg_path[1024];    /* full path of config file */
-extern int  open_dir_usr_path; /* default file open dialog directory of usr_path */
+extern char exe_path[2048];     /* path (dir) of executable */
+extern char usr_path[1024];     /* path (dir) of user data */
+extern char cfg_path[1024];     /* full path of config file */
+extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
+extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif

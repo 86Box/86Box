@@ -104,7 +104,7 @@ monitor_settings_t monitor_settings[MONITORS_NUM];
 atomic_bool        doresize_monitors[MONITORS_NUM];
 
 #ifdef _WIN32
-void *__cdecl (*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+void * (*__cdecl video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
 #else
 void *(*video_copy)(void *__restrict, const void *__restrict, size_t);
 #endif
@@ -601,8 +601,27 @@ cgapal_rebuild_monitor(int monitor_index)
         }
     }
 
-    if (cga_palette_monitor == 7)
+    if (cga_palette_monitor == 8)
         palette_lookup[0x16] = makecol(video_6to8[42], video_6to8[42], video_6to8[0]);
+    else if (cga_palette_monitor == 10) {
+        /* IBM 5153 CRT, colors by VileR */
+        palette_lookup[0x10] = 0x00000000;
+        palette_lookup[0x11] = 0x000000c4;
+        palette_lookup[0x12] = 0x0000c400;
+        palette_lookup[0x13] = 0x0000c4c4;
+        palette_lookup[0x14] = 0x00c40000;
+        palette_lookup[0x15] = 0x00c400c4;
+        palette_lookup[0x16] = 0x00c47e00;
+        palette_lookup[0x17] = 0x00c4c4c4;
+        palette_lookup[0x18] = 0x004e4e4e;
+        palette_lookup[0x19] = 0x004e4edc;
+        palette_lookup[0x1a] = 0x004edc4e;
+        palette_lookup[0x1b] = 0x004ef3f3;
+        palette_lookup[0x1c] = 0x00dc4e4e;
+        palette_lookup[0x1d] = 0x00f34ef3;
+        palette_lookup[0x1e] = 0x00f3f34e;
+        palette_lookup[0x1f] = 0x00ffffff;
+    }
 }
 
 void
@@ -812,9 +831,9 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
+    bitmap_t *b = calloc(sizeof(bitmap_t), (y * sizeof(uint32_t *)));
 
-    b->dat = malloc((size_t) x * y * 4);
+    b->dat = calloc((size_t) x * y, 4);
     for (int c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;

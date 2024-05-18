@@ -446,7 +446,7 @@ scsi_disk_command_common(scsi_disk_t *dev)
             case GPCMD_WRITE_AND_VERIFY_12:
             case GPCMD_WRITE_SAME_10:
                 /* Seek time is in us. */
-                period = hdd_timing_write(dev->drv, dev->sector_pos, dev->packet_len >> 9);
+                period = hdd_timing_write(dev->drv, dev->drv->seek_pos, dev->drv->seek_len);
                 scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
                               dev->id, (uint64_t) period);
                 dev->callback += period;
@@ -482,7 +482,7 @@ scsi_disk_command_common(scsi_disk_t *dev)
             case 0x28:
             case 0xa8:
                 /* Seek time is in us. */
-                period = hdd_timing_read(dev->drv, dev->sector_pos, dev->packet_len >> 9);
+                period = hdd_timing_read(dev->drv, dev->drv->seek_pos, dev->drv->seek_len);
                 scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
                               dev->id, (uint64_t) period);
                 dev->callback += period;
@@ -928,6 +928,10 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 
         case GPCMD_REZERO_UNIT:
             dev->sector_pos = dev->sector_len = 0;
+
+            dev->drv->seek_pos = dev->sector_pos;
+            dev->drv->seek_len = dev->sector_len;
+
             scsi_disk_seek(dev, 0);
             scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
             break;
@@ -1031,6 +1035,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
             dev->packet_len = max_len * alloc_length;
             scsi_disk_buf_alloc(dev, dev->packet_len);
 
+            dev->drv->seek_pos = dev->sector_pos;
+            dev->drv->seek_len = dev->sector_len;
+
             ret = scsi_disk_blocks(dev, &alloc_length, 1, 0);
             if (ret <= 0) {
                 scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1117,6 +1124,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 scsi_disk_set_callback(dev);
                 break;
             }
+
+            dev->drv->seek_pos = dev->sector_pos;
+            dev->drv->seek_len = dev->sector_len;
 
             max_len               = dev->sector_len;
             /*
@@ -1318,7 +1328,10 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 size_idx     = 4;
 
                 memset(dev->temp_buffer, 0, 8);
-                dev->temp_buffer[0] = 0;    /*SCSI HD*/
+                if ((cdb[1] & 0xe0) || ((dev->cur_lun > 0x00) && (dev->cur_lun < 0xff)))
+                    dev->temp_buffer[0] = 0x7f; /*No physical device on this LUN*/
+                else
+                    dev->temp_buffer[0] = 0;    /*SCSI HD*/
                 dev->temp_buffer[1] = 0;    /*Fixed*/
                 dev->temp_buffer[2] = (dev->drv->bus == HDD_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
                 dev->temp_buffer[3] = (dev->drv->bus == HDD_BUS_SCSI) ? 0x02 : 0x21;
@@ -1371,6 +1384,10 @@ atapi_out:
                 default:
                     break;
             }
+
+            dev->drv->seek_pos = dev->sector_pos;
+            dev->drv->seek_len = 0;
+
             scsi_disk_seek(dev, pos);
 
             scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);

@@ -646,7 +646,8 @@ neat_read(uint16_t port, void *priv)
             break;
 
         case 0x23:
-            ret = dev->regs[dev->indx];
+            if ((dev->indx >= 0x60) && (dev->indx <= 0x6f))
+                ret = dev->regs[dev->indx];
             break;
 
         default:
@@ -673,13 +674,14 @@ neat_init(UNUSED(const device_t *info))
 {
     neat_t *dev;
     uint8_t dram_mode = 0;
+    uint8_t i;
 
     /* Create an instance. */
     dev = (neat_t *) malloc(sizeof(neat_t));
     memset(dev, 0x00, sizeof(neat_t));
 
     /* Initialize some of the registers to specific defaults. */
-    for (uint8_t i = REG_RA0; i <= REG_RB11; i++) {
+    for (i = REG_RA0; i <= REG_RB11; i++) {
         dev->indx = i;
         neat_write(0x0023, 0x00, dev);
     }

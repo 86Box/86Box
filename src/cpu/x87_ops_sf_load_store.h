@@ -184,6 +184,99 @@ sf_FILDiq_a32(uint32_t fetchdat)
 #endif
 
 static int
+sf_FBLD_PACKED_BCD_a16(uint32_t fetchdat)
+{
+    floatx80              result;
+    uint16_t              load_reg_hi = 0xffff;
+    uint64_t              load_reg_lo = BX_CONST64(0xC000000000000000);
+    int64_t               load_val = 0ULL;
+    uint64_t              power;
+    int                   sign;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
+    fetch_ea_16(fetchdat);
+    SEG_CHECK_READ(cpu_state.ea_seg);
+    load_reg_lo = readmemq(easeg, cpu_state.eaaddr);
+    load_reg_hi = readmemw(easeg, cpu_state.eaaddr + 8);
+    if (cpu_state.abrt)
+        return 1;
+    clear_C1();
+    if (!IS_TAG_EMPTY(-1)) {
+        FPU_stack_overflow(fetchdat);
+    } else {
+        sign     = (load_reg_hi & 0x8000) != 0;
+        load_val = 0ULL;
+        power    = 1;
+        for (int i = 0; i < 16; i++) {
+            load_val += ((uint64_t) (load_reg_lo & 0xf)) * power;
+            load_reg_lo >>= 4;
+            power *= 10;
+        }
+        for (int i = 0; i < 2; i++) {
+            load_val += ((uint64_t) (load_reg_hi & 0xf)) * power;
+            load_reg_hi >>= 4;
+            power *= 10;
+        }
+        if (sign)
+            load_val = -load_val;
+        result = int64_to_floatx80(load_val);
+        FPU_push();
+        FPU_save_regi(result, 0);
+    }
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fild_64) : (x87_timings.fild_64 * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fild_64) : (x87_concurrency.fild_64 * cpu_multi));
+    return 0;
+}
+#ifndef FPU_8087
+static int
+sf_FBLD_PACKED_BCD_a32(uint32_t fetchdat)
+{
+    floatx80              result;
+    uint16_t              load_reg_hi = 0xffff;
+    uint64_t              load_reg_lo = BX_CONST64(0xC000000000000000);
+    int64_t               load_val = 0ULL;
+    uint64_t              power;
+    int                   sign;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
+    fetch_ea_16(fetchdat);
+    SEG_CHECK_READ(cpu_state.ea_seg);
+    load_reg_lo = readmemq(easeg, cpu_state.eaaddr);
+    load_reg_hi = readmemw(easeg, cpu_state.eaaddr + 8);
+    if (cpu_state.abrt)
+        return 1;
+    clear_C1();
+    if (!IS_TAG_EMPTY(-1)) {
+        FPU_stack_overflow(fetchdat);
+    } else {
+        sign     = (load_reg_hi & 0x8000) != 0;
+        load_val = 0ULL;
+        power    = 1;
+        for (int i = 0; i < 16; i++) {
+            load_val += ((uint64_t) (load_reg_lo & 0xf)) * power;
+            load_reg_lo >>= 4;
+            power *= 10;
+        }
+        for (int i = 0; i < 2; i++) {
+            load_val += ((uint64_t) (load_reg_hi & 0xf)) * power;
+            load_reg_hi >>= 4;
+            power *= 10;
+        }
+        if (sign)
+            load_val = -load_val;
+        result = int64_to_floatx80(load_val);
+        FPU_push();
+        FPU_save_regi(result, 0);
+    }
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fild_64) : (x87_timings.fild_64 * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fild_64) : (x87_concurrency.fild_64 * cpu_multi));
+    return 0;
+}
+#endif
+
+static int
 sf_FLDs_a16(uint32_t fetchdat)
 {
     struct float_status_t status;

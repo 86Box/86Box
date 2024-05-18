@@ -121,7 +121,7 @@ compaq_cga_poll(void *priv)
             if (self->cga.displine < self->cga.firstline) {
                 self->cga.firstline = self->cga.displine;
                 video_wait_for_buffer();
-                compaq_cga_log("Firstline %i\n", firstline);
+                compaq_cga_log("Firstline %i\n", self->cga.firstline);
             }
             self->cga.lastline = self->cga.displine;
 

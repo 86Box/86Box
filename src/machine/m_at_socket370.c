@@ -127,19 +127,22 @@ machine_at_p6bap_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 5);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 5);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 5, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 5, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 5, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 5, 3, 2, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 5);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
     device_add(&via_apro133a_device);  /* Rebranded as ET82C693A */
     device_add(&via_vt82c596b_device); /* Rebranded as ET82C696B */
     device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&cmi8738_onboard_device);
 
     return ret;
 }
@@ -159,13 +162,13 @@ machine_at_p6bat_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 5);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 5);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 5, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 5, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 5, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 5, 3, 2, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 5);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
     device_add(&via_apro133_device);
     device_add(&via_vt82c596b_device);
     device_add(&w83977ef_device);
@@ -351,6 +354,9 @@ machine_at_awo671r_init(const machine_t *model)
     device_add_inst(&w83977ef_device, 2);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
+    if (gfxcard[0] == VID_INTERNAL) {
+        device_add(&chips_69000_onboard_device);
+    }
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;

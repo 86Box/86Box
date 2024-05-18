@@ -107,7 +107,7 @@
 #define ST11_BIOS_FILE_OLD               "roms/hdd/st506/st11_bios_vers_1.7.bin"
 #define ST11_BIOS_FILE_NEW               "roms/hdd/st506/st11_bios_vers_2.0.bin"
 #define WD1002A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
-#define WD1004A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define WD1004A_WX1_BIOS_FILE            "roms/hdd/st506/western_digital_WD1004A-27X.bin"
 /* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
    if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
    17 sectors per track. */
@@ -457,6 +457,37 @@ get_chs(hdc_t *dev, drive_t *drive)
     return 1;
 }
 
+static int
+get_chs_format(hdc_t *dev, drive_t *drive)
+{
+    dev->err_bv = 0x80;
+
+    dev->head = dev->command[1] & 0x1f;
+    /* 6 bits are used for the sector number even on the IBM PC controller. */
+    dev->sector = 1;
+    dev->count  = dev->command[4];
+    if (((dev->type == ST506_XT_TYPE_ST11M) || (dev->type == ST506_XT_TYPE_ST11R)) && (dev->command[0] >= 0xf0))
+        dev->cylinder = 0;
+    else {
+        dev->cylinder = dev->command[3] | ((dev->command[2] & 0xc0) << 2);
+        dev->cylinder += dev->cyl_off; /* for ST-11 */
+    }
+
+    if (dev->cylinder >= drive->cfg_cyl) {
+        /*
+         * This really is an error, we cannot move
+         * past the end of the drive, which should
+         * result in an ERR_ILLEGAL_ADDR.  --FvK
+         */
+        drive->cylinder = drive->cfg_cyl - 1;
+        return 0;
+    }
+
+    drive->cylinder = dev->cylinder;
+
+    return 1;
+}
+
 static void
 st506_callback(void *priv)
 {
@@ -628,7 +659,7 @@ st506_callback(void *priv)
         case CMD_FORMAT_BAD_TRACK:
             switch (dev->state) {
                 case STATE_START_COMMAND:
-                    (void) get_chs(dev, drive);
+                    (void) get_chs_format(dev, drive);
                     st506_xt_log("ST506: FORMAT_%sTRACK(%i, %i/%i)\n",
                                  (dev->command[0] == CMD_FORMAT_BAD_TRACK) ? "BAD_" : "",
                                  dev->drive_sel, dev->cylinder, dev->head);
@@ -1533,6 +1564,7 @@ static void
 set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
     const drive_t *drive;
+    int            c;
     int            e;
 
     dev->switches = 0x00;
@@ -1546,7 +1578,7 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
             continue;
         }
 
-        for (int c = 0; c < num; c++) {
+        for (c = 0; c < num; c++) {
             /* Does the Xebec also support more than 4 types? */
             if ((drive->spt == hdt[c].spt) && (drive->hpc == hdt[c].hpc) && (drive->tracks == hdt[c].tracks)) {
                 /* Olivetti M24/M240: Move the upper 2 bites up by 2 bits, as the
@@ -1666,7 +1698,7 @@ st506_init(const device_t *info)
             fn          = WD1004A_WX1_BIOS_FILE;
             /* The switches are read in reverse: 0 = closed, 1 = open.
                Both open means MFM, 17 sectors per track. */
-            dev->switches = 0x10; /* autobios */
+            dev->switches = 0x30; /* autobios */
             dev->base     = device_get_config_hex16("base");
             dev->irq      = device_get_config_int("irq");
             if (dev->irq == 2)

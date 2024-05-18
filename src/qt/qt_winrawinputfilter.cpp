@@ -53,17 +53,15 @@ extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
-    HWND wnd = (HWND) window->winId();
-
     RAWINPUTDEVICE rid[2] = {
         {.usUsagePage = 0x01,
          .usUsage     = 0x06,
          .dwFlags     = RIDEV_NOHOTKEYS,
-         .hwndTarget  = wnd},
+         .hwndTarget  = nullptr},
         { .usUsagePage = 0x01,
          .usUsage     = 0x02,
          .dwFlags     = 0,
-         .hwndTarget  = wnd}
+         .hwndTarget  = nullptr}
     };
 
     if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)

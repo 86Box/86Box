@@ -71,6 +71,7 @@
 #define FLAG_CONFIG_M1_IO_ON      0x00000020
 #define FLAG_NO_IRQ_STEERING      0x00000040
 #define FLAG_NO_BRIDGES           0x00000080
+#define FLAG_TRC_CONTROLS_CPURST  0x00000100
 
 #define FLAG_MECHANISM_MASK       FLAG_MECHANISM_1 | FLAG_MECHANISM_2
 #define FLAG_MASK                 0x0000007f
@@ -285,6 +286,7 @@ extern const device_t via_vp3_agp_device;
 extern const device_t via_mvp3_agp_device;
 extern const device_t via_apro_agp_device;
 extern const device_t via_vt8601_agp_device;
+extern const device_t sis_5xxx_agp_device;
 #endif
 
 #endif /*EMU_PCI_H*/

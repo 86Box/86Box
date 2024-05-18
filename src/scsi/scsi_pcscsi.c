@@ -238,12 +238,10 @@ esp_irq(esp_t *dev, int level)
 {
     if (dev->mca) {
         if (level) {
-            picint(1 << dev->irq);
-            dev->dma_86c01.status |= 0x01;
+            picintlevel(1 << dev->irq, &dev->irq_state);
             esp_log("Raising IRQ...\n");
         } else {
-            picintc(1 << dev->irq);
-            dev->dma_86c01.status &= ~0x01;
+            picintclevel(1 << dev->irq, &dev->irq_state);
             esp_log("Lowering IRQ...\n");
         }
     } else {
@@ -465,7 +463,7 @@ esp_do_command_phase(esp_t *dev)
 
     scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 
-    dev->rregs[ESP_RINTR] |= INTR_BS | INTR_FC;
+    dev->rregs[ESP_RINTR] |= (INTR_BS | INTR_FC);
     esp_raise_irq(dev);
 }
 
@@ -518,7 +516,6 @@ esp_dma_enable(esp_t *dev, int level)
     if (level) {
         esp_log("ESP DMA Enabled\n");
         dev->dma_enabled = 1;
-        dev->dma_86c01.status |= 0x02;
         timer_stop(&dev->timer);
         if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
             timer_on_auto(&dev->timer, 40.0);
@@ -529,7 +526,6 @@ esp_dma_enable(esp_t *dev, int level)
     } else {
         esp_log("ESP DMA Disabled\n");
         dev->dma_enabled = 0;
-        dev->dma_86c01.status &= ~0x02;
     }
 }
 
@@ -727,7 +723,7 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
             dma_set_drq(dev->DmaChannel, 1);
             while (dev->dma_86c01.pos < count) {
                 dma_channel_write(dev->DmaChannel, sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos]);
-                esp_log("ESP SCSI DMA read for 53C90: pos = %i, val = %02x\n", dev->dma_86c01.pos, sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos]);
+                esp_log("ESP SCSI DMA read for 53C9x: pos = %i, val = %02x\n", dev->dma_86c01.pos, sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos]);
                 dev->dma_86c01.pos++;
             }
             dev->dma_86c01.pos = 0;
@@ -741,7 +737,7 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
             dma_set_drq(dev->DmaChannel, 1);
             while (dev->dma_86c01.pos < count) {
                 int val = dma_channel_read(dev->DmaChannel);
-                esp_log("ESP SCSI DMA write for 53C90: pos = %i, val = %02x\n", dev->dma_86c01.pos, val & 0xff);
+                esp_log("ESP SCSI DMA write for 53C9x: pos = %i, val = %02x\n", dev->dma_86c01.pos, val & 0xff);
                 sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos] = val & 0xff;
                 dev->dma_86c01.pos++;
             }
@@ -967,7 +963,7 @@ esp_callback(void *priv)
         }
     }
 
-    esp_log("ESP DMA activated = %d, CMD activated = %d\n", dev->dma_enabled, dev->do_cmd);
+    esp_log("ESP DMA activated = %d, CMD activated = %d, CMD = %02x\n", dev->dma_enabled, dev->do_cmd, (dev->rregs[ESP_CMD] & CMD_CMD));
 }
 
 static uint32_t
@@ -1060,14 +1056,13 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                 dev->dma = 1;
                 /* Reload DMA counter.  */
                 esp_set_tc(dev, esp_get_stc(dev));
-                if (dev->mca)
-                    esp_dma_enable(dev, 1);
             } else {
                 dev->dma = 0;
                 esp_log("ESP Command not for DMA\n");
-                if (dev->mca)
-                    esp_dma_enable(dev, 0);
             }
+            if (dev->mca)
+                esp_dma_enable(dev, dev->dma);
+
             esp_log("[%04X:%08X]: ESP Command = %02x, DMA ena1 = %d, DMA ena2 = %d\n", CS, cpu_state.pc, val & (CMD_CMD | CMD_DMA), dev->dma, dev->dma_enabled);
             switch (val & CMD_CMD) {
                 case CMD_NOP:
@@ -1094,7 +1089,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     }
                     break;
                 case CMD_TI:
-                    esp_log("val = %02X\n", val);
+                    esp_log("Transfer Information val = %02X\n", val);
                     break;
                 case CMD_SEL:
                     handle_s_without_atn(dev);
@@ -1876,10 +1871,10 @@ dc390_init(UNUSED(const device_t *info))
 }
 
 static uint16_t
-ncr53c90_in(uint16_t port, void *priv)
+ncr53c9x_in(uint16_t port, void *priv)
 {
     esp_t   *dev = (esp_t *) priv;
-    uint16_t ret = 0;
+    uint16_t ret = 0xffff;
 
     port &= 0x1f;
 
@@ -1892,6 +1887,16 @@ ncr53c90_in(uint16_t port, void *priv)
                 break;
 
             case 0x0c:
+                if (dev->rregs[ESP_RSTAT] & STAT_INT)
+                    dev->dma_86c01.status |= 0x01;
+                else
+                    dev->dma_86c01.status &= ~0x01;
+
+                if ((dev->dma_86c01.mode & 0x40) || dev->dma_enabled)
+                    dev->dma_86c01.status |= 0x02;
+                else
+                    dev->dma_86c01.status &= ~0x02;
+
                 ret = dev->dma_86c01.status;
                 break;
 
@@ -1900,56 +1905,55 @@ ncr53c90_in(uint16_t port, void *priv)
         }
     }
 
-    esp_log("[%04X:%08X]: NCR53c90 DMA read port = %02x, ret = %02x\n", CS, cpu_state.pc, port, ret);
+    esp_log("[%04X:%08X]: NCR53c9x DMA read port = %02x, ret = %02x.\n\n", CS, cpu_state.pc, port, ret);
 
     return ret;
 }
 
 static uint8_t
-ncr53c90_inb(uint16_t port, void *priv)
+ncr53c9x_inb(uint16_t port, void *priv)
 {
-    return ncr53c90_in(port, priv);
+    return ncr53c9x_in(port, priv);
 }
 
 static uint16_t
-ncr53c90_inw(uint16_t port, void *priv)
+ncr53c9x_inw(uint16_t port, void *priv)
 {
-    return (ncr53c90_in(port, priv) & 0xff) | (ncr53c90_in(port + 1, priv) << 8);
+    return (ncr53c9x_in(port, priv) & 0xff) | (ncr53c9x_in(port + 1, priv) << 8);
 }
 
 static void
-ncr53c90_out(uint16_t port, uint16_t val, void *priv)
+ncr53c9x_out(uint16_t port, uint16_t val, void *priv)
 {
     esp_t *dev = (esp_t *) priv;
 
     port &= 0x1f;
 
-    esp_log("[%04X:%08X]: NCR53c90 DMA write port = %02x, val = %02x\n", CS, cpu_state.pc, port, val);
+    esp_log("[%04X:%08X]: NCR53c9x DMA write port = %02x, val = %02x\n", CS, cpu_state.pc, port, val);
 
     if (port >= 0x10)
         esp_reg_write(dev, port - 0x10, val);
     else {
-        if (port == 0x02) {
-            dev->dma_86c01.mode = (val & 0x40);
-        }
+        if (port == 0x02)
+            dev->dma_86c01.mode = val;
     }
 }
 
 static void
-ncr53c90_outb(uint16_t port, uint8_t val, void *priv)
+ncr53c9x_outb(uint16_t port, uint8_t val, void *priv)
 {
-    ncr53c90_out(port, val, priv);
+    ncr53c9x_out(port, val, priv);
 }
 
 static void
-ncr53c90_outw(uint16_t port, uint16_t val, void *priv)
+ncr53c9x_outw(uint16_t port, uint16_t val, void *priv)
 {
-    ncr53c90_out(port, val & 0xff, priv);
-    ncr53c90_out(port + 1, val >> 8, priv);
+    ncr53c9x_out(port, val & 0xff, priv);
+    ncr53c9x_out(port + 1, val >> 8, priv);
 }
 
 static uint8_t
-ncr53c90_mca_read(int port, void *priv)
+ncr53c9x_mca_read(int port, void *priv)
 {
     const esp_t *dev = (esp_t *) priv;
 
@@ -1957,7 +1961,7 @@ ncr53c90_mca_read(int port, void *priv)
 }
 
 static void
-ncr53c90_mca_write(int port, uint8_t val, void *priv)
+ncr53c9x_mca_write(int port, uint8_t val, void *priv)
 {
     esp_t                *dev             = (esp_t *) priv;
     static const uint16_t ncrmca_iobase[] = {
@@ -1974,8 +1978,8 @@ ncr53c90_mca_write(int port, uint8_t val, void *priv)
     /* This is always necessary so that the old handler doesn't remain. */
     if (dev->Base != 0) {
         io_removehandler(dev->Base, 0x20,
-                         ncr53c90_inb, ncr53c90_inw, NULL,
-                         ncr53c90_outb, ncr53c90_outw, NULL, dev);
+                         ncr53c9x_inb, ncr53c9x_inw, NULL,
+                         ncr53c9x_outb, ncr53c9x_outw, NULL, dev);
     }
 
     /* Get the new assigned I/O base address. */
@@ -1999,20 +2003,20 @@ ncr53c90_mca_write(int port, uint8_t val, void *priv)
         if (dev->Base != 0) {
             /* Card enabled; register (new) I/O handler. */
             io_sethandler(dev->Base, 0x20,
-                          ncr53c90_inb, ncr53c90_inw, NULL,
-                          ncr53c90_outb, ncr53c90_outw, NULL, dev);
+                          ncr53c9x_inb, ncr53c9x_inw, NULL,
+                          ncr53c9x_outb, ncr53c9x_outw, NULL, dev);
 
             esp_hard_reset(dev);
         }
 
         /* Say hello. */
-        esp_log("NCR 53c90: I/O=%04x, IRQ=%d, DMA=%d, HOST ID %i\n",
+        esp_log("NCR 53c9x: I/O=%04x, IRQ=%d, DMA=%d, HOST ID %i\n",
                 dev->Base, dev->irq, dev->DmaChannel, dev->HostID);
     }
 }
 
 static uint8_t
-ncr53c90_mca_feedb(void *priv)
+ncr53c9x_mca_feedb(void *priv)
 {
     const esp_t *dev = (esp_t *) priv;
 
@@ -2020,7 +2024,7 @@ ncr53c90_mca_feedb(void *priv)
 }
 
 static void *
-ncr53c90_mca_init(UNUSED(const device_t *info))
+ncr53c9x_mca_init(UNUSED(const device_t *info))
 {
     esp_t *dev;
 
@@ -2034,9 +2038,9 @@ ncr53c90_mca_init(UNUSED(const device_t *info))
     fifo8_create(&dev->fifo, ESP_FIFO_SZ);
     fifo8_create(&dev->cmdfifo, ESP_CMDFIFO_SZ);
 
-    dev->pos_regs[0] = 0x4d; /* MCA board ID */
+    dev->pos_regs[0] = 0x4f; /* MCA board ID */
     dev->pos_regs[1] = 0x7f;
-    mca_add(ncr53c90_mca_read, ncr53c90_mca_write, ncr53c90_mca_feedb, NULL, dev);
+    mca_add(ncr53c9x_mca_read, ncr53c9x_mca_write, ncr53c9x_mca_feedb, NULL, dev);
 
     esp_hard_reset(dev);
 
@@ -2088,12 +2092,12 @@ const device_t dc390_pci_device = {
     .config        = bios_enable_config
 };
 
-const device_t ncr53c90_mca_device = {
-    .name          = "NCR 53c90 MCA",
-    .internal_name = "ncr53c90",
+const device_t ncr53c90a_mca_device = {
+    .name          = "NCR 53c90a MCA",
+    .internal_name = "ncr53c90a",
     .flags         = DEVICE_MCA,
     .local         = 0,
-    .init          = ncr53c90_mca_init,
+    .init          = ncr53c9x_mca_init,
     .close         = esp_close,
     .reset         = NULL,
     { .available = NULL },

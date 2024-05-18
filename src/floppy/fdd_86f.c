@@ -1274,18 +1274,19 @@ d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am, ui
     if (dev->last_word[side] == req_am) {
         dev->calc_crc.word = 0xFFFF;
         fdd_calccrc(decodefm(drive, dev->last_word[side]), &(dev->calc_crc));
-        find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-        find->sync_pos                                                = 0xFFFFFFFF;
-        dev->preceding_bit[side]                                      = dev->last_word[side] & 1;
+        find->sync_marks = find->bits_obtained =
+        find->bytes_obtained                   = 0;
+        find->sync_pos                         = 0xFFFFFFFF;
+        dev->preceding_bit[side]               = dev->last_word[side] & 1;
         dev->state++;
         return;
     }
 
     if (wrong_am && (dev->last_word[side] == wrong_am)) {
-        dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-        dev->error_condition                                                                     = 0;
-        dev->state                                                                               = STATE_IDLE;
-        fdc_finishread(d86f_fdc);
+        dev->data_find.sync_marks = dev->data_find.bits_obtained =
+        dev->data_find.bytes_obtained                            = 0;
+        dev->error_condition                                     = 0;
+        dev->state                                               = STATE_IDLE;
         fdc_nodataam(d86f_fdc);
         return;
     }
@@ -1328,8 +1329,9 @@ d86f_write_find_address_mark_fm(int drive, int side, find_t *find)
 
     /* If we hadn't found enough set bits but have found a clear bit, null the counter of set bits. */
     if (!(dev->last_word[side] & 1)) {
-        find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-        find->sync_pos                                                = 0xFFFFFFFF;
+        find->sync_marks = find->bits_obtained =
+        find->bytes_obtained                   = 0;
+        find->sync_pos                         = 0xFFFFFFFF;
     }
 }
 
@@ -1347,10 +1349,10 @@ d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, u
     }
 
     if (wrong_am && (dev->last_word[side] == wrong_am) && (find->sync_marks >= 3)) {
-        dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-        dev->error_condition                                                                     = 0;
-        dev->state                                                                               = STATE_IDLE;
-        fdc_finishread(d86f_fdc);
+        dev->data_find.sync_marks = dev->data_find.bits_obtained =
+        dev->data_find.bytes_obtained                            = 0;
+        dev->error_condition                                     = 0;
+        dev->state                                               = STATE_IDLE;
         fdc_nodataam(d86f_fdc);
         return;
     }
@@ -1433,22 +1435,26 @@ d86f_read_sector_id(int drive, int side, int match)
         if (!(dev->id_find.bits_obtained & 15)) {
             /* We've got a byte. */
             if (dev->id_find.bytes_obtained < 4) {
-                dev->last_sector.byte_array[dev->id_find.bytes_obtained] = decodefm(drive, dev->last_word[side]);
+                dev->last_sector.byte_array[dev->id_find.bytes_obtained] =
+                decodefm(drive, dev->last_word[side]);
                 fdd_calccrc(dev->last_sector.byte_array[dev->id_find.bytes_obtained], &(dev->calc_crc));
             } else if ((dev->id_find.bytes_obtained >= 4) && (dev->id_find.bytes_obtained < 6)) {
-                dev->track_crc.bytes[(dev->id_find.bytes_obtained & 1) ^ 1] = decodefm(drive, dev->last_word[side]);
+                dev->track_crc.bytes[(dev->id_find.bytes_obtained & 1) ^ 1] =
+                decodefm(drive, dev->last_word[side]);
             }
             dev->id_find.bytes_obtained++;
 
             if (dev->id_find.bytes_obtained == 6) {
                 /* We've got the ID. */
-                if ((dev->calc_crc.word != dev->track_crc.word) && (dev->last_sector.dword == dev->req_sector.dword)) {
-                    dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = 0;
-                    d86f_log("86F: ID CRC error: %04X != %04X (%08X)\n", dev->track_crc.word, dev->calc_crc.word, dev->last_sector.dword);
+                if ((dev->calc_crc.word != dev->track_crc.word) &&
+                    (dev->last_sector.dword == dev->req_sector.dword)) {
+                    dev->id_find.sync_marks = dev->id_find.bits_obtained =
+                    dev->id_find.bytes_obtained = 0;
+                    d86f_log("86F: ID CRC error: %04X != %04X (%08X)\n", dev->track_crc.word,
+                             dev->calc_crc.word, dev->last_sector.dword);
                     if ((dev->state != STATE_02_READ_ID) && (dev->state != STATE_0A_READ_ID)) {
                         dev->error_condition = 0;
                         dev->state           = STATE_IDLE;
-                        fdc_finishread(d86f_fdc);
                         fdc_headercrcerror(d86f_fdc);
                     } else if (dev->state == STATE_0A_READ_ID)
                         dev->state--;
@@ -1458,25 +1464,37 @@ d86f_read_sector_id(int drive, int side, int match)
                     }
                 } else if ((dev->calc_crc.word == dev->track_crc.word) && (dev->state == STATE_0A_READ_ID)) {
                     /* CRC is valid and this is a read sector ID command. */
-                    dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-                    fdc_sectorid(d86f_fdc, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n, 0, 0);
+                    dev->id_find.sync_marks = dev->id_find.bits_obtained =
+                    dev->id_find.bytes_obtained = dev->error_condition = 0;
+                    fdc_sectorid(d86f_fdc,
+                                 dev->last_sector.id.c, dev->last_sector.id.h,
+                                 dev->last_sector.id.r, dev->last_sector.id.n, 0, 0);
                     dev->state = STATE_IDLE;
                 } else {
                     /* CRC is valid. */
-                    dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = 0;
+                    dev->id_find.sync_marks = dev->id_find.bits_obtained =
+                    dev->id_find.bytes_obtained = 0;
                     dev->id_found |= 1;
                     if ((dev->last_sector.dword == dev->req_sector.dword) || !match) {
-                        d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
+                        d86f_handler[drive].set_sector(drive, side,
+                                                       dev->last_sector.id.c, dev->last_sector.id.h,
+                                                      dev->last_sector.id.r, dev->last_sector.id.n);
                         if (dev->state == STATE_02_READ_ID) {
                             /* READ TRACK command, we need some special handling here. */
-                            /* Code corrected: Only the C, H, and N portions of the sector ID are compared, the R portion (the sector number) is ignored. */
-                            if ((dev->last_sector.id.c != fdc_get_read_track_sector(d86f_fdc).id.c) || (dev->last_sector.id.h != fdc_get_read_track_sector(d86f_fdc).id.h) || (dev->last_sector.id.n != fdc_get_read_track_sector(d86f_fdc).id.n)) {
-                                dev->error_condition |= 4; /* Mark that the sector ID is not the one expected by the FDC. */
+                            /* Code corrected: Only the C, H, and N portions of the
+                                               sector ID are compared, the R portion
+                                               (the sector number) is ignored. */
+                            if ((dev->last_sector.id.c != fdc_get_read_track_sector(d86f_fdc).id.c) ||
+                                (dev->last_sector.id.h != fdc_get_read_track_sector(d86f_fdc).id.h) ||
+                                (dev->last_sector.id.n != fdc_get_read_track_sector(d86f_fdc).id.n)) {
+                                /* Mark that the sector ID is not the one expected by the FDC. */
+                                dev->error_condition |= 4;
                                 /* Make sure we use the sector size from the FDC. */
                                 dev->last_sector.id.n = fdc_get_read_track_sector(d86f_fdc).id.n;
                             }
 
-                            /* If the two ID's are identical, then we do not need to do anything regarding the sector size. */
+                            /* If the two ID's are identical, then we do not need to do
+                               anything regarding the sector size. */
                         }
                         dev->state++;
                     } else {
@@ -1576,7 +1594,8 @@ d86f_read_sector_data(int drive, int side)
                     data = d86f_handler[drive].read_data(drive, side, dev->data_find.bytes_obtained);
                 else {
 #ifdef HACK_FOR_DBASE_III
-                    if ((dev->last_sector.id.c == 39) && (dev->last_sector.id.h == 0) && (dev->last_sector.id.r == 5) && (dev->data_find.bytes_obtained >= 272))
+                    if ((dev->last_sector.id.c == 39) && (dev->last_sector.id.h == 0) &&
+                        (dev->last_sector.id.r == 5) && (dev->data_find.bytes_obtained >= 272))
                         data = (random_generate() & 0xff);
                     else
 #endif
@@ -1589,7 +1608,9 @@ d86f_read_sector_data(int drive, int side)
                 } else {
                     if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
                         if (dev->state != STATE_16_VERIFY_DATA) {
-                            read_status = fdc_data(d86f_fdc, data, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) - 1));
+                            read_status = fdc_data(d86f_fdc, data,
+                                                   dev->data_find.bytes_obtained ==
+                                                   (d86f_get_data_len(drive) - 1));
                             if (read_status == -1)
                                 dev->dma_over++;
                         }
@@ -1597,17 +1618,19 @@ d86f_read_sector_data(int drive, int side)
                 }
                 fdd_calccrc(data, &(dev->calc_crc));
             } else if (dev->data_find.bytes_obtained < crc_pos)
-                dev->track_crc.bytes[(dev->data_find.bytes_obtained - sector_len) ^ 1] = decodefm(drive, dev->last_word[side]);
+                dev->track_crc.bytes[(dev->data_find.bytes_obtained - sector_len) ^ 1] =
+                decodefm(drive, dev->last_word[side]);
             dev->data_find.bytes_obtained++;
 
             if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(d86f_fdc))) {
                 /* We've got the data. */
                 if ((dev->calc_crc.word != dev->track_crc.word) && (dev->state != STATE_02_READ_DATA)) {
-                    d86f_log("86F: Data CRC error: %04X != %04X (%08X)\n", dev->track_crc.word, dev->calc_crc.word, dev->last_sector.dword);
-                    dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-                    dev->error_condition                                                                     = 0;
-                    dev->state                                                                               = STATE_IDLE;
-                    fdc_finishread(d86f_fdc);
+                    d86f_log("86F: Data CRC error: %04X != %04X (%08X)\n", dev->track_crc.word,
+                             dev->calc_crc.word, dev->last_sector.dword);
+                    dev->data_find.sync_marks = dev->data_find.bits_obtained =
+                    dev->data_find.bytes_obtained = 0;
+                    dev->error_condition          = 0;
+                    dev->state                    = STATE_IDLE;
                     fdc_datacrcerror(d86f_fdc);
                 } else if ((dev->calc_crc.word != dev->track_crc.word) && (dev->state == STATE_02_READ_DATA)) {
                     dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
@@ -2146,7 +2169,8 @@ d86f_turbo_read(int drive, int side)
     } else {
         if (dev->turbo_pos < (128UL << dev->req_sector.id.n)) {
             if (dev->state != STATE_16_VERIFY_DATA) {
-                read_status = fdc_data(d86f_fdc, dat, dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
+                read_status = fdc_data(d86f_fdc, dat,
+                                       dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
                 if (read_status == -1)
                     dev->dma_over++;
             }
@@ -2163,7 +2187,6 @@ d86f_turbo_read(int drive, int side)
 #endif
             dev->error_condition = 0;
             dev->state           = STATE_IDLE;
-            fdc_finishread(d86f_fdc);
             fdc_datacrcerror(d86f_fdc);
         } else if ((flags & SECTOR_CRC_ERROR) && (dev->state == STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG

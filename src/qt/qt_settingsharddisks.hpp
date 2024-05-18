@@ -13,8 +13,12 @@ class SettingsHarddisks : public QWidget {
 public:
     explicit SettingsHarddisks(QWidget *parent = nullptr);
     ~SettingsHarddisks();
+    void reloadBusChannels();
 
     void save();
+
+signals:
+    void driveChannelChanged();
 
 private slots:
     void on_comboBoxChannel_currentIndexChanged(int index);
@@ -30,6 +34,7 @@ private slots:
 
 private:
     Ui::SettingsHarddisks *ui;
+    void                   enableCurrentlySelectedChannel();
     bool                   buschangeinprogress = false;
 };
 

@@ -72,7 +72,7 @@ fifo_write(uint8_t val, void *priv)
         fifo->overrun = 1;
     else {
         fifo->buf[fifo->end] = val;
-        fifo->end            = (fifo->end + 1) & 0x0f;
+        fifo->end            = (fifo->end + 1) % fifo->len;
 
         if (fifo->end == fifo->start)
             fifo->full = 1;
@@ -99,7 +99,7 @@ fifo_write_evt(uint8_t val, void *priv)
             fifo->d_overrun_evt(fifo->priv);
     } else {
         fifo->buf[fifo->end] = val;
-        fifo->end            = (fifo->end + 1) & 0x0f;
+        fifo->end            = (fifo->end + 1) % fifo->len;
 
         if (fifo->end == fifo->start) {
             fifo->d_full = (fifo->full != 1);
@@ -131,7 +131,7 @@ fifo_read(void *priv)
 
     if (!fifo->empty) {
         ret         = fifo->buf[fifo->start];
-        fifo->start = (fifo->start + 1) & 0x0f;
+        fifo->start = (fifo->start + 1) % fifo->len;
 
         fifo->full = 0;
 
@@ -160,7 +160,7 @@ fifo_read_evt(void *priv)
 
     if (!fifo->empty) {
         ret         = fifo->buf[fifo->start];
-        fifo->start = (fifo->start + 1) & 0x0f;
+        fifo->start = (fifo->start + 1) % fifo->len;
 
         fifo->d_full = (fifo->full != 0);
         fifo->full   = 0;

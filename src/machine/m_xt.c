@@ -339,7 +339,7 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.BIN",
+    ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.bin",
                            0x000fe000, 65536, 0);
     if (ret) {
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_F400.BIN",
@@ -637,6 +637,22 @@ machine_xt_pb8810_init(const machine_t *model)
         return ret;
 
     machine_xt_clone_init(model);
+
+    return ret;
+}
+
+int
+machine_xt_glabios_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.2.6_8X_012324.ROM",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_init_ex(model);
 
     return ret;
 }

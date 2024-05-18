@@ -778,11 +778,22 @@ s3_virge_recalctimings(svga_t *svga)
 
     svga->hdisp = svga->hdisp_old;
 
+    if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
+        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+        svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+    }
+
+    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
+        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+        if (!svga->scrblank && svga->attr_palette_enable)
+            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+    }
+
     if (svga->crtc[0x5d] & 0x01)
         svga->htotal += 0x100;
     if (svga->crtc[0x5d] & 0x02) {
         svga->hdisp_time += 0x100;
-        svga->hdisp += 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+        svga->hdisp += 0x100 * svga->dots_per_clock;
     }
     if (svga->crtc[0x5e] & 0x01)
         svga->vtotal += 0x400;
@@ -813,7 +824,29 @@ s3_virge_recalctimings(svga_t *svga)
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
     }
 
-    if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
+    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
+        /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1]/* +
+                            ((svga->crtc[3] >> 5) & 3) + 1*/;
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
+
+        svga->monitor->mon_overscan_y = 0;
+        svga->monitor->mon_overscan_x = 0;
+
+        /* Also make sure vertical blanking starts on display end. */
+        svga->vblankstart = svga->dispend;
+        video_force_resize_set_monitor(1, svga->monitor_index);
+    } else {
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
+
+        svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
+        svga->hblank_end_mask = 0x7f;
+        video_force_resize_set_monitor(1, svga->monitor_index);
+    }
+
+    /* ViRGE/GX2 and later does not use primary stream registers. */
+    if ((svga->crtc[0x67] & 0xc) != 0xc || virge->chip >= S3_VIRGEGX2) /*VGA mode*/
     {
         svga->ma_latch |= (virge->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
@@ -832,15 +865,21 @@ s3_virge_recalctimings(svga_t *svga)
                 case 15:
                     svga->render = svga_render_15bpp_highres;
                     if (virge->chip != S3_VIRGEVX && virge->chip < S3_VIRGEGX2) {
-                        svga->htotal >>= 1;
+                        // svga->htotal >>= 1;
+                        // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                            // svga->hblank_end_val = svga->htotal - 1;
                         svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
                     }
                     break;
                 case 16:
                     svga->render = svga_render_16bpp_highres;
                     if (virge->chip != S3_VIRGEVX && virge->chip < S3_VIRGEGX2) {
-                        svga->htotal >>= 1;
+                        // svga->htotal >>= 1;
+                        // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                            // svga->hblank_end_val = svga->htotal - 1;
                         svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
                     }
                     break;
                 case 24:
@@ -857,7 +896,24 @@ s3_virge_recalctimings(svga_t *svga)
             }
         }
         svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
+        svga->overlay.ena       = 0;
         s3_virge_log("VGA mode\n");
+        if (virge->chip >= S3_VIRGEGX2 && (svga->crtc[0x67] & 0xc) == 0xc) {
+            /* ViRGE/GX2 and later does not use primary stream registers. */
+            svga->overlay.x         = virge->streams.sec_x;
+            svga->overlay.y         = virge->streams.sec_y;
+            svga->overlay.cur_ysize = virge->streams.sec_h;
+
+            if (virge->streams.buffer_ctrl & 2)
+                svga->overlay.addr = virge->streams.sec_fb1;
+            else
+                svga->overlay.addr = virge->streams.sec_fb0;
+
+            svga->overlay.ena       = (svga->overlay.x >= 0) && !!(virge->streams.blend_ctrl & 0x20);
+            svga->overlay.v_acc     = virge->streams.dda_vert_accumulator;
+            svga->rowoffset         = virge->streams.pri_stride >> 3;
+            svga->vram_display_mask = virge->vram_mask;
+        }
     } else /*Streams mode*/
     {
         if (virge->streams.buffer_ctrl & 1)
@@ -882,16 +938,30 @@ s3_virge_recalctimings(svga_t *svga)
         svga->overlay.v_acc = virge->streams.dda_vert_accumulator;
         svga->rowoffset     = virge->streams.pri_stride >> 3;
 
+        if (virge->chip <= S3_VIRGEDX && svga->overlay.ena) {
+            svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
+        } else if (virge->chip == S3_VIRGEGX2 && svga->overlay.ena) {
+            /* 0x20 = Secondary Stream enabled */
+            /* 0x2000 = Primary Stream enabled */
+            svga->overlay.ena = !!(virge->streams.blend_ctrl & 0x20);
+        }
+
         switch ((virge->streams.pri_ctrl >> 24) & 0x7) {
             case 0: /*RGB-8 (CLUT)*/
                 svga->render = svga_render_8bpp_highres;
                 break;
             case 3: /*KRGB-16 (1.5.5.5)*/
-                svga->htotal >>= 1;
+                // svga->htotal >>= 1;
+                // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                    // svga->hblank_end_val = svga->htotal - 1;
+                // svga->dots_per_clock >>= 1;
                 svga->render = svga_render_15bpp_highres;
                 break;
             case 5: /*RGB-16 (5.6.5)*/
-                svga->htotal >>= 1;
+                // svga->htotal >>= 1;
+                // if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc))
+                    // svga->hblank_end_val = svga->htotal - 1;
+                // svga->dots_per_clock >>= 1;
                 svga->render = svga_render_16bpp_highres;
                 break;
             case 6: /*RGB-24 (8.8.8)*/
@@ -906,6 +976,31 @@ s3_virge_recalctimings(svga_t *svga)
         }
         svga->vram_display_mask = virge->vram_mask;
     }
+
+    svga->hoverride = 1;
+}
+
+static void
+s3_virge_update_buffer(virge_t *virge)
+{
+    svga_t *svga = &virge->svga;
+
+    if ((svga->crtc[0x67] & 0xc) != 0xc)
+        return;
+
+    if (virge->chip < S3_VIRGEGX2) {
+        if (virge->streams.buffer_ctrl & 1)
+            svga->ma_latch = virge->streams.pri_fb1 >> 2;
+        else
+            svga->ma_latch = virge->streams.pri_fb0 >> 2;
+    }
+
+    if (virge->streams.buffer_ctrl & 2)
+        svga->overlay.addr = virge->streams.sec_fb1;
+    else
+        svga->overlay.addr = virge->streams.sec_fb0;
+
+    svga->rowoffset = virge->streams.pri_stride >> 3;
 }
 
 static void
@@ -1921,40 +2016,40 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 break;
             case 0x81a0:
                 virge->streams.blend_ctrl = val;
+                svga_recalctimings(svga);
                 break;
             case 0x81c0:
                 virge->streams.pri_fb0 = val & 0x7fffff;
-                svga_recalctimings(svga);
+                s3_virge_update_buffer(virge);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81c4:
                 virge->streams.pri_fb1 = val & 0x7fffff;
-                svga_recalctimings(svga);
+                s3_virge_update_buffer(virge);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81c8:
                 virge->streams.pri_stride = val & 0xfff;
-                svga_recalctimings(svga);
+                s3_virge_update_buffer(virge);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81cc:
                 virge->streams.buffer_ctrl = val;
-                svga_recalctimings(svga);
+                s3_virge_update_buffer(virge);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d0:
                 virge->streams.sec_fb0 = val;
-                svga_recalctimings(svga);
+                s3_virge_update_buffer(virge);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d4:
                 virge->streams.sec_fb1 = val;
-                svga_recalctimings(svga);
+                s3_virge_update_buffer(virge);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d8:
                 virge->streams.sec_stride = val;
-                svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81dc:

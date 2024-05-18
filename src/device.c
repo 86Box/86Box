@@ -51,6 +51,8 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -62,6 +64,7 @@ static device_t        *devices[DEVICE_MAX];
 static void            *device_priv[DEVICE_MAX];
 static device_context_t device_current;
 static device_context_t device_prev;
+static void            *device_common_priv;
 
 #ifdef ENABLE_DEVICE_LOG
 int device_do_log = ENABLE_DEVICE_LOG;
@@ -210,6 +213,16 @@ device_add(const device_t *dev)
 }
 
 void *
+device_add_linked(const device_t *dev, void *priv)
+{
+    void *ret;
+    device_common_priv = priv;
+    ret = device_add_common(dev, dev, NULL, NULL, 0);
+    device_common_priv = NULL;
+    return ret;
+}
+
+void *
 device_add_parameters(const device_t *dev, void *params)
 {
     return device_add_common(dev, dev, NULL, params, 0);
@@ -305,6 +318,12 @@ device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *pr
     device_add_common(dev, cd, priv, params, inst);
 }
 
+void *
+device_get_common_priv(void)
+{
+    return device_common_priv;
+}
+
 void
 device_close_all(void)
 {
@@ -328,6 +347,12 @@ device_reset_all(uint32_t match_flags)
                 devices[c]->reset(device_priv[c]);
         }
     }
+
+#ifdef UNCOMMENT_LATER
+    /* TODO: Actually convert the LPT devices to device_t's. */
+    if ((match_flags == DEVICE_ALL) || (match_flags == DEVICE_PCI))
+        lpt_reset();
+#endif
 }
 
 void *
@@ -450,8 +475,7 @@ device_has_config(const device_t *dev)
     config = dev->config;
 
     while (config->type != -1) {
-        if (config->type != CONFIG_MAC)
-            c++;
+        c++;
         config++;
     }
 
@@ -848,4 +872,10 @@ machine_get_config_string(char *s)
     }
 
     return NULL;
+}
+
+const device_t*
+device_context_get_device(void)
+{
+    return device_current.dev;
 }
