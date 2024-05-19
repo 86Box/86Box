@@ -458,8 +458,8 @@ static uint8_t
 dma_read(uint16_t addr, UNUSED(void *priv))
 {
     int     channel = (addr >> 1) & 3;
-    uint8_t temp;
-    int count;
+    int     count;
+    uint8_t ret = (dmaregs[0][addr & 0xf]);
 
     switch (addr & 0xf) {
         case 0:
@@ -468,8 +468,10 @@ dma_read(uint16_t addr, UNUSED(void *priv))
         case 6: /*Address registers*/
             dma_wp[0] ^= 1;
             if (dma_wp[0])
-                return (dma[channel].ac & 0xff);
-            return ((dma[channel].ac >> 8) & 0xff);
+                ret = (dma[channel].ac & 0xff);
+            else
+                ret = ((dma[channel].ac >> 8) & 0xff);
+            break;
 
         case 1:
         case 3:
@@ -477,35 +479,38 @@ dma_read(uint16_t addr, UNUSED(void *priv))
         case 7: /*Count registers*/
             dma_wp[0] ^= 1;
             count = dma[channel].cc/* + 1*/;
-            // if (count > dma[channel].cb)
-                // count = 0x0000;
             if (dma_wp[0])
-                temp = count & 0xff;
+                ret = count & 0xff;
             else
-                temp = count >> 8;
-            return temp;
+                ret = count >> 8;
+            break;
 
         case 8: /*Status register*/
-            temp = dma_stat_rq_pc & 0xf;
-            temp <<= 4;
-            temp |= dma_stat & 0xf;
+            ret = dma_stat_rq_pc & 0xf;
+            ret <<= 4;
+            ret |= dma_stat & 0xf;
             dma_stat &= ~0xf;
-            return temp;
+            break;
 
         case 0xd: /*Temporary register*/
-            return 0;
+            ret = 0x00;
+            break;
 
         default:
             break;
     }
 
-    return (dmaregs[0][addr & 0xf]);
+    dma_log("DMA: [R] %04X = %02X\n", addr, ret);
+
+    return ret;
 }
 
 static void
 dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     int channel = (addr >> 1) & 3;
+
+    dma_log("DMA: [W] %04X = %02X\n", addr, val);
 
     dmaregs[0][addr & 0xf] = val;
     switch (addr & 0xf) {
@@ -537,7 +542,7 @@ dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
             dma_command[0] = val;
 #ifdef ENABLE_DMA_LOG
             if (val & 0x01)
-                pclog("[%08X:%04X] Memory-to-memory enable\n", CS, cpu_state.pc);
+                dma_log("[%08X:%04X] Memory-to-memory enable\n", CS, cpu_state.pc);
 #endif
             return;
 
@@ -546,9 +551,7 @@ dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
             if (val & 4) {
                 dma_stat_rq_pc |= (1 << channel);
                 if ((channel == 0) && (dma_command[0] & 0x01)) {
-#ifdef ENABLE_DMA_LOG
-                    pclog("Memory to memory transfer start\n");
-#endif
+                    dma_log("Memory to memory transfer start\n");
                     dma_mem_to_mem_transfer();
                 } else
                     dma_block_transfer(channel);
@@ -828,9 +831,7 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
             break;
     }
 
-#ifdef ENABLE_DMA_LOG
-    pclog("dma16_read(%08X) = %02X\n", port, ret);
-#endif
+    dma_log("dma16_read(%08X) = %02X\n", port, ret);
 
     return ret;
 }
@@ -839,9 +840,9 @@ static void
 dma16_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     int channel = ((addr >> 2) & 3) + 4;
-#ifdef ENABLE_DMA_LOG
-    pclog("dma16_write(%08X, %02X)\n", addr, val);
-#endif
+
+    dma_log("dma16_write(%08X, %02X)\n", addr, val);
+
     addr >>= 1;
 
     dmaregs[1][addr & 0xf] = val;
@@ -944,6 +945,8 @@ dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     uint8_t convert[8] = CHANNELS;
 
+    dma_log("DMA: [W] %04X = %02X\n", addr, val);
+
 #ifdef USE_DYNAREC
     if ((addr == 0x84) && cpu_use_dynarec)
         update_tsc();
@@ -1019,6 +1022,8 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
         if (addr < 8)
             ret = dma[addr].page_l;
     }
+
+    dma_log("DMA: [R] %04X = %02X\n", addr, ret);
 
     return ret;
 }
