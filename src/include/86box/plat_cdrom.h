@@ -50,6 +50,7 @@ typedef struct SMSF {
 } TMSF;
 
 extern int      plat_cdrom_is_track_audio(uint32_t sector);
+extern int      plat_cdrom_is_track_pre(uint32_t sector);
 extern uint32_t plat_cdrom_get_last_block(void);
 extern void     plat_cdrom_get_audio_tracks(int *st_track, int *end, TMSF *lead_out);
 extern int      plat_cdrom_get_audio_track_info(int end, int track, int *track_num, TMSF *start, uint8_t *attr);

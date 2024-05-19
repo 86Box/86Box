@@ -97,6 +97,9 @@ image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
     subc->rel_m = rel_pos.min;
     subc->rel_s = rel_pos.sec;
     subc->rel_f = rel_pos.fr;
+
+    cdrom_image_log("image_get_subchannel(): %02X, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
+                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f);
 }
 
 static int

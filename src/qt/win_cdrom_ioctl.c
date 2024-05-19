@@ -74,6 +74,17 @@ plat_cdrom_open(void)
 
     handle = CreateFileW((LPCWSTR)ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
     win_cdrom_ioctl_log("handle=%p, error=%x\n", handle, (unsigned int) GetLastError());
+
+    return (handle != INVALID_HANDLE_VALUE);
+}
+
+static int
+plat_cdrom_load(void)
+{
+    plat_cdrom_close();
+
+    handle = CreateFileW((LPCWSTR)ioctl_path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    win_cdrom_ioctl_log("handle=%p, error=%x\n", handle, (unsigned int) GetLastError());
     if (handle != INVALID_HANDLE_VALUE) {
         long size;
         DeviceIoControl(handle, IOCTL_STORAGE_LOAD_MEDIA, NULL, 0, NULL, 0, (LPDWORD)&size, NULL);
@@ -112,13 +123,43 @@ plat_cdrom_is_track_audio(uint32_t sector)
                             cur_toc.TrackData[c].TrackNumber, c,
                             cur_toc.TrackData[c].Control, track_addr, sector);
         if ((cur_toc.TrackData[c].TrackNumber >= cur_toc.FirstTrack) && (cur_toc.TrackData[c].TrackNumber <= cur_toc.LastTrack) &&
-            (sector >= track_addr) && (sector <= next_track_addr)) {
+            (sector >= track_addr) && (sector < next_track_addr)) {
             control = cur_toc.TrackData[c].Control;
             break;
         }
     }
 
     const int ret = !(control & 0x04);
+
+    win_cdrom_ioctl_log("plat_cdrom_is_track_audio(%08X): %i\n", sector, ret);
+
+    return ret;
+}
+
+int
+plat_cdrom_is_track_pre(uint32_t sector)
+{
+    int       control         = 0;
+    uint32_t  track_addr      = 0;
+    uint32_t  next_track_addr = 0;
+
+    plat_cdrom_read_toc();
+
+    for (int c = 0; cur_toc.TrackData[c].TrackNumber != 0xaa; c++) {
+        track_addr = MSFtoLBA(cur_toc.TrackData[c].Address[1], cur_toc.TrackData[c].Address[2], cur_toc.TrackData[c].Address[3]) - 150;
+        next_track_addr = MSFtoLBA(cur_toc.TrackData[c + 1].Address[1], cur_toc.TrackData[c + 1].Address[2], cur_toc.TrackData[c + 1].Address[3]) - 150;
+        win_cdrom_ioctl_log("F: %i, L: %i, C: %i (%i), c: %02X, A: %08X, S: %08X\n",
+                            cur_toc.FirstTrack, cur_toc.LastTrack,
+                            cur_toc.TrackData[c].TrackNumber, c,
+                            cur_toc.TrackData[c].Control, track_addr, sector);
+        if ((cur_toc.TrackData[c].TrackNumber >= cur_toc.FirstTrack) && (cur_toc.TrackData[c].TrackNumber <= cur_toc.LastTrack) &&
+            (sector >= track_addr) && (sector < next_track_addr)) {
+            control = cur_toc.TrackData[c].Control;
+            break;
+            }
+    }
+
+    const int ret = (control & 0x01);
 
     win_cdrom_ioctl_log("plat_cdrom_is_track_audio(%08X): %i\n", sector, ret);
 
@@ -136,14 +177,16 @@ plat_cdrom_get_track_start(uint32_t sector, uint8_t *attr, uint8_t *track)
     for (int c = 0; cur_toc.TrackData[c].TrackNumber != 0xaa; c++) {
         track_addr = MSFtoLBA(cur_toc.TrackData[c].Address[1], cur_toc.TrackData[c].Address[2], cur_toc.TrackData[c].Address[3]) - 150;
         next_track_addr = MSFtoLBA(cur_toc.TrackData[c + 1].Address[1], cur_toc.TrackData[c + 1].Address[2], cur_toc.TrackData[c + 1].Address[3]) - 150;
-        win_cdrom_ioctl_log("F: %i, L: %i, C: %i (%i), c: %02X, A: %08X, S: %08X\n",
+        win_cdrom_ioctl_log("F: %i, L: %i, C: %i (%i), c: %02X, a: %02X, A: %08X, S: %08X\n",
                             cur_toc.FirstTrack, cur_toc.LastTrack,
                             cur_toc.TrackData[c].TrackNumber, c,
-                            cur_toc.TrackData[c].Control, track_addr, sector);
+                            cur_toc.TrackData[c].Control, cur_toc.TrackData[c].Adr,
+                            track_addr, sector);
         if ((cur_toc.TrackData[c].TrackNumber >= cur_toc.FirstTrack) && (cur_toc.TrackData[c].TrackNumber <= cur_toc.LastTrack) &&
-            (sector >= track_addr) && (sector <= next_track_addr)) {
+            (sector >= track_addr) && (sector < next_track_addr)) {
             *track = cur_toc.TrackData[c].TrackNumber;
             *attr  = cur_toc.TrackData[c].Control;
+            *attr |= ((cur_toc.TrackData[c].Adr << 4) & 0xf0);
             break;
         }
     }
@@ -239,6 +282,7 @@ plat_cdrom_get_audio_track_info(UNUSED(int end), int track, int *track_num, TMSF
 
     *track_num = cur_toc.TrackData[track - 1].TrackNumber;
     *attr      = cur_toc.TrackData[track - 1].Control;
+    *attr     |= ((cur_toc.TrackData[track - 1].Adr << 4) & 0xf0);
 
     win_cdrom_ioctl_log("plat_cdrom_get_audio_track_info(%02i): %02i:%02i:%02i, %02i, %02X\n",
                         track, start->min, start->sec, start->fr, *track_num, *attr);
@@ -265,6 +309,7 @@ plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track,
 
     *track = sub.CurrentPosition.TrackNumber;
     *attr = sub.CurrentPosition.Control;
+    *attr |= ((sub.CurrentPosition.ADR << 4) & 0xf0);
     *index = sub.CurrentPosition.IndexNumber;
 
     rel_pos->min = sub.CurrentPosition.TrackRelativeAddress[1];
@@ -303,15 +348,7 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
 
     plat_cdrom_open();
 
-    if (!raw) {
-        win_cdrom_ioctl_log("Cooked\n");
-        /* Cooked */
-        int success  = 0;
-        DWORD newPos = SetFilePointer(handle, sector * COOKED_SECTOR_SIZE, 0, FILE_BEGIN);
-        if (newPos != 0xFFFFFFFF)
-            success = ReadFile(handle, buffer, buflen, (LPDWORD)&size, NULL);
-        status  = (success != 0);
-    } else {
+    if (raw) {
         win_cdrom_ioctl_log("Raw\n");
         /* Raw */
         RAW_READ_INFO in;
@@ -321,9 +358,17 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
         in.TrackMode           = CDDA;
         status = DeviceIoControl(handle, IOCTL_CDROM_RAW_READ, &in, sizeof(in),
                                  buffer, buflen, (LPDWORD)&size, NULL);
+    } else {
+        win_cdrom_ioctl_log("Cooked\n");
+        /* Cooked */
+        int success  = 0;
+        DWORD newPos = SetFilePointer(handle, sector * COOKED_SECTOR_SIZE, 0, FILE_BEGIN);
+        if (newPos != 0xFFFFFFFF)
+            success = ReadFile(handle, buffer, buflen, (LPDWORD)&size, NULL);
+        status  = (success != 0);
     }
     plat_cdrom_close();
-    win_cdrom_ioctl_log("ReadSector status=%d, sector=%d, size=%d.\n", status, sector, size);
+    win_cdrom_ioctl_log("ReadSector status=%d, sector=%d, size=%" PRId64 ".\n", status, sector, (long long) size);
 
     return (size == buflen) && (status > 0);
 }
@@ -361,6 +406,6 @@ plat_cdrom_set_drive(const char *drv)
 
     toc_valid = 0;
 
-    plat_cdrom_open();
+    plat_cdrom_load();
     return 1;
 }

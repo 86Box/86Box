@@ -82,19 +82,12 @@ ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
     TMSF      abs_pos;
 
     if ((dev->cd_status == CD_STATUS_PLAYING) || (dev->cd_status == CD_STATUS_PAUSED)) {
-        uint32_t dat = lba + 150;
-        abs_pos.fr   = dat % 75;
-        dat         /= 75;
-        abs_pos.sec  = dat % 60;
-        dat         /= 60;
-        abs_pos.min  = dat;
+        const uint32_t trk = plat_cdrom_get_track_start(lba, &subc->attr, &subc->track);
 
-        dat          = lba - plat_cdrom_get_track_start(lba, &subc->attr, &subc->track);
-        rel_pos.fr   = dat % 75;
-        dat         /= 75;
-        rel_pos.sec  = dat % 60;
-        dat         /= 60;
-        rel_pos.min  = dat;
+        FRAMES_TO_MSF(lba + 150, &abs_pos.min, &abs_pos.sec, &abs_pos.fr);
+
+        /* Absolute position should be adjusted by 150, not the relative ones. */
+        FRAMES_TO_MSF(lba - trk, &rel_pos.min, &rel_pos.sec, &rel_pos.fr);
 
         subc->index  = 1;
     } else
@@ -109,12 +102,12 @@ ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
     subc->rel_s = rel_pos.sec;
     subc->rel_f = rel_pos.fr;
 
-    cdrom_ioctl_log("ioctl_get_subchannel(): %02i, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
+    cdrom_ioctl_log("ioctl_get_subchannel(): %02X, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
                     subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f);
 }
 
 static int
-cdrom_ioctl_get_capacity(UNUSED(cdrom_t *dev))
+ioctl_get_capacity(UNUSED(cdrom_t *dev))
 {
     int ret;
 
@@ -145,9 +138,9 @@ ioctl_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
 }
 
 static int
-ioctl_is_track_pre(UNUSED(cdrom_t *dev), UNUSED(uint32_t lba))
+ioctl_is_track_pre(UNUSED(cdrom_t *dev), uint32_t lba)
 {
-    return 0;
+    return plat_cdrom_is_track_pre(lba);
 }
 
 static int
@@ -193,11 +186,16 @@ ioctl_track_type(cdrom_t *dev, uint32_t lba)
 static int
 ioctl_ext_medium_changed(cdrom_t *dev)
 {
-    const int ret = plat_cdrom_ext_medium_changed();
+    int ret;
+
+    if ((dev->cd_status == CD_STATUS_PLAYING) || (dev->cd_status == CD_STATUS_PAUSED))
+        ret = 0;
+    else
+        ret = plat_cdrom_ext_medium_changed();
 
     if (ret == 1) {
         dev->cd_status      = CD_STATUS_STOPPED;
-        dev->cdrom_capacity = cdrom_ioctl_get_capacity(dev);
+        dev->cdrom_capacity = ioctl_get_capacity(dev);
     } else if (ret == -1)
         dev->cd_status      = CD_STATUS_EMPTY;
 
@@ -260,7 +258,7 @@ cdrom_ioctl_open(cdrom_t *dev, const char *drv)
     dev->is_dir         = 0;
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
-    dev->cdrom_capacity = cdrom_ioctl_get_capacity(dev);
+    dev->cdrom_capacity = ioctl_get_capacity(dev);
     cdrom_ioctl_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n",
                     dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
 
