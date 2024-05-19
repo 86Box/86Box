@@ -56,7 +56,7 @@ cdrom_ioctl_log(const char *fmt, ...)
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 static void
-cdrom_ioctl_get_tracks(UNUSED(cdrom_t *dev), int *first, int *last)
+ioctl_get_tracks(UNUSED(cdrom_t *dev), int *first, int *last)
 {
     TMSF        tmsf;
 
@@ -64,7 +64,7 @@ cdrom_ioctl_get_tracks(UNUSED(cdrom_t *dev), int *first, int *last)
 }
 
 static void
-cdrom_ioctl_get_track_info(UNUSED(cdrom_t *dev), uint32_t track, int end, track_info_t *ti)
+ioctl_get_track_info(UNUSED(cdrom_t *dev), uint32_t track, int end, track_info_t *ti)
 {
     TMSF      tmsf;
 
@@ -76,13 +76,30 @@ cdrom_ioctl_get_track_info(UNUSED(cdrom_t *dev), uint32_t track, int end, track_
 }
 
 static void
-cdrom_ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
+ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
 {
     TMSF      rel_pos;
     TMSF      abs_pos;
 
-    plat_cdrom_get_audio_sub(lba, &subc->attr, &subc->track, &subc->index,
-                      &rel_pos, &abs_pos);
+    if ((dev->cd_status == CD_STATUS_PLAYING) || (dev->cd_status == CD_STATUS_PAUSED)) {
+        uint32_t dat = lba + 150;
+        abs_pos.fr   = dat % 75;
+        dat         /= 75;
+        abs_pos.sec  = dat % 60;
+        dat         /= 60;
+        abs_pos.min  = dat;
+
+        dat          = lba - plat_cdrom_get_track_start(lba, &subc->attr, &subc->track);
+        rel_pos.fr   = dat % 75;
+        dat         /= 75;
+        rel_pos.sec  = dat % 60;
+        dat         /= 60;
+        rel_pos.min  = dat;
+
+        subc->index  = 1;
+    } else
+        plat_cdrom_get_audio_sub(lba, &subc->attr, &subc->track, &subc->index,
+                                 &rel_pos, &abs_pos);
 
     subc->abs_m = abs_pos.min;
     subc->abs_s = abs_pos.sec;
@@ -91,6 +108,9 @@ cdrom_ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *sub
     subc->rel_m = rel_pos.min;
     subc->rel_s = rel_pos.sec;
     subc->rel_f = rel_pos.fr;
+
+    cdrom_ioctl_log("ioctl_get_subchannel(): %02i, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
+                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f);
 }
 
 static int
@@ -99,20 +119,16 @@ cdrom_ioctl_get_capacity(UNUSED(cdrom_t *dev))
     int ret;
 
     ret = plat_cdrom_get_last_block();
-    pclog("GetCapacity=%x.\n", ret);
+    cdrom_ioctl_log("GetCapacity=%x.\n", ret);
     return ret;
 }
 
 static int
-cdrom_ioctl_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
+ioctl_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
 {
-    uint8_t   attr;
-    TMSF      tmsf;
     int       m;
     int       s;
     int       f;
-    int       number;
-    int       track;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -129,27 +145,30 @@ cdrom_ioctl_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
 }
 
 static int
-cdrom_ioctl_is_track_pre(UNUSED(cdrom_t *dev), UNUSED(uint32_t lba))
+ioctl_is_track_pre(UNUSED(cdrom_t *dev), UNUSED(uint32_t lba))
 {
     return 0;
 }
 
 static int
-cdrom_ioctl_sector_size(UNUSED(cdrom_t *dev), uint32_t lba)
+ioctl_sector_size(UNUSED(cdrom_t *dev), uint32_t lba)
 {
-    pclog("LBA=%x.\n", lba);
+    cdrom_ioctl_log("LBA=%x.\n", lba);
     return plat_cdrom_get_sector_size(lba);
 }
 
 static int
-cdrom_ioctl_read_sector(UNUSED(cdrom_t *dev), int type, uint8_t *b, uint32_t lba)
+ioctl_read_sector(UNUSED(cdrom_t *dev), int type, uint8_t *b, uint32_t lba)
 {
     switch (type) {
         case CD_READ_DATA:
+            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Data.\n");
             return plat_cdrom_read_sector(b, 0, lba);
         case CD_READ_AUDIO:
+            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Audio.\n");
             return plat_cdrom_read_sector(b, 1, lba);
         case CD_READ_RAW:
+            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Raw.\n");
             return plat_cdrom_read_sector(b, 1, lba);
         default:
             cdrom_ioctl_log("cdrom_ioctl_read_sector(): Unknown CD read type.\n");
@@ -159,16 +178,34 @@ cdrom_ioctl_read_sector(UNUSED(cdrom_t *dev), int type, uint8_t *b, uint32_t lba
 }
 
 static int
-cdrom_ioctl_track_type(cdrom_t *dev, uint32_t lba)
+ioctl_track_type(cdrom_t *dev, uint32_t lba)
 {
-    if (cdrom_ioctl_is_track_audio(dev, lba, 0))
-        return CD_TRACK_AUDIO;
+    int ret = 0;
 
-    return 0;
+    if (ioctl_is_track_audio(dev, lba, 0))
+        ret = CD_TRACK_AUDIO;
+
+    cdrom_ioctl_log("cdrom_ioctl_track_type(): %i\n", ret);
+
+    return ret;
+}
+
+static int
+ioctl_ext_medium_changed(cdrom_t *dev)
+{
+    const int ret = plat_cdrom_ext_medium_changed();
+
+    if (ret == 1) {
+        dev->cd_status      = CD_STATUS_STOPPED;
+        dev->cdrom_capacity = cdrom_ioctl_get_capacity(dev);
+    } else if (ret == -1)
+        dev->cd_status      = CD_STATUS_EMPTY;
+
+    return ret;
 }
 
 static void
-cdrom_ioctl_exit(cdrom_t *dev)
+ioctl_exit(cdrom_t *dev)
 {
     cdrom_ioctl_log("CDROM: ioctl_exit(%s)\n", dev->image_path);
     dev->cd_status = CD_STATUS_EMPTY;
@@ -179,24 +216,16 @@ cdrom_ioctl_exit(cdrom_t *dev)
 }
 
 static const cdrom_ops_t cdrom_ioctl_ops = {
-    cdrom_ioctl_get_tracks,
-    cdrom_ioctl_get_track_info,
-    cdrom_ioctl_get_subchannel,
-    cdrom_ioctl_is_track_pre,
-    cdrom_ioctl_sector_size,
-    cdrom_ioctl_read_sector,
-    cdrom_ioctl_track_type,
-    cdrom_ioctl_exit
+    ioctl_get_tracks,
+    ioctl_get_track_info,
+    ioctl_get_subchannel,
+    ioctl_is_track_pre,
+    ioctl_sector_size,
+    ioctl_read_sector,
+    ioctl_track_type,
+    ioctl_ext_medium_changed,
+    ioctl_exit
 };
-
-void
-cdrom_ioctl_close(cdrom_t *dev)
-{
-    cdrom_ioctl_log("CDROM: ioctl_close(%s)\n", dev->image_path);
-
-    if (dev && dev->ops && dev->ops->exit)
-        dev->ops->exit(dev);
-}
 
 static int
 cdrom_ioctl_open_abort(cdrom_t *dev)
@@ -208,17 +237,21 @@ cdrom_ioctl_open_abort(cdrom_t *dev)
     return 1;
 }
 
-void
-cdrom_ioctl_eject(void)
-{
-    plat_cdrom_eject();
-}
-
 int
-cdrom_ioctl_open(cdrom_t *dev, int drive)
+cdrom_ioctl_open(cdrom_t *dev, const char *drv)
 {
+    const char *actual_drv = &(drv[8]);
+
+    /* Make sure to not STRCPY if the two are pointing
+   at the same place. */
+    if (drv != dev->image_path)
+        strcpy(dev->image_path, drv);
+
     /* Open the image. */
-    int i = plat_cdrom_set_drive(drive);
+    if (strstr(drv, "ioctl://") != drv)
+        return cdrom_ioctl_open_abort(dev);
+    cdrom_ioctl_log("actual_drv = %s\n", actual_drv);
+    int i = plat_cdrom_set_drive(actual_drv);
     if (!i)
         return cdrom_ioctl_open_abort(dev);
 
@@ -228,11 +261,21 @@ cdrom_ioctl_open(cdrom_t *dev, int drive)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
     dev->cdrom_capacity = cdrom_ioctl_get_capacity(dev);
-    pclog("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
+    cdrom_ioctl_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n",
+                    dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
 
     /* Attach this handler to the drive. */
     dev->ops = &cdrom_ioctl_ops;
 
     return 0;
+}
+
+void
+cdrom_ioctl_close(cdrom_t *dev)
+{
+    cdrom_ioctl_log("CDROM: ioctl_close(%s)\n", dev->image_path);
+
+    if (dev && dev->ops && dev->ops->exit)
+        dev->ops->exit(dev);
 }
 

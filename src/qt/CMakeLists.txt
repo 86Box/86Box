@@ -225,6 +225,10 @@ else()
     target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
 endif()
 
+if(WIN32)
+    target_sources(plat PRIVATE win_cdrom_ioctl.c)
+endif()
+
 if (APPLE)
     target_sources(ui PRIVATE macos_event_filter.mm)
     if(MOLTENVK)

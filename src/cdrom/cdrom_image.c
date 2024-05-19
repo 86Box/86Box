@@ -217,6 +217,12 @@ image_track_type(cdrom_t *dev, uint32_t lba)
     return 0;
 }
 
+static int
+image_ext_medium_changed(cdrom_t *dev)
+{
+    return 0;
+}
+
 static void
 image_exit(cdrom_t *dev)
 {
@@ -241,6 +247,7 @@ static const cdrom_ops_t cdrom_image_ops = {
     image_sector_size,
     image_read_sector,
     image_track_type,
+    image_ext_medium_changed,
     image_exit
 };
 

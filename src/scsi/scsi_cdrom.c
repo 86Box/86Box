@@ -1557,6 +1557,10 @@ static int
 scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 {
     int ready = 0;
+    int ext_medium_changed = 0;
+
+    if (dev->drv && dev->drv->ops && dev->drv->ops->ext_medium_changed)
+        ext_medium_changed = dev->drv->ops->ext_medium_changed(dev->drv);
 
     if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
         scsi_cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
@@ -1590,10 +1594,10 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
         goto skip_ready_check;
     }
 
-    if (dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED)
+    if ((dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED) || (ext_medium_changed == 1))
         scsi_cdrom_insert((void *) dev);
 
-    ready = (dev->drv->cd_status != CD_STATUS_EMPTY);
+    ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
 
 skip_ready_check:
     /* If the drive is not ready, there is no reason to keep the

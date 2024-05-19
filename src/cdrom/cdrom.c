@@ -1971,9 +1971,11 @@ cdrom_hard_reset(void)
                     dev->image_path[strlen(dev->image_path) - 1] = '/';
 #endif
 
-                cdrom_image_open(dev, dev->image_path);
-            } else if (dev->host_drive == 201)
-                cdrom_ioctl_open(dev, dev->drive);
+                if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
+                    cdrom_ioctl_open(dev, dev->image_path);
+                else
+                    cdrom_image_open(dev, dev->image_path);
+            }
         }
     }
 
@@ -2026,10 +2028,8 @@ cdrom_eject(uint8_t id)
         return;
     }
 
-    if (dev->host_drive == 200)
+    if (dev->host_drive >= 200)
         strcpy(dev->prev_image_path, dev->image_path);
-    else if (dev->host_drive == 201)
-        cdrom_ioctl_eject();
 
     dev->prev_host_drive = dev->host_drive + (dev->host ? 1 : 0);
     dev->host_drive      = 0;
@@ -2078,17 +2078,17 @@ cdrom_reload(uint8_t id)
         }
 #endif
 
-        if (dev->prev_host_drive > 200)
-            cdrom_ioctl_open(dev, dev->drive);
+        if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
+            cdrom_ioctl_open(dev, dev->image_path);
         else
             cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);
 
-        if ((strlen(dev->image_path) == 0) && !dev->drive)
+        if (strlen(dev->image_path) == 0)
             dev->host_drive = 0;
         else
-            dev->host_drive = 200 + (dev->host ? 1 : 0);
+            dev->host_drive = 200;
     }
 
     plat_cdrom_ui_update(id, 1);
