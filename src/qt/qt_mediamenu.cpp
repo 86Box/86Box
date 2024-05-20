@@ -478,7 +478,6 @@ MediaMenu::cdromMount(int i, const QString &filename)
 {
     QByteArray fn = filename.toUtf8().data();
 
-    cdrom[i].prev_host_drive = cdrom[i].host_drive;
     strcpy(cdrom[i].prev_image_path, cdrom[i].image_path);
     if (cdrom[i].ops && cdrom[i].ops->exit)
         cdrom[i].ops->exit(&(cdrom[i]));
@@ -499,9 +498,8 @@ MediaMenu::cdromMount(int i, const QString &filename)
     /* Signal media change to the emulated machine. */
     if (cdrom[i].insert)
         cdrom[i].insert(cdrom[i].priv);
-    cdrom[i].host_drive = (strlen(cdrom[i].image_path) == 0) ? 0 : 200;
 
-    if (cdrom[i].host_drive >= 200)
+    if (strlen(cdrom[i].image_path) > 0)
         ui_sb_update_icon_state(SB_CDROM | i, 0);
     else
         ui_sb_update_icon_state(SB_CDROM | i, 1);
@@ -557,7 +555,7 @@ MediaMenu::cdromUpdateUi(int i)
 {
     cdrom_t *drv = &cdrom[i];
 
-    if (drv->host_drive == 0) {
+    if (strlen(cdrom[i].image_path) == 0) {
         mhm.addImageToHistory(i, ui::MediaType::Optical, drv->prev_image_path, QString());
         ui_sb_update_icon_state(SB_CDROM | i, 1);
     } else {

@@ -241,8 +241,6 @@ typedef struct cdrom {
     uint32_t cd_end;
     uint32_t type;
 
-    int host_drive;
-    int prev_host_drive;
     int cd_buflen;
     int audio_op;
     int audio_muted_soft;
