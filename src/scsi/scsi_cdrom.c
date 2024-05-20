@@ -1557,6 +1557,10 @@ static int
 scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 {
     int ready = 0;
+    int ext_medium_changed = 0;
+
+    if (dev->drv && dev->drv->ops && dev->drv->ops->ext_medium_changed)
+        ext_medium_changed = dev->drv->ops->ext_medium_changed(dev->drv);
 
     if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
         scsi_cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
@@ -1590,10 +1594,10 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
         goto skip_ready_check;
     }
 
-    if (dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED)
+    if ((dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED) || (ext_medium_changed == 1))
         scsi_cdrom_insert((void *) dev);
 
-    ready = (dev->drv->cd_status != CD_STATUS_EMPTY);
+    ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
 
 skip_ready_check:
     /* If the drive is not ready, there is no reason to keep the
@@ -1883,7 +1887,7 @@ begin:
         case GPCMD_AUDIO_SCAN:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 
-            if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+            if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                 scsi_cdrom_illegal_mode(dev);
                 break;
             }
@@ -2559,7 +2563,7 @@ begin:
                 case CDROM_TYPE_TOSHIBA_XM5701TA_3136:
                 case CDROM_TYPE_TOSHIBA_SDM1401_1008: /*GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }
@@ -2587,7 +2591,7 @@ begin:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_AUDIO_TRACK_SEARCH_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }
@@ -2666,7 +2670,7 @@ begin:
                 case CDROM_TYPE_TOSHIBA_XM5701TA_3136:
                 case CDROM_TYPE_TOSHIBA_SDM1401_1008: /*GPCMD_PLAY_AUDIO_TOSHIBA*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }
@@ -2693,7 +2697,7 @@ begin:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_PLAY_AUDIO_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }
@@ -2761,7 +2765,7 @@ begin:
                     break;
             }
 
-            if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+            if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                 scsi_cdrom_illegal_mode(dev);
                 break;
             }
@@ -2878,7 +2882,7 @@ begin:
                     }
                     pos = cdb[4];
 
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }
@@ -3592,7 +3596,7 @@ atapi_out:
                     break;
                 case CDROM_TYPE_PIONEER_DRM604X_2403: /*GPCMD_AUDIO_TRACK_SEARCH_PIONEER*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }
@@ -3642,7 +3646,7 @@ atapi_out:
                     break;
                 case CDROM_TYPE_PIONEER_DRM604X_2403: /*GPCMD_PLAY_AUDIO_PIONEER*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                    if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
                         scsi_cdrom_illegal_mode(dev);
                         break;
                     }

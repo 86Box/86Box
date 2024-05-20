@@ -533,7 +533,7 @@ MachineStatus::refresh(QStatusBar *sbar)
 
     iterateCDROM([this, sbar](int i) {
         d->cdrom[i].label = std::make_unique<ClickableLabel>();
-        d->cdrom[i].setEmpty(cdrom[i].host_drive != 200 || QString(cdrom[i].image_path).isEmpty());
+        d->cdrom[i].setEmpty(QString(cdrom[i].image_path).isEmpty());
         d->cdrom[i].setActive(false);
         d->cdrom[i].refresh();
         connect((ClickableLabel *) d->cdrom[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {

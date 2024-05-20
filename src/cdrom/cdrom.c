@@ -1961,7 +1961,7 @@ cdrom_hard_reset(void)
 
             dev->cd_status = CD_STATUS_EMPTY;
 
-            if (dev->host_drive == 200) {
+            if (strlen(dev->image_path) > 0) {
 #ifdef _WIN32
                 if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
                     dev->image_path[strlen(dev->image_path) - 1] = '\\';
@@ -1971,7 +1971,10 @@ cdrom_hard_reset(void)
                     dev->image_path[strlen(dev->image_path) - 1] = '/';
 #endif
 
-                cdrom_image_open(dev, dev->image_path);
+                if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
+                    cdrom_ioctl_open(dev, dev->image_path);
+                else
+                    cdrom_image_open(dev, dev->image_path);
             }
         }
     }
@@ -2020,16 +2023,12 @@ cdrom_eject(uint8_t id)
     cdrom_t *dev = &cdrom[id];
 
     /* This entire block should be in cdrom.c/cdrom_eject(dev*) ... */
-    if (dev->host_drive == 0) {
+    if (strlen(dev->image_path) == 0) {
         /* Switch from empty to empty. Do nothing. */
         return;
     }
 
-    if (dev->host_drive == 200)
-        strcpy(dev->prev_image_path, dev->image_path);
-
-    dev->prev_host_drive = dev->host_drive;
-    dev->host_drive      = 0;
+    strcpy(dev->prev_image_path, dev->image_path);
 
     dev->ops->exit(dev);
     dev->ops = NULL;
@@ -2048,7 +2047,7 @@ cdrom_reload(uint8_t id)
 {
     cdrom_t *dev = &cdrom[id];
 
-    if ((dev->host_drive == dev->prev_host_drive) || (dev->prev_host_drive == 0) || (dev->host_drive != 0)) {
+    if ((strcmp(dev->image_path, dev->prev_image_path) == 0) || (strlen(dev->prev_image_path) == 0) || (strlen(dev->image_path) > 0)) {
         /* Switch from empty to empty. Do nothing. */
         return;
     }
@@ -2058,26 +2057,29 @@ cdrom_reload(uint8_t id)
     dev->ops = NULL;
     memset(dev->image_path, 0, sizeof(dev->image_path));
 
-    if (dev->prev_host_drive == 200) {
+    if (strlen(dev->image_path) > 0) {
         /* Reload a previous image. */
-        strcpy(dev->image_path, dev->prev_image_path);
+        if (strlen(dev->prev_image_path) > 0)
+            strcpy(dev->image_path, dev->prev_image_path);
 
 #ifdef _WIN32
-        if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
-            dev->image_path[strlen(dev->image_path) - 1] = '\\';
+        if (strlen(dev->prev_image_path) > 0) {
+            if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+                dev->image_path[strlen(dev->image_path) - 1] = '\\';
+        }
 #else
-         if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
-            dev->image_path[strlen(dev->image_path) - 1] = '/';
+        if (strlen(dev->prev_image_path) > 0) {
+             if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+                dev->image_path[strlen(dev->image_path) - 1] = '/';
+        }
 #endif
 
-        cdrom_image_open(dev, dev->image_path);
+        if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
+            cdrom_ioctl_open(dev, dev->image_path);
+        else
+            cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);
-
-        if (strlen(dev->image_path) == 0)
-            dev->host_drive = 0;
-        else
-            dev->host_drive = 200;
     }
 
     plat_cdrom_ui_update(id, 1);
