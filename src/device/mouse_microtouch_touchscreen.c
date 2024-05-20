@@ -270,7 +270,7 @@ mtouch_poll(void *priv)
             abs_x_int = abs_x * 16383;
             abs_y_int = 16383 - abs_y * 16383;
 
-            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode & 2) ? ((1 << 5) | ((b & 3))) : 0));
+            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5) | ((b & 3))) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
@@ -279,12 +279,12 @@ mtouch_poll(void *priv)
             dev->b &= ~1;
             abs_x_int = dev->abs_x * 16383;
             abs_y_int = 16383 - dev->abs_y * 16383;
-            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode & 2) ? ((1 << 5)) : 0));
+            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode & 2) ? ((1 << 5)) : 0));
+            fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
