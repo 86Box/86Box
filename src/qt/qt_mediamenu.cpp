@@ -485,7 +485,7 @@ MediaMenu::cdromMount(int i, const QString &filename)
     cdrom[i].ops = nullptr;
     memset(cdrom[i].image_path, 0, sizeof(cdrom[i].image_path));
 #ifdef Q_OS_WINDOWS
-    if (!cdrom[i].host && (fn.data() != nullptr) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '/'))
+    if ((fn.data() != nullptr) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '/'))
         fn.data()[strlen(fn.data()) - 1] = '\\';
 #else
     if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '\\'))

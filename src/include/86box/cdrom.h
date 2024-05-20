@@ -245,7 +245,6 @@ typedef struct cdrom {
     int audio_op;
     int audio_muted_soft;
     int sony_msf;
-    int host;
 
     const cdrom_ops_t *ops;
 
