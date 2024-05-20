@@ -591,7 +591,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
 #ifdef Q_OS_WINDOWS
                 menu_item_name = tr("Host CD/DVD Drive (%1)").arg(fn.right(2)).toUtf8().constData();
 #else
-                menu_item_name = tr("Host CD/DVD Drive (%1)").arg(fn.right(name.length() - 8));
+                menu_item_name = tr("Host CD/DVD Drive (%1)").arg(fn.right(fn.length() - 8));
 #endif
             } else {
                 fi.setFile(fn);
