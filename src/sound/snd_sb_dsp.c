@@ -875,9 +875,11 @@ sb_dsp_setirq(sb_dsp_t *dsp, int irq)
     sb_dsp_log("IRQ now: %i\n", irq);
     dsp->sb_irqnum = irq;
 
-    sb_ess_update_irq_drq_readback_regs(dsp, true);
+    if (IS_ESS(dsp)) {
+        sb_ess_update_irq_drq_readback_regs(dsp, true);
 
-    ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF) | 0x10;
+        ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF) | 0x10;
+    }
 }
 
 void
@@ -886,7 +888,8 @@ sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
     sb_dsp_log("8-bit DMA now: %i\n", dma);
     dsp->sb_8_dmanum = dma;
 
-    sb_ess_update_irq_drq_readback_regs(dsp, true);
+    if (IS_ESS(dsp))
+        sb_ess_update_irq_drq_readback_regs(dsp, true);
 }
 
 void
@@ -1683,7 +1686,7 @@ sb_exec_command(sb_dsp_t *dsp)
                 switch (dsp->sb_subtype) {
                     default:
                         break;
-                    case SB_SUBTYPE_ESS_ES688:	
+                    case SB_SUBTYPE_ESS_ES688:
                         sb_add_data(dsp, 0x68);
                         sb_add_data(dsp, 0x80 | 0x04);
                         break;
