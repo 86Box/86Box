@@ -4253,13 +4253,6 @@ mach64_read_linear(uint32_t addr, void *priv)
 
     cycles -= svga->monitor->mon_video_timing_read_b;
 
-    if (!svga->fast) {
-        if (svga->chain2_read) {
-            addr &= ~1;
-            addr <<= 2;
-        }
-    }
-
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
         return 0xff;
@@ -4301,13 +4294,6 @@ mach64_write_linear(uint32_t addr, uint8_t val, void *priv)
     svga_t *svga = (svga_t *) priv;
 
     cycles -= svga->monitor->mon_video_timing_write_b;
-
-    if (!svga->fast) {
-        if (svga->chain2_write) {
-            addr &= ~1;
-            addr <<= 2;
-        }
-    }
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)

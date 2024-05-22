@@ -278,7 +278,7 @@ int
 path_abs(char *path)
 {
 #ifdef Q_OS_WINDOWS
-    if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
+    if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/') || (strstr(path, "ioctl://") == path))
         return 1;
 
     return 0;
@@ -291,10 +291,13 @@ void
 path_normalize(char *path)
 {
 #ifdef Q_OS_WINDOWS
-    while (*path++ != 0) {
-        if (*path == '\\')
-            *path = '/';
-    }
+    if (strstr(path, "ioctl://") != path) {
+        while (*path++ != 0) {
+            if (*path == '\\')
+                *path = '/';
+        }
+    } else
+        path[8] = path[9] = path[11] = '\\';
 #endif
 }
 

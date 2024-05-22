@@ -3370,9 +3370,9 @@ s3_recalctimings(svga_t *svga)
     if ((svga->crtc[0x3a] & 0x10) && !svga->lowres) {
         svga->vram_display_mask = s3->vram_mask;
         s3_log("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, "
-               "attr=%02x.\n", svga->bpp, s3->width, svga->crtc[0x50],
+               "attr=%02x, hdisp=%d.\n", svga->bpp, s3->width, svga->crtc[0x50],
                svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4,
-               svga->attrregs[0x10] & 0x40);
+               svga->attrregs[0x10] & 0x40, svga->hdisp);
         switch (svga->bpp) {
             case 8:
                 svga->render = svga_render_8bpp_highres;
@@ -3381,9 +3381,19 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_METHEUS_86C928:
                                 switch (s3->width) {
-                                    case 1280:
-                                        svga->hdisp <<= 1;
-                                        svga->dots_per_clock <<= 1;
+                                    case 1280: /*Account for the 1280x1024 resolution*/
+                                        switch (svga->hdisp) {
+                                            case 320:
+                                                svga->hdisp <<= 2;
+                                                svga->dots_per_clock <<= 2;
+                                                break;
+                                            case 640:
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                                break;
+                                            default:
+                                                break;
+                                        }
                                         break;
                                     case 2048: /*Account for the 1280x1024 resolution*/
                                         switch (svga->hdisp) {
@@ -3979,6 +3989,11 @@ s3_recalctimings(svga_t *svga)
             case 32:
                 svga->render = svga_render_32bpp_highres;
                 switch (s3->chip) {
+                    case S3_VISION864:
+                        svga->hdisp >>= 2;
+                        svga->dots_per_clock >>= 2;
+                        break;
+
                     case S3_VISION868:
                         switch (s3->card_type) {
                             case S3_PHOENIX_VISION868:
@@ -4116,7 +4131,7 @@ s3_recalctimings(svga_t *svga)
         }
     }
 
-    if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64))
+    if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) || (s3->chip == S3_VISION864))
         svga->hoverride = 1;
     else
         svga->hoverride = 0;

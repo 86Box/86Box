@@ -34,7 +34,7 @@
 #include <86box/fdd_fdi.h>
 #include <86box/fdd_imd.h>
 #include <86box/fdd_img.h>
-#include <86box/fdd_json.h>
+#include <86box/fdd_pcjs.h>
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
 #include <86box/fdc.h>
@@ -131,7 +131,7 @@ static const struct
     { "IMA",  img_load,  img_close,  -1},
     { "IMD",  imd_load,  imd_close,  -1},
     { "IMG",  img_load,  img_close,  -1},
-    { "JSON", json_load, json_close, -1},
+    { "JSON", pcjs_load, pcjs_close, -1},
     { "MFM",  mfm_load,  mfm_close,  -1},
     { "TD0",  td0_load,  td0_close,  -1},
     { "VFD",  img_load,  img_close,  -1},
@@ -674,7 +674,7 @@ fdd_init(void)
     d86f_init();
     td0_init();
     imd_init();
-    json_init();
+    pcjs_init();
 
     for (i = 0; i < FDD_NUM; i++) {
         fdd_load(i, floppyfns[i]);

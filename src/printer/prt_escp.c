@@ -1475,7 +1475,7 @@ process_char(escp_t *dev, uint8_t ch)
             }
             dev->curr_x = dev->left_margin;
             dev->curr_y += dev->linespacing;
-            if (dev->curr_y > dev->bottom_margin)
+            if ((dev->curr_y + 0.0001f) > dev->bottom_margin)
                 new_page(dev, 1, 0);
             return 1;
 

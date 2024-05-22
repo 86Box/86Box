@@ -147,14 +147,18 @@ mitsumi_cdrom_log(const char *fmt, ...)
 #    define mitsumi_cdrom_log(fmt, ...)
 #endif
 
+static int
+mitsumi_cdrom_is_ready(const cdrom_t *dev)
+{
+    return (dev->image_path[0] != 0x00);
+}
+
 static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
     cdrom_t cdrom;
     
-    cdrom.host_drive = 0;
-
-    dev->stat          = cdrom.host_drive ? (STAT_READY | STAT_CHANGE) : 0;
+    dev->stat          = mitsumi_cdrom_is_ready(&cdrom) ? (STAT_READY | STAT_CHANGE) : 0;
     dev->cmdrd_count   = 0;
     dev->cmdbuf_count  = 0;
     dev->buf_count     = 0;
@@ -344,18 +348,18 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         break;
                 }
                 if (!dev->cmdrd_count)
-                    dev->stat = cdrom.host_drive ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+                    dev->stat = mitsumi_cdrom_is_ready(&cdrom) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
                 return;
             }
             dev->cmd          = val;
             dev->cmdbuf_idx   = 0;
             dev->cmdrd_count  = 0;
             dev->cmdbuf_count = 1;
-            dev->cmdbuf[0]    = cdrom.host_drive ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+            dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(&cdrom) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
             dev->data         = 0;
             switch (val) {
                 case CMD_GET_INFO:
-                    if (cdrom.host_drive) {
+                    if (mitsumi_cdrom_is_ready(&cdrom)) {
                         cdrom_get_track_buffer(&cdrom, &(dev->cmdbuf[1]));
                         dev->cmdbuf_count = 10;
                         dev->readcount    = 0;
@@ -365,7 +369,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_Q:
-                    if (cdrom.host_drive) {
+                    if (mitsumi_cdrom_is_ready(&cdrom)) {
                         cdrom_get_q(&cdrom, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
                         dev->cmdbuf_count = 11;
                         dev->readcount    = 0;
@@ -391,7 +395,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_READ1X:
                 case CMD_READ2X:
-                    if (cdrom.host_drive) {
+                    if (mitsumi_cdrom_is_ready(&cdrom)) {
                         dev->readcount   = 0;
                         dev->drvmode     = (val == CMD_READ1X) ? DRV_MODE_CDDA : DRV_MODE_READ;
                         dev->cmdrd_count = 6;
