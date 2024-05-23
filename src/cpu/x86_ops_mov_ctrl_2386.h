@@ -82,7 +82,7 @@ opMOV_r_CRx_a32(uint32_t fetchdat)
 static int
 opMOV_r_DRx_a16(uint32_t fetchdat)
 {
-    if ((CPL > 0) && (cr0 & 1)) {
+    if (((CPL > 0) || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
@@ -124,7 +124,7 @@ opMOV_r_DRx_a16(uint32_t fetchdat)
 static int
 opMOV_r_DRx_a32(uint32_t fetchdat)
 {
-    if ((CPL > 0) && (cr0 & 1)) {
+    if (((CPL > 0) || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
@@ -282,7 +282,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
 static int
 opMOV_DRx_r_a16(uint32_t fetchdat)
 {
-    if ((CPL > 0) && (cr0 & 1)) {
+    if (((CPL > 0) || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
@@ -325,7 +325,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
 static int
 opMOV_DRx_r_a32(uint32_t fetchdat)
 {
-    if ((CPL > 0) && (cr0 & 1)) {
+    if (((CPL > 0) || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
