@@ -28,6 +28,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #    include "codegen.h"
@@ -224,7 +225,11 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
-#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
+#ifdef USE_DEBUG_REGS_486
+#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !(dr[7] & 0xFF))
+#else
+#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
+#endif
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
@@ -269,7 +274,11 @@ exec386_dynarec_int(void)
     cpu_block_end = 0;
     x86_was_reset = 0;
 
+#    ifdef USE_DEBUG_REGS_486
+    if (trap & 2) {
+#    else
     if (trap == 2) {
+#    endif
         /* Handle the T bit in the new TSS first. */
         CPU_BLOCK_END();
         goto block_ended;
@@ -286,6 +295,13 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
+#    ifdef USE_DEBUG_REGS_486
+        if (UNLIKELY(cpu_386_check_instruction_fault())) {
+            x86gen();
+            goto block_ended;
+        }
+#    endif
+
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
@@ -296,15 +312,32 @@ exec386_dynarec_int(void)
             opcode = fetchdat & 0xFF;
             fetchdat >>= 8;
 
+#    ifdef USE_DEBUG_REGS_486
+            trap |= !!(cpu_state.flags & T_FLAG);
+#    else
             trap = cpu_state.flags & T_FLAG;
+#    endif
 
             cpu_state.pc++;
+#    ifdef USE_DEBUG_REGS_486
+            cpu_state.eflags &= ~(RF_FLAG);
+#    endif
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
 #    ifndef USE_NEW_DYNAREC
         if (!use32)
             cpu_state.pc &= 0xffff;
+#    endif
+
+#    ifdef USE_DEBUG_REGS_486
+        if (!cpu_state.abrt) {
+            if (!rf_flag_no_clear) {
+                cpu_state.eflags &= ~RF_FLAG;
+            }
+
+            rf_flag_no_clear = 0;
+        }
 #    endif
 
         if (((cs + cpu_state.pc) >> 12) != pccache)
@@ -330,7 +363,14 @@ exec386_dynarec_int(void)
 
 block_ended:
     if (!cpu_state.abrt && trap) {
+#    ifdef USE_DEBUG_REGS_486
+        //pclog("Debug trap 0x%X\n", trap);
+        if (trap & 2) dr[6] |= 0x8000;
+        if (trap & 1) dr[6] |= 0x4000;
+#    else
         dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
+#    endif
+
         trap = 0;
 #    ifndef USE_NEW_DYNAREC
         oldcs = CS;
@@ -842,6 +882,13 @@ exec386(int32_t cycs)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+#ifdef USE_DEBUG_REGS_486
+            if (UNLIKELY(cpu_386_check_instruction_fault())) {
+                x86gen();
+                goto block_ended;
+            }
+#endif
+
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 
             if (!cpu_state.abrt) {
@@ -851,9 +898,16 @@ exec386(int32_t cycs)
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
+#ifdef USE_DEBUG_REGS_486
+                trap |= !!(cpu_state.flags & T_FLAG);
+#else
                 trap = cpu_state.flags & T_FLAG;
+#endif
 
                 cpu_state.pc++;
+#ifdef USE_DEBUG_REGS_486
+                cpu_state.eflags &= ~(RF_FLAG);
+#endif
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
                 if (x86_was_reset)
                     break;
@@ -871,6 +925,9 @@ exec386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+#ifdef USE_DEBUG_REGS_486
+block_ended:
+#endif
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -895,12 +952,21 @@ exec386(int32_t cycs)
                 }
             } else if (trap) {
                 flags_rebuild();
+#ifdef USE_DEBUG_REGS_486
+                if (trap & 1)
+                    dr[6] |= 0x4000;
+                if (trap & 2)
+                    dr[6] |= 0x8000;
+#endif
+
                 trap = 0;
 #ifndef USE_NEW_DYNAREC
                 oldcs = CS;
 #endif
                 cpu_state.oldpc = cpu_state.pc;
+#ifndef USE_DEBUG_REGS_486
                 dr[6] |= 0x4000;
+#endif
                 x86_int(1);
             }
 
