@@ -204,15 +204,20 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                 }
             }
             break;
-        case (PCI_IIRQ_BASE | 0x00) ... (PCI_IIRQ_BASE | PCI_IIRQ_MAX):
+        case (PCI_IIRQ_BASE | 0x00) ... (PCI_IIRQ_BASE | PCI_IIRQS_NUM):
             /* PCI internal routing. */
-            slot = (slot - 1) & PCI_INT_PINS_MAX;
+            if (slot > 0x00) {
+                slot = (slot - 1) & PCI_INT_PINS_MAX;
 
-            irq_line    = pci_irqs[slot];
+                irq_line    = pci_irqs[slot];
 
-            /* Ignore what was provided to us as a parameter and override it with whatever
-               the chipset is set to. */
-            level       = !!pci_irq_level[slot];
+                /* Ignore what was provided to us as a parameter and override it with whatever
+                   the chipset is set to. */
+                level       = !!pci_irq_level[slot];
+            } else {
+                irq_line    = 0xff;
+                level       = 0;
+            }
             break;
         case (PCI_MIRQ_BASE | 0x00) ... (PCI_MIRQ_BASE | PCI_MIRQ_MAX):
             /* MIRQ */
