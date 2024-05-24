@@ -671,39 +671,6 @@ machine_at_p5vxb_init(const machine_t *model)
 }
 
 int
-machine_at_dellhannibalp_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined2("roms/machines/dellhannibalp/1003DY0J.BIO",
-                                     "roms/machines/dellhannibalp/1003DY0J.BI1",
-                                     "roms/machines/dellhannibalp/1003DY0J.BI2",
-                                     "roms/machines/dellhannibalp/1003DY0J.BI3",
-                                     "roms/machines/dellhannibalp/1003DY0J.RCV",
-                                     0x3a000, 128);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
-    device_add(&i430vx_device);
-    device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
-    device_add(&intel_flash_bxt_ami_device);
-
-    return ret;
-}
-
-int
 machine_at_gw2kte_init(const machine_t *model)
 {
     int ret;
