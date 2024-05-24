@@ -209,7 +209,7 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
             if (!last_pci_card || (pci_flags & FLAG_NO_IRQ_STEERING))
                 return;
 
-            irq_routing = (pci_int_index - PCI_INTA) & PCI_IRQ_MAX;
+            irq_routing = (pci_int_index - PCI_IIRQ_BASE) & PCI_IRQ_MAX;
 
             irq_line    = pci_irqs[irq_routing];
 
