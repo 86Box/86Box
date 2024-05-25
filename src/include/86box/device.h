@@ -102,9 +102,7 @@ enum {
     DEVICE_LPT       = 0x200000,   /* requires a parallel port */
     DEVICE_KBC       = 0x400000,   /* is a keyboard controller */
 
-    DEVICE_ONBOARD   = 0x20000000, /* is on-board */
-    DEVICE_EXTPARAMS = 0x40000000, /* accepts extended parameters */
-
+    DEVICE_ONBOARD   = 0x40000000, /* is on-board */
     DEVICE_PIT       = 0x80000000, /* device is a PIT */
 
     DEVICE_ALL       = 0xffffffff  /* match all devices */
@@ -204,21 +202,13 @@ extern void  device_context_inst(const device_t *dev, int inst);
 extern void  device_context_restore(void);
 extern void *device_add(const device_t *d);
 extern void *device_add_linked(const device_t *d, void *priv);
-extern void *device_add_parameters(const device_t *dev, void *params);
+extern void *device_add_params(const device_t *dev, void *params);
 extern void  device_add_ex(const device_t *dev, void *priv);
-extern void  device_add_ex_parameters(const device_t *dev, void *priv, void *params);
+extern void  device_add_ex_params(const device_t *dev, void *priv, void *params);
 extern void *device_add_inst(const device_t *dev, int inst);
-extern void *device_add_inst_parameters(const device_t *dev, int inst, void *params);
+extern void *device_add_inst_params(const device_t *dev, int inst, void *params);
 extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
-extern void  device_add_inst_ex_parameters(const device_t *dev, void *priv, int inst, void *params);
-extern void *device_cadd(const device_t *dev, const device_t *cd);
-extern void *device_cadd_parameters(const device_t *dev, const device_t *cd, void *params);
-extern void  device_cadd_ex(const device_t *dev, const device_t *cd, void *priv);
-extern void  device_cadd_ex_parameters(const device_t *dev, const device_t *cd, void *priv, void *params);
-extern void *device_cadd_inst(const device_t *dev, const device_t *cd, int inst);
-extern void *device_cadd_inst_parameters(const device_t *dev, const device_t *cd, int inst, void *params);
-extern void  device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *priv, int inst);
-extern void  device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params);
+extern void  device_add_inst_ex_params(const device_t *dev, void *priv, int inst, void *params);
 extern void *device_get_common_priv(void);
 extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
@@ -246,7 +236,7 @@ extern void        device_set_config_hex16(const char *s, int val);
 extern void        device_set_config_hex20(const char *s, int val);
 extern void        device_set_config_mac(const char *s, int val);
 extern const char *device_get_config_string(const char *name);
-extern const int   device_get_instance(void);
+extern int         device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
 extern const char *device_get_internal_name(const device_t *dev);
