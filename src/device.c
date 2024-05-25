@@ -137,8 +137,8 @@ device_context_restore(void)
 static void *
 device_add_common(const device_t *dev, void *p, void *params, int inst)
 {
-    device_t *init_dev;
-    void     *priv = NULL;
+    device_t *init_dev = NULL;
+    void     *priv     = NULL;
     int       c;
 
     if (params != NULL) {
@@ -204,7 +204,8 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     } else
         device_priv[c] = p;
 
-    free(init_dev);
+    if (init_dev != dev)
+        free(init_dev);
 
     return priv;
 }
