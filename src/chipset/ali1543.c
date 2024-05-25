@@ -413,6 +413,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x74: /* USB IRQ Routing - we cheat and use MIRQ4 */
             dev->pci_conf[addr] = val & 0xdf;
             /* TODO: MIRQ level/edge control - if bit 4 = 1, it's level */
+            pci_set_mirq_level(PCI_MIRQ4, !(val & 0x10));
             pci_set_mirq_routing(PCI_MIRQ4, ali1533_irq_routing[val & 0x0f]);
             break;
 
