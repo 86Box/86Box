@@ -74,6 +74,7 @@ typedef struct mach_t {
     uint16_t shadow_set;
     uint16_t shadow_cntl;
     int ext_on[2];
+    int extended_mode;
     int compat_mode;
 
     struct {

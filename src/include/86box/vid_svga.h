@@ -78,6 +78,7 @@ typedef struct svga_t {
     uint8_t overlay_oddeven;
     uint8_t fcr;
     uint8_t hblank_overscan;
+    uint8_t vidsys_ena;
 
     int dac_addr;
     int dac_pos;
@@ -199,6 +200,7 @@ typedef struct svga_t {
 
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
     float (*getclock)(int clock, void *priv);
+    float (*getclock8514)(int clock, void *priv);
 
     /* Called when VC=R18 and friends. If this returns zero then MA resetting
        is skipped. Matrox Mystique in Power mode reuses this counter for
@@ -288,26 +290,32 @@ typedef struct svga_t {
 
     void *  dev8514;
     void *  ext8514;
+    void *  clock_gen8514;
     void *  xga;
 } svga_t;
 
-extern int vga_on;
+extern int      vga_on;
 
-extern void    ibm8514_poll(void *priv);
-extern void    ibm8514_recalctimings(svga_t *svga);
-extern uint8_t ibm8514_ramdac_in(uint16_t port, void *priv);
-extern void    ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv);
-extern int     ibm8514_cpu_src(svga_t *svga);
-extern int     ibm8514_cpu_dest(svga_t *svga);
-extern void    ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint32_t val, int len);
-extern void    ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
-extern void    ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
+extern void     ibm8514_poll(void *priv);
+extern void     ibm8514_recalctimings(svga_t *svga);
+extern uint8_t  ibm8514_ramdac_in(uint16_t port, void *priv);
+extern void     ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv);
+extern void     ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len);
+extern void     ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len);
+extern uint16_t ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len);
+extern uint8_t  ibm8514_accel_in(uint16_t port, svga_t *svga);
+extern int      ibm8514_cpu_src(svga_t *svga);
+extern int      ibm8514_cpu_dest(svga_t *svga);
+extern void     ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint32_t val, int len);
+extern void     ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
+extern void     ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
 #ifdef ATI_8514_ULTRA
-extern void    ati8514_recalctimings(svga_t *svga);
-extern uint8_t ati8514_mca_read(int port, void *priv);
-extern void    ati8514_mca_write(int port, uint8_t val, void *priv);
-extern void    ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
+extern void     ati8514_recalctimings(svga_t *svga);
+extern uint8_t  ati8514_mca_read(int port, void *priv);
+extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
+extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
+extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
 #endif
 
 extern void xga_poll(void *priv, svga_t *svga);
