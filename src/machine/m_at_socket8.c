@@ -33,6 +33,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/sio.h>
+#include <86box/sound.h>
 #include <86box/hwm.h>
 #include <86box/spd.h>
 #include <86box/video.h>
@@ -321,6 +322,12 @@ machine_at_ap440fx_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87307_device);
     device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&cs4236b_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&s3_virge_375_onboard_pci_device);
 
     return ret;
 }
