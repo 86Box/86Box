@@ -1072,7 +1072,7 @@ s3_virge_updatemapping(virge_t *virge)
         virge->linear_base &= ~(virge->linear_size - 1);
         s3_virge_log("Linear framebuffer at %08X size %08X, mask = %08x, CRTC58 sel = %02x\n", virge->linear_base, virge->linear_size, virge->vram_mask, svga->crtc[0x58] & 7);
         if (virge->linear_base == 0xa0000) {
-            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000, 0);
+            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             mem_mapping_disable(&virge->linear_mapping);
         } else {
             if (virge->chip == S3_VIRGEVX || virge->chip == S3_TRIO3D2X)
