@@ -75,6 +75,7 @@
 #define ROM_SPEA_MERCURY_P64V          "roms/video/s3/S3_968PCI_TVP3026_SPEAMecuryP64V_ver1.01.BIN"
 #define ROM_NUMBER9_9FX_771            "roms/video/s3/no9motionfx771.BIN"
 #define ROM_PHOENIX_VISION968          "roms/video/s3/1-DSV3968P.BIN"
+#define ROM_DIAMOND_STEALTH64_968      "roms/video/s3/vv_303.rom"
 
 enum {
     S3_NUMBER9_9FX,
@@ -115,7 +116,8 @@ enum {
     S3_NUMBER9_9FX_531,
     S3_NUMBER9_9FX_771,
     S3_SPEA_MERCURY_LITE_PCI,
-    S3_86C805_ONBOARD
+    S3_86C805_ONBOARD,
+    S3_DIAMOND_STEALTH64_968
 };
 
 enum {
@@ -2770,13 +2772,15 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3C7:
         case 0x3C8:
         case 0x3C9:
+        case 0x3CA: /*0x3c6 alias*/
+        case 0x3CB: /*0x3c7 alias*/
             rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             if (s3->chip >= S3_TRIO32)
                 svga_out(addr, val, svga);
             else if ((s3->chip == S3_VISION964 && s3->card_type != S3_ELSAWIN2KPROX_964) || (s3->chip == S3_86C928)) {
                 rs3 = !!(svga->crtc[0x55] & 0x02);
                 bt48x_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
-            } else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_ELSAWIN2KPROX || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
+            } else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_DIAMOND_STEALTH64_968 || s3->card_type == S3_ELSAWIN2KPROX || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
                 ibm_rgb528_ramdac_out(addr, rs2, val, svga->ramdac, svga);
             else if (s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968)) {
                 rs3 = !!(svga->crtc[0x55] & 0x02);
@@ -2957,10 +2961,12 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 case 0x58:
                 case 0x59:
                 case 0x5a:
+                    s3_log("[%04X:%08X]: Write CRTC%02x=%02x.\n", CS, cpu_state.pc, svga->crtcreg, svga->crtc[svga->crtcreg]);
                     s3_updatemapping(s3);
                     break;
 
                 case 0x55:
+                    s3_log("[%04X:%08X]: Write CRTC%02x=%02x.\n", CS, cpu_state.pc, svga->crtcreg, svga->crtc[svga->crtcreg]);
                     if (s3->chip == S3_86C928) {
                         if (val & 0x28) {
                             svga->hwcursor_draw     = NULL;
@@ -3093,6 +3099,8 @@ s3_in(uint16_t addr, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
+        case 0x3ca: /*0x3c6 alias*/
+        case 0x3cb: /*0x3c7 alias*/
             rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             if (s3->chip >= S3_TRIO32)
                 return svga_in(addr, svga);
@@ -3103,7 +3111,7 @@ s3_in(uint16_t addr, void *priv)
                     rs3 = !!(svga->crtc[0x55] & 0x02);
                 temp = bt48x_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
                 return temp;
-            } else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_ELSAWIN2KPROX || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
+            } else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_DIAMOND_STEALTH64_968 || s3->card_type == S3_ELSAWIN2KPROX || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
                 return ibm_rgb528_ramdac_in(addr, rs2, svga->ramdac, svga);
             else if (s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968)) {
                 rs3 = !!(svga->crtc[0x55] & 0x02);
@@ -3138,6 +3146,7 @@ s3_in(uint16_t addr, void *priv)
                     }
                     break;
                 case 0x30:
+                    s3_log("[%04X:%08X]: Read CRTC30=%02x.\n", CS, cpu_state.pc, s3->id);
                     return s3->id; /*Chip ID*/
                 case 0x31:
                     return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
@@ -3168,6 +3177,7 @@ s3_in(uint16_t addr, void *priv)
                 /* Phoenix S3 video BIOS'es seem to expect CRTC registers 6B and 6C
                    to be mirrors of 59 and 5A. */
                 case 0x6b:
+                    s3_log("[%04X:%08X]: Read CRTC6b=%02x.\n", CS, cpu_state.pc, svga->crtc[0x6b]);
                     if (s3->chip != S3_TRIO64V2) {
                         if (svga->crtc[0x53] & 0x08) {
                             return (s3->chip == S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : (svga->crtc[0x59] & 0xfe);
@@ -3178,6 +3188,7 @@ s3_in(uint16_t addr, void *priv)
                         return svga->crtc[0x6b];
                     break;
                 case 0x6c:
+                    s3_log("[%04X:%08X]: Read CRTC6c=%02x.\n", CS, cpu_state.pc, svga->crtc[0x6b]);
                     if (s3->chip != S3_TRIO64V2) {
                         if (svga->crtc[0x53] & 0x08) {
                             return 0x00;
@@ -3190,6 +3201,7 @@ s3_in(uint16_t addr, void *priv)
                 default:
                     break;
             }
+            s3_log("[%04X:%08X]: Read CRTC%02x=%02x.\n", CS, cpu_state.pc, svga->crtcreg, svga->crtc[svga->crtcreg]);
             return svga->crtc[svga->crtcreg];
 
         default:
@@ -3458,6 +3470,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+                            case S3_DIAMOND_STEALTH64_968:
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                             case S3_SPEA_MERCURY_P64V:
@@ -3640,6 +3653,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+                            case S3_DIAMOND_STEALTH64_968:
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                             case S3_SPEA_MERCURY_P64V:
@@ -3827,6 +3841,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+                            case S3_DIAMOND_STEALTH64_968:
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                             case S3_SPEA_MERCURY_P64V:
@@ -4039,6 +4054,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+                            case S3_DIAMOND_STEALTH64_968:
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                             case S3_SPEA_MERCURY_P64V:
@@ -4369,6 +4385,7 @@ s3_updatemapping(s3_t *s3)
                 s3->linear_base &= 0x00ffffff;
         }
 
+        s3_log("LinearBase=%x, crtc58bits=%x.\n", s3->linear_base, svga->crtc[0x58] & 0x13);
         if ((svga->crtc[0x58] & 0x10) || (s3->accel.advfunc_cntl & 0x10)) {
             /*Linear framebuffer*/
             mem_mapping_disable(&svga->mapping);
@@ -4414,7 +4431,11 @@ s3_updatemapping(s3_t *s3)
                 else if ((s3->chip == S3_VISION968) || (s3->chip == S3_VISION868))
                     s3->linear_base &= 0xfe000000;
 
-                mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
+                s3_log("LinearBase update=%x, size=%x.\n", s3->linear_base, s3->linear_size);
+                if (s3->linear_base)
+                    mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
+                else
+                    mem_mapping_disable(&s3->linear_mapping);
             }
             svga->fb_only = 1;
         } else {
@@ -4437,8 +4458,12 @@ s3_updatemapping(s3_t *s3)
         }
 
         /* New MMIO. */
-        if (svga->crtc[0x53] & 0x08)
-            mem_mapping_set_addr(&s3->new_mmio_mapping, s3->linear_base + 0x1000000, 0x20000);
+        if (svga->crtc[0x53] & 0x08) {
+            if (s3->linear_base)
+                mem_mapping_set_addr(&s3->new_mmio_mapping, s3->linear_base + 0x1000000, 0x20000);
+            else
+                mem_mapping_disable(&s3->new_mmio_mapping);
+        }
         else
             mem_mapping_disable(&s3->new_mmio_mapping);
     }
@@ -9178,11 +9203,13 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
                 return 0x00; /*Supports VGA interface*/
             else
                 return 0x01;
+            break;
         case 0x0b:
             if (s3->chip >= S3_TRIO32 || s3->chip == S3_VISION968 || s3->chip == S3_VISION868)
                 return 0x03;
             else
                 return 0x00;
+            break;
 
         case 0x0d:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x0d] & 0xf8) : 0x00;
@@ -9461,6 +9488,7 @@ s3_reset(void *priv)
             svga->crtc[0x5a] = 0x0a;
             break;
 
+        case S3_DIAMOND_STEALTH64_968:
         case S3_ELSAWIN2KPROX:
         case S3_SPEA_MERCURY_P64V:
         case S3_MIROVIDEO40SV_ERGO_968:
@@ -9639,10 +9667,7 @@ s3_init(const device_t *info)
         case S3_PHOENIX_VISION868:
             bios_fn = ROM_PHOENIX_VISION868;
             chip    = S3_VISION868;
-            if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
-            else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_vlb);
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
             break;
         case S3_DIAMOND_STEALTH64_964:
             bios_fn = ROM_DIAMOND_STEALTH64_964;
@@ -9662,6 +9687,14 @@ s3_init(const device_t *info)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb);
             }
             break;
+        case S3_DIAMOND_STEALTH64_968:
+            bios_fn = ROM_DIAMOND_STEALTH64_968;
+            chip    = S3_VISION968;
+            if (info->flags & DEVICE_PCI)
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+            else
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_vlb);
+            break;
         case S3_MIROVIDEO40SV_ERGO_968:
             bios_fn = ROM_MIROVIDEO40SV_ERGO_968_PCI;
             chip    = S3_VISION968;
@@ -9675,10 +9708,7 @@ s3_init(const device_t *info)
         case S3_PHOENIX_VISION968:
             bios_fn = ROM_PHOENIX_VISION968;
             chip    = S3_VISION968;
-            if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
-            else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_vlb);
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
             break;
         case S3_ELSAWIN2KPROX_964:
             bios_fn = ROM_ELSAWIN2KPROX_964;
@@ -9843,7 +9873,7 @@ s3_init(const device_t *info)
     mem_mapping_disable(&s3->mmio_mapping);
     mem_mapping_disable(&s3->new_mmio_mapping);
 
-    if (chip == S3_VISION964 || chip == S3_VISION968)
+    if ((chip == S3_VISION964) || (chip == S3_VISION968))
         svga_init(info, &s3->svga, s3, vram_size,
                   s3_recalctimings,
                   s3_in, s3_out,
@@ -9881,16 +9911,14 @@ s3_init(const device_t *info)
 
         case S3_VISION968:
             switch (info->local) {
+                case S3_DIAMOND_STEALTH64_968:
                 case S3_ELSAWIN2KPROX:
                 case S3_PHOENIX_VISION968:
                 case S3_NUMBER9_9FX_771:
                     svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
                     break;
-                case S3_SPEA_MERCURY_P64V:
-                case S3_MIROVIDEO40SV_ERGO_968:
-                    svga->dac_hwcursor_draw = tvp3026_hwcursor_draw;
-                    break;
                 default:
+                    svga->dac_hwcursor_draw = tvp3026_hwcursor_draw;
                     break;
             }
             break;
@@ -10125,6 +10153,7 @@ s3_init(const device_t *info)
             }
             break;
 
+        case S3_DIAMOND_STEALTH64_968:
         case S3_ELSAWIN2KPROX:
         case S3_SPEA_MERCURY_P64V:
         case S3_MIROVIDEO40SV_ERGO_968:
@@ -10132,8 +10161,9 @@ s3_init(const device_t *info)
         case S3_PHOENIX_VISION968:
             svga->decode_mask = (8 << 20) - 1;
             s3->id            = 0xe1; /*Vision968*/
-            s3->id_ext = s3->id_ext_pci = 0xf0;
-            s3->packed_mmio             = 1;
+            s3->id_ext        = 0xf0;
+            s3->id_ext_pci    = s3->id_ext;
+            s3->packed_mmio   = 1;
             if (s3->pci) {
                 svga->crtc[0x53] = 0x18;
                 svga->crtc[0x58] = 0x10;
@@ -10147,6 +10177,7 @@ s3_init(const device_t *info)
             }
 
             switch (info->local) {
+                case S3_DIAMOND_STEALTH64_968:
                 case S3_ELSAWIN2KPROX:
                 case S3_PHOENIX_VISION968:
                 case S3_NUMBER9_9FX_771:
@@ -10377,6 +10408,12 @@ s3_diamond_stealth64_964_available(void)
 }
 
 static int
+s3_diamond_stealth64_968_available(void)
+{
+    return rom_present(ROM_DIAMOND_STEALTH64_968);
+}
+
+static int
 s3_mirovideo_40sv_ergo_968_pci_available(void)
 {
     return rom_present(ROM_MIROVIDEO40SV_ERGO_968_PCI);
@@ -10589,6 +10626,20 @@ static const device_config_t s3_968_config[] = {
               .value       = 4 },
           { .description = "8 MB",
               .value       = 8 },
+          { .description = "" } } },
+    { .type = CONFIG_END }
+};
+
+static const device_config_t s3_standard_config2[] = {
+    { .name        = "memory",
+     .description = "Memory size",
+     .type        = CONFIG_SELECTION,
+     .default_int = 4,
+     .selection   = {
+          { .description = "2 MB",
+              .value       = 2 },
+          { .description = "4 MB",
+              .value       = 4 },
           { .description = "" } } },
     { .type = CONFIG_END }
 };
@@ -10873,6 +10924,34 @@ const device_t s3_diamond_stealth64_964_pci_device = {
     .config        = s3_standard_config
 };
 
+const device_t s3_diamond_stealth64_968_vlb_device = {
+    .name          = "S3 Vision968 VLB (Diamond Stealth64 Video VRAM)",
+    .internal_name = "stealth64vv_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = S3_DIAMOND_STEALTH64_968,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    { .available = s3_diamond_stealth64_968_available },
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_standard_config2
+};
+
+const device_t s3_diamond_stealth64_968_pci_device = {
+    .name          = "S3 Vision968 PCI (Diamond Stealth64 Video VRAM)",
+    .internal_name = "stealth64vv_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_DIAMOND_STEALTH64_968,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    { .available = s3_diamond_stealth64_968_available },
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_standard_config2
+};
+
 const device_t s3_9fx_771_pci_device = {
     .name          = "S3 Vision968 PCI (Number 9 9FX 771)",
     .internal_name = "n9_9fx_771_pci",
@@ -10891,20 +10970,6 @@ const device_t s3_phoenix_vision968_pci_device = {
     .name          = "S3 Vision968 PCI (Phoenix)",
     .internal_name = "px_vision968_pci",
     .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_VISION968,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    { .available = s3_phoenix_vision968_available },
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_phoenix_vision968_vlb_device = {
-    .name          = "S3 Vision968 VLB (Phoenix)",
-    .internal_name = "px_vision968_vlb",
-    .flags         = DEVICE_VLB,
     .local         = S3_PHOENIX_VISION968,
     .init          = s3_init,
     .close         = s3_close,
@@ -11193,20 +11258,6 @@ const device_t s3_9fx_531_pci_device = {
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
     .config        = s3_9fx_config
-};
-
-const device_t s3_phoenix_vision868_vlb_device = {
-    .name          = "S3 Vision868 VLB (Phoenix)",
-    .internal_name = "px_vision868_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_PHOENIX_VISION868,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    { .available = s3_phoenix_vision868_available },
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
 };
 
 const device_t s3_phoenix_vision868_pci_device = {
