@@ -823,7 +823,7 @@ pas16_in(uint16_t port, void *priv)
                -   2 = FM (1 = stereo, 0 = mono);
                -   3 = Code (1 = 16-bit, 0 = 8-bit).
              */
-            ret = pas16->type ? pas16->type : 0x06;
+            ret = pas16->type ? pas16->type : 0x07;
             break;
 
         case 0xf000:
