@@ -46,6 +46,7 @@
 #include <86box/vid_xga_device.h>
 
 void svga_doblit(int wx, int wy, svga_t *svga);
+void svga_poll(void *priv);
 
 svga_t *svga_8514;
 
@@ -120,6 +121,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
 
     if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
         return;
+
+    if (addr >= 0x3c6 && addr <= 0x3c9)
+        svga_log("VGA OUT addr=%03x, val=%02x.\n", addr, val);
 
     switch (addr) {
         case 0x2ea:
@@ -528,6 +532,9 @@ svga_in(uint16_t addr, void *priv)
             break;
     }
 
+    if ((addr >= 0x3c6) && (addr <= 0x3c9))
+        svga_log("VGA IN addr=%03x, temp=%02x.\n", addr, ret);
+
     return ret;
 }
 
@@ -935,11 +942,11 @@ svga_recalctimings(svga_t *svga)
             if (dev->dispofftime < TIMER_USEC)
                 dev->dispofftime = TIMER_USEC;
 
-            timer_disable(&svga->timer);
-            timer_set_delay_u64(&svga->timer8514, TIMER_USEC);
+            svga_log("IBM 8514/A poll.\n");
+            timer_set_callback(&svga->timer, ibm8514_poll);
         } else {
-            timer_disable(&svga->timer8514);
-            timer_set_delay_u64(&svga->timer, TIMER_USEC);
+            svga_log("SVGA Poll.\n");
+            timer_set_callback(&svga->timer, svga_poll);
         }
     }
 
