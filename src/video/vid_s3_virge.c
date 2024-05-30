@@ -296,7 +296,7 @@ typedef struct virge_t {
 
     int waiting;
 
-    int has_bios;
+    int onboard;
 } virge_t;
 
 static video_timings_t timing_diamond_stealth3d_2000_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
@@ -4070,16 +4070,16 @@ s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
             break;
 
         case 0x30:
-            ret = virge->has_bios ? (virge->pci_regs[0x30] & 0x01) : 0x00;
+            ret = (!virge->onboard) ? (virge->pci_regs[0x30] & 0x01) : 0x00;
             break; /*BIOS ROM address*/
         case 0x31:
             ret = 0x00;
             break;
         case 0x32:
-            ret = virge->has_bios ? virge->pci_regs[0x32] : 0x00;
+            ret = (!virge->onboard) ? virge->pci_regs[0x32] : 0x00;
             break;
         case 0x33:
-            ret = virge->has_bios ? virge->pci_regs[0x33] : 0x00;
+            ret = (!virge->onboard) ? virge->pci_regs[0x33] : 0x00;
             break;
 
         case 0x34:
@@ -4203,7 +4203,7 @@ s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x30:
         case 0x32:
         case 0x33:
-            if (!virge->has_bios)
+            if (virge->onboard)
                 return;
             virge->pci_regs[addr] = val;
             if (virge->pci_regs[0x30] & 0x01) {
@@ -4340,7 +4340,7 @@ s3_virge_reset(void *priv)
     virge->svga.crtc[0x37] = 1 | (7 << 5);
     virge->svga.crtc[0x53] = 8;
 
-    if (virge->has_bios)
+    if (!virge->onboard)
         mem_mapping_disable(&virge->bios_rom.mapping);
 
     s3_virge_updatemapping(virge);
@@ -4364,7 +4364,7 @@ s3_virge_init(const device_t *info)
     else
         virge->memory_size = device_get_config_int("memory");
 
-    virge->has_bios = !!(info->local & 0x100);
+    virge->onboard = !!(info->local & 0x100);
 
     switch (info->local) {
         case S3_VIRGE_325:
@@ -4380,7 +4380,7 @@ s3_virge_init(const device_t *info)
             bios_fn = ROM_STB_VELOCITY_3D;
             break;
         case S3_VIRGE_DX:
-            bios_fn = virge->has_bios ? ROM_VIRGE_DX : NULL;
+            bios_fn = virge->onboard ? NULL : ROM_VIRGE_DX;
             break;
         case S3_DIAMOND_STEALTH3D_2000PRO:
             bios_fn = ROM_DIAMOND_STEALTH3D_2000PRO;
