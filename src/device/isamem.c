@@ -430,14 +430,14 @@ consecutive_ems_write(uint16_t port, uint8_t val, void *priv)
 
     isamem_log("EMS: write(%02x) to register 0! (%02x)\n", val);
     /* Set the page number. */
-    dev->ems[vpage].enabled = (val & 0xff);
-    dev->ems[vpage].page    = (val & 0xff);
+    dev->ems[vpage].enabled = 1;
+    dev->ems[vpage].page    = val;
 
     /* Make sure we can do that.. */
     if (dev->flags & FLAG_CONFIG) {
         if (dev->ems[vpage].page < dev->ems_pages) {
             /* Pre-calculate the page address in EMS RAM. */
-            dev->ems[vpage].addr = dev->ram + dev->ems_start + ((val & 0xff) * EMS_PGSIZE);
+            dev->ems[vpage].addr = dev->ram + dev->ems_start + (val * EMS_PGSIZE);
         } else {
             /* That page does not exist. */
             dev->ems[vpage].enabled = 0;
@@ -1543,7 +1543,6 @@ static const device_config_t lotech_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Disabled", .value = 0x00000 },
             { .description = "C000H",    .value = 0xC0000 },
             { .description = "D000H",    .value = 0xD0000 },
             { .description = "E000H",    .value = 0xE0000 },
