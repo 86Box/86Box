@@ -499,6 +499,7 @@ isamem_init(const device_t *info)
         case ISAMEM_EMS5150_CARD: /* Micro Mainframe EMS-5150(T) */
             dev->base_addr  = device_get_config_hex16("base");
             dev->total_size = device_get_config_int("size");
+            dev->start_addr = 0;
             dev->frame_addr = 0xD0000;
             dev->flags |= (FLAG_EMS | FLAG_CONFIG);
             break;
