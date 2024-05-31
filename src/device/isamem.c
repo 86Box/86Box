@@ -108,7 +108,7 @@
 #define RAM_UMAMEM             (384 << 10)  /* upper memory block */
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
-#define EMS_MAXSIZE            (2048 << 10) /* max EMS memory size */
+#define EMS_MAXSIZE            (4096 << 10) /* max EMS memory size */
 #define EMS_PGSIZE             (16 << 10)   /* one page is this big */
 #define EMS_MAXPAGE            4            /* number of viewport pages */
 
@@ -696,7 +696,7 @@ isamem_init(const device_t *info)
 
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
-        /* EMS 3.2 cannot have more than 2048KB per board. */
+        /* EMS 3.2 cannot have more than 4096KB per board. */
         t = k;
         if (t > EMS_MAXSIZE)
             t = EMS_MAXSIZE;
