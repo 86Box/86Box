@@ -33,8 +33,10 @@
  *
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek <jriwanek@gmail.com>
  *
- *          Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018      Fred N. van Kempen.
+ *          Copyright 2022-2024 Jasmine Iwanek.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -98,6 +100,7 @@
 #define ISAMEM_ABOVEBOARD_CARD 12
 #define ISAMEM_BRAT_CARD       13
 #define ISAMEM_EV165A_CARD     14
+#define ISAMEM_LOTECH_CARD     15
 
 #define ISAMEM_DEBUG           0
 
@@ -105,7 +108,7 @@
 #define RAM_UMAMEM             (384 << 10)  /* upper memory block */
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
-#define EMS_MAXSIZE            (2048 << 10) /* max EMS memory size */
+#define EMS_MAXSIZE            (4096 << 10) /* max EMS memory size */
 #define EMS_PGSIZE             (16 << 10)   /* one page is this big */
 #define EMS_MAXPAGE            4            /* number of viewport pages */
 
@@ -318,6 +321,26 @@ ems_read(uint16_t port, void *priv)
     return ret;
 }
 
+/* Handle a READ operation from one of our registers. */
+static uint8_t
+consecutive_ems_read(uint16_t port, void *priv)
+{
+    const memdev_t *dev = (memdev_t *) priv;
+    uint8_t         ret = 0xff;
+    int             vpage;
+
+    /* Get the viewport page number. */
+    vpage = (port - dev->base_addr);
+
+    isamem_log("ISAMEM: read(%04x) = %02x) page=%d\n", port, ret, vpage);
+
+    ret = dev->ems[vpage].page;
+    if (dev->ems[vpage].enabled)
+        ret |= 0x80;
+
+    return ret;
+}
+
 /* Handle a WRITE operation to one of our registers. */
 static void
 ems_write(uint16_t port, uint8_t val, void *priv)
@@ -393,6 +416,47 @@ ems_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+/* Handle a WRITE operation to one of our registers. */
+static void
+consecutive_ems_write(uint16_t port, uint8_t val, void *priv)
+{
+    memdev_t *dev = (memdev_t *) priv;
+    int       vpage;
+
+    /* Get the viewport page number. */
+    vpage = (port - dev->base_addr);
+
+    isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
+
+    isamem_log("EMS: write(%02x) to register 0! (%02x)\n", val);
+    /* Set the page number. */
+    dev->ems[vpage].enabled = (val & 0xff);
+    dev->ems[vpage].page    = (val & 0xff);
+
+    /* Make sure we can do that.. */
+    if (dev->flags & FLAG_CONFIG) {
+        if (dev->ems[vpage].page < dev->ems_pages) {
+            /* Pre-calculate the page address in EMS RAM. */
+            dev->ems[vpage].addr = dev->ram + dev->ems_start + ((val & 0xff) * EMS_PGSIZE);
+        } else {
+            /* That page does not exist. */
+            dev->ems[vpage].enabled = 0;
+        }
+
+        if (dev->ems[vpage].enabled) {
+            /* Update the EMS RAM address for this page. */
+            mem_mapping_set_exec(&dev->ems[vpage].mapping,
+                                 dev->ems[vpage].addr);
+
+            /* Enable this page. */
+            mem_mapping_enable(&dev->ems[vpage].mapping);
+        } else {
+            /* Disable this page. */
+            mem_mapping_disable(&dev->ems[vpage].mapping);
+        }
+    }
+}
+
 /* Initialize the device for use. */
 static void *
 isamem_init(const device_t *info)
@@ -435,6 +499,7 @@ isamem_init(const device_t *info)
         case ISAMEM_EMS5150_CARD: /* Micro Mainframe EMS-5150(T) */
             dev->base_addr  = device_get_config_hex16("base");
             dev->total_size = device_get_config_int("size");
+            dev->start_addr = 0;
             dev->frame_addr = 0xD0000;
             dev->flags |= (FLAG_EMS | FLAG_CONFIG);
             break;
@@ -475,6 +540,13 @@ isamem_init(const device_t *info)
             if (!!device_get_config_int("speed"))
                 dev->flags |= FLAG_FAST;
             break;
+
+        case ISAMEM_LOTECH_CARD:
+            dev->base_addr = device_get_config_hex16("base");
+            dev->total_size = device_get_config_int("size");
+            dev->start_addr = 0;
+            dev->frame_addr = device_get_config_hex20("frame");
+            dev->flags |= (FLAG_EMS | FLAG_CONFIG);
 
         default:
             break;
@@ -625,7 +697,7 @@ isamem_init(const device_t *info)
 
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
-        /* EMS 3.2 cannot have more than 2048KB per board. */
+        /* EMS 3.2 cannot have more than 4096KB per board. */
         t = k;
         if (t > EMS_MAXSIZE)
             t = EMS_MAXSIZE;
@@ -663,9 +735,14 @@ isamem_init(const device_t *info)
             mem_mapping_disable(&dev->ems[i].mapping);
 
             /* Set up an I/O port handler. */
-            io_sethandler(dev->base_addr + (EMS_PGSIZE * i), 2,
-                          ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
+			if (dev->board != ISAMEM_LOTECH_CARD)
+                io_sethandler(dev->base_addr + (EMS_PGSIZE * i), 2,
+                              ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
         }
+
+        if (dev->board == ISAMEM_LOTECH_CARD)
+            io_sethandler(dev->base_addr, 4,
+                          consecutive_ems_read, NULL, NULL, consecutive_ems_write, NULL, NULL, dev);
     }
 
     /* Let them know our device instance. */
@@ -1439,6 +1516,72 @@ static const device_t brat_device = {
 };
 #endif
 
+static const device_config_t lotech_config[] = {
+// clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0260,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "260H", .value = 0x0260 },
+            { .description = "264H", .value = 0x0264 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "26CH", .value = 0x026C },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xe0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C000H",    .value = 0xC0000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
+        },
+    },
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 2048,
+        .file_filter = "",
+        .spinner = {
+            .min = 512,
+            .max = 4096,
+            .step = 512
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
+};
+
+static const device_t lotech_device = {
+    .name = "Lo-tech EMS Board",
+    .internal_name = "lotechems",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_LOTECH_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = lotech_config
+};
+
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
 static const device_config_t rampage_config[] = {
   // clang-format off
@@ -1676,6 +1819,7 @@ static const struct {
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
     { &iab_device          },
 #endif
+    { &lotech_device       },
     { NULL                 }
     // clang-format on
 };

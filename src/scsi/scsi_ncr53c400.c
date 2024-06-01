@@ -146,8 +146,8 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
                         ncr400->busy = 1;
-                        if (!(ncr->mode & MODE_MONITOR_BUSY))
-                            timer_on_auto(&ncr400->timer, ncr->period / 280.0);
+                        if (!(ncr->mode & MODE_MONITOR_BUSY) && ((scsi_device_get_callback(dev) > 0.0)))
+                            timer_on_auto(&ncr400->timer, ncr->period / 250.0);
                     }
                 }
                 break;
@@ -182,9 +182,12 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                             memset(ncr400->buffer, 0, MIN(128, dev->buffer_length));
                             if (ncr->mode & MODE_MONITOR_BUSY)
                                 timer_on_auto(&ncr400->timer, ncr->period);
-                            else
+                            else if (scsi_device_get_callback(dev) > 0.0)
                                 timer_on_auto(&ncr400->timer, 40.0);
-                            ncr53c400_log("DMA timer on, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, datawait=%d, enabled=%d.\n", scsi_device_get_callback(dev), dev->buffer_length, ncr->wait_complete, ncr->wait_data, ncr->wait_complete, ncr->clear_req, ncr->data_wait, timer_is_enabled(&ncr400->timer));
+                            else
+                                timer_on_auto(&ncr400->timer, ncr->period);
+
+                            ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, datawait=%d, enabled=%d.\n", ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, ncr->wait_complete, ncr->wait_data, ncr->wait_complete, ncr->clear_req, ncr->data_wait, timer_is_enabled(&ncr400->timer));
                         }
                         break;
 
@@ -239,8 +242,8 @@ ncr53c400_read(uint32_t addr, void *priv)
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
                         ncr53c400_log("Transfer busy read, status = %02x.\n", ncr400->status_ctrl);
-                        if (!(ncr->mode & MODE_MONITOR_BUSY))
-                            timer_on_auto(&ncr400->timer, ncr->period / 280.0);
+                        if (!(ncr->mode & MODE_MONITOR_BUSY) && (scsi_device_get_callback(dev) > 0.0))
+                            timer_on_auto(&ncr400->timer, ncr->period / 250.0);
                     }
                 }
                 break;

@@ -295,6 +295,8 @@ typedef struct virge_t {
     void *i2c, *ddc;
 
     int waiting;
+
+    int onboard;
 } virge_t;
 
 static video_timings_t timing_diamond_stealth3d_2000_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
@@ -1073,11 +1075,10 @@ s3_virge_updatemapping(virge_t *virge)
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             mem_mapping_disable(&virge->linear_mapping);
         } else {
-            if (virge->chip == S3_VIRGEVX || virge->chip == S3_TRIO3D2X) {
+            if (virge->chip == S3_VIRGEVX || virge->chip == S3_TRIO3D2X)
                 virge->linear_base &= 0xfe000000;
-            } else {
+            else
                 virge->linear_base &= 0xfc000000;
-            }
 
             mem_mapping_set_addr(&virge->linear_mapping, virge->linear_base, virge->linear_size);
         }
@@ -4069,16 +4070,16 @@ s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
             break;
 
         case 0x30:
-            ret = virge->pci_regs[0x30] & 0x01;
+            ret = (!virge->onboard) ? (virge->pci_regs[0x30] & 0x01) : 0x00;
             break; /*BIOS ROM address*/
         case 0x31:
             ret = 0x00;
             break;
         case 0x32:
-            ret = virge->pci_regs[0x32];
+            ret = (!virge->onboard) ? virge->pci_regs[0x32] : 0x00;
             break;
         case 0x33:
-            ret = virge->pci_regs[0x33];
+            ret = (!virge->onboard) ? virge->pci_regs[0x33] : 0x00;
             break;
 
         case 0x34:
@@ -4202,6 +4203,8 @@ s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x30:
         case 0x32:
         case 0x33:
+            if (virge->onboard)
+                return;
             virge->pci_regs[addr] = val;
             if (virge->pci_regs[0x30] & 0x01) {
                 uint32_t biosaddr = (virge->pci_regs[0x32] << 16) | (virge->pci_regs[0x33] << 24);
@@ -4337,7 +4340,8 @@ s3_virge_reset(void *priv)
     virge->svga.crtc[0x37] = 1 | (7 << 5);
     virge->svga.crtc[0x53] = 8;
 
-    mem_mapping_disable(&virge->bios_rom.mapping);
+    if (!virge->onboard)
+        mem_mapping_disable(&virge->bios_rom.mapping);
 
     s3_virge_updatemapping(virge);
 
@@ -4360,6 +4364,8 @@ s3_virge_init(const device_t *info)
     else
         virge->memory_size = device_get_config_int("memory");
 
+    virge->onboard = !!(info->local & 0x100);
+
     switch (info->local) {
         case S3_VIRGE_325:
             bios_fn = ROM_VIRGE_325;
@@ -4374,7 +4380,7 @@ s3_virge_init(const device_t *info)
             bios_fn = ROM_STB_VELOCITY_3D;
             break;
         case S3_VIRGE_DX:
-            bios_fn = ROM_VIRGE_DX;
+            bios_fn = virge->onboard ? NULL : ROM_VIRGE_DX;
             break;
         case S3_DIAMOND_STEALTH3D_2000PRO:
             bios_fn = ROM_DIAMOND_STEALTH3D_2000PRO;
@@ -4408,11 +4414,12 @@ s3_virge_init(const device_t *info)
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         else
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+        mem_mapping_disable(&virge->bios_rom.mapping);
     }
 
-    mem_mapping_disable(&virge->bios_rom.mapping);
-
-    mem_mapping_add(&virge->linear_mapping, 0, 0, svga_read_linear,
+    mem_mapping_add(&virge->linear_mapping, 0, 0,
+                    svga_read_linear,
                     svga_readw_linear,
                     svga_readl_linear,
                     svga_write_linear,
@@ -4421,7 +4428,8 @@ s3_virge_init(const device_t *info)
                     NULL,
                     MEM_MAPPING_EXTERNAL,
                     &virge->svga);
-    mem_mapping_add(&virge->mmio_mapping, 0, 0, s3_virge_mmio_read,
+    mem_mapping_add(&virge->mmio_mapping, 0, 0,
+                    s3_virge_mmio_read,
                     s3_virge_mmio_read_w,
                     s3_virge_mmio_read_l,
                     s3_virge_mmio_write,
@@ -4430,7 +4438,8 @@ s3_virge_init(const device_t *info)
                     NULL,
                     MEM_MAPPING_EXTERNAL,
                     virge);
-    mem_mapping_add(&virge->new_mmio_mapping, 0, 0, s3_virge_mmio_read,
+    mem_mapping_add(&virge->new_mmio_mapping, 0, 0,
+                    s3_virge_mmio_read,
                     s3_virge_mmio_read_w,
                     s3_virge_mmio_read_l,
                     s3_virge_mmio_write,
@@ -4891,6 +4900,20 @@ const device_t s3_virge_375_pci_device = {
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
     { .available = s3_virge_375_available },
+    .speed_changed = s3_virge_speed_changed,
+    .force_redraw  = s3_virge_force_redraw,
+    .config        = s3_virge_config
+};
+
+const device_t s3_virge_375_onboard_pci_device = {
+    .name          = "S3 ViRGE/DX (375) On-Board PCI",
+    .internal_name = "virge375_onboard_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_VIRGE_DX | 0x100,
+    .init          = s3_virge_init,
+    .close         = s3_virge_close,
+    .reset         = s3_virge_reset,
+    { .available = NULL },
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
