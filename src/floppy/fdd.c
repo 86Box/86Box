@@ -173,6 +173,8 @@ static const struct {
     { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M 300/360 RPM", "35_2hd_3mode" },
     /* 3.5" ED, Equivalent to TEAC FD-235J */
     { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP, "3.5\" 2.88M", "35_2ed" },
+    /* 3.5" ED Dual RPM, Equivalent to TEAC FD-335J */
+    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP, "3.5\" 2.88M 300/360 RPM", "35_2ed_dualrpm" },
     /* End of list */
     { -1, -1, "", "" }
 };
