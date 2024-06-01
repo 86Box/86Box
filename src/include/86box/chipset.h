@@ -24,6 +24,7 @@ extern const device_t acc2168_device;
 extern const device_t ali1217_device;
 extern const device_t ali1429_device;
 extern const device_t ali1429g_device;
+extern const device_t ali1409_device;
 extern const device_t ali1435_device;
 extern const device_t ali1489_device;
 extern const device_t ali1531_device;
