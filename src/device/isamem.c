@@ -411,7 +411,7 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             if (val)
                 dev->flags |= FLAG_CONFIG;
             break;
-        
+
         default:
             break;
     }
@@ -537,6 +537,7 @@ isamem_init(const device_t *info)
             if (!!device_get_config_int("start"))
                 dev->start_addr = device_get_config_int("start");
             dev->frame_addr = device_get_config_hex20("frame");
+            dev->flags |= (FLAG_EMS);
             if (!!device_get_config_int("width"))
                 dev->flags |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
@@ -1496,7 +1497,7 @@ static const device_config_t brat_config[] = {
         .description = "Address",
         .type = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0x0258,
+        .default_int = 0x0268,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -1512,11 +1513,10 @@ static const device_config_t brat_config[] = {
         .description = "Frame Address",
         .type = CONFIG_HEX20,
         .default_string = "",
-        .default_int = 0,
+        .default_int = 0xD0000,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Disabled", .value = 0x00000 },
             { .description = "D000H",    .value = 0xD0000 },
             { .description = "E000H",    .value = 0xE0000 },
             { .description = ""                           }
@@ -1555,14 +1555,27 @@ static const device_config_t brat_config[] = {
         .description = "Memory Size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 128,
+        .default_int = 512,
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 8192,
+            .max = 4096,
             .step = 512
         },
         .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 14336,
+            .step = 512
+        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
