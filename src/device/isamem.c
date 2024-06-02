@@ -1662,6 +1662,8 @@ static const device_t lotech_device = {
 };
 
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
+// TODO: Dual Paging support
+// TODO: Conventional memory suppport
 static const device_config_t rampage_config[] = {
   // clang-format off
     {
@@ -1700,44 +1702,16 @@ static const device_config_t rampage_config[] = {
         },
     },
     {
-        .name = "width",
-        .description = "I/O Width",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 8,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "8-bit",  .value =  8 },
-            { .description = "16-bit", .value = 16 },
-            { .description = ""                    }
-        },
-    },
-    {
-        .name = "speed",
-        .description = "Transfer Speed",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Standard",   .value = 0 },
-            { .description = "High-Speed", .value = 1 },
-            { .description = ""                       }
-        }
-    },
-    {
         .name = "size",
         .description = "Memory Size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 128,
+        .default_int = 256, /* Technically 128k, but banks 2-7 must be 256, headaches elsewise */
         .file_filter = "",
         .spinner = {
-            .min = 0,
-            .max = 8192,
-            .step = 128
+            .min = 256,
+            .max = 2048,
+            .step = 256
         },
         .selection = { { 0 } }
     },
