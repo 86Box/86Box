@@ -4190,7 +4190,7 @@ const machine_t machines[] = {
             .max_multi = 0,
             
         },
-        .bus_flags = MACHINE_PS2_PCI, 
+        .bus_flags = MACHINE_PS2, 
         .flags = MACHINE_IDE | MACHINE_VIDEO , /* Machine has internal OTI 077 Video card*/
         .ram = {
             .min = 2048,
