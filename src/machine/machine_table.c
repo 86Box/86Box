@@ -4169,6 +4169,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+            {
+        .name = "[ALI M1409] Acer 100T",
+        .internal_name = "acer100t",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1409,
+        .init = machine_at_acer100t_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 16000000,
+            .max_bus = 25000000, /* Limited to 25 due a inaccurate cpu speed */
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0,
+            
+        },
+        .bus_flags = MACHINE_PS2_PCI, 
+        .flags = MACHINE_IDE | MACHINE_VIDEO , /* Machine has internal OTI 077 Video card*/
+        .ram = {
+            .min = 2048,
+            .max = 16256,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &oti077_acer100t_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name = "[ALi M6117] Acrosser PJ-A511M",
