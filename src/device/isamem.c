@@ -98,9 +98,10 @@
 #define ISAMEM_EV159_CARD      10
 #define ISAMEM_RAMPAGEXT_CARD  11
 #define ISAMEM_ABOVEBOARD_CARD 12
-#define ISAMEM_BRAT_CARD       13
-#define ISAMEM_EV165A_CARD     14
-#define ISAMEM_LOTECH_CARD     15
+#define ISAMEM_BRXT_CARD       13
+#define ISAMEM_BRAT_CARD       14
+#define ISAMEM_EV165A_CARD     15
+#define ISAMEM_LOTECH_CARD     16
 
 #define ISAMEM_DEBUG           0
 
@@ -410,7 +411,7 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             if (val)
                 dev->flags |= FLAG_CONFIG;
             break;
-        
+
         default:
             break;
     }
@@ -533,14 +534,17 @@ isamem_init(const device_t *info)
         case ISAMEM_BRAT_CARD:       /* BocaRAM/AT */
             dev->base_addr  = device_get_config_hex16("base");
             dev->total_size = device_get_config_int("size");
-            dev->start_addr = device_get_config_int("start");
+            if (!!device_get_config_int("start"))
+                dev->start_addr = device_get_config_int("start");
             dev->frame_addr = device_get_config_hex20("frame");
+            dev->flags |= (FLAG_EMS);
             if (!!device_get_config_int("width"))
                 dev->flags |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
                 dev->flags |= FLAG_FAST;
             break;
 
+        case ISAMEM_BRXT_CARD:       /* BocaRAM/XT */
         case ISAMEM_LOTECH_CARD:
             dev->base_addr = device_get_config_hex16("base");
             dev->total_size = device_get_config_int("size");
@@ -1421,15 +1425,14 @@ static const device_t ev165a_device = {
     .config        = ev165a_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
-static const device_config_t brat_config[] = {
+static const device_config_t brxt_config[] = {
   // clang-format off
     {
         .name = "base",
         .description = "Address",
         .type = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0x0258,
+        .default_int = 0x0268,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -1445,11 +1448,75 @@ static const device_config_t brat_config[] = {
         .description = "Frame Address",
         .type = CONFIG_HEX20,
         .default_string = "",
-        .default_int = 0,
+        .default_int = 0xD0000,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Disabled", .value = 0x00000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
+        },
+    },
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 2048,
+            .step = 512
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t brxt_device = {
+    .name          = "BocaRAM/XT",
+    .internal_name = "brxt",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_BRXT_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = brxt_config
+};
+
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
+static const device_config_t brat_config[] = {
+  // clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0268,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
             { .description = "D000H",    .value = 0xD0000 },
             { .description = "E000H",    .value = 0xE0000 },
             { .description = ""                           }
@@ -1488,14 +1555,27 @@ static const device_config_t brat_config[] = {
         .description = "Memory Size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 128,
+        .default_int = 512,
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 8192,
+            .max = 4096,
             .step = 512
         },
         .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 14336,
+            .step = 512
+        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1582,6 +1662,8 @@ static const device_t lotech_device = {
 };
 
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
+// TODO: Dual Paging support
+// TODO: Conventional memory suppport
 static const device_config_t rampage_config[] = {
   // clang-format off
     {
@@ -1620,44 +1702,16 @@ static const device_config_t rampage_config[] = {
         },
     },
     {
-        .name = "width",
-        .description = "I/O Width",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 8,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "8-bit",  .value =  8 },
-            { .description = "16-bit", .value = 16 },
-            { .description = ""                    }
-        },
-    },
-    {
-        .name = "speed",
-        .description = "Transfer Speed",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Standard",   .value = 0 },
-            { .description = "High-Speed", .value = 1 },
-            { .description = ""                       }
-        }
-    },
-    {
         .name = "size",
         .description = "Memory Size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 128,
+        .default_int = 256, /* Technically 128k, but banks 2-7 must be 256, headaches elsewise */
         .file_filter = "",
         .spinner = {
-            .min = 0,
-            .max = 8192,
-            .step = 128
+            .min = 256,
+            .max = 2048,
+            .step = 256
         },
         .selection = { { 0 } }
     },
@@ -1809,6 +1863,7 @@ static const struct {
     { &ems5150_device      },
     { &ev159_device        },
     { &ev165a_device       },
+    { &brxt_device         },
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
     { &brat_device         },
 #endif
