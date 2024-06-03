@@ -315,9 +315,7 @@ ems_read(uint16_t port, void *priv)
             break;
     }
 
-#if ISAMEM_DEBUG
-    isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
-#endif
+    isamem_log("ISAMEM: read(%04x) = %02x) page=%d\n", port, ret, vpage);
 
     return ret;
 }
@@ -333,11 +331,12 @@ consecutive_ems_read(uint16_t port, void *priv)
     /* Get the viewport page number. */
     vpage = (port - dev->base_addr);
 
-    isamem_log("ISAMEM: read(%04x) = %02x) page=%d\n", port, ret, vpage);
-
+ 
     ret = dev->ems[vpage].page;
     if (dev->ems[vpage].enabled)
         ret |= 0x80;
+
+    isamem_log("ISAMEM: read(%04x) = %02x) page=%d\n", port, ret, vpage);
 
     return ret;
 }
@@ -353,12 +352,10 @@ ems_write(uint16_t port, uint8_t val, void *priv)
     vpage = (port / EMS_PGSIZE);
     port &= (EMS_PGSIZE - 1);
 
-#if ISAMEM_DEBUG
-    isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
-#endif
-
     switch (port - dev->base_addr) {
         case 0x0000: /* page mapping registers */
+            isamem_log("ISAMEM: write(%04x, %02x) to page mapping registers! page=%d\n", port, val, vpage);
+
             /* Set the page number. */
             dev->ems[vpage].enabled = (val & 0x80);
             dev->ems[vpage].page    = (val & 0x7f);
@@ -385,6 +382,8 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x0001: /* page frame registers */
+            isamem_log("ISAMEM: write(%04x, %02x) to page frame registers! page=%d\n", port, val, vpage);
+
                      /*
                       * The EV-159 EMM driver configures the frame address
                       * by setting bits in these registers. The information
@@ -403,7 +402,6 @@ ems_write(uint16_t port, uint8_t val, void *priv)
                       * 80 c0 e0  DC000
                       * 80 c0 e0  E0000
                       */
-            isamem_log("EMS: write(%02x) to register 1 !\n");
             dev->ems[vpage].frame = val;
             dev->frame_addr = 0x000c4000 + ((((dev->ems[2].frame & 0x80) >> 5) ||
                                              ((dev->ems[1].frame & 0x80) >> 6) ||
@@ -429,9 +427,8 @@ consecutive_ems_write(uint16_t port, uint8_t val, void *priv)
     /* Get the viewport page number. */
     vpage = (port - dev->base_addr);
 
-    isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
+    isamem_log("ISAMEM: write(%04x, %02x) to page mapping registers! (page=%d)\n", port, val, vpage);
 
-    isamem_log("EMS: write(%02x) to register 0! (%02x)\n", val);
     /* Set the page number. */
     dev->ems[vpage].enabled = 1;
     dev->ems[vpage].page    = val;
