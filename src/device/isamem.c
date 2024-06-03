@@ -529,6 +529,14 @@ isamem_init(const device_t *info)
             break;
 
         case ISAMEM_RAMPAGEXT_CARD:  /* AST RAMpage/XT */
+            dev->base_addr  = device_get_config_hex16("base");
+            dev->total_size = device_get_config_int("size");
+            dev->start_addr = device_get_config_int("start");
+            tot             = dev->total_size;
+            dev->flags |= FLAG_EMS;
+            dev->frame_addr = 0xE0000;
+            break;
+
         case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard */
         case ISAMEM_BRAT_CARD:       /* BocaRAM/AT */
             dev->base_addr  = device_get_config_hex16("base");
@@ -1670,7 +1678,7 @@ static const device_config_t rampage_config[] = {
         .description = "Address",
         .type = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0x0258,
+        .default_int = 0x0218,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -1682,22 +1690,6 @@ static const device_config_t rampage_config[] = {
             { .description = "2B8H", .value = 0x02B8 },
             { .description = "2E8H", .value = 0x02E8 },
             { .description = ""                      }
-        },
-    },
-    {
-        .name = "frame",
-        .description = "Frame Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Disabled", .value = 0x00000 },
-            { .description = "C000H",    .value = 0xC0000 },
-            { .description = "D000H",    .value = 0xD0000 },
-            { .description = "E000H",    .value = 0xE0000 },
-            { .description = ""                           }
         },
     },
     {
@@ -1713,6 +1705,19 @@ static const device_config_t rampage_config[] = {
             .step = 256
         },
         .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 640,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 640,
+            .step = 64
+        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
