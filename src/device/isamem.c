@@ -363,27 +363,24 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             dev->ems[vpage].enabled = (val & 0x80);
             dev->ems[vpage].page    = (val & 0x7f);
 
-            /* Make sure we can do that.. */
-            if (dev->flags & FLAG_CONFIG) {
-                if (dev->ems[vpage].page < dev->ems_pages) {
-                    /* Pre-calculate the page address in EMS RAM. */
-                    dev->ems[vpage].addr = dev->ram + dev->ems_start + ((val & 0x7f) * EMS_PGSIZE);
-                } else {
-                    /* That page does not exist. */
-                    dev->ems[vpage].enabled = 0;
-                }
+            if (dev->ems[vpage].page < dev->ems_pages) {
+                /* Pre-calculate the page address in EMS RAM. */
+                dev->ems[vpage].addr = dev->ram + dev->ems_start + ((val & 0x7f) * EMS_PGSIZE);
+            } else {
+                /* That page does not exist. */
+                dev->ems[vpage].enabled = 0;
+            }
 
-                if (dev->ems[vpage].enabled) {
-                    /* Update the EMS RAM address for this page. */
-                    mem_mapping_set_exec(&dev->ems[vpage].mapping,
-                                         dev->ems[vpage].addr);
+            if (dev->ems[vpage].enabled) {
+                /* Update the EMS RAM address for this page. */
+                mem_mapping_set_exec(&dev->ems[vpage].mapping,
+                                     dev->ems[vpage].addr);
 
-                    /* Enable this page. */
-                    mem_mapping_enable(&dev->ems[vpage].mapping);
-                } else {
-                    /* Disable this page. */
-                    mem_mapping_disable(&dev->ems[vpage].mapping);
-                }
+                /* Enable this page. */
+                mem_mapping_enable(&dev->ems[vpage].mapping);
+            } else {
+                /* Disable this page. */
+                mem_mapping_disable(&dev->ems[vpage].mapping);
             }
             break;
 
@@ -408,8 +405,13 @@ ems_write(uint16_t port, uint8_t val, void *priv)
                       */
             isamem_log("EMS: write(%02x) to register 1 !\n");
             dev->ems[vpage].frame = val;
-            if (val)
-                dev->flags |= FLAG_CONFIG;
+            dev->frame_addr = 0x000c4000 + ((((dev->ems[2].frame & 0x80) >> 5) ||
+                                             ((dev->ems[1].frame & 0x80) >> 6) ||
+                                             ((dev->ems[0].frame & 0x80) >> 7)) << 14);
+            mem_mapping_disable(&dev->ems[0].mapping);
+            mem_mapping_disable(&dev->ems[1].mapping);
+            mem_mapping_disable(&dev->ems[2].mapping);
+            mem_mapping_disable(&dev->ems[3].mapping);
             break;
 
         default:
