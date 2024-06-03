@@ -3451,8 +3451,6 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 static void
 mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8514_t *dev)
 {
-    uint8_t    old = 0;
-
     if (port != 0x7aee && port != 0x7aef && port != 0x42e8 && port != 0x42e9 && port != 0x46e8 && port != 0x46e9)
         mach_log("[%04X:%08X]: Port CALL OUT=%04x, val=%02x.\n", CS, cpu_state.pc, port, val);
 
