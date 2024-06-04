@@ -1927,7 +1927,7 @@ save_machine(void)
     else
         ini_section_delete_var(cat, "cpu_override");
     if (cpu_override_interpreter)
-        ini_section_set_int(cat, "cpu_override_interpreter", cpu_override);
+        ini_section_set_int(cat, "cpu_override_interpreter", cpu_override_interpreter);
     else
         ini_section_delete_var(cat, "cpu_override_interpreter");
 
