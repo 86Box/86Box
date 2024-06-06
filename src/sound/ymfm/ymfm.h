@@ -485,6 +485,8 @@ public:
 class ymfm_engine_callbacks
 {
 public:
+    virtual ~ymfm_engine_callbacks() = default;
+
 	// timer callback; called by the interface when a timer fires
 	virtual void engine_timer_expired(uint32_t tnum) = 0;
 
@@ -506,6 +508,7 @@ class ymfm_interface
 	template<typename RegisterType> friend class fm_engine_base;
 
 public:
+	virtual ~ymfm_interface() = default;
 	// the following functions must be implemented by any derived classes; the
 	// default implementations are sufficient for some minimal operation, but will
 	// likely need to be overridden to integrate with the outside world; they are
