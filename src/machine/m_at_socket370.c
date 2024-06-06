@@ -100,7 +100,7 @@ machine_at_s1857_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&w83977ef_370_device);
+    device_add(&w83977ef_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
