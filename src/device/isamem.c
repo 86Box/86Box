@@ -582,6 +582,7 @@ isamem_init(const device_t *info)
         case ISAMEM_LOTECH_CARD: /* Lotech EMS */
             /* The Lotech EMS cannot have more than 4096KB per board. */
             ems_max = EMS_LOTECH_MAXSIZE;
+            fallthrough;
         case ISAMEM_BRXT_CARD:   /* BocaRAM/XT */
             dev->base_addr[0]   = device_get_config_hex16("base");
             dev->total_size     = device_get_config_int("size");
