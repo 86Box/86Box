@@ -478,6 +478,8 @@ isamem_init(const device_t *info)
     uint32_t  t;
     uint32_t  addr;
     uint32_t  tot;
+    /* EMS 3.2 cannot have more than 2048KB per board. */
+    uint32_t  ems_max = EMS_MAXSIZE;
     uint8_t  *ptr;
 
     /* Find our device and create an instance. */
@@ -527,6 +529,8 @@ isamem_init(const device_t *info)
             break;
 
         case ISAMEM_EV159_CARD: /* Everex EV-159 RAM 3000 */
+            /* The EV-159 cannot have more than 3072KB per board. */
+            ems_max = EMS_EV159_MAXSIZE;
             dev->base_addr[0]  = device_get_config_hex16("base");
             dev->base_addr[1]  = device_get_config_hex16("base2");
             dev->total_size    = device_get_config_int("size");
@@ -575,13 +579,16 @@ isamem_init(const device_t *info)
                 dev->flags     |= FLAG_FAST;
             break;
 
-        case ISAMEM_BRXT_CARD:   /* BocaRAM/XT */
         case ISAMEM_LOTECH_CARD: /* Lotech EMS */
+            /* The Lotech EMS cannot have more than 4096KB per board. */
+            ems_max = EMS_LOTECH_MAXSIZE;
+        case ISAMEM_BRXT_CARD:   /* BocaRAM/XT */
             dev->base_addr[0]   = device_get_config_hex16("base");
             dev->total_size     = device_get_config_int("size");
             dev->start_addr     = 0;
             dev->frame_addr[0]  = device_get_config_hex20("frame");
             dev->flags         |= (FLAG_EMS | FLAG_CONFIG);
+            break;
 
         default:
             break;
@@ -733,19 +740,13 @@ isamem_init(const device_t *info)
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
         t = k;
-        if ((dev->board == ISAMEM_LOTECH_CARD) && (t > EMS_LOTECH_MAXSIZE))
-            /* The Lotech EMS cannot have more than 4096KB per board. */
-            t = EMS_LOTECH_MAXSIZE;
-        else if ((dev->board == ISAMEM_EV159_CARD) && (t > EMS_EV159_MAXSIZE))
-            /* The EV-159 cannot have more than 3072KB per board. */
-            t = EMS_EV159_MAXSIZE;
-        else if (t > EMS_MAXSIZE)
-            /* EMS 3.2 cannot have more than 2048KB per board. */
-            t = EMS_MAXSIZE;
+
+        if (t > ems_max)
+            t = ems_max;
 
         /* Set up where EMS begins in local RAM, and how much we have. */
         dev->ems_start[0]     = ptr - dev->ram;
-        if ((dev->board == ISAMEM_EV159_CARD) && (t > 2048)) {
+        if ((dev->board == ISAMEM_EV159_CARD) && (t > (2 << 20))) {
             dev->ems_size[0]  = 2 << 10;
             dev->ems_pages[0] = (2 << 20) / EMS_PGSIZE;
         } else {
