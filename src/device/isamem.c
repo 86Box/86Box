@@ -110,6 +110,7 @@
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
 #define EMS_MAXSIZE            (2048 << 10) /* max EMS memory size */
+#define EMS_EV159_MAXSIZE      (3072 << 10) /* max EMS memory size for lotech cards */
 #define EMS_LOTECH_MAXSIZE     (4096 << 10) /* max EMS memory size for lotech cards */
 #define EMS_PGSIZE             (16 << 10)   /* one page is this big */
 #define EMS_MAXPAGE            4            /* number of viewport pages */
@@ -144,7 +145,6 @@ typedef struct memdev_t {
 
     uint8_t  flags;
 #define FLAG_CONFIG 0x01 /* card is configured */
-#define FLAG_LOTECH 0x02 /* Lotech EMS supports upto 4MB with a hack */
 #define FLAG_WIDE   0x10 /* card uses 16b mode */
 #define FLAG_FAST   0x20 /* fast (<= 120ns) chips */
 #define FLAG_EMS    0x40 /* card has EMS mode enabled */
@@ -567,9 +567,8 @@ isamem_init(const device_t *info)
                 dev->flags     |= FLAG_FAST;
             break;
 
-        case ISAMEM_LOTECH_CARD: /* Lotech EMS */
-            dev->flags         |= FLAG_LOTECH;
         case ISAMEM_BRXT_CARD:   /* BocaRAM/XT */
+        case ISAMEM_LOTECH_CARD: /* Lotech EMS */
             dev->base_addr[0]   = device_get_config_hex16("base");
             dev->total_size     = device_get_config_int("size");
             dev->start_addr     = 0;
@@ -725,12 +724,14 @@ isamem_init(const device_t *info)
 
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
-        /* EMS 3.2 cannot have more than 4096KB per board. */
         t = k;
-        if ((dev->flags & FLAG_LOTECH) && (t > EMS_LOTECH_MAXSIZE))
+        if ((dev->board == ISAMEM_LOTECH_CARD) && (t > EMS_LOTECH_MAXSIZE))
             /* Lotech EMS cannot have more than 4096KB per board. */
             t = EMS_LOTECH_MAXSIZE;
+        else if ((dev->board == ISAMEM_EV159_CARD) && (t > EMS_EV159_MAXSIZE))
+            t = EMS_EV159_MAXSIZE;
         else if (t > EMS_MAXSIZE)
+            /* EMS 3.2 cannot have more than 4096KB per board. */
             t = EMS_MAXSIZE;
 
         /* Set up where EMS begins in local RAM, and how much we have. */
