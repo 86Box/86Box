@@ -90,11 +90,12 @@
 #define ISAMEM_GENXT_CARD      1
 #define ISAMEM_RAMCARD_CARD    2
 #define ISAMEM_SYSTEMCARD_CARD 3
-#define ISAMEM_IBMAT_CARD      4
-#define ISAMEM_GENAT_CARD      5
-#define ISAMEM_P5PAK_CARD      6
-#define ISAMEM_A6PAK_CARD      7
-#define ISAMEM_EMS5150_CARD    8
+#define ISAMEM_IBMAT_128K_CARD 4
+#define ISAMEM_IBMAT_CARD      5
+#define ISAMEM_GENAT_CARD      6
+#define ISAMEM_P5PAK_CARD      7
+#define ISAMEM_A6PAK_CARD      8
+#define ISAMEM_EMS5150_CARD    9
 #define ISAMEM_EV159_CARD      10
 #define ISAMEM_RAMPAGEXT_CARD  11
 #define ISAMEM_ABOVEBOARD_CARD 12
@@ -500,6 +501,13 @@ isamem_init(const device_t *info)
             dev->total_size = device_get_config_int("size");
             dev->start_addr = device_get_config_int("start");
             tot             = dev->total_size;
+            break;
+
+        case ISAMEM_IBMAT_128K_CARD: /* IBM PC/AT 128K Memory Expansion Option */
+            dev->total_size = 128;
+            dev->start_addr = 512;
+            tot             = dev->total_size;
+            dev->flags |= FLAG_WIDE;
             break;
 
         case ISAMEM_IBMAT_CARD: /* IBM PC/AT Memory Expansion Card */
@@ -1033,6 +1041,20 @@ static const device_t mssystemcard_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mssystemcard_config
+};
+
+static const device_t ibmat_128k_device = {
+    .name          = "IBM PC/AT 128KB Memory Expansion Option",
+    .internal_name = "ibmat_128k",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_IBMAT_128K_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const device_config_t ibmat_config[] = {
@@ -1939,12 +1961,16 @@ static const struct {
 } boards[] = {
     // clang-format off
     { &isa_none_device     },
+    // XT Ram Expansion Cards
     { &ibmxt_device        },
     { &genericxt_device    },
     { &msramcard_device    },
     { &mssystemcard_device },
+    // AT RAM Expansion Cards
+    { &ibmat_128k_device   },
     { &ibmat_device        },
     { &genericat_device    },
+    // EMS Cards
     { &p5pak_device        },
     { &a6pak_device        },
     { &ems5150_device      },
