@@ -110,7 +110,7 @@
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
 #define EMS_MAXSIZE            (2048 << 10) /* max EMS memory size */
-#define EMS_EV159_MAXSIZE      (3072 << 10) /* max EMS memory size for lotech cards */
+#define EMS_EV159_MAXSIZE      (3072 << 10) /* max EMS memory size for EV-159 cards */
 #define EMS_LOTECH_MAXSIZE     (4096 << 10) /* max EMS memory size for lotech cards */
 #define EMS_PGSIZE             (16 << 10)   /* one page is this big */
 #define EMS_MAXPAGE            4            /* number of viewport pages */
@@ -726,12 +726,13 @@ isamem_init(const device_t *info)
     if (dev->flags & FLAG_EMS) {
         t = k;
         if ((dev->board == ISAMEM_LOTECH_CARD) && (t > EMS_LOTECH_MAXSIZE))
-            /* Lotech EMS cannot have more than 4096KB per board. */
+            /* The Lotech EMS cannot have more than 4096KB per board. */
             t = EMS_LOTECH_MAXSIZE;
         else if ((dev->board == ISAMEM_EV159_CARD) && (t > EMS_EV159_MAXSIZE))
+            /* The EV-159 cannot have more than 3072KB per board. */
             t = EMS_EV159_MAXSIZE;
         else if (t > EMS_MAXSIZE)
-            /* EMS 3.2 cannot have more than 4096KB per board. */
+            /* EMS 3.2 cannot have more than 2048KB per board. */
             t = EMS_MAXSIZE;
 
         /* Set up where EMS begins in local RAM, and how much we have. */
