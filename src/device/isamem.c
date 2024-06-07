@@ -851,6 +851,54 @@ isamem_close(void *priv)
     free(dev);
 }
 
+static const device_config_t ibmxt_32k_config[] = {
+  // clang-format off
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 32,
+        .file_filter = "",
+        .spinner = {
+            .min = 32,
+            .max = 576,
+            .step = 32
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 608,
+            .step = 32
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t ibmxt_32k_device = {
+    .name          = "IBM PC/XT 32K Memory Expansion Option",
+    .internal_name = "ibmxt_32k",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_IBMXT_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt_32k_config
+};
+
 static const device_config_t ibmxt_config[] = {
   // clang-format off
     {
@@ -1962,6 +2010,7 @@ static const struct {
     // clang-format off
     { &isa_none_device     },
     // XT Ram Expansion Cards
+    { &ibmxt_32k_device    },
     { &ibmxt_device        },
     { &genericxt_device    },
     { &msramcard_device    },
