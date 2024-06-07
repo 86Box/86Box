@@ -560,7 +560,7 @@ isamem_init(const device_t *info)
             if (!!device_get_config_int("start"))
                 dev->start_addr = device_get_config_int("start");
             dev->frame_addr[0]  = device_get_config_hex20("frame");
-            dev->flags         |= (FLAG_EMS);
+            dev->flags         |= FLAG_EMS;
             if (!!device_get_config_int("width"))
                 dev->flags     |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
