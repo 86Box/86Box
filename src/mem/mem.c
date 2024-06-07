@@ -2833,8 +2833,8 @@ mem_reset(void)
      */
     if (is286) {
         if (cpu_16bitbus) {
-            /* 80286/386SX; maximum address space is 16MB. */
-            m = 4096;
+            /* 80286/386SX; maximum address space is 16MB + 16 MB for EMS. */
+            m = 8192;
             /* ALi M6117; maximum address space is 64MB. */
             if (is6117)
                 m <<= 2;
