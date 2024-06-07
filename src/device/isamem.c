@@ -957,9 +957,9 @@ static const device_config_t ibmxt_config[] = {
         .default_int = 128,
         .file_filter = "",
         .spinner = {
-            .min = 0,
-            .max = 512,
-            .step = 16
+            .min = 64,
+            .max = 576,
+            .step = 64
         },
         .selection = { { 0 } }
     },
@@ -982,7 +982,7 @@ static const device_config_t ibmxt_config[] = {
 };
 
 static const device_t ibmxt_device = {
-    .name          = "IBM PC/XT Memory Expansion",
+    .name          = "IBM PC/XT 64/256K Memory Expansion Option",
     .internal_name = "ibmxt",
     .flags         = DEVICE_ISA,
     .local         = ISAMEM_IBMXT_CARD,
