@@ -120,6 +120,9 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
     int           p;
     int           q;
 
+    if (config == NULL)
+        return;
+
     while (config->type != -1) {
         const int config_type       = config->type & CONFIG_TYPE_MASK;
 
@@ -363,7 +366,11 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     dc.ProcessConfig(&device_context, config, false);
 
     dc.setFixedSize(dc.minimumSizeHint());
+
     if (dc.exec() == QDialog::Accepted) {
+        if (config == NULL)
+            return;
+
         config = device->config;
         while (config->type != -1) {
             switch (config->type) {
