@@ -815,3 +815,12 @@ isartc_get_device(int board)
 {
     return (boards[board].dev);
 }
+
+int
+isartc_has_config(int board)
+{
+    if (boards[board].dev == NULL)
+        return 0;
+
+    return (boards[board].dev->config ? 1 : 0);
+}

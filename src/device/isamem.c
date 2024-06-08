@@ -2145,3 +2145,12 @@ isamem_get_device(int board)
     /* Add the instance to the system. */
     return boards[board].dev;
 }
+
+int
+isamem_has_config(int board)
+{
+    if (boards[board].dev == NULL)
+        return 0;
+
+    return (boards[board].dev->config ? 1 : 0);
+}

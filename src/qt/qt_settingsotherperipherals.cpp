@@ -81,6 +81,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         ++d;
     }
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
+    ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsa);
 
     for (int c = 0; c < ISAMEM_MAX; c++) {
         auto *cbox  = findChild<QComboBox *>(QString("comboBoxCard%1").arg(c + 1));
@@ -106,7 +107,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         cbox->setCurrentIndex(-1);
         cbox->setCurrentIndex(selectedRow);
         cbox->setEnabled(machineHasIsa);
-        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled(isamem_type[c] != 0 && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled((isamem_type[c] != 0) && isamem_has_config(isamem_type[c]) && machineHasIsa);
     }
 }
 
@@ -138,7 +139,7 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureRTC->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -153,7 +154,7 @@ SettingsOtherPeripherals::on_comboBoxCard1_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard1->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard1->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -168,7 +169,7 @@ SettingsOtherPeripherals::on_comboBoxCard2_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard2->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard2->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -183,7 +184,7 @@ SettingsOtherPeripherals::on_comboBoxCard3_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard3->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard3->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -198,7 +199,7 @@ SettingsOtherPeripherals::on_comboBoxCard4_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard4->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard4->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
