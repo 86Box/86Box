@@ -182,8 +182,8 @@ Settings::Settings(QWidget *parent)
            [this](const QModelIndex &current, const QModelIndex &previous) {
                   ui->stackedWidget->setCurrentIndex(current.row()); });
 
-    ui->listView->setMinimumWidth(ui->listView->sizeHintForColumn(0) +
-                                  qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
+    ui->listView->resizeColumnsToContents();
+    ui->listView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
     ui->listView->setCurrentIndex(model->index(0, 0));
 
