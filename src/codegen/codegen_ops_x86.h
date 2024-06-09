@@ -2911,7 +2911,7 @@ FP_COMPARE_S(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xd8); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -2919,7 +2919,7 @@ FP_COMPARE_S(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -2943,7 +2943,7 @@ FP_COMPARE_S(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xd8); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -2951,7 +2951,7 @@ FP_COMPARE_S(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -2980,7 +2980,7 @@ FP_COMPARE_D(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xdc); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -2988,7 +2988,7 @@ FP_COMPARE_D(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -3016,7 +3016,7 @@ FP_COMPARE_D(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xdc); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -3024,7 +3024,7 @@ FP_COMPARE_D(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -3050,7 +3050,7 @@ FP_COMPARE_IW(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xde); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -3058,7 +3058,7 @@ FP_COMPARE_IW(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -3082,7 +3082,7 @@ FP_COMPARE_IW(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xde); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -3090,7 +3090,7 @@ FP_COMPARE_IW(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -3115,7 +3115,7 @@ FP_COMPARE_IL(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xda); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -3123,7 +3123,7 @@ FP_COMPARE_IL(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -3147,7 +3147,7 @@ FP_COMPARE_IL(void)
         addbyte(0xe2);
         addbyte(0x80); /*AND BL, ~(C0|C2|C3)*/
         addbyte(0xe3);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xda); /*FCOMP [ESP]*/
         addbyte(0x04 | 0x18);
         addbyte(0x24);
@@ -3155,7 +3155,7 @@ FP_COMPARE_IL(void)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR BL, AH*/
         addbyte(0xe3);
         addbyte(0x88); /*MOV [npxs+1], BL*/
@@ -3250,7 +3250,7 @@ FP_COMPARE_REG(int dst, int src)
         addbyte((uint8_t) cpu_state_offset(ST[(cpu_state.TOP + dst) & 7]));
         addbyte(0x80); /*AND CL, ~(C0|C2|C3)*/
         addbyte(0xe1);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
         addbyte(0xdc); /*FCOMP ST[src][EBP]*/
         addbyte(0x5d);
         addbyte((uint8_t) cpu_state_offset(ST[(cpu_state.TOP + src) & 7]));
@@ -3258,7 +3258,7 @@ FP_COMPARE_REG(int dst, int src)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR CL, AH*/
         addbyte(0xe1);
         addbyte(0x88); /*MOV [npxs+1], CL*/
@@ -3286,7 +3286,7 @@ FP_COMPARE_REG(int dst, int src)
         addbyte(0xe2);
         addbyte(0x80); /*AND CL, ~(C0|C2|C3)*/
         addbyte(0xe1);
-        addbyte((~(C0 | C2 | C3)) >> 8);
+        addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
 
         if (src) {
             addbyte(0xdd); /*FLD ST[EBX*8]*/
@@ -3312,7 +3312,7 @@ FP_COMPARE_REG(int dst, int src)
         addbyte(0xe0);
         addbyte(0x80); /*AND AH, (C0|C2|C3)*/
         addbyte(0xe4);
-        addbyte((C0 | C2 | C3) >> 8);
+        addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
         addbyte(0x08); /*OR CL, AH*/
         addbyte(0xe1);
         addbyte(0x88); /*MOV [npxs+1], CL*/

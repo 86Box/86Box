@@ -21,7 +21,7 @@
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
 
-#include "softfloat/softfloat.h"
+#include "softfloat3e/softfloat.h"
 
 enum {
     FPU_NONE,
@@ -591,8 +591,6 @@ extern uint32_t eip_msr;
 /* For the AMD K6. */
 extern uint64_t amd_efer;
 extern uint64_t star;
-
-#define FPU_CW_Reserved_Bits (0xe0c0)
 
 #define cr0                  cpu_state.CR0.l
 #define msw                  cpu_state.CR0.w

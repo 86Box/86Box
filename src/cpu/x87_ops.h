@@ -40,17 +40,17 @@ static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARD
 
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]
 
-#define C0                (1 << 8)
-#define C1                (1 << 9)
-#define C2                (1 << 10)
-#define C3                (1 << 14)
+#define FPU_SW_C3         (0x4000)  /* condition bit 3 */
+#define FPU_SW_C2         (0x0400)  /* condition bit 2 */
+#define FPU_SW_C1         (0x0200)  /* condition bit 1 */
+#define FPU_SW_C0         (0x0100)  /* condition bit 0 */
 
 #define X87_TAG_VALID     0
 #define X87_TAG_ZERO      1
 #define X87_TAG_INVALID   2
 #define X87_TAG_EMPTY     3
 
-#define STATUS_ZERODIVIDE 4
+#define FPU_SW_Zero_Div   (0x0004)  /* divide by zero */
 
 typedef union {
     double d;
@@ -76,8 +76,8 @@ typedef union {
 #    define x87_div(dst, src1, src2)                    \
         do {                                            \
             if (((double) src2) == 0.0) {               \
-                cpu_state.npxs |= STATUS_ZERODIVIDE;    \
-                if (cpu_state.npxc & STATUS_ZERODIVIDE) \
+                cpu_state.npxs |= FPU_SW_Zero_Div;      \
+                if (cpu_state.npxc & FPU_SW_Zero_Div)   \
                     dst = src1 / (double) src2;         \
                 else {                                  \
                     fpu_log("FPU : divide by zero\n");  \
@@ -94,8 +94,8 @@ typedef union {
 #    define x87_div(dst, src1, src2)                    \
         do {                                            \
             if (((double) src2) == 0.0) {               \
-                cpu_state.npxs |= STATUS_ZERODIVIDE;    \
-                if (cpu_state.npxc & STATUS_ZERODIVIDE) \
+                cpu_state.npxs |= FPU_SW_Zero_Div;      \
+                if (cpu_state.npxc & FPU_SW_Zero_Div)   \
                     dst = src1 / (double) src2;         \
                 else {                                  \
                     fpu_log("FPU : divide by zero\n");  \
@@ -106,12 +106,6 @@ typedef union {
                 dst = src1 / (double) src2;             \
         } while (0)
 #endif
-
-static __inline void
-x87_checkexceptions(void)
-{
-    //
-}
 
 static __inline void
 x87_push(double i)
@@ -366,7 +360,7 @@ x87_compare(double a, double b)
 
     /* Hack to make CHKCOP happy. */
     if (!memcmp(&ea, &ia, 8) && !memcmp(&eb, &ib, 8))
-        return C3;
+        return FPU_SW_C3;
 
     if ((fpu_type < FPU_287XL) && !(cpu_state.npxc & 0x1000) && ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
         eb = ea;
@@ -399,7 +393,7 @@ x87_compare(double a, double b)
     }
 #    endif
 
-    return result & (C0 | C2 | C3);
+    return result & (FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
 #else
     /* Generic C version is known to give incorrect results in some
      * situations, eg comparison of infinity (Unreal) */
@@ -410,9 +404,9 @@ x87_compare(double a, double b)
         eb = ea;
 
     if (ea == eb)
-        result |= C3;
+        result |= FPU_SW_C3;
     else if (ea < eb)
-        result |= C0;
+        result |= FPU_SW_C0;
 
     return result;
 #endif
@@ -452,16 +446,16 @@ x87_ucompare(double a, double b)
     }
 #    endif
 
-    return result & (C0 | C2 | C3);
+    return result & (FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
 #else
     /* Generic C version is known to give incorrect results in some
      * situations, eg comparison of infinity (Unreal) */
     uint32_t result = 0;
 
     if (a == b)
-        result |= C3;
+        result |= FPU_SW_C3;
     else if (a < b)
-        result |= C0;
+        result |= FPU_SW_C0;
 
     return result;
 #endif
@@ -503,7 +497,8 @@ typedef union {
 #    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64
 #endif
 
-#include "softfloat/softfloat-specialize.h"
+#include "softfloat3e/softfloat-specialize.h"
+#include "softfloat3e/fpu_trans.h"
 
 #include "x87_ops_sf_arith.h"
 #include "x87_ops_sf_compare.h"
@@ -1093,10 +1088,10 @@ const OpFn OP_TABLE(fpu_8087_df)[256] = {
 
 const OpFn OP_TABLE(sf_fpu_d8_a16)[32] = {
     // clang-format off
-        sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
-        sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
-        sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
-        sf_FADD_st0_stj,      sf_FMUL_st0_stj,      sf_FCOM_sti,      sf_FCOMP_sti,      sf_FSUB_st0_stj,      sf_FSUBR_st0_stj,      sf_FDIV_st0_stj,      sf_FDIVR_st0_stj,
+    /*0x00*/    sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
+    /*0x08*/    sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
+    /*0x10*/    sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
+    /*0x18*/    sf_FADD_st0_stj,      sf_FMUL_st0_stj,      sf_FCOM_sti,      sf_FCOMP_sti,      sf_FSUB_st0_stj,      sf_FSUBR_st0_stj,      sf_FDIV_st0_stj,      sf_FDIVR_st0_stj,
     // clang-format on
 };
 
@@ -1191,41 +1186,41 @@ const OpFn OP_TABLE(sf_fpu_287_d9_a32)[256] = {
 
 const OpFn OP_TABLE(sf_fpu_d9_a16)[256] = {
     // clang-format off
-        sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,
-        sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,
-        sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16,
-        sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,
-        sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16,
-        sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,
+    /*0x00*/    sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,
+    /*0x08*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x10*/    sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,
+    /*0x18*/    sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,
+    /*0x20*/    sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16,
+    /*0x28*/    sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,
+    /*0x30*/    sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16,
+    /*0x38*/    sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,
 
-        sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,
-        sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,
-        sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16,
-        sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,
-        sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16,
-        sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,
+    /*0x40*/    sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,
+    /*0x48*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x50*/    sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,
+    /*0x58*/    sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,
+    /*0x60*/    sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16,
+    /*0x68*/    sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,
+    /*0x70*/    sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16,
+    /*0x78*/    sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,
 
-        sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,
-        sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,
-        sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16,
-        sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,
-        sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16,
-        sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,
+    /*0x80*/    sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,   sf_FLDs_a16,
+    /*0x88*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x90*/    sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,   sf_FSTs_a16,
+    /*0x98*/    sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,  sf_FSTPs_a16,
+    /*0xa0*/    sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16, sf_FLDENV_a16,
+    /*0xa8*/    sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,  sf_FLDCW_a16,
+    /*0xb0*/    sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16, sf_FNSTENV_a16,
+    /*0xb8*/    sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,  sf_FNSTCW_a16,
 
-        sf_FLD_sti,        sf_FLD_sti,        sf_FLD_sti,        sf_FLD_sti,        sf_FLD_sti,        sf_FLD_sti,        sf_FLD_sti,        sf_FLD_sti,
-        sf_FXCH_sti,       sf_FXCH_sti,       sf_FXCH_sti,       sf_FXCH_sti,       sf_FXCH_sti,       sf_FXCH_sti,       sf_FXCH_sti,       sf_FXCH_sti,
-        sf_FNOP,       ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTP_sti,       sf_FSTP_sti,       sf_FSTP_sti,       sf_FSTP_sti,       sf_FSTP_sti,       sf_FSTP_sti,       sf_FSTP_sti,       sf_FSTP_sti,  /*Invalid*/
-        sf_FCHS,       sf_FABS,       ILLEGAL_a16,  ILLEGAL_a16,  sf_FTST,       sf_FXAM,       ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FLD1,       sf_FLDL2T,     sf_FLDL2E,     sf_FLDPI,      sf_FLDEG2,     sf_FLDLN2,     sf_FLDZ,       ILLEGAL_a16,
-        sf_F2XM1,      sf_FYL2X,      sf_FPTAN,      sf_FPATAN,     sf_FXTRACT,  sf_FPREM1,     sf_FDECSTP,    sf_FINCSTP,
-        sf_FPREM,      sf_FYL2XP1,    sf_FSQRT,      sf_FSINCOS,    sf_FRNDINT,    sf_FSCALE,     sf_FSIN,       sf_FCOS,
+    /*0xc0*/    sf_FLD_sti,    sf_FLD_sti,    sf_FLD_sti,   sf_FLD_sti,    sf_FLD_sti,   sf_FLD_sti,   sf_FLD_sti,  sf_FLD_sti,
+    /*0xc8*/    sf_FXCH_sti,   sf_FXCH_sti,   sf_FXCH_sti,  sf_FXCH_sti,   sf_FXCH_sti,  sf_FXCH_sti,  sf_FXCH_sti, sf_FXCH_sti,
+    /*0xd0*/    sf_FNOP,       ILLEGAL_a16,   ILLEGAL_a16,  ILLEGAL_a16,   ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16, ILLEGAL_a16,
+    /*0xd8*/    sf_FSTP_sti,   sf_FSTP_sti,   sf_FSTP_sti,  sf_FSTP_sti,   sf_FSTP_sti,  sf_FSTP_sti,  sf_FSTP_sti, sf_FSTP_sti,  /*Invalid*/
+    /*0xe0*/    sf_FCHS,       sf_FABS,       ILLEGAL_a16,  ILLEGAL_a16,   sf_FTST,      sf_FXAM,      ILLEGAL_a16, ILLEGAL_a16,
+    /*0xe8*/    sf_FLD1,       sf_FLDL2T,     sf_FLDL2E,    sf_FLDPI,      sf_FLDEG2,    sf_FLDLN2,    sf_FLDZ,     ILLEGAL_a16,
+    /*0xf0*/    sf_F2XM1,      sf_FYL2X,      sf_FPTAN,     sf_FPATAN,     sf_FXTRACT,   sf_FPREM1,    sf_FDECSTP,  sf_FINCSTP,
+    /*0xf8*/    sf_FPREM,      sf_FYL2XP1,    sf_FSQRT,     sf_FSINCOS,    sf_FRNDINT,   sf_FSCALE,    sf_FSIN,     sf_FCOS,
     // clang-format on
 };
 
@@ -1593,41 +1588,41 @@ const OpFn OP_TABLE(sf_fpu_287_db_a32)[256] = {
 
 const OpFn OP_TABLE(sf_fpu_db_a16)[256] = {
     // clang-format off
-        sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,
-        sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,
+    /*0x00*/    sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
+    /*0x08*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x10*/    sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,
+    /*0x18*/    sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16,
+    /*0x20*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x28*/    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,
+    /*0x30*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x38*/    sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,
 
-        sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,
-        sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,
+    /*0x40*/    sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
+    /*0x48*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x50*/    sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,
+    /*0x58*/    sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16,
+    /*0x60*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x68*/    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,
+    /*0x70*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x78*/    sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,
 
-        sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,
-        sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,
+    /*0x80*/    sf_FILDil_a16, sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
+    /*0x88*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x90*/    sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,  sf_FISTil_a16,
+    /*0x98*/    sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16, sf_FISTPil_a16,
+    /*0xa0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xa8*/    sf_FLDe_a16,  sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,    sf_FLDe_a16,
+    /*0xb0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xb8*/    sf_FSTPe_a16, sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,   sf_FSTPe_a16,
 
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FNOP,        sf_FNOP,        sf_FNCLEX,       sf_FNINIT,       sf_FNOP,        sf_FNOP,        ILLEGAL_a16,       ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xc0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xc8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xd0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xd8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xe0*/    sf_FNOP,      sf_FNOP,      sf_FNCLEX,    sf_FNINIT,    sf_FNOP,      sf_FNOP,      ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xe8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xf0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xf8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
     // clang-format on
 };
 
@@ -1870,41 +1865,41 @@ const OpFn OP_TABLE(sf_fpu_287_dd_a32)[256] = {
 
 const OpFn OP_TABLE(sf_fpu_dd_a16)[256] = {
     // clang-format off
-        sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,
-        sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,
-        sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,
-        sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,
+    /*0x00*/    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,
+    /*0x08*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x10*/    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,
+    /*0x18*/    sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,
+    /*0x20*/    sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,
+    /*0x28*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x30*/    sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,
+    /*0x38*/    sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,
 
-        sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,
-        sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,
-        sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,
-        sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,
+    /*0x40*/    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,
+    /*0x48*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x50*/    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,
+    /*0x58*/    sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,
+    /*0x60*/    sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,
+    /*0x68*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x70*/    sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,
+    /*0x78*/    sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,
 
-        sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,
-        sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,
-        sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,
-        sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,
+    /*0x80*/    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,    sf_FLDd_a16,
+    /*0x88*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x90*/    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,    sf_FSTd_a16,
+    /*0x98*/    sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,   sf_FSTPd_a16,
+    /*0xa0*/    sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,   sf_FRSTOR_a16,
+    /*0xa8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xb0*/    sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,   sf_FNSAVE_a16,
+    /*0xb8*/    sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,   sf_FNSTSW_a16,
 
-        sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,
-        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,
-        sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,
-        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,
-        sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,
-        sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xc0*/    sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,       sf_FFREE_sti,
+    /*0xc8*/    sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,
+    /*0xd0*/    sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,         sf_FST_sti,
+    /*0xd8*/    sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,
+    /*0xe0*/    sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,       sf_FUCOM_sti,
+    /*0xe8*/    sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,      sf_FUCOMP_sti,
+    /*0xf0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xf8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
     // clang-format on
 };
 
@@ -2030,41 +2025,41 @@ const OpFn OP_TABLE(sf_fpu_287_de_a32)[256] = {
 
 const OpFn OP_TABLE(sf_fpu_de_a16)[256] = {
     // clang-format off
-        sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,
-        sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,
-        sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,
-        sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16,
-        sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,
-        sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16,
-        sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,
-        sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16,
+    /*0x00*/    sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,
+    /*0x08*/    sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,
+    /*0x10*/    sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,
+    /*0x18*/    sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16,
+    /*0x20*/    sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,
+    /*0x28*/    sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16,
+    /*0x30*/    sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,
+    /*0x38*/    sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16,
 
-        sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,
-        sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,
-        sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,
-        sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16,
-        sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,
-        sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16,
-        sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,
-        sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16,
+    /*0x40*/    sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,
+    /*0x48*/    sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,
+    /*0x50*/    sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,
+    /*0x58*/    sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16,
+    /*0x60*/    sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,
+    /*0x68*/    sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16,
+    /*0x70*/    sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,
+    /*0x78*/    sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16,
 
-        sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,
-        sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,
-        sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,
-        sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16,
-        sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,
-        sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16,
-        sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,
-        sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16,
+    /*0x80*/    sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,  sf_FADDiw_a16,
+    /*0x88*/    sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,  sf_FMULiw_a16,
+    /*0x90*/    sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,  sf_FCOMiw_a16,
+    /*0x98*/    sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16, sf_FCOMPiw_a16,
+    /*0xa0*/    sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,  sf_FSUBiw_a16,
+    /*0xa8*/    sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16, sf_FSUBRiw_a16,
+    /*0xb0*/    sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,  sf_FDIViw_a16,
+    /*0xb8*/    sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16, sf_FDIVRiw_a16,
 
-        sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,
-        sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,
-        sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,
-        ILLEGAL_a16,  sf_FCOMPP,     ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,
-        sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,
-        sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,
-        sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,
+    /*0xc0*/    sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,       sf_FADDP_sti_st0,
+    /*0xc8*/    sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,       sf_FMULP_sti_st0,
+    /*0xd0*/    sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,       sf_FCOMP_sti,
+    /*0xd8*/    ILLEGAL_a16,  sf_FCOMPP,     ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xe0*/    sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,      sf_FSUBRP_sti_st0,
+    /*0xe8*/    sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,       sf_FSUBP_sti_st0,
+    /*0xf0*/    sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,      sf_FDIVRP_sti_st0,
+    /*0xf8*/    sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,       sf_FDIVP_sti_st0,
     // clang-format on
 };
 
@@ -2190,41 +2185,41 @@ const OpFn OP_TABLE(sf_fpu_287_df_a32)[256] = {
 
 const OpFn OP_TABLE(sf_fpu_df_a16)[256] = {
     // clang-format off
-        sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,
-        sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16,
-        sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,
-        sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,
-        sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,
-        sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,
+    /*0x00*/    sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
+    /*0x08*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x10*/    sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,
+    /*0x18*/    sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16,
+    /*0x20*/    sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,
+    /*0x28*/    sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,
+    /*0x30*/    sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,
+    /*0x38*/    sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,
 
-        sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,
-        sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16,
-        sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,
-        sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,
-        sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,
-        sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,
+    /*0x40*/    sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
+    /*0x48*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x50*/    sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,
+    /*0x58*/    sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16,
+    /*0x60*/    sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,
+    /*0x68*/    sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,
+    /*0x70*/    sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,
+    /*0x78*/    sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,
 
-        sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,
-        sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16,
-        sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,
-        sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,
-        sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,
-        sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,
+    /*0x80*/    sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
+    /*0x88*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0x90*/    sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,  sf_FISTiw_a16,
+    /*0x98*/    sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16, sf_FISTPiw_a16,
+    /*0xa0*/    sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,     sf_FBLD_PACKED_BCD_a16,
+    /*0xa8*/    sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,  sf_FILDiq_a16,
+    /*0xb0*/    sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,     sf_FBSTP_PACKED_BCD_a16,
+    /*0xb8*/    sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,   sf_FISTPiq_a16,
 
-        sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,
-        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,
-        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,
-        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,
-        sf_FNSTSW_AX,   ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
-        ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xc0*/    sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,      sf_FFREEP_sti,
+    /*0xc8*/    sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,        sf_FXCH_sti,
+    /*0xd0*/    sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,
+    /*0xd8*/    sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,        sf_FSTP_sti,
+    /*0xe0*/    sf_FNSTSW_AX,   ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xe8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xf0*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+    /*0xf8*/    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
     // clang-format on
 };
 
