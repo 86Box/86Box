@@ -350,7 +350,7 @@ int json_parse(pcjs_t *dev)
 
                 if (sector->data == NULL ) {
                     /* We could verify the sector size against the metadata here */
-                    sector->data = (uint8 *)calloc(1, current_length);
+                    sector->data = (uint8_t *)calloc(1, current_length);
                     if (sector->data == NULL ) {
                         pcjs_log("Failed to allocate\n");
                         pcjs_error = E_ALLOC;
