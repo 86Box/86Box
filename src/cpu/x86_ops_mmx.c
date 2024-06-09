@@ -13,6 +13,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include "x86.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>

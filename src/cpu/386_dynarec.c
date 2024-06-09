@@ -19,6 +19,7 @@
 #include "x86_ops.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include <86box/io.h>
 #include <86box/mem.h>

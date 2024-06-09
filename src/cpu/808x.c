@@ -785,6 +785,7 @@ seteaq(uint64_t val)
    complicates compiling. */
 #define FPU_8087
 #define tempc tempc_fpu
+#include "x87_sf.h"
 #include "x87.h"
 #include "x87_ops.h"
 #undef tempc
