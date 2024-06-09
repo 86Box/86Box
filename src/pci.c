@@ -92,7 +92,7 @@ static int         pci_card;
 static int         pci_bus;
 static int         pci_key;
 static int         pci_trc_reg = 0;
-static uint32      pci_enable = 0x00000000;
+static uint32_t    pci_enable = 0x00000000;
 
 static void        pci_reset_regs(void);
 
