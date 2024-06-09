@@ -718,9 +718,9 @@ codegen_FTST(codeblock_t *block, uop_t *uop)
         host_arm_VCMP_D(block, src_reg_a, REG_D_TEMP);
         host_arm_MOV_IMM(block, dest_reg, 0);
         host_arm_VMRS_APSR(block);
-        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, C3);
-        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, C0);
-        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, C0 | C2 | C3);
+        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, FPU_SW_C3);
+        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, FPU_SW_C0);
+        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else
         fatal("codegen_FTST %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -758,9 +758,9 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
         host_arm_VCMP_D(block, src_reg_a, src_reg_b);
         host_arm_MOV_IMM(block, dest_reg, 0);
         host_arm_VMRS_APSR(block);
-        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, C3);
-        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, C0);
-        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, C0 | C2 | C3);
+        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, FPU_SW_C3);
+        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, FPU_SW_C0);
+        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else
         fatal("codegen_FCOM %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 

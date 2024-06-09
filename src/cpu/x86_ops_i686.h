@@ -100,8 +100,8 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
 
         /* load i387 register file */
         for (index = 0; index < 8; index++) {
-            reg.fraction = readmemq(easeg, cpu_state.eaaddr + (index * 16) + 32);
-            reg.exp      = readmemw(easeg, cpu_state.eaaddr + (index * 16) + 40);
+            reg.signif  = readmemq(easeg, cpu_state.eaaddr + (index * 16) + 32);
+            reg.signExp = readmemw(easeg, cpu_state.eaaddr + (index * 16) + 40);
 
             // update tag only if it is not empty
             FPU_save_regi_tag(reg, IS_TAG_EMPTY(index) ? X87_TAG_EMPTY : FPU_tagof(reg), index);
@@ -159,8 +159,8 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
         for (index = 0; index < 8; index++) {
             const floatx80 fp = FPU_read_regi(index);
 
-            writememq(easeg, cpu_state.eaaddr + (index * 16) + 32, fp.fraction);
-            writememw(easeg, cpu_state.eaaddr + (index * 16) + 40, fp.exp);
+            writememq(easeg, cpu_state.eaaddr + (index * 16) + 32, fp.signif);
+            writememw(easeg, cpu_state.eaaddr + (index * 16) + 40, fp.signExp);
         }
 
         CLOCK_CYCLES((cr0 & 1) ? 56 : 67);

@@ -4434,7 +4434,7 @@ FP_COMPARE_REG(int dst, int src)
     addbyte((uint8_t) cpu_state_offset(npxs) + 1);
     addbyte(0x80); /*AND CL, ~(C0|C2|C3)*/
     addbyte(0xe1);
-    addbyte((~(C0 | C2 | C3)) >> 8);
+    addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
 
     if (src) {
         addbyte(0xf3); /*MOVQ XMM0, ST[RBX*8]*/
@@ -4467,7 +4467,7 @@ FP_COMPARE_REG(int dst, int src)
     addbyte(0x9f); /*LAHF*/
     addbyte(0x80); /*AND AH, (C0|C2|C3)*/
     addbyte(0xe4);
-    addbyte((C0 | C2 | C3) >> 8);
+    addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
     addbyte(0x08); /*OR CL, AH*/
     addbyte(0xe1);
     addbyte(0x88); /*MOV [npxs+1], CL*/
@@ -4493,7 +4493,7 @@ FP_COMPARE_MEM(void)
     addbyte((uint8_t) cpu_state_offset(ST));
     addbyte(0x80); /*AND CL, ~(C0|C2|C3)*/
     addbyte(0xe1);
-    addbyte((~(C0 | C2 | C3)) >> 8);
+    addbyte((~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3)) >> 8);
     addbyte(0x66); /*COMISD XMM0, XMM1*/
     addbyte(0x0f);
     addbyte(0x2f);
@@ -4501,7 +4501,7 @@ FP_COMPARE_MEM(void)
     addbyte(0x9f); /*LAHF*/
     addbyte(0x80); /*AND AH, (C0|C2|C3)*/
     addbyte(0xe4);
-    addbyte((C0 | C2 | C3) >> 8);
+    addbyte((FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3) >> 8);
     addbyte(0x08); /*OR CL, AH*/
     addbyte(0xe1);
     addbyte(0x88); /*MOV [npxs+1], CL*/

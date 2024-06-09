@@ -34,5 +34,5 @@ if(DYNAREC)
         codegen_timing_winchip.c codegen_timing_winchip2.c)
 endif()
 
-add_subdirectory(softfloat)
-target_link_libraries(86Box softfloat)
+add_subdirectory(softfloat3e)
+target_link_libraries(86Box softfloat3e)
