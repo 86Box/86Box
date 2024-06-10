@@ -13,7 +13,8 @@
 #          Copyright 2020-2021 David Hrdlička.
 #
 
-add_library(softfloat3e OBJECT softfloat-specialize.c extF80_addsub.cc extF80_class.cc extF80_compare.cc
+add_library(softfloat3e OBJECT primitives.c softfloat-specialize.c
+    extF80_addsub.cc extF80_class.cc extF80_compare.cc
     extF80_div.cc extF80_extract.cc extF80_mul.cc extF80_rem.cc extF80_roundToInt.cc
     extF80_scale.cc extF80_sqrt.cc extF80_to_f16.cc extF80_to_f32.cc extF80_to_f64.cc
     extF80_to_f128.cc extF80_to_i32.cc extF80_to_i32_r_minMag.cc extF80_to_i64.cc

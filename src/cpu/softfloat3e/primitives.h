@@ -283,15 +283,7 @@ struct uint128 softfloat_shortShiftRightJam128(uint64_t a64, uint64_t a0, uint8_
 | This function is the same as 'softfloat_shiftRightJam128Extra' (below),
 | except that 'dist' must be in the range 1 to 63.
 *----------------------------------------------------------------------------*/
-struct uint128_extra softfloat_shortShiftRightJam128Extra(uint64_t a64, uint64_t a0, uint64_t extra, uint8_t dist)
-{
-    uint8_t negDist = -dist;
-    struct uint128_extra z;
-    z.v.v64 = a64>>dist;
-    z.v.v0 = a64<<(negDist & 63) | a0>>dist;
-    z.extra = a0<<(negDist & 63) | (extra != 0);
-    return z;
-}
+extern struct uint128_extra softfloat_shortShiftRightJam128Extra(uint64_t a64, uint64_t a0, uint64_t extra, uint8_t dist);
 
 /*----------------------------------------------------------------------------
 | Shifts the 128 bits formed by concatenating 'a' and 'extra' right by 64
