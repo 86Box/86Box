@@ -28,7 +28,7 @@ target_link_libraries(86Box PkgConfig::FREETYPE)
 if(STATIC_BUILD)
     # if(QT)
         # Qt provides its own version of harfbuzz which leads to duplicated symbols.
-        # target_link_options(86Box PRIVATE "LINKER:--allow-multiple-definition")
+        target_link_options(86Box PRIVATE "LINKER:--allow-multiple-definition")
     # endif()
     target_link_libraries(86Box -static ${FREETYPE_STATIC_LIBRARIES})
 endif()
