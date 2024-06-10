@@ -179,6 +179,10 @@ extern const device_t ess_chipchat_16_mca_device;
 /* Ensoniq AudioPCI */
 extern const device_t es1371_device;
 extern const device_t es1371_onboard_device;
+extern const device_t es1373_device;
+extern const device_t es1373_onboard_device;
+extern const device_t ct5880_device;
+extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound and UltraSound Max */
 extern const device_t gus_device;
