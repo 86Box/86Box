@@ -76,9 +76,7 @@ jobs:
         run: >-
           brew install
           ninja
-          freetype
           sdl2
-          libpng
           rtmidi
           openal-soft
           fluidsynth
@@ -90,7 +88,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v2
+        uses: SonarSource/sonarcloud-github-c-cpp@5c3c39143e381909307f6903f13774b275ed956d
 
       - name: Configure CMake
         run: >-
@@ -123,4 +121,103 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**
+
+  macos14-arm64:
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, arm64"
+
+    runs-on: macos-14
+
+#    env:
+#      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+#          - name: Regular
+#            preset: regular
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+#          - name: ODR
+#            new: off
+#            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
+        ui:
+          - name: SDL GUI
+            qt: off
+            static: on
+            src-packages: >-
+              libsndfile
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+            packages: >-
+              qt@5
+            src-packages: >-
+              libsndfile
+
+    steps:
+      - name: Install source dependencies
+        run: >-
+          brew reinstall -s
+          ${{ matrix.ui.src-packages }}
+
+      - name: Install dependencies
+        run: >-
+          brew install
+          ninja
+          sdl2
+          rtmidi
+          openal-soft
+          fluidsynth
+          libslirp
+          ${{ matrix.ui.packages }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+#      - name: Install sonar-scanner and build-wrapper
+#        uses: SonarSource/sonarcloud-github-c-cpp@5c3c39143e381909307f6903f13774b275ed956d
+
+      - name: Configure CMake
+        run: >-
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ./cmake/llvm-macos-aarch64.cmake
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
+          -D Qt5_ROOT=$(brew --prefix qt@5)
+          -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D OpenAL_ROOT=$(brew --prefix openal-soft)
+
+      - name: Build
+        run: |
+          cmake --build build
+
+#      - name: Run sonar-scanner
+#        if: 0
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        run: |
+#          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
+      - name: Generate package
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-arm64-gha${{ github.run_number }}'
           path: build/artifacts/**
