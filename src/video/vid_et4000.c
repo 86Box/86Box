@@ -145,6 +145,7 @@ et4000_in(uint16_t addr, void *priv)
         case 0x3c9:
             if (dev->type >= ET4000_TYPE_ISA)
                 return sc1502x_ramdac_in(addr, svga->ramdac, svga);
+            break;
 
         case 0x3cd: /*Banking*/
             return dev->banking;
