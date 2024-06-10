@@ -11922,7 +11922,7 @@ const machine_t machines[] = {
     /* 430TX */
     /* The BIOS sends KBC command B8, CA, and CB, so it has an AMI KBC firmware. */
     {
-        .name = "[i430TX] ADLink NuPRO-592",
+        .name = "[i430TX] ADLink NuPRO-591/592",
         .internal_name = "nupro592",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430TX,
@@ -11942,7 +11942,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Has internal video: C&T B69000 */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11956,7 +11956,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &chips_69000_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
