@@ -39,26 +39,26 @@ these four paragraphs for those parts of this code that are retained.
  *            Stanislav Shwartsman [sshwarts at sourceforge net]
  * ==========================================================================*/
 
-const int16_t int16_indefinite = (int16_t) 0x8000;
-const int32_t int32_indefinite = (int32_t) 0x80000000;
-const int64_t int64_indefinite = (int64_t) BX_CONST64(0x8000000000000000);
+extern const int16_t int16_indefinite;
+extern const int32_t int32_indefinite;
+extern const int64_t int64_indefinite;
 
-const uint16_t uint16_indefinite = 0xffff;
-const uint32_t uint32_indefinite = 0xffffffff;
-const uint64_t uint64_indefinite = BX_CONST64(0xffffffffffffffff);
+extern const uint16_t uint16_indefinite;
+extern const uint32_t uint32_indefinite;
+extern const uint64_t uint64_indefinite;
 
 /*----------------------------------------------------------------------------
 | Commonly used half-precision floating point constants
 *----------------------------------------------------------------------------*/
-const float16 float16_negative_inf  = 0xfc00;
-const float16 float16_positive_inf  = 0x7c00;
-const float16 float16_negative_zero = 0x8000;
-const float16 float16_positive_zero = 0x0000;
+extern const float16 float16_negative_inf;
+extern const float16 float16_positive_inf;
+extern const float16 float16_negative_zero;
+extern const float16 float16_positive_zero;
 
 /*----------------------------------------------------------------------------
 | The pattern for a default generated half-precision NaN.
 *----------------------------------------------------------------------------*/
-const float16 float16_default_nan = 0xFE00;
+extern const float16 float16_default_nan;
 
 #define FLOAT16_EXP_BIAS 0xF
 
@@ -81,19 +81,19 @@ static __inline float16 packFloat16(int zSign, int zExp, uint16_t zSig)
 /*----------------------------------------------------------------------------
 | Commonly used single-precision floating point constants
 *----------------------------------------------------------------------------*/
-const float32 float32_negative_inf  = 0xff800000;
-const float32 float32_positive_inf  = 0x7f800000;
-const float32 float32_negative_zero = 0x80000000;
-const float32 float32_positive_zero = 0x00000000;
-const float32 float32_negative_one  = 0xbf800000;
-const float32 float32_positive_one  = 0x3f800000;
-const float32 float32_max_float     = 0x7f7fffff;
-const float32 float32_min_float     = 0xff7fffff;
+extern const float32 float32_negative_inf;
+extern const float32 float32_positive_inf;
+extern const float32 float32_negative_zero;
+extern const float32 float32_positive_zero;
+extern const float32 float32_negative_one;
+extern const float32 float32_positive_one;
+extern const float32 float32_max_float;
+extern const float32 float32_min_float;
 
 /*----------------------------------------------------------------------------
 | The pattern for a default generated single-precision NaN.
 *----------------------------------------------------------------------------*/
-const float32 float32_default_nan   = 0xffc00000;
+extern const float32 float32_default_nan;
 
 #define FLOAT32_EXP_BIAS 0x7F
 
@@ -116,19 +116,19 @@ static __inline float32 packFloat32(int zSign, int16_t zExp, uint32_t zSig)
 /*----------------------------------------------------------------------------
 | Commonly used single-precision floating point constants
 *----------------------------------------------------------------------------*/
-const float64 float64_negative_inf  = BX_CONST64(0xfff0000000000000);
-const float64 float64_positive_inf  = BX_CONST64(0x7ff0000000000000);
-const float64 float64_negative_zero = BX_CONST64(0x8000000000000000);
-const float64 float64_positive_zero = BX_CONST64(0x0000000000000000);
-const float64 float64_negative_one  = BX_CONST64(0xbff0000000000000);
-const float64 float64_positive_one  = BX_CONST64(0x3ff0000000000000);
-const float64 float64_max_float     = BX_CONST64(0x7fefffffffffffff);
-const float64 float64_min_float     = BX_CONST64(0xffefffffffffffff);
+extern const float64 float64_negative_inf;
+extern const float64 float64_positive_inf;
+extern const float64 float64_negative_zero;
+extern const float64 float64_positive_zero;
+extern const float64 float64_negative_one;
+extern const float64 float64_positive_one;
+extern const float64 float64_max_float;
+extern const float64 float64_min_float;
 
 /*----------------------------------------------------------------------------
 | The pattern for a default generated double-precision NaN.
 *----------------------------------------------------------------------------*/
-const float64 float64_default_nan = BX_CONST64(0xFFF8000000000000);
+extern const float64 float64_default_nan;
 
 #define FLOAT64_EXP_BIAS 0x3FF
 
