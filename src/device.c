@@ -536,7 +536,7 @@ device_get_name(const device_t *dev, int bus, char *name)
                 strcat(name, tname + strlen(sbus) + 1);
             /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI" or
                the "-ISA" from "AMD PCnet-ISA". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-'))
+            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r'))
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);
