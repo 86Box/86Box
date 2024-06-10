@@ -878,7 +878,7 @@ machine_at_nupro592_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4); /* PIIX4 */
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&chips_69000_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&i430tx_device);
     device_add(&piix4_device);
