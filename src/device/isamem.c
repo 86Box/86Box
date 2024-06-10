@@ -1215,7 +1215,7 @@ static const device_config_t genericat_config[] = {
         .spinner = {
             .min = 0,
             .max = 16384,
-            .step = 512
+            .step = 128
         },
         .selection = { { 0 } }
     },
