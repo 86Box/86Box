@@ -12886,7 +12886,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal video: ATI 3D Rage Pro Turbo AGP and sound: Ensoniq ES1373*/
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal video: ATI 3D Rage Pro Turbo AGP and sound: Ensoniq ES1373 */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -12901,7 +12901,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
@@ -14288,7 +14288,7 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1373 */
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1371 */
         .ram = {
             .min = 8192,
             .max = 1048576,
@@ -14387,7 +14387,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &voodoo_3_2000_agp_onboard_8m_device,
-        .snd_device = NULL,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -14428,7 +14428,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &voodoo_3_2000_agp_onboard_8m_device,
-        .snd_device = NULL,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
 
@@ -14637,7 +14637,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &es1371_onboard_device,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
 
@@ -14679,7 +14679,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &es1371_onboard_device,    /* ES1373 but we currently don't emulate that. */
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* Has the SiS (5)600 chipset with on-chip KBC. */
@@ -14792,7 +14792,7 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 786432,
@@ -14807,7 +14807,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &es1371_onboard_device,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* VIA Apollo Pro */
