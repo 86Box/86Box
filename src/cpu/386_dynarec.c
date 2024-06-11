@@ -414,7 +414,8 @@ exec386_dynarec_dyn(void)
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
             uint64_t byte_mask   = 1ULL << (PAGE_BYTE_MASK_MASK & 0x3f);
 
-            if ((page->code_present_mask & mask) || (page->byte_code_present_mask[byte_offset] & byte_mask))
+            if ((page->code_present_mask & mask) ||
+                ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
 #    else
             if (page->code_present_mask[(phys_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] & mask)
 #    endif
