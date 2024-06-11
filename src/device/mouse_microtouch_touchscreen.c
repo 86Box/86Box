@@ -15,8 +15,11 @@
  *          Copyright 2024 Cacodemon345
  */
 
+/* Reference: https://www.touchwindow.com/mm5/drivers/mtsctlrm.pdf */
+
 /* TODO:
-    GP/SP commands (formats are not documented at all, like anywhere).
+    Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
+    - Dynamic baud rate selection from software following this.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -42,6 +45,7 @@ enum mtouch_modes {
 typedef struct mouse_microtouch_t {
     double     abs_x;
     double     abs_y;
+    double     baud_rate;
     int        b;
     char       cmd[512];
     int        cmd_pos;
@@ -83,9 +87,9 @@ void
 microtouch_process_commands(mouse_microtouch_t *mtouch)
 {
     int i                                   = 0;
+    int fifo_used                           = fifo8_num_used(&mtouch->resp);
     mtouch->cmd[strcspn(mtouch->cmd, "\r")] = '\0';
     mtouch->cmd_pos                         = 0;
-    pclog("Command received: %s\n", mtouch->cmd);
     for (i = 0; i < strlen(mtouch->cmd); i++) {
         mtouch->cmd[i] = toupper(mtouch->cmd[i]);
     }
@@ -166,6 +170,8 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
     }
+    if (fifo8_num_used(&mtouch->resp) != fifo_used)
+        pclog("Command received: %s\n", mtouch->cmd);
 }
 
 void
@@ -255,7 +261,7 @@ mtouch_poll(void *priv)
         }
         if (dev->cal_cntr && (!(dev->b & 1) && !!(b & 3))) {
             dev->b |= 1;
-        } else if (dev->cal_cntr && ((dev->b & 1) && !!(b & 3))) {
+        } else if (dev->cal_cntr && ((dev->b & 1) && !(b & 3))) {
             dev->b &= ~1;
             microtouch_calibrate_timer(dev);
         }
@@ -306,10 +312,11 @@ mtouch_init(const device_t *info)
     mouse_microtouch_t *dev = calloc(1, sizeof(mouse_microtouch_t));
 
     dev->serial = serial_attach(device_get_config_int("port"), NULL, mtouch_write, dev);
+    dev->baud_rate = device_get_config_int("baudrate");
     fifo8_create(&dev->resp, 512);
     timer_add(&dev->host_to_serial_timer, mtouch_write_to_host, dev, 0);
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
-    timer_on_auto(&dev->host_to_serial_timer, (1000000. / 9600.) * 10);
+    timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->mode        = MODE_TABLET;
     dev->pen_mode    = 3;
     mouse_input_mode = 1;
@@ -351,6 +358,22 @@ static const device_config_t mtouch_config[] = {
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
+        }
+    },
+    {
+        .name = "baudrate",
+        .description = "Baud Rate",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 9600,
+        .file_filter = NULL,
+        .spinner = { 0 },
+        .selection = {
+            { .description =  "19200", .value =  19200 },
+            { .description =   "9600", .value =   9600 },
+            { .description =   "4800", .value =   4800 },
+            { .description =   "2400", .value =   2400 },
+            { .description =   "1200", .value =   1200 }
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
