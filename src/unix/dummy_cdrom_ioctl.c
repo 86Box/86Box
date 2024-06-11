@@ -167,8 +167,6 @@ plat_cdrom_get_audio_track_info(UNUSED(int end), int track, int *track_num, TMSF
 int
 plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos)
 {
-    long size = 0;
-
     *track = 1;
     *attr = 0x14;
     *index = 1;
@@ -197,10 +195,6 @@ plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
 int
 plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
 {
-    int  status;
-    long size   = 0;
-    int  buflen = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
-
     plat_cdrom_open();
 
     if (raw) {
