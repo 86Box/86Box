@@ -122,6 +122,8 @@ typedef struct es1371_t {
     int master_vol_r;
     int pcm_vol_l;
     int pcm_vol_r;
+    int pcm_rear_vol_l;
+    int pcm_rear_vol_r;
     int cd_vol_l;
     int cd_vol_r;
 
@@ -180,6 +182,9 @@ typedef struct es1371_t {
 #define SI_P1_INTR_EN             (1 << 8)
 
 #define INT_STATUS_INTR           (1 << 31)
+#define INT_STATUS_REAR_B27       (1 << 27)
+#define INT_STATUS_REAR_B26       (1 << 26)
+#define INT_STATUS_REAR_B24       (1 << 24)
 #define INT_STATUS_UART           (1 << 3)
 #define INT_STATUS_DAC1           (1 << 2)
 #define INT_STATUS_DAC2           (1 << 1)
@@ -345,7 +350,12 @@ es1371_reset(void *priv)
 
     /* Interrupt/Chip Select Status Register, Address 04H
        Addressable as longword only */
-    dev->int_status = (dev->type >= AUDIOPCI_ES1373) ? 0x7f080ec0 : 0x7ffffec0;
+    if (dev->type >= AUDIOPCI_CT5880)
+        dev->int_status = 0x52080ec0;
+    else if (dev->type >= AUDIOPCI_ES1373)
+        dev->int_status = 0x7f080ec0;
+    else
+        dev->int_status = 0x7ffffec0;
 
     /* UART Status Register, Address 09H
        Addressable as byte only */
@@ -1029,6 +1039,10 @@ es1371_outb(uint16_t port, uint8_t val, void *priv)
             if (dev->type >= AUDIOPCI_ES1373)
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val << 16);
             break;
+        case 0x07:
+            if (dev->type >= AUDIOPCI_CT5880)
+                dev->int_status = (dev->int_status & 0xd2ffffff) | (val << 24);
+            break;
 
         /* UART Data Register, Address 08H
            Addressable as byte only */
@@ -1255,7 +1269,9 @@ es1371_outl(uint16_t port, uint32_t val, void *priv)
            Addressable as longword only */
         case 0x04:
             audiopci_log("[W] STATUS = %08X\n", val);
-            if (dev->type >= AUDIOPCI_ES1373)
+            if (dev->type >= AUDIOPCI_CT5880)
+                dev->int_status = (dev->int_status & 0xd208ffff) | (val & 0x2df70000);
+            else if (dev->type >= AUDIOPCI_ES1373)
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val & 0x00f70000);
             break;
 
@@ -1327,6 +1343,7 @@ es1371_outl(uint16_t port, uint32_t val, void *priv)
 
                 ac97_codec_getattn(dev->codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
                 ac97_codec_getattn(dev->codec, 0x18, &dev->pcm_vol_l, &dev->pcm_vol_r);
+                ac97_codec_getattn(dev->codec, 0x38, &dev->pcm_rear_vol_l, &dev->pcm_rear_vol_r);
                 ac97_codec_getattn(dev->codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
             }
             break;
@@ -1834,7 +1851,7 @@ es1371_pci_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x2c ... 0x2f:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->subsys_lock == 0xea))
+            if (dev->subsys_lock == 0xea)
                 dev->subsys_id[addr & 3] = val;
             break;
 

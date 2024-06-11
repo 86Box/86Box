@@ -676,7 +676,7 @@ machine_at_gt694va_init(const machine_t *model)
 
     if (sound_card_current[0] == SOUND_INTERNAL) {
         device_add(machine_get_snd_device(machine));
-        device_add(&cs4297_device); /* assumed */
+        device_add(&cs4297_device); /* no good pictures, but the marking looks like CS4297 from a distance */
     }
 
     return ret;
