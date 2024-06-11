@@ -1411,7 +1411,7 @@ dma_retreat(dma_t *dma_c)
         dma_c->page = dma_c->page_l = (dma_c->ac >> 16) & 0xff;
         dma_c->page_h               = (dma_c->ac >> 24) & 0xff;
     } else if (as == 2)
-        dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac - as) & 0xffff);
+        dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac - as) & 0x1ffff);
     else
         dma_c->ac = ((dma_c->ac & 0xffff0000) & dma_mask) | ((dma_c->ac - as) & 0xffff);
 }
@@ -1427,7 +1427,7 @@ dma_advance(dma_t *dma_c)
         dma_c->page = dma_c->page_l = (dma_c->ac >> 16) & 0xff;
         dma_c->page_h               = (dma_c->ac >> 24) & 0xff;
     } else if (as == 2)
-        dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac + as) & 0xffff);
+        dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac + as) & 0x1ffff);
     else
         dma_c->ac = ((dma_c->ac & 0xffff0000) & dma_mask) | ((dma_c->ac + as) & 0xffff);
 }
