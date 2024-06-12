@@ -51,6 +51,8 @@ uint32_t dr[8];
 uint32_t use32;
 int      stack32;
 
+int      cpu_init = 0;
+
 uint32_t *eal_r;
 uint32_t *eal_w;
 

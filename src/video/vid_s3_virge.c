@@ -299,6 +299,8 @@ typedef struct virge_t {
     int onboard;
 } virge_t;
 
+static virge_t         *reset_state = NULL;
+
 static video_timings_t timing_diamond_stealth3d_2000_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
 static video_timings_t timing_diamond_stealth3d_3000_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 26, .read_w = 26, .read_l = 42 };
 static video_timings_t timing_virge_dx_pci               = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
@@ -4248,114 +4250,49 @@ s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static void
+s3_virge_disable_handlers(virge_t *dev)
+{
+    io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL,
+                     s3_virge_out, NULL, NULL, dev);
+
+    mem_mapping_disable(&dev->linear_mapping);
+    mem_mapping_disable(&dev->mmio_mapping);
+    mem_mapping_disable(&dev->new_mmio_mapping);
+    mem_mapping_disable(&dev->svga.mapping);
+    mem_mapping_disable(&dev->bios_rom.mapping);
+
+    /* Save all the mappings and the timers because they are part of linked lists. */
+    reset_state->linear_mapping   = dev->linear_mapping;
+    reset_state->mmio_mapping     = dev->mmio_mapping;
+    reset_state->new_mmio_mapping = dev->new_mmio_mapping;
+    reset_state->svga.mapping     = dev->svga.mapping;
+    reset_state->bios_rom.mapping = dev->bios_rom.mapping;
+
+    reset_state->svga.timer       = dev->svga.timer;
+    reset_state->svga.timer8514   = dev->svga.timer8514;
+
+    reset_state->tri_timer        = dev->tri_timer;
+}
+
+static void
 s3_virge_reset(void *priv)
 {
-    virge_t *virge = (virge_t *) priv;
-    svga_t  *svga  = &virge->svga;
+    virge_t *dev = (virge_t *) priv;
 
-    memset(svga->crtc, 0x00, sizeof(svga->crtc));
-    svga->crtc[0]     = 63;
-    svga->crtc[6]     = 255;
-    svga->dispontime  = 1000ULL << 32;
-    svga->dispofftime = 1000ULL << 32;
-    svga->bpp         = 8;
+    if (reset_state != NULL) {
+        s3_virge_disable_handlers(dev);
+        reset_state->pci_slot = dev->pci_slot;
 
-    io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
-    io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
-
-    memset(virge->pci_regs, 0x00, 256);
-
-    virge->pci_regs[PCI_REG_COMMAND] = 3;
-    virge->pci_regs[0x05]            = 0;
-    virge->pci_regs[0x06]            = 0;
-    virge->pci_regs[0x07]            = 2;
-    virge->pci_regs[0x32]            = 0x0c;
-    virge->pci_regs[0x3d]            = 1;
-    virge->pci_regs[0x3e]            = 4;
-    virge->pci_regs[0x3f]            = 0xff;
-
-    switch (virge->local) {
-        case S3_VIRGE_325:
-        case S3_DIAMOND_STEALTH3D_2000:
-            virge->fifo_slots_num = 8;
-            virge->svga.crtc[0x59] = 0x70;
-            break;
-        case S3_DIAMOND_STEALTH3D_3000:
-        case S3_STB_VELOCITY_3D:
-            virge->fifo_slots_num = 8;
-            virge->svga.crtc[0x59] = 0x70;
-            break;
-        case S3_VIRGE_GX2:
-        case S3_DIAMOND_STEALTH3D_4000:
-            virge->fifo_slots_num = 16;
-            virge->svga.crtc[0x6c] = 1;
-            virge->svga.crtc[0x59] = 0x70;
-            break;
-
-        case S3_TRIO_3D2X:
-            virge->fifo_slots_num = 16;
-            virge->svga.crtc[0x6c] = 1;
-            virge->svga.crtc[0x59] = 0x70;
-            break;
-
-        default:
-            virge->fifo_slots_num = 8;
-            virge->svga.crtc[0x6c] = 1;
-            virge->svga.crtc[0x59] = 0x70;
-            break;
+        *dev = *reset_state;
     }
-
-    if (virge->chip == S3_VIRGEGX2)
-        virge->svga.crtc[0x36] = 2 | (2 << 2) | (1 << 4) | (1 << 5);
-    else {
-        switch (virge->memory_size) {
-            case 2:
-                if (virge->chip == S3_VIRGEVX) {
-                    virge->svga.crtc[0x36] = (0 << 5);
-                } else
-                    virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (4 << 5);
-                break;
-            case 8:
-                if (virge->chip == S3_TRIO3D2X)
-                    virge->svga.crtc[0x36] = 2 | (2 << 2) | (1 << 4) | (0 << 5);
-                else
-                    virge->svga.crtc[0x36] = (3 << 5);
-                break;
-            case 4:
-                if (virge->chip == S3_VIRGEVX)
-                    virge->svga.crtc[0x36] = (1 << 5);
-                else if (virge->chip == S3_TRIO3D2X)
-                    virge->svga.crtc[0x36] = 2 | (2 << 2) | (1 << 4) | (2 << 5);
-                else
-                    virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
-                break;
-
-            default:
-                break;
-        }
-        if (virge->local == S3_VIRGE_GX)
-            virge->svga.crtc[0x36] |= (1 << 2);
-    }
-
-    virge->svga.crtc[0x37] = 1 | (7 << 5);
-    virge->svga.crtc[0x53] = 8;
-
-    if (!virge->onboard)
-        mem_mapping_disable(&virge->bios_rom.mapping);
-
-    s3_virge_updatemapping(virge);
-
-    mem_mapping_disable(&virge->mmio_mapping);
-    mem_mapping_disable(&virge->new_mmio_mapping);
 }
 
 static void *
 s3_virge_init(const device_t *info)
 {
     const char *bios_fn;
-    virge_t    *virge = malloc(sizeof(virge_t));
-
-    memset(virge, 0, sizeof(virge_t));
+    virge_t    *virge = calloc(1, sizeof(virge_t));
+    reset_state       = calloc(1, sizeof(virge_t));
 
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
@@ -4595,6 +4532,8 @@ s3_virge_init(const device_t *info)
 
     virge->local = info->local;
 
+    *reset_state = *virge;
+
     return virge;
 }
 
@@ -4614,6 +4553,9 @@ s3_virge_close(void *priv)
 
     ddc_close(virge->ddc);
     i2c_gpio_close(virge->i2c);
+
+    free(reset_state);
+    reset_state = NULL;
 
     free(virge);
 }

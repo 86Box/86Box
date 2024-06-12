@@ -350,6 +350,9 @@ exec386_dynarec_int(void)
                 CPU_BLOCK_END();
         }
 
+        if (cpu_init)
+            CPU_BLOCK_END();
+
         if (cpu_state.abrt)
             CPU_BLOCK_END();
         if (smi_line)
@@ -592,6 +595,9 @@ exec386_dynarec_dyn(void)
 #    endif
                 CPU_BLOCK_END();
 
+            if (cpu_init)
+                CPU_BLOCK_END();
+
             if ((cpu_state.flags & T_FLAG) || (trap == 2))
                 CPU_BLOCK_END();
             if (smi_line)
@@ -689,6 +695,9 @@ exec386_dynarec_dyn(void)
 #    endif
                 CPU_BLOCK_END();
 
+            if (cpu_init)
+                CPU_BLOCK_END();
+
             if (cpu_state.flags & T_FLAG)
                 CPU_BLOCK_END();
             if (smi_line)
@@ -766,6 +775,11 @@ exec386_dynarec(int32_t cycs)
                 exec386_dynarec_int();
             } else {
                 exec386_dynarec_dyn();
+            }
+
+            if (cpu_init) {
+                cpu_init = 0;
+                resetx86();
             }
 
             if (cpu_state.abrt) {

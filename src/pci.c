@@ -23,6 +23,7 @@
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/mem.h>
@@ -420,7 +421,14 @@ pci_trc_reset(uint8_t val)
         flushmmucache();
     }
 
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        cpu_init = 1;
+    else
+        resetx86();
+#else
     resetx86();
+#endif
 }
 
 void
