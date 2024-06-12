@@ -696,9 +696,9 @@ static int
 cdi_cue_get_frame(uint64_t *frames, char **line)
 {
     char temp[128];
-    int  min;
-    int  sec;
-    int  fr;
+    int  min = 0;
+    int  sec = 0;
+    int  fr = 0;
     int  success;
 
     success = cdi_cue_get_buffer(temp, line, 0);
