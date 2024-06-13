@@ -57,6 +57,7 @@ extern int fdc_type;
 #define FDC_FLAG_QUA            0x3000 /* Is Quaternary */
 #define FDC_FLAG_CHANNEL        0x3000 /* Channel mask */
 #define FDC_FLAG_NO_DSR_RESET   0x4000 /* Has no DSR reset */
+#define FDC_FLAG_NEC            0x8000 /* Is NEC upd765-compatible */
 
 typedef struct fdc_t {
     uint8_t dor;

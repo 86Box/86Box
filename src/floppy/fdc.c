@@ -931,6 +931,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc->format_state = 0;
                         break;
                     case 0x0e: /*Dump registers*/
+                        if (fdc->flags & FDC_FLAG_NEC) {
+                            fdc_bad_command(fdc);
+                            break;
+                        }
                         fdc->lastdrive = fdc->drive;
                         fdc->interrupt = 0x0e;
                         fdc_callback(fdc);
@@ -949,6 +953,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x10: /*Get version*/
                     case 0x14: /*Unlock*/
                     case 0x94: /*Lock*/
+                        if (fdc->flags & FDC_FLAG_NEC) {
+                            fdc_bad_command(fdc);
+                            break;
+                        }
                         fdc->lastdrive = fdc->drive;
                         fdc->interrupt = fdc->command;
                         fdc_callback(fdc);
@@ -962,6 +970,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                         break;
                     case 0x13: /*Configure*/
+                        if (fdc->flags & FDC_FLAG_NEC) {
+                            fdc_bad_command(fdc);
+                            break;
+                        }
                         fdc->pnum = 0;
                         fdc->ptot = 3;
                         fdc->stat |= 0x90;
@@ -2682,7 +2694,7 @@ const device_t fdc_dp8473_device = {
     .name          = "NS DP8473 Floppy Drive Controller",
     .internal_name = "fdc_dp8473",
     .flags         = 0,
-    .local         = FDC_FLAG_AT | FDC_FLAG_NSC,
+    .local         = FDC_FLAG_AT | FDC_FLAG_NEC | FDC_FLAG_NO_DSR_RESET,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
