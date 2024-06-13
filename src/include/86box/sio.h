@@ -43,6 +43,8 @@ extern const device_t fdc37c931apm_compaq_device;
 extern const device_t fdc37c932fr_device;
 extern const device_t fdc37c932qf_device;
 extern const device_t fdc37c935_device;
+extern const device_t fdc37c935_370_device;
+extern const device_t fdc37c935_no_nvr_device;
 extern const device_t fdc37m60x_device;
 extern const device_t fdc37m60x_370_device;
 extern const device_t it8661f_device;

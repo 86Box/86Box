@@ -124,7 +124,7 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 {
     cdrom_t *drv = &cdrom[id];
 
-    if (drv->host_drive == 0) {
+    if (drv->image_path[0] == 0x00) {
         ui_sb_update_icon_state(SB_CDROM | id, 1);
     } else {
         ui_sb_update_icon_state(SB_CDROM | id, 0);
@@ -139,7 +139,6 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 void
 cdrom_mount(uint8_t id, char *fn)
 {
-    cdrom[id].prev_host_drive = cdrom[id].host_drive;
     strcpy(cdrom[id].prev_image_path, cdrom[id].image_path);
     if (cdrom[id].ops && cdrom[id].ops->exit)
         cdrom[id].ops->exit(&(cdrom[id]));
@@ -151,12 +150,10 @@ cdrom_mount(uint8_t id, char *fn)
     /* Signal media change to the emulated machine. */
     if (cdrom[id].insert)
         cdrom[id].insert(cdrom[id].priv);
-    cdrom[id].host_drive = (strlen(cdrom[id].image_path) == 0) ? 0 : 200;
-    if (cdrom[id].host_drive == 200) {
+    if (cdrom[id].image_path[0] == 0x00)
         ui_sb_update_icon_state(SB_CDROM | id, 0);
-    } else {
+    else
         ui_sb_update_icon_state(SB_CDROM | id, 1);
-    }
 #if 0
     media_menu_update_cdrom(id);
 #endif

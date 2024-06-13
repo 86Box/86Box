@@ -43,7 +43,6 @@
 #include <86box/sis_55xx.h>
 #include <86box/chipset.h>
 
-#define ENABLE_SIS_5581_LOG 1
 #ifdef ENABLE_SIS_5581_LOG
 int sis_5581_do_log = ENABLE_SIS_5581_LOG;
 

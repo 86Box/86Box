@@ -435,7 +435,7 @@ const device_t mt32_old_device = {
 
 const device_t mt32_new_device = {
     .name          = "Roland MT-32 (New) Emulation",
-    .internal_name = "mt32",
+    .internal_name = "mt32_new",
     .flags         = 0,
     .local         = 0,
     .init          = mt32_new_init,

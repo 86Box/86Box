@@ -14,6 +14,7 @@
 #include <86box/timer.h>
 #include "x86.h"
 #include "x86seg_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -49,6 +50,8 @@ uint32_t dr[8];
 
 uint32_t use32;
 int      stack32;
+
+int      cpu_init = 0;
 
 uint32_t *eal_r;
 uint32_t *eal_w;
@@ -426,42 +429,44 @@ x386_common_log(const char *fmt, ...)
 int
 is_lock_legal(uint32_t fetchdat)
 {
-    int legal;
-    fetch_dat_t fetch_dat;
+    int legal = 1;
 
-    fetch_dat.fd = fetchdat;
+    if (is386) {
+        fetch_dat_t fetch_dat;
+        fetch_dat.fd = fetchdat;
 
-    legal = lock_legal[fetch_dat.b[0]];
-    if (legal == 1)
-        legal = 1; // ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
-    else if (legal == 2) {
-        legal = lock_legal_0f[fetch_dat.b[1]];
+        legal = lock_legal[fetch_dat.b[0]];
         if (legal == 1)
-            legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
-        else if (legal == 3) {
-            legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+            legal = 1; // ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+        else if (legal == 2) {
+            legal = lock_legal_0f[fetch_dat.b[1]];
             if (legal == 1)
-                legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
+                legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
+            else if (legal == 3) {
+                legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+                if (legal == 1)
+                    legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
+            }
+        } else if (legal == 3)  switch(fetch_dat.b[0]) {
+            case 0x80 ... 0x83:
+                legal = lock_legal_80[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+            case 0xf6 ... 0xf7:
+                legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+            case 0xfe ... 0xff:
+                legal = lock_legal_fe[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+            default:
+                legal = 0;
+            break;
         }
-    } else if (legal == 3)  switch(fetch_dat.b[0]) {
-        case 0x80 ... 0x83:
-            legal = lock_legal_80[(fetch_dat.b[1] >> 3) & 0x07];
-            if (legal == 1)
-                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
-            break;
-        case 0xf6 ... 0xf7:
-            legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
-            if (legal == 1)
-                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
-            break;
-        case 0xfe ... 0xff:
-            legal = lock_legal_fe[(fetch_dat.b[1] >> 3) & 0x07];
-            if (legal == 1)
-                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
-            break;
-        default:
-            legal = 0;
-            break;
     }
 
     return legal;

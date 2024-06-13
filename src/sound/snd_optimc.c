@@ -414,7 +414,7 @@ optimc_init(const device_t *info)
 
     sound_add_handler(optimc_get_buffer, optimc);
     if (optimc->fm_type == FM_YMF278B)
-        sound_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
+        wavetable_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     else
         music_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, optimc->sb); /* CD audio filter for the default context */

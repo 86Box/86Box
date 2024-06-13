@@ -96,6 +96,8 @@ extern void writedma2(uint8_t temp);
 extern int  dma_get_drq(int channel);
 extern void dma_set_drq(int channel, int set);
 
+extern int dma_channel_read_only(int channel);
+extern int dma_channel_advance(int channel);
 extern int dma_channel_read(int channel);
 extern int dma_channel_write(int channel, uint16_t val);
 
@@ -117,5 +119,7 @@ void dma_high_page_init(void);
 
 void dma_remove_sg(void);
 void dma_set_sg_base(uint8_t sg_base);
+
+extern int dma_channel_readable(int channel);
 
 #endif /*EMU_DMA_H*/

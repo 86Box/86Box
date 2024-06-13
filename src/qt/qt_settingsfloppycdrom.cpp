@@ -263,6 +263,7 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
 
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
     ui->comboBoxCDROMType->setCurrentIndex(type);
+    enableCurrentlySelectedChannel();
 }
 
 void
@@ -288,6 +289,13 @@ SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
                   ui->tableViewFloppy->selectionModel()->currentIndex(), index);
 }
 
+void SettingsFloppyCDROM::reloadBusChannels() {
+    auto selected = ui->comboBoxChannel->currentIndex();
+    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
+    ui->comboBoxChannel->setCurrentIndex(selected);
+    enableCurrentlySelectedChannel();
+}
+
 void
 SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index)
 {
@@ -298,7 +306,7 @@ SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index)
         ui->comboBoxSpeed->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
         ui->comboBoxCDROMType->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
 
-        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus);
+        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus, Harddrives::busTrackClass);
     }
 }
 
@@ -360,6 +368,18 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     setCDROMType(ui->tableViewCDROM->model(),
                  ui->tableViewCDROM->selectionModel()->currentIndex(),
                  ui->comboBoxCDROMType->currentData().toUInt());
+    emit cdromChannelChanged();
+}
+
+void
+SettingsFloppyCDROM::enableCurrentlySelectedChannel()
+{
+    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxChannel->model());
+    const auto index = ui->comboBoxChannel->currentIndex();
+    auto *item = item_model->item(index);
+    if(item) {
+        item->setEnabled(true);
+    }
 }
 
 void
@@ -376,6 +396,7 @@ SettingsFloppyCDROM::on_comboBoxChannel_activated(int)
     Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i,
                                             Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i,
                                             Qt::UserRole + 1).toInt());
+    emit cdromChannelChanged();
 }
 
 void

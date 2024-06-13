@@ -493,16 +493,40 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
             case 0x52: /* Cache Control Register */
                 switch (dev->type) {
                     default:
+                    /*
+                       420TX/ZX:
+                       Bit 7-6: 0, 0 = 64 kB,
+                                0, 1 = 128 kB,
+                                1, 0 = 256 kB,
+                                1, 1 = 512 kB.
+                       Bit 5: 1 = L2 cache present, 0 = L2 cache absent.
+                       Bit 1: 1 = Write back cache, 0 = write through cache.
+                       Bit 0: 1 = L2 cache enable, 0 = L2 cache disable.
+                     */
                     case INTEL_420TX:
                     case INTEL_420ZX:
+                    case INTEL_430NX:
+                        regs[0x52] = (regs[0x52] & 0xe0) | (val & 0x1f);
+                        cpu_cache_ext_enabled = val & 0x01;
+                        cpu_update_waitstates();
+                        break;
                     case INTEL_430LX:
+                        regs[0x52] = (regs[0x52] & 0xe0) | (val & 0x1b);
+                        cpu_cache_ext_enabled = val & 0x01;
+                        cpu_update_waitstates();
+                        break;
                     case INTEL_430FX:
                     case INTEL_430VX:
                     case INTEL_430TX:
-                        regs[0x52] = (val & 0xfb);
+                        regs[0x52] = (regs[0x52] & 0x04) | (val & 0xfb);
+                        cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
+                        cpu_update_waitstates();
                         break;
-                    case INTEL_430NX:
                     case INTEL_430HX:
+                        regs[0x52] = val;
+                        cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
+                        cpu_update_waitstates();
+                        break;
                     case INTEL_440FX:
                         regs[0x52] = val;
                         break;
@@ -1630,7 +1654,7 @@ i4x0_init(const device_t *info)
                     0x00 = None, 0x01 = 64 kB, 0x41 = 128 kB, 0x81 = 256 kB, 0xc1 = 512 kB,
                     If bit 0 is set, then if bit 2 is also set, the cache is write back,
                     otherwise it's write through. */
-            regs[0x52] = 0xc3; /* 512 kB writeback cache */
+            regs[0x52] = 0xe0; /* 512 kB writeback cache */
             regs[0x57] = 0x31;
             regs[0x59] = 0x0f;
             regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = 0x02;

@@ -1,10 +1,19 @@
 #ifndef SOUND_SND_SB_DSP_H
 #define SOUND_SND_SB_DSP_H
 
+#include <86box/fifo.h>
+
 /*Sound Blaster Clones, for quirks*/
-#define SB_SUBTYPE_DEFAULT             0 /*Handle as a Creative card*/
-#define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /*Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone*/
-#define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /*Aztech Sound Galaxy Nova 16 Extra / Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone*/
+#define SB_SUBTYPE_DEFAULT             0 /* Handle as a Creative card */
+#define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /* Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone */
+#define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /* Aztech Sound Galaxy Nova 16 Extra /
+                                            Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone */
+#define SB_SUBTYPE_ESS_ES688           3 /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688          4 /* ESS Technology ES1688 */
+
+/* ESS-related */
+#define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
+#define IS_NOT_ESS(dsp) ((dsp)->sb_subtype < SB_SUBTYPE_ESS_ES688) /* Check for future ESS cards here */
 
 /* aztech-related */
 #define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) /* check for future AZT cards here */
@@ -45,6 +54,10 @@ typedef struct sb_dsp_t {
     void *dma_priv;
 
     uint8_t sb_read_data[256];
+
+    uint8_t dma_ff;
+    int     dma_data;
+
     int     sb_read_wp;
     int     sb_read_rp;
     int     sb_speaker;
@@ -110,6 +123,8 @@ typedef struct sb_dsp_t {
     int sbenable;
     int sb_enable_i;
 
+    int state;
+
     pc_timer_t output_timer;
     pc_timer_t input_timer;
 
@@ -125,6 +140,8 @@ typedef struct sb_dsp_t {
     pc_timer_t wb_timer;
     int        wb_full;
 
+    pc_timer_t irq_timer;
+
     int busy_count;
 
     int     record_pos_read;
@@ -134,6 +151,28 @@ typedef struct sb_dsp_t {
     int     pos;
 
     uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
+
+    uint8_t  ess_regs[256]; /* ESS registers. */
+    uint8_t  ess_playback_mode;
+    uint8_t  ess_extended_mode;
+    uint8_t  ess_reload_len;
+    uint32_t ess_dma_counter;
+
+    /* IRQ status flags (0x22C) */
+    uint8_t  ess_irq_generic;
+    uint8_t  ess_irq_dmactr;
+
+    /* ESPCM */
+    fifo64_t *espcm_fifo;
+    uint8_t   espcm_fifo_reset;
+    uint8_t   espcm_mode;              /* see ESPCM in "NON-PCM SAMPLE FORMATS" deflist in snd_sb_dsp.c */
+    uint8_t   espcm_sample_idx;
+    uint8_t   espcm_range;
+    uint8_t   espcm_byte_buffer[4];
+    uint8_t   espcm_code_buffer[19];   /* used for ESPCM_3 and for ESPCM_4 recording */
+    int8_t    espcm_sample_buffer[19]; /* used for ESPCM_4 recording */
+    uint8_t   espcm_table_index;       /* used for ESPCM_3 */
+    uint8_t   espcm_last_value;        /* used for ESPCM_3 */
 
     mpu_t *mpu;
 } sb_dsp_t;

@@ -225,6 +225,13 @@ else()
     target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
 endif()
 
+if(WIN32)
+    target_sources(plat PRIVATE win_cdrom_ioctl.c)
+else()
+# Replace with proper *nix and mac handler files once they are done.
+    target_sources(plat PRIVATE dummy_cdrom_ioctl.c)
+endif()
+
 if (APPLE)
     target_sources(ui PRIVATE macos_event_filter.mm)
     if(MOLTENVK)

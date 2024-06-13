@@ -90,6 +90,26 @@ machine_at_asus386_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_tandy4000_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tandy4000/BIOS Tandy 4000 v1.03.01.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 static void
 machine_at_sis401_common_init(const machine_t *model)
 {
@@ -379,8 +399,10 @@ machine_at_d824_init(const machine_t *model)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_device);
-    device_add(&fdc37c651_device);
 
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_device);
+    
     return ret;
 }
 
@@ -665,7 +687,7 @@ machine_at_pb450_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pb450/OPTI802.BIN",
+    ret = bios_load_linear("roms/machines/pb450/OPTI802.bin",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -680,13 +702,13 @@ machine_at_pb450_init(const machine_t *model)
     pci_register_slot(0x12, PCI_CARD_NORMAL,      5, 6, 7, 8);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_vlb_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
-    device_add(&opti602_device);
     device_add(&opti895_device);
+    device_add(&opti602_device);
     device_add(&opti822_device);
-    device_add(&keyboard_ps2_ami_device);
-    device_add(&fdc37c661_ide_device);
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_sec_device);
     device_add(&intel_flash_bxt_device);
     device_add(&phoenix_486_jumper_pci_device);
@@ -972,7 +994,7 @@ machine_at_sis_85c496_common_init(UNUSED(const machine_t *model))
 {
     device_add(&ide_pci_2ch_device);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
@@ -1345,7 +1367,7 @@ machine_at_amis76_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted("roms/machines/s76p/s76p.rom", 
+    ret = bios_load_linear_inverted("roms/machines/s76p/S76P.ROM", 
                                     0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -2201,10 +2223,10 @@ machine_at_dvent4xx_init(const machine_t *model)
     device_add(&sis_85c471_device);
     device_add(&ide_cmd640_vlb_pri_device);
     device_add(&fdc37c665_ide_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_phoenix_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio32_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

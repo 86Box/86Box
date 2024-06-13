@@ -546,7 +546,7 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    int            value;
+    int            value = 0;
 
     if (section == NULL)
         return def;
@@ -565,7 +565,7 @@ ini_section_get_uint(ini_section_t self, const char *name, uint32_t def)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    uint32_t       value;
+    uint32_t       value = 0;
 
     if (section == NULL)
         return def;
@@ -585,7 +585,7 @@ ini_section_get_float(ini_section_t self, const char *name, float def)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    float         value;
+    float         value = 0;
 
     if (section == NULL)
         return def;
@@ -605,7 +605,7 @@ ini_section_get_double(ini_section_t self, const char *name, double def)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    double         value;
+    double         value = 0;
 
     if (section == NULL)
         return def;
@@ -624,7 +624,7 @@ ini_section_get_hex16(ini_section_t self, const char *name, int def)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    unsigned int   value;
+    unsigned int   value = 0;
 
     if (section == NULL)
         return def;
@@ -643,7 +643,7 @@ ini_section_get_hex20(ini_section_t self, const char *name, int def)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    unsigned int   value;
+    unsigned int   value = 0;
 
     if (section == NULL)
         return def;

@@ -28,6 +28,8 @@ public:
     explicit SettingsBusTracking();
     ~SettingsBusTracking() = default;
 
+    QList<int> busChannelsInUse(int bus);
+
     /* These return 0xff is none is free. */
     uint8_t next_free_mfm_channel();
     uint8_t next_free_esdi_channel();
@@ -55,8 +57,10 @@ private:
     uint64_t xta_tracking { 0 };
     /* 16 channels (prepatation for that weird IDE card), 2 devices per channel, 8 bits per device = 256 bits. */
     uint64_t ide_tracking[4] { 0, 0, 0, 0 };
-    /* 4 buses, 16 devices per bus, 8 bits per device (future-proofing) = 512 bits. */
-    uint64_t scsi_tracking[8] { 0, 0, 0, 0, 0, 0, 0, 0 };
+    /* 9 buses (rounded upwards to 16for future-proofing), 16 devices per bus,
+       8 bits per device (future-proofing) = 2048 bits. */
+    uint64_t scsi_tracking[32] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 };
 
 #endif // QT_SETTINGS_BUS_TRACKING_HPP

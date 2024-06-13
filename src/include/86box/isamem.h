@@ -64,6 +64,7 @@ extern const char     *isamem_get_name(int t);
 extern const char     *isamem_get_internal_name(int t);
 extern int             isamem_get_from_internal_name(const char *s);
 extern const device_t *isamem_get_device(int t);
+extern int             isamem_has_config(int board);
 
 #ifdef __cplusplus
 }

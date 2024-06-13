@@ -82,12 +82,43 @@ opMOV_r_CRx_a32(uint32_t fetchdat)
 static int
 opMOV_r_DRx_a16(uint32_t fetchdat)
 {
-    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+    if ((CPL > 0) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
+#ifdef USE_DEBUG_REGS_486
+    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
+        trap |= 1;
+        return 1;
+    }
+#endif
     fetch_ea_16(fetchdat);
-    cpu_state.regs[cpu_rm].l = dr[cpu_reg] | (cpu_reg == 6 ? 0xffff0ff0u : 0);
+    switch (cpu_reg) {
+        case 0 ... 3:
+            cpu_state.regs[cpu_rm].l = dr[cpu_reg];
+            break;
+        case 4:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 6:
+            cpu_state.regs[cpu_rm].l = dr[6];
+            break;
+        case 5:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 7:
+            cpu_state.regs[cpu_rm].l = dr[7];
+            break;
+        default:
+            x86illegal();
+            return 1;
+    }
     CLOCK_CYCLES(6);
     PREFETCH_RUN(6, 2, rmdat, 0, 0, 0, 0, 0);
     return 0;
@@ -95,12 +126,43 @@ opMOV_r_DRx_a16(uint32_t fetchdat)
 static int
 opMOV_r_DRx_a32(uint32_t fetchdat)
 {
-    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+    if ((CPL > 0) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
+#ifdef USE_DEBUG_REGS_486
+    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
+        trap |= 1;
+        return 1;
+    }
+#endif
     fetch_ea_32(fetchdat);
-    cpu_state.regs[cpu_rm].l = dr[cpu_reg] | (cpu_reg == 6 ? 0xffff0ff0u : 0);
+    switch (cpu_reg) {
+        case 0 ... 3:
+            cpu_state.regs[cpu_rm].l = dr[cpu_reg];
+            break;
+        case 4:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 6:
+            cpu_state.regs[cpu_rm].l = dr[6];
+            break;
+        case 5:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 7:
+            cpu_state.regs[cpu_rm].l = dr[7];
+            break;
+        default:
+            x86illegal();
+            return 1;
+    }
     CLOCK_CYCLES(6);
     PREFETCH_RUN(6, 2, rmdat, 0, 0, 0, 0, 1);
     return 0;
@@ -224,27 +286,96 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
 static int
 opMOV_DRx_r_a16(uint32_t fetchdat)
 {
-    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+    if ((CPL > 0) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
+#ifdef USE_DEBUG_REGS_486
+    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
+        trap |= 1;
+        x86gen();
+        return 1;
+    }
+#endif
     fetch_ea_16(fetchdat);
-    dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
+    switch (cpu_reg) {
+        case 0 ... 3:
+            dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
+            break;
+        case 4:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 6:
+            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[cpu_rm].l & 0x0000f00f);
+            break;
+        case 5:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 7:
+            dr[7] = cpu_state.regs[cpu_rm].l | 0x00000400;
+            break;
+        default:
+            x86illegal();
+            return 1;
+    }
     CLOCK_CYCLES(6);
     PREFETCH_RUN(6, 2, rmdat, 0, 0, 0, 0, 0);
+#ifdef USE_DEBUG_REGS_486
+    CPU_BLOCK_END();
+#endif
     return 0;
 }
 static int
 opMOV_DRx_r_a32(uint32_t fetchdat)
 {
-    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+    if ((CPL > 0) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
+#ifdef USE_DEBUG_REGS_486
+    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
+        trap |= 1;
+        return 1;
+    }
+#endif
     fetch_ea_16(fetchdat);
-    dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
+    switch (cpu_reg) {
+        case 0 ... 3:
+            dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
+            break;
+        case 4:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 6:
+            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[cpu_rm].l & 0x0000f00f);
+            break;
+        case 5:
+            if (cr4 & 0x8) {
+                x86illegal();
+                return 1;
+            }
+            fallthrough;
+        case 7:
+            dr[7] = cpu_state.regs[cpu_rm].l | 0x00000400;
+            break;
+        default:
+            x86illegal();
+            return 1;
+    }
     CLOCK_CYCLES(6);
     PREFETCH_RUN(6, 2, rmdat, 0, 0, 0, 0, 1);
+#ifdef USE_DEBUG_REGS_486
+    CPU_BLOCK_END();
+#endif
     return 0;
 }
 

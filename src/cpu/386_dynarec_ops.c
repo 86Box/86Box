@@ -15,6 +15,7 @@
 #include "x86_ops.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "x86_flags.h"
 #include <86box/io.h>
@@ -24,6 +25,7 @@
 #include <86box/gdbstub.h>
 #include "codegen.h"
 #include <86box/plat_unused.h>
+#include <86box/plat_fallthrough.h>
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 

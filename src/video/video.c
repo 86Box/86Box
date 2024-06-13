@@ -104,7 +104,7 @@ monitor_settings_t monitor_settings[MONITORS_NUM];
 atomic_bool        doresize_monitors[MONITORS_NUM];
 
 #ifdef _WIN32
-void *__cdecl (*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+void * (*__cdecl video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
 #else
 void *(*video_copy)(void *__restrict, const void *__restrict, size_t);
 #endif

@@ -35,7 +35,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 4.1.1
+    VERSION 4.2
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -137,6 +137,7 @@ option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"
 option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
 option(DISCORD      "Discord Rich Presence support"                                 ON)
+option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"                  OFF)
 
 if(WIN32)
     set(QT ON)
@@ -151,7 +152,6 @@ endif()
 cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(AN430TX        "Intel AN430TX"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(DESKPRO386     "Compaq Deskpro 386"                          ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
@@ -160,9 +160,7 @@ cmake_dependent_option(LASERXT        "VTech Laser XT"                          
 cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                       ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt

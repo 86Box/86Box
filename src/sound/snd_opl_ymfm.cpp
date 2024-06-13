@@ -74,7 +74,6 @@ public:
 
     virtual void     write(uint16_t addr, uint8_t data)                      = 0;
     virtual void     generate(int32_t *data, uint32_t num_samples)           = 0;
-    virtual void     generate_resampled(int32_t *data, uint32_t num_samples) = 0;
     virtual int32_t *update()                                                = 0;
     virtual uint8_t  read(uint16_t addr)                                     = 0;
     virtual void     set_clock(uint32_t clock)                               = 0;
@@ -82,6 +81,7 @@ public:
 protected:
     int32_t  m_buffer[MUSICBUFLEN * 2];
     int      m_buf_pos;
+    int      *m_buf_pos_global;
     int8_t   m_flags;
     fm_type  m_type;
     uint32_t m_samplerate;
@@ -99,11 +99,12 @@ public:
     {
         memset(m_samples, 0, sizeof(m_samples));
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
-        m_rateratio   = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
-        m_clock_us    = 1000000.0 / (double) m_clock;
-        m_subtract[0] = 80.0;
-        m_subtract[1] = 320.0;
-        m_type        = type;
+        m_rateratio      = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
+        m_clock_us       = 1000000.0 / (double) m_clock;
+        m_subtract[0]    = 80.0;
+        m_subtract[1]    = 320.0;
+        m_type           = type;
+        m_buf_pos_global = (samplerate == FREQ_49716) ? &music_pos_global : &wavetable_pos_global;
 
         if (m_type == FM_YMF278B) {
             if (rom_load_linear("roms/sound/yamaha/yrw801.rom", 0, 0x200000, 0, m_yrw801) == 0) {
@@ -170,9 +171,10 @@ public:
         }
     }
 
+#if 0
     virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
     {
-        if (m_samplerate == FREQ_49716) {
+        if ((m_samplerate == FREQ_49716) || (m_samplerate == FREQ_44100)) {
             generate(data, num_samples);
             return;
         }
@@ -210,29 +212,18 @@ public:
             m_samplecnt += 1 << RSM_FRAC;
         }
     }
+#endif
 
     virtual int32_t *update() override
     {
-        if (m_samplerate == FREQ_49716) {
-            if (m_buf_pos >= music_pos_global)
-                return m_buffer;
+        if (m_buf_pos >= *m_buf_pos_global)
+            return m_buffer;
 
-            generate(&m_buffer[m_buf_pos * 2], music_pos_global - m_buf_pos);
+        generate(&m_buffer[m_buf_pos * 2], *m_buf_pos_global - m_buf_pos);
 
-            for (; m_buf_pos < music_pos_global; m_buf_pos++) {
-                m_buffer[m_buf_pos * 2] /= 2;
-                m_buffer[(m_buf_pos * 2) + 1] /= 2;
-            }
-        } else {
-            if (m_buf_pos >= sound_pos_global)
-                return m_buffer;
-
-            generate_resampled(&m_buffer[m_buf_pos * 2], sound_pos_global - m_buf_pos);
-
-            for (; m_buf_pos < sound_pos_global; m_buf_pos++) {
-                m_buffer[m_buf_pos * 2] /= 2;
-                m_buffer[(m_buf_pos * 2) + 1] /= 2;
-            }
+        for (; m_buf_pos < *m_buf_pos_global; m_buf_pos++) {
+            m_buffer[m_buf_pos * 2] /= 2;
+            m_buffer[(m_buf_pos * 2) + 1] /= 2;
         }
 
         return m_buffer;
@@ -343,11 +334,11 @@ ymfm_drv_init(const device_t *info)
         case FM_YMF289B:
             /* According to the datasheet, we should be using 33868800, but YMFM appears
                to cheat and does it using the same values as the YMF262. */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, OPL_FREQ);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, FREQ_49716);
             break;
 
         case FM_YMF278B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, OPL_FREQ);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, FREQ_44100);
             break;
     }
 
@@ -422,7 +413,8 @@ static void
 ymfm_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
-    drv->generate_resampled(data, num_samples);
+    // drv->generate_resampled(data, num_samples);
+    drv->generate(data, num_samples);
 }
 
 const device_t ym3812_ymfm_device = {

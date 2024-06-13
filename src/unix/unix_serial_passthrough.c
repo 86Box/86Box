@@ -22,7 +22,7 @@
 #    define _BSD_SOURCE     1
 #endif
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-#    define __BSD_VISIBLE   1
+#    define __BSD_VISIBLE 1
 #endif
 #include <stdio.h>
 #include <fcntl.h>

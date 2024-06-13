@@ -44,6 +44,8 @@
 
 #ifdef ATI_8514_ULTRA
 #define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140.BIN"
+
+static video_timings_t timing_8514ultra_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
 #endif
 
 static void     ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv);
@@ -469,7 +471,7 @@ regular_nibble:
     }
 }
 
-static void
+void
 ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
@@ -500,8 +502,9 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
         case 0x86e9:
         case 0xc6e9:
-            if (len == 1)
+            if (len == 1) {
                 dev->accel.cur_x = (dev->accel.cur_x & 0xff) | ((val & 0x07) << 8);
+            }
             break;
 
         case 0x8ae8:
@@ -548,6 +551,7 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             if (len != 1)
                 dev->test = val;
             fallthrough;
+
         case 0xd2e8:
             if (len == 1)
                 dev->accel.err_term = (dev->accel.err_term & 0x3f00) | val;
@@ -577,9 +581,8 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
         case 0x96e9:
         case 0xd6e9:
-            if (len == 1) {
+            if (len == 1)
                 dev->accel.maj_axis_pcnt = (dev->accel.maj_axis_pcnt & 0xff) | ((val & 0x07) << 8);
-            }
             break;
 
         case 0x9ae8:
@@ -624,7 +627,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                 dev->accel.cy           = dev->accel.cur_y;
                 if (dev->accel.cur_x >= 0x600)
                     dev->accel.cx |= ~0x5ff;
-
                 if (dev->accel.cur_y >= 0x600)
                     dev->accel.cy |= ~0x5ff;
 
@@ -646,9 +648,9 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                 dev->accel.cy           = dev->accel.cur_y;
                 if (dev->accel.cur_x >= 0x600)
                     dev->accel.cx |= ~0x5ff;
-
                 if (dev->accel.cur_y >= 0x600)
                     dev->accel.cy |= ~0x5ff;
+
                 if (dev->accel.cmd & 0x1000) {
                     ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke & 0xff, len);
                     ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke >> 8, len);
@@ -883,7 +885,7 @@ ibm8514_io_set(svga_t *svga)
     io_sethandler(0xfee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
 }
 
-static void
+void
 ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
@@ -894,88 +896,89 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
     else {
         switch (port) {
             case 0x2e8:
-            case 0x2e9:
+            case 0x6e9:
                 WRITE8(port, dev->htotal, val);
+                ibm8514_log("IBM 8514/A compatible: (0x%04x): htotal=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
                 break;
 
             case 0x6e8:
-            case 0x6e9:
-                if (!(port & 1)) {
-                    if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
-                        dev->hdisped = val;
-                        dev->hdisp = (dev->hdisped + 1) << 3;
-                    }
+                /*In preparation to switch from VGA to 8514/A mode*/
+                if (!dev->on[0] || !dev->on[1]) {
+                    dev->hdisped = val;
+                    dev->hdisp = (dev->hdisped + 1) << 3;
                 }
-                ibm8514_log("IBM 8514/A: H_DISP write 06E8 = %d, advfunc=%x.\n", dev->hdisp, dev->accel.advfunc_cntl & 4);
+                ibm8514_log("[%04X:%08X]: IBM 8514/A: (0x%04x): hdisp=0x%02x.\n", CS, cpu_state.pc, port, val);
+                svga_recalctimings(svga);
                 break;
 
             case 0xae8:
-            case 0xae9:
-                if (!(port & 1)) {
-                    if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
-                        dev->hsync_start = val;
-                        dev->hblankstart = (dev->hsync_start & 0x07);
-                    }
-                }
-                ibm8514_log("IBM 8514/A: H_SYNC_STRT write 0AE8 = %d\n", val + 1);
+                dev->hsync_start = val;
+                ibm8514_log("IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_start=%d.\n", port, val, (val + 1) << 3);
+                svga_recalctimings(svga);
                 break;
 
             case 0xee8:
-            case 0xee9:
-                if (!(port & 1)) {
-                    if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
-                        dev->hsync_width = val;
-                        dev->hblank_end_val = (dev->hblankstart + (dev->hsync_width & 0x1f) - 1) & 0x3f;
-                    }
-                }
-                ibm8514_log("IBM 8514/A: H_SYNC_WID write 0EE8 = %d\n", val + 1);
+                dev->hsync_width = val;
+                ibm8514_log("IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_width=%d, hsyncpol=%02x.\n", port, val & 0x1f, ((val & 0x1f) + 1) << 3, val & 0x20);
+                svga_recalctimings(svga);
                 break;
 
             case 0x12e8:
             case 0x12e9:
-                if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
-                    WRITE8(port, dev->v_total_reg, val);
-                    dev->v_total_reg &= 0x1fff;
-                    dev->vtotal = dev->v_total_reg;
-                    dev->vtotal++;
-                }
+                /*In preparation to switch from VGA to 8514/A mode*/
+                WRITE8(port, dev->v_total_reg, val);
+                dev->v_total_reg &= 0x1fff;
+                dev->v_total = dev->v_total_reg + 1;
+                if (dev->interlace)
+                    dev->v_total >>= 1;
+
+                ibm8514_log("IBM 8514/A compatible: (0x%04x): vtotal=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
                 break;
 
             case 0x16e8:
             case 0x16e9:
-                if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
+                /*In preparation to switch from VGA to 8514/A mode*/
+                if (!dev->on[0] || !dev->on[1]) {
                     WRITE8(port, dev->v_disp, val);
                     dev->v_disp &= 0x1fff;
-                    dev->vdisp = dev->v_disp;
-                    dev->vdisp >>= 1;
-                    dev->vdisp++;
+                    dev->vdisp = (dev->v_disp + 1) >> 1;
                 }
-                ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->vdisp);
+                ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
+                ibm8514_log("IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
                 break;
 
             case 0x1ae8:
             case 0x1ae9:
-                if (((dev->disp_cntl & 0x60) == 0x20) || (((dev->disp_cntl & 0x60) == 0x40) && !(dev->accel.advfunc_cntl & 0x04))) {
-                    WRITE8(port, dev->v_sync_start, val);
-                    dev->v_sync_start &= 0x1fff;
-                    dev->vsyncstart = dev->v_sync_start;
-                    dev->vsyncstart++;
-                }
+                /*In preparation to switch from VGA to 8514/A mode*/
+                WRITE8(port, dev->v_sync_start, val);
+                dev->v_sync_start &= 0x1fff;
+                dev->v_syncstart = dev->v_sync_start + 1;
+                if (dev->interlace)
+                    dev->v_syncstart >>= 1;
+
+                ibm8514_log("IBM 8514/A compatible: V_SYNCSTART write 1AE8 = %d\n", dev->v_syncstart);
+                ibm8514_log("IBM 8514/A compatible: (0x%04x): vsyncstart=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
                 break;
 
             case 0x1ee8:
             case 0x1ee9:
-                ibm8514_log("IBM 8514/A: V_SYNC_WID write 1EE8 = %02x\n", val);
+                ibm8514_log("IBM 8514/A compatible: V_SYNC_WID write 1EE8 = %02x\n", val);
+                ibm8514_log("IBM 8514/A compatible: (0x%04x): vsyncwidth=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
                 break;
 
             case 0x22e8:
-                dev->disp_cntl = val & 0x7e;
-                dev->interlace = !!(val & 0x10);
-                ibm8514_log("IBM 8514/A: DISP_CNTL write 22E8 = %02x, interlace = %d\n", dev->disp_cntl, dev->interlace);
+                dev->disp_cntl = val;
+                dev->interlace = !!(dev->disp_cntl & 0x10);
+                ibm8514_log("IBM 8514/A compatible: DISP_CNTL write %04x=%02x, interlace=%d.\n", port, dev->disp_cntl, dev->interlace);
+                svga_recalctimings(svga);
                 break;
 
             case 0x42e8:
-                old = dev->subsys_stat;
                 if (val & 1)
                     dev->subsys_stat &= ~1;
                 if (val & 2)
@@ -1004,10 +1007,10 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
                 dev->on[port & 1] = dev->accel.advfunc_cntl & 0x01;
                 vga_on = !dev->on[port & 1];
                 dev->vendor_mode[port & 1] = 0;
-                ibm8514_log("IBM 8514/A: (0x%04x): ON=%d, shadow crt=%x.\n", port, dev->on[port & 1], dev->accel.advfunc_cntl & 4);
+                ibm8514_log("[%04X:%08X]: IBM 8514/A: (0x%04x): ON=%d, shadow crt=%x, hdisp=%d, vdisp=%d.\n", CS, cpu_state.pc, port, dev->on[port & 1], dev->accel.advfunc_cntl & 0x04, dev->hdisp, dev->vdisp);
+                ibm8514_log("IBM mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
                 svga_recalctimings(svga);
                 break;
-
 
             default:
                 break;
@@ -1031,73 +1034,14 @@ ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv)
     ibm8514_accel_out(port, val, svga, 2);
 }
 
-static uint32_t
-ibm8514_accel_in(uint16_t port, svga_t *svga, int len)
+uint16_t
+ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
 {
-    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
-    uint32_t   temp = 0;
-    int        cmd;
-    int        vpos      = 0;
-    int        vblankend = svga->vblankstart + svga->crtc[0x16];
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint16_t temp = 0;
+    int      cmd  = 0;
 
     switch (port) {
-        case 0x2e8:
-            vpos = dev->vc & 0x7ff;
-            if (vblankend > dev->v_total) {
-                vblankend -= dev->v_total;
-                if ((vpos >= svga->vblankstart) || (vpos <= vblankend))
-                    temp |= 2;
-            } else {
-                 if ((vpos >= svga->vblankstart) && (vpos <= vblankend))
-                    temp |= 2;
-            }
-            break;
-
-        case 0x6e8:
-            temp = dev->hdisped;
-            break;
-
-        case 0x22e8:
-            temp = dev->disp_cntl;
-            break;
-
-        case 0x26e8:
-            if (len == 1)
-                temp = dev->htotal & 0xff;
-            else
-                temp = dev->htotal;
-            break;
-        case 0x26e9:
-            if (len == 1)
-                temp = dev->htotal >> 8;
-            break;
-
-        case 0x2ee8:
-            temp = dev->subsys_cntl;
-            break;
-
-        case 0x42e8:
-            cmd  = dev->accel.cmd >> 13;
-            vpos = dev->vc & 0x7ff;
-            if (vblankend > dev->v_total) {
-                vblankend -= dev->v_total;
-                if (vpos >= svga->vblankstart || vpos <= vblankend)
-                    dev->subsys_stat |= 1;
-            } else {
-                 if (vpos >= svga->vblankstart && vpos <= vblankend)
-                    dev->subsys_stat |= 1;
-            }
-            if (len != 1) {
-                temp = dev->subsys_stat | 0xa0 | 0x8000;
-            } else
-                temp = dev->subsys_stat | 0xa0;
-            break;
-
-        case 0x42e9:
-            if (len == 1)
-                temp |= 0x80;
-            break;
-
         case 0x82e8:
         case 0xc2e8:
             if (len != 1)
@@ -1113,6 +1057,11 @@ ibm8514_accel_in(uint16_t port, svga_t *svga, int len)
         case 0x92e8:
             if (len != 1)
                 temp = dev->test;
+            break;
+
+        case 0x96e8:
+            if (len != 1)
+                temp = dev->accel.maj_axis_pcnt;
             break;
 
         case 0x9ae8:
@@ -1143,26 +1092,82 @@ ibm8514_accel_in(uint16_t port, svga_t *svga, int len)
         case 0xe2e8:
         case 0xe6e8:
             if (ibm8514_cpu_dest(svga)) {
-                if (len == 1) {
-                    ; // READ_PIXTRANS_BYTE_IO(0)
-                } else {
+                if (len != 1) {
                     cmd = (dev->accel.cmd >> 13);
-                    READ_PIXTRANS_WORD(dev->accel.cx, 0)
+                    READ_PIXTRANS_WORD(dev->accel.cx, 0);
                     if (dev->accel.input && !dev->accel.odd_in && !dev->accel.sx) {
                         temp &= ~0xff00;
                         temp |= (dev->vram[(dev->accel.newdest_in + dev->accel.cur_x) & dev->vram_mask] << 8);
                     }
-                }
-                ibm8514_accel_out_pixtrans(svga, port, temp, len);
-            }
-            break;
-        case 0xe2e9:
-        case 0xe6e9:
-            if (ibm8514_cpu_dest(svga)) {
-                if (len == 1) {
-                    ; // READ_PIXTRANS_BYTE_IO(1)
                     ibm8514_accel_out_pixtrans(svga, port, temp, len);
                 }
+            }
+            break;
+
+        default:
+            break;
+    }
+    return temp;
+}
+
+uint8_t
+ibm8514_accel_in(uint16_t port, svga_t *svga)
+{
+    ibm8514_t *dev       = (ibm8514_t *) svga->dev8514;
+    uint8_t   temp       = 0;
+    uint16_t  clip_b_ibm = dev->accel.multifunc[3];
+    uint16_t  clip_r_ibm = dev->accel.multifunc[4];
+    int       cmd        = (dev->accel.cmd >> 13);
+
+    switch (port) {
+        case 0x2e8:
+            if (dev->vc == dev->v_syncstart)
+                temp |= 2;
+
+            ibm8514_log("0x2E8 read: Display Status=%02x.\n", temp);
+            break;
+
+        case 0x6e8:
+            temp = dev->hdisped;
+            break;
+
+        case 0x22e8:
+            temp = dev->disp_cntl;
+            break;
+
+        case 0x26e8:
+        case 0x26e9:
+            READ8(port, dev->htotal);
+            break;
+
+        case 0x2ee8:
+            temp = dev->subsys_cntl;
+            break;
+        case 0x2ee9:
+            temp = 0xff;
+            break;
+
+        case 0x42e8:
+        case 0x42e9:
+            if (dev->vc == dev->v_syncstart)
+                dev->subsys_stat |= 1;
+
+            if (cmd == 6) {
+                if (((dev->accel.dx) >= dev->accel.clip_left) && ((dev->accel.dx) <= clip_r_ibm) && ((dev->accel.dy) >= dev->accel.clip_top) && ((dev->accel.dy) <= clip_b_ibm))
+                    temp |= 2;
+            } else {
+                if (((dev->accel.cx) >= dev->accel.clip_left) && ((dev->accel.dx) <= clip_r_ibm) && ((dev->accel.cy) >= dev->accel.clip_top) && ((dev->accel.cy) <= clip_b_ibm))
+                    temp |= 2;
+            }
+
+            if (!dev->force_busy)
+                temp |= 8;
+
+            if (port & 1)
+                temp = 0x80;
+            else {
+                temp |= (dev->subsys_stat | 0x80);
+                temp |= 0x20;
             }
             break;
 
@@ -1176,16 +1181,29 @@ static uint8_t
 ibm8514_accel_inb(uint16_t port, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
+    uint8_t temp;
 
-    return ibm8514_accel_in(port, svga, 1);
+    if (port & 0x8000)
+        temp = ibm8514_accel_in_fifo(svga, port, 1);
+    else
+        temp = ibm8514_accel_in(port, svga);
+
+    return temp;
 }
 
 static uint16_t
 ibm8514_accel_inw(uint16_t port, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
+    uint16_t temp;
 
-    return ibm8514_accel_in(port, svga, 2);
+    if (port & 0x8000)
+        temp = ibm8514_accel_in_fifo(svga, port, 2);
+    else {
+        temp = ibm8514_accel_in(port, svga);
+        temp |= (ibm8514_accel_in(port + 1, svga) << 8);
+    }
+    return temp;
 }
 
 void
@@ -2285,7 +2303,6 @@ rect_fill_pix:
                                     WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
                                 }
                             }
-
                             mix_dat <<= 1;
                             mix_dat |= 1;
                             if (dev->bpp)
@@ -2448,6 +2465,7 @@ rect_fill_pix:
                                         }
                                     }
                                 }
+
                                 mix_dat <<= 1;
                                 mix_dat |= 1;
 
@@ -2525,6 +2543,7 @@ rect_fill_pix:
                                         }
                                     }
                                 }
+
                                 mix_dat <<= 1;
                                 mix_dat |= 1;
                                 if (dev->bpp)
@@ -3385,6 +3404,7 @@ bitblt_pix:
                                     WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                                 }
                             }
+
                             mix_dat >>= 1;
                             if (dev->bpp)
                                 cpu_dat >>= 16;
@@ -3452,7 +3472,6 @@ bitblt_pix:
                     } else {
                         while (count-- && (dev->accel.sy >= 0)) {
                             if (dev->accel.dx >= dev->accel.clip_left && dev->accel.dx <= clip_r && dev->accel.dy >= dev->accel.clip_top && dev->accel.dy <= clip_b) {
-
                                 if (pixcntl == 3) {
                                     if (!(dev->accel.cmd & 0x10) && ((frgd_mix != 3) || (bkgd_mix != 3))) {
                                         READ(dev->accel.src + dev->accel.cx, mix_dat);
@@ -3496,6 +3515,7 @@ bitblt_pix:
                                     WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                                 }
                             }
+
                             mix_dat <<= 1;
                             mix_dat |= 1;
                             if (dev->bpp)
@@ -3655,6 +3675,7 @@ bitblt:
                                         WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                                     }
                                 }
+
                                 dev->accel.temp_cnt--;
                                 mix_dat >>= 1;
 
@@ -3779,6 +3800,7 @@ bitblt:
                                     }
                                 }
                             }
+
                             mix_dat <<= 1;
                             mix_dat |= 1;
 
@@ -4147,7 +4169,7 @@ ibm8514_poll(void *priv)
                 dev->hwcursor_oddeven = 1;
             }
 
-            timer_advance_u64(&svga->timer8514, dev->dispofftime);
+            timer_advance_u64(&svga->timer, dev->dispofftime);
             svga->cgastat |= 1;
             dev->linepos = 1;
 
@@ -4192,7 +4214,7 @@ ibm8514_poll(void *priv)
             if (dev->displine > 1500)
                 dev->displine = 0;
         } else {
-            timer_advance_u64(&svga->timer8514, dev->dispontime);
+            timer_advance_u64(&svga->timer, dev->dispontime);
             if (dev->dispon)
                 svga->cgastat &= ~1;
             dev->hdisp_on = 0;
@@ -4215,7 +4237,7 @@ ibm8514_poll(void *priv)
             }
 
             dev->vc++;
-            dev->vc &= 0x7ff;
+            dev->vc &= 0xfff;
 
             if (dev->vc == dev->dispend) {
                 dev->dispon = 0;
@@ -4290,43 +4312,37 @@ ibm8514_recalctimings(svga_t *svga)
 #endif
     {
         if (dev->on[0] || dev->on[1]) {
-            dev->h_disp                     = dev->hdisp;
-            dev->h_total                    = dev->htotal + 1;
-            dev->h_blankstart               = dev->hblankstart;
-            dev->h_blank_end_val            = dev->hblank_end_val;
-            dev->v_total                    = dev->vtotal;
-            dev->v_syncstart                = dev->vsyncstart;
-            dev->dispend                    = dev->vdisp;
-            dev->rowcount                   = !!(dev->disp_cntl & 0x08);
+            dev->h_total = dev->htotal + 1;
+            dev->rowcount = !!(dev->disp_cntl & 0x08);
+
+            if (dev->accel.advfunc_cntl & 0x01) {
+                if (dev->accel.advfunc_cntl & 0x04) {
+                    dev->h_disp = dev->hdisp;
+                    dev->dispend = dev->vdisp;
+                } else {
+                    dev->h_disp = 640;
+                    dev->dispend = 480;
+                }
+            } else {
+                dev->h_disp = dev->hdisp;
+                dev->dispend = dev->vdisp;
+            }
+
+            if (dev->accel.advfunc_cntl & 0x04)
+                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+            else
+                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+
+            if (dev->interlace)
+                dev->dispend >>= 1;
 
             if (dev->dispend == 766)
                 dev->dispend += 2;
 
-            if (dev->accel.advfunc_cntl & 4) {
-                dev->pitch = 1024;
-                if (!dev->h_disp) {
-                    dev->h_disp = 1024;
-                    dev->dispend = 768;
-                }
-                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
-            } else {
-                dev->pitch = 640;
-                if (!dev->h_disp) {
-                    dev->h_disp = 640;
-                    dev->dispend = 480;
-                }
-                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
-            }
+            if (dev->dispend == 478)
+                dev->dispend += 2;
 
-            if (dev->interlace) {
-                dev->dispend >>= 1;
-                dev->v_syncstart >>= 2;
-                dev->v_total >>= 2;
-            } else {
-                dev->v_syncstart >>= 1;
-                dev->v_total >>= 1;
-            }
-
+            dev->pitch = 1024;
             dev->rowoffset = 0x80;
             svga->map8 = dev->pallook;
             svga->render8514 = ibm8514_render_8bpp;
@@ -4378,7 +4394,12 @@ ibm8514_mca_reset(void *priv)
     dev->on[0] = 0;
     dev->on[1] = 0;
     vga_on = 1;
-    ibm8514_mca_write(0x102, 0, svga);
+#ifdef ATI_8514_ULTRA
+    if (dev->extensions)
+        ati8514_mca_write(0x102, 0, svga);
+    else
+#endif
+        ibm8514_mca_write(0x102, 0, svga);
 }
 
 static void *
@@ -4409,27 +4430,28 @@ ibm8514_init(const device_t *info)
     switch (dev->extensions) {
         case 1:
             if (rom_present(BIOS_MACH8_ROM_PATH)) {
-                mach = (mach_t *) calloc(1, sizeof(mach_t));
+                mach_t * mach = (mach_t *) calloc(1, sizeof(mach_t));
                 svga->ext8514 = mach;
-                ati8514_init(svga, svga->ext8514, svga->dev8514);
 
                 if (dev->type & DEVICE_MCA) {
                     rom_init(&dev->bios_rom,
-                            BIOS_MACH8_ROM_PATH,
-                            0xc6800, 0x1000, 0x0fff,
-                            0x0800, MEM_MAPPING_EXTERNAL);
-                    mem_mapping_disable(&dev->bios_rom.mapping);
+                             BIOS_MACH8_ROM_PATH,
+                             0xc6000, 0x2000, 0x1fff,
+                             0, MEM_MAPPING_EXTERNAL);
                     dev->pos_regs[0] = 0x88;
                     dev->pos_regs[1] = 0x80;
                     mca_add(ati8514_mca_read, ati8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
                     ati_eeprom_load(&mach->eeprom, "ati8514_mca.nvr", 0);
+                    mem_mapping_disable(&dev->bios_rom.mapping);
                 } else {
                     rom_init(&dev->bios_rom,
-                            BIOS_MACH8_ROM_PATH,
-                            0xd0000, 0x1000, 0x0fff,
-                            0x0800, MEM_MAPPING_EXTERNAL);
+                             BIOS_MACH8_ROM_PATH,
+                             0xd0000, 0x2000, 0x1fff,
+                             0, MEM_MAPPING_EXTERNAL);
                     ati_eeprom_load(&mach->eeprom, "ati8514.nvr", 0);
+                    dev->bios_addr = dev->bios_rom.mapping.base;
                 }
+                ati8514_init(svga, svga->ext8514, svga->dev8514);
                 break;
             }
             fallthrough;
@@ -4453,8 +4475,6 @@ ibm8514_init(const device_t *info)
         mca_add(ibm8514_mca_read, ibm8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
     }
 #endif
-
-    timer_add(&svga->timer8514, ibm8514_poll, svga, 1);
 
     return svga;
 }
@@ -4526,7 +4546,7 @@ static const device_config_t ext8514_config[] = {
 
 // clang-format off
 const device_t gen8514_isa_device = {
-    .name = "Generic 8514/A clone (ISA)",
+    .name = "IBM 8514/A clone (ISA)",
     .internal_name = "8514_isa",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = 0,
@@ -4536,7 +4556,11 @@ const device_t gen8514_isa_device = {
     { .available = NULL },
     .speed_changed = ibm8514_speed_changed,
     .force_redraw = ibm8514_force_redraw,
+#ifdef ATI_8514_ULTRA
+    .config = ext8514_config
+#else
     .config = NULL
+#endif
 };
 
 const device_t ibm8514_mca_device = {
@@ -4550,7 +4574,11 @@ const device_t ibm8514_mca_device = {
     { .available = NULL },
     .speed_changed = ibm8514_speed_changed,
     .force_redraw = ibm8514_force_redraw,
+#ifdef ATI_8514_ULTRA
+    .config = ext8514_config
+#else
     .config = NULL
+#endif
 };
 
 

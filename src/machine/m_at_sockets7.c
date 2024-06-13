@@ -135,6 +135,11 @@ machine_at_gwlucas_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&cs4297_device);
+    }
+
     return ret;
 }
 

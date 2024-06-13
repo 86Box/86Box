@@ -73,7 +73,7 @@ private slots:
     void on_actionCtrl_Alt_Esc_triggered();
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
-    void on_actionKeyboard_requires_capture_triggered();
+    static void on_actionKeyboard_requires_capture_triggered();
     void on_actionResizable_window_triggered(bool checked);
     void on_actionInverted_VGA_monitor_triggered();
     void on_action0_5x_triggered();

@@ -43,7 +43,7 @@ typedef struct pc_timer_t {
     ts_t ts;
 #endif
     int    flags;  /* The flags are defined above. */
-    int    pad;
+    int    in_callback;
     double period; /* This is used for large period timers to count
                       the microseconds and split the period. */
 

@@ -646,7 +646,8 @@ neat_read(uint16_t port, void *priv)
             break;
 
         case 0x23:
-            ret = dev->regs[dev->indx];
+            if ((dev->indx >= 0x60) && (dev->indx <= 0x6f))
+                ret = dev->regs[dev->indx];
             break;
 
         default:

@@ -41,7 +41,7 @@ public:
     void floppyUpdateMenu(int i);
 
     void cdromMute(int i);
-    void cdromMount(int i, int dir);
+    void cdromMount(int i, int dir, const QString &arg);
     void cdromMount(int i, const QString &filename);
     void cdromEject(int i);
     void cdromReload(int index, int slot);
@@ -86,6 +86,8 @@ private:
 
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;
+
+    const QByteArray driveLetters = QByteArrayLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
     int cassetteRecordPos;
     int cassettePlayPos;

@@ -68,6 +68,11 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
             *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ymf278b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
+        
+        case FM_ESFM:
+            *drv      = esfmu_opl_drv;
+            drv->priv = device_add_inst(&esfm_esfmu_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
 
         default:
             return 0;

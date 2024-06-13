@@ -1677,8 +1677,8 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 size_idx     = 4;
 
                 memset(dev->buffer, 0, 8);
-                if (cdb[1] & 0xe0)
-                    dev->buffer[0] = 0x60; /*No physical device on this LUN*/
+                if ((cdb[1] & 0xe0) || ((dev->cur_lun > 0x00) && (dev->cur_lun < 0xff)))
+                    dev->buffer[0] = 0x7f; /*No physical device on this LUN*/
                 else
                     dev->buffer[0] = 0x07;                                          /*Optical disk*/
                 dev->buffer[1] = 0x80;                                              /*Removable*/

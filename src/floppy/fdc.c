@@ -780,24 +780,26 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             }
             return;
         case 4:
-            if (!(val & 0x80)) {
-                timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                fdc->interrupt = -6;
-            }
-            if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
-                if (fdc->power_down) {
-                    timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                    fdc->interrupt = -5;
-                } else {
+            if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
+                if (!(val & 0x80)) {
                     timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                    fdc->interrupt = -1;
+                    fdc->interrupt = -6;
+                }
+                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
+                    if (fdc->power_down) {
+                        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+                        fdc->interrupt = -5;
+                    } else {
+                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                        fdc->interrupt = -1;
 
-                    fdc->perp &= 0xfc;
+                        fdc->perp &= 0xfc;
 
-                    for (i = 0; i < FDD_NUM; i++)
-                        ui_sb_update_icon(SB_FLOPPY | i, 0);
+                        for (i = 0; i < FDD_NUM; i++)
+                            ui_sb_update_icon(SB_FLOPPY | i, 0);
 
-                    fdc_ctrl_reset(fdc);
+                        fdc_ctrl_reset(fdc);
+                    }
                 }
             }
             fdc->dsr = val;
@@ -2597,6 +2599,20 @@ const device_t fdc_at_ps1_device = {
     .internal_name = "fdc_at_ps1",
     .flags         = 0,
     .local         = FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT | FDC_FLAG_PS1,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_ps1_2121_device = {
+    .name          = "PC/AT Floppy Drive Controller (PS/1, PS/2 ISA)",
+    .internal_name = "fdc_at_ps1",
+    .flags         = 0,
+    .local         = FDC_FLAG_NO_DSR_RESET | FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT | FDC_FLAG_PS1,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

@@ -13,9 +13,12 @@ class SettingsFloppyCDROM : public QWidget {
 public:
     explicit SettingsFloppyCDROM(QWidget *parent = nullptr);
     ~SettingsFloppyCDROM();
+    void reloadBusChannels();
 
     void save();
 
+signals:
+    void cdromChannelChanged();
 private slots:
     void on_comboBoxCDROMType_activated(int index);
     void on_comboBoxChannel_activated(int index);
@@ -30,6 +33,7 @@ private slots:
 
 private:
     Ui::SettingsFloppyCDROM *ui;
+    void enableCurrentlySelectedChannel();
 };
 
 #endif // QT_SETTINGSFLOPPYCDROM_HPP

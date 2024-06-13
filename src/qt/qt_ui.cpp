@@ -66,13 +66,13 @@ wchar_t *
 ui_window_title(wchar_t *str)
 {
     if (str == nullptr) {
-        static wchar_t title[512];
-        memset(title, 0, sizeof(title));
+        static wchar_t title[512] = { 0 };
+
         main_window->getTitle(title);
         str = title;
-    } else {
+    } else
         emit main_window->setTitle(QString::fromWCharArray(str));
-    }
+
     return str;
 }
 
@@ -122,8 +122,10 @@ plat_mouse_capture(int on)
 int
 ui_msgbox_header(int flags, void *header, void *message)
 {
-    auto hdr = (flags & MBX_ANSI) ? QString((char *) header) : QString::fromWCharArray(reinterpret_cast<const wchar_t *>(header));
-    auto msg = (flags & MBX_ANSI) ? QString((char *) message) : QString::fromWCharArray(reinterpret_cast<const wchar_t *>(message));
+    const auto hdr = (flags & MBX_ANSI) ? QString(static_cast<char *>(header)) :
+                            QString::fromWCharArray(static_cast<const wchar_t *>(header));
+    const auto msg = (flags & MBX_ANSI) ? QString(static_cast<char *>(message)) :
+                            QString::fromWCharArray(static_cast<const wchar_t *>(message));
 
     // any error in early init
     if (main_window == nullptr) {
@@ -220,9 +222,13 @@ ui_sb_set_ready(int ready)
 void
 ui_sb_update_icon_state(int tag, int state)
 {
-    int category = tag & 0xfffffff0;
-    int item     = tag & 0xf;
+    const auto temp    = static_cast<unsigned int>(tag);
+    const int category = static_cast<int>(temp & 0xfffffff0);
+    const int item     = tag & 0xf;
+
     switch (category) {
+        default:
+            break;
         case SB_CASSETTE:
             machine_status.cassette.empty = state > 0 ? true : false;
             break;
@@ -247,7 +253,6 @@ ui_sb_update_icon_state(int tag, int state)
             machine_status.net[item].empty = state > 0 ? true : false;
             break;
         case SB_SOUND:
-            break;
         case SB_TEXT:
             break;
     }
@@ -256,11 +261,13 @@ ui_sb_update_icon_state(int tag, int state)
 void
 ui_sb_update_icon(int tag, int active)
 {
-    int category = tag & 0xfffffff0;
-    int item     = tag & 0xf;
+    const auto temp    = static_cast<unsigned int>(tag);
+    const int category = static_cast<int>(temp & 0xfffffff0);
+    const int item     = tag & 0xf;
+
     switch (category) {
+        default:
         case SB_CASSETTE:
-            break;
         case SB_CARTRIDGE:
             break;
         case SB_FLOPPY:
@@ -282,7 +289,6 @@ ui_sb_update_icon(int tag, int active)
             machine_status.net[item].active = active > 0 ? true : false;
             break;
         case SB_SOUND:
-            break;
         case SB_TEXT:
             break;
     }
