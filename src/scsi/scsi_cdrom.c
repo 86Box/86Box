@@ -3000,6 +3000,7 @@ begin:
 
             if ((cdb[7] <= 0x7f) || (cdb[7] == 0xff)) {
                 if (cdb[1] == 0) {
+                    format         = cdb[7];
                     ret            = scsi_cdrom_read_dvd_structure(dev, format, cdb, dev->buffer);
                     dev->buffer[0] = (ret >> 8);
                     dev->buffer[1] = (ret & 0xff);
