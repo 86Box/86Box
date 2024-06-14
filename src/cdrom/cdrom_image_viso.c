@@ -46,6 +46,13 @@
 #    define S_ISDIR(m) (((m) &S_IFMT) == S_IFDIR)
 #endif
 
+#ifdef __MINGW32__
+#   define stat _stat64
+typedef struct __stat64 stat_t;
+#else
+typedef struct stat stat_t;
+#endif
+
 #define VISO_SKIP(p, n)     \
     {                       \
         memset(p, 0x00, n); \
@@ -106,7 +113,7 @@ typedef struct _viso_entry_ {
     };
     uint16_t pt_idx;
 
-    struct stat stats;
+    stat_t stats;
 
     struct _viso_entry_ *parent, *next, *next_dir, *first_child;
 
@@ -830,7 +837,7 @@ viso_init(const char *dirname, int *error)
     strcpy(dir->path, dirname);
     if (stat(dirname, &dir->stats) != 0) {
         /* Use a blank structure if stat failed. */
-        memset(&dir->stats, 0x00, sizeof(struct stat));
+        memset(&dir->stats, 0x00, sizeof(stat_t));
     }
     if (!S_ISDIR(dir->stats.st_mode)) /* root is not a directory */
         goto end;
@@ -879,7 +886,7 @@ viso_init(const char *dirname, int *error)
             /* Stat the current directory or parent directory. */
             if (stat(children_count ? dir->parent->path : dir->path, &entry->stats) != 0) {
                 /* Use a blank structure if stat failed. */
-                memset(&entry->stats, 0x00, sizeof(struct stat));
+                memset(&entry->stats, 0x00, sizeof(stat_t));
             }
 
             /* Set basename. */
@@ -909,7 +916,7 @@ viso_init(const char *dirname, int *error)
                 /* Stat this child. */
                 if (stat(entry->path, &entry->stats) != 0) {
                     /* Use a blank structure if stat failed. */
-                    memset(&entry->stats, 0x00, sizeof(struct stat));
+                    memset(&entry->stats, 0x00, sizeof(stat_t));
                 }
 
                 /* Handle file size and El Torito boot code. */
@@ -1432,7 +1439,7 @@ next_entry:
     /* Allocate entry map for sector->file lookups. */
     size_t orig_sector_size = viso->sector_size;
     while (1) {
-        cdrom_image_viso_log("VISO: Allocating entry map for %d %d-byte sectors\n", viso->entry_map_size, viso->sector_size);
+        cdrom_image_viso_log("VISO: Allocating entry map for %zu %zu-byte sectors\n", viso->entry_map_size, viso->sector_size);
         viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
         if (viso->entry_map) {
             /* Successfully allocated. */
@@ -1444,7 +1451,7 @@ next_entry:
 
             /* If we don't have enough memory, double the sector size. */
             viso->sector_size *= 2;
-            if (viso->sector_size == 0) /* give up if sectors become too large */
+            if ((viso->sector_size < VISO_SECTOR_SIZE) || (viso->sector_size > (1 << 30))) /* give up if sectors become too large */
                 goto end;
 
             /* Go through files, recalculating the entry map size. */
@@ -1515,10 +1522,10 @@ next_entry:
         entry->data_offset = ((uint64_t) viso->all_sectors) * viso->sector_size;
 
         /* Determine how many sectors this file will take. */
-        uint32_t size = entry->stats.st_size / viso->sector_size;
+        size_t size = entry->stats.st_size / viso->sector_size;
         if (entry->stats.st_size % viso->sector_size)
             size++; /* round up to the next sector */
-        cdrom_image_viso_log("[%08X] %s => %" PRIu32 " + %" PRIu32 " sectors\n", entry, entry->path, viso->all_sectors, size);
+        cdrom_image_viso_log("[%08X] %s => %zu + %zu sectors\n", entry, entry->path, viso->all_sectors, size);
 
         /* Allocate sectors to this file. */
         viso->all_sectors += size;
@@ -1537,7 +1544,7 @@ next_entry:
         viso_pwrite(data, viso->vol_size_offsets[i], 8, 1, viso->tf.fp);
 
     /* Metadata processing is finished, read it back to memory. */
-    cdrom_image_viso_log("VISO: Reading back %d %d-byte sectors of metadata\n", viso->metadata_sectors, viso->sector_size);
+    cdrom_image_viso_log("VISO: Reading back %zu %zu-byte sectors of metadata\n", viso->metadata_sectors, viso->sector_size);
     viso->metadata = (uint8_t *) calloc(viso->metadata_sectors, viso->sector_size);
     if (!viso->metadata)
         goto end;
