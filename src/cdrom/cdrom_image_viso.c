@@ -46,35 +46,35 @@
 #    define S_ISDIR(m) (((m) &S_IFMT) == S_IFDIR)
 #endif
 
-#ifdef __MINGW32__
-#   define stat _stat64
+#ifdef _WIN32
+#    define stat _stat64
 typedef struct __stat64 stat_t;
 #else
 typedef struct stat stat_t;
 #endif
 
-#define VISO_SKIP(p, n)     \
-    {                       \
-        memset(p, 0x00, n); \
-        p += n;             \
+#define VISO_SKIP(p, n)         \
+    {                           \
+        memset((p), 0x00, (n)); \
+        (p) += (n);             \
     }
 #define VISO_TIME_VALID(t) ((t) > 0)
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
-#define VISO_LBE_16(p, x)                   \
-    {                                       \
-        *((uint16_t *) p) = cpu_to_le16(x); \
-        p += 2;                             \
-        *((uint16_t *) p) = cpu_to_be16(x); \
-        p += 2;                             \
+#define VISO_LBE_16(p, x)                       \
+    {                                           \
+        *((uint16_t *) (p)) = cpu_to_le16((x)); \
+        (p) += 2;                               \
+        *((uint16_t *) (p)) = cpu_to_be16((x)); \
+        (p) += 2;                               \
     }
-#define VISO_LBE_32(p, x)                   \
-    {                                       \
-        *((uint32_t *) p) = cpu_to_le32(x); \
-        p += 4;                             \
-        *((uint32_t *) p) = cpu_to_be32(x); \
-        p += 4;                             \
+#define VISO_LBE_32(p, x)                       \
+    {                                           \
+        *((uint32_t *) (p)) = cpu_to_le32((x)); \
+        (p) += 4;                               \
+        *((uint32_t *) (p)) = cpu_to_be32((x)); \
+        (p) += 4;                               \
     }
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
@@ -503,10 +503,6 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
     *p++ = 0;                             /* extended attribute length */
     VISO_SKIP(p, 8);                      /* sector offset */
     VISO_LBE_32(p, entry->stats.st_size); /* size (filled in later if this is a directory) */
-#ifdef _WIN32
-    if (entry->stats.st_mtime < 0)
-        pclog("VISO: Warning: Windows returned st_mtime %lld on file [%s]\n", (long long) entry->stats.st_mtime, entry->path);
-#endif
     p += viso_fill_time(p, entry->stats.st_mtime, viso->format, 0); /* time */
     *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00;             /* flags */
 
@@ -678,9 +674,9 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
     /* Handle reads in a sector by sector basis. */
     while (count > 0) {
         /* Determine the current sector, offset and remainder. */
-        uint32_t sector        = seek / viso->sector_size;
-        uint32_t sector_offset = seek % viso->sector_size;
-        uint32_t sector_remain = MIN(count, viso->sector_size - sector_offset);
+        size_t sector        = seek / viso->sector_size;
+        size_t sector_offset = seek % viso->sector_size;
+        size_t sector_remain = MIN(count, viso->sector_size - sector_offset);
 
         /* Handle sector. */
         if (sector < viso->metadata_sectors) {
@@ -1549,8 +1545,8 @@ next_entry:
     if (!viso->metadata)
         goto end;
     fseeko64(viso->tf.fp, 0, SEEK_SET);
-    uint64_t metadata_size = viso->metadata_sectors * viso->sector_size;
-    uint64_t metadata_remain = metadata_size;
+    size_t metadata_size = viso->metadata_sectors * viso->sector_size;
+    size_t metadata_remain = metadata_size;
     while (metadata_remain > 0)
         metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, viso->sector_size), viso->tf.fp);
 
