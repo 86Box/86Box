@@ -509,11 +509,12 @@ cdi_can_read_pvd(track_file_t *file, uint64_t sector_size, int mode2, int form)
     uint64_t seek = 16ULL * sector_size; /* First VD is located at sector 16. */
 
     if (sector_size == RAW_SECTOR_SIZE) {
-        if (!mode2 || (form == 0))
-            seek += 16;
-        else
+        if (mode2 && (form > 0))
             seek += 24;
-    }
+        else
+            seek += 16;
+    } else if (form > 0)
+        seek += 8;
 
     file->read(file, pvd, seek, COOKED_SECTOR_SIZE);
 
@@ -582,6 +583,10 @@ cdi_load_iso(cd_img_t *cdi, const char *filename)
         trk.sector_size = 2328;
         trk.mode2       = 1;
         trk.form        = 2;
+    } else if (cdi_can_read_pvd(trk.file, 2336, 1, 1)) {
+        trk.sector_size = 2336;
+        trk.mode2       = 1;
+        trk.form        = 1;
     } else if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 1, 0)) {
         trk.sector_size = RAW_SECTOR_SIZE;
         trk.mode2       = 1;
@@ -908,6 +913,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
                 trk.attr        = DATA_TRACK;
                 trk.mode2       = 1;
             } else if (!strcmp(type, "MODE2/2336")) {
+                trk.form        = 1;
                 trk.sector_size = 2336;
                 trk.attr        = DATA_TRACK;
                 trk.mode2       = 1;
