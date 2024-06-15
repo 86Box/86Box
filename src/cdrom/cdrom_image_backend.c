@@ -587,6 +587,7 @@ cdi_load_iso(cd_img_t *cdi, const char *filename)
         trk.sector_size = 2336;
         trk.mode2       = 1;
         trk.form        = 1;
+        trk.skip        = 8;
     } else if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 1, 0)) {
         trk.sector_size = RAW_SECTOR_SIZE;
         trk.mode2       = 1;
