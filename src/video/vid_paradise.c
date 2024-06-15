@@ -38,8 +38,6 @@ typedef struct paradise_t {
 
     rom_t bios_rom;
 
-    uint8_t bank_mask;
-
     enum {
         PVGA1A = 0,
         WD90C11,
@@ -51,7 +49,6 @@ typedef struct paradise_t {
     uint32_t read_bank[4], write_bank[4];
 
     int interlace;
-    int check, check2;
 
     struct {
         uint8_t reg_block_ptr;
@@ -108,15 +105,6 @@ paradise_in(uint16_t addr, void *priv)
                     return 0xff;
             }
             switch (svga->gdcaddr) {
-                case 0x0b:
-                    if (paradise->type == WD90C30) {
-                        if (paradise->vram_mask == ((512 << 10) - 1)) {
-                            svga->gdcreg[0x0b] |= 0xc0;
-                            svga->gdcreg[0x0b] &= ~0x40;
-                        }
-                    }
-                    return svga->gdcreg[0x0b];
-
                 case 0x0f:
                     return (svga->gdcreg[0x0f] & 0x17) | 0x80;
 
@@ -146,11 +134,6 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
     paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
     uint8_t     old;
-
-    if (paradise->vram_mask <= ((512 << 10) - 1))
-        paradise->bank_mask = 0x7f;
-    else
-        paradise->bank_mask = 0xff;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -184,23 +167,25 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                     return;
             }
 
+            old = svga->gdcreg[svga->gdcaddr];
             switch (svga->gdcaddr) {
                 case 6:
-                    if ((svga->gdcreg[6] & 0x0c) != (val & 0x0c)) {
-                        switch (val & 0x0c) {
-                            case 0x00: /*128k at A0000*/
+                    if ((val & 0xc) != (old & 0xc)) {
+                        svga->gdcreg[6] = val;
+                        switch (svga->gdcreg[6] & 0xc) {
+                            case 0x0: /*128k at A0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
                                 svga->banked_mask = 0xffff;
                                 break;
-                            case 0x04: /*64k at A0000*/
+                            case 0x4: /*64k at A0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                                 svga->banked_mask = 0xffff;
                                 break;
-                            case 0x08: /*32k at B0000*/
+                            case 0x8: /*32k at B0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
                                 svga->banked_mask = 0x7fff;
                                 break;
-                            case 0x0c: /*32k at B8000*/
+                            case 0xC: /*32k at B8000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
                                 svga->banked_mask = 0x7fff;
                                 break;
@@ -208,19 +193,22 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                             default:
                                 break;
                         }
+                        paradise_remap(paradise);
                     }
-                    svga->gdcreg[6] = val;
-                    paradise_remap(paradise);
                     return;
 
                 case 9:
                 case 0x0a:
-                    svga->gdcreg[svga->gdcaddr] = val & paradise->bank_mask;
+                    svga->gdcreg[svga->gdcaddr] = val;
                     paradise_remap(paradise);
                     return;
                 case 0x0b:
                     svga->gdcreg[0x0b] = val;
                     paradise_remap(paradise);
+                    return;
+                case 0x0e:
+                    svga->gdcreg[0x0e] = val;
+                    svga_recalctimings(svga);
                     return;
 
                 default:
@@ -258,15 +246,6 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
-        case 0x46e8:
-            io_removehandler(0x03c0, 0x0020, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
-            mem_mapping_disable(&paradise->svga.mapping);
-            if (val & 8) {
-                io_sethandler(0x03c0, 0x0020, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
-                mem_mapping_enable(&paradise->svga.mapping);
-            }
-            break;
-
         default:
             break;
     }
@@ -277,9 +256,7 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
 void
 paradise_remap(paradise_t *paradise)
 {
-    const svga_t *svga    = &paradise->svga;
-
-    paradise->check = 0;
+    svga_t *svga    = &paradise->svga;
 
     if (svga->seqregs[0x11] & 0x80) {
         paradise->read_bank[0] = paradise->read_bank[2] = svga->gdcreg[9] << 12;
@@ -305,12 +282,12 @@ paradise_remap(paradise_t *paradise)
         paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
     }
 
-    if (((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4 && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[6] >> 2) & 3) == 1)
-        paradise->check = 1;
-
-    if (paradise->bank_mask == 0x7f) {
+    if ((svga->gdcreg[0x0b] & 0xc0) < 0xc0) {
         paradise->read_bank[1] &= 0x7ffff;
         paradise->write_bank[1] &= 0x7ffff;
+    } else {
+        paradise->read_bank[1] &= 0xfffff;
+        paradise->write_bank[1] &= 0xfffff;
     }
 }
 
@@ -318,8 +295,6 @@ void
 paradise_recalctimings(svga_t *svga)
 {
     const paradise_t *paradise = (paradise_t *) svga->priv;
-
-    svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
     if (paradise->type == WD90C30) {
         if (svga->crtc[0x3e] & 0x01)
@@ -335,50 +310,42 @@ paradise_recalctimings(svga_t *svga)
 
         svga->interlace = !!(svga->crtc[0x2d] & 0x20);
 
-        if (!svga->interlace && svga->lowres && (svga->hdisp >= 1024) && ((svga->gdcreg[5] & 0x60) == 0) && (svga->miscout >= 0x27) && (svga->miscout <= 0x2f) && ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))) { /*Horrible tweak to re-enable the interlace after returning to
+        if (!svga->interlace && !(svga->gdcreg[0x0e] & 0x01) && (svga->hdisp >= 1024) && ((svga->gdcreg[5] & 0x60) == 0) && (svga->miscout >= 0x27) && (svga->miscout <= 0x2f) && ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))) { /*Horrible tweak to re-enable the interlace after returning to
                                                                                                                                                                                                                                                              a windowed DOS box in Win3.x*/
             svga->interlace = 1;
         }
     }
 
-    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-        svga->interlace = 0;
-    }
-
     if (paradise->type < WD90C30) {
-        if ((svga->bpp >= 8) && !svga->lowres) {
-            svga->render = svga_render_8bpp_highres;
-        }
-    } else {
-        if ((svga->bpp >= 8) && !svga->lowres) {
-            if (svga->bpp == 16) {
-                svga->render = svga_render_16bpp_highres;
-                svga->hdisp >>= 1;
-                if (svga->hdisp == 788)
-                    svga->hdisp += 12;
-                if (svga->hdisp == 800)
-                    svga->ma_latch -= 3;
-            } else if (svga->bpp == 15) {
-                svga->render = svga_render_15bpp_highres;
-                svga->hdisp >>= 1;
-                if (svga->hdisp == 788)
-                    svga->hdisp += 12;
-                if (svga->hdisp == 800)
-                    svga->ma_latch -= 3;
-            } else {
+        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+            if ((svga->bpp >= 8) && (svga->gdcreg[0x0e] & 0x01)) {
                 svga->render = svga_render_8bpp_highres;
             }
         }
+    } else {
+        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+            if ((svga->bpp >= 8) && (svga->gdcreg[0x0e] & 0x01)) {
+                if (svga->bpp == 16) {
+                    svga->render = svga_render_16bpp_highres;
+                    svga->hdisp >>= 1;
+                    if (svga->hdisp == 788)
+                        svga->hdisp += 12;
+                    if (svga->hdisp == 800)
+                        svga->ma_latch -= 3;
+                } else if (svga->bpp == 15) {
+                    svga->render = svga_render_15bpp_highres;
+                    svga->hdisp >>= 1;
+                    if (svga->hdisp == 788)
+                        svga->hdisp += 12;
+                    if (svga->hdisp == 800)
+                        svga->ma_latch -= 3;
+                } else {
+                    svga->render = svga_render_8bpp_highres;
+                }
+            }
+        }
     }
-
-    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-        if (svga->hdisp == 360)
-            svga->hdisp <<= 1;
-        if (svga->seqregs[1] & 8) {
-            svga->render = svga_render_text_40;
-        } else
-            svga->render = svga_render_text_80;
-    }
+    svga->vram_display_mask = (svga->crtc[0x2f] & 0x02) ? 0x3ffff : paradise->vram_mask;
 }
 
 static void
@@ -389,45 +356,33 @@ paradise_write(uint32_t addr, uint8_t val, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
+    if (!(svga->gdcreg[5] & 0x40)) {
+        svga_write(addr, val, svga);
+        return;
+    }
+
     addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
-    if (!svga->lowres) {
-        if (paradise->check) {
+    if (svga->gdcreg[0x0e] & 0x01) {
+        if (((svga->gdcreg[6] & 0x0c) == 0x04) && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4) {
             prev_addr  = addr & 3;
             prev_addr2 = addr & 0xfffc;
-            if ((addr & 3) == 3) {
-                if ((addr & 0x30000) == 0x20000)
+            if (prev_addr == 3) {
+                if ((addr & 0x30000) != 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else if (prev_addr == 2) {
+                if ((addr & 0x30000) != 0x20000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
+            } else if (prev_addr == 1) {
+                if ((addr & 0x30000) != 0x10000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 2) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 1) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 0) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else {
+                if (addr & 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
             }
         }
     }
-
     svga_write_linear(addr, val, svga);
 }
 static void
@@ -438,45 +393,33 @@ paradise_writew(uint32_t addr, uint16_t val, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
+    if (!(svga->gdcreg[5] & 0x40)) {
+        svga_writew(addr, val, svga);
+        return;
+    }
+
     addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
-    if (!svga->lowres) {
-        if (paradise->check) {
+    if (svga->gdcreg[0x0e] & 0x01) {
+        if (((svga->gdcreg[6] & 0x0c) == 0x04) && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4) {
             prev_addr  = addr & 3;
             prev_addr2 = addr & 0xfffc;
-            if ((addr & 3) == 3) {
-                if ((addr & 0x30000) == 0x20000)
+            if (prev_addr == 3) {
+                if ((addr & 0x30000) != 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else if (prev_addr == 2) {
+                if ((addr & 0x30000) != 0x20000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
+            } else if (prev_addr == 1) {
+                if ((addr & 0x30000) != 0x10000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 2) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 1) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 0) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else {
+                if (addr & 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
             }
         }
     }
-
     svga_writew_linear(addr, val, svga);
 }
 
@@ -488,45 +431,31 @@ paradise_read(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
+    if (!(svga->gdcreg[5] & 0x40))
+        return svga_read(addr, svga);
+
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
-    if (!svga->lowres) {
-        if (paradise->check) {
+    if (svga->gdcreg[0x0e] & 0x01) {
+        if (((svga->gdcreg[6] & 0x0c) == 0x04) && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4) {
             prev_addr  = addr & 3;
             prev_addr2 = addr & 0xfffc;
-            if ((addr & 3) == 3) {
-                if ((addr & 0x30000) == 0x20000)
+            if (prev_addr == 3) {
+                if ((addr & 0x30000) != 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else if (prev_addr == 2) {
+                if ((addr & 0x30000) != 0x20000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
+            } else if (prev_addr == 1) {
+                if ((addr & 0x30000) != 0x10000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 2) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 1) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 0) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else {
+                if (addr & 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
             }
         }
     }
-
     return svga_read_linear(addr, svga);
 }
 static uint16_t
@@ -537,45 +466,31 @@ paradise_readw(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
+    if (!(svga->gdcreg[5] & 0x40))
+        return svga_readw(addr, svga);
+
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
-    if (!svga->lowres) {
-        if (paradise->check) {
+    if (svga->gdcreg[0x0e] & 0x01) {
+        if (((svga->gdcreg[6] & 0x0c) == 0x04) && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4) {
             prev_addr  = addr & 3;
             prev_addr2 = addr & 0xfffc;
-            if ((addr & 3) == 3) {
-                if ((addr & 0x30000) == 0x20000)
+            if (prev_addr == 3) {
+                if ((addr & 0x30000) != 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else if (prev_addr == 2) {
+                if ((addr & 0x30000) != 0x20000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
+            } else if (prev_addr == 1) {
+                if ((addr & 0x30000) != 0x10000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 2) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 1) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x00000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-            } else if ((addr & 3) == 0) {
-                if ((addr & 0x30000) == 0x30000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x20000)
-                    addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
-                else if ((addr & 0x30000) == 0x10000)
+            } else {
+                if (addr & 0x30000)
                     addr = (addr >> 16) | (prev_addr << 16) | prev_addr2;
             }
         }
     }
-
     return svga_readw_linear(addr, svga);
 }
 
@@ -641,7 +556,6 @@ paradise_init(const device_t *info, uint32_t memsize)
         case WD90C11:
             svga->crtc[0x36] = '1';
             svga->crtc[0x37] = '1';
-            io_sethandler(0x46e8, 0x0001, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
             break;
         case WD90C30:
             svga->crtc[0x36] = '3';

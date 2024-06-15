@@ -64,8 +64,8 @@ machine_at_dellplato_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.bio",
-                                    "roms/machines/dellplato/1016AX1J.bi1",
+    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.BIO",
+                                    "roms/machines/dellplato/1016AX1J.BI1",
                                     0x1d000, 128);
 
     if (bios_only || !ret)
@@ -465,7 +465,7 @@ machine_at_sq588_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     /* Correct: 0D (01), 0F (02), 11 (03), 13 (04) */
@@ -496,7 +496,7 @@ machine_at_p54sps_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x06, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -508,6 +508,102 @@ machine_at_p54sps_init(const machine_t *model)
     device_add(&keyboard_at_ami_device);
     device_add(&w83787f_device);
     device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
+machine_at_ms5109_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ms5109/A778.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+    device_add(&ami_1994_nvr_device);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_IDE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 3, 2, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 1, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 3, 3, 2, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&sis_550x_85c503_device);
+    device_add(&ide_w83769f_pci_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&w83787f_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
+machine_at_torino_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted("roms/machines/torino/PER113.ROM",
+                                    0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+    device_add(&ami_1994_nvr_device);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO, 0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&sis_550x_85c503_device);
+    device_add(&ide_um8673f_device);
+    device_add(&keyboard_ps2_tg_ami_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_hot539_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/hot539/539_R17.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x15, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x16, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&umc_8890_device);
+    device_add(&umc_8886af_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&um8663af_device);
 
     return ret;
 }

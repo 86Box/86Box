@@ -787,8 +787,9 @@ static int
 ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
     const struct ether_header *hdr = (const struct ether_header *) buf;
+    uint64_t *p = (uint64_t *) &dev->aCSR[8];
 
-    if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
+    if ((hdr->ether_dhost[0] & 0x01) && p[0] != 0LL) {
         int     index;
         uint8_t ladr[8];
         ladr[0] = dev->aCSR[8] & 0xff;

@@ -223,7 +223,7 @@ extern void video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, in
 extern void video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len);
 
 #ifdef _WIN32
-extern void *__cdecl (*video_copy)(void *_Dst, const void *_Src, size_t _Size);
+extern void * (__cdecl *video_copy)(void *_Dst, const void *_Src, size_t _Size);
 extern void *__cdecl video_transform_copy(void *_Dst, const void *_Src, size_t _Size);
 #else
 extern void *(*video_copy)(void *__restrict _Dst, const void *__restrict _Src, size_t _Size);
@@ -320,9 +320,7 @@ extern const device_t mach64gx_pci_device;
 extern const device_t mach64vt2_device;
 
 /* ATi 18800 */
-#    if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 extern const device_t ati18800_wonder_device;
-#    endif
 extern const device_t ati18800_vga88_device;
 extern const device_t ati18800_device;
 
@@ -335,6 +333,13 @@ extern const device_t compaq_ati28800_device;
 #    if defined(DEV_BRANCH) && defined(USE_XL24)
 extern const device_t ati28800_wonderxl24_device;
 #    endif
+
+/* Bochs */
+extern const device_t bochs_svga_device;
+
+/* Chips & Technologies */
+extern const device_t chips_69000_device;
+extern const device_t chips_69000_onboard_device;
 
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
@@ -368,8 +373,9 @@ extern const device_t gd5434_onboard_pci_device;
 extern const device_t gd5434_vlb_device;
 extern const device_t gd5434_pci_device;
 extern const device_t gd5436_pci_device;
-extern const device_t gd5440_onboard_pci_device;
+extern const device_t gd5436_onboard_pci_device;
 extern const device_t gd5440_pci_device;
+extern const device_t gd5440_onboard_pci_device;
 extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
@@ -447,6 +453,7 @@ extern const device_t oti037c_device;
 extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
+extern const device_t oti077_acer100t_device;
 extern const device_t oti077_device;
 
 /* Paradise/WD (S)VGA */
@@ -490,6 +497,7 @@ extern const device_t s3_spea_mirage_p64_vlb_device;
 extern const device_t s3_phoenix_trio64_vlb_device;
 extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
+extern const device_t s3_stb_powergraph_64_video_vlb_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
 extern const device_t s3_cardex_trio64vplus_pci_device;
@@ -500,15 +508,15 @@ extern const device_t s3_phoenix_vision864_pci_device;
 extern const device_t s3_phoenix_vision864_vlb_device;
 extern const device_t s3_9fx_531_pci_device;
 extern const device_t s3_phoenix_vision868_pci_device;
-extern const device_t s3_phoenix_vision868_vlb_device;
 extern const device_t s3_diamond_stealth64_pci_device;
 extern const device_t s3_diamond_stealth64_vlb_device;
 extern const device_t s3_diamond_stealth64_964_pci_device;
 extern const device_t s3_diamond_stealth64_964_vlb_device;
+extern const device_t s3_diamond_stealth64_968_pci_device;
+extern const device_t s3_diamond_stealth64_968_vlb_device;
 extern const device_t s3_mirovideo_40sv_ergo_968_pci_device;
 extern const device_t s3_9fx_771_pci_device;
 extern const device_t s3_phoenix_vision968_pci_device;
-extern const device_t s3_phoenix_vision968_vlb_device;
 extern const device_t s3_spea_mercury_p64v_pci_device;
 extern const device_t s3_elsa_winner2000_pro_x_964_pci_device;
 extern const device_t s3_elsa_winner2000_pro_x_pci_device;
@@ -521,6 +529,7 @@ extern const device_t s3_diamond_stealth_2000_pci_device;
 extern const device_t s3_diamond_stealth_3000_pci_device;
 extern const device_t s3_stb_velocity_3d_pci_device;
 extern const device_t s3_virge_375_pci_device;
+extern const device_t s3_virge_375_onboard_pci_device;
 extern const device_t s3_diamond_stealth_2000pro_pci_device;
 extern const device_t s3_virge_385_pci_device;
 extern const device_t s3_virge_357_pci_device;
@@ -539,6 +548,7 @@ extern const device_t tgui9440_vlb_device;
 extern const device_t tgui9440_pci_device;
 extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
+extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
 
 /* IBM PS/1 (S)VGA */
@@ -547,6 +557,7 @@ extern const device_t ibm_ps1_2121_device;
 /* Trident TVGA 8900 */
 extern const device_t tvga8900b_device;
 extern const device_t tvga8900d_device;
+extern const device_t tvga8900dr_device;
 extern const device_t tvga9000b_device;
 extern const device_t nec_sv9000_device;
 

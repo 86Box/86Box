@@ -195,7 +195,11 @@ opMOV_seg_w_a16(uint32_t fetchdat)
             cpu_state.pc++;
             if (cpu_state.abrt)
                 return 1;
+#ifdef OPS_286_386
+            x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#else
             x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#endif
             return 1;
         case 0x20: /*FS*/
             op_loadseg(new_seg, &cpu_state.seg_fs);
@@ -240,7 +244,11 @@ opMOV_seg_w_a32(uint32_t fetchdat)
             cpu_state.pc++;
             if (cpu_state.abrt)
                 return 1;
+#ifdef OPS_286_386
+            x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#else
             x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+#endif
             return 1;
         case 0x20: /*FS*/
             op_loadseg(new_seg, &cpu_state.seg_fs);

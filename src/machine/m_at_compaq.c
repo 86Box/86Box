@@ -633,7 +633,10 @@ compaq_plasma_init(UNUSED(const device_t *info))
     memset(self, 0, sizeof(compaq_plasma_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_plasma);
-    loadfont_ex("roms/machines/portableiii/K Combined.bin", 11, 0x4bb2);
+    if (compaq_machine_type == COMPAQ_PORTABLEIII)
+        loadfont_ex("roms/machines/portableiii/K Combined.bin", 11, 0x4bb2);
+    else
+        loadfont_ex("roms/machines/portableiii/P.2 Combined.bin", 11, 0x4b49);
 
     self->cga.composite = 0;
     self->cga.revision  = 0;
@@ -795,12 +798,21 @@ machine_at_compaq_init(const machine_t *model, int type)
             break;
 
         case COMPAQ_PORTABLEIII:
-        case COMPAQ_PORTABLEIII386:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
             if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
             machine_at_init(model);
+            break;
+
+        case COMPAQ_PORTABLEIII386:
+            if (hdc_current == 1)
+                device_add(&ide_isa_device);
+            if (gfxcard[0] == VID_INTERNAL)
+                device_add(&compaq_plasma_device);
+            device_add(&compaq_386_device);
+            machine_at_common_init(model);
+            device_add(&keyboard_at_compaq_device);
             break;
 
         case COMPAQ_DESKPRO386:
@@ -854,8 +866,8 @@ machine_at_portableiii386_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr("roms/machines/portableiii/K Combined.bin",
-                                0x000f8000, 65536, 0);
+    ret = bios_load_linearr("roms/machines/portableiii/P.2 Combined.bin",
+                                0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
         return ret;

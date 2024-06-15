@@ -61,6 +61,9 @@ typedef struct ad1848_t {
     int     adpcm_data;
     int     adpcm_pos;
 
+    uint8_t  dma_ff;
+    uint32_t dma_data;
+
     pc_timer_t timer_count;
     uint64_t   timer_latch;
 

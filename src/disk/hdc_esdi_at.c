@@ -129,23 +129,24 @@ esdi_at_log(const char *fmt, ...)
 static __inline void
 irq_raise(esdi_t *esdi)
 {
-    if (!(esdi->fdisk & 2))
-        picint(1 << 14);
-
     esdi->irqstat = 1;
+    if (!(esdi->fdisk & 2))
+        picint_common(1 << 14, PIC_IRQ_EDGE, 1, NULL);
 }
 
 static __inline void
-irq_lower(UNUSED(esdi_t *esdi))
+irq_lower(esdi_t *esdi)
 {
-    picintc(1 << 14);
+    esdi->irqstat = 0;
+    if (!(esdi->fdisk & 2))
+        picint_common(1 << 14, PIC_IRQ_EDGE, 0, NULL);
 }
 
 static __inline void
-irq_update(UNUSED(esdi_t *esdi))
+irq_update(esdi_t *esdi)
 {
-    if (esdi->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(esdi->fdisk & 2))
-        picint(1 << 14);
+    uint8_t set = !(esdi->fdisk & 2) && esdi->irqstat;
+    picint_common(1 << 14, PIC_IRQ_EDGE, set, NULL);
 }
 
 static void
@@ -213,6 +214,41 @@ get_sector(esdi_t *esdi, off64_t *addr)
     return 0;
 }
 
+static int
+get_sector_format(esdi_t *esdi, off64_t *addr)
+{
+    const drive_t *drive   = &esdi->drives[esdi->drive_sel];
+    int            heads   = drive->cfg_hpc;
+    int            sectors = drive->cfg_spt;
+    int            c;
+    int            h;
+    int            s;
+
+    if (esdi->head > heads) {
+        esdi_at_log("esdi_get_sector: past end of configured heads\n");
+        return 1;
+    }
+
+    if (drive->cfg_spt == drive->real_spt && drive->cfg_hpc == drive->real_hpc) {
+        *addr = ((((off64_t) esdi->cylinder * heads) + esdi->head) * sectors);
+    } else {
+        /*
+         * When performing translation, the firmware seems to leave 1
+         * sector per track inaccessible (spare sector)
+         */
+
+        *addr = ((((off64_t) esdi->cylinder * heads) + esdi->head) * sectors);
+
+        s = *addr % (drive->real_spt - 1);
+        h = (*addr / (drive->real_spt - 1)) % drive->real_hpc;
+        c = (*addr / (drive->real_spt - 1)) / drive->real_hpc;
+
+        *addr = ((((off64_t) c * drive->real_hpc) + h) * drive->real_spt) + s;
+    }
+
+    return 0;
+}
+
 /* Move to the next sector using CHS addressing. */
 static void
 next_sector(esdi_t *esdi)
@@ -263,6 +299,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
     double  seek_time;
     double  xfer_time;
     off64_t addr;
+    uint8_t old;
 
     esdi_at_log("WD1007 write(%04x, %02x)\n", port, val);
 
@@ -411,15 +448,15 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                 esdi_set_callback(esdi, 500 * HDC_TIME);
                 esdi->reset  = 1;
                 esdi->status = STAT_BUSY;
-            }
-
-            if (val & 0x04) {
+            } else if (!(esdi->fdisk & 0x04) && (val & 0x04)) {
                 /* Drive held in reset. */
                 esdi_set_callback(esdi, 0);
                 esdi->status = STAT_BUSY;
             }
+            old = esdi->fdisk;
             esdi->fdisk = val;
-            irq_update(esdi);
+            if (!(val & 0x02) && (old & 0x02))
+                irq_update(esdi);
             break;
 
         default:
@@ -653,7 +690,7 @@ esdi_callback(void *priv)
                 irq_raise(esdi);
                 break;
             } else {
-                if (get_sector(esdi, &addr)) {
+                if (get_sector_format(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);

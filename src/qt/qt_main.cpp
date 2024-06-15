@@ -30,6 +30,7 @@
 #include <QFont>
 #include <QDialog>
 #include <QMessageBox>
+#include <QPushButton>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -58,6 +59,7 @@ extern "C" {
 #   include <86box/discord.h>
 #endif
 #include <86box/gdbstub.h>
+#include <86box/version.h>
 }
 
 #include <thread>
@@ -70,6 +72,7 @@ extern "C" {
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
 #include "qt_unixmanagerfilter.hpp"
+#include "qt_util.hpp"
 
 // Void Cast
 #define VC(x) const_cast<wchar_t *>(x)
@@ -88,26 +91,23 @@ void qt_set_sequence_auto_mnemonic(bool b);
 void
 main_thread_fn()
 {
-    uint64_t old_time;
-    uint64_t new_time;
-    int      drawits;
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
-    plat_set_thread_name(NULL, "main_thread_fn");
+    plat_set_thread_name(nullptr, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
-    old_time = elapsed_timer.elapsed();
-    drawits = frames = 0;
+    uint64_t old_time = elapsed_timer.elapsed();
+    int drawits = frames = 0;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
-        new_time = elapsed_timer.elapsed();
+        const uint64_t new_time = elapsed_timer.elapsed();
 #ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
             drawits = 10;
         else
 #endif
-            drawits += (new_time - old_time);
+            drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
@@ -190,21 +190,19 @@ main(int argc, char *argv[])
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
-    auto font_name = QObject::tr("FONT_NAME");
-    auto font_size = QObject::tr("FONT_SIZE");
-    QApplication::setFont(QFont(font_name, font_size.toInt()));
+    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 
 #ifndef Q_OS_MACOS
 #    ifdef RELEASE_BUILD
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-green.ico"));
 #    elif defined ALPHA_BUILD
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-red.ico"));
 #    elif defined BETA_BUILD
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-yellow.ico"));
 #    else
-    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
+    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-gray.ico"));
 #    endif
 
 #    ifdef Q_OS_UNIX
@@ -213,9 +211,54 @@ main(int argc, char *argv[])
 #endif
 
     if (!pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, (void *) IDS_2121, (void *) IDS_2056);
+        QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
+                             QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
+                             QMessageBox::Ok);
+        fatalbox.setTextFormat(Qt::TextFormat::RichText);
+        fatalbox.exec();
         return 6;
     }
+
+    // UUID / copy / move detection
+    if(!util::compareUuid()) {
+        QMessageBox movewarnbox;
+        movewarnbox.setIcon(QMessageBox::Icon::Warning);
+        movewarnbox.setText(QObject::tr("This machine might have been moved or copied."));
+        movewarnbox.setInformativeText(QObject::tr("In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."));
+        const QPushButton *movedButton  = movewarnbox.addButton(QObject::tr("I Moved It"), QMessageBox::AcceptRole);
+        const QPushButton *copiedButton = movewarnbox.addButton(QObject::tr("I Copied It"), QMessageBox::DestructiveRole);
+        QPushButton       *cancelButton = movewarnbox.addButton(QObject::tr("Cancel"), QMessageBox::RejectRole);
+        movewarnbox.setDefaultButton(cancelButton);
+        movewarnbox.exec();
+        if (movewarnbox.clickedButton() == copiedButton) {
+            util::storeCurrentUuid();
+            util::generateNewMacAdresses();
+        } else if (movewarnbox.clickedButton() == movedButton) {
+            util::storeCurrentUuid();
+        }
+    }
+
+#ifdef Q_OS_WINDOWS
+#    if !defined(EMU_BUILD_NUM) || (EMU_BUILD_NUM != 5624)
+    HWND winbox = FindWindow("TWinBoxMain", NULL);
+    if (winbox &&
+        FindWindowEx(winbox, NULL, "TToolBar", NULL) &&
+        FindWindowEx(winbox, NULL, "TListBox", NULL) &&
+        FindWindowEx(winbox, NULL, "TStatusBar", NULL) &&
+        (winbox = FindWindowEx(winbox, NULL, "TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
+        FindWindowEx(winbox, NULL, "TTabSheet", NULL))
+#    endif
+    {
+        QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("WinBox is no longer supported"),
+                               QObject::tr("Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."),
+                               QMessageBox::NoButton);
+        warningbox.addButton(QObject::tr("Continue"), QMessageBox::AcceptRole);
+        warningbox.addButton(QObject::tr("Exit"), QMessageBox::RejectRole);
+        warningbox.exec();
+        if (warningbox.result() == QDialog::Accepted)
+              return 0;
+    }
+#endif
 
     if (settings_only) {
         Settings settings;
@@ -342,14 +385,14 @@ main(int argc, char *argv[])
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 6)
+        if (vnc_enabled && vid_api != 5)
             plat_pause(1);
         else
 #endif
             plat_pause(0);
     });
 
-    auto ret       = app.exec();
+    const auto ret       = app.exec();
     cpu_thread_run = 0;
     main_thread->join();
     pc_close(nullptr);

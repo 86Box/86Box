@@ -92,6 +92,7 @@ typedef struct serial_s {
 
 typedef struct serial_device_s {
     void    (*rcr_callback)(struct serial_s *serial, void *priv);
+    void    (*dtr_callback)(struct serial_s *serial, int status, void *priv);
     void    (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
     void    (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t lcr);
     void    (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
@@ -112,6 +113,12 @@ extern serial_t *serial_attach_ex(int port,
                                   void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
                                   void *priv);
 
+extern serial_t *serial_attach_ex_2(int port,
+                                  void (*rcr_callback)(struct serial_s *serial, void *priv),
+                                  void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                                  void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                                  void *priv);
+
 #define serial_attach(port, rcr_callback, dev_write, priv) \
         serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
 
@@ -129,6 +136,8 @@ extern void      serial_device_timeout(void *priv);
 extern void      serial_set_cts(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dsr(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dcd(serial_t *dev, uint8_t enabled);
+extern void      serial_set_ri(serial_t *dev, uint8_t enabled);
+extern int       serial_get_ri(serial_t *dev);
 
 extern const device_t ns8250_device;
 extern const device_t ns8250_pcjr_device;

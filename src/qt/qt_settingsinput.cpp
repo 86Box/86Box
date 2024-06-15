@@ -137,22 +137,16 @@ get_axis(JoystickConfiguration &jc, int axis, int joystick_nr)
 {
     int axis_sel = jc.selectedAxis(axis);
     int nr_axes  = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_axes;
-    int nr_povs  = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_povs;
 
     if (axis_sel < nr_axes) {
         return axis_sel;
     }
 
     axis_sel -= nr_axes;
-    if (axis_sel < nr_povs * 2) {
-        if (axis_sel & 1)
-            return POV_Y | (axis_sel >> 1);
-        else
-            return POV_X | (axis_sel >> 1);
-    }
-    axis_sel -= nr_povs;
-
-    return SLIDER | (axis_sel >> 1);
+    if (axis_sel & 1)
+        return POV_Y | (axis_sel >> 1);
+    else
+        return POV_X | (axis_sel >> 1);
 }
 
 static int

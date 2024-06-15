@@ -78,8 +78,8 @@ typedef struct cd_img_t {
 /* Binary file functions. */
 extern void cdi_close(cd_img_t *cdi);
 extern int  cdi_set_device(cd_img_t *cdi, const char *path);
-extern int  cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out);
-extern int  cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out);
+extern void cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out);
+extern void cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out);
 extern int  cdi_get_audio_track_pre(cd_img_t *cdi, int track);
 extern int  cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr);
 extern int  cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num, uint32_t *start, uint8_t *attr);

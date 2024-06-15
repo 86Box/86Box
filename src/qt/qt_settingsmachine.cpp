@@ -61,6 +61,11 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             break;
     }
 
+    auto warning_icon = ui->softFloatWarningIcon->style()->standardIcon(QStyle::SP_MessageBoxWarning);
+    ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
+    ui->softFloatWarningIcon->setVisible(false);
+    ui->softFloatWarningText->setVisible(false);
+
     auto *waitStatesModel = ui->comboBoxWaitStates->model();
     waitStatesModel->insertRows(0, 9);
     auto idx = waitStatesModel->index(0, 0);
@@ -336,4 +341,14 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
     DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
+}
+
+void SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state) {
+    if(state == Qt::Checked) {
+        ui->softFloatWarningIcon->setVisible(true);
+        ui->softFloatWarningText->setVisible(true);
+    } else {
+        ui->softFloatWarningIcon->setVisible(false);
+        ui->softFloatWarningText->setVisible(false);
+    }
 }

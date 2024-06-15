@@ -135,6 +135,11 @@ machine_at_gwlucas_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&cs4297_device);
+    }
+
     return ret;
 }
 
@@ -334,6 +339,35 @@ machine_at_5emapro_init(const machine_t *model)
     hwm_values.temperatures[0] += 2;      /* CPU offset */
     hwm_values.temperatures[1] += 2;      /* System offset */
     hwm_values.temperatures[2] = 0;       /* unused */
+
+    return ret;
+}
+
+int
+machine_at_5sg100_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/5sg100/5sg.20g",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
+    device_add(&sis_5591_1997_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&w83877tf_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }

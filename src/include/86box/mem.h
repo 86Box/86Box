@@ -302,7 +302,10 @@ extern int memspeed[11];
 extern int     mmu_perm;
 extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
 
+extern uint8_t *_mem_exec[MEM_MAPPINGS_NO];
+
 extern uint32_t pages_sz; /* #pages in table */
+extern int      read_type;
 
 extern int mem_a20_state;
 extern int mem_a20_alt;

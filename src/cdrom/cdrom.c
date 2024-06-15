@@ -442,7 +442,7 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len)
 {
     int ret = 1;
 
-    if (!dev->sound_on || (dev->cd_status != CD_STATUS_PLAYING)) {
+    if (!dev->sound_on || (dev->cd_status != CD_STATUS_PLAYING) || dev->audio_muted_soft) {
         cdrom_log("CD-ROM %i: Audio callback while not playing\n", dev->id);
         if (dev->cd_status == CD_STATUS_PLAYING)
             dev->seek_pos += (len >> 11);
@@ -557,6 +557,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         len += pos;
     }
 
+    dev->audio_muted_soft = 0;
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
@@ -578,6 +579,7 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
     int m = 0;
     int s = 0;
     int f = 0;
+    uint32_t pos2 = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -614,14 +616,21 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
             break;
     }
 
+    pos2 = pos - 1;
+    if (pos2 == 0xffffffff)
+        pos2 = pos + 1;
+
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
-    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
-        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
-        cdrom_stop(dev);
-        return 0;
-    }
+    if (!(dev->ops->track_type(dev, pos2) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: Track Search: LBA %08X not on an audio track\n", dev->id, pos);
+        dev->audio_muted_soft = 1;
+        if (dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)
+            dev->audio_muted_soft = 0;
+    } else
+        dev->audio_muted_soft = 0;
 
+    cdrom_log("Track Search Toshiba: Muted?=%d, LBA=%08X.\n", dev->audio_muted_soft, pos);
     dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
     return 1;
@@ -647,6 +656,7 @@ cdrom_audio_track_search_pioneer(cdrom_t *dev, uint32_t pos, uint8_t playbit)
 
     dev->seek_pos = pos;
 
+    dev->audio_muted_soft = 0;
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
@@ -676,6 +686,7 @@ cdrom_audio_play_pioneer(cdrom_t *dev, uint32_t pos)
     pos = MSFtoLBA(m, s, f) - 150;
     dev->cd_end = pos;
 
+    dev->audio_muted_soft = 0;
     dev->cd_buflen = 0;
     dev->cd_status = CD_STATUS_PLAYING;
     return 1;
@@ -717,16 +728,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
             break;
     }
 
-    cdrom_log("Toshiba/NEC Play Audio: MSF = %06x, type = %02x, cdstatus = %02x\n", pos, type, dev->cd_status);
-
-    /* Do this at this point, since it's at this point that we know the
-       actual LBA position to start playing from. */
-    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
-        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
-        cdrom_stop(dev);
-        return 0;
-    }
-
+    cdrom_log("Toshiba Play Audio: Muted?=%d, LBA=%08X.\n", dev->audio_muted_soft, pos);
     dev->cd_buflen = 0;
     dev->cd_status = CD_STATUS_PLAYING;
     return 1;
@@ -770,6 +772,7 @@ cdrom_audio_scan(cdrom_t *dev, uint32_t pos, int type)
             break;
     }
 
+    dev->audio_muted_soft = 0;
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
@@ -1007,6 +1010,11 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     else
         ret = (dev->cd_status == CD_STATUS_PLAYING) ? 0x00 : dev->audio_op;
 
+    /*If a valid audio track is detected with audio on, unmute it.*/
+    if (dev->ops->track_type(dev, dev->seek_pos) & CD_TRACK_AUDIO)
+        dev->audio_muted_soft = 0;
+
+    cdrom_log("SubCodeQ: Play Status: Seek LBA=%08x, CDEND=%08x, mute=%d.\n", dev->seek_pos, dev->cd_end, dev->audio_muted_soft);
     b[0] = subc.attr;
     b[1] = bin2bcd(subc.track);
     b[2] = bin2bcd(subc.index);
@@ -1516,8 +1524,9 @@ static void
 read_sector_to_buffer(cdrom_t *dev, uint8_t *rbuf, uint32_t msf, uint32_t lba, int mode2, int len)
 {
     uint8_t *bb = rbuf;
+    const int offset = (!!(mode2 & 0x03)) ? 24 : 16;
 
-    dev->ops->read_sector(dev, CD_READ_DATA, rbuf + 16, lba);
+    dev->ops->read_sector(dev, CD_READ_DATA, rbuf + offset, lba);
 
     /* Sync bytes */
     bb[0] = 0;
@@ -1952,7 +1961,7 @@ cdrom_hard_reset(void)
 
             dev->cd_status = CD_STATUS_EMPTY;
 
-            if (dev->host_drive == 200) {
+            if (strlen(dev->image_path) > 0) {
 #ifdef _WIN32
                 if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
                     dev->image_path[strlen(dev->image_path) - 1] = '\\';
@@ -1962,7 +1971,10 @@ cdrom_hard_reset(void)
                     dev->image_path[strlen(dev->image_path) - 1] = '/';
 #endif
 
-                cdrom_image_open(dev, dev->image_path);
+                if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
+                    cdrom_ioctl_open(dev, dev->image_path);
+                else
+                    cdrom_image_open(dev, dev->image_path);
             }
         }
     }
@@ -2011,16 +2023,12 @@ cdrom_eject(uint8_t id)
     cdrom_t *dev = &cdrom[id];
 
     /* This entire block should be in cdrom.c/cdrom_eject(dev*) ... */
-    if (dev->host_drive == 0) {
+    if (strlen(dev->image_path) == 0) {
         /* Switch from empty to empty. Do nothing. */
         return;
     }
 
-    if (dev->host_drive == 200)
-        strcpy(dev->prev_image_path, dev->image_path);
-
-    dev->prev_host_drive = dev->host_drive;
-    dev->host_drive      = 0;
+    strcpy(dev->prev_image_path, dev->image_path);
 
     dev->ops->exit(dev);
     dev->ops = NULL;
@@ -2039,7 +2047,7 @@ cdrom_reload(uint8_t id)
 {
     cdrom_t *dev = &cdrom[id];
 
-    if ((dev->host_drive == dev->prev_host_drive) || (dev->prev_host_drive == 0) || (dev->host_drive != 0)) {
+    if ((strcmp(dev->image_path, dev->prev_image_path) == 0) || (strlen(dev->prev_image_path) == 0) || (strlen(dev->image_path) > 0)) {
         /* Switch from empty to empty. Do nothing. */
         return;
     }
@@ -2049,26 +2057,29 @@ cdrom_reload(uint8_t id)
     dev->ops = NULL;
     memset(dev->image_path, 0, sizeof(dev->image_path));
 
-    if (dev->prev_host_drive == 200) {
+    if (strlen(dev->image_path) > 0) {
         /* Reload a previous image. */
-        strcpy(dev->image_path, dev->prev_image_path);
+        if (strlen(dev->prev_image_path) > 0)
+            strcpy(dev->image_path, dev->prev_image_path);
 
 #ifdef _WIN32
-        if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
-            dev->image_path[strlen(dev->image_path) - 1] = '\\';
+        if (strlen(dev->prev_image_path) > 0) {
+            if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+                dev->image_path[strlen(dev->image_path) - 1] = '\\';
+        }
 #else
-         if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
-            dev->image_path[strlen(dev->image_path) - 1] = '/';
+        if (strlen(dev->prev_image_path) > 0) {
+             if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+                dev->image_path[strlen(dev->image_path) - 1] = '/';
+        }
 #endif
 
-        cdrom_image_open(dev, dev->image_path);
+        if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
+            cdrom_ioctl_open(dev, dev->image_path);
+        else
+            cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);
-
-        if (strlen(dev->image_path) == 0)
-            dev->host_drive = 0;
-        else
-            dev->host_drive = 200;
     }
 
     plat_cdrom_ui_update(id, 1);

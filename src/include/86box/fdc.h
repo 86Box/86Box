@@ -55,6 +55,8 @@ extern int fdc_type;
 #define FDC_FLAG_SEC            0x1000 /* Is Secondary */
 #define FDC_FLAG_TER            0x2000 /* Is Tertiary */
 #define FDC_FLAG_QUA            0x3000 /* Is Quaternary */
+#define FDC_FLAG_CHANNEL        0x3000 /* Channel mask */
+#define FDC_FLAG_NO_DSR_RESET   0x4000 /* Has no DSR reset */
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -115,14 +117,13 @@ typedef struct fdc_t {
     uint8_t rw_drive;
 
     uint8_t lock;
+    uint8_t dsr;
+
+    uint8_t params[15];
     uint8_t specify[2];
-
     uint8_t res[11];
-
     uint8_t eot[4];
     uint8_t rwc[4];
-    uint8_t params[8];
-    uint8_t fifobuf[16];
 
     uint16_t pcn[4];
 
@@ -144,6 +145,8 @@ typedef struct fdc_t {
     int dma_ch;      /* Should be 2 by default. */
 
     int drvrate[4];
+
+    void *fifo_p;
 
     sector_id_t read_track_sector;
     sector_id_t format_sector_id;
@@ -250,6 +253,7 @@ extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
 extern const device_t fdc_at_ps1_device;
+extern const device_t fdc_at_ps1_2121_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;

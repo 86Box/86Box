@@ -240,6 +240,7 @@ sf_FLDCW_a16(uint32_t fetchdat)
     uint16_t tempw;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     tempw = geteaw();
@@ -265,6 +266,7 @@ sf_FLDCW_a32(uint32_t fetchdat)
     uint16_t tempw;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     tempw = geteaw();
@@ -375,12 +377,13 @@ sf_FRSTOR_a16(uint32_t fetchdat)
     int      offset;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
-        tmp.fraction = readmemq(easeg, offset + (n * 10));
-        tmp.exp      = readmemw(easeg, offset + (n * 10) + 8);
+        tmp.signif  = readmemq(easeg, offset + (n * 10));
+        tmp.signExp = readmemw(easeg, offset + (n * 10) + 8);
         FPU_save_regi_tag(tmp, IS_TAG_EMPTY(n) ? X87_TAG_EMPTY : FPU_tagof(tmp), n);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frstor) : (x87_timings.frstor * cpu_multi));
@@ -395,12 +398,13 @@ sf_FRSTOR_a32(uint32_t fetchdat)
     int      offset;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
-        tmp.fraction = readmemq(easeg, offset + (n * 10));
-        tmp.exp      = readmemw(easeg, offset + (n * 10) + 8);
+        tmp.signif   = readmemq(easeg, offset + (n * 10));
+        tmp.signExp  = readmemw(easeg, offset + (n * 10) + 8);
         FPU_save_regi_tag(tmp, IS_TAG_EMPTY(n) ? X87_TAG_EMPTY : FPU_tagof(tmp), n);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frstor) : (x87_timings.frstor * cpu_multi));
@@ -422,8 +426,8 @@ sf_FNSAVE_a16(uint32_t fetchdat)
     /* save all registers in stack order. */
     for (int m = 0; m < 8; m++) {
         stn = FPU_read_regi(m);
-        writememq(easeg, offset + (m * 10), stn.fraction);
-        writememw(easeg, offset + (m * 10) + 8, stn.exp);
+        writememq(easeg, offset + (m * 10), stn.signif);
+        writememw(easeg, offset + (m * 10) + 8, stn.signExp);
     }
 
 #ifdef FPU_8087
@@ -458,8 +462,8 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     /* save all registers in stack order. */
     for (int m = 0; m < 8; m++) {
         stn = FPU_read_regi(m);
-        writememq(easeg, offset + (m * 10), stn.fraction);
-        writememw(easeg, offset + (m * 10) + 8, stn.exp);
+        writememq(easeg, offset + (m * 10), stn.signif);
+        writememw(easeg, offset + (m * 10) + 8, stn.signExp);
     }
 
 #    ifdef FPU_8087
@@ -524,6 +528,7 @@ sf_FLDENV_a16(uint32_t fetchdat)
     int tag;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     fpu_load_environment();
@@ -546,6 +551,7 @@ sf_FLDENV_a32(uint32_t fetchdat)
     int tag;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     fpu_load_environment();
@@ -600,6 +606,8 @@ static int
 sf_FNOP(uint32_t fetchdat)
 {
     FP_ENTER();
+    pclog("FNOP.\n");
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fnop) : (x87_concurrency.fnop * cpu_multi));

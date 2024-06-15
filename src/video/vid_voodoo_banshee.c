@@ -510,6 +510,9 @@ banshee_render_16bpp_tiled(svga_t *svga)
     else
         addr = banshee->desktop_addr + (banshee->desktop_y & 31) * 128 + ((banshee->desktop_y >> 5) * banshee->desktop_stride_tiled);
 
+    if (addr >= svga->vram_max)
+        return;
+
     for (int x = 0; x <= svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
@@ -556,16 +559,19 @@ banshee_recalctimings(svga_t *svga)
      if (banshee->vidProcCfg & VIDPROCCFG_VIDPROC_ENABLE) {
         /* Video processing mode - assume timings akin to Cirrus' special blanking mode,
            that is, no overscan and relying on display end to blank. */
-        svga->hblankstart    = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) +
-                               (((svga->crtc[0x1a] & 0x04) >> 2) << 8) + 1;
-        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+        if (banshee->vgaInit0 & 0x40) {
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ +
+                                   (((svga->crtc[0x1a] & 0x04) >> 2) << 8);
+            svga->hblank_end_mask = 0x0000007f;
+        } else {
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/;
+            svga->hblank_end_mask = 0x0000003f;
+        }
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
         if (!svga->scrblank && svga->attr_palette_enable)
             svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
-
-        /* No overscan in this mode. */
-        svga->hblank_overscan = 0;
 
         svga->monitor->mon_overscan_y = 0;
         svga->monitor->mon_overscan_x = 0;
@@ -575,9 +581,16 @@ banshee_recalctimings(svga_t *svga)
 
         svga->linedbl     = 0;
      } else {
-        svga->hblankstart    = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
-        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                               (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
+        if (banshee->vgaInit0 & 0x40) {
+            svga->hblankstart     = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2];
+            svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                    (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
+            svga->hblank_end_mask = 0x0000007f;
+        } else {
+            svga->hblankstart     =  svga->crtc[2];
+            svga->hblank_end_val  =  (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+            svga->hblank_end_mask =  0x0000003f;
+        }
     }
 
     /*6 R/W Vertical Retrace Start bit 10 0x10
@@ -642,9 +655,7 @@ banshee_recalctimings(svga_t *svga)
 
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
-            svga->htotal *= 2;
-            svga->hblankstart *= 2;
-            svga->hblank_end_val *= 2;
+            svga->dots_per_clock *= 2;
         }
 
         svga->interlace = !!(banshee->vidProcCfg & VIDPROCCFG_INTERLACE);
@@ -2098,10 +2109,12 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
         for (x = 0; x < 64; x += 8) {
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
-                    if (!(plane0[x >> 3] & (1 << 7)))
-                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
-                    else if (plane1[x >> 3] & (1 << 7))
-                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                    if (((x_off + xx + svga->x_add) >= 0) && ((x_off + xx + svga->x_add) <= 2047)) {
+                        if (!(plane0[x >> 3] & (1 << 7)))
+                            (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        else if (plane1[x >> 3] & (1 << 7))
+                            (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                    }
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -3090,6 +3103,61 @@ static const device_config_t banshee_sgram_config[] = {
     }
 };
 
+static const device_config_t banshee_sgram_16mbonly_config[] = {
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithersub",
+        .description = "Dither subtraction",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dacfilter",
+        .description = "Screen Filter",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "render_threads",
+        .description = "Render threads",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1",
+                .value = 1
+            },
+            {
+                .description = "2",
+                .value = 2
+            },
+            {
+                .description = "4",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
+        },
+        .default_int = 2
+    },
+#ifndef NO_CODEGEN
+    {
+        .name = "recompiler",
+        .description = "Recompiler",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+#endif
+    {
+        .type = CONFIG_END
+    }
+};
+
 static const device_config_t banshee_sdram_config[] = {
     {
         .name = "bilinear",
@@ -3168,7 +3236,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
 #endif
         mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
-        if (banshee->type == TYPE_VELOCITY100)
+        if ((banshee->type == TYPE_V3_1000) || (banshee->type == TYPE_VELOCITY200))
+            mem_size = 16; /* Our Voodoo 3 1000 and Velocity 200 bios'es are hardcoded to 16 MB. */
+        else if (banshee->type == TYPE_VELOCITY100)
             mem_size = 8; /* Velocity 100 only supports 8 MB */
         else
             mem_size = device_get_config_int("memory");
@@ -3587,7 +3657,7 @@ const device_t voodoo_3_1000_agp_device = {
     { .available = v3_1000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = banshee_sgram_16mbonly_config
 };
 
 const device_t voodoo_3_2000_device = {
@@ -3755,5 +3825,5 @@ const device_t velocity_200_agp_device = {
     { .available = velocity_200_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = banshee_sgram_16mbonly_config
 };

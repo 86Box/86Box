@@ -22,6 +22,7 @@
 #include <cstring>
 
 #include "86box/hdd.h"
+#include "86box/scsi.h"
 #include "qt_settings_bus_tracking.hpp"
 
 SettingsBusTracking::SettingsBusTracking()
@@ -30,12 +31,11 @@ SettingsBusTracking::SettingsBusTracking()
     esdi_tracking = 0x0000000000000000ULL;
     xta_tracking  = 0x0000000000000000ULL;
 
-    for (uint8_t i = 0; i < 8; i++) {
-        if (i < 4)
-            ide_tracking[i] = 0x0000000000000000ULL;
+    for (uint8_t i = 0; i < 4; i++)
+        ide_tracking[i] = 0x0000000000000000ULL;
 
+    for (uint8_t i = 0; i < 32; i++)
         scsi_tracking[i] = 0x0000000000000000ULL;
-    }
 }
 
 uint8_t
@@ -101,7 +101,7 @@ SettingsBusTracking::next_free_scsi_id()
     uint64_t mask;
     uint8_t  ret = CHANNEL_NONE;
 
-    for (uint8_t i = 0; i < 64; i++) {
+    for (uint8_t i = 0; i < (SCSI_BUS_MAX * SCSI_ID_MAX); i++) {
         element = ((i << 3) >> 6);
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
@@ -187,7 +187,7 @@ SettingsBusTracking::scsi_bus_full()
     uint64_t mask;
     uint8_t  count = 0;
 
-    for (uint8_t i = 0; i < 64; i++) {
+    for (uint8_t i = 0; i < (SCSI_BUS_MAX * SCSI_ID_MAX); i++) {
         element = ((i << 3) >> 6);
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
@@ -196,6 +196,64 @@ SettingsBusTracking::scsi_bus_full()
     }
 
     return (count == 64);
+}
+
+QList<int> SettingsBusTracking::busChannelsInUse(const int bus) {
+
+    QList<int> channelsInUse;
+    int        element;
+    uint64_t   mask;
+    switch (bus) {
+        case HDD_BUS_MFM:
+            for (uint8_t i = 0; i < 32; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (mfm_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case HDD_BUS_ESDI:
+            for (uint8_t i = 0; i < 32; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (esdi_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case HDD_BUS_XTA:
+            for (uint8_t i = 0; i < 32; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (xta_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case HDD_BUS_IDE:
+            for (uint8_t i = 0; i < 32; i++) {
+                element = ((i << 3) >> 6);
+                mask = ((uint64_t) 0xffULL) << ((uint64_t) ((i << 3) & 0x3f));
+                if (ide_tracking[element] & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case HDD_BUS_ATAPI:
+            for (uint8_t i = 0; i < 32; i++) {
+                element = ((i << 3) >> 6);
+                mask = ((uint64_t) 0xffULL) << ((uint64_t) ((i << 3) & 0x3f));
+                if (ide_tracking[element] & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case HDD_BUS_SCSI:
+            for (uint8_t i = 0; i < (SCSI_BUS_MAX * SCSI_ID_MAX); i++) {
+                element = ((i << 3) >> 6);
+                mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (scsi_tracking[element] & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        default:
+            break;
+    }
+
+    return channelsInUse;
 }
 
 void

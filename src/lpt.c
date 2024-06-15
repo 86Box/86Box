@@ -11,7 +11,10 @@
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/prt_devs.h>
-#include <86box/net_plip.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/network.h>
 
 lpt_port_t lpt_ports[PARALLEL_MAX];
 

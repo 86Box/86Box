@@ -151,37 +151,50 @@ xga_updatemapping(svga_t *svga)
             xga->aperture_cntl, xga->access_mode, svga->gdcreg[6] & 0x0c,
             xga->linear_endian_reverse, xga->a5_test, xga->on);
 
-    if (((xga->op_mode & 7) >= 4) || ((xga->op_mode & 7) == 0)) {
-        if ((xga->aperture_cntl == 1) || (xga->aperture_cntl == 2)) {
-            if (xga->aperture_cntl == 1)
-                mem_mapping_set_addr(&xga->video_mapping, 0xa0000, 0x10000);
-            else
-                mem_mapping_set_addr(&xga->video_mapping, 0xb0000, 0x10000);
+    switch (xga->op_mode & 7) {
+        case 0:
+            xga_log("XGA: VGA mode address decode disabled.\n");
+            break;
+        case 1:
+            xga_log("XGA: VGA mode address decode enabled.\n");
+            break;
+        case 2:
+            xga_log("XGA: 132-Column mode address decode disabled.\n");
+            break;
+        case 3:
+            xga_log("XGA: 132-Column mode address decode enabled.\n");
+            break;
+        default:
+            xga_log("XGA: Extended Graphics mode.\n");
+            switch (xga->aperture_cntl) {
+                case 0:
+                    xga_log("XGA: No 64KB aperture.\n");
+                    if (xga->base_addr_1mb)
+                        mem_mapping_set_addr(&xga->linear_mapping, xga->base_addr_1mb, 0x100000);
+                    else if (xga->linear_base)
+                        mem_mapping_set_addr(&xga->linear_mapping, xga->linear_base, 0x400000);
+                    else
+                        mem_mapping_disable(&xga->linear_mapping);
 
-            mem_mapping_enable(&xga->video_mapping);
-            xga->banked_mask = 0xffff;
-            if (!xga->linear_endian_reverse)
-                mem_mapping_disable(&xga->linear_mapping);
-        } else if (xga->aperture_cntl == 0) {
-            mem_mapping_set_addr(&xga->video_mapping, 0xa0000, 0x10000);
-            mem_mapping_enable(&xga->video_mapping);
-            xga->banked_mask = 0xffff;
-            if (xga->base_addr_1mb)
-                mem_mapping_set_addr(&xga->linear_mapping, xga->base_addr_1mb, 0x100000);
-            else
-                mem_mapping_set_addr(&xga->linear_mapping, xga->linear_base, 0x400000);
-
-            if (xga->a5_test && (xga->access_mode & 8) && !xga->linear_endian_reverse) {
-                xga->on = 0;
-                vga_on  = 1;
-                xga_log("A5 test valid.\n");
+                    mem_mapping_disable(&xga->video_mapping);
+                    break;
+                case 1:
+                    xga_log("XGA: 64KB aperture at A0000.\n");
+                    mem_mapping_set_addr(&xga->video_mapping, 0xa0000, 0x10000);
+                    mem_mapping_enable(&xga->video_mapping);
+                    xga->banked_mask = 0xffff;
+                    break;
+                case 2:
+                    xga_log("XGA: 64KB aperture at B0000.\n");
+                    mem_mapping_set_addr(&xga->video_mapping, 0xb0000, 0x10000);
+                    mem_mapping_enable(&xga->video_mapping);
+                    xga->banked_mask = 0xffff;
+                    break;
+                default:
+                    break;
             }
-        }
-
-        xga_log("XGA opmode (extended) = %d, disp mode = %d, aperture = %d, on = %d, linear endian reverse = %d.\n", xga->op_mode & 7,
-                xga->disp_cntl_2 & 7, xga->aperture_cntl, xga->on, xga->linear_endian_reverse);
+            break;
     }
-    xga_log("VGA on = %d, map = %02x.\n", vga_on, svga->gdcreg[6] & 0x0c);
 }
 
 void
@@ -410,28 +423,6 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
         case 0x61:
             xga->sprite_pal_addr_idx = (xga->sprite_pal_addr_idx & 0xff) | ((val & 0x3f) << 8);
             xga->sprite_pos          = xga->sprite_pal_addr_idx & 0x1ff;
-            if ((xga->sprite_pos >= 0) && (xga->sprite_pos <= 16)) {
-                if ((xga->op_mode & 7) >= 5)
-                    xga->cursor_data_on = 1;
-                else if ((xga->sprite_pos >= 1) || (((xga->disp_cntl_2 & 7) == 2) || (xga->disp_cntl_2 & 7) == 4))
-                    xga->cursor_data_on = 1;
-                else if (!xga->aperture_cntl) {
-                    if (xga->linear_endian_reverse && !(xga->access_mode & 8))
-                        xga->cursor_data_on = 0;
-                }
-            }
-
-            if ((xga->sprite_pos > 16) && (xga->sprite_pos <= 0x1ff)) {
-                if (xga->aperture_cntl) {
-                    if (xga->sprite_pos & 0x0f)
-                        xga->cursor_data_on = 1;
-                    else
-                        xga->cursor_data_on = 0;
-                } else
-                    xga->cursor_data_on = 0;
-            } else if (!xga->sprite_pos && xga->cursor_data_on && !xga->aperture_cntl && xga->linear_endian_reverse)
-                xga->cursor_data_on = 0;
-
 
             xga_log("Sprite POS = %d, data on = %d, idx = %d, apcntl = %d\n", xga->sprite_pos,
                     xga->cursor_data_on, xga->sprite_pal_addr_idx, xga->aperture_cntl);
@@ -515,13 +506,12 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
     xga_t  *xga  = (xga_t *) svga->xga;
 
     xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
-
     switch (addr & 0x0f) {
         case 0:
             xga->op_mode = val;
             break;
         case 1:
-            xga->aperture_cntl = val;
+            xga->aperture_cntl = val & 3;
             xga_updatemapping(svga);
             break;
         case 4:
@@ -561,6 +551,7 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
         case 0x0e:
         case 0x0f:
             xga->regs[xga->regs_idx] = val;
+            xga_log("EXT OUT Reg=%02x, val=%02x.\n", xga->regs_idx, val);
             xga_ext_out_reg(xga, svga, xga->regs_idx, xga->regs[xga->regs_idx]);
             break;
 
@@ -801,6 +792,8 @@ xga_ext_inb(uint16_t addr, void *priv)
 
                 default:
                     ret = xga->regs[xga->regs_idx];
+                    if ((xga->regs_idx == 0x0c) || (xga->regs_idx == 0x0d))
+                        xga_log("EXT IN Reg=%02x, val=%02x.\n", xga->regs_idx, ret);
                     break;
             }
             break;
@@ -1403,8 +1396,11 @@ xga_line_draw_write(svga_t *svga)
                     }
                 }
 
-                if (!y)
+                if (!y) {
+                    xga->accel.dst_map_x = dx;
+                    xga->accel.dst_map_y = dy;
                     break;
+                }
 
                 if (xga->accel.octant & 0x01) {
                     if (xga->accel.octant & 0x02)
@@ -1518,6 +1514,7 @@ xga_bitblt(svga_t *svga)
                 xga->accel.dst_map, xga->accel.py, xga->accel.sy, dy,
                 xga->accel.px_map_width[0], xga->accel.px_map_width[1],
                 xga->accel.px_map_width[2], xga->accel.px_map_width[3]);
+        xga_log("PAT8: Pattern Enabled?=%d, xdir=%d, ydir=%d.\n", xga->accel.pattern, xdir, ydir);
 
         while (xga->accel.y >= 0) {
             if (xga->accel.command & 0xc0) {
@@ -1576,9 +1573,12 @@ xga_bitblt(svga_t *svga)
             }
         }
     } else if (xga->accel.pat_src >= 1) {
-        if (patheight == 7)
-            xga->accel.pattern = 1;
-        else {
+        if (patheight == 7) {
+            if (xga->accel.src_map != 1)
+                xga->accel.pattern = 1;
+            else if ((xga->accel.src_map == 1) && (patwidth == 7))
+                xga->accel.pattern = 1;
+        } else {
             if (dstwidth == (xga->h_disp - 1)) {
                 if (srcwidth == (xga->h_disp - 1)) {
                     if ((xga->accel.src_map == 1) && (xga->accel.dst_map == 1) && (xga->accel.pat_src == 2)) {
@@ -1614,6 +1614,7 @@ xga_bitblt(svga_t *svga)
                 xga->accel.src_map, xga->accel.dst_map, xga->accel.py, xga->accel.sy, xga->accel.dy,
                 xga->accel.px_map_width[0], xga->accel.px_map_width[1],
                 xga->accel.px_map_width[2], xga->accel.px_map_width[3], bkgdcol);
+        xga_log("Pattern Enabled?=%d, patwidth=%d, patheight=%d, P(%d,%d).\n", xga->accel.pattern, patwidth, patheight, xga->accel.px, xga->accel.py);
 
         if ((((xga->accel.command >> 24) & 0x0f) == 0x0a) && ((xga->accel.bkgd_mix & 0x1f) == 5)) {
             while (xga->accel.y >= 0) {
@@ -1760,6 +1761,7 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
         switch (addr & 0x7f) {
             case 0x11:
                 xga->accel.control = val;
+                xga_log("Control=%02x.\n", val);
                 break;
 
             case 0x12:
@@ -2423,42 +2425,45 @@ xga_memio_readl(uint32_t addr, void *priv)
 static void
 xga_hwcursor_draw(svga_t *svga, int displine)
 {
-    xga_t    *xga    = (xga_t *) svga->xga;
-    uint8_t   dat    = 0;
-    int       offset = xga->hwcursor_latch.x - xga->hwcursor_latch.xoff;
-    int       x_pos;
-    int       y_pos;
-    int       comb = 0;
-    uint32_t *p;
-    int       idx = xga->cursor_data_on ? 32 : 0;
+    xga_t          *xga    = (xga_t *) svga->xga;
+    int             comb;
+    uint8_t         dat    = 0;
+    int             offset = xga->hwcursor_latch.x - xga->hwcursor_latch.xoff;
+    int             idx    = 0;
+    int             x_pos;
+    int             y_pos;
+    uint32_t       *p;
+    const uint8_t  *cd;
+
+    if (xga->hwcursor_latch.xoff & 0x20)
+        idx = 32;
+
+    cd = (uint8_t *) xga->sprite_data;
 
     if (xga->interlace && xga->hwcursor_oddeven)
         xga->hwcursor_latch.addr += 16;
 
-    y_pos = displine;
-    x_pos = offset + svga->x_add;
-    p     = buffer32->line[y_pos];
-
     for (int x = 0; x < xga->hwcursor_latch.cur_xsize; x++) {
+        dat = cd[xga->hwcursor_latch.addr & 0x3ff];
+
+        comb = (dat >> ((x & 0x03) << 1)) & 0x03;
+
+        y_pos = displine;
+        x_pos = offset + svga->x_add;
+        p     = buffer32->line[y_pos];
+
         if (x >= idx) {
-            if (!(x & 0x03))
-                dat = xga->sprite_data[xga->hwcursor_latch.addr & 0x3ff];
-
-            comb = (dat >> ((x & 0x03) << 1)) & 0x03;
-
-            x_pos = offset + svga->x_add + x;
-
             switch (comb) {
                 case 0x00:
-                    /* Cursor Color 1 */
+					/* Cursor Color 1 */
                     p[x_pos] = xga->hwc_color0;
                     break;
                 case 0x01:
-                    /* Cursor Color 2 */
+					/* Cursor Color 2 */
                     p[x_pos] = xga->hwc_color1;
                     break;
                 case 0x03:
-                    /* Complement */
+					/* Complement */
                     p[x_pos] ^= 0xffffff;
                     break;
 
@@ -2466,6 +2471,8 @@ xga_hwcursor_draw(svga_t *svga, int displine)
                     break;
             }
         }
+        offset++;
+        xga_log("P=%08x, xpos=%d, comb=%x, ypos=%d, offset=%d, latchx=%d, latchxoff=%d.\n", p[x_pos], x_pos, comb, y_pos, offset, xga->hwcursor_latch.x, xga->hwcursor_latch.xoff);
 
         if ((x & 0x03) == 0x03)
             xga->hwcursor_latch.addr++;
@@ -2927,12 +2934,12 @@ xga_poll(void *priv, svga_t *svga)
 
     if (!xga->linepos) {
         if (xga->displine == xga->hwcursor_latch.y && xga->hwcursor_latch.ena) {
-            xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - (xga->cursor_data_on ? 32 : 0);
+            xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 32 : 0);
             xga->hwcursor_oddeven = 0;
         }
 
         if (xga->displine == (xga->hwcursor_latch.y + 1) && xga->hwcursor_latch.ena && xga->interlace) {
-            xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - (xga->cursor_data_on ? 33 : 1);
+            xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 33 : 1);
             xga->hwcursor_oddeven = 1;
         }
 

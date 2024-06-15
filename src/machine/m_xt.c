@@ -339,7 +339,7 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.BIN",
+    ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.bin",
                            0x000fe000, 65536, 0);
     if (ret) {
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_F400.BIN",

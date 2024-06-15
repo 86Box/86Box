@@ -42,7 +42,7 @@
 #define BIOS_ROM_PATH_W32                      "roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
 #define BIOS_ROM_PATH_W32I_ISA                 "roms/video/et4000w32/ET4KW32I.VBI"
 #define BIOS_ROM_PATH_W32I_VLB                 "roms/video/et4000w32/tseng.u41.bin"
-#define BIOS_ROM_PATH_W32P_VIDEOMAGIC_REVB_VLB "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.BIN"
+#define BIOS_ROM_PATH_W32P_VIDEOMAGIC_REVB_VLB "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.bin"
 #define BIOS_ROM_PATH_W32P                     "roms/video/et4000w32/ET4K_W32.BIN"
 #define BIOS_ROM_PATH_W32P_REVC                "roms/video/et4000w32/et4000w32pcardex.BIN"
 
@@ -432,26 +432,25 @@ et4000w32p_recalctimings(svga_t *svga)
 
     svga->ma_latch |= (svga->crtc[0x33] & 0x7) << 16;
 
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
 
     if (svga->crtc[0x35] & 0x01)
-        svga->vblankstart += 0x400;
+        svga->vblankstart |= 0x400;
     if (svga->crtc[0x35] & 0x02)
-        svga->vtotal += 0x400;
+        svga->vtotal |= 0x400;
     if (svga->crtc[0x35] & 0x04)
-        svga->dispend += 0x400;
+        svga->dispend |= 0x400;
     if (svga->crtc[0x35] & 0x08)
-        svga->vsyncstart += 0x400;
+        svga->vsyncstart |= 0x400;
     if (svga->crtc[0x35] & 0x10)
-        svga->split += 0x400;
+        svga->split |= 0x400;
     if (svga->crtc[0x3F] & 0x80)
-        svga->rowoffset += 0x100;
+        svga->rowoffset |= 0x100;
     if (svga->crtc[0x3F] & 0x01)
-        svga->htotal += 256;
+        svga->htotal |= 0x100;
     if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
-        svga->hblankstart <<= 1;
-        svga->hblank_end_val <<= 1;
+        svga->dots_per_clock <<= 1;
     }
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
@@ -502,8 +501,7 @@ et4000w32p_recalctimings(svga_t *svga)
         case 16:
             if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
                 svga->hdisp >>= 1;
-                svga->hblankstart >>= 1;
-                svga->hblank_end_val >>= 1;
+                svga->dots_per_clock >>= 1;
             }
             if (et4000->type <= ET4000W32P_REVC) {
                 if (et4000->type == ET4000W32P_REVC) {
@@ -515,8 +513,7 @@ et4000w32p_recalctimings(svga_t *svga)
             break;
         case 24:
             svga->hdisp /= 3;
-            svga->hblankstart /= 3;
-            svga->hblank_end_val /= 3;
+            svga->dots_per_clock /= 3;
             if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
             if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {
@@ -538,9 +535,6 @@ et4000w32p_recalctimings(svga_t *svga)
         } else {
             switch (svga->gdcreg[5] & 0x60) {
                 case 0x00:
-                    if (et4000->rev == 5)
-                        svga->ma_latch++;
-
                     if (svga->seqregs[1] & 8) /* Low res (320) */
                         svga->render = svga_render_4bpp_lowres;
                     else

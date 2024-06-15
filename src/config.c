@@ -77,6 +77,7 @@
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
 #include <86box/snd_opl.h>
+#include <86box/version.h>
 
 static int   cx;
 static int   cy;
@@ -138,8 +139,6 @@ load_general(void)
 
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
-
-    status_icons_fullscreen = !!ini_section_get_int(cat, "status_icons_fullscreen", 0);
 
     window_remember = ini_section_get_int(cat, "window_remember", 0);
 
@@ -211,6 +210,12 @@ load_general(void)
     ini_section_delete_var(cat, "window_coordinates");
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
+
+    p = ini_section_get_string(cat, "uuid", NULL);
+    if (p != NULL)
+        strncpy(uuid, p, sizeof(uuid) - 1);
+    else
+        strncpy(uuid, "", sizeof(uuid) - 1);
 }
 
 /* Load monitor section. */
@@ -244,25 +249,82 @@ load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
     const char   *p;
+    const char   *migrate_from = NULL;
     int           c;
     int           i;
+    int           j;
     int           speed;
     double        multi;
 
     p = ini_section_get_string(cat, "machine", NULL);
-    if (p != NULL)
-        machine = machine_get_machine_from_internal_name(p);
-    else
+    if (p != NULL) {
+        migrate_from = p;
+        /* Migrate renamed machines. */
+        if (!strcmp(p, "430nx"))
+            machine = machine_get_machine_from_internal_name("586ip");
+        else if (!strcmp(p, "586mc1"))
+            machine = machine_get_machine_from_internal_name("586is");
+        else {
+            machine      = machine_get_machine_from_internal_name(p);
+            migrate_from = NULL;
+        }
+    } else
         machine = 0;
 
     if (machine >= machine_count())
         machine = machine_count() - 1;
 
-    cpu_override = ini_section_get_int(cat, "cpu_override", 0);
-    cpu_f        = NULL;
-    p            = ini_section_get_string(cat, "cpu_family", NULL);
+    /* Copy NVR files when migrating a machine to a new internal name. */
+    if (migrate_from) {
+        char old_fn[256];
+        strcpy(old_fn, migrate_from);
+        strcat(old_fn, ".");
+        c = strlen(old_fn);
+        char new_fn[256];
+        strcpy(new_fn, machines[machine].internal_name);
+        strcat(new_fn, ".");
+        i = strlen(new_fn);
+
+        /* Iterate through NVR files. */
+        DIR *dirp = opendir(nvr_path("."));
+        if (dirp) {
+            struct dirent *entry;
+            while ((entry = readdir(dirp))) {
+                /* Check if this file corresponds to the old name. */
+                if (strncmp(entry->d_name, old_fn, c))
+                    continue;
+
+                /* Add extension to the new name. */
+                strcpy(&new_fn[i], &entry->d_name[c]);
+
+                /* Only copy if a file with the new name doesn't already exist. */
+                FILE *g = nvr_fopen(new_fn, "rb");
+                if (!g) {
+                    FILE *f = nvr_fopen(entry->d_name, "rb");
+                    g       = nvr_fopen(new_fn, "wb");
+
+                    uint8_t buf[4096];
+                    while ((j = fread(buf, 1, sizeof(buf), f)))
+                        fwrite(buf, 1, j, g);
+
+                    fclose(f);
+                }
+                fclose(g);
+            }
+        }
+    }
+
+    cpu_override             = ini_section_get_int(cat, "cpu_override", 0);
+    cpu_override_interpreter = ini_section_get_int(cat, "cpu_override_interpreter", 0);
+    cpu_f                    = NULL;
+    p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
-        cpu_f = cpu_get_family(p);
+        /* Migrate CPU family changes. */
+        if ((!strcmp(machines[machine].internal_name, "deskpro386") ||
+            !strcmp(machines[machine].internal_name, "deskpro386_05_1988")))
+            cpu_f = cpu_get_family("i386dx_deskpro386");
+        else
+            cpu_f = cpu_get_family(p);
 
         if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
             cpu_f = NULL;
@@ -609,9 +671,9 @@ load_network(void)
             if (nc->net_type == NET_TYPE_PCAP) {
                 if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                     if (network_ndev == 1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES), plat_get_string(STRING_PCAP_ERROR_DESC));
                     else if (network_dev_to_id(p) == -1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE), plat_get_string(STRING_PCAP_ERROR_DESC));
                     strcpy(nc->host_dev_name, "none");
                 } else
                     strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
@@ -656,9 +718,9 @@ load_network(void)
             if (nc->net_type == NET_TYPE_PCAP) {
                 if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                     if (network_ndev == 1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES), plat_get_string(STRING_PCAP_ERROR_DESC));
                     else if (network_dev_to_id(p) == -1)
-                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE), plat_get_string(STRING_PCAP_ERROR_DESC));
                     strcpy(nc->host_dev_name, "none");
                 } else
                     strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
@@ -683,7 +745,6 @@ load_ports(void)
     char         *p;
     char          temp[512];
     int           c;
-    int           d;
 
     memset(temp, 0, sizeof(temp));
 
@@ -706,14 +767,6 @@ load_ports(void)
         p                   = ini_section_get_string(cat, temp, "none");
         lpt_ports[c].device = lpt_device_get_from_internal_name(p);
     }
-
-    /* Legacy config compatibility. */
-    d = ini_section_get_int(cat, "lpt_enabled", 2);
-    if (d < 2) {
-        for (c = 0; c < PARALLEL_MAX; c++)
-            lpt_ports[c].enabled = d;
-    }
-    ini_section_delete_var(cat, "lpt_enabled");
 }
 
 /* Load "Storage Controllers" section. */
@@ -721,13 +774,14 @@ static void
 load_storage_controllers(void)
 {
     ini_section_t cat = ini_find_section(config, "Storage controllers");
+    ini_section_t migration_cat;
     char         *p;
     char          temp[512];
     int           c;
     int           min = 0;
     int           free_p = 0;
 
-    for (c = min; c < SCSI_BUS_MAX; c++) {
+    for (c = min; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
@@ -754,17 +808,16 @@ load_storage_controllers(void)
         }
         free_p = 1;
     }
-    if (!strcmp(p, "mfm_xt"))
-        hdc_current = hdc_get_from_internal_name("st506_xt");
-    else if (!strcmp(p, "mfm_xt_dtc5150x"))
-        hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
-    else if (!strcmp(p, "mfm_at"))
-        hdc_current = hdc_get_from_internal_name("st506_at");
-    else if (!strcmp(p, "vlb_isa"))
-        hdc_current = hdc_get_from_internal_name("ide_vlb");
-    else if (!strcmp(p, "vlb_isa_2ch"))
-        hdc_current = hdc_get_from_internal_name("ide_vlb_2ch");
-    else
+    /* Migrate renamed and merged cards. */
+    if (!strcmp(p, "xtide_plus")) {
+        hdc_current = hdc_get_from_internal_name("xtide");
+        migration_cat = ini_find_or_create_section(config, "PC/XT XTIDE");
+        ini_section_set_string(migration_cat, "bios", "xt_plus");
+    } else if (!strcmp(p, "xtide_at_386")) {
+        hdc_current = hdc_get_from_internal_name("xtide_at");
+        migration_cat = ini_find_or_create_section(config, "PC/AT XTIDE");
+        ini_section_set_string(migration_cat, "bios", "at_386");
+    } else
         hdc_current = hdc_get_from_internal_name(p);
 
     if (free_p) {
@@ -822,6 +875,8 @@ load_storage_controllers(void)
             path_normalize(cart_fns[c]);
         }
     }
+
+    lba_enhancer_enabled = !!ini_section_get_int(cat, "lba_enhancer_enabled", 0);
 }
 
 /* Load "Hard Disks" section. */
@@ -1120,8 +1175,7 @@ load_floppy_and_cdrom_drives(void)
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-        cdrom[c].host_drive      = ini_section_get_int(cat, temp, 0);
-        cdrom[c].prev_host_drive = cdrom[c].host_drive;
+        ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
@@ -1208,12 +1262,6 @@ load_floppy_and_cdrom_drives(void)
             path_normalize(cdrom[c].image_path);
         }
 
-        if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
-            cdrom[c].host_drive = 0;
-
-        if ((cdrom[c].host_drive == 0x200) && (strlen(cdrom[c].image_path) == 0))
-            cdrom[c].host_drive = 0;
-
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             cdrom[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
@@ -1234,9 +1282,6 @@ load_floppy_and_cdrom_drives(void)
 
         /* If the CD-ROM is disabled, delete all its variables. */
         if (cdrom[c].bus_type == CDROM_BUS_DISABLED) {
-            sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "cdrom_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
@@ -1367,9 +1412,6 @@ load_other_removable_devices(void)
 
         /* If the ZIP drive is disabled, delete all its variables. */
         if (zip_drives[c].bus_type == ZIP_BUS_DISABLED) {
-            sprintf(temp, "zip_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "zip_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
@@ -1483,9 +1525,6 @@ load_other_removable_devices(void)
 
         /* If the MO drive is disabled, delete all its variables. */
         if (mo_drives[c].bus_type == MO_BUS_DISABLED) {
-            sprintf(temp, "mo_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "mo_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
@@ -1514,9 +1553,10 @@ load_other_peripherals(void)
     char         *p;
     char          temp[512];
 
-    bugger_enabled     = !!ini_section_get_int(cat, "bugger_enabled", 0);
-    postcard_enabled   = !!ini_section_get_int(cat, "postcard_enabled", 0);
-    unittester_enabled = !!ini_section_get_int(cat, "unittester_enabled", 0);
+    bugger_enabled         = !!ini_section_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled       = !!ini_section_get_int(cat, "postcard_enabled", 0);
+    unittester_enabled     = !!ini_section_get_int(cat, "unittester_enabled", 0);
+    novell_keycard_enabled = !!ini_section_get_int(cat, "novell_keycard_enabled", 0);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
@@ -1561,6 +1601,8 @@ config_load(void)
         machine         = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale       = 1;
         do_auto_pause   = 0;
+
+        cpu_override_interpreter = 0;
 
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
         gfxcard[0]             = video_get_video_from_internal_name("cga");
@@ -1803,11 +1845,6 @@ save_general(void)
     else
         ini_section_delete_var(cat, "open_dir_usr_path");
 
-    if (status_icons_fullscreen)
-        ini_section_set_int(cat, "status_icons_fullscreen", status_icons_fullscreen);
-    else
-        ini_section_delete_var(cat, "status_icons_fullscreen");
-
     if (video_framerate != -1)
         ini_section_set_int(cat, "video_gl_framerate", video_framerate);
     else
@@ -1825,6 +1862,20 @@ save_general(void)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
     else
         ini_section_delete_var(cat, "do_auto_pause");
+
+    char cpu_buf[128] = { 0 };
+    plat_get_cpu_string(cpu_buf, 128);
+    ini_section_set_string(cat, "host_cpu", cpu_buf);
+
+    if (EMU_BUILD_NUM != 0)
+        ini_section_set_int(cat, "emu_build_num", EMU_BUILD_NUM);
+    else
+        ini_section_delete_var(cat, "emu_build_num");
+
+  if (strnlen(uuid, sizeof(uuid) - 1) > 0)
+        ini_section_set_string(cat, "uuid", uuid);
+    else
+        ini_section_delete_var(cat, "uuid");
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -1864,11 +1915,6 @@ save_machine(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Machine");
     const char   *p;
-    int           c;
-    int           i = 0;
-    int           legacy_mfg;
-    int           legacy_cpu = -1;
-    int           closest_legacy_cpu = -1;
 
     p = machine_get_internal_name();
     ini_section_set_string(cat, "machine", p);
@@ -1880,61 +1926,14 @@ save_machine(void)
         ini_section_set_int(cat, "cpu_override", cpu_override);
     else
         ini_section_delete_var(cat, "cpu_override");
+    if (cpu_override_interpreter)
+        ini_section_set_int(cat, "cpu_override_interpreter", cpu_override_interpreter);
+    else
+        ini_section_delete_var(cat, "cpu_override_interpreter");
 
     /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");
     ini_section_delete_var(cat, "cpu");
-
-    /* Look for a machine entry on the legacy table. */
-    c = 0;
-    while (cpu_legacy_table[c].machine) {
-        if (!strcmp(p, cpu_legacy_table[c].machine))
-            break;
-        c++;
-    }
-    if (cpu_legacy_table[c].machine) {
-        /* Look for a corresponding CPU entry. */
-        const cpu_legacy_table_t *legacy_table_entry;
-        for (legacy_mfg = 0; legacy_mfg < 4; legacy_mfg++) {
-            if (!cpu_legacy_table[c].tables[legacy_mfg])
-                continue;
-
-            i = 0;
-            while (cpu_legacy_table[c].tables[legacy_mfg][i].family) {
-                legacy_table_entry = &cpu_legacy_table[c].tables[legacy_mfg][i];
-
-                /* Match the family name, speed and multiplier. */
-                if (!strcmp(cpu_f->internal_name, legacy_table_entry->family)) {
-                    if ((legacy_table_entry->rspeed == cpu_f->cpus[cpu].rspeed) &&
-                        (legacy_table_entry->multi == cpu_f->cpus[cpu].multi)) {
-                        /* Exact speed/multiplier match. */
-                        legacy_cpu = i;
-                        break;
-                    } else if ((legacy_table_entry->rspeed >= cpu_f->cpus[cpu].rspeed) &&
-                               (closest_legacy_cpu == -1))
-                        /* Closest speed match. */
-                        closest_legacy_cpu = i;
-                }
-
-                i++;
-            }
-
-            /* Use the closest speed match if no exact match was found. */
-            if ((legacy_cpu == -1) && (closest_legacy_cpu > -1)) {
-                legacy_cpu = closest_legacy_cpu;
-                break;
-            } else if (legacy_cpu > -1) /* exact match found */
-                break;
-        }
-
-        /* Set legacy values if a match was found. */
-        if (legacy_cpu > -1) {
-            if (legacy_mfg)
-                ini_section_set_int(cat, "cpu_manufacturer", legacy_mfg);
-            if (legacy_cpu)
-                ini_section_set_int(cat, "cpu", legacy_cpu);
-        }
-    }
 
     if (cpu_waitstates == 0)
         ini_section_delete_var(cat, "cpu_waitstates");
@@ -2264,7 +2263,7 @@ save_storage_controllers(void)
 
     ini_section_delete_var(cat, "scsicard");
 
-    for (c = 0; c < SCSI_BUS_MAX; c++) {
+    for (c = 0; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         if (scsi_card_current[c] == 0)
@@ -2348,6 +2347,11 @@ save_storage_controllers(void)
         else
             ini_section_set_string(cat, temp, cart_fns[c]);
     }
+
+    if (lba_enhancer_enabled == 0)
+        ini_section_delete_var(cat, "lba_enhancer_enabled");
+    else
+        ini_section_set_int(cat, "lba_enhancer_enabled", 1);
 }
 
 /* Save "Other Peripherals" section. */
@@ -2371,6 +2375,11 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "unittester_enabled");
     else
         ini_section_set_int(cat, "unittester_enabled", unittester_enabled);
+
+    if (novell_keycard_enabled == 0)
+        ini_section_delete_var(cat, "novell_keycard_enabled");
+    else
+        ini_section_set_int(cat, "novell_keycard_enabled", novell_keycard_enabled);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
@@ -2550,10 +2559,7 @@ save_floppy_and_cdrom_drives(void)
 
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].host_drive != 200))
-            ini_section_delete_var(cat, temp);
-        else
-            ini_section_set_int(cat, temp, cdrom[c].host_drive);
+        ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         if ((cdrom[c].bus_type == 0) || (cdrom[c].speed == 8))

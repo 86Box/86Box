@@ -97,6 +97,9 @@ image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
     subc->rel_m = rel_pos.min;
     subc->rel_s = rel_pos.sec;
     subc->rel_f = rel_pos.fr;
+
+    cdrom_image_log("image_get_subchannel(): %02X, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
+                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f);
 }
 
 static int
@@ -217,6 +220,12 @@ image_track_type(cdrom_t *dev, uint32_t lba)
     return 0;
 }
 
+static int
+image_ext_medium_changed(cdrom_t *dev)
+{
+    return 0;
+}
+
 static void
 image_exit(cdrom_t *dev)
 {
@@ -241,6 +250,7 @@ static const cdrom_ops_t cdrom_image_ops = {
     image_sector_size,
     image_read_sector,
     image_track_type,
+    image_ext_medium_changed,
     image_exit
 };
 
@@ -249,7 +259,6 @@ image_open_abort(cdrom_t *dev)
 {
     cdrom_image_close(dev);
     dev->ops           = NULL;
-    dev->host_drive    = 0;
     dev->image_path[0] = 0;
     return 1;
 }

@@ -1853,8 +1853,8 @@ machine_xt_m240_init(const machine_t *model)
     m24_kbd_t *m24_kbd;
     nvr_t     *nvr;
 
-    ret = bios_load_interleaved("roms/machines/m240/olivetti_m240_pch6_2.04_low.bin",
-                                "roms/machines/m240/olivetti_m240_pch5_2.04_high.bin",
+    ret = bios_load_interleaved("roms/machines/m240/olivetti_m240_pchj_2.11_low.bin",
+                                "roms/machines/m240/olivetti_m240_pchk_2.11_high.bin",
                                 0x000f8000, 32768, 0);
 
     if (bios_only || !ret)

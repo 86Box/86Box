@@ -772,7 +772,7 @@ speed_changed(void *priv)
 }
 
 void
-pit_irq0_timer_pcjr(int new_out, int old_out)
+pit_irq0_timer_pcjr(int new_out, int old_out, UNUSED(void *priv))
 {
     if (new_out && !old_out) {
         picint(1);

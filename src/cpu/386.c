@@ -15,6 +15,7 @@
 #include "x86.h"
 #include "x86_ops.h"
 #include "x86seg_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include <86box/io.h>
 #include <86box/nmi.h>
@@ -25,6 +26,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/gdbstub.h>
 #ifndef OPS_286_386
 #    define OPS_286_386
@@ -262,11 +264,10 @@ exec386_2386(int32_t cycs)
             CHECK_READ_CS(MIN(ol, 4));
             ins_fetch_fault = cpu_386_check_instruction_fault();
 
-            if (!cpu_state.abrt && ins_fetch_fault) {
-                x86gen();
+            /* Breakpoint fault has priority over other faults. */
+            if (ins_fetch_fault) {
                 ins_fetch_fault = 0;
-                /* No instructions executed at this point. */
-                goto block_ended;
+                cpu_state.abrt = 1;
             }
 
             if (!cpu_state.abrt) {
@@ -279,7 +280,11 @@ exec386_2386(int32_t cycs)
                 trap |= !!(cpu_state.flags & T_FLAG);
 
                 cpu_state.pc++;
-                x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                cpu_state.eflags &= ~(RF_FLAG);
+                if (opcode == 0xf0)
+                    in_lock = 1;
+                x86_2386_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                in_lock = 0;
                 if (x86_was_reset)
                     break;
             }
@@ -296,7 +301,6 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -319,8 +323,6 @@ block_ended:
 #endif
                     }
                 }
-                if (!x86_was_reset && ins_fetch_fault)
-                    x86gen();   /* This is supposed to be the first one serviced by the processor according to the manual. */
             } else if (trap) {
                 flags_rebuild();
                 if (trap & 2) dr[6] |= 0x8000;

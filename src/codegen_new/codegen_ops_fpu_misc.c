@@ -9,6 +9,7 @@
 #include "x86seg_common.h"
 #include "x86seg.h"
 #include "386_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"

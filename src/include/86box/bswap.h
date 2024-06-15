@@ -40,91 +40,55 @@
 
 #include <stdint.h>
 
-#ifdef HAVE_BYTESWAP_H
-#    include <byteswap.h>
-#else
-# define bswap_16(x) \
-    ( \
-        ((uint16_t)( \
-        (((uint16_t)(x) & (uint16_t)0x00ffU) << 8) |  \
-        (((uint16_t)(x) & (uint16_t)0xff00U) >> 8) )) \
-    )
+#define bswap_16(x)					\
+	((uint16_t)((((x) & 0x00ffu) << 8) |		\
+		    (((x) & 0xff00u) >> 8)))
 
-# define bswap_32(x) \
-    ( \
-        ((uint32_t)( \
-        (((uint32_t)(x) & (uint32_t)0x000000ffUL) << 24) |  \
-        (((uint32_t)(x) & (uint32_t)0x0000ff00UL) <<  8) |  \
-        (((uint32_t)(x) & (uint32_t)0x00ff0000UL) >>  8) |  \
-        (((uint32_t)(x) & (uint32_t)0xff000000UL) >> 24) )) \
-    )
+#define bswap_32(x)					\
+	((uint32_t)((((x) & 0x000000fful) << 24) |	\
+		    (((x) & 0x0000ff00ul) <<  8) |	\
+		    (((x) & 0x00ff0000ul) >>  8) |	\
+		    (((x) & 0xff000000ul) >> 24)))
 
-# define bswap_64(x) \
-    ( \
-        ((uint64_t)( \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000000000ffULL) << 56) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000000000ff00ULL) << 40) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x0000000000ff0000ULL) << 24) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000ff000000ULL) <<  8) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000ff00000000ULL) >>  8) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x0000ff0000000000ULL) >> 24) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0x00ff000000000000ULL) >> 40) |  \
-        (uint64_t)(((uint64_t)(x) & (uint64_t)0xff00000000000000ULL) >> 56) )) \
-    )
-#endif    /*HAVE_BYTESWAP_H*/
+# define bswap_64(x)							\
+        ((uint64_t)((((x) & 0x00000000000000ffull) << 56) |		\
+		    (((x) & 0x000000000000ff00ull) << 40) |		\
+		    (((x) & 0x0000000000ff0000ull) << 24) |		\
+		    (((x) & 0x00000000ff000000ull) <<  8) |		\
+		    (((x) & 0x000000ff00000000ull) >>  8) |		\
+		    (((x) & 0x0000ff0000000000ull) >> 24) |		\
+		    (((x) & 0x00ff000000000000ull) >> 40) |		\
+		    (((x) & 0xff00000000000000ull) >> 56)))
 
-#if  __GNUC__ >= 10
-#if defined __has_builtin && __has_builtin(__builtin_bswap16)
-#define bswap16(x) __builtin_bswap16(x)
-#else
-static __inline uint16_t bswap16(uint16_t x)
-{
-    return bswap_16(x);
-}
-#    endif
-#else
 static __inline uint16_t
 bswap16(uint16_t x)
 {
+#if defined (__GNUC__) || defined (__clang__)
+    return __builtin_bswap16(x);
+#else
     return bswap_16(x);
-}
 #endif
+}
 
-#if __GNUC__ >= 10
-#    if defined __has_builtin && __has_builtin(__builtin_bswap32)
-#        define bswap32(x) __builtin_bswap32(x)
-#    else
 static __inline uint32_t
 bswap32(uint32_t x)
 {
-    return bswap_32(x);
-}
-#    endif
+#if defined (__GNUC__) || defined (__clang__)
+    return __builtin_bswap32(x);
 #else
-static __inline uint32_t
-bswap32(uint32_t x)
-{
     return bswap_32(x);
-}
 #endif
+}
 
-#if __GNUC__ >= 10
-#    if defined __has_builtin && __has_builtin(__builtin_bswap64)
-#        define bswap64(x) __builtin_bswap64(x)
-#    else
 static __inline uint64_t
 bswap64(uint64_t x)
 {
-    return bswap_64(x);
-}
-#    endif
+#if defined (__GNUC__) || defined (__clang__)
+    return __builtin_bswap64(x);
 #else
-static __inline uint64_t
-bswap64(uint64_t x)
-{
-    return bswap_64(x);
-}
+    return bswap_16(x);
 #endif
+}
 
 static __inline void
 bswap16s(uint16_t *s)
@@ -198,12 +162,10 @@ CPU_CONVERT(le, 64, uint64_t)
 /* unaligned versions (optimized for frequent unaligned accesses)*/
 
 #if defined(__i386__) || defined(__powerpc__)
-
 #    define cpu_to_le16wu(p, v) cpu_to_le16w(p, v)
 #    define cpu_to_le32wu(p, v) cpu_to_le32w(p, v)
 #    define le16_to_cpupu(p)    le16_to_cpup(p)
 #    define le32_to_cpupu(p)    le32_to_cpup(p)
-
 #    define cpu_to_be16wu(p, v) cpu_to_be16w(p, v)
 #    define cpu_to_be32wu(p, v) cpu_to_be32w(p, v)
 

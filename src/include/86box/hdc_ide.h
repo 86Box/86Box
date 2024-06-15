@@ -82,7 +82,7 @@ typedef struct ide_s {
     uint8_t  selected;
     uint8_t  command;
     uint8_t  head;
-    uint8_t  pad;
+    uint8_t  params_specified;
     int      type;
     int      board;
     int      irqstat;
@@ -205,12 +205,14 @@ extern void win_cdrom_eject(uint8_t id);
 extern void win_cdrom_reload(uint8_t id);
 
 extern void ide_set_base_addr(int board, int base, uint16_t port);
+extern void ide_set_irq(int board, int irq);
 
 extern void ide_handlers(uint8_t board, int set);
 
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
 extern void ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
+extern void ide_pnp_config_changed_1addr(uint8_t ld, isapnp_device_config_t *config, void *priv);
 #endif
 
 extern double ide_atapi_get_period(uint8_t channel);

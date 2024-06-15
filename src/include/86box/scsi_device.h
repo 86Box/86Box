@@ -173,8 +173,8 @@
 #define GPMODEP_RIGID_DISK_PAGE       0x0000000000000010LL
 #define GPMODEP_FLEXIBLE_DISK_PAGE    0x0000000000000020LL
 #define GPMODEP_CACHING_PAGE          0x0000000000000100LL
-#define GPMODEP_CDROM_PAGE_SONY       0x0000000000000200LL
-#define GPMODEP_CDROM_AUDIO_PAGE_SONY 0x0000000000000400LL
+#define GPMODEP_CDROM_PAGE_SONY       0x0000000000000100LL
+#define GPMODEP_CDROM_AUDIO_PAGE_SONY 0x0000000000000200LL
 #define GPMODEP_CDROM_PAGE            0x0000000000002000LL
 #define GPMODEP_CDROM_AUDIO_PAGE      0x0000000000004000LL
 #define GPMODEP_CAPABILITIES_PAGE     0x0000040000000000LL
@@ -308,7 +308,7 @@
 #define BUS_REQ                       0x20
 #define BUS_BSY                       0x40
 #define BUS_RST                       0x80
-#define BUS_ACK                       0x200
+#define BUS_ACK                       0x100
 #define BUS_ATN                       0x200
 #define BUS_ARB                       0x8000
 #define BUS_SETDATA(val)              ((uint32_t) val << 16)

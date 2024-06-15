@@ -327,7 +327,7 @@ hdd_image_load(int id)
                     hdd_images[id].type = HDD_IMAGE_HDX;
                 } else if (is_vhd[0]) {
                     fclose(hdd_images[id].file);
-                    MVHDGeom geometry;
+                    MVHDGeom geometry = { 0 };
                     geometry.cyl               = hdd[id].tracks;
                     geometry.heads             = hdd[id].hpc;
                     geometry.spt               = hdd[id].spt;
@@ -335,7 +335,7 @@ hdd_image_load(int id)
                     hdd_images[id].last_sector = (full_size >> 9LL) - 1;
 
                     if (hdd[id].vhd_blocksize || hdd[id].vhd_parent[0]) {
-                        MVHDCreationOptions options;
+                        MVHDCreationOptions options = { 0 };
 retry_vhd:
                         options.block_size_in_sectors = hdd[id].vhd_blocksize;
                         options.path                  = fn;
