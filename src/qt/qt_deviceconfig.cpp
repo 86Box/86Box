@@ -388,7 +388,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
 
         config = device->config;
         while (config->type != -1) {
-            switch (config->type) {
+            switch (config->type & CONFIG_TYPE_MASK) {
                 default:
                     break;
                 case CONFIG_BINARY:
@@ -466,6 +466,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *set
 
         /* The :: prefix is there to access global functions instead of local ones named identically. */
         if (devicePriv) {
+            config_save();
             ::device_context_inst(device, instance);
             device->reload_config(devicePriv);
             ::device_context_restore();
