@@ -764,6 +764,8 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
         if (cur->number != 1)
             return 0;
         cur->skip = skip * cur->sector_size;
+        if ((cur->sector_size != RAW_SECTOR_SIZE) && (cur->form > 0))
+            cur->skip += 8;
         cur->start += cur_pregap;
         *total_pregap = cur_pregap;
         cdi_track_push_back(cdi, cur);
@@ -786,6 +788,8 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
 
         cur->start += prev->start + prev->length + cur_pregap;
         cur->skip = skip * cur->sector_size;
+        if ((cur->sector_size != RAW_SECTOR_SIZE) && (cur->form > 0))
+            cur->skip += 8;
         *shift += prev->start + prev->length;
         *total_pregap = cur_pregap;
     }
