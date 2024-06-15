@@ -802,6 +802,7 @@ bochs_vbe_reset(void *priv)
         reset_state->slot = dev->slot;
 
         *dev = *reset_state;
+        svga_recalctimings(&dev->svga);
     }
 }
 
