@@ -353,7 +353,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep, const bo
 }
 
 void
-DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *settings = nullptr, void* devicePriv = nullptr)
+DeviceConfig::ConfigureDevice(const _device_ *device, int instance, QWidget *settings, void* devicePriv)
 {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
