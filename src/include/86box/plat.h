@@ -47,7 +47,9 @@ enum {
     STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
-    STRING_MONITOR_SLEEP              /* "Monitor in sleep mode" */
+    STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
+    STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
+    STRING_GHOSTPCL_ERROR_DESC        /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
 };
 
 /* The Win32 API uses _wcsicmp. */

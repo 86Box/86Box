@@ -42,6 +42,7 @@ static const struct {
     {"text_prt",        &lpt_prt_text_device      },
     {"dot_matrix",      &lpt_prt_escp_device      },
     {"postscript",      &lpt_prt_ps_device        },
+    {"pcl",             &lpt_prt_pcl_device        },
     {"plip",            &lpt_plip_device          },
     {"dongle_savquest", &lpt_hasp_savquest_device },
     {"",                NULL                      }
