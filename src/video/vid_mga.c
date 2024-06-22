@@ -5328,6 +5328,15 @@ blit_texture_trap(mystique_t *mystique)
                                     }
                                     break;
 
+                                case (TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY):
+                                    if (!ctransp)
+                                        goto skip_pixel;
+
+                                    tex_r = i_r;
+                                    tex_g = i_g;
+                                    tex_b = i_b;
+                                    break;
+
                                 default:
                                     fatal("Bad TEXCTL %08x %08x\n", mystique->dwgreg.texctl, mystique->dwgreg.texctl & (TEXCTL_TMODULATE | TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY));
                             }
