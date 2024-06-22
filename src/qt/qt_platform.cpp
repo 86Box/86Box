@@ -585,14 +585,17 @@ c16stombs(char dst[], const uint16_t src[], int len)
 
 #ifdef _WIN32
 #    if defined(__amd64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
-#        define LIB_NAME_GS "gsdll64.dll"
+#        define LIB_NAME_GS   "gsdll64.dll"
+#        define LIB_NAME_GPCL "gpcl6dll64.dll"
 #    else
-#        define LIB_NAME_GS "gsdll32.dll"
+#        define LIB_NAME_GS   "gsdll32.dll"
+#        define LIB_NAME_GPCL "gpcl6dll32.dll"
 #    endif
 #    define LIB_NAME_PCAP        "Npcap"
 #    define MOUSE_CAPTURE_KEYSEQ "F8+F12"
 #else
 #    define LIB_NAME_GS          "libgs"
+#    define LIB_NAME_GPCL        "libgpcl6"
 #    define LIB_NAME_PCAP        "libpcap"
 #    define MOUSE_CAPTURE_KEYSEQ "Ctrl+End"
 #endif
@@ -613,6 +616,8 @@ ProgSettings::reloadStrings()
     translatedstrings[STRING_PCAP_ERROR_DESC]           = QCoreApplication::translate("", "Make sure %1 is installed and that you are on a %1-compatible network connection.").arg(LIB_NAME_PCAP).toStdWString();
     translatedstrings[STRING_GHOSTSCRIPT_ERROR_TITLE]   = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
     translatedstrings[STRING_GHOSTSCRIPT_ERROR_DESC]    = QCoreApplication::translate("", "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.").arg(LIB_NAME_GS).toStdWString();
+    translatedstrings[STRING_GHOSTPCL_ERROR_TITLE]      = QCoreApplication::translate("", "Unable to initialize GhostPCL").toStdWString();
+    translatedstrings[STRING_GHOSTPCL_ERROR_DESC]       = QCoreApplication::translate("", "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.").arg(LIB_NAME_GPCL).toStdWString();
     translatedstrings[STRING_HW_NOT_AVAILABLE_MACHINE]  = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
     translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO]    = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
     translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO2]   = QCoreApplication::translate("", "Video card #2 \"%hs\"  is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
