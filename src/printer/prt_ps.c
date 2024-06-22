@@ -54,13 +54,14 @@
 #    endif
 #elif defined __APPLE__
 #    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
-#    define PATH_GHOSTPCL_DLL    "libgpcl6.dylib"
+#    define PATH_GHOSTPCL_DLL    "libgpcl6.9.54.dylib"
 #else
 #    define PATH_GHOSTSCRIPT_DLL      "libgs.so.9"
 #    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.10"
 #    define PATH_GHOSTSCRIPT_DLL_ALT2 "libgs.so"
-#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.10"
-#    define PATH_GHOSTPCL_DLL_ALT     "libgpcl6.so"
+#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.9"
+#    define PATH_GHOSTPCL_DLL_ALT1    "libgpcl6.so.10"
+#    define PATH_GHOSTPCL_DLL_ALT2    "libgpcl6.so"
 #endif
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
@@ -424,9 +425,13 @@ pcl_init(void *lpt)
 
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTPCL_DLL_ALT
+#ifdef PATH_GHOSTPCL_DLL_ALT1
     if (ghostscript_handle == NULL) {
-        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT, ghostscript_imports);
+        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT1, ghostscript_imports);
+#    ifdef PATH_GHOSTPCL_DLL_ALT2
+        if (ghostscript_handle == NULL)
+            ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT2, ghostscript_imports);
+#    endif
     }
 #endif
     if (ghostscript_handle == NULL) {
