@@ -253,3 +253,31 @@ timer_on_auto(pc_timer_t *timer, double period)
     else
         timer_stop(timer);
 }
+
+void
+timer_set_new_tsc(uint64_t new_tsc)
+{
+    pc_timer_t *timer = NULL;
+    /* Run timers already expired. */
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+
+    if (!timer_head) {
+        tsc = new_tsc;
+        return;
+    }
+
+    timer = timer_head;
+    timer_target = new_tsc + (int32_t)(timer_get_ts_int(timer_head) - (uint32_t)tsc);
+
+    while (timer) {
+        int32_t offset_from_current_tsc = (int32_t)(timer_get_ts_int(timer) - (uint32_t)tsc);
+        timer->ts.ts32.integer = new_tsc + offset_from_current_tsc;
+
+        timer = timer->next;
+    }
+
+    tsc = new_tsc;
+}
