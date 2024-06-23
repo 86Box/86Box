@@ -798,6 +798,27 @@ PUSHL(uint32_t v)
     }
 }
 
+static void
+PUSHL_SEL(uint32_t v)
+{
+    if (cpu_16bitbus) {
+        PUSHW(v >> 16);
+        PUSHW(v & 0xffff);
+    } else {
+        if (stack32) {
+            writememw(ss, ESP - 4, v);
+            if (cpu_state.abrt)
+                return;
+            ESP -= 4;
+        } else {
+            writememw(ss, ((SP - 4) & 0xffff), v);
+            if (cpu_state.abrt)
+                return;
+            SP -= 4;
+        }
+    }
+}
+
 static uint16_t
 POPW(void)
 {
@@ -1092,7 +1113,7 @@ loadcscall(uint16_t seg)
 
                                 x86seg_log("Type %04X\n", type);
                                 if (type == 0x0c00) {
-                                    PUSHL(oldss);
+                                    PUSHL_SEL(oldss);
                                     PUSHL(oldsp2);
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
@@ -1622,10 +1643,10 @@ pmodeint(int num, int soft)
                         cpl_override = 1;
                         if (type >= 0x0800) {
                             if (cpu_state.eflags & VM_FLAG) {
-                                PUSHL(GS);
-                                PUSHL(FS);
-                                PUSHL(DS);
-                                PUSHL(ES);
+                                PUSHL_SEL(GS);
+                                PUSHL_SEL(FS);
+                                PUSHL_SEL(DS);
+                                PUSHL_SEL(ES);
                                 if (cpu_state.abrt)
                                     return;
                                 op_loadseg(0, &cpu_state.seg_ds);
@@ -1633,10 +1654,10 @@ pmodeint(int num, int soft)
                                 op_loadseg(0, &cpu_state.seg_fs);
                                 op_loadseg(0, &cpu_state.seg_gs);
                             }
-                            PUSHL(oldss);
+                            PUSHL_SEL(oldss);
                             PUSHL(oldsp);
                             PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                            PUSHL(CS);
+                            PUSHL_SEL(CS);
                             PUSHL(cpu_state.pc);
                             if (cpu_state.abrt)
                                 return;
@@ -1672,7 +1693,7 @@ pmodeint(int num, int soft)
                     }
                     if (type > 0x0800) {
                         PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                        PUSHL(CS);
+                        PUSHL_SEL(CS);
                         PUSHL(cpu_state.pc);
                         if (cpu_state.abrt)
                             return;

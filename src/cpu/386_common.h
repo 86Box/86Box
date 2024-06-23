@@ -449,6 +449,7 @@ get_ram_ptr(uint32_t a)
     }
 }
 
+extern int opcode_has_modrm[256];
 extern int opcode_length[256];
 
 #ifdef OPS_286_386
