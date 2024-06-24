@@ -5121,7 +5121,7 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
         t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
         s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     }
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
