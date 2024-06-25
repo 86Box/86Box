@@ -145,7 +145,7 @@ machine_xt_z184_init(const machine_t *model)
 
     lpt1_remove(); /* only one parallel port */
     lpt2_remove();
-    lpt1_init(0x278);
+    lpt1_setup(0x278);
     device_add(&ns8250_device);
     serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
 
@@ -199,7 +199,7 @@ machine_xt_z159_init(const machine_t *model)
     /* parallel port is on the memory board */
     lpt1_remove(); /* only one parallel port */
     lpt2_remove();
-    lpt1_init(0x278);
+    lpt1_setup(0x278);
 
     return ret;
 }

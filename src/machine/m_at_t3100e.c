@@ -796,6 +796,12 @@ upper_write_raml(uint32_t addr, uint32_t val, void *priv)
     *(uint32_t *) &ram[addr] = val;
 }
 
+uint8_t
+machine_t3100e_p1_handler(void)
+{
+    return (t3100e_mono_get() & 1) ? 0xff : 0xbf;
+}
+
 int
 machine_at_t3100e_init(const machine_t *model)
 {

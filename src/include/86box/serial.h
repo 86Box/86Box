@@ -125,6 +125,7 @@ extern serial_t *serial_attach_ex_2(int port,
 extern void      serial_remove(serial_t *dev);
 extern void      serial_set_type(serial_t *dev, int type);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
+extern void      serial_irq(serial_t *dev, uint8_t irq);
 extern void      serial_clear_fifo(serial_t *dev);
 extern void      serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void      serial_set_next_inst(int ni);

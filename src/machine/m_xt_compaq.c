@@ -59,7 +59,7 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
     standalone_gameport_type = &gameport_device;
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     return ret;
 }
@@ -87,7 +87,7 @@ machine_xt_compaq_portable_init(const machine_t *model)
         device_add(&gameport_device);
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     return ret;
 }

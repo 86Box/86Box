@@ -520,7 +520,7 @@ device_get_name(const device_t *dev, int bus, char *name)
             memset(tname, 0x00, strlen(dev->name) + 1);
 
             /* First strip the bus string with parentheses. */
-            fbus = strstr(dev->name, pbus);
+            fbus = strstr(dev->name, pbus);all tha
             if (fbus == dev->name)
                 strcat(tname, dev->name + strlen(pbus) + 1);
             else if (fbus == NULL)

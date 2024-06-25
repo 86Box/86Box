@@ -64,13 +64,13 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_init(LPT_MDA_ADDR);
+                            lpt1_setup(LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_init(LPT1_ADDR);
+                            lpt1_setup(LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_init(LPT2_ADDR);
+                            lpt1_setup(LPT2_ADDR);
                             break;
 
                         default:
@@ -168,7 +168,7 @@ ps2_isa_setup(int model, int cpu_type)
     ps2->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     device_add(&port_92_device);
 
@@ -198,7 +198,7 @@ ps2_isa_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&keyboard_ps2_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_ps2_device);
 }
 

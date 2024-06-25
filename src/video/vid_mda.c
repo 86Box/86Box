@@ -322,7 +322,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda_init(mda);
 
-    lpt3_init(0x3BC);
+    lpt3_setup(0x3BC);
 
     return mda;
 }

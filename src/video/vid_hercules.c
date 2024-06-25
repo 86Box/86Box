@@ -585,7 +585,7 @@ hercules_init(UNUSED(const device_t *info))
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
     /* Force the LPT3 port to be enabled. */
-    lpt3_init(0x3BC);
+    lpt3_setup(0x3BC);
 
     return dev;
 }

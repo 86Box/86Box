@@ -85,17 +85,25 @@ ali5123_lpt_handler(ali5123_t *dev)
     uint8_t  global_enable = !(dev->regs[0x22] & (1 << 3));
     uint8_t  local_enable  = !!dev->ld_regs[3][0x30];
     uint8_t  lpt_irq       = dev->ld_regs[3][0x70];
+    uint8_t  lpt_dma       = dev->ld_regs[3][0x74];
 
     if (lpt_irq > 15)
         lpt_irq = 0xff;
 
+    if (lpt_dma == 4)
+        lpt_dma = 0xff;
+
     lpt1_remove();
+    lpt_set_epp(0, !!(dev->ld_regs[3][0xf0] & 0x01));
+    lpt_set_ecp(0, !!(dev->ld_regs[3][0xf0] & 0x02));
+    lpt_set_ext(0, !(dev->ld_regs[3][0xf0] & 0x04) || !!(dev->ld_regs[3][0xf1] & 0x80));
     if (global_enable && local_enable) {
         ld_port = make_port(dev, 3) & 0xFFFC;
         if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
-            lpt1_init(ld_port);
+            lpt1_setup(ld_port);
     }
     lpt1_irq(lpt_irq);
+    lpt_port_dma(0, lpt_dma);
 }
 
 static void
@@ -133,8 +141,10 @@ ali5123_serial_handler(ali5123_t *dev, int uart)
 }
 
 static void
-ali5123_reset(ali5123_t *dev)
+ali5123_reset(void *priv)
 {
+    ali5123_t *dev = (ali5123_t *) priv;
+
     memset(dev->regs, 0, 48);
 
     dev->regs[0x20] = 0x43;
@@ -245,7 +255,7 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 dev->regs[dev->cur_reg] = val;
             } else {
                 valxor = val ^ dev->ld_regs[cur_ld][dev->cur_reg];
-                if (((dev->cur_reg & 0xf0) == 0x70) && (cur_ld < 4))
+                if (((dev->cur_reg & 0xf0) == 0x70) && (cur_ld < 4) && (cur_ld != 3))
                     return;
                 /* Block writes to some logical devices. */
                 if (cur_ld > 0x0c)
@@ -355,6 +365,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 case 0x60:
                 case 0x61:
                 case 0x70:
+                case 0x74:
+                case 0xf0:
+                case 0xf1:
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
                         dev->regs[0x22] &= ~0x08;
                     if (valxor)
@@ -491,7 +504,7 @@ const device_t ali5123_device = {
     .local         = 0x40,
     .init          = ali5123_init,
     .close         = ali5123_close,
-    .reset         = NULL,
+    .reset         = ali5123_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

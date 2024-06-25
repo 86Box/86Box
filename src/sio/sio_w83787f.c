@@ -197,7 +197,7 @@ w83787f_lpt_handler(w83787f_t *dev)
 
     lpt1_remove();
     if (enable) {
-        lpt1_init(addr);
+        lpt1_setup(addr);
         lpt1_irq(irq);
     }
 }
@@ -378,7 +378,7 @@ w83787f_reset(w83787f_t *dev)
     uint16_t hefere = dev->reg_init & 0x0100;
 
     lpt1_remove();
-    lpt1_init(LPT1_ADDR);
+    lpt1_setup(LPT1_ADDR);
     lpt1_irq(LPT1_IRQ);
 
     memset(dev->regs, 0, 0x2A);

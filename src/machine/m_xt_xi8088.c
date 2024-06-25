@@ -204,7 +204,7 @@ machine_xt_xi8088_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_ps2_xi8088_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_xi8088_device);
     nmi_init();
     device_add(&ibmat_nvr_device);

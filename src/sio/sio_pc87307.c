@@ -199,7 +199,7 @@ lpt1_handler(pc87307_t *dev)
     irq    = (dev->ld_regs[0x04][0x40] & 0x0f);
 
     if (active && (addr <= 0xfffc)) {
-        lpt1_init(addr);
+        lpt1_setup(addr);
         lpt1_irq(irq);
     }
 }

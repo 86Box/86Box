@@ -1882,6 +1882,39 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
+autofeed(uint8_t val, void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    dev->autofeed = ((val & 0x02) > 0);
+}
+
+static void
+strobe(uint8_t old, uint8_t val, void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    /* Data is strobed to the parallel printer on the falling edge of the
+       strobe bit. */
+    if (!(val & 0x01) && (old & 0x01)) {
+        /* Process incoming character. */
+        handle_char(dev, dev->data);
+
+        /* ACK it, will be read on next READ STATUS. */
+        dev->ack = 1;
+        timer_set_delay_u64(&dev->pulse_timer, ISACONST);
+
+        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+    }
+}
+
+static void
 write_ctrl(uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
@@ -1917,14 +1950,6 @@ write_ctrl(uint8_t val, void *priv)
     dev->ctrl = val;
 
     dev->autofeed = ((val & 0x02) > 0);
-}
-
-static uint8_t
-read_data(void *priv)
-{
-    const escp_t *dev = (escp_t *) priv;
-
-    return dev->data;
 }
 
 static uint8_t
@@ -2058,13 +2083,16 @@ escp_close(void *priv)
 }
 
 const lpt_device_t lpt_prt_escp_device = {
-    .name          = "Generic ESC/P Dot-Matrix",
-    .internal_name = "dot_matrix",
-    .init          = escp_init,
-    .close         = escp_close,
-    .write_data    = write_data,
-    .write_ctrl    = write_ctrl,
-    .read_data     = read_data,
-    .read_status   = read_status,
-    .read_ctrl     = read_ctrl
+    .name             = "Generic ESC/P Dot-Matrix",
+    .internal_name    = "dot_matrix",
+    .init             = escp_init,
+    .close            = escp_close,
+    .write_data       = write_data,
+    .write_ctrl       = write_ctrl,
+    .autofeed         = autofeed,
+    .strobe           = strobe,
+    .read_status      = read_status,
+    .read_ctrl        = read_ctrl,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };

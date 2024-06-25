@@ -541,15 +541,15 @@ wd76c10_ser_par_cs_recalc(wd76c10_t *dev)
     lpt1_remove();
     switch ((dev->ser_par_cs >> 9) & 0x03) {
         case 1:
-            lpt1_init(0x3bc);
+            lpt1_setup(0x3bc);
             lpt1_irq(7);
             break;
         case 2:
-            lpt1_init(0x378);
+            lpt1_setup(0x378);
             lpt1_irq(7);
             break;
         case 3:
-            lpt1_init(0x278);
+            lpt1_setup(0x278);
             lpt1_irq(7);
             break;
     }

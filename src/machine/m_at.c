@@ -93,7 +93,7 @@ machine_at_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 }
 
 static void
@@ -101,7 +101,7 @@ machine_at_ibm_common_init(const machine_t *model)
 {
     machine_at_common_init_ex(model, 1);
 
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     mem_remap_top(384);
 
@@ -114,7 +114,7 @@ machine_at_ps2_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&keyboard_ps2_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 }
 
 void
@@ -248,7 +248,7 @@ machine_at_siemens_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 1);
 
-    device_add(&keyboard_at_siemens_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     mem_remap_top(384);
 

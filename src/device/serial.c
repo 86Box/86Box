@@ -769,6 +769,20 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     dev->irq = irq;
 }
 
+void
+serial_irq(serial_t *dev, const uint8_t irq)
+{
+    if (dev == NULL)
+        return;
+
+    if (com_ports[dev->inst].enabled)
+        dev->irq = irq;
+    else
+        dev->irq = 0xff;
+
+    serial_log("Port %i IRQ = %02X\n", dev->inst, irq);
+}
+
 static void
 serial_rcvr_d_empty_evt(void *priv)
 {

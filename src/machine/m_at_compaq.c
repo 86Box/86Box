@@ -774,6 +774,12 @@ write_raml(uint32_t addr, uint32_t val, UNUSED(void *priv))
     mem_write_raml_page(addr, val, &pages[addr >> 12]);
 }
 
+uint8_t
+machine_compaq_p1_handler(void)
+{
+    return machine_generic_p1_handler() | (hasfpu ? 0x00 : 0x04);
+}
+
 static void
 machine_at_compaq_init(const machine_t *model, int type)
 {
@@ -812,14 +818,14 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&compaq_plasma_device);
             device_add(&compaq_386_device);
             machine_at_common_init(model);
-            device_add(&keyboard_at_compaq_device);
+            device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
             break;
 
         case COMPAQ_DESKPRO386:
         case COMPAQ_DESKPRO386_05_1988:
             device_add(&compaq_386_device);
             machine_at_common_init(model);
-            device_add(&keyboard_at_compaq_device);
+            device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
             break;
 
         default:

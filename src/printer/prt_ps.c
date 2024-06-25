@@ -26,8 +26,8 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/lpt.h>
 #include <86box/timer.h>
+#include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>
@@ -320,6 +320,35 @@ process_data(ps_t *dev)
 }
 
 static void
+ps_autofeed(uint8_t val, void *priv)
+{
+    ps_t *dev = (ps_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    dev->autofeed = val & 0x02 ? true : false;
+}
+
+static void
+ps_strobe(uint8_t old, uint8_t val, void *priv)
+{
+    ps_t *dev = (ps_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    if (!(val & 0x01) && (old & 0x01)) {
+        process_data(dev);
+
+        dev->ack = true;
+
+        timer_set_delay_u64(&dev->pulse_timer, ISACONST);
+        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+    }
+}
+
+static void
 ps_write_ctrl(uint8_t val, void *priv)
 {
     ps_t *dev = (ps_t *) priv;
@@ -480,15 +509,18 @@ ps_close(void *priv)
 }
 
 const lpt_device_t lpt_prt_ps_device = {
-    .name          = "Generic PostScript Printer",
-    .internal_name = "postscript",
-    .init          = ps_init,
-    .close         = ps_close,
-    .write_data    = ps_write_data,
-    .write_ctrl    = ps_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = ps_read_status,
-    .read_ctrl     = NULL
+    .name             = "Generic PostScript Printer",
+    .internal_name    = "postscript",
+    .init             = ps_init,
+    .close            = ps_close,
+    .write_data       = ps_write_data,
+    .write_ctrl       = ps_write_ctrl,
+    .autofeed         = ps_autofeed,
+    .strobe           = ps_strobe,
+    .read_status      = ps_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };
 
 const lpt_device_t lpt_prt_pcl_device = {

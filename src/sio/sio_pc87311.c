@@ -220,7 +220,7 @@ pc87311_lpt_handler(pc87311_t *dev)
         default:
             break;
     }
-    lpt1_init(dev->base);
+    lpt1_setup(dev->base);
     lpt1_irq(dev->irq);
     pc87311_log("PC87311-LPT: BASE %04x IRQ %01x\n", dev->base, dev->irq);
 }

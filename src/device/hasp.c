@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/timer.h>
 #include <86box/lpt.h>
 #include <86box/device.h>
 
@@ -335,13 +336,16 @@ hasp_close(void *priv)
 }
 
 const lpt_device_t lpt_hasp_savquest_device = {
-    .name          = "Protection Dongle for Savage Quest",
-    .internal_name = "dongle_savquest",
-    .init          = hasp_init_savquest,
-    .close         = hasp_close,
-    .write_data    = hasp_write_data,
-    .write_ctrl    = NULL,
-    .read_data     = NULL,
-    .read_status   = hasp_read_status,
-    .read_ctrl     = NULL
+    .name             = "Protection Dongle for Savage Quest",
+    .internal_name    = "dongle_savquest",
+    .init             = hasp_init_savquest,
+    .close            = hasp_close,
+    .write_data       = hasp_write_data,
+    .write_ctrl       = NULL,
+    .autofeed         = NULL,
+    .strobe           = NULL,
+    .read_status      = hasp_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };

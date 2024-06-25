@@ -111,15 +111,15 @@ lpt1_handler(fdc37c6xx_t *dev)
     lpt1_remove();
     switch (dev->regs[1] & 3) {
         case 1:
-            lpt1_init(LPT_MDA_ADDR);
+            lpt1_setup(LPT_MDA_ADDR);
             lpt1_irq(7);
             break;
         case 2:
-            lpt1_init(LPT1_ADDR);
+            lpt1_setup(LPT1_ADDR);
             lpt1_irq(7 /*5*/);
             break;
         case 3:
-            lpt1_init(LPT2_ADDR);
+            lpt1_setup(LPT2_ADDR);
             lpt1_irq(7 /*5*/);
             break;
 
@@ -252,7 +252,7 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(LPT1_ADDR);
+    lpt1_setup(LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);

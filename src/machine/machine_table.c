@@ -57,7 +57,7 @@ extern const device_t compaq_plasma_device;
 extern const device_t ps1_2011_device;
 
 const machine_filter_t machine_types[] = {
-    { "None",                      MACHINE_TYPE_NONE       },
+    { "None",                             MACHINE_TYPE_NONE       },
     { "[1979] 8088",                      MACHINE_TYPE_8088       },
     { "[1978] 8086",                      MACHINE_TYPE_8086       },
     { "[1982] 80286",                     MACHINE_TYPE_286        },
@@ -68,6 +68,7 @@ const machine_filter_t machine_types[] = {
     { "[1992] i486 (Socket 168 and 1)",   MACHINE_TYPE_486        },
     { "[1992] i486 (Socket 2)",           MACHINE_TYPE_486_S2     },
     { "[1994] i486 (Socket 3)",           MACHINE_TYPE_486_S3     },
+    { "[1994] i486 (Socket 3 PCI)",       MACHINE_TYPE_486_S3_PCI },
     { "[1992] i486 (Miscellaneous)",      MACHINE_TYPE_486_MISC   },
     { "[1993] Socket 4",                  MACHINE_TYPE_SOCKET4    },
     { "[1994] Socket 5",                  MACHINE_TYPE_SOCKET5    },
@@ -80,7 +81,7 @@ const machine_filter_t machine_types[] = {
     { "[1998] Slot 1/Socket 370",         MACHINE_TYPE_SLOT1_370  },
     { "[1998] Slot 2",                    MACHINE_TYPE_SLOT2      },
     { "[1998] Socket 370",                MACHINE_TYPE_SOCKET370  },
-    { "Miscellaneous",             MACHINE_TYPE_MISC       }
+    { "Miscellaneous",                    MACHINE_TYPE_MISC       }
 };
 
 const machine_filter_t machine_chipsets[] = {
@@ -237,6 +238,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -276,6 +278,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc82_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -315,6 +318,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = NULL, /* TODO: No specific kbd_device yet */
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -354,6 +358,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -393,6 +398,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt86_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -432,6 +438,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -471,6 +478,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -510,6 +518,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -549,6 +558,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc82_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -588,6 +598,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_compaq_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -627,6 +638,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -666,6 +678,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc82_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -705,6 +718,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -744,6 +758,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -783,6 +798,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -822,6 +838,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -861,6 +878,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -900,6 +918,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -939,6 +958,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -978,6 +998,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1017,6 +1038,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1056,6 +1078,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1095,6 +1118,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1134,6 +1158,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_olivetti_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1173,6 +1198,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1212,6 +1238,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1251,6 +1278,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1290,6 +1318,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1329,6 +1358,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pravetz_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1368,6 +1398,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1407,6 +1438,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 15,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1446,6 +1478,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1485,6 +1518,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_tandy_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1524,6 +1558,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_tandy_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1563,6 +1598,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = &keyboard_xt_t1x00_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1602,6 +1638,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1642,6 +1679,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1653,14 +1691,14 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 #endif /* defined(DEV_BRANCH) && defined(USE_LASERXT) */
-    /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
+    /* Has a VIA VT82C42N keyboard controller. */
     {
         .name = "[8088] Xi8088",
         .internal_name = "xi8088",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_xt_xi8088_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -1682,8 +1720,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = &keyboard_ps2_xi8088_device,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_via_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00400cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = &xi8088_device,
@@ -1722,6 +1761,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1761,6 +1801,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_zenith_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1800,6 +1841,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_zenith_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1839,6 +1881,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_zenith_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1878,6 +1921,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1917,6 +1961,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1958,6 +2003,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -1997,6 +2043,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2036,6 +2083,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2075,6 +2123,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2114,6 +2163,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2153,6 +2203,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2192,6 +2243,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_compaq_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2231,6 +2283,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0x3f,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2270,6 +2323,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 15,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2310,6 +2364,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 15,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2349,6 +2404,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2388,6 +2444,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = NULL /* TODO: No specific kbd_device yet */,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2427,6 +2484,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 63,
         .kbc_device = &keyboard_xt_t1x00_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2466,6 +2524,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 127,
         .kbc_device = &keyboard_xt_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2507,6 +2566,7 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_lxt3_device,
+        .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
@@ -2527,7 +2587,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_ibm_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2549,8 +2609,9 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2567,7 +2628,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps1_m2011_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_ps1_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2589,8 +2650,9 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ps1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = &ps1_2011_device,
@@ -2607,7 +2669,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_m30_286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2629,8 +2691,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2647,7 +2710,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_ibmxt286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2669,8 +2732,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2687,7 +2751,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_ibmatami_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2709,8 +2773,9 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2728,7 +2793,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_at_cmdpc_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2750,8 +2815,9 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2768,7 +2834,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_at_portableii_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2790,8 +2856,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2808,7 +2875,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_at_portableiii_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2830,8 +2897,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2848,7 +2916,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_mr286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2870,8 +2938,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2888,7 +2957,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_pc8_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_ncr_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2910,8 +2979,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ncr_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004df,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2929,7 +2999,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_at_m290_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2951,8 +3021,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_olivetti_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -2971,7 +3042,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_openat_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -2993,8 +3064,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3012,7 +3084,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_ibmatpx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3034,8 +3106,9 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3052,7 +3125,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_ibmatquadtel_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3074,8 +3147,9 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_quadtel_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3092,7 +3166,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_siemens_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3114,8 +3188,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_siemens_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3132,7 +3207,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_at_t3100e_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_t3100e_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3154,8 +3229,9 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_toshiba_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x0000bfff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3172,7 +3248,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_GC103,
         .init = machine_at_quadt286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3194,8 +3270,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_quadtel_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3205,14 +3282,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Most likely has AMI 'F' KBC firmware. */
+    /* Has AMI 'B' KBC firmware. */
     {
         .name = "[GC103] TriGem 286M",
         .internal_name = "tg286m",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_GC103,
         .init = machine_at_tg286m_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3234,8 +3311,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004200,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3245,14 +3323,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has "AMI KEYBOARD BIOS", most likely 'F'. */
+    /* This has an AMIKey-2, which is 'H'. */
     {
         .name = "[NEAT] DataExpert 286",
         .internal_name = "ami286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_NEAT,
         .init = machine_at_neat_ami_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3274,8 +3352,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3292,7 +3371,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_NEAT,
         .init = machine_at_super286c_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3314,8 +3393,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_award_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3325,14 +3405,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* Has NCR KBC firmware. */
     {
         .name = "[NEAT] NCR 3302",
         .internal_name = "3302",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_NEAT,
         .init = machine_at_3302_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_ncr_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3354,8 +3434,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ncr_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004df,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3365,14 +3446,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* Has Phoenix MultiKey/42 KBC firmware. */
     {
         .name = "[NEAT] Arche AMA-2010",
         .internal_name = "px286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_NEAT,
         .init = machine_at_px286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3394,8 +3475,10 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_phoenix_device,
+        /* The version number is a guess - we have no probe of this machine's controller. */
+        .kbc_params = 0x00010500,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3412,7 +3495,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_gw286ct_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3434,8 +3517,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_chips_device,
+        .kbc_params = 0x0000a600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3445,14 +3529,16 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware - that's actually a guess since we
+       do not currently have a picture of the motherboard.
+       In the code, we actually give it the AMI PS/2 controller. */
     {
         .name = "[SCAT] Goldstar GDC-212M",
         .internal_name = "gdc212m",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_gdc212m_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3474,8 +3560,9 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3492,7 +3579,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_award286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3514,8 +3601,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3532,7 +3620,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_super286tr_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3554,8 +3642,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3565,14 +3654,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* Has a Samsung (SEC) V1.4 KBC firmware. */
+    /* TODO: Do kbc_at.c logging to see if the BIOS sends any proprietary commands. */
     {
         .name = "[SCAT] Samsung SPC-4200P",
         .internal_name = "spc4200p",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_spc4200p_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3594,8 +3684,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3605,14 +3696,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* Most likely has a Samsung (SEC) V1.4 KBC firmware like the SPC-4200P above. */
     {
         .name = "[SCAT] Samsung SPC-4216P",
         .internal_name = "spc4216p",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_spc4216p_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3634,8 +3725,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3645,14 +3737,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* Most likely has a Samsung (SEC) V1.4 KBC firmware like the SPC-4200P above. */
     {
         .name = "[SCAT] Samsung SPC-4620P",
         .internal_name = "spc4620p",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_spc4620p_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3674,8 +3766,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3685,14 +3778,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* Most likely has a Samsung (SEC) V1.4 KBC firmware like the SPC-4200P above. */
     {
         .name = "[SCAT] Samsung Deskmaster 286",
         .internal_name = "deskmaster286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_deskmaster286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3714,8 +3807,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3725,14 +3819,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
+    /* Has AMI '8' KBC firmware. */
     {
         .name = "[SCAT] Senor Science Co. SCAT-286-003",
         .internal_name = "senorscat286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_senor_scat286_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3754,8 +3848,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00003800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3773,7 +3868,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_50_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3795,8 +3890,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3813,7 +3909,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_60_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3835,8 +3931,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3856,7 +3953,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps1_m2121_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_ps1_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3878,8 +3975,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ps1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3889,14 +3987,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* Has NCR KBC firmware. */
     {
         .name = "[ISA] NCR PC916SX",
         .internal_name = "pc916sx",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_pc916sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_ncr_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3918,8 +4016,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ncr_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004df,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3936,7 +4035,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_quadt386sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3958,8 +4057,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_quadtel_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -3969,14 +4069,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has a Holtek keyboard controller which clones AMI 'H'. */
     {
         .name = "[ALi M1217] Acrosser AR-B1374",
         .internal_name = "arb1374",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1217,
         .init = machine_at_arb1374_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3990,7 +4090,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_AT,
+        .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -3998,8 +4098,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_holtek_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4009,14 +4110,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has the AMIKey-2 KBC. */
+    /* Has the AMIKey-2 KBC - that's actually a guess since we
+       do not currently have a picture of the motherboard. */
     {
         .name = "[ALi M1217] AAEON SBC-350A",
         .internal_name = "sbc350a",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1217,
         .init = machine_at_sbc350a_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4038,8 +4140,91 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has a JetKey KBC without version, which is a clone of AMI '8'. */
+    {
+        .name = "[ALi M1217] Chaintech 325AX",
+        .internal_name = "325ax",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_325ax_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00003800,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has a JetKey KBC without version, which is a clone of AMI '8'. */
+    {
+        .name = "[ALi M1217] Chaintech 325AX (MR BIOS)",
+        .internal_name = "mr1217",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_mr1217_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00003800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4056,7 +4241,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1217,
         .init = machine_at_flytech386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4070,7 +4255,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_AT,
+        .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
@@ -4078,8 +4263,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4089,93 +4275,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has a JetKey KBC without version, shows up as a 'H'. */
+    /* Uses a NEC/Acer 90M002A.
+       This is a strange one - it has command AF but it returns 0x00. */
     {
-        .name = "[ALi M1217] Chaintech 325AX",
-        .internal_name = "325ax",
-        .type = MACHINE_TYPE_386SX,
-        .chipset = MACHINE_CHIPSET_ALI_M1217,
-        .init = machine_at_325ax_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_386SX,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 1024,
-            .max = 16384,
-            .step = 1024
-        },
-        .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Has a JetKey KBC without version, shows up as a 'H'. */
-    {
-        .name = "[ALi M1217] Chaintech 325AX (MR BIOS)",
-        .internal_name = "mr1217",
-        .type = MACHINE_TYPE_386SX,
-        .chipset = MACHINE_CHIPSET_ALI_M1217,
-        .init = machine_at_mr1217_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_386SX,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 1024,
-            .max = 16384,
-            .step = 1024
-        },
-        .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-            {
         .name = "[ALI M1409] Acer 100T",
         .internal_name = "acer100t",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1409,
         .init = machine_at_acer100t_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4190,7 +4298,7 @@ const machine_t machines[] = {
             .max_multi = 0,
             
         },
-        .bus_flags = MACHINE_PS2, 
+        .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO , /* Machine has internal OTI 077 Video card*/
         .ram = {
             .min = 2048,
@@ -4198,8 +4306,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_acer_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000008f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4209,14 +4318,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* We actually have no info on this SBC and our code gives it a PS/2 AMI controller.
+       Most likely uses the ALi M6117 on-chip controller, which clones an AMI 'H'. */
     {
         .name = "[ALi M6117] Acrosser PJ-A511M",
         .internal_name = "pja511m",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M6117,
         .init = machine_at_pja511m_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4238,8 +4348,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4249,14 +4360,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* We actually have no info on this SBC and our code gives it a PS/2 AMI controller.
+       Most likely uses the ALi M6117 on-chip controller, which clones an AMI 'H'. */
     {
         .name = "[ALi M6117] Protech ProX-1332",
         .internal_name = "prox1332",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M6117,
         .init = machine_at_prox1332_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4278,8 +4390,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4298,7 +4411,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_HT18,
         .init = machine_at_ama932j_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4320,8 +4433,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4331,16 +4445,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has an unknown KBC firmware with commands B8 and BB in the style of
-       Phoenix MultiKey and AMIKey-3(!), but also commands E1 and EA with
-       unknown functions. */
+    /* Most likely has a Phoenix MultiKey/42 keyboard controller. */
     {
         .name = "[Intel 82335] ADI 386SX",
         .internal_name = "adi386sx",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_INTEL_82335,
         .init = machine_at_adi386sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4362,8 +4474,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_phoenix_device,
+        .kbc_params = 0x00010500, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4379,7 +4492,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_INTEL_82335,
         .init = machine_at_shuttle386sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4401,8 +4514,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004400, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4421,7 +4535,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_NEAT,
         .init = machine_at_cmdsl386sx16_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4443,8 +4557,9 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4461,7 +4576,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_NEAT,
         .init = machine_at_neat_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4483,8 +4598,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4501,7 +4617,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_OPTI_291,
         .init = machine_at_awardsx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4523,8 +4639,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4543,7 +4660,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
         .init = machine_at_cmdsl386sx25_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4565,8 +4682,9 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = NULL, /* The keyboard controller is part of the VL82c113. */
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4585,7 +4703,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
         .init = machine_at_dataexpert386sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4607,8 +4725,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004400, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4618,14 +4737,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
+    /* The only photo we have is too blurry to read the marking on the
+       the keyboard controller, but it's possibly a Phoenix. */
     {
         .name = "[SCAMP] Samsung SPC-6033P",
         .internal_name = "spc6033p",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
         .init = machine_at_spc6033p_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4647,8 +4767,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device, /* Possibly. */
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4666,7 +4787,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_SCAT,
         .init = machine_at_kmxc02_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4688,8 +4809,9 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* Possibly. */
+        .kbc_params = 0x00004600, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4706,7 +4828,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_WD76C10,
         .init = machine_at_wd76c10_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4728,8 +4850,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_quadtel_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4748,7 +4871,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_55sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4770,8 +4893,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4788,7 +4912,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_65sx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4810,8 +4934,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4831,7 +4956,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486SLC,
         .chipset = MACHINE_CHIPSET_OPTI_283,
         .init = machine_at_rycleopardlx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4853,8 +4978,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4866,14 +4992,15 @@ const machine_t machines[] = {
     },
 
     /* 386DX machines */
-    /* Has a Jetkey V3, which identifies as a 'B'. */
+    /* Has a Jetkey V3, which we currently lack a probe of, but an
+       old test by Carlos showed it as being 'F'. */
     {
         .name = "[ACC 2168] Juko AT046DX3",
         .internal_name = "acc386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_ACC_2168,
         .init = machine_at_acc386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4895,8 +5022,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4913,7 +5041,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_CT_386,
         .init = machine_at_ecs386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4935,8 +5063,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00003800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4946,14 +5075,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* Unknown - we give it an AT Award keyboard controller. */
     {
         .name = "[C&T 386] Samsung SPC-6000A",
         .internal_name = "spc6000a",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_CT_386,
         .init = machine_at_spc6000a_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -4975,8 +5104,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_award_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -4993,7 +5123,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_deskpro386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_compaq_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5015,8 +5145,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_compaq_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000000f4,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5026,13 +5157,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Uses Compaq KBC firmware. */
     {
         .name = "[ISA] Compaq Deskpro 386 (May 1988)",
         .internal_name = "deskpro386_05_1988",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_deskpro386_05_1988_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_compaq_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5054,8 +5186,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_compaq_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000000f4,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5065,13 +5198,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Uses Compaq KBC firmware. */
     {
         .name = "[ISA] Compaq Portable III (386)",
         .internal_name = "portableiii386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_portableiii386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_compaq_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5093,8 +5227,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_compaq_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000000f4,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5104,14 +5239,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* Has Phoenix MultiKey/42 KBC firmware. */
     {
         .name = "[ISA] Micronics 09-00021",
         .internal_name = "micronics386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_micronics386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5133,8 +5268,9 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5144,14 +5280,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM AT KBC firmware. */
+    /* I fund one board picture of it and I can't really read the
+       keyboard controller markigns from it, but it may be Phoenix. */
     {
         .name = "[ISA] Tandy 4000",
         .internal_name = "tandy4000",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_tandy4000_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5172,9 +5309,10 @@ const machine_t machines[] = {
             .max = 16384,
             .step = 1024
         },
-        .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .nvrmask = 127,
+        .kbc_device = &keyboard_at_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5184,14 +5322,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has a Lance LT38C41 with AMI Megakey P KBC firmware */
+    /* Has a Lance LT38C41 that clones an AMIKEY ('F'). */
     {
         .name = "[ALi M1429] ECS Panda 386V",
         .internal_name = "ecs386v",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_ALI_M1429,
         .init = machine_at_ecs386v_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5213,8 +5351,9 @@ const machine_t machines[] = {
             .step = 1024,
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: Lance LT38C41. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5231,7 +5370,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_OPTI_495,
         .init = machine_at_opti495_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5253,8 +5392,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5271,7 +5411,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_SIS_310,
         .init = machine_at_asus386_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5293,8 +5433,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5313,7 +5454,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_80_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5335,8 +5476,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5348,14 +5490,15 @@ const machine_t machines[] = {
     },
 
     /* 386DX/486 machines */
-    /* Has AMIKey F KBC firmware. */
+    /* Has AMIKey 'F' or MR BIOS 'M' KBC firmware, we give it the latter
+       for the sake of keyboard controller diversity. */
     {
         .name = "[OPTi 495] DataExpert SX495",
         .internal_name = "ami495",
         .type = MACHINE_TYPE_386DX_486,
         .chipset = MACHINE_CHIPSET_OPTI_495,
         .init = machine_at_opti495_ami_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5377,8 +5520,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004d00,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5388,14 +5532,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMIKey F KBC firmware (it's just the MR BIOS for the above machine). */
+    /* Has AMIKey 'F' or MR BIOS 'M' KBC firmware
+       (it's just the MR BIOS for the above machine). */
     {
         .name = "[OPTi 495] DataExpert SX495 (MR BIOS)",
         .internal_name = "mr495",
         .type = MACHINE_TYPE_386DX_486,
         .chipset = MACHINE_CHIPSET_OPTI_495,
         .init = machine_at_opti495_mr_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5417,8 +5562,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004d00,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5428,14 +5574,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Winbond W83C42 with unknown firmware. */
+    /* Winbond W83C42 - ASIC that clones AMI 'F'. */
     {
         .name = "[ALi M1429G] DataExpert EXP4349",
         .internal_name = "exp4349",
         .type = MACHINE_TYPE_386DX_486,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_exp4349_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5457,8 +5603,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: Winbond W83C42. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5475,7 +5622,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX_486,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_70_type3_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5497,8 +5644,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5515,7 +5663,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_386DX_486,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_80_axx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5537,8 +5685,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5550,18 +5699,15 @@ const machine_t machines[] = {
     },
 
     /* 486 machines - Socket 1 */
-    /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F.
-       It also has those Ex commands also seen on the VIA VT82C42N (the BIOS
-       supposedly sends command EF.
-       The board was also seen in 2003 with a -H string - perhaps someone swapped
-       the KBC? */
+    /* Has JetKey V5.0 KBC Firmware which clones an AMI 'H'.
+       The board was also seen 2003 with a -F string. */
     {
         .name = "[ALi M1429] Olystar LIL1429",
         .internal_name = "ali1429",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_ALI_M1429,
         .init = machine_at_ali1429_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5583,8 +5729,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5594,16 +5741,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has JetKey 5 KBC Firmware - but the BIOS string ends in a hardcoded -F, and
-       the BIOS also explicitly expects command A1 to return a 'F', so it looks like
-       the JetKey 5 is a clone of AMIKey type F. */
+    /* Has JetKey V5 KBC Firmware - we now have a photo of the board and its POST
+       screen, so we can match JetKey V5 to 'F'. */
     {
         .name = "[CS4031] AMI 486 CS4031",
         .internal_name = "cs4031",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_CT_CS4031,
         .init = machine_at_cs4031_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5625,8 +5771,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5644,7 +5791,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_mvi486_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5666,8 +5813,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5684,7 +5832,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_401,
         .init = machine_at_isa486_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5706,8 +5854,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5717,14 +5866,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMIKey H KBC firmware, per the screenshot in "How computers & MS-DOS work". */
+    /* Has AMIKey H KBC firmware, per the screenshot in "How computers & MS-DOS work".
+       Also seen with an AMI 'F'. */
     {
         .name = "[SiS 401] Chaintech 433SC",
         .internal_name = "sis401",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_401,
         .init = machine_at_sis401_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5746,8 +5896,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5757,15 +5908,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMIKey F KBC firmware, per a photo of a monitor with the BIOS screen on
-       eBay. */
+    /* Seen with both AMIKey F and AMIKey-2 H KBC firmwares. */
     {
         .name = "[SiS 460] ABIT AV4",
         .internal_name = "av4",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_460,
         .init = machine_at_av4_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5787,8 +5937,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5798,14 +5949,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
+    /* Uses an Acer 90M002A.
+       This is a strange one - it has command AF but it returns 0x00. */
     {
         .name = "[SiS 461] Acer V10",
         .internal_name = "acerv10",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_461,
         .init = machine_at_acerv10_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5827,8 +5979,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_acer_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000008f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5838,14 +5991,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has MR (!) KBC firmware, which is a clone of the standard IBM PS/2 KBC firmware. */
+    /* Has MR BIOS V307UT KBC firmware, which, bizarrely enough, is actually  a genuine AMI 'H'. */
     {
         .name = "[SiS 471] SiS VL-BUS 471 REV. A1",
         .internal_name = "px471",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_px471_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5867,8 +6020,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5881,14 +6035,15 @@ const machine_t machines[] = {
     /* The chip is a Lance LT38C41, a clone of the Intel 8041, and the BIOS sends
        commands BC, BD, and C9 which exist on both AMIKey and Phoenix MultiKey/42,
        but it does not write a byte after C9, which is consistent with AMIKey, so
-       this must have some form of AMIKey. */
+       this must have some form of AMIKey.
+       This is also seen with a genuime AMI 'F' (one of the photos on TheRetroWeb). */
     {
         .name = "[VIA VT82C495] FIC 486-VC-HD",
         .internal_name = "486vchd",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_VIA_VT82C495,
         .init = machine_at_486vchd_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5910,8 +6065,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5928,7 +6084,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_VLSI_VL82C480,
         .init = machine_at_vect486vl_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5950,8 +6106,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = NULL, /* The keyboard controller is part of the VL82c113. */
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -5968,7 +6125,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_VLSI_VL82C481,
         .init = machine_at_d824_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -5990,8 +6147,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6008,7 +6166,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_ps2_model_70_type4_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6030,8 +6188,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_mca_1_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6051,7 +6210,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_ACC_2168,
         .init = machine_at_pb410a_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6073,8 +6232,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00012900 /* Guess. */,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6091,7 +6251,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_acera1g_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6113,8 +6273,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_acer_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000008f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6124,14 +6285,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",
         .internal_name = "win486",
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_winbios1429_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6153,8 +6314,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6171,7 +6333,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_IMS_8848,
         .init = machine_at_g486ip_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6193,8 +6355,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00005000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6211,7 +6374,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_SIS_461,
         .init = machine_at_decpclpv_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6233,8 +6396,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6252,7 +6416,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_SIS_461,
         .init = machine_at_valuepoint433_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6274,8 +6438,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6285,14 +6450,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMI MegaKey KBC.  */
+    /* Has AMI 'H' KBC.  */
     {
         .name = "[i420TX] J-Bond PCI400C-A",
         .internal_name = "pci400ca",
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_INTEL_420TX,
         .init = machine_at_pci400ca_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6314,8 +6479,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = &keyboard_ps2_ami_device,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6325,7 +6491,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
 
     /* 486 machines - Socket 3 */
     /* 486 machines with just the ISA slot */
@@ -6336,7 +6501,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_CONTAQ_82C596,
         .init = machine_at_4gpv5_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6358,8 +6523,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6369,14 +6535,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has AMI MegaKey KBC firmware. */
+    /* Has AMI MegaKey 'P' KBC firmware. */
     {
         .name = "[Contaq 82C597] Visionex Green-B",
         .internal_name = "greenb",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_CONTAQ_82C597,
         .init = machine_at_greenb_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6398,8 +6564,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00005000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6409,14 +6576,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Version 1.0 has an AMIKEY-2, version 2.0 has a VIA VT82C42N KBC. */
+    /* Version 1.0 has an AMIKEY-2. */
     {
         .name = "[OPTi 895] Jetway J-403TG",
         .internal_name = "403tg",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_403tg_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6438,8 +6605,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6449,14 +6617,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
+    /* This is Version 2.0 - it has a VIA VT82C42N KBC. */
     {
         .name = "[OPTi 895] Jetway J-403TG Rev D",
         .internal_name = "403tg_d",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_403tg_d_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6478,8 +6646,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6496,7 +6665,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_403tg_d_mr_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6518,8 +6687,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6529,14 +6699,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
+    /* Has an Intel 82C42PE with Phoenix MultiKey/C42 KBC firmware, copyrighted 1993. */
     {
         .name = "[OPTi 895] Packard Bell PB450",
         .internal_name = "pb450",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_pb450_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6558,8 +6728,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00021400, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6569,16 +6740,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* The BIOS string ends in -U, unless command 0xA1 (AMIKey get version) returns an
-       'F', in which case, it ends in -F, so it has an AMIKey F KBC firmware.
-       The photo of the board shows an AMIKey KBC which is indeed F. */
+    /* Has the AMIKEY 'F' KBC firmware. */
     {
         .name = "[SiS 471] ABIT AB-AH4",
         .internal_name = "win471",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_win471_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6600,8 +6769,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6618,7 +6788,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_vi15g_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6640,8 +6810,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6651,14 +6822,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[SiS 471] ASUS VL/I-486SV2G (GX4)",
         .internal_name = "vli486sv2g",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_vli486sv2g_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6680,8 +6851,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6691,14 +6863,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
+    /* Has JetKey v5.0G KBC Firmware which is a clone of AMIKey type F. */
     {
         .name = "[SiS 471] DTK PKM-0038S E-2",
         .internal_name = "dtk486",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_dtk486_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6720,8 +6892,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: JetKey. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6731,14 +6904,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has a Lance LT38C41L with AMIKey F keyboard BIOS. */
+    /* Has a Lance LT38C41L which is a clone of AMIKey 'F'. */
     {
         .name = "[SiS 471] Epox GXA486SG",
         .internal_name = "ami471",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_ami471_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6760,8 +6933,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: Lance. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6778,7 +6952,7 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_tg486g_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6800,8 +6974,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_tg_ami_device,
+        .kbc_params = 0x00005a00,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6811,14 +6986,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Unknown revision phoenix 1993 multikey */
+    /* Has an Intel 82C42PE with Phoenix MultiKey/C42 KBC firmware, copyrighted 1993. */
     {
         .name = "[SiS 471] DEC Venturis 4xx",
         .internal_name = "dvent4xx",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,
         .init = machine_at_dvent4xx_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6840,8 +7015,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00021400, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6851,14 +7027,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[ALi M1429G] ECS AL486",
         .internal_name = "ecsal486",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_ecsal486_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6880,8 +7056,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6891,14 +7068,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This uses a VIA VT82C42N KBC, which is a clone of type 'F' with additional commands */
+    /* This uses a VIA VT82C42N KBC, which is a clone of type 'F' with additional commands.
+       It's really an ASIC clone of the Award KBC, which is itself an extended clone of AMI 'F'. */
     {
         .name = "[ALi M1429G] Lanner Electronics AP-4100AA",
         .internal_name = "ap4100aa",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_ap4100aa_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6920,8 +7098,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6931,14 +7110,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* JETKey V5.0 */
+    /* JETKey V5.0, ASIC cloen of AMI 'H'. */
     {
         .name = "[ALi M1429G] A-Trend ATC-1762",
         .internal_name = "atc1762",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_atc1762_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -6960,8 +7139,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: JetKey. */
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -6972,16 +7152,17 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 
+    /* 486 machines - Socket 3 PCI */
     /* 486 machines which utilize the PCI bus */
     /* Machine with ALi M1429G chipset and M1435 southbridge */
-    /* Has an AMIKEY-2 KBC. */
+    /* Has an AMIKEY-2 KBC which is type 'H'. */
     {
         .name = "[ALi M1429G] MSI MS-4134",
         .internal_name = "ms4134",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_ms4134_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7003,8 +7184,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7014,14 +7196,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* TriGem machine with M1429G and PhoenixBIOS */
+    /* TriGem machine with M1429G and PhoenixBIOS - has TriGem AMI 'Z' KBC. */
     {
         .name = "[ALi M1429G] TriGem 486GP",
         .internal_name = "tg486gp",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1429G,
         .init = machine_at_tg486gp_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7043,8 +7225,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_tg_ami_device,
+        .kbc_params = 0x00005a00,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7054,14 +7237,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[ALi M1489] AAEON SBC-490",
         .internal_name = "sbc490",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1489,
         .init = machine_at_sbc490_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7083,8 +7266,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = &tgui9440_onboard_pci_device,
@@ -7094,15 +7278,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
-       KBC. */
+    /* Has the ALi M1487/9's on-chip keyboard controller which clones AMI 'F'. */
     {
         .name = "[ALi M1489] ABIT AB-PB4",
         .internal_name = "abpb4",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1489,
         .init = machine_at_abpb4_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7124,8 +7307,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: ALi M148x KBC. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7135,18 +7319,16 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
-       KBC.
+    /* Has the ALi M1487/9's on-chip keyboard controller which clones AMI 'F'.
        The BIOS string always ends in -U, but the BIOS will send AMIKey commands 0xCA
-       and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
-       going to give it an AMI 'U' KBC. */
+       and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges. */
     {
-        .name = "[ALi M1489] AMI WinBIOS 486 PCI",
-        .internal_name = "win486pci",
-        .type = MACHINE_TYPE_486_S3,
+        .name = "[ALi M1489] PCI486 V1-HJ3",
+        .internal_name = "v1hj3",
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1489,
-        .init = machine_at_win486pci_init,
-        .p1_handler = NULL,
+        .init = machine_at_v1hj3_init,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7168,8 +7350,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: ALi M148x KBC. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7179,18 +7362,17 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
-       KBC.
+    /* Has the ALi M1487/9's on-chip keyboard controller which clones AMI 'F'.
        The known BIOS string ends in -E, and the BIOS returns whatever command 0xA1
        returns (but only if command 0xA1 is instant response), so said ALi keyboard
        controller likely returns 'E'. */
     {
         .name = "[ALi M1489] MSI MS-4145",
         .internal_name = "ms4145",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1489,
         .init = machine_at_ms4145_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7212,8 +7394,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* TODO: ALi M148x KBC. */
+        .kbc_params = 0x00004600,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7227,10 +7410,10 @@ const machine_t machines[] = {
     {
         .name = "[ALi M1489] ESA TF-486",
         .internal_name = "tf486",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1489,
         .init = machine_at_tf486_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7252,8 +7435,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00014000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7267,10 +7451,10 @@ const machine_t machines[] = {
     {
         .name = "[ALi M1489] Acrosser AR-B1476",
         .internal_name = "arb1476",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_ALI_M1489,
         .init = machine_at_arb1476_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7292,8 +7476,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00014000, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7307,10 +7492,10 @@ const machine_t machines[] = {
     {
         .name = "[OPTi 802G] IBM Aptiva 510/710/Vision",
         .internal_name = "aptiva510",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_aptiva510_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7332,8 +7517,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7347,10 +7533,10 @@ const machine_t machines[] = {
     {
         .name = "[OPTi 802G] IBM PC 330 (type 6573)",
         .internal_name = "pc330_6573",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_OPTI_895_802G,
         .init = machine_at_pc330_6573_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7372,8 +7558,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7383,14 +7570,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[i420EX] ASUS PVI-486AP4",
         .internal_name = "486ap4",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420EX,
         .init = machine_at_486ap4_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7412,8 +7599,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7427,10 +7615,10 @@ const machine_t machines[] = {
     {
         .name = "[i420EX] Intel Classic/PCI ED",
         .internal_name = "ninja",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420EX,
         .init = machine_at_ninja_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7452,8 +7640,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7467,10 +7656,10 @@ const machine_t machines[] = {
     {
         .name = "[i420EX] Anigma BAT4IP3e",
         .internal_name = "bat4ip3e",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420EX,
         .init = machine_at_bat4ip3e_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7492,8 +7681,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00021400, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7503,14 +7693,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[i420EX] Advanced Integration Research 486PI",
         .internal_name = "486pi",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420EX,
         .init = machine_at_486pi_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7532,8 +7722,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7547,10 +7738,10 @@ const machine_t machines[] = {
     {
         .name = "[i420EX] ICS SB486P",
         .internal_name = "sb486p",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420EX,
         .init = machine_at_sb486p_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7572,8 +7763,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* Guess. */
+        .kbc_params = 0x00005200, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7587,10 +7779,10 @@ const machine_t machines[] = {
     {
         .name = "[i420TX] ASUS PCI/I-486SP3",
         .internal_name = "486sp3",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420TX,
         .init = machine_at_486sp3_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7612,8 +7804,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device, /* Guess. */
+        .kbc_params = 0x00004800, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7627,10 +7820,10 @@ const machine_t machines[] = {
     {
         .name = "[i420TX] Intel Classic/PCI",
         .internal_name = "alfredo",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420TX,
         .init = machine_at_alfredo_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7652,8 +7845,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_phoenix_device,
+        .kbc_params = 0x00012900, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7667,10 +7861,10 @@ const machine_t machines[] = {
     {
         .name = "[i420TX] AMI Super Voyager PCI",
         .internal_name = "amis76",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420TX,
         .init = machine_at_amis76_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7692,8 +7886,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7703,15 +7898,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. Also has a
-       SST 29EE010 Flash chip. */
+    /* This has an AMIKey-2, which is type 'H'. Also has a SST 29EE010 Flash chip. */
     {
         .name = "[i420ZX] ASUS PCI/I-486SP3G",
         .internal_name = "486sp3g",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_INTEL_420ZX,
         .init = machine_at_486sp3g_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7733,8 +7927,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7748,10 +7943,10 @@ const machine_t machines[] = {
     {
         .name = "[IMS 8848] J-Bond PCI400C-B",
         .internal_name = "pci400cb",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_IMS_8848,
         .init = machine_at_pci400cb_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7773,8 +7968,9 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00005000, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7784,14 +7980,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[SiS 496] ASUS PVI-486SP3C",
         .internal_name = "486sp3c",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_486sp3c_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7813,8 +8009,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7824,14 +8021,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    /* This has an AMIKey-2, which is type 'H'. */
     {
         .name = "[SiS 496] Lucky Star LS-486E",
         .internal_name = "ls486e",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_ls486e_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7845,7 +8042,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
+        .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -7853,8 +8050,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7868,10 +8066,10 @@ const machine_t machines[] = {
     {
         .name = "[SiS 496] Micronics M4Li",
         .internal_name = "m4li",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_m4li_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7893,8 +8091,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7904,14 +8103,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Revision 1 has a Lance LT38C41L, revision 2 has a Holtek HT6542B. Another variant with a Bestkey KBC might exist as well. */
+    /* Revision 1 has a Lance LT38C41L, revision 2 has a Holtek HT6542B.
+       Another variant with a Bestkey KBC might exist as well. */
     {
         .name = "[SiS 496] Rise Computer R418",
         .internal_name = "r418",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_r418_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7925,7 +8125,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
+        .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -7933,8 +8133,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_holtek_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7944,15 +8145,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has a Holtek HT6542B KBC and the BIOS does not send a single non-standard KBC command, so it
-       must be an ASIC that clones the standard IBM PS/2 KBC. */
+    /* This has a Holtek HT6542B KBC and the BIOS does not send a single non-standard KBC command.
+       The Holtek is an ASIC clone of AMI 'H' with a Holtek copyright string. */
     {
         .name = "[SiS 496] Soyo 4SAW2",
         .internal_name = "4saw2",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_4saw2_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -7974,8 +8175,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_holtek_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -7985,15 +8187,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is an updated version
-       of type 'H'. There are other variants of the board with Holtek HT6542B KBCs. */
+    /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is type 'H'.
+       There are other variants of the board with Holtek HT6542B KBCs. */
     {
         .name = "[SiS 496] Zida Tomato 4DP",
         .internal_name = "4dps",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_4dps_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8015,8 +8217,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8030,10 +8233,10 @@ const machine_t machines[] = {
     {
         .name = "[SiS 496] MSI MS-4144",
         .internal_name = "ms4144",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_SIS_496,
         .init = machine_at_ms4144_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8055,8 +8258,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8070,10 +8274,10 @@ const machine_t machines[] = {
     {
         .name = "[UMC 8881] A-Trend ATC-1415",
         .internal_name = "atc1415",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_atc1415_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8095,8 +8299,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = NULL, /* UMC UM8886 on-chip KBC. */
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8110,10 +8315,10 @@ const machine_t machines[] = {
     {
         .name = "[UMC 8881] ECS Elite UM8810P-AIO",
         .internal_name = "ecs486",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_ecs486_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8127,7 +8332,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI | MACHINE_BUS_PS2_LATCH,
+        .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -8135,8 +8340,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8150,10 +8356,10 @@ const machine_t machines[] = {
     {
         .name = "[UMC 8881] Epson ActionPC 2600",
         .internal_name = "actionpc2600",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_actionpc2600_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8175,8 +8381,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_tg_ami_device,
+        .kbc_params = 0x00005a00,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8186,15 +8393,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
-       in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
+    /* Assume TriGem AMI 'Z' like above. */
     {
         .name = "[UMC 8881] Epson ActionTower 8400",
         .internal_name = "actiontower8400",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_actiontower8400_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8216,8 +8422,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_tg_ami_device, /* Guess. */
+        .kbc_params = 0x00005a00, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8232,10 +8439,10 @@ const machine_t machines[] = {
     {
         .name = "[UMC 8881] PC Chips M919",
         .internal_name = "m919",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_m919_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8257,8 +8464,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = NULL, /* UMC UM8886 on-chip KBC. */
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8268,14 +8476,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. Uses a mysterious I/O port C05. */
+    /* Uses a mysterious I/O port C05. */
     {
         .name = "[UMC 8881] Samsung SPC7700P-LW",
         .internal_name = "spc7700plw",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_spc7700plw_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8297,8 +8505,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = NULL, /* UMC UM8886 on-chip KBC. */
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8312,10 +8521,10 @@ const machine_t machines[] = {
     {
         .name = "[UMC 8881] Shuttle HOT-433A",
         .internal_name = "hot433a",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
         .init = machine_at_hot433a_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8337,8 +8546,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_at_holtek_device,
+        .kbc_params = 0x00004800,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8352,10 +8562,10 @@ const machine_t machines[] = {
     {
         .name = "[VIA VT82C496G] DFI G486VPA",
         .internal_name = "g486vpa",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_VIA_VT82C496G,
         .init = machine_at_g486vpa_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8377,8 +8587,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -8392,10 +8603,10 @@ const machine_t machines[] = {
     {
         .name = "[VIA VT82C496G] FIC VIP-IO2",
         .internal_name = "486vipio2",
-        .type = MACHINE_TYPE_486_S3,
+        .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_VIA_VT82C496G,
         .init = machine_at_486vipio2_init,
-        .p1_handler = NULL,
+        .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -8417,8 +8628,9 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
+        .kbc_device = &keyboard_ps2_via_device,
+        .kbc_params = 0x00424600,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
@@ -15488,8 +15700,8 @@ const machine_t machines[] = {
 
 /* Saved copies - jumpers get applied to these.
    We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
-static uint8_t machine_p1_default;
-static uint8_t machine_p1;
+static uint32_t machine_p1_default;
+static uint32_t machine_p1;
 
 static uint32_t machine_gpio_default;
 static uint32_t machine_gpio;
@@ -15503,12 +15715,6 @@ uint8_t
 machine_get_p1_default(void)
 {
     return machine_p1_default;
-}
-
-uint8_t
-machine_get_p1(void)
-{
-    return machine_p1;
 }
 
 void
@@ -15530,18 +15736,26 @@ machine_and_p1(uint8_t val)
 }
 
 uint8_t
-machine_handle_p1(uint8_t write, uint8_t val)
+machine_generic_p1_handler(void)
+{
+    return video_is_mda() ? 0xf0 : 0xb0;
+}
+
+uint8_t
+machine_get_p1(uint8_t kbc_p1)
 {
     uint8_t ret = 0xff;
 
     if (machines[machine].p1_handler)
-        ret = machines[machine].p1_handler(write, val);
-    else {
-        if (write)
-            machine_p1 = machine_p1_default & val;
-        else
-            ret = machine_p1;
-    }
+        ret = machines[machine].p1_handler();
+
+    ret &= (machine_p1 & 0xff);
+
+    ret |= ((machine_p1 >> 8) & 0xff);
+
+    ret ^= ((machine_p1 >> 16) & 0xff);
+
+    ret &= kbc_p1;
 
     return ret;
 }

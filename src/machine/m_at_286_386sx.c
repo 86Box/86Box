@@ -57,7 +57,7 @@ machine_at_mr286_init(const machine_t *model)
         return ret;
 
     machine_at_common_ide_init(model);
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -66,9 +66,9 @@ machine_at_mr286_init(const machine_t *model)
 }
 
 static void
-machine_at_headland_common_init(int type)
+machine_at_headland_common_init(const machine_t *model, int type)
 {
-    device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if ((type != 2) && (fdc_type == FDC_INTERNAL))
         device_add(&fdc_at_device);
@@ -94,7 +94,7 @@ machine_at_tg286m_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    machine_at_headland_common_init(1);
+    machine_at_headland_common_init(model, 1);
 
     return ret;
 }
@@ -115,7 +115,7 @@ machine_at_ama932j_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti067_ama932j_device);
 
-    machine_at_headland_common_init(2);
+    machine_at_headland_common_init(model, 2);
 
     device_add(&ali5105_device);
 
@@ -135,7 +135,7 @@ machine_at_quadt286_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -158,7 +158,7 @@ machine_at_quadt386sx_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -207,7 +207,7 @@ machine_at_neat_ami_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -224,7 +224,7 @@ machine_at_px286_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -234,42 +234,12 @@ machine_at_px286_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_at_micronics386_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
-                                "roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
-                                0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_init(model);
-
-    if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    return ret;
-}
-
 static void
 machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
     machine_at_common_init(model);
 
-    if (machines[machine].bus_flags & MACHINE_BUS_PS2) {
-        if (is_ami)
-            device_add(&keyboard_ps2_ami_device);
-        else
-            device_add(&keyboard_ps2_device);
-    } else {
-        if (is_ami)
-            device_add(&keyboard_at_ami_device);
-        else
-            device_add(&keyboard_at_device);
-    }
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (is_v4)
         device_add(&scat_4_device);
@@ -282,7 +252,7 @@ machine_at_scatsx_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -384,7 +354,7 @@ machine_at_super286c_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -517,29 +487,6 @@ machine_at_deskmaster286_init(const machine_t *model)
 }
 
 int
-machine_at_shuttle386sx_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/shuttle386sx/386-Shuttle386SX-Even.BIN",
-                                "roms/machines/shuttle386sx/386-Shuttle386SX-Odd.BIN",
-                                0x000f0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&intel_82335_device);
-    device_add(&keyboard_at_ami_device);
-
-    if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    return ret;
-}
-
-int
 machine_at_adi386sx_init(const machine_t *model)
 {
     int ret;
@@ -555,7 +502,30 @@ machine_at_adi386sx_init(const machine_t *model)
     device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
 
     device_add(&intel_82335_device);
-    device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_shuttle386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/shuttle386sx/386-Shuttle386SX-Even.BIN",
+                                "roms/machines/shuttle386sx/386-Shuttle386SX-Odd.BIN",
+                                0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&intel_82335_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -580,7 +550,7 @@ machine_at_wd76c10_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&paradise_wd90c11_megapc_device);
 
-    device_add(&keyboard_ps2_quadtel_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&wd76c10_device);
 
@@ -601,7 +571,7 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    device_add(&keyboard_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -619,10 +589,7 @@ machine_at_scamp_common_init(const machine_t *model, int is_ps2)
 {
     machine_at_common_ide_init(model);
 
-    if (is_ps2)
-        device_add(&keyboard_ps2_ami_device);
-    else
-        device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -644,7 +611,12 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5402_onboard_device);
 
-    machine_at_scamp_common_init(model, 1);
+    machine_at_common_ide_init(model);
+
+    device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
+    device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
+
+    device_add(&vlsi_scamp_device);
 
     return ret;
 }
@@ -718,10 +690,9 @@ machine_at_acer100t_init(const machine_t *model)
 
     machine_at_ps2_ide_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-    
     device_add(&ali1409_device);
+    device_add(&ali5105_device);
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);   
      
@@ -745,7 +716,8 @@ machine_at_arb1374_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&w83787f_ide_en_device);
-    device_add(&keyboard_ps2_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -765,7 +737,8 @@ machine_at_sbc350a_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&fdc37c665_ide_device);
-    device_add(&keyboard_ps2_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -789,7 +762,7 @@ machine_at_flytech386_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&tvga8900d_device);
 
-    device_add(&keyboard_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -809,7 +782,8 @@ machine_at_325ax_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&fdc_at_device);
-    device_add(&keyboard_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -829,7 +803,8 @@ machine_at_mr1217_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&fdc_at_device);
-    device_add(&keyboard_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -849,7 +824,7 @@ machine_at_pja511m_init(const machine_t *model)
 
     device_add_inst(&fdc37c669_device, 1);
     device_add_inst(&fdc37c669_device, 2);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -870,11 +845,28 @@ machine_at_prox1332_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&fdc37c669_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
+}
+
+uint8_t
+machine_ncr_p1_handler(void)
+{
+    /* switch settings
+     * bit 7: keyboard disable
+     * bit 6: display type (0 color, 1 mono)
+     * bit 5: power-on default speed (0 high, 1 low)
+     * bit 4: sense RAM size (0 unsupported, 1 512k on system board)
+     * bit 3: coprocessor detect
+     * bit 2: unused
+     * bit 1: high/auto speed
+     * bit 0: dma mode
+     */
+    /* (B0 or F0) | 0x04 | (display on bit 6) | (fpu on bit 3) */
+    return (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00) | 0x90;
 }
 
 /*
@@ -894,7 +886,7 @@ machine_at_pc8_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_ncr_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -927,7 +919,7 @@ machine_at_3302_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&paradise_pvga1a_ncr3302_device);
 
-    device_add(&keyboard_at_ncr_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -950,7 +942,7 @@ machine_at_pc916sx_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&keyboard_at_ncr_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     mem_remap_top(384);
 
     if (fdc_type == FDC_INTERNAL)
@@ -972,7 +964,7 @@ machine_at_m290_init(const machine_t *model)
         return ret;
 
     machine_at_common_init_ex(model, 4);
-    device_add(&keyboard_at_olivetti_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_olivetti_device);
 
     if (fdc_type == FDC_INTERNAL)
@@ -983,3 +975,25 @@ machine_at_m290_init(const machine_t *model)
     return ret;
 }
 #endif
+
+int
+machine_at_rycleopardlx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/rycleopardlx/486-RYC-Leopard-LX.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti283_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}

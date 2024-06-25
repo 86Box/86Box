@@ -30,6 +30,7 @@
 #include "cpu.h"
 #include <86box/m_amstrad.h>
 #include <86box/pci.h>
+#include <86box/mem.h>
 
 #define NPORTS 65536 /* PC/AT supports 64K ports */
 
@@ -59,6 +60,7 @@ int   initialized = 0;
 io_t *io[NPORTS];
 io_t *io_last[NPORTS];
 
+// #define ENABLE_IO_LOG 1
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
 
@@ -145,6 +147,8 @@ io_sethandler_common(uint16_t base, int size,
         q->next = NULL;
 
         io_last[base + c] = q;
+
+        q = NULL;
     }
 }
 
@@ -391,7 +395,18 @@ inb(uint16_t port)
         ret = 0xfe;
 #endif
 
-    io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    // if ((port != 0x20) && ((port < 0x40) || (port > 0x43)) && (port != 0x61) && (port != 0x80) && (port != 0xed) && ((port < 0x3a0) || (port > 0x3df)) && ((port < 0xcf8) || (port > 0xcff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    // }
+
+#if 0
+    if (CS == 0xe98b) {
+        FILE *f = fopen("d:\\86boxnew\\cs_e98b.dmp", "wb");
+        for (uint32_t i = 0; i < 0x10000; i++)
+            fputc(mem_readb_phys(cs + i), f);
+        fclose(f);
+    }
+#endif
 
     return ret;
 }
@@ -445,7 +460,9 @@ outb(uint16_t port, uint8_t val)
 #endif
     }
 
-    io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    // if ((port != 0x20) && ((port < 0x40) || (port > 0x43)) && (port != 0x61) && (port != 0x80) && (port != 0xed) && ((port < 0x3a0) || (port > 0x3df)) && ((port < 0xcf8) || (port > 0xcff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    // }
 
     return;
 }
@@ -592,7 +609,9 @@ outw(uint16_t port, uint16_t val)
 #endif
     }
 
-    io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    if (port != 0x3d4) {
+        io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    }
 
     return;
 }

@@ -82,6 +82,8 @@
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/keyboard.h>
+#include <86box/machine.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
 #include <86box/port_92.h>
@@ -418,6 +420,10 @@ umc_8886_init(const device_t *info)
         /* UM8886AF */
         device_add(&ide_um8673f_device);
     }
+
+    if (machine_get_kbc_device(machine) == NULL)
+        device_add(machine_has_bus(machine, MACHINE_BUS_PS2) ?
+                                            &keyboard_ps2_umc_device : &keyboard_at_umc_device);
 
     umc_8886_reset(dev);
 

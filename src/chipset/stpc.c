@@ -977,39 +977,24 @@ stpc_serial_init(UNUSED(const device_t *info))
 static void
 stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
 {
-    uint8_t old_addr = (dev->reg1 & 0x03);
-    uint8_t new_addr = (val & 0x03);
+    const uint8_t new_addr = (val & 0x03);
 
-    switch (old_addr) {
-        case 0x1:
-            lpt3_remove();
-            break;
-
-        case 0x2:
-            lpt1_remove();
-            break;
-
-        case 0x3:
-            lpt2_remove();
-            break;
-        default:
-            break;
-    }
+    lpt1_remove();
 
     switch (new_addr) {
         case 0x1:
             stpc_log("STPC: Remapping parallel port to LPT3\n");
-            lpt3_init(0x3bc);
+            lpt1_setup(0x3bc);
             break;
 
         case 0x2:
             stpc_log("STPC: Remapping parallel port to LPT1\n");
-            lpt1_init(0x378);
+            lpt1_setup(0x378);
             break;
 
         case 0x3:
             stpc_log("STPC: Remapping parallel port to LPT2\n");
-            lpt2_init(0x278);
+            lpt1_setup(0x278);
             break;
 
         default:
@@ -1017,9 +1002,11 @@ stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
             break;
     }
 
-    dev->reg1 = (val & 0x08);
-    dev->reg1 |= new_addr;
-    dev->reg1 |= 0x84; /* reserved bits that default to 1; hardwired? */
+    if (dev != NULL) {
+        dev->reg1 = (val & 0x08);
+        dev->reg1 |= new_addr;
+        dev->reg1 |= 0x84; /* reserved bits that default to 1; hardwired? */
+    }
 }
 
 static void

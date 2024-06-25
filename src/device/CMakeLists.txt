@@ -15,16 +15,13 @@
 #          Copyright 2021-2022 Jasmine Iwanek.
 #
 
-add_library(dev OBJECT bugger.c cassette.c cartridge.c hasp.c hwm.c hwm_lm75.c hwm_lm78.c hwm_gl518sm.c
-    hwm_vt82c686.c ibm_5161.c isamem.c isartc.c ../lpt.c pci_bridge.c
-    postcard.c serial.c unittester.c clock_ics9xxx.c isapnp.c i2c.c i2c_gpio.c
-    smbus_piix4.c smbus_ali7101.c smbus_sis5595.c keyboard.c keyboard_xt.c
-    kbc_at.c kbc_at_dev.c
-    keyboard_at.c
-    mouse.c mouse_bus.c mouse_serial.c mouse_ps2.c nec_mate_unk.c phoenix_486_jumper.c
-    serial_passthrough.c
-    novell_cardkey.c
-    mouse_microtouch_touchscreen.c)
+add_library(dev OBJECT access_bus.c bugger.c cartridge.c cassette.c clock_ics9xxx.c
+    hasp.c hwm.c hwm_gl518sm.c hwm_lm75.c hwm_lm78.c hwm_vt82c686.c i2c.c i2c_gpio.c
+    ibm_5161.c isamem.c isartc.c isapnp.c kbc_at.c kbc_at_dev.c keyboard.c
+    keyboard_xt.c keyboard_at.c lpt.c mouse.c mouse_bus.c mouse_microtouch_touchscreen.c
+    mouse_ps2.c mouse_serial.c nec_mate_unk.c novell_cardkey.c pci_bridge.c
+    phoenix_486_jumper.c postcard.c serial.c serial_passthrough.c smbus_ali7101.c
+    smbus_piix4.c smbus_sis5595.c unittester.c)
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_link_libraries(86Box atomic)
