@@ -458,3 +458,16 @@ const device_t ide_w83769f_pci_34_device = {
     .config        = NULL
 };
 
+const device_t ide_w83769f_pci_single_channel_device = {
+    .name          = "Winbond W83769F PCI",
+    .internal_name = "ide_w83769f_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0x200b4,
+    .init          = w83769f_init,
+    .close         = w83769f_close,
+    .reset         = w83769f_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
