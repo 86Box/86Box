@@ -354,11 +354,13 @@ fatal(const char *fmt, ...)
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
 
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
     do_stop();
-
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 
@@ -396,11 +398,13 @@ fatal_ex(const char *fmt, va_list ap)
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
 
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
     do_stop();
-
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 }
