@@ -135,6 +135,36 @@ umc_8886_ide_handler(umc_8886_t *dev)
 }
 
 static void
+umc_8886_bus_recalc(umc_8886_t *dev)
+{
+    switch (dev->pci_conf_sb[0x00][0xa4] & 0x03) {
+        case 0x00:
+            cpu_set_pci_speed(cpu_busspeed / 2);
+            break;
+        case 0x01:
+            cpu_set_pci_speed(cpu_busspeed);
+            break;
+        case 0x02:
+            cpu_set_pci_speed((cpu_busspeed * 2) / 3);
+            break;
+    }
+
+    switch (dev->pci_conf_sb[0x00][0x56] & 0x03) {
+        default:
+            break;
+        case 0x00:
+            cpu_set_isa_pci_div(3);
+            break;
+        case 0x01:
+            cpu_set_isa_pci_div(4);
+            break;
+        case 0x02:
+            cpu_set_isa_pci_div(2);
+            break;
+    }
+}
+
+static void
 umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *) priv;
@@ -191,20 +221,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 
                     case 0x56:
                         dev->pci_conf_sb[func][addr] = val;
-
-                        switch (val & 3) {
-                            case 0:
-                                cpu_set_isa_pci_div(3);
-                                break;
-                            case 1:
-                                cpu_set_isa_pci_div(4);
-                                break;
-                            case 2:
-                                cpu_set_isa_pci_div(2);
-                                break;
-                            default:
-                                break;
-                        }
+                        umc_8886_bus_recalc(dev);
                         break;
 
                     case 0xa2:
@@ -225,7 +242,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 
                     case 0xa4:
                         dev->pci_conf_sb[func][addr] = val;
-                        cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
+                        umc_8886_bus_recalc(dev);
                         break;
 
                     default:
@@ -362,8 +379,7 @@ umc_8886_reset(void *priv)
     for (uint8_t i = 1; i < 5; i++) /* Disable all IRQ interrupts */
         pci_set_irq_routing(i, PCI_IRQ_DISABLED);
 
-    cpu_set_isa_pci_div(3);
-    cpu_set_pci_speed(cpu_busspeed / 2);
+    umc_8886_bus_recalc(dev);
 }
 
 static void

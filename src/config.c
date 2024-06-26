@@ -745,7 +745,6 @@ load_ports(void)
     char         *p;
     char          temp[512];
     int           c;
-    int           d;
 
     memset(temp, 0, sizeof(temp));
 
@@ -768,14 +767,6 @@ load_ports(void)
         p                   = ini_section_get_string(cat, temp, "none");
         lpt_ports[c].device = lpt_device_get_from_internal_name(p);
     }
-
-    /* Legacy config compatibility. */
-    d = ini_section_get_int(cat, "lpt_enabled", 2);
-    if (d < 2) {
-        for (c = 0; c < PARALLEL_MAX; c++)
-            lpt_ports[c].enabled = d;
-    }
-    ini_section_delete_var(cat, "lpt_enabled");
 }
 
 /* Load "Storage Controllers" section. */
@@ -790,7 +781,7 @@ load_storage_controllers(void)
     int           min = 0;
     int           free_p = 0;
 
-    for (c = min; c < SCSI_BUS_MAX; c++) {
+    for (c = min; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
@@ -1184,8 +1175,7 @@ load_floppy_and_cdrom_drives(void)
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-        cdrom[c].host_drive      = ini_section_get_int(cat, temp, 0);
-        cdrom[c].prev_host_drive = cdrom[c].host_drive;
+        ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
@@ -1272,12 +1262,6 @@ load_floppy_and_cdrom_drives(void)
             path_normalize(cdrom[c].image_path);
         }
 
-        if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
-            cdrom[c].host_drive = 0;
-
-        if ((cdrom[c].host_drive == 0x200) && (strlen(cdrom[c].image_path) == 0))
-            cdrom[c].host_drive = 0;
-
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             cdrom[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
@@ -1298,9 +1282,6 @@ load_floppy_and_cdrom_drives(void)
 
         /* If the CD-ROM is disabled, delete all its variables. */
         if (cdrom[c].bus_type == CDROM_BUS_DISABLED) {
-            sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "cdrom_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
@@ -1431,9 +1412,6 @@ load_other_removable_devices(void)
 
         /* If the ZIP drive is disabled, delete all its variables. */
         if (zip_drives[c].bus_type == ZIP_BUS_DISABLED) {
-            sprintf(temp, "zip_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "zip_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
@@ -1547,9 +1525,6 @@ load_other_removable_devices(void)
 
         /* If the MO drive is disabled, delete all its variables. */
         if (mo_drives[c].bus_type == MO_BUS_DISABLED) {
-            sprintf(temp, "mo_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "mo_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
@@ -1952,7 +1927,7 @@ save_machine(void)
     else
         ini_section_delete_var(cat, "cpu_override");
     if (cpu_override_interpreter)
-        ini_section_set_int(cat, "cpu_override_interpreter", cpu_override);
+        ini_section_set_int(cat, "cpu_override_interpreter", cpu_override_interpreter);
     else
         ini_section_delete_var(cat, "cpu_override_interpreter");
 
@@ -2288,7 +2263,7 @@ save_storage_controllers(void)
 
     ini_section_delete_var(cat, "scsicard");
 
-    for (c = 0; c < SCSI_BUS_MAX; c++) {
+    for (c = 0; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         if (scsi_card_current[c] == 0)
@@ -2584,10 +2559,7 @@ save_floppy_and_cdrom_drives(void)
 
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].host_drive != 200))
-            ini_section_delete_var(cat, temp);
-        else
-            ini_section_set_int(cat, temp, cdrom[c].host_drive);
+        ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         if ((cdrom[c].bus_type == 0) || (cdrom[c].speed == 8))

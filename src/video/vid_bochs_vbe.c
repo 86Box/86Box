@@ -124,6 +124,7 @@ typedef struct bochs_vbe_t {
 
     mem_mapping_t linear_mapping;
     mem_mapping_t linear_mapping_2;
+    uint32_t      ma_latch_old;
 
     void *        i2c;
     void *        ddc;
@@ -322,10 +323,10 @@ bochs_vbe_recalctimings(svga_t* svga)
         svga->hblankend = mode.hdisplay + (mode.htotal - mode.hdisplay - 1);
         svga->vblankstart = svga->dispend; /* no vertical overscan. */
         svga->rowcount = 0;
+        svga->hoverride = 1;
         if (dev->vbe_regs[VBE_DISPI_INDEX_BPP] != 4) {
             svga->fb_only = 1;
             svga->adv_flags |= FLAG_NO_SHIFT3;
-            
         } else {
             svga->fb_only = 0;
             svga->adv_flags &= ~FLAG_NO_SHIFT3;
@@ -334,26 +335,29 @@ bochs_vbe_recalctimings(svga_t* svga)
         svga->bpp = dev->vbe_regs[VBE_DISPI_INDEX_BPP];
 
         if (svga->bpp == 4) {
-            svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] >> 3;
+            svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
             svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                               (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
         } else {
-            svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * (svga->bpp / 8);
+            svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
             svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                             (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * (svga->bpp / 8));
+                             (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));            
         }
-
-        if ((svga->ma_latch + dev->vbe_regs[VBE_DISPI_INDEX_YRES] * svga->rowoffset) >
-             svga->vram_max) {
-            dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] = 0;
-            svga->ma_latch = (svga->bpp == 4) ? (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3) :
-                             (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * (svga->bpp / 8));
-            if ((svga->ma_latch + dev->vbe_regs[VBE_DISPI_INDEX_YRES] * svga->rowoffset) >
-                svga->vram_max) {
-                svga->ma_latch = 0;
-                dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] = 0;
+        if (svga->ma_latch != dev->ma_latch_old) {
+            if (svga->bpp == 4) {
+                svga->maback = (svga->maback - (dev->ma_latch_old << 2)) +
+                               (svga->ma_latch << 2);
+            } else {
+                svga->maback = (svga->maback - (dev->ma_latch_old)) +
+                                (svga->ma_latch);
+                dev->ma_latch_old = svga->ma_latch;
             }
         }
+
+        if (svga->bpp == 4)
+            dev->vbe_regs[VBE_DISPI_INDEX_VIRT_HEIGHT] = (svga->vram_max * 2) / dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH];
+        else
+            dev->vbe_regs[VBE_DISPI_INDEX_VIRT_HEIGHT] = (svga->vram_max / ((svga->bpp == 15) ? 2 : (svga->bpp / 8))) / dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH];
         svga->split = 0xffffff;
 
         switch (svga->bpp) {
@@ -381,6 +385,7 @@ bochs_vbe_recalctimings(svga_t* svga)
         svga->fb_only = 0;
         svga->packed_4bpp = 0;
         svga->adv_flags &= ~FLAG_NO_SHIFT3;
+        svga->hoverride = 0;
     }
 }
 
@@ -417,8 +422,10 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
         case VBE_DISPI_INDEX_DDC:
             if (dev->vbe_regs[dev->vbe_index] & (1 << 7)) {
                 ret = dev->vbe_regs[dev->vbe_index] & ((1 << 7) | 0x3);
-                ret |= i2c_gpio_get_scl(dev->i2c) << 2;
-                ret |= i2c_gpio_get_sda(dev->i2c) << 3;
+                if ((ret & 0x01) && i2c_gpio_get_scl(dev->i2c))
+                    ret |= 0x04;
+                if ((ret & 0x02) && i2c_gpio_get_sda(dev->i2c))
+                    ret |= 0x08;
             } else
                 ret = 0x000f;
             break;
@@ -437,8 +444,6 @@ bochs_vbe_inl(const uint16_t addr, void *priv)
         ret = dev->vbe_index;
     else
         ret = dev->vram_size;
-
-    pclog("[%04X:%08X] [R] %04X = %08X\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }
@@ -468,7 +473,30 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
         case VBE_DISPI_INDEX_X_OFFSET:
         case VBE_DISPI_INDEX_Y_OFFSET:
             dev->vbe_regs[dev->vbe_index] = val;
-            svga_recalctimings(&dev->svga);
+            if (dev->vbe_index == VBE_DISPI_INDEX_X_OFFSET || dev->vbe_index == VBE_DISPI_INDEX_Y_OFFSET) {
+                svga_t *svga = &dev->svga;
+                if (svga->bpp == 4) {
+                    svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
+                    svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+                                    (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
+                } else {
+                    svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
+                    svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+                                    (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));            
+                }
+                if (svga->ma_latch != dev->ma_latch_old) {
+                    if (svga->bpp == 4) {
+                        svga->maback = (svga->maback - (dev->ma_latch_old << 2)) +
+                                    (svga->ma_latch << 2);
+                    } else {
+                        svga->maback = (svga->maback - (dev->ma_latch_old)) +
+                                        (svga->ma_latch);
+                        dev->ma_latch_old = svga->ma_latch;
+                    }
+                }
+            }
+            else
+                svga_recalctimings(&dev->svga);
             break;
 
         case VBE_DISPI_INDEX_BANK:
@@ -625,16 +653,16 @@ bochs_vbe_pci_read(const int func, const int addr, void *priv)
         default:
             break;
         case 0x00:
-            ret = 0x34;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x34 : 0xee;
             break;
         case 0x01:
-            ret = 0x12;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x12 : 0x80;
             break;
         case 0x02:
-            ret = 0x11;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xef;
             break;
         case 0x03:
-            ret = 0x11;
+            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xbe;
             break;
         case 0x04:
             ret = (dev->pci_conf_status & 0b11100011) | 0x80;
@@ -672,9 +700,6 @@ bochs_vbe_pci_read(const int func, const int addr, void *priv)
     } else
         ret = 0xff;
 
-    if (func == 0x00)
-        pclog("[R] %02X = %02X\n", addr, ret);
-
     return ret;
 }
 
@@ -691,19 +716,20 @@ bochs_vbe_disable_handlers(bochs_vbe_t *dev)
     mem_mapping_disable(&dev->svga.mapping);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
+    /* Save all the mappings and the timers because they are part of linked lists. */
     reset_state->linear_mapping_2 = dev->linear_mapping_2;
-    reset_state->linear_mapping = dev->linear_mapping;
-    reset_state->svga.mapping = dev->svga.mapping;
+    reset_state->linear_mapping   = dev->linear_mapping;
+    reset_state->svga.mapping     = dev->svga.mapping;
     reset_state->bios_rom.mapping = dev->bios_rom.mapping;
+
+    reset_state->svga.timer       = dev->svga.timer;
+    reset_state->svga.timer8514   = dev->svga.timer8514;
 }
 
 static void
 bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *priv)
 {
     bochs_vbe_t *dev = (bochs_vbe_t *) priv;
-
-    if (func == 0x00)
-        pclog("[W] %02X = %02X\n", addr, val);
 
     if (func == 0x00)  switch (addr) {
         default:
@@ -792,6 +818,21 @@ bochs_vbe_init(const device_t *info)
              0xc0000, 0x10000, 0xffff, 0x0000,
              MEM_MAPPING_EXTERNAL);
 
+    if (dev->id5_val == VBE_DISPI_ID4) {
+        /* Patch the BIOS to match the PCI ID. */
+        dev->bios_rom.rom[0x010c] = 0xee;
+        dev->bios_rom.rom[0x8dff] -= (0xee - 0x34);
+
+        dev->bios_rom.rom[0x010d] = 0x80;
+        dev->bios_rom.rom[0x8dff] -= (0x80 - 0x12);
+
+        dev->bios_rom.rom[0x010e] = 0xef;
+        dev->bios_rom.rom[0x8dff] -= (0xef - 0x11);
+
+        dev->bios_rom.rom[0x010f] = 0xbe;
+        dev->bios_rom.rom[0x8dff] -= (0xbe - 0x11);
+    }
+
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_bochs);
 
     svga_init(info, &dev->svga, dev, dev->vram_size,
@@ -830,6 +871,7 @@ bochs_vbe_init(const device_t *info)
 
     dev->i2c = i2c_gpio_init("ddc_bochs");
     dev->ddc = ddc_init(i2c_gpio_get_bus(dev->i2c));
+    dev->svga.packed_chain4 = 1;
 
     pci_add_card(PCI_ADD_NORMAL, bochs_vbe_pci_read, bochs_vbe_pci_write, dev, &dev->slot);
 

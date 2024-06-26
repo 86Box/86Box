@@ -155,15 +155,35 @@ Settings::Settings(QWidget *parent)
             &SettingsOtherPeripherals::onCurrentMachineChanged);
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
             &SettingsHarddisks::reloadBusChannels);
+    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
+    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_ZIP);
     connect(harddisks, &SettingsHarddisks::driveChannelChanged, floppyCdrom,
             &SettingsFloppyCDROM::reloadBusChannels);
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_ZIP);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_ZIP);
+    connect(otherRemovable, &SettingsOtherRemovable::zipChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::zipChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::zipChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
            [this](const QModelIndex &current, const QModelIndex &previous) {
                   ui->stackedWidget->setCurrentIndex(current.row()); });
 
-    ui->listView->setMinimumWidth(ui->listView->sizeHintForColumn(0) +
-                                  qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
+    ui->listView->resizeColumnsToContents();
+    ui->listView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
     ui->listView->setCurrentIndex(model->index(0, 0));
 

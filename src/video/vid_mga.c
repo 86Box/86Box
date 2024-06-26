@@ -491,7 +491,7 @@ typedef struct mystique_t {
 
     struct
     {
-        uint8_t funcnt, stylelen,
+        uint8_t funcnt : 7, stylelen,
             dmamod;
 
         int16_t fxleft, fxright,
@@ -505,7 +505,7 @@ typedef struct mystique_t {
             ta_key, ta_mask, lastpix_r, lastpix_g,
             lastpix_b, highv_line, beta, dither, err, k1, k2;
 
-        int pattern[8][16];
+        bool pattern[8][16];
 
         uint32_t dwgctrl, dwgctrl_running, bcol, fcol,
             pitch, plnwt, ybot, ydstorg,
@@ -3885,7 +3885,6 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
                     data64 = mystique->dwgreg.iload_rem_data | ((uint64_t) data << mystique->dwgreg.iload_rem_count);
                     while (size >= 32) {
                         int draw = (!transc || (data & bltcmsk) != bltckey) && trans[mystique->dwgreg.xdst & 3];
-                        pclog("maccess = 0x%X\n", mystique->maccess_running & MACCESS_PWIDTH_MASK);
 
                         if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && draw) {
                             switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
@@ -4377,15 +4376,20 @@ blit_line(mystique_t *mystique, int closed, int autoline)
     uint32_t old_dst;
     int      x = mystique->dwgreg.xdst;
     int      z_write;
+    int      pattern_x, pattern_y;
+    bool     transc = !!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC);
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_RSTR:
         case DWGCTRL_ATYPE_RPL:
             while (mystique->dwgreg.length >= 0) {
                 if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
+                    pattern_y = ((mystique->dwgreg.funcnt % (mystique->dwgreg.stylelen + 1)) >> 4) & 0x7;
+                    pattern_x = (mystique->dwgreg.funcnt % (mystique->dwgreg.stylelen + 1)) & 0xf;
+                    if (!transc || (transc && (mystique->dwgreg.pattern[pattern_y][pattern_x])))
                     switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                         case MACCESS_PWIDTH_8:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             dst = svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask];
 
                             dst                                                                              = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
@@ -4402,7 +4406,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                             break;
 
                         case MACCESS_PWIDTH_16:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w];
 
                             dst                                                                                = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
@@ -4419,7 +4423,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                             break;
 
                         case MACCESS_PWIDTH_24:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             old_dst = *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask];
 
                             dst                                                                                    = bitop(src, old_dst, mystique->dwgreg.dwgctrl_running);
@@ -4436,7 +4440,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                             break;
 
                         case MACCESS_PWIDTH_32:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l];
 
                             dst                                                                                = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
@@ -4479,6 +4483,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                     mystique->dwgreg.err += mystique->dwgreg.k1;
 
                 mystique->dwgreg.length--;
+                mystique->dwgreg.funcnt--;
             }
             break;
 
@@ -5106,8 +5111,8 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
 
         s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
         t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
-        s_frac = (((int32_t) mystique->dwgreg.tmr[6] >> s_shift) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int32_t) mystique->dwgreg.tmr[7] >> t_shift) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        s_frac = (((int32_t) mystique->dwgreg.tmr[6]) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int32_t) mystique->dwgreg.tmr[7]) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     } else {
         const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
         const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
@@ -5116,7 +5121,7 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
         t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
         s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     }
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
@@ -5326,6 +5331,15 @@ blit_texture_trap(mystique_t *mystique)
                                         tex_g = (tex_g * i_g) >> 8;
                                         tex_b = (tex_b * i_b) >> 8;
                                     }
+                                    break;
+
+                                case (TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY):
+                                    if (!ctransp)
+                                        goto skip_pixel;
+
+                                    tex_r = i_r;
+                                    tex_g = i_g;
+                                    tex_b = i_b;
                                     break;
 
                                 default:

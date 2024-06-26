@@ -199,10 +199,11 @@ typedef struct cdrom_ops_t {
     void (*get_tracks)(struct cdrom *dev, int *first, int *last);
     void (*get_track_info)(struct cdrom *dev, uint32_t track, int end, track_info_t *ti);
     void (*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);
-    int (*is_track_pre)(struct cdrom *dev, uint32_t lba);
-    int (*sector_size)(struct cdrom *dev, uint32_t lba);
-    int (*read_sector)(struct cdrom *dev, int type, uint8_t *b, uint32_t lba);
-    int (*track_type)(struct cdrom *dev, uint32_t lba);
+    int  (*is_track_pre)(struct cdrom *dev, uint32_t lba);
+    int  (*sector_size)(struct cdrom *dev, uint32_t lba);
+    int  (*read_sector)(struct cdrom *dev, int type, uint8_t *b, uint32_t lba);
+    int  (*track_type)(struct cdrom *dev, uint32_t lba);
+    int  (*ext_medium_changed)(struct cdrom *dev);
     void (*exit)(struct cdrom *dev);
 } cdrom_ops_t;
 
@@ -240,8 +241,6 @@ typedef struct cdrom {
     uint32_t cd_end;
     uint32_t type;
 
-    int host_drive;
-    int prev_host_drive;
     int cd_buflen;
     int audio_op;
     int audio_muted_soft;
@@ -305,11 +304,9 @@ extern void cdrom_reload(uint8_t id);
 
 extern int  cdrom_image_open(cdrom_t *dev, const char *fn);
 extern void cdrom_image_close(cdrom_t *dev);
-extern void cdrom_image_reset(cdrom_t *dev);
 
-extern void cdrom_ioctl_eject(void);
-extern void cdrom_ioctl_load(void);
-extern int  cdrom_ioctl_open(cdrom_t *dev, const char d);
+extern int  cdrom_ioctl_open(cdrom_t *dev, const char *drv);
+extern void cdrom_ioctl_close(cdrom_t *dev);
 
 extern void cdrom_update_cdb(uint8_t *cdb, int lba_pos,
                              int number_of_blocks);

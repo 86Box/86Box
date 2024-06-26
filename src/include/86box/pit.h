@@ -114,6 +114,7 @@ extern double AGPCLK;
 extern uint64_t PITCONST;
 extern uint64_t PAS16CONST;
 extern uint64_t PAS16CONST2;
+extern uint64_t PASSCSICONST;
 extern uint64_t ISACONST;
 extern uint64_t CGACONST;
 extern uint64_t MDACONST;

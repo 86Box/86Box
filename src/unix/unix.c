@@ -266,6 +266,10 @@ plat_get_string(int i)
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_GHOSTSCRIPT_ERROR_TITLE:
             return L"Unable to initialize Ghostscript";
+        case STRING_GHOSTPCL_ERROR_TITLE:
+            return L"Unable to initialize GhostPCL";
+        case STRING_GHOSTPCL_ERROR_DESC:
+            return L"libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
         case STRING_HW_NOT_AVAILABLE_MACHINE:
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case STRING_HW_NOT_AVAILABLE_VIDEO:
@@ -826,15 +830,32 @@ plat_init_rom_paths(void)
 }
 
 void
-plat_get_global_config_dir(char *strptr)
+plat_get_global_config_dir(char *outbuf, const uint8_t len)
 {
-#ifdef __APPLE__
-    char *prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box");
-#else
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-#endif
-    strncpy(strptr, prefPath, 1024);
-    path_slash(strptr);
+    strncpy(outbuf, prefPath, len);
+    path_slash(outbuf);
+    SDL_free(prefPath);
+}
+
+void
+plat_get_global_data_dir(char *outbuf, const uint8_t len)
+{
+    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
+    strncpy(outbuf, prefPath, len);
+    path_slash(outbuf);
+    SDL_free(prefPath);
+}
+
+void
+plat_get_temp_dir(char *outbuf, uint8_t len)
+{
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL) {
+        tmpdir = "/tmp";
+    }
+    strncpy(outbuf, tmpdir, len);
+    path_slash(outbuf);
 }
 
 bool

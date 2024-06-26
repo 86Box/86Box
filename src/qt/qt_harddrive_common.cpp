@@ -20,6 +20,7 @@
 
 extern "C" {
 #include <86box/hdd.h>
+#include <86box/scsi.h>
 #include <86box/cdrom.h>
 }
 
@@ -109,9 +110,16 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     QList<int> channelsInUse;
     switch (bus) {
         case HDD_BUS_MFM:
+            busRows = 2;
+            busesToCheck.append(HDD_BUS_MFM);
+            break;
         case HDD_BUS_XTA:
+            busRows = 2;
+            busesToCheck.append(HDD_BUS_XTA);
+            break;
         case HDD_BUS_ESDI:
             busRows = 2;
+            busesToCheck.append(HDD_BUS_ESDI);
             break;
         case HDD_BUS_IDE:
             busRows = 8;
@@ -126,7 +134,7 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         case HDD_BUS_SCSI:
             shifter         = 4;
             orer            = 15;
-            busRows         = 64;
+            busRows         = /*64*/ SCSI_BUS_MAX * SCSI_ID_MAX;
             subChannelWidth = 2;
             busesToCheck.append(HDD_BUS_SCSI);
             break;

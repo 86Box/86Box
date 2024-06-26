@@ -91,26 +91,23 @@ void qt_set_sequence_auto_mnemonic(bool b);
 void
 main_thread_fn()
 {
-    uint64_t old_time;
-    uint64_t new_time;
-    int      drawits;
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
-    plat_set_thread_name(NULL, "main_thread_fn");
+    plat_set_thread_name(nullptr, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
-    old_time = elapsed_timer.elapsed();
-    drawits = frames = 0;
+    uint64_t old_time = elapsed_timer.elapsed();
+    int drawits = frames = 0;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
-        new_time = elapsed_timer.elapsed();
+        const uint64_t new_time = elapsed_timer.elapsed();
 #ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
             drawits = 10;
         else
 #endif
-            drawits += (new_time - old_time);
+            drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
@@ -226,8 +223,8 @@ main(int argc, char *argv[])
     if(!util::compareUuid()) {
         QMessageBox movewarnbox;
         movewarnbox.setIcon(QMessageBox::Icon::Warning);
-        movewarnbox.setText("This machine might have been moved or copied.");
-        movewarnbox.setInformativeText("In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure.");
+        movewarnbox.setText(QObject::tr("This machine might have been moved or copied."));
+        movewarnbox.setInformativeText(QObject::tr("In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."));
         const QPushButton *movedButton  = movewarnbox.addButton(QObject::tr("I Moved It"), QMessageBox::AcceptRole);
         const QPushButton *copiedButton = movewarnbox.addButton(QObject::tr("I Copied It"), QMessageBox::DestructiveRole);
         QPushButton       *cancelButton = movewarnbox.addButton(QObject::tr("Cancel"), QMessageBox::RejectRole);
@@ -243,13 +240,13 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
 #    if !defined(EMU_BUILD_NUM) || (EMU_BUILD_NUM != 5624)
-    HWND winbox = FindWindow("TWinBoxMain", NULL);
+    HWND winbox = FindWindowW(L"TWinBoxMain", NULL);
     if (winbox &&
-        FindWindowEx(winbox, NULL, "TToolBar", NULL) &&
-        FindWindowEx(winbox, NULL, "TListBox", NULL) &&
-        FindWindowEx(winbox, NULL, "TStatusBar", NULL) &&
-        (winbox = FindWindowEx(winbox, NULL, "TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
-        FindWindowEx(winbox, NULL, "TTabSheet", NULL))
+        FindWindowExW(winbox, NULL, L"TToolBar", NULL) &&
+        FindWindowExW(winbox, NULL, L"TListBox", NULL) &&
+        FindWindowExW(winbox, NULL, L"TStatusBar", NULL) &&
+        (winbox = FindWindowExW(winbox, NULL, L"TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
+        FindWindowExW(winbox, NULL, L"TTabSheet", NULL))
 #    endif
     {
         QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("WinBox is no longer supported"),
@@ -395,7 +392,7 @@ main(int argc, char *argv[])
             plat_pause(0);
     });
 
-    auto ret       = app.exec();
+    const auto ret       = app.exec();
     cpu_thread_run = 0;
     main_thread->join();
     pc_close(nullptr);

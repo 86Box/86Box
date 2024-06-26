@@ -413,6 +413,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x74: /* USB IRQ Routing - we cheat and use MIRQ4 */
             dev->pci_conf[addr] = val & 0xdf;
             /* TODO: MIRQ level/edge control - if bit 4 = 1, it's level */
+            pci_set_mirq_level(PCI_MIRQ4, !(val & 0x10));
             pci_set_mirq_routing(PCI_MIRQ4, ali1533_irq_routing[val & 0x0f]);
             break;
 
@@ -782,9 +783,9 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
             /* Datasheet erratum: the PCI BAR's actually have different sizes. */
             if (addr == 0x20)
                 dev->ide_conf[addr] = (val & 0xe0) | 0x01;
-            else if ((addr & 0x43) == 0x00)
+            else if ((addr & 0x07) == 0x00)
                 dev->ide_conf[addr] = (val & 0xf8) | 0x01;
-            else if ((addr & 0x43) == 0x40)
+            else if ((addr & 0x07) == 0x04)
                 dev->ide_conf[addr] = (val & 0xfc) | 0x01;
             else
                 dev->ide_conf[addr] = val;

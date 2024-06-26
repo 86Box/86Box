@@ -46,6 +46,7 @@
 #include <86box/vid_xga_device.h>
 
 void svga_doblit(int wx, int wy, svga_t *svga);
+void svga_poll(void *priv);
 
 svga_t *svga_8514;
 
@@ -120,6 +121,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
 
     if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
         return;
+
+    if (addr >= 0x3c6 && addr <= 0x3c9)
+        svga_log("VGA OUT addr=%03x, val=%02x.\n", addr, val);
 
     switch (addr) {
         case 0x2ea:
@@ -528,6 +532,9 @@ svga_in(uint16_t addr, void *priv)
             break;
     }
 
+    if ((addr >= 0x3c6) && (addr <= 0x3c9))
+        svga_log("VGA IN addr=%03x, temp=%02x.\n", addr, ret);
+
     return ret;
 }
 
@@ -935,11 +942,11 @@ svga_recalctimings(svga_t *svga)
             if (dev->dispofftime < TIMER_USEC)
                 dev->dispofftime = TIMER_USEC;
 
-            timer_disable(&svga->timer);
-            timer_set_delay_u64(&svga->timer8514, TIMER_USEC);
+            svga_log("IBM 8514/A poll.\n");
+            timer_set_callback(&svga->timer, ibm8514_poll);
         } else {
-            timer_disable(&svga->timer8514);
-            timer_set_delay_u64(&svga->timer, TIMER_USEC);
+            svga_log("SVGA Poll.\n");
+            timer_set_callback(&svga->timer, svga_poll);
         }
     }
 
@@ -1130,9 +1137,9 @@ svga_poll(void *priv)
                 svga->linecountff = 0;
                 svga->sc          = 0;
 
-                svga->maback += (svga->rowoffset << 3);
+                svga->maback += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
                 if (svga->interlace)
-                    svga->maback += (svga->rowoffset << 3);
+                    svga->maback += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
 
                 svga->maback &= svga->vram_display_mask;
                 svga->ma = svga->maback;
@@ -1237,8 +1244,10 @@ svga_poll(void *priv)
                 svga->ma = svga->maback = svga->ma_latch + svga->hblank_sub;
 
             svga->ca     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
-            svga->ma     = (svga->ma << 2);
-            svga->maback = (svga->maback << 2);
+            if (!(svga->adv_flags & FLAG_NO_SHIFT3)) {
+                svga->ma     = (svga->ma << 2);
+                svga->maback = (svga->maback << 2);
+            }
             svga->ca     = (svga->ca << 2);
 
             if (svga->vsync_callback)
@@ -1341,6 +1350,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->hwcursor_draw                       = hwcursor_draw;
     svga->overlay_draw                        = overlay_draw;
     svga->conv_16to32                         = svga_conv_16to32;
+    svga->render                              = svga_render_blank;
 
     svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = 32;
 

@@ -9,6 +9,7 @@
 
 #include "x86.h"
 #include "x86_ops.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "codegen.h"
 #include "codegen_ops.h"

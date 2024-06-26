@@ -279,7 +279,11 @@ reset_common(int hard)
     cr4              = 0;
     cpu_state.eflags = 0;
     cgate32          = 0;
+#ifdef USE_DEBUG_REGS_486
+    if (is386) {
+#else
     if (is386 && !is486) {
+#endif
         for (uint8_t i = 0; i < 4; i++)
             dr[i] = 0x00000000;
         dr[6] = 0xffff1ff0;

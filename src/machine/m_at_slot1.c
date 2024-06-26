@@ -530,8 +530,8 @@ machine_at_s1846_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current[0] == SOUND_INTERNAL) {
-        device_add(&es1371_onboard_device);
-        device_add(&cs4297_device); /* found on other Tyan boards around the same time */
+        device_add(machine_get_snd_device(machine));
+        device_add(&ct1297_device); /* no good pictures, but the marking looks like CT1297 from a distance */
     }
 
     return ret;
@@ -675,8 +675,8 @@ machine_at_gt694va_init(const machine_t *model)
     hwm_values.temperatures[2] = 0;    /* unused */
 
     if (sound_card_current[0] == SOUND_INTERNAL) {
-        device_add(&es1371_onboard_device);
-        device_add(&cs4297_device); /* assumed */
+        device_add(machine_get_snd_device(machine));
+        device_add(&cs4297_device); /* no good pictures, but the marking looks like CS4297 from a distance */
     }
 
     return ret;
@@ -739,7 +739,7 @@ machine_at_ms6168_common_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     if (sound_card_current[0] == SOUND_INTERNAL) {
-        device_add(&es1371_onboard_device);
+        device_add(machine_get_snd_device(machine));
         device_add(&cs4297_device);
     }
 }
@@ -823,19 +823,21 @@ machine_at_p6f99_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,       2, 3, 4, 1);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x0C, PCI_CARD_SOUND,       2, 3, 4, 1);
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
     device_add(&sis_5600_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&it8661f_device);
     device_add(&winbond_flash_w29c020_device);
 
-    if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&es1371_onboard_device);
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&ct1297_device);
+    }
 
     return ret;
 }

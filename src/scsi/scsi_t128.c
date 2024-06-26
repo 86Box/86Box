@@ -41,30 +41,9 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
+#include <86box/scsi_t128.h>
 
 #define T128_ROM                "roms/scsi/ncr5380/trantor_t128_bios_v1.12.bin"
-
-typedef struct t128_t {
-    ncr_t   ncr;
-    rom_t   bios_rom;
-    mem_mapping_t mapping;
-
-    uint8_t ctrl;
-    uint8_t status;
-    uint8_t buffer[512];
-    uint8_t ext_ram[0x80];
-    uint8_t block_count;
-
-    int block_loaded;
-    int pos, host_pos;
-
-    uint32_t rom_addr;
-
-    int bios_enabled;
-    uint8_t pos_regs[8];
-
-    pc_timer_t timer;
-} t128_t;
 
 #ifdef ENABLE_T128_LOG
 int t128_do_log = ENABLE_T128_LOG;
@@ -85,7 +64,7 @@ t128_log(const char *fmt, ...)
 #endif
 
 /* Memory-mapped I/O WRITE handler. */
-static void
+void
 t128_write(uint32_t addr, uint8_t val, void *priv)
 {
     t128_t              *t128    = (t128_t *) priv;
@@ -122,7 +101,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 /* Memory-mapped I/O READ handler. */
-static uint8_t
+uint8_t
 t128_read(uint32_t addr, void *priv)
 {
     t128_t        *t128    = (t128_t *) priv;
@@ -243,7 +222,7 @@ t128_timer_on_auto(void *ext_priv, double period)
         timer_on_auto(&t128->timer, period);
 }
 
-static void
+void
 t128_callback(void *priv)
 {
     t128_t         *t128       = (void *) priv;
@@ -506,7 +485,7 @@ t128_init(const device_t *info)
         t128->pos_regs[0]   = 0x8c;
         t128->pos_regs[1]   = 0x50;
         mca_add(t228_read, t228_write, t228_feedb, NULL, t128);
-    } else {
+    } else if (info->local == 0) {
         ncr->irq            = device_get_config_int("irq");
         t128->rom_addr      = device_get_config_hex20("bios_addr");
         t128->bios_enabled  = device_get_config_int("boot");
@@ -525,12 +504,13 @@ t128_init(const device_t *info)
     ncr->dma_send_ext               = t128_dma_send_ext;
     ncr->dma_initiator_receive_ext  = t128_dma_initiator_receive_ext;
     ncr->timer                      = t128_timer_on_auto;
-    t128->status                    = 0x04;
+    t128->status                    = 0x00 /*0x04*/;
     t128->host_pos                  = 512;
     if (!t128->bios_enabled && !(info->flags & DEVICE_MCA))
         t128->status                |= 0x80;
 
-    timer_add(&t128->timer, t128_callback, t128, 0);
+    if (info->local == 0)
+        timer_add(&t128->timer, t128_callback, t128, 0);
 
     scsi_bus_set_speed(ncr->bus, 5000000.0);
 
@@ -616,6 +596,7 @@ const device_t scsi_t128_device = {
     .config        = t128_config
 };
 
+
 const device_t scsi_t228_device = {
     .name          = "Trantor T228",
     .internal_name = "t228",
@@ -625,6 +606,20 @@ const device_t scsi_t228_device = {
     .close         = t128_close,
     .reset         = NULL,
     { .available = t128_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t scsi_pas_device = {
+    .name          = "Pro Audio Spectrum Plus/16 SCSI",
+    .internal_name = "scsi_pas",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = t128_init,
+    .close         = t128_close,
+    .reset         = NULL,
+    { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

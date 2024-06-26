@@ -706,6 +706,31 @@ machine_at_awardsx_init(const machine_t *model)
 }
 
 int
+machine_at_acer100t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/acer100t/acer386.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ps2_ide_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+    
+    device_add(&ali1409_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&oti077_acer100t_device);   
+     
+    
+    return ret;
+}
+
+
+int
 machine_at_arb1374_init(const machine_t *model)
 {
     int ret;

@@ -308,7 +308,7 @@
 #define BUS_REQ                       0x20
 #define BUS_BSY                       0x40
 #define BUS_RST                       0x80
-#define BUS_ACK                       0x200
+#define BUS_ACK                       0x100
 #define BUS_ATN                       0x200
 #define BUS_ARB                       0x8000
 #define BUS_SETDATA(val)              ((uint32_t) val << 16)

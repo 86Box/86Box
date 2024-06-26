@@ -56,6 +56,7 @@ ics2494_getclock(int clock, void *priv)
     if (clock > 15)
         clock = 15;
 
+    ics2494_log("Clock=%d, freq=%f.\n", clock, ics2494->freq[clock]);
     return ics2494->freq[clock];
 }
 
@@ -68,60 +69,60 @@ ics2494_init(const device_t *info)
     switch (info->local) {
         case 10:
             /* ATI 18810 for ATI 28800 */
-            ics2494->freq[0x0] = 30240000.0;
-            ics2494->freq[0x1] = 32000000.0;
-            ics2494->freq[0x2] = 37500000.0;
-            ics2494->freq[0x3] = 39000000.0;
-            ics2494->freq[0x4] = 42954000.0;
-            ics2494->freq[0x5] = 48771000.0;
-            ics2494->freq[0x6] = 16657000.0;
-            ics2494->freq[0x7] = 36000000.0;
-            ics2494->freq[0x8] = 40000000.0;
-            ics2494->freq[0x9] = 56644000.0;
-            ics2494->freq[0xa] = 75000000.0;
-            ics2494->freq[0xb] = 65000000.0;
-            ics2494->freq[0xc] = 50350000.0;
-            ics2494->freq[0xd] = 56640000.0;
-            ics2494->freq[0xe] = 28322000.0;
-            ics2494->freq[0xf] = 44900000.0;
+            ics2494->freq[0x0] = 42954000.0;
+            ics2494->freq[0x1] = 48771000.0;
+            ics2494->freq[0x2] = 0.0;
+            ics2494->freq[0x3] = 36000000.0;
+            ics2494->freq[0x4] = 50350000.0;
+            ics2494->freq[0x5] = 56640000.0;
+            ics2494->freq[0x6] = 0.0;
+            ics2494->freq[0x7] = 44900000.0;
+            ics2494->freq[0x8] = 30240000.0;
+            ics2494->freq[0x9] = 32000000.0;
+            ics2494->freq[0xa] = 37500000.0;
+            ics2494->freq[0xb] = 39000000.0;
+            ics2494->freq[0xc] = 40000000.0;
+            ics2494->freq[0xd] = 56644000.0;
+            ics2494->freq[0xe] = 75000000.0;
+            ics2494->freq[0xf] = 65000000.0;
             break;
         case 110:
             /* ATI 18811-0 for ATI Mach32 */
-            ics2494->freq[0x0] = 30240000.0;
-            ics2494->freq[0x1] = 32000000.0;
-            ics2494->freq[0x2] = 110000000.0;
-            ics2494->freq[0x3] = 80000000.0;
-            ics2494->freq[0x4] = 42954000.0;
-            ics2494->freq[0x5] = 48771000.0;
-            ics2494->freq[0x6] = 92400000.0;
-            ics2494->freq[0x7] = 36000000.0;
-            ics2494->freq[0x8] = 39910000.0;
-            ics2494->freq[0x9] = 44900000.0;
-            ics2494->freq[0xa] = 75000000.0;
-            ics2494->freq[0xb] = 65000000.0;
-            ics2494->freq[0xc] = 50350000.0;
-            ics2494->freq[0xd] = 56640000.0;
-            ics2494->freq[0xe] = 0.0;
-            ics2494->freq[0xf] = 44900000.0;
+            ics2494->freq[0x0] = 42954000.0;
+            ics2494->freq[0x1] = 48771000.0;
+            ics2494->freq[0x2] = 92400000.0;
+            ics2494->freq[0x3] = 36000000.0;
+            ics2494->freq[0x4] = 50350000.0;
+            ics2494->freq[0x5] = 56640000.0;
+            ics2494->freq[0x6] = 0.0;
+            ics2494->freq[0x7] = 44900000.0;
+            ics2494->freq[0x8] = 30240000.0;
+            ics2494->freq[0x9] = 32000000.0;
+            ics2494->freq[0xa] = 110000000.0;
+            ics2494->freq[0xb] = 80000000.0;
+            ics2494->freq[0xc] = 39910000.0;
+            ics2494->freq[0xd] = 44900000.0;
+            ics2494->freq[0xe] = 75000000.0;
+            ics2494->freq[0xf] = 65000000.0;
             break;
         case 111:
             /* ATI 18811-1 for ATI Mach32 MCA */
-            ics2494->freq[0x0] = 135000000.0;
-            ics2494->freq[0x1] = 32000000.0;
-            ics2494->freq[0x2] = 110000000.0;
-            ics2494->freq[0x3] = 80000000.0;
-            ics2494->freq[0x4] = 100000000.0;
-            ics2494->freq[0x5] = 126000000.0;
-            ics2494->freq[0x6] = 92400000.0;
-            ics2494->freq[0x7] = 36000000.0;
-            ics2494->freq[0x8] = 39910000.0;
-            ics2494->freq[0x9] = 44900000.0;
-            ics2494->freq[0xa] = 75000000.0;
-            ics2494->freq[0xb] = 65000000.0;
-            ics2494->freq[0xc] = 50350000.0;
-            ics2494->freq[0xd] = 56640000.0;
-            ics2494->freq[0xe] = 0.0;
-            ics2494->freq[0xf] = 44900000.0;
+            ics2494->freq[0x0] = 100000000.0;
+            ics2494->freq[0x1] = 126000000.0;
+            ics2494->freq[0x2] = 92400000.0;
+            ics2494->freq[0x3] = 36000000.0;
+            ics2494->freq[0x4] = 50350000.0;
+            ics2494->freq[0x5] = 56640000.0;
+            ics2494->freq[0x6] = 0.0;
+            ics2494->freq[0x7] = 44900000.0;
+            ics2494->freq[0x8] = 135000000.0;
+            ics2494->freq[0x9] = 32000000.0;
+            ics2494->freq[0xa] = 110000000.0;
+            ics2494->freq[0xb] = 80000000.0;
+            ics2494->freq[0xc] = 39910000.0;
+            ics2494->freq[0xd] = 44900000.0;
+            ics2494->freq[0xe] = 75000000.0;
+            ics2494->freq[0xf] = 65000000.0;
             break;
         case 305:
             /* ICS2494A(N)-205 for S3 86C924 */

@@ -509,11 +509,12 @@ cdi_can_read_pvd(track_file_t *file, uint64_t sector_size, int mode2, int form)
     uint64_t seek = 16ULL * sector_size; /* First VD is located at sector 16. */
 
     if (sector_size == RAW_SECTOR_SIZE) {
-        if (!mode2 || (form == 0))
-            seek += 16;
-        else
+        if (mode2 && (form > 0))
             seek += 24;
-    }
+        else
+            seek += 16;
+    } else if (form > 0)
+        seek += 8;
 
     file->read(file, pvd, seek, COOKED_SECTOR_SIZE);
 
@@ -582,6 +583,11 @@ cdi_load_iso(cd_img_t *cdi, const char *filename)
         trk.sector_size = 2328;
         trk.mode2       = 1;
         trk.form        = 2;
+    } else if (cdi_can_read_pvd(trk.file, 2336, 1, 1)) {
+        trk.sector_size = 2336;
+        trk.mode2       = 1;
+        trk.form        = 1;
+        trk.skip        = 8;
     } else if (cdi_can_read_pvd(trk.file, RAW_SECTOR_SIZE, 1, 0)) {
         trk.sector_size = RAW_SECTOR_SIZE;
         trk.mode2       = 1;
@@ -696,9 +702,9 @@ static int
 cdi_cue_get_frame(uint64_t *frames, char **line)
 {
     char temp[128];
-    int  min;
-    int  sec;
-    int  fr;
+    int  min = 0;
+    int  sec = 0;
+    int  fr = 0;
     int  success;
 
     success = cdi_cue_get_buffer(temp, line, 0);
@@ -759,6 +765,8 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
         if (cur->number != 1)
             return 0;
         cur->skip = skip * cur->sector_size;
+        if ((cur->sector_size != RAW_SECTOR_SIZE) && (cur->form > 0))
+            cur->skip += 8;
         cur->start += cur_pregap;
         *total_pregap = cur_pregap;
         cdi_track_push_back(cdi, cur);
@@ -781,6 +789,8 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
 
         cur->start += prev->start + prev->length + cur_pregap;
         cur->skip = skip * cur->sector_size;
+        if ((cur->sector_size != RAW_SECTOR_SIZE) && (cur->form > 0))
+            cur->skip += 8;
         *shift += prev->start + prev->length;
         *total_pregap = cur_pregap;
     }
@@ -908,6 +918,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
                 trk.attr        = DATA_TRACK;
                 trk.mode2       = 1;
             } else if (!strcmp(type, "MODE2/2336")) {
+                trk.form        = 1;
                 trk.sector_size = 2336;
                 trk.attr        = DATA_TRACK;
                 trk.mode2       = 1;

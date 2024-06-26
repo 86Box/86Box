@@ -68,14 +68,22 @@ void
 ncr5380_irq(ncr_t *ncr, int set_irq)
 {
     if (set_irq) {
+        ncr->irq_state = 1;
         ncr->isr |= STATUS_INT;
         if (ncr->irq != -1)
             picint(1 << ncr->irq);
     } else {
+        ncr->irq_state = 0;
         ncr->isr &= ~STATUS_INT;
         if (ncr->irq != 1)
             picintc(1 << ncr->irq);
     }
+}
+
+void
+ncr5380_set_irq(ncr_t *ncr, int irq)
+{
+    ncr->irq = irq;
 }
 
 static int
@@ -537,6 +545,8 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
                 ret |= BUS_SEL;
             if (ncr->icr & ICR_BSY)
                 ret |= BUS_BSY;
+            // if ((ret & SCSI_PHASE_MESSAGE_IN) == SCSI_PHASE_MESSAGE_IN)
+                // ret &= ~BUS_REQ;
             break;
 
         case 5: /* Bus and Status register */
