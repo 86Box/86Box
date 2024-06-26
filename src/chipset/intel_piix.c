@@ -243,8 +243,6 @@ smbus_update_io_mapping(piix_t *dev)
 static void
 nvr_update_io_mapping(piix_t *dev)
 {
-    return;
-
     if (dev->nvr_io_base != 0x0000) {
         piix_log("Removing NVR at %04X...\n", dev->nvr_io_base);
         nvr_at_handler(0, dev->nvr_io_base, dev->nvr);
