@@ -5111,8 +5111,8 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
 
         s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
         t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
-        s_frac = (((int32_t) mystique->dwgreg.tmr[6] >> s_shift) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int32_t) mystique->dwgreg.tmr[7] >> t_shift) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        s_frac = (((int32_t) mystique->dwgreg.tmr[6]) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int32_t) mystique->dwgreg.tmr[7]) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     } else {
         const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
         const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
