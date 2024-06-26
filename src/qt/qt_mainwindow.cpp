@@ -214,7 +214,7 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
     });
 
-    connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
 
     connect(this, &MainWindow::setTitle, this, [this, toolbar_label](const QString &title) {
         if (dopause && !hide_tool_bar) {
@@ -1267,13 +1267,20 @@ MainWindow::showMessage(int flags, const QString &header, const QString &message
     if (QThread::currentThread() == this->thread()) {
         showMessage_(flags, header, message);
     } else {
-        emit showMessageForNonQtThread(flags, header, message);
+        std::atomic_bool done = false;
+        emit showMessageForNonQtThread(flags, header, message, &done);
+        while (!done) {
+            QThread::msleep(1);
+        }
     }
 }
 
 void
-MainWindow::showMessage_(int flags, const QString &header, const QString &message)
+MainWindow::showMessage_(int flags, const QString &header, const QString &message, std::atomic_bool *done)
 {
+    if (done) {
+        *done = false;
+    }
     QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
     if (flags & (MBX_FATAL)) {
         box.setIcon(QMessageBox::Critical);
@@ -1282,6 +1289,9 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     }
     box.setTextFormat(Qt::TextFormat::RichText);
     box.exec();
+    if (done) {
+        *done = true;
+    }
     if (cpu_thread_run == 0)
         QApplication::exit(-1);
 }
