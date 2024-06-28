@@ -157,10 +157,10 @@ MediaMenu::refresh(QMenu *parentMenu)
 #ifdef Q_OS_WINDOWS
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
-        for (auto &letter : driveLetters) {
-            auto drive =  QString::asprintf("%c:\\", letter).toUtf8().constData();
-            if (GetDriveType(drive) == DRIVE_CDROM)
-                menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DriveCDIcon), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter]() { cdromMount(i, 2, QString::asprintf(R"(\\.\%c:)", letter).toUtf8().constData()); })->setCheckable(false);
+        for (const auto &letter : driveLetters) {
+            auto drive = QString("%1:\\").arg(letter);
+            if (GetDriveType(drive.toUtf8().constData()) == DRIVE_CDROM)
+                menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DriveCDIcon), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
         }
         menu->addSeparator();
 #endif // Q_OS_WINDOWS
