@@ -21,7 +21,7 @@
 #define EMU_86BOX_H
 
 /* Configuration values. */
-#define SERIAL_MAX   4
+#define SERIAL_MAX   7
 #define PARALLEL_MAX 4
 #define SCREEN_RES_X 640
 #define SCREEN_RES_Y 480

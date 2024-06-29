@@ -912,7 +912,13 @@ serial_init(const device_t *info)
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
-        if (next_inst == 3)
+        if (next_inst == 6)
+            serial_setup(dev, COM7_ADDR, COM7_IRQ);
+        else if (next_inst == 5)
+            serial_setup(dev, COM6_ADDR, COM6_IRQ);
+        else if (next_inst == 4)
+            serial_setup(dev, COM5_ADDR, COM5_IRQ);
+        else if (next_inst == 3)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);
