@@ -15,6 +15,18 @@ public:
     ~SettingsPorts();
 
     void save();
+
+#if 0
+private slots:
+    void on_checkBoxSerialPassThru7_clicked(bool checked);
+
+private slots:
+    void on_checkBoxSerialPassThru6_clicked(bool checked);
+
+private slots:
+    void on_checkBoxSerialPassThru5_clicked(bool checked);
+#endif
+
 private slots:
     void on_checkBoxSerialPassThru4_clicked(bool checked);
 
@@ -23,6 +35,18 @@ private slots:
 
 private slots:
     void on_checkBoxSerialPassThru2_clicked(bool checked);
+
+private slots:
+    void on_checkBoxSerialPassThru1_clicked(bool checked);
+
+private slots:
+    void on_pushButtonSerialPassThru7_clicked();
+
+private slots:
+    void on_pushButtonSerialPassThru6_clicked();
+
+private slots:
+    void on_pushButtonSerialPassThru5_clicked();
 
 private slots:
     void on_pushButtonSerialPassThru4_clicked();
