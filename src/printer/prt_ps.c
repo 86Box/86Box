@@ -524,13 +524,16 @@ const lpt_device_t lpt_prt_ps_device = {
 };
 
 const lpt_device_t lpt_prt_pcl_device = {
-    .name          = "Generic PCL5e Printer",
-    .internal_name = "pcl",
-    .init          = pcl_init,
-    .close         = ps_close,
-    .write_data    = ps_write_data,
-    .write_ctrl    = ps_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = ps_read_status,
-    .read_ctrl     = NULL
+    .name             = "Generic PCL5e Printer",
+    .internal_name    = "pcl",
+    .init             = pcl_init,
+    .close            = ps_close,
+    .write_data       = ps_write_data,
+    .write_ctrl       = ps_write_ctrl,
+    .autofeed         = ps_autofeed,
+    .strobe           = ps_strobe,
+    .read_status      = ps_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };

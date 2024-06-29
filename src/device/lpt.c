@@ -205,7 +205,7 @@ lpt_fifo_out_callback(void *priv)
             break;
 
         case LPT_STATE_READ_DMA:
-            int ret;
+            int ret = 0xff;
 
             if (dev->dma == 0xff)
                 ret = DMA_NODATA;
