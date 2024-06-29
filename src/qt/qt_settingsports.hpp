@@ -37,14 +37,10 @@ private slots:
     void on_pushButtonSerialPassThru1_clicked();
 
 private slots:
-    void on_checkBoxSerialPassThru1_clicked(bool checked);
-
-private slots:
+    void on_checkBoxParallel4_stateChanged(int arg1);
     void on_checkBoxParallel3_stateChanged(int arg1);
     void on_checkBoxParallel2_stateChanged(int arg1);
     void on_checkBoxParallel1_stateChanged(int arg1);
-
-    void on_checkBoxParallel4_stateChanged(int arg1);
 
 private:
     Ui::SettingsPorts *ui;

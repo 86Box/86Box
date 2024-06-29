@@ -66,18 +66,17 @@ SettingsPorts::SettingsPorts(QWidget *parent)
     }
 
     for (int i = 0; i < SERIAL_MAX; i++) {
-        auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
+        auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
+        auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
         if (checkBox != NULL)
             checkBox->setChecked(com_ports[i].enabled > 0);
+        if (checkBoxPass != NULL)
+            checkBoxPass->setChecked(serial_passthrough_enabled[i]);
     }
 
-    ui->checkBoxSerialPassThru1->setChecked(serial_passthrough_enabled[0]);
     ui->pushButtonSerialPassThru1->setEnabled(serial_passthrough_enabled[0]);
-    ui->checkBoxSerialPassThru2->setChecked(serial_passthrough_enabled[1]);
     ui->pushButtonSerialPassThru2->setEnabled(serial_passthrough_enabled[1]);
-    ui->checkBoxSerialPassThru3->setChecked(serial_passthrough_enabled[2]);
     ui->pushButtonSerialPassThru3->setEnabled(serial_passthrough_enabled[2]);
-    ui->checkBoxSerialPassThru4->setChecked(serial_passthrough_enabled[3]);
     ui->pushButtonSerialPassThru4->setEnabled(serial_passthrough_enabled[3]);
 }
 
@@ -90,7 +89,7 @@ void
 SettingsPorts::save()
 {
     for (int i = 0; i < PARALLEL_MAX; i++) {
-        auto *cbox           = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        auto *cbox     = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         auto *checkBox       = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
         if (cbox != NULL)
             lpt_ports[i].device  = cbox->currentData().toInt();
@@ -99,15 +98,13 @@ SettingsPorts::save()
     }
 
     for (int i = 0; i < SERIAL_MAX; i++) {
-        auto *checkBox       = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
+        auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
+        auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
         if (checkBox != NULL)
             com_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
+        if (checkBoxPass != NULL)
+            serial_passthrough_enabled[i] = checkBoxPass->isChecked();
     }
-
-    serial_passthrough_enabled[0] = ui->checkBoxSerialPassThru1->isChecked();
-    serial_passthrough_enabled[1] = ui->checkBoxSerialPassThru2->isChecked();
-    serial_passthrough_enabled[2] = ui->checkBoxSerialPassThru3->isChecked();
-    serial_passthrough_enabled[3] = ui->checkBoxSerialPassThru4->isChecked();
 }
 
 void
