@@ -61,7 +61,7 @@ SettingsPorts::SettingsPorts(QWidget *parent)
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
         if (checkBox != NULL)
             checkBox->setChecked(lpt_ports[i].enabled > 0);
-        if (cBox != NULL)
+        if (cbox != NULL)
             cbox->setEnabled(lpt_ports[i].enabled > 0);
     }
 
@@ -92,7 +92,7 @@ SettingsPorts::save()
     for (int i = 0; i < PARALLEL_MAX; i++) {
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         auto *checkBox       = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
-        if (cBox != NULL)
+        if (cbox != NULL)
             lpt_ports[i].device  = cbox->currentData().toInt();
         if (checkBox != NULL)
             lpt_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
