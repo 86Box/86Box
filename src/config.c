@@ -459,10 +459,13 @@ load_video(void)
     show_second_monitors             = !!ini_section_get_int(cat, "show_second_monitors", 1);
     video_fullscreen_scale_maximized = !!ini_section_get_int(cat, "video_fullscreen_scale_maximized", 0);
 
-    p = ini_section_get_string(cat, "gfxcard_2", NULL);
-    if (!p)
-        p = "none";
-    gfxcard[1] = video_get_video_from_internal_name(p);
+    // TODO
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        p = ini_section_get_string(cat, "gfxcard_2", NULL);
+        if (!p)
+            p = "none";
+        gfxcard[i] = video_get_video_from_internal_name(p);
+    }
 }
 
 /* Load "Input Devices" section. */
@@ -2010,10 +2013,13 @@ save_video(void)
     else
         ini_section_set_int(cat, "xga", xga_standalone_enabled);
 
-    if (gfxcard[1] == 0)
-        ini_section_delete_var(cat, "gfxcard_2");
-    else
-        ini_section_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard[1]));
+    // TODO
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if (gfxcard[i] == 0)
+            ini_section_delete_var(cat, "gfxcard_2");
+        else
+            ini_section_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard[i]));
+    }
 
     if (show_second_monitors == 1)
         ini_section_delete_var(cat, "show_second_monitors");
