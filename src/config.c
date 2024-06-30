@@ -792,10 +792,31 @@ load_storage_controllers(void)
     }
 
     p = ini_section_get_string(cat, "fdc", NULL);
+#if 0
     if (p != NULL)
         fdc_type = fdc_card_get_from_internal_name(p);
     else
         fdc_type = FDC_INTERNAL;
+#else
+    if (p == NULL) {
+        if (machine_has_flags(machine, MACHINE_FDC)) {
+            p = (char *) malloc((strlen("internal") + 1) * sizeof(char));
+            strcpy(p, "internal");
+        } else {
+            p = (char *) malloc((strlen("none") + 1) * sizeof(char));
+            strcpy(p, "none");
+        }
+        free_p = 1;
+    }
+
+    fdc_type = fdc_card_get_from_internal_name(p);
+
+    if (free_p) {
+        free(p);
+        p = NULL;
+        free_p = 0;
+    }
+#endif
 
     p = ini_section_get_string(cat, "hdc", NULL);
     if (p == NULL) {
