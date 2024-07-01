@@ -14,6 +14,8 @@
  *
  *          Copyright 2022 Teemu Korhonen
  */
+#include <QDir>
+#include <QFileInfo>
 #include <QStringBuilder>
 #include <QStringList>
 #include <QWidget>
@@ -70,7 +72,11 @@ DlgFilter(std::initializer_list<QString> extensions, bool last)
 
 QString currentUuid()
 {
-    return QUuid::createUuidV5(QUuid{}, QString(usr_path)).toString(QUuid::WithoutBraces);
+    auto configPath = QFileInfo(cfg_path).dir().canonicalPath();
+    if(!configPath.endsWith("/")) {
+        configPath.append("/");
+    }
+    return QUuid::createUuidV5(QUuid{}, configPath).toString(QUuid::WithoutBraces);
 }
 
 bool compareUuid()
@@ -79,6 +85,11 @@ bool compareUuid()
     // Any uuid that is lower than the minimum length will be considered invalid
     // and a new one will be generated
     if (const auto currentUuidLength = QString(uuid).length(); currentUuidLength < UUID_MIN_LENGTH) {
+        storeCurrentUuid();
+        return true;
+    }
+    // Do not prompt on mismatch if the system does not have any configured NICs. Just update the uuid
+    if(!hasConfiguredNICs() && uuid != currentUuid()) {
         storeCurrentUuid();
         return true;
     }
@@ -99,14 +110,24 @@ generateNewMacAdresses()
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto net_card = net_cards_conf[i];
         if (net_card.device_num != 0) {
-            const auto network_device = network_card_getdevice(net_card.device_num);
+            const auto       network_device = network_card_getdevice(net_card.device_num);
             device_context_t device_context;
-
-            device_set_context(&device_context, network_device, i+1);
+            device_set_context(&device_context, network_device, i + 1);
             auto generatedMac = QString::asprintf("%02X:%02X:%02X", random_generate(), random_generate(), random_generate()).toLower();
             config_set_string(device_context.name, "mac", generatedMac.toUtf8().constData());
         }
     }
+}
+
+bool
+hasConfiguredNICs()
+{
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
+        if (const auto net_card = net_cards_conf[i]; net_card.device_num != 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 }

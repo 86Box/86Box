@@ -17,6 +17,7 @@ QString currentUuid();
 void storeCurrentUuid();
 bool compareUuid();
 void generateNewMacAdresses();
+bool hasConfiguredNICs();
 };
 
 #endif
