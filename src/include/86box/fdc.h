@@ -40,24 +40,23 @@ extern int fdc_type;
 #define FDC_QUATERNARY_IRQ      6
 #define FDC_QUATERNARY_DMA      2
 
-#define FDC_FLAG_PCJR           0x01   /* PCjr */
-#define FDC_FLAG_DISKCHG_ACTLOW 0x02   /* Amstrad, PS/1, PS/2 ISA */
-#define FDC_FLAG_AT             0x04   /* AT+, PS/x */
-#define FDC_FLAG_PS1            0x08   /* PS/1, PS/2 ISA */
-#define FDC_FLAG_SUPERIO        0x10   /* Super I/O chips */
-#define FDC_FLAG_START_RWC_1    0x20   /* W83877F, W83977F */
-#define FDC_FLAG_MORE_TRACKS    0x40   /* W83877F, W83977F, PC87306, PC87309 */
-#define FDC_FLAG_NSC            0x80   /* PC87306, PC87309 */
-#define FDC_FLAG_TOSHIBA        0x100  /* T1000, T1200 */
-#define FDC_FLAG_AMSTRAD        0x200  /* Non-AT Amstrad machines */
-#define FDC_FLAG_UMC            0x400  /* UMC UM8398 */
-#define FDC_FLAG_ALI            0x800  /* ALi M512x / M1543C */
-#define FDC_FLAG_SEC            0x1000 /* Is Secondary */
-#define FDC_FLAG_TER            0x2000 /* Is Tertiary */
-#define FDC_FLAG_QUA            0x3000 /* Is Quaternary */
-#define FDC_FLAG_CHANNEL        0x3000 /* Channel mask */
-#define FDC_FLAG_NO_DSR_RESET   0x4000 /* Has no DSR reset */
-#define FDC_FLAG_NEC            0x8000 /* Is NEC upd765-compatible */
+#define FDC_FLAG_PCJR           0x01    /* PCjr */
+#define FDC_FLAG_DISKCHG_ACTLOW 0x02    /* Amstrad, PS/1, PS/2 ISA */
+#define FDC_FLAG_AT             0x04    /* AT+, PS/x */
+#define FDC_FLAG_PS1            0x08    /* PS/1, PS/2 ISA */
+#define FDC_FLAG_SUPERIO        0x10    /* Super I/O chips */
+#define FDC_FLAG_START_RWC_1    0x20    /* W83877F, W83977F */
+#define FDC_FLAG_MORE_TRACKS    0x40    /* W83877F, W83977F, PC87306, PC87309 */
+#define FDC_FLAG_NSC            0x80    /* PC87306, PC87309 */
+#define FDC_FLAG_TOSHIBA        0x100   /* T1000, T1200 */
+#define FDC_FLAG_AMSTRAD        0x200   /* Non-AT Amstrad machines */
+#define FDC_FLAG_UMC            0x400   /* UMC UM8398 */
+#define FDC_FLAG_ALI            0x800   /* ALi M512x / M1543C */
+#define FDC_FLAG_NO_DSR_RESET   0x1000  /* Has no DSR reset */
+#define FDC_FLAG_NEC            0x2000  /* Is NEC upd765-compatible */
+#define FDC_FLAG_SEC            0x10000 /* Is Secondary */
+#define FDC_FLAG_TER            0x20000 /* Is Tertiary */
+#define FDC_FLAG_QUA            0x40000 /* Is Quaternary */
 
 typedef struct fdc_t {
     uint8_t dor;
