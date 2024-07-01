@@ -896,7 +896,7 @@ loadcscall(uint16_t seg)
     uint32_t      oldsp;
     uint32_t      newsp;
     uint32_t      oldsp2;
-    uint16_t      tempw;
+    uint32_t      oldss_limit_high = cpu_state.seg_ss.limit_high;
     const x86seg *dt;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
@@ -1125,7 +1125,31 @@ loadcscall(uint16_t seg)
                                     }
                                     if (count) {
                                         while (count--) {
-                                            PUSHL(readmeml(oldssbase, oldsp + (count << 2)));
+                                            uint32_t temp_val;
+                                            switch (oldss_limit_high - oldsp - (count << 2)) {
+                                                default:
+                                                case 3:
+                                                    /* We are at least an entire DWORD away from the limit,
+                                                       read long. */
+                                                    PUSHL(readmeml(oldssbase, oldsp + (count << 2)));
+                                                    break;
+                                                case 2:
+                                                    /* We are 3 bytes away from the limit,
+                                                       read word + byte. */
+                                                    temp_val = readmemw(oldssbase, oldsp + (count << 2));
+                                                    temp_val |= (readmemb(oldssbase, oldsp +
+                                                                          (count << 2) + 2) << 16);
+                                                    PUSHL(temp_val);
+                                                    break;
+                                                case 1:
+                                                    /* We are a WORD away from the limit, read word. */
+                                                    PUSHL(readmemw(oldssbase, oldsp + (count << 2)));
+                                                    break;
+                                                case 0:
+                                                    /* We are a BYTE away from the limit, read byte. */
+                                                    PUSHL(readmemb(oldssbase, oldsp + (count << 2)));
+                                                    break;
+                                            }
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
@@ -1152,9 +1176,20 @@ loadcscall(uint16_t seg)
                                     x86seg_log("Write SP to %04X:%04X\n", SS, SP);
                                     if (count) {
                                         while (count--) {
-                                            tempw = readmemw(oldssbase, (oldsp & 0xffff) + (count << 1));
-                                            x86seg_log("PUSH %04X\n", tempw);
-                                            PUSHW(tempw);
+                                            switch (oldss_limit_high - (oldsp & 0xffff) - (count << 1)) {
+                                                default:
+                                                case 1:
+                                                    /* We are at least an entire WORD away from the limit,
+                                                       read word. */
+                                                    PUSHW(readmemw(oldssbase, (oldsp & 0xffff) +
+                                                          (count << 1)));
+                                                    break;
+                                                case 0:
+                                                    /* We are a BYTE away from the limit, read byte. */
+                                                    PUSHW(readmemb(oldssbase, (oldsp & 0xffff) +
+                                                          (count << 1)));
+                                                    break;
+                                            }
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
