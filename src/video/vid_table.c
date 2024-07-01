@@ -47,38 +47,11 @@ static video_timings_t timing_default = { .type = VIDEO_ISA, .write_b = 8, .writ
 
 static int was_reset = 0;
 
-static const device_t vid_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-static const device_t vid_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const VIDEO_CARD
 video_cards[] = {
   // clang-format off
-    { &vid_none_device                                 },
-    { &vid_internal_device                             },
+    { &device_none                                     },
+    { &device_internal                                 },
     { &atiega800p_device                               },
     { &mach8_vga_isa_device,      VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,         VIDEO_FLAG_TYPE_8514 },

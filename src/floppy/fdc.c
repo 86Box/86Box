@@ -97,49 +97,21 @@ fdc_log(const char *fmt, ...)
 #    define fdc_log(fmt, ...)
 #endif
 
-const device_t fdc_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 typedef const struct {
     const device_t *device;
 } fdc_cards_t;
 
 static fdc_cards_t fdc_cards[] = {
     // clang-format off
-    { &fdc_none_device     },
-    { &fdc_internal_device },
-    { &fdc_xt_device       },
-    { &fdc_at_device       },
-    { &fdc_b215_device     },
-    { &fdc_pii151b_device  },
-    { &fdc_pii158b_device  },
-    { &fdc_monster_device  },
-    { NULL                 }
+    { &device_none        },
+    { &device_internal    },
+    { &fdc_xt_device      },
+    { &fdc_at_device      },
+    { &fdc_b215_device    },
+    { &fdc_pii151b_device },
+    { &fdc_pii158b_device },
+    { &fdc_monster_device },
+    { NULL                }
     // clang-format on
 };
 

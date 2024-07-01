@@ -2040,25 +2040,11 @@ static const device_t iab_device = {
 };
 #endif
 
-static const device_t isa_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &isa_none_device     },
+    { &device_none         },
     // XT Ram Expansion Cards
     { &ibmxt_32k_device    },
     { &ibmxt_64k_device    },
