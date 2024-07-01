@@ -29,6 +29,9 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/sound.h>
 #include <86box/video.h>
@@ -790,7 +793,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FDC,
         .ram = {
             .min = 128,
             .max = 640,
@@ -803,7 +806,7 @@ const machine_t machines[] = {
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
-        .fdc_device = NULL,
+        .fdc_device = &fdc_xt_device,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
@@ -830,20 +833,20 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FDC,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
         },
         .nvrmask = 0,
-        .kbc_device = &keyboard_xtclone_device,
+        .kbc_device = &keyboard_xt_hyundai_device,
         .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
-        .fdc_device = NULL,
+        .fdc_device = &fdc_xt_device,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
@@ -870,20 +873,20 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FDC,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
         },
         .nvrmask = 0,
-        .kbc_device = &keyboard_xtclone_device,
+        .kbc_device = &keyboard_xt_hyundai_device,
         .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
-        .fdc_device = NULL,
+        .fdc_device = &fdc_xt_device,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
@@ -1317,7 +1320,7 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc_device = &keyboard_xtclone_device,
+        .kbc_device = &keyboard_xt_device,
         .kbc_params = 0x00000000,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
@@ -1390,7 +1393,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FDC,
         .ram = {
             .min = 256,
             .max = 640,
@@ -1403,7 +1406,7 @@ const machine_t machines[] = {
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
-        .fdc_device = NULL,
+        .fdc_device = &fdc_xt_device,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
@@ -1630,7 +1633,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FDC,
         .ram = {
             .min = 256,
             .max = 768,
@@ -1643,7 +1646,7 @@ const machine_t machines[] = {
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
-        .fdc_device = NULL,
+        .fdc_device = &fdc_xt_device,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
@@ -9298,6 +9301,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+
     /* OPTi 596/597 */
     /* This uses an AMI KBC firmware in PS/2 mode (it sends command A5 with the
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
