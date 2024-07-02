@@ -433,8 +433,11 @@ load_video(void)
             free_p = 1;
         }
         gfxcard[0] = video_get_video_from_internal_name(p);
-        if (free_p)
+        if (free_p) {
             free(p);
+            p = NULL;
+            free_p = 0;
+        }
     }
 
     if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) ||
@@ -853,6 +856,7 @@ load_storage_controllers(void)
     if (free_p) {
         free(p);
         p = NULL;
+        free_p = 0;
     }
 
     ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
