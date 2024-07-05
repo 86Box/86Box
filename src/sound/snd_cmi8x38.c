@@ -710,7 +710,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
                 if (val & (0x04 << i)) {
                     /* Reset DMA channel. */
-                    val &= ~(0x01 << i);
+                    dev->io_regs[addr] &= ~(0x01 << i); /* clear enable */
                     dev->io_regs[0x10] &= ~(0x01 << i); /* clear interrupt */
 
                     /* Reset Sound Blaster as well when resetting channel 0. */
@@ -725,7 +725,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             }
 
             /* Start playback along with DMA channels. */
-            if (val & 0x03)
+            if (dev->io_regs[addr] & 0x03)
                 cmi8x38_start_playback(dev);
 
             /* Update interrupts. */
