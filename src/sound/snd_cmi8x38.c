@@ -706,7 +706,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x02:
             /* Reset or start DMA channels if requested. */
-            dev->io_regs[addr] = val & 0x03;
+            dev->io_regs[addr] = val & 0x0f;
             for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
                 if (val & (0x04 << i)) {
                     /* Reset DMA channel. */
@@ -724,15 +724,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                 }
             }
 
-            /* Clear reset bits. */
-            val &= 0x03;
-
             /* Start playback along with DMA channels. */
             if (val & 0x03)
                 cmi8x38_start_playback(dev);
 
             /* Update interrupts. */
-            dev->io_regs[addr] = val;
             cmi8x38_update_irqs(dev);
             break;
 
