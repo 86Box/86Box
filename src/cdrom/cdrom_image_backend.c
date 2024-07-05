@@ -40,6 +40,8 @@
 #include <86box/plat.h>
 #include <86box/cdrom_image_backend.h>
 
+#include <sndfile.h>
+
 #define CDROM_BCD(x)        (((x) % 10) | (((x) / 10) << 4))
 
 #define MAX_LINE_LENGTH     512
@@ -65,6 +67,96 @@ cdrom_image_backend_log(const char *fmt, ...)
 #else
 #    define cdrom_image_backend_log(fmt, ...)
 #endif
+
+typedef struct audio_file {
+    SNDFILE *file;
+    SF_INFO  info;
+} audio_file;
+
+/* Audio file functions */
+static int
+audio_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
+{
+    track_file_t *tf = (track_file_t*)priv;
+    audio_file *audio = (audio_file*)tf->priv;
+    uint64_t samples_seek = seek / 4;
+    uint64_t samples_count = count / 4;
+
+    if ((seek & 3) || (count & 3)) {
+        pclog("Reading on non-4-aligned boundaries\n");
+    }
+
+    sf_count_t res = sf_seek(audio->file, seek, SEEK_SET);
+
+    if (res == -1)
+        return 0;
+    
+    return !!sf_readf_short(audio->file, (short*)buffer, samples_count);
+}
+
+static uint64_t
+audio_get_length(void *priv)
+{
+    track_file_t *tf = (track_file_t*)priv;
+    audio_file *audio = (audio_file*)tf->priv;
+
+    return audio->info.frames * 4ull;
+}
+
+static void
+audio_close(void *priv)
+{
+    track_file_t *tf = (track_file_t*)priv;
+    audio_file *audio = (audio_file*)tf->priv;
+
+    memset(tf->fn, 0x00, sizeof(tf->fn));
+    if (audio && audio->file)
+        sf_close(audio->file);
+    free(audio);
+    free(tf);
+}
+
+static track_file_t *
+audio_init(const char *filename, int *error)
+{
+    track_file_t *tf = (track_file_t *) calloc(sizeof(track_file_t), 1);
+    audio_file *audio = (audio_file*) calloc(sizeof(audio_file), 1);
+#ifdef _WIN32
+    wchar_t filename_w[4096];
+#endif
+
+    if (tf == NULL || audio == NULL) {
+        free(tf);
+        free(audio);
+        *error = 1;
+        return NULL;
+    }
+
+    memset(tf->fn, 0x00, sizeof(tf->fn));
+    strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
+#ifdef _WIN32
+    mbstowcs(filename_w, filename, 4096);
+    audio->file = sf_wchar_open(filename_w, SFM_READ, &audio->info);
+#else
+    audio->file = sf_open(filename, SFM_READ, &audio->info);
+#endif
+
+    if (!audio->file) {
+        goto cleanup_error;
+    }
+
+    if (audio->info.channels != 2 || audio->info.samplerate != 44100) {
+        sf_close(audio->file);
+        goto cleanup_error;
+    }
+
+    return tf;
+cleanup_error:
+    free(tf);
+    free(audio);
+    *error = 1;
+    return NULL;
+}
 
 /* Binary file functions. */
 static int
@@ -995,6 +1087,9 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
             if (!strcmp(type, "BINARY")) {
                 path_append_filename(filename, pathname, ansi);
                 trk.file = track_file_init(filename, &error);
+            } else if (!strcmp(type, "WAVE")) {
+                path_append_filename(filename, pathname, ansi);
+                trk.file = audio_init(filename, &error);
             }
             if (error) {
 #ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
