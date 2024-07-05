@@ -68,17 +68,17 @@ cdrom_image_backend_log(const char *fmt, ...)
 #    define cdrom_image_backend_log(fmt, ...)
 #endif
 
-typedef struct audio_file {
+typedef struct audio_file_t {
     SNDFILE *file;
     SF_INFO  info;
-} audio_file;
+} audio_file_t;
 
 /* Audio file functions */
 static int
 audio_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 {
     track_file_t *tf = (track_file_t*)priv;
-    audio_file *audio = (audio_file*)tf->priv;
+    audio_file_t *audio = (audio_file_t*)tf->priv;
     uint64_t samples_seek = seek / 4;
     uint64_t samples_count = count / 4;
 
@@ -98,7 +98,7 @@ static uint64_t
 audio_get_length(void *priv)
 {
     track_file_t *tf = (track_file_t*)priv;
-    audio_file *audio = (audio_file*)tf->priv;
+    audio_file_t *audio = (audio_file_t*)tf->priv;
 
     return audio->info.frames * 4ull;
 }
@@ -107,7 +107,7 @@ static void
 audio_close(void *priv)
 {
     track_file_t *tf = (track_file_t*)priv;
-    audio_file *audio = (audio_file*)tf->priv;
+    audio_file_t *audio = (audio_file_t*)tf->priv;
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
     if (audio && audio->file)
@@ -120,16 +120,13 @@ static track_file_t *
 audio_init(const char *filename, int *error)
 {
     track_file_t *tf = (track_file_t *) calloc(sizeof(track_file_t), 1);
-    audio_file *audio = (audio_file*) calloc(sizeof(audio_file), 1);
+    audio_file_t *audio = (audio_file_t*) calloc(sizeof(audio_file_t), 1);
 #ifdef _WIN32
     wchar_t filename_w[4096];
 #endif
 
     if (tf == NULL || audio == NULL) {
-        free(tf);
-        free(audio);
-        *error = 1;
-        return NULL;
+        goto cleanup_error;
     }
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
@@ -145,7 +142,7 @@ audio_init(const char *filename, int *error)
         goto cleanup_error;
     }
 
-    if (audio->info.channels != 2 || audio->info.samplerate != 44100) {
+    if (audio->info.channels != 2 || audio->info.samplerate != 44100 || !audio->info.seekable) {
         sf_close(audio->file);
         goto cleanup_error;
     }
@@ -1087,7 +1084,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
             if (!strcmp(type, "BINARY")) {
                 path_append_filename(filename, pathname, ansi);
                 trk.file = track_file_init(filename, &error);
-            } else if (!strcmp(type, "WAVE")) {
+            } else if (!strcmp(type, "WAVE") || !strcmp(type, "AIFF") || !strcmp(type, "MP3")) {
                 path_append_filename(filename, pathname, ansi);
                 trk.file = audio_init(filename, &error);
             }
