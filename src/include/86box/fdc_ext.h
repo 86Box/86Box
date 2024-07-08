@@ -25,7 +25,8 @@
 extern int fdc_type;
 
 /* Controller types. */
-#define FDC_INTERNAL 0
+#define FDC_NONE     0
+#define FDC_INTERNAL 1
 
 extern const device_t fdc_b215_device;
 extern const device_t fdc_pii151b_device;
