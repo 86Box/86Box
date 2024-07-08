@@ -2596,13 +2596,16 @@ mach_recalctimings(svga_t *svga)
         if (dev->interlace)
             dev->dispend >>= 1;
 
-        if (dev->dispend == 766)
+        if (dev->dispend == 478)
             dev->dispend += 2;
 
         if (dev->dispend == 598)
             dev->dispend += 2;
 
-        if (dev->dispend == 478)
+        if (dev->dispend == 766)
+            dev->dispend += 2;
+
+        if (dev->dispend == 1022)
             dev->dispend += 2;
 
         if ((dev->local & 0xff) >= 0x02) {
@@ -5870,7 +5873,7 @@ mach8_init(const device_t *info)
                       NULL);
         dev->vram_size   = mach->memory << 10;
         dev->vram        = calloc(dev->vram_size, 1);
-        dev->changedvram = calloc(dev->vram_size >> 12, 1);
+        dev->changedvram = calloc((dev->vram_size >> 12) + 1, 1);
         dev->vram_mask   = dev->vram_size - 1;
         dev->hwcursor.cur_ysize = 64;
         mach->config1 = 0x20;
@@ -5918,7 +5921,7 @@ mach8_init(const device_t *info)
                       NULL);
         dev->vram_size   = (1024 << 10);
         dev->vram        = calloc(dev->vram_size, 1);
-        dev->changedvram = calloc(dev->vram_size >> 12, 1);
+        dev->changedvram = calloc((dev->vram_size >> 12) + 1, 1);
         dev->vram_mask   = dev->vram_size - 1;
         video_inform(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa);
         mach->config1 = 0x01 | 0x02 | 0x20 | 0x08 | 0x80;

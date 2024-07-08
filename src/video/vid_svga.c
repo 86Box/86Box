@@ -223,7 +223,8 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 xga->on = (val & 0x01) ? 0 : 1;
             if (ibm8514_active && dev) {
                 dev->on[0] = (val & 0x01) ? 0 : 1;
-                dev->on[1] = dev->on[0];
+                if (dev->local & 0xff)
+                    dev->on[1] = dev->on[0];
             }
 
             svga_log("3C3: VGA ON = %d.\n", val & 0x01);
@@ -1343,7 +1344,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->vram_max          = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask                         = 0x7fffff;
-    svga->changedvram                         = calloc(memsize >> 12, 1);
+    svga->changedvram                         = calloc((memsize >> 12) + 1, 1);
     svga->recalctimings_ex                    = recalctimings_ex;
     svga->video_in                            = video_in;
     svga->video_out                           = video_out;

@@ -3346,7 +3346,7 @@ xga_init(const device_t *info)
     xga->vram_size             = (1024 << 10);
     xga->vram_mask             = xga->vram_size - 1;
     xga->vram                  = calloc(xga->vram_size, 1);
-    xga->changedvram           = calloc(xga->vram_size >> 12, 1);
+    xga->changedvram           = calloc((xga->vram_size >> 12) + 1, 1);
     xga->on                    = 0;
     xga->hwcursor.cur_xsize    = 64;
     xga->hwcursor.cur_ysize    = 64;
