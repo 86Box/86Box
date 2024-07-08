@@ -23,14 +23,14 @@
 extern const device_t vendex_xt_rtc_onboard_device;
 
 static void
-machine_xt_common_init(const machine_t *model)
+machine_xt_common_init(const machine_t *model, int fixed_floppy)
 {
+    if ((fdc_type == FDC_INTERNAL) || fixed_floppy)
+        device_add(&fdc_xt_device);
+
     machine_common_init(model);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-
-    if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_xt_device);
 
     nmi_init();
     standalone_gameport_type = &gameport_device;
@@ -59,7 +59,7 @@ machine_pc_init(const machine_t *model)
 
     device_add(&keyboard_pc_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -93,17 +93,9 @@ machine_pc82_init(const machine_t *model)
     device_add(&keyboard_pc82_device);
     device_add(&ibm_5161_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
-}
-
-static void
-machine_xt_init_ex(const machine_t *model)
-{
-    device_add(&keyboard_xt_device);
-
-    machine_xt_common_init(model);
 }
 
 int
@@ -127,9 +119,11 @@ machine_xt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_init_ex(model);
 
+    device_add(&keyboard_xt_device);
     device_add(&ibm_5161_device);
+
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -145,7 +139,9 @@ machine_genxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_init_ex(model);
+    device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -170,17 +166,17 @@ machine_xt86_init(const machine_t *model)
     device_add(&keyboard_xt86_device);
     device_add(&ibm_5161_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
 
 static void
-machine_xt_clone_init(const machine_t *model)
+machine_xt_clone_init(const machine_t *model, int fixed_floppy)
 {
     device_add(&keyboard_xtclone_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, fixed_floppy);
 }
 
 int
@@ -194,7 +190,7 @@ machine_xt_americxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -210,7 +206,7 @@ machine_xt_amixt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -226,7 +222,7 @@ machine_xt_znic_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -242,7 +238,7 @@ machine_xt_dtk_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -258,7 +254,7 @@ machine_xt_jukopc_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -274,7 +270,7 @@ machine_xt_openxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -294,7 +290,7 @@ machine_xt_pcxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -312,7 +308,7 @@ machine_xt_pxxt_init(const machine_t *model)
 
     device_add(&keyboard_xt_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -329,7 +325,7 @@ machine_xt_iskra3104_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -363,7 +359,7 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 
     device_add(&keyboard_pravetz_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -379,7 +375,10 @@ machine_xt_micoms_xl7turbo_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_init_ex(model);
+    device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model, 0);
+
     return ret;
 }
 
@@ -394,7 +393,7 @@ machine_xt_pc4i_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -412,7 +411,7 @@ machine_xt_mpc1600_init(const machine_t *model)
 
     device_add(&keyboard_pc82_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -435,7 +434,7 @@ machine_xt_pcspirit_init(const machine_t *model)
 
     device_add(&keyboard_pc82_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -453,7 +452,7 @@ machine_xt_pc700_init(const machine_t *model)
 
     device_add(&keyboard_pc_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -471,7 +470,7 @@ machine_xt_pc500_init(const machine_t *model)
 
     device_add(&keyboard_pc_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -487,18 +486,20 @@ machine_xt_vendex_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    /* On-board FDC cannot be disabled */
+    machine_xt_clone_init(model, 1);
+
     device_add(&vendex_xt_rtc_onboard_device);
 
     return ret;
 }
 
 static void
-machine_xt_hyundai_common_init(const machine_t *model)
+machine_xt_hyundai_common_init(const machine_t *model, int fixed_floppy)
 {
     device_add(&keyboard_xt_hyundai_device);
 
-    machine_xt_common_init(model);
+    machine_xt_common_init(model, fixed_floppy);
 }
 
 int
@@ -512,10 +513,8 @@ machine_xt_super16t_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_hyundai_common_init(model);
-
     /* On-board FDC cannot be disabled */
-    device_add(&fdc_xt_device);
+    machine_xt_hyundai_common_init(model, 1);
 
     return ret;
 }
@@ -531,10 +530,8 @@ machine_xt_super16te_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_hyundai_common_init(model);
-
     /* On-board FDC cannot be disabled */
-    device_add(&fdc_xt_device);
+    machine_xt_hyundai_common_init(model, 1);
 
     return ret;
 }
@@ -550,10 +547,8 @@ machine_xt_top88_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
-
     /* On-board FDC cannot be disabled */
-    device_add(&fdc_xt_device);
+    machine_xt_clone_init(model, 1);
 
     return ret;
 }
@@ -569,7 +564,7 @@ machine_xt_kaypropc_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -585,10 +580,8 @@ machine_xt_sansx16_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
-
     /* On-board FDC cannot be disabled */
-    device_add(&fdc_xt_device);
+    machine_xt_clone_init(model, 1);
 
     return ret;
 }
@@ -604,7 +597,7 @@ machine_xt_bw230_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -620,7 +613,7 @@ machine_xt_v20xt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -636,7 +629,7 @@ machine_xt_pb8810_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -652,7 +645,9 @@ machine_xt_glabios_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_init_ex(model);
+    device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model, 0);
 
     return ret;
 }
