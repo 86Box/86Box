@@ -795,7 +795,7 @@ load_storage_controllers(void)
     }
 
     p = ini_section_get_string(cat, "fdc", NULL);
-#if 0
+#if 1
     if (p != NULL)
         fdc_type = fdc_card_get_from_internal_name(p);
     else
