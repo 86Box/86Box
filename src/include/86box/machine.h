@@ -321,7 +321,7 @@ typedef struct _machine_ {
 #else
     void *                 kbc_device;
 #endif /* EMU_DEVICE_H */
-    uint32_t               kbc_params;
+    uintptr_t              kbc_params;
     /* Bits 23-16: XOR mask, bits 15-8: OR mask, bits 7-0: AND mask. */
     uint32_t               kbc_p1;
     uint32_t               gpio;
