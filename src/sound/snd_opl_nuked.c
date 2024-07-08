@@ -804,114 +804,10 @@ slot_calc_fb(slot_t *slot)
     slot->prout = slot->out;
 }
 
+// Channel
+
 static void
-channel_setup_alg(chan_t *ch)
-{
-    if (ch->chtype == ch_drum) {
-        if (ch->ch_num == 7 || ch->ch_num == 8) {
-            ch->slots[0]->mod = &ch->dev->zeromod;
-            ch->slots[1]->mod = &ch->dev->zeromod;
-            return;
-        }
-
-        switch (ch->alg & 0x01) {
-            case 0x00:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->slots[0]->out;
-                break;
-
-            case 0x01:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->dev->zeromod;
-                break;
-
-            default:
-                break;
-        }
-        return;
-    }
-
-    if (ch->alg & 0x08)
-        return;
-
-    if (ch->alg & 0x04) {
-        ch->pair->out[0] = &ch->dev->zeromod;
-        ch->pair->out[1] = &ch->dev->zeromod;
-        ch->pair->out[2] = &ch->dev->zeromod;
-        ch->pair->out[3] = &ch->dev->zeromod;
-
-        switch (ch->alg & 0x03) {
-            case 0x00:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->pair->slots[0]->out;
-                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
-                ch->slots[1]->mod       = &ch->slots[0]->out;
-                ch->out[0]              = &ch->slots[1]->out;
-                ch->out[1]              = &ch->dev->zeromod;
-                ch->out[2]              = &ch->dev->zeromod;
-                ch->out[3]              = &ch->dev->zeromod;
-                break;
-
-            case 0x01:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->pair->slots[0]->out;
-                ch->slots[0]->mod       = &ch->dev->zeromod;
-                ch->slots[1]->mod       = &ch->slots[0]->out;
-                ch->out[0]              = &ch->pair->slots[1]->out;
-                ch->out[1]              = &ch->slots[1]->out;
-                ch->out[2]              = &ch->dev->zeromod;
-                ch->out[3]              = &ch->dev->zeromod;
-                break;
-
-            case 0x02:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->dev->zeromod;
-                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
-                ch->slots[1]->mod       = &ch->slots[0]->out;
-                ch->out[0]              = &ch->pair->slots[0]->out;
-                ch->out[1]              = &ch->slots[1]->out;
-                ch->out[2]              = &ch->dev->zeromod;
-                ch->out[3]              = &ch->dev->zeromod;
-                break;
-
-            case 0x03:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->dev->zeromod;
-                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
-                ch->slots[1]->mod       = &ch->dev->zeromod;
-                ch->out[0]              = &ch->pair->slots[0]->out;
-                ch->out[1]              = &ch->slots[0]->out;
-                ch->out[2]              = &ch->slots[1]->out;
-                ch->out[3]              = &ch->dev->zeromod;
-                break;
-
-            default:
-                break;
-        }
-    } else
-        switch (ch->alg & 0x01) {
-            case 0x00:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->slots[0]->out;
-                ch->out[0]        = &ch->slots[1]->out;
-                ch->out[1]        = &ch->dev->zeromod;
-                ch->out[2]        = &ch->dev->zeromod;
-                ch->out[3]        = &ch->dev->zeromod;
-                break;
-
-            case 0x01:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->dev->zeromod;
-                ch->out[0]        = &ch->slots[0]->out;
-                ch->out[1]        = &ch->slots[1]->out;
-                ch->out[2]        = &ch->dev->zeromod;
-                ch->out[3]        = &ch->dev->zeromod;
-                break;
-
-            default:
-                break;
-        }
-}
+channel_setup_alg(chan_t *ch);
 
 static void
 channel_update_rhythm(nuked_t *dev, uint8_t data)
@@ -1033,6 +929,115 @@ channel_write_b0(chan_t *ch, uint8_t data)
         env_update_ksl(ch->pair->slots[0]);
         env_update_ksl(ch->pair->slots[1]);
     }
+}
+
+static void
+channel_setup_alg(chan_t *ch)
+{
+    if (ch->chtype == ch_drum) {
+        if (ch->ch_num == 7 || ch->ch_num == 8) {
+            ch->slots[0]->mod = &ch->dev->zeromod;
+            ch->slots[1]->mod = &ch->dev->zeromod;
+            return;
+        }
+
+        switch (ch->alg & 0x01) {
+            case 0x00:
+                ch->slots[0]->mod = &ch->slots[0]->fbmod;
+                ch->slots[1]->mod = &ch->slots[0]->out;
+                break;
+
+            case 0x01:
+                ch->slots[0]->mod = &ch->slots[0]->fbmod;
+                ch->slots[1]->mod = &ch->dev->zeromod;
+                break;
+
+            default:
+                break;
+        }
+        return;
+    }
+
+    if (ch->alg & 0x08)
+        return;
+
+    if (ch->alg & 0x04) {
+        ch->pair->out[0] = &ch->dev->zeromod;
+        ch->pair->out[1] = &ch->dev->zeromod;
+        ch->pair->out[2] = &ch->dev->zeromod;
+        ch->pair->out[3] = &ch->dev->zeromod;
+
+        switch (ch->alg & 0x03) {
+            case 0x00:
+                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
+                ch->pair->slots[1]->mod = &ch->pair->slots[0]->out;
+                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
+                ch->slots[1]->mod       = &ch->slots[0]->out;
+                ch->out[0]              = &ch->slots[1]->out;
+                ch->out[1]              = &ch->dev->zeromod;
+                ch->out[2]              = &ch->dev->zeromod;
+                ch->out[3]              = &ch->dev->zeromod;
+                break;
+
+            case 0x01:
+                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
+                ch->pair->slots[1]->mod = &ch->pair->slots[0]->out;
+                ch->slots[0]->mod       = &ch->dev->zeromod;
+                ch->slots[1]->mod       = &ch->slots[0]->out;
+                ch->out[0]              = &ch->pair->slots[1]->out;
+                ch->out[1]              = &ch->slots[1]->out;
+                ch->out[2]              = &ch->dev->zeromod;
+                ch->out[3]              = &ch->dev->zeromod;
+                break;
+
+            case 0x02:
+                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
+                ch->pair->slots[1]->mod = &ch->dev->zeromod;
+                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
+                ch->slots[1]->mod       = &ch->slots[0]->out;
+                ch->out[0]              = &ch->pair->slots[0]->out;
+                ch->out[1]              = &ch->slots[1]->out;
+                ch->out[2]              = &ch->dev->zeromod;
+                ch->out[3]              = &ch->dev->zeromod;
+                break;
+
+            case 0x03:
+                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
+                ch->pair->slots[1]->mod = &ch->dev->zeromod;
+                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
+                ch->slots[1]->mod       = &ch->dev->zeromod;
+                ch->out[0]              = &ch->pair->slots[0]->out;
+                ch->out[1]              = &ch->slots[0]->out;
+                ch->out[2]              = &ch->slots[1]->out;
+                ch->out[3]              = &ch->dev->zeromod;
+                break;
+
+            default:
+                break;
+        }
+    } else
+        switch (ch->alg & 0x01) {
+            case 0x00:
+                ch->slots[0]->mod = &ch->slots[0]->fbmod;
+                ch->slots[1]->mod = &ch->slots[0]->out;
+                ch->out[0]        = &ch->slots[1]->out;
+                ch->out[1]        = &ch->dev->zeromod;
+                ch->out[2]        = &ch->dev->zeromod;
+                ch->out[3]        = &ch->dev->zeromod;
+                break;
+
+            case 0x01:
+                ch->slots[0]->mod = &ch->slots[0]->fbmod;
+                ch->slots[1]->mod = &ch->dev->zeromod;
+                ch->out[0]        = &ch->slots[0]->out;
+                ch->out[1]        = &ch->slots[1]->out;
+                ch->out[2]        = &ch->dev->zeromod;
+                ch->out[3]        = &ch->dev->zeromod;
+                break;
+
+            default:
+                break;
+        }
 }
 
 static void
