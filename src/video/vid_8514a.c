@@ -1004,9 +1004,9 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
             case 0x4ae8:
             case 0x4ae9:
                 WRITE8(port, dev->accel.advfunc_cntl, val);
-                dev->on[port & 1] = dev->accel.advfunc_cntl & 0x01;
-                vga_on = !dev->on[port & 1];
-                dev->vendor_mode[port & 1] = 0;
+                dev->on[0] = dev->accel.advfunc_cntl & 0x01;
+                vga_on = !dev->on[0];
+                dev->vendor_mode[0] = 0;
                 ibm8514_log("[%04X:%08X]: IBM 8514/A: (0x%04x): ON=%d, shadow crt=%x, hdisp=%d, vdisp=%d.\n", CS, cpu_state.pc, port, dev->on[port & 1], dev->accel.advfunc_cntl & 0x04, dev->hdisp, dev->vdisp);
                 ibm8514_log("IBM mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
                 svga_recalctimings(svga);
@@ -4311,7 +4311,7 @@ ibm8514_recalctimings(svga_t *svga)
     } else
 #endif
     {
-        if (dev->on[0] || dev->on[1]) {
+        if (dev->on[0]) {
             dev->h_total = dev->htotal + 1;
             dev->rowcount = !!(dev->disp_cntl & 0x08);
 
@@ -4416,7 +4416,7 @@ ibm8514_init(const device_t *info)
 
     dev->vram_size   = 1024 << 10;
     dev->vram        = calloc(dev->vram_size, 1);
-    dev->changedvram = calloc(dev->vram_size >> 12, 1);
+    dev->changedvram = calloc((dev->vram_size >> 12) + 1, 1);
     dev->vram_mask   = dev->vram_size - 1;
     dev->map8        = dev->pallook;
     dev->local       = 0;

@@ -223,7 +223,8 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 xga->on = (val & 0x01) ? 0 : 1;
             if (ibm8514_active && dev) {
                 dev->on[0] = (val & 0x01) ? 0 : 1;
-                dev->on[1] = dev->on[0];
+                if (dev->local & 0xff)
+                    dev->on[1] = dev->on[0];
             }
 
             svga_log("3C3: VGA ON = %d.\n", val & 0x01);
