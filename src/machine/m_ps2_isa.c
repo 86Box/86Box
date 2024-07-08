@@ -179,7 +179,7 @@ ps2_isa_setup(int model, int cpu_type)
     device_add(&fdc_at_ps1_device);
 
     /* Enable the builtin HDC. */
-    if (hdc_current == 1) {
+    if (hdc_current == HDC_INTERNAL) {
         priv = device_add(&ps1_hdc_device);
         ps1_hdc_inform(priv, &ps2->ps2_91);
     }
