@@ -1239,88 +1239,108 @@ nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
     nuked_t *dev = (nuked_t *) priv;
     uint64_t time1;
     uint64_t time2;
+    wrbuf_t *writebuf;
+    uint32_t writebuf_last;
 
-    if (dev->wrbuf[dev->wrbuf_last].reg & 0x0200) {
-        nuked_write_reg(dev, dev->wrbuf[dev->wrbuf_last].reg & 0x01ff,
-                        dev->wrbuf[dev->wrbuf_last].data);
+    writebuf_last = dev->wrbuf_last;
+    writebuf      = &dev->wrbuf[writebuf_last];
 
-        dev->wrbuf_cur       = (dev->wrbuf_last + 1) % WRBUF_SIZE;
-        dev->wrbuf_samplecnt = dev->wrbuf[dev->wrbuf_last].time;
+    if (writebuf->reg & 0x0200) {
+        nuked_write_reg(dev, writebuf->reg & 0x01ff, writebuf->data);
+
+        dev->wrbuf_cur       = (writebuf_last + 1) % WRBUF_SIZE;
+        dev->wrbuf_samplecnt = writebuf->time;
     }
 
-    dev->wrbuf[dev->wrbuf_last].reg  = reg | 0x0200;
-    dev->wrbuf[dev->wrbuf_last].data = val;
-    time1                            = dev->wrbuf_lasttime + WRBUF_DELAY;
-    time2                            = dev->wrbuf_samplecnt;
+    writebuf->reg  = reg | 0x0200;
+    writebuf->data = val;
+    time1          = dev->wrbuf_lasttime + WRBUF_DELAY;
+    time2          = dev->wrbuf_samplecnt;
 
     if (time1 < time2)
         time1 = time2;
 
-    dev->wrbuf[dev->wrbuf_last].time = time1;
-    dev->wrbuf_lasttime              = time1;
-    dev->wrbuf_last                  = (dev->wrbuf_last + 1) % WRBUF_SIZE;
+    writebuf->time      = time1;
+    dev->wrbuf_lasttime = time1;
+    dev->wrbuf_last     = (writebuf_last + 1) % WRBUF_SIZE;
 }
 
 void
 nuked_generate(void *priv, int32_t *bufp)
 {
     nuked_t *dev = (nuked_t *) priv;
-    int16_t  accm;
-    int16_t  shift = 0;
-    uint8_t  i;
-    uint8_t  j;
+    slot_t  *slot;
+    chan_t  *ch;
+    wrbuf_t *writebuf;
+    int16_t **out;
+    int32_t   mix;
+    int16_t   accm;
+    int16_t   shift = 0;
+    uint8_t   i;
+    uint8_t   j;
 
     bufp[1] = dev->mixbuff[1];
 
     for (i = 0; i < 15; i++) {
-        slot_calc_fb(&dev->slot[i]);
-        env_calc(&dev->slot[i]);
-        phase_generate(&dev->slot[i]);
-        slot_generate(&dev->slot[i]);
+        slot = &dev->slot[i];
+        slot_calc_fb(slot);
+        env_calc(slot);
+        phase_generate(slot);
+        slot_generate(slot);
     }
 
-    dev->mixbuff[0] = 0;
+    mix = 0;
 
     for (i = 0; i < 18; i++) {
-        accm = 0;
-
+        ch   = &dev->chan[i];
+        out  = ch->out;
         for (j = 0; j < 4; j++)
-            accm += *dev->chan[i].out[j];
+            accm += *out[j];
 
-        dev->mixbuff[0] += (int16_t) (accm & dev->chan[i].cha);
+        mix += (int16_t) (accm & ch->cha);
     }
+
+    dev->mixbuff[0] = mix;
+
     for (i = 15; i < 18; i++) {
-        slot_calc_fb(&dev->slot[i]);
-        env_calc(&dev->slot[i]);
-        phase_generate(&dev->slot[i]);
-        slot_generate(&dev->slot[i]);
+        slot = &dev->slot[i];
+        slot_calc_fb(slot);
+        env_calc(slot);
+        phase_generate(slot);
+        slot_generate(slot);
     }
 
     bufp[0] = dev->mixbuff[0];
 
     for (i = 18; i < 33; i++) {
-        slot_calc_fb(&dev->slot[i]);
-        env_calc(&dev->slot[i]);
-        phase_generate(&dev->slot[i]);
-        slot_generate(&dev->slot[i]);
+        slot = &dev->slot[i];
+        slot_calc_fb(slot);
+        env_calc(slot);
+        phase_generate(slot);
+        slot_generate(slot);
     }
 
-    dev->mixbuff[1] = 0;
+    mix = 0;
 
     for (i = 0; i < 18; i++) {
+        ch = &dev->chan[i];
+        out = ch->out;
         accm = 0;
 
         for (j = 0; j < 4; j++)
-            accm += *dev->chan[i].out[j];
+            accm += *out[j];
 
-        dev->mixbuff[1] += (int16_t) (accm & dev->chan[i].chb);
+        mix += (int16_t) (accm & ch->chb);
     }
 
+    dev->mixbuff[1] = mix;
+
     for (i = 33; i < 36; i++) {
-        slot_calc_fb(&dev->slot[i]);
-        env_calc(&dev->slot[i]);
-        phase_generate(&dev->slot[i]);
-        slot_generate(&dev->slot[i]);
+        slot = &dev->slot[i];
+        slot_calc_fb(slot);
+        env_calc(slot);
+        phase_generate(slot);
+        slot_generate(slot);
     }
 
     if ((dev->timer & 0x3f) == 0x3f)
@@ -1359,14 +1379,13 @@ nuked_generate(void *priv, int32_t *bufp)
 
     dev->eg_state ^= 1;
 
-    while (dev->wrbuf[dev->wrbuf_cur].time <= dev->wrbuf_samplecnt) {
-        if (!(dev->wrbuf[dev->wrbuf_cur].reg & 0x200))
+    while (writebuf = &dev->wrbuf[dev->wrbuf_cur], writebuf->time <= dev->wrbuf_samplecnt) {
+        if (!(writebuf->reg & 0x200))
             break;
 
-        dev->wrbuf[dev->wrbuf_cur].reg &= 0x01ff;
+        writebuf->reg &= 0x01ff;
 
-        nuked_write_reg(dev, dev->wrbuf[dev->wrbuf_cur].reg,
-                        dev->wrbuf[dev->wrbuf_cur].data);
+        nuked_write_reg(dev, writebuf->reg, writebuf->data);
 
         dev->wrbuf_cur = (dev->wrbuf_cur + 1) % WRBUF_SIZE;
     }
@@ -1415,42 +1434,48 @@ nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 void
 nuked_init(nuked_t *dev, uint32_t samplerate)
 {
+    slot_t *slot;
+    chan_t *ch;
     uint8_t i;
+    uint8_t local_ch_slot;
 
     memset(dev, 0x00, sizeof(nuked_t));
 
     for (i = 0; i < 36; i++) {
-        dev->slot[i].dev      = dev;
-        dev->slot[i].mod      = &dev->zeromod;
-        dev->slot[i].eg_rout  = 0x01ff;
-        dev->slot[i].eg_out   = 0x01ff;
-        dev->slot[i].eg_gen   = envelope_gen_num_release;
-        dev->slot[i].trem     = (uint8_t *) &dev->zeromod;
-        dev->slot[i].slot_num = i;
+        slot           = &dev->slot[i];
+        slot->dev      = dev;
+        slot->mod      = &dev->zeromod;
+        slot->eg_rout  = 0x01ff;
+        slot->eg_out   = 0x01ff;
+        slot->eg_gen   = envelope_gen_num_release;
+        slot->trem     = (uint8_t *) &dev->zeromod;
+        slot->slot_num = i;
     }
 
     for (i = 0; i < 18; i++) {
-        dev->chan[i].slots[0]          = &dev->slot[ch_slot[i]];
-        dev->chan[i].slots[1]          = &dev->slot[ch_slot[i] + 3];
-        dev->slot[ch_slot[i]].chan     = &dev->chan[i];
-        dev->slot[ch_slot[i] + 3].chan = &dev->chan[i];
+        ch                                = &dev->chan[i];
+        local_ch_slot                     = ch_slot[i];
+        ch->slots[0]                      = &dev->slot[local_ch_slot];
+        ch->slots[1]                      = &dev->slot[local_ch_slot + 3];
+        dev->slot[local_ch_slot].chan     = ch;
+        dev->slot[local_ch_slot + 3].chan = ch;
 
         if ((i % 9) < 3)
-            dev->chan[i].pair = &dev->chan[i + 3];
+            ch->pair = &dev->chan[i + 3];
         else if ((i % 9) < 6)
-            dev->chan[i].pair = &dev->chan[i - 3];
+            ch->pair = &dev->chan[i - 3];
 
-        dev->chan[i].dev    = dev;
-        dev->chan[i].out[0] = &dev->zeromod;
-        dev->chan[i].out[1] = &dev->zeromod;
-        dev->chan[i].out[2] = &dev->zeromod;
-        dev->chan[i].out[3] = &dev->zeromod;
-        dev->chan[i].chtype = ch_2op;
-        dev->chan[i].cha    = 0xffff;
-        dev->chan[i].chb    = 0xffff;
-        dev->chan[i].ch_num = i;
+        ch->dev    = dev;
+        ch->out[0] = &dev->zeromod;
+        ch->out[1] = &dev->zeromod;
+        ch->out[2] = &dev->zeromod;
+        ch->out[3] = &dev->zeromod;
+        ch->chtype = ch_2op;
+        ch->cha    = 0xffff;
+        ch->chb    = 0xffff;
+        ch->ch_num = i;
 
-        channel_setup_alg(&dev->chan[i]);
+        channel_setup_alg(ch);
     }
 
     dev->noise        = 1;
