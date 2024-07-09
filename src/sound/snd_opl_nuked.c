@@ -322,10 +322,10 @@ static const uint8_t kslshift[4] = {
 
 // envelope generator constants
 static const uint8_t eg_incstep[4][4] = {
-    {0,  0, 0, 0},
-    { 1, 0, 0, 0},
-    { 1, 0, 1, 0},
-    { 1, 1, 1, 0}
+    { 0, 0, 0, 0 },
+    { 1, 0, 0, 0 },
+    { 1, 0, 1, 0 },
+    { 1, 1, 1, 0 }
 };
 
 // address decoding
@@ -500,7 +500,8 @@ static const env_sinfunc env_sin[8] = {
 static void
 env_update_ksl(slot_t *slot)
 {
-    int16_t ksl = (kslrom[slot->chan->f_num >> 6] << 2) - ((0x08 - slot->chan->block) << 5);
+    int16_t ksl = (kslrom[slot->chan->f_num >> 6] << 2)
+                  - ((0x08 - slot->chan->block) << 5);
 
     if (ksl < 0)
         ksl = 0;
@@ -524,7 +525,8 @@ env_calc(slot_t *slot)
     uint8_t  eg_off;
     uint8_t  reset = 0;
 
-    slot->eg_out = slot->eg_rout + (slot->reg_tl << 2) + (slot->eg_ksl >> kslshift[slot->reg_ksl]) + *slot->trem;
+    slot->eg_out = slot->eg_rout + (slot->reg_tl << 2)
+                 + (slot->eg_ksl >> kslshift[slot->reg_ksl]) + *slot->trem;
     if (slot->key && slot->eg_gen == envelope_gen_num_release) {
         reset    = 1;
         reg_rate = slot->reg_ar;
@@ -702,7 +704,9 @@ phase_generate(slot_t *slot)
         dev->rm_tc_bit5 = (phase >> 5) & 1;
     }
     if (dev->rhy & 0x20) {
-        rm_xor = (dev->rm_hh_bit2 ^ dev->rm_hh_bit7) | (dev->rm_hh_bit3 ^ dev->rm_tc_bit5) | (dev->rm_tc_bit3 ^ dev->rm_tc_bit5);
+        rm_xor = (dev->rm_hh_bit2 ^ dev->rm_hh_bit7)
+                 | (dev->rm_hh_bit3 ^ dev->rm_tc_bit5)
+                 | (dev->rm_tc_bit3 ^ dev->rm_tc_bit5);
 
         switch (slot->slot_num) {
             case 13: // hh
@@ -714,7 +718,8 @@ phase_generate(slot_t *slot)
                 break;
 
             case 16: // sd
-                slot->pg_phase_out = (dev->rm_hh_bit8 << 9) | ((dev->rm_hh_bit8 ^ (noise & 1)) << 8);
+                slot->pg_phase_out = (dev->rm_hh_bit8 << 9)
+                                     | ((dev->rm_hh_bit8 ^ (noise & 1)) << 8);
                 break;
 
             case 17: // tc
@@ -991,7 +996,8 @@ channel_write_a0(chan_t *ch, uint8_t data)
         return;
 
     ch->f_num = (ch->f_num & 0x300) | data;
-    ch->ksv   = (ch->block << 1) | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
+    ch->ksv   = (ch->block << 1)
+                 | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
 
     env_update_ksl(ch->slots[0]);
     env_update_ksl(ch->slots[1]);
@@ -1013,7 +1019,8 @@ channel_write_b0(chan_t *ch, uint8_t data)
 
     ch->f_num = (ch->f_num & 0xff) | ((data & 0x03) << 8);
     ch->block = (data >> 2) & 0x07;
-    ch->ksv   = (ch->block << 1) | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
+    ch->ksv   = (ch->block << 1)
+                 | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
 
     env_update_ksl(ch->slots[0]);
     env_update_ksl(ch->slots[1]);
