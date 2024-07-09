@@ -35,7 +35,7 @@
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2013-2018 Alexey Khokholov (Nuke.YKT)
+ *          Copyright 2013-2020 Alexey Khokholov (Nuke.YKT)
  */
 #include <stdarg.h>
 #include <stdint.h>
