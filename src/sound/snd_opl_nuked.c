@@ -612,7 +612,7 @@ env_calc(slot_t *slot)
             if (!slot->eg_rout)
                 slot->eg_gen = envelope_gen_num_decay;
             else if (slot->key && shift > 0 && rate_hi != 0x0f)
-                eg_inc = ((~slot->eg_rout) << shift) >> 4;
+                eg_inc = ~slot->eg_rout >> (4 - shift);
             break;
 
         case envelope_gen_num_decay:
