@@ -151,6 +151,8 @@ typedef struct chan {
     uint8_t      ksv;
     uint16_t     cha;
     uint16_t     chb;
+    uint16_t     chc;
+    uint16_t     chd;
     uint8_t      ch_num;
 } chan_t;
 
@@ -178,7 +180,7 @@ typedef struct chip {
     uint8_t  tremoloshift;
     uint32_t noise;
     int16_t  zeromod;
-    int32_t  mixbuff[2];
+    int32_t  mixbuff[4];
     uint8_t  rm_hh_bit2;
     uint8_t  rm_hh_bit3;
     uint8_t  rm_hh_bit7;
@@ -193,8 +195,8 @@ typedef struct chip {
     // OPL3L
     int32_t rateratio;
     int32_t samplecnt;
-    int32_t oldsamples[2];
-    int32_t samples[2];
+    int32_t oldsamples[4];
+    int32_t samples[4];
 
     uint64_t wrbuf_samplecnt;
     uint32_t wrbuf_cur;
@@ -1077,10 +1079,8 @@ channel_setup_alg(chan_t *ch)
 }
 
 static void
-channel_write_c0(chan_t *ch, uint8_t data)
+channel_update_alg(chan_t *ch)
 {
-    ch->fb  = (data & 0x0e) >> 1;
-    ch->con = data & 0x01;
     ch->alg = ch->con;
 
     if (ch->dev->newm) {
@@ -1096,12 +1096,24 @@ channel_write_c0(chan_t *ch, uint8_t data)
             channel_setup_alg(ch);
     } else
         channel_setup_alg(ch);
+}
+
+static void
+channel_write_c0(chan_t *ch, uint8_t data)
+{
+    ch->fb  = (data & 0x0e) >> 1;
+    ch->con = data & 0x01;
 
     if (ch->dev->newm) {
         ch->cha = ((data >> 4) & 0x01) ? ~0 : 0;
         ch->chb = ((data >> 5) & 0x01) ? ~0 : 0;
-    } else
+        ch->chc = ((data >> 6) & 0x01) ? ~0 : 0;
+        ch->chd = ((data >> 7) & 0x01) ? ~0 : 0;
+    } else {
         ch->cha = ch->chb = (uint16_t) ~0;
+        // TODO: Verify on real chip if DAC2 output is disabled in compat mode
+        ch->chc = ch->chd = 0;
+    }
 
 #if OPL_ENABLE_STEREOEXT
     if (!ch->dev->stereoext) {
@@ -1174,9 +1186,12 @@ channel_set_4op(nuked_t *dev, uint8_t data)
         if ((data >> bit) & 0x01) {
             dev->chan[chnum].chtype     = ch_4op;
             dev->chan[chnum + 3].chtype = ch_4op2;
+            channel_update_alg(&dev->chan[chnum]);
         } else {
             dev->chan[chnum].chtype     = ch_2op;
             dev->chan[chnum + 3].chtype = ch_2op;
+            channel_update_alg(&dev->chan[chnum]);
+            channel_update_alg(&dev->chan[chnum + 3]);
         }
     }
 }
@@ -1337,19 +1352,20 @@ static void process_slot(slot_t *slot)
     slot_generate(slot);
 }
 
-void
-nuked_generate(void *priv, int32_t *bufp)
+inline void
+nuked_generate_4ch(void *priv, int32_t *buf4)
 {
     nuked_t *dev = (nuked_t *) priv;
     chan_t  *ch;
     wrbuf_t *writebuf;
     int16_t **out;
-    int32_t   mix;
+    int32_t   mix[2];
     int16_t   accm;
     int16_t   shift = 0;
     uint8_t   i;
 
-    bufp[1] = dev->mixbuff[1];
+    buf4[1] = dev->mixbuff[1];
+    buf4[3] = dev->mixbuff[3];
 
 #if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 0; i < 15; i++)
@@ -1358,47 +1374,52 @@ nuked_generate(void *priv, int32_t *bufp)
 #endif
         process_slot(&dev->slot[i]);
 
-    mix = 0;
+    mix[0] = mix[1] = 0;
 
     for (i = 0; i < 18; i++) {
         ch   = &dev->chan[i];
         out  = ch->out;
         accm = *out[0] + *out[1] + *out[2] + *out[3];
 #if OPL_ENABLE_STEREOEXT
-        mix += (int16_t)((accm * ch->leftpan) >> 16);
+        mix[0] += (int16_t)((accm * ch->leftpan) >> 16);
 #else
-        mix += (int16_t) (accm & ch->cha);
+        mix[0] += (int16_t) (accm & ch->cha);
 #endif
+        mix[1] += (int16_t) (accm & ch->chc);
     }
 
-    dev->mixbuff[0] = mix;
+    dev->mixbuff[0] = mix[0];
+    dev->mixbuff[2] = mix[1];
 
 #if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 15; i < 18; i++)
         process_slot(&dev->slot[i]);
 #endif
 
-    bufp[0] = dev->mixbuff[0];
+    buf4[0] = dev->mixbuff[0];
+    buf4[2] = dev->mixbuff[2];
 
 #if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 18; i < 33; i++)
         process_slot(&dev->slot[i]);
 #endif
 
-    mix = 0;
+    mix[0] = mix[1] = 0;
 
     for (i = 0; i < 18; i++) {
         ch = &dev->chan[i];
         out = ch->out;
         accm = *out[0] + *out[1] + *out[2] + *out[3];
 #if OPL_ENABLE_STEREOEXT
-        mix += (int16_t)((accm * ch->leftpan) >> 16);
+        mix[0] += (int16_t)((accm * ch->leftpan) >> 16);
 #else
-        mix += (int16_t) (accm & ch->chb);
+        mix[0] += (int16_t) (accm & ch->chb);
 #endif
+        mix[1] += (int16_t) (accm & ch->chd);
     }
 
-    dev->mixbuff[1] = mix;
+    dev->mixbuff[1] = mix[0];
+    dev->mixbuff[3] = mix[1];
 
 #if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 33; i < 36; i++)
@@ -1455,24 +1476,48 @@ nuked_generate(void *priv, int32_t *bufp)
     dev->wrbuf_samplecnt++;
 }
 
+void nuked_generate(nuked_t *dev, int32_t *buf4)
+{
+    int32_t samples[4];
+    nuked_generate_4ch(dev, samples);
+    buf4[0] = samples[0];
+    buf4[1] = samples[1];
+}
+
 void
-nuked_generate_resampled(nuked_t *dev, int32_t *bufp)
+nuked_generate_4ch_resampled(nuked_t *dev, int16_t *buf4)
 {
     while (dev->samplecnt >= dev->rateratio) {
         dev->oldsamples[0] = dev->samples[0];
         dev->oldsamples[1] = dev->samples[1];
-        nuked_generate(dev, dev->samples);
+        dev->oldsamples[2] = dev->samples[2];
+        dev->oldsamples[3] = dev->samples[3];
+        nuked_generate_4ch(dev, dev->samples);
         dev->samplecnt -= dev->rateratio;
     }
 
-    bufp[0] = (int32_t) ((dev->oldsamples[0] * (dev->rateratio - dev->samplecnt)
+    buf4[0] = (int32_t) ((dev->oldsamples[0] * (dev->rateratio - dev->samplecnt)
                           + dev->samples[0] * dev->samplecnt)
                          / dev->rateratio);
-    bufp[1] = (int32_t) ((dev->oldsamples[1] * (dev->rateratio - dev->samplecnt)
+    buf4[1] = (int32_t) ((dev->oldsamples[1] * (dev->rateratio - dev->samplecnt)
                           + dev->samples[1] * dev->samplecnt)
+                         / dev->rateratio);
+    buf4[2] = (int32_t) ((dev->oldsamples[2] * (dev->rateratio - dev->samplecnt)
+                          + dev->samples[2] * dev->samplecnt)
+                         / dev->rateratio);
+    buf4[3] = (int32_t) ((dev->oldsamples[3] * (dev->rateratio - dev->samplecnt)
+                          + dev->samples[3] * dev->samplecnt)
                          / dev->rateratio);
 
     dev->samplecnt += 1 << RSM_FRAC;
+}
+
+void nuked_generate_resampled(nuked_t *dev, int16_t *buf4)
+{
+    int16_t samples[4];
+    nuked_generate_4ch_resampled(dev, samples);
+    buf4[0] = samples[0];
+    buf4[1] = samples[1];
 }
 
 void
@@ -1485,9 +1530,25 @@ nuked_generate_raw(nuked_t *dev, int32_t *bufp)
 }
 
 void
+nuked_generate_4ch_stream(nuked_t *dev, int16_t *sndptr1, int16_t *sndptr2, uint32_t numsamples)
+{
+    int16_t samples[4];
+
+    for (uint_fast32_t i = 0; i < numsamples; i++) {
+        nuked_generate_4ch_resampled(dev, samples);
+        sndptr1[0] = samples[0];
+        sndptr1[1] = samples[1];
+        sndptr2[0] = samples[2];
+        sndptr2[1] = samples[3];
+        sndptr1 += 2;
+        sndptr2 += 2;
+    }
+}
+
+void
 nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 {
-    for (uint32_t i = 0; i < num; i++) {
+    for (uint_fast32_t i = 0; i < num; i++) {
         nuked_generate_raw(dev, sndptr);
         sndptr += 2;
     }
