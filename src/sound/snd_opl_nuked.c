@@ -51,9 +51,21 @@
 #include <86box/device.h>
 #include <86box/snd_opl.h>
 
+
+#ifndef OPL_ENABLE_STEREOEXT
+#define OPL_ENABLE_STEREOEXT 0
+#endif
+
+#if OPL_ENABLE_STEREOEXT
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES 1
+#endif
+#include <math.h>
+#endif
+
 /* Quirk: Some FM channels are output one sample later on the left side than the right. */
 #ifndef OPL_QUIRK_CHANNELSAMPLEDELAY
-#define OPL_QUIRK_CHANNELSAMPLEDELAY 1
+#define OPL_QUIRK_CHANNELSAMPLEDELAY (!OPL_ENABLE_STEREOEXT)
 #endif
 
 #define WRBUF_SIZE  1024
@@ -124,6 +136,10 @@ typedef struct chan {
     struct chan *pair;
     struct chip *dev;
     int16_t     *out[4];
+#if OPL_ENABLE_STEREOEXT
+    int32_t      leftpan;
+    int32_t      rightpan;
+#endif
     uint8_t      chtype;
     uint16_t     f_num;
     uint8_t      block;
@@ -167,6 +183,10 @@ typedef struct chip {
     uint8_t  rm_hh_bit8;
     uint8_t  rm_tc_bit3;
     uint8_t  rm_tc_bit5;
+
+#if OPL_ENABLE_STEREOEXT
+    uint8_t stereoext;
+#endif
 
     // OPL3L
     int32_t rateratio;
@@ -342,6 +362,15 @@ static const int8_t ad_slot[0x20] = {
 static const uint8_t ch_slot[18] = {
     0, 1, 2, 6, 7, 8, 12, 13, 14, 18, 19, 20, 24, 25, 26, 30, 31, 32
 };
+
+#if OPL_ENABLE_STEREOEXT
+/*
+    stereo extension panning table
+*/
+
+static int32_t panpot_lut[256];
+static uint8_t panpot_lut_build = 0;
+#endif
 
 // Envelope generator
 typedef int16_t (*env_sinfunc)(uint16_t phase, uint16_t envelope);
@@ -1071,7 +1100,25 @@ channel_write_c0(chan_t *ch, uint8_t data)
         ch->chb = ((data >> 5) & 0x01) ? ~0 : 0;
     } else
         ch->cha = ch->chb = (uint16_t) ~0;
+
+#if OPL_ENABLE_STEREOEXT
+    if (!ch->dev->stereoext) {
+        ch->leftpan  = ch->cha << 16;
+        ch->rightpan = ch->chb << 16;
+    }
+#endif
 }
+
+#if OPL_ENABLE_STEREOEXT
+static void
+channel_write_d0(chan_t *ch, uint8_t data)
+{
+    if (ch->dev->stereoext) {
+        ch->leftpan  = panpot_lut[data ^ 0xff];
+        ch->rightpan = panpot_lut[data];
+    }
+}
+#endif
 
 static void
 channel_key_on(chan_t *ch)
@@ -1162,6 +1209,9 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
 
                     case 0x05:
                         dev->newm = val & 0x01;
+#if OPL_ENABLE_STEREOEXT
+                        dev->stereoext = (val >> 1) & 0x01;
+#endif
                         break;
 
                     default:
@@ -1226,6 +1276,13 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
             if ((regm & 0x0f) < 9)
                 channel_write_c0(&dev->chan[9 * high + (regm & 0x0f)], val);
             break;
+
+#if OPL_ENABLE_STEREOEXT
+        case 0xd0:
+            if ((regm & 0x0f) < 9)
+                channel_write_d0(&dev->chan[9 * high + (regm & 0x0f)], val);
+            break;
+#endif
 
         case 0xe0:
         case 0xf0:
@@ -1305,7 +1362,11 @@ nuked_generate(void *priv, int32_t *bufp)
         ch   = &dev->chan[i];
         out  = ch->out;
         accm = *out[0] + *out[1] + *out[2] + *out[3];
+#if OPL_ENABLE_STEREOEXT
+        mix += (int16_t)((accm * ch->leftpan) >> 16);
+#else
         mix += (int16_t) (accm & ch->cha);
+#endif
     }
 
     dev->mixbuff[0] = mix;
@@ -1328,7 +1389,11 @@ nuked_generate(void *priv, int32_t *bufp)
         ch = &dev->chan[i];
         out = ch->out;
         accm = *out[0] + *out[1] + *out[2] + *out[3];
+#if OPL_ENABLE_STEREOEXT
+        mix += (int16_t)((accm * ch->leftpan) >> 16);
+#else
         mix += (int16_t) (accm & ch->chb);
+#endif
     }
 
     dev->mixbuff[1] = mix;
@@ -1468,6 +1533,10 @@ nuked_init(nuked_t *dev, uint32_t samplerate)
         ch->chtype = ch_2op;
         ch->cha    = 0xffff;
         ch->chb    = 0xffff;
+#if OPL_ENABLE_STEREOEXT
+        ch->leftpan  = 0x10000;
+        ch->rightpan = 0x10000;
+#endif
         ch->ch_num = i;
 
         channel_setup_alg(ch);
@@ -1477,6 +1546,15 @@ nuked_init(nuked_t *dev, uint32_t samplerate)
     dev->rateratio    = (samplerate << RSM_FRAC) / 49716;
     dev->tremoloshift = 4;
     dev->vibshift     = 1;
+
+
+#if OPL_ENABLE_STEREOEXT
+    if (!panpot_lut_build) {
+        for (int32_t i = 0; i < 256; i++)
+            panpot_lut[i] = (int32_t)(sin(i * M_PI / 512.0) * 65536.0);
+        panpot_lut_build = 1;
+    }
+#endif
 }
 
 static void
