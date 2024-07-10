@@ -134,7 +134,7 @@ typedef struct slot {
 } slot_t;
 
 typedef struct chan {
-    slot_t      *slots[2];
+    slot_t      *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
     struct chan *pair;
     struct chip *dev;
     int16_t     *out[4];
@@ -860,18 +860,18 @@ channel_update_rhythm(nuked_t *dev, uint8_t data)
         ch6         = &dev->chan[6];
         ch7         = &dev->chan[7];
         ch8         = &dev->chan[8];
-        ch6->out[0] = &ch6->slots[1]->out;
-        ch6->out[1] = &ch6->slots[1]->out;
+        ch6->out[0] = &ch6->slotz[1]->out;
+        ch6->out[1] = &ch6->slotz[1]->out;
         ch6->out[2] = &dev->zeromod;
         ch6->out[3] = &dev->zeromod;
-        ch7->out[0] = &ch7->slots[0]->out;
-        ch7->out[1] = &ch7->slots[0]->out;
-        ch7->out[2] = &ch7->slots[1]->out;
-        ch7->out[3] = &ch7->slots[1]->out;
-        ch8->out[0] = &ch8->slots[0]->out;
-        ch8->out[1] = &ch8->slots[0]->out;
-        ch8->out[2] = &ch8->slots[1]->out;
-        ch8->out[3] = &ch8->slots[1]->out;
+        ch7->out[0] = &ch7->slotz[0]->out;
+        ch7->out[1] = &ch7->slotz[0]->out;
+        ch7->out[2] = &ch7->slotz[1]->out;
+        ch7->out[3] = &ch7->slotz[1]->out;
+        ch8->out[0] = &ch8->slotz[0]->out;
+        ch8->out[1] = &ch8->slotz[0]->out;
+        ch8->out[2] = &ch8->slotz[1]->out;
+        ch8->out[3] = &ch8->slotz[1]->out;
 
         for (chnum = 6; chnum < 9; chnum++)
             dev->chan[chnum].chtype = ch_drum;
@@ -882,43 +882,43 @@ channel_update_rhythm(nuked_t *dev, uint8_t data)
 
         // hh
         if (dev->rhy & 0x01)
-            env_key_on(ch7->slots[0], egk_drum);
+            env_key_on(ch7->slotz[0], egk_drum);
         else
-            env_key_off(ch7->slots[0], egk_drum);
+            env_key_off(ch7->slotz[0], egk_drum);
 
         // tc
         if (dev->rhy & 0x02)
-            env_key_on(ch8->slots[1], egk_drum);
+            env_key_on(ch8->slotz[1], egk_drum);
         else
-            env_key_off(ch8->slots[1], egk_drum);
+            env_key_off(ch8->slotz[1], egk_drum);
 
         // tom
         if (dev->rhy & 0x04)
-            env_key_on(ch8->slots[0], egk_drum);
+            env_key_on(ch8->slotz[0], egk_drum);
         else
-            env_key_off(ch8->slots[0], egk_drum);
+            env_key_off(ch8->slotz[0], egk_drum);
 
         // sd
         if (dev->rhy & 0x08)
-            env_key_on(ch7->slots[1], egk_drum);
+            env_key_on(ch7->slotz[1], egk_drum);
         else
-            env_key_off(ch7->slots[1], egk_drum);
+            env_key_off(ch7->slotz[1], egk_drum);
 
         // bd
         if (dev->rhy & 0x10) {
-            env_key_on(ch6->slots[0], egk_drum);
-            env_key_on(ch6->slots[1], egk_drum);
+            env_key_on(ch6->slotz[0], egk_drum);
+            env_key_on(ch6->slotz[1], egk_drum);
         } else {
-            env_key_off(ch6->slots[0], egk_drum);
-            env_key_off(ch6->slots[1], egk_drum);
+            env_key_off(ch6->slotz[0], egk_drum);
+            env_key_off(ch6->slotz[1], egk_drum);
         }
     } else {
         for (chnum = 6; chnum < 9; chnum++) {
             dev->chan[chnum].chtype = ch_2op;
 
             channel_setup_alg(&dev->chan[chnum]);
-            env_key_off(dev->chan[chnum].slots[0], egk_drum);
-            env_key_off(dev->chan[chnum].slots[1], egk_drum);
+            env_key_off(dev->chan[chnum].slotz[0], egk_drum);
+            env_key_off(dev->chan[chnum].slotz[1], egk_drum);
         }
     }
 }
@@ -933,15 +933,15 @@ channel_write_a0(chan_t *ch, uint8_t data)
     ch->ksv   = (ch->block << 1)
                  | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
 
-    env_update_ksl(ch->slots[0]);
-    env_update_ksl(ch->slots[1]);
+    env_update_ksl(ch->slotz[0]);
+    env_update_ksl(ch->slotz[1]);
 
     if (ch->dev->newm && ch->chtype == ch_4op) {
         ch->pair->f_num = ch->f_num;
         ch->pair->ksv   = ch->ksv;
 
-        env_update_ksl(ch->pair->slots[0]);
-        env_update_ksl(ch->pair->slots[1]);
+        env_update_ksl(ch->pair->slotz[0]);
+        env_update_ksl(ch->pair->slotz[1]);
     }
 }
 
@@ -956,16 +956,16 @@ channel_write_b0(chan_t *ch, uint8_t data)
     ch->ksv   = (ch->block << 1)
                  | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
 
-    env_update_ksl(ch->slots[0]);
-    env_update_ksl(ch->slots[1]);
+    env_update_ksl(ch->slotz[0]);
+    env_update_ksl(ch->slotz[1]);
 
     if (ch->dev->newm && ch->chtype == ch_4op) {
         ch->pair->f_num = ch->f_num;
         ch->pair->block = ch->block;
         ch->pair->ksv   = ch->ksv;
 
-        env_update_ksl(ch->pair->slots[0]);
-        env_update_ksl(ch->pair->slots[1]);
+        env_update_ksl(ch->pair->slotz[0]);
+        env_update_ksl(ch->pair->slotz[1]);
     }
 }
 
@@ -974,20 +974,20 @@ channel_setup_alg(chan_t *ch)
 {
     if (ch->chtype == ch_drum) {
         if (ch->ch_num == 7 || ch->ch_num == 8) {
-            ch->slots[0]->mod = &ch->dev->zeromod;
-            ch->slots[1]->mod = &ch->dev->zeromod;
+            ch->slotz[0]->mod = &ch->dev->zeromod;
+            ch->slotz[1]->mod = &ch->dev->zeromod;
             return;
         }
 
         switch (ch->alg & 0x01) {
             case 0x00:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->slots[0]->out;
+                ch->slotz[0]->mod = &ch->slotz[0]->fbmod;
+                ch->slotz[1]->mod = &ch->slotz[0]->out;
                 break;
 
             case 0x01:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->dev->zeromod;
+                ch->slotz[0]->mod = &ch->slotz[0]->fbmod;
+                ch->slotz[1]->mod = &ch->dev->zeromod;
                 break;
 
             default:
@@ -1007,46 +1007,46 @@ channel_setup_alg(chan_t *ch)
 
         switch (ch->alg & 0x03) {
             case 0x00:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->pair->slots[0]->out;
-                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
-                ch->slots[1]->mod       = &ch->slots[0]->out;
-                ch->out[0]              = &ch->slots[1]->out;
+                ch->pair->slotz[0]->mod = &ch->pair->slotz[0]->fbmod;
+                ch->pair->slotz[1]->mod = &ch->pair->slotz[0]->out;
+                ch->slotz[0]->mod       = &ch->pair->slotz[1]->out;
+                ch->slotz[1]->mod       = &ch->slotz[0]->out;
+                ch->out[0]              = &ch->slotz[1]->out;
                 ch->out[1]              = &ch->dev->zeromod;
                 ch->out[2]              = &ch->dev->zeromod;
                 ch->out[3]              = &ch->dev->zeromod;
                 break;
 
             case 0x01:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->pair->slots[0]->out;
-                ch->slots[0]->mod       = &ch->dev->zeromod;
-                ch->slots[1]->mod       = &ch->slots[0]->out;
-                ch->out[0]              = &ch->pair->slots[1]->out;
-                ch->out[1]              = &ch->slots[1]->out;
+                ch->pair->slotz[0]->mod = &ch->pair->slotz[0]->fbmod;
+                ch->pair->slotz[1]->mod = &ch->pair->slotz[0]->out;
+                ch->slotz[0]->mod       = &ch->dev->zeromod;
+                ch->slotz[1]->mod       = &ch->slotz[0]->out;
+                ch->out[0]              = &ch->pair->slotz[1]->out;
+                ch->out[1]              = &ch->slotz[1]->out;
                 ch->out[2]              = &ch->dev->zeromod;
                 ch->out[3]              = &ch->dev->zeromod;
                 break;
 
             case 0x02:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->dev->zeromod;
-                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
-                ch->slots[1]->mod       = &ch->slots[0]->out;
-                ch->out[0]              = &ch->pair->slots[0]->out;
-                ch->out[1]              = &ch->slots[1]->out;
+                ch->pair->slotz[0]->mod = &ch->pair->slotz[0]->fbmod;
+                ch->pair->slotz[1]->mod = &ch->dev->zeromod;
+                ch->slotz[0]->mod       = &ch->pair->slotz[1]->out;
+                ch->slotz[1]->mod       = &ch->slotz[0]->out;
+                ch->out[0]              = &ch->pair->slotz[0]->out;
+                ch->out[1]              = &ch->slotz[1]->out;
                 ch->out[2]              = &ch->dev->zeromod;
                 ch->out[3]              = &ch->dev->zeromod;
                 break;
 
             case 0x03:
-                ch->pair->slots[0]->mod = &ch->pair->slots[0]->fbmod;
-                ch->pair->slots[1]->mod = &ch->dev->zeromod;
-                ch->slots[0]->mod       = &ch->pair->slots[1]->out;
-                ch->slots[1]->mod       = &ch->dev->zeromod;
-                ch->out[0]              = &ch->pair->slots[0]->out;
-                ch->out[1]              = &ch->slots[0]->out;
-                ch->out[2]              = &ch->slots[1]->out;
+                ch->pair->slotz[0]->mod = &ch->pair->slotz[0]->fbmod;
+                ch->pair->slotz[1]->mod = &ch->dev->zeromod;
+                ch->slotz[0]->mod       = &ch->pair->slotz[1]->out;
+                ch->slotz[1]->mod       = &ch->dev->zeromod;
+                ch->out[0]              = &ch->pair->slotz[0]->out;
+                ch->out[1]              = &ch->slotz[0]->out;
+                ch->out[2]              = &ch->slotz[1]->out;
                 ch->out[3]              = &ch->dev->zeromod;
                 break;
 
@@ -1056,19 +1056,19 @@ channel_setup_alg(chan_t *ch)
     } else
         switch (ch->alg & 0x01) {
             case 0x00:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->slots[0]->out;
-                ch->out[0]        = &ch->slots[1]->out;
+                ch->slotz[0]->mod = &ch->slotz[0]->fbmod;
+                ch->slotz[1]->mod = &ch->slotz[0]->out;
+                ch->out[0]        = &ch->slotz[1]->out;
                 ch->out[1]        = &ch->dev->zeromod;
                 ch->out[2]        = &ch->dev->zeromod;
                 ch->out[3]        = &ch->dev->zeromod;
                 break;
 
             case 0x01:
-                ch->slots[0]->mod = &ch->slots[0]->fbmod;
-                ch->slots[1]->mod = &ch->dev->zeromod;
-                ch->out[0]        = &ch->slots[0]->out;
-                ch->out[1]        = &ch->slots[1]->out;
+                ch->slotz[0]->mod = &ch->slotz[0]->fbmod;
+                ch->slotz[1]->mod = &ch->dev->zeromod;
+                ch->out[0]        = &ch->slotz[0]->out;
+                ch->out[1]        = &ch->slotz[1]->out;
                 ch->out[2]        = &ch->dev->zeromod;
                 ch->out[3]        = &ch->dev->zeromod;
                 break;
@@ -1139,17 +1139,17 @@ channel_key_on(chan_t *ch)
 {
     if (ch->dev->newm) {
         if (ch->chtype == ch_4op) {
-            env_key_on(ch->slots[0], egk_norm);
-            env_key_on(ch->slots[1], egk_norm);
-            env_key_on(ch->pair->slots[0], egk_norm);
-            env_key_on(ch->pair->slots[1], egk_norm);
+            env_key_on(ch->slotz[0], egk_norm);
+            env_key_on(ch->slotz[1], egk_norm);
+            env_key_on(ch->pair->slotz[0], egk_norm);
+            env_key_on(ch->pair->slotz[1], egk_norm);
         } else if (ch->chtype == ch_2op || ch->chtype == ch_drum) {
-            env_key_on(ch->slots[0], egk_norm);
-            env_key_on(ch->slots[1], egk_norm);
+            env_key_on(ch->slotz[0], egk_norm);
+            env_key_on(ch->slotz[1], egk_norm);
         }
     } else {
-        env_key_on(ch->slots[0], egk_norm);
-        env_key_on(ch->slots[1], egk_norm);
+        env_key_on(ch->slotz[0], egk_norm);
+        env_key_on(ch->slotz[1], egk_norm);
     }
 }
 
@@ -1158,17 +1158,17 @@ channel_key_off(chan_t *ch)
 {
     if (ch->dev->newm) {
         if (ch->chtype == ch_4op) {
-            env_key_off(ch->slots[0], egk_norm);
-            env_key_off(ch->slots[1], egk_norm);
-            env_key_off(ch->pair->slots[0], egk_norm);
-            env_key_off(ch->pair->slots[1], egk_norm);
+            env_key_off(ch->slotz[0], egk_norm);
+            env_key_off(ch->slotz[1], egk_norm);
+            env_key_off(ch->pair->slotz[0], egk_norm);
+            env_key_off(ch->pair->slotz[1], egk_norm);
         } else if (ch->chtype == ch_2op || ch->chtype == ch_drum) {
-            env_key_off(ch->slots[0], egk_norm);
-            env_key_off(ch->slots[1], egk_norm);
+            env_key_off(ch->slotz[0], egk_norm);
+            env_key_off(ch->slotz[1], egk_norm);
         }
     } else {
-        env_key_off(ch->slots[0], egk_norm);
-        env_key_off(ch->slots[1], egk_norm);
+        env_key_off(ch->slotz[0], egk_norm);
+        env_key_off(ch->slotz[1], egk_norm);
     }
 }
 
@@ -1578,8 +1578,8 @@ nuked_init(nuked_t *dev, uint32_t samplerate)
     for (i = 0; i < 18; i++) {
         ch                                 = &dev->chan[i];
         local_ch_slot                      = ch_slot[i];
-        ch->slots[0]                       = &dev->slot[local_ch_slot];
-        ch->slots[1]                       = &dev->slot[local_ch_slot + 3u];
+        ch->slotz[0]                       = &dev->slot[local_ch_slot];
+        ch->slotz[1]                       = &dev->slot[local_ch_slot + 3u];
         dev->slot[local_ch_slot].chan      = ch;
         dev->slot[local_ch_slot + 3u].chan = ch;
 
