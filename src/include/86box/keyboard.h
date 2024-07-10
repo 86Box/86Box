@@ -242,9 +242,12 @@ extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;
 extern const device_t keyboard_ps2_xi8088_device;
 extern const device_t keyboard_ps2_ami_device;
+extern const device_t keyboard_ps2_holtek_device;
 extern const device_t keyboard_ps2_tg_ami_device;
 extern const device_t keyboard_ps2_tg_ami_green_device;
 extern const device_t keyboard_ps2_olivetti_device;
+extern const device_t keyboard_ps2_phoenix_device;
+extern const device_t keyboard_ps2_mca_1_device;
 extern const device_t keyboard_ps2_mca_2_device;
 extern const device_t keyboard_ps2_quadtel_device;
 extern const device_t keyboard_ps2_pci_device;
@@ -275,6 +278,9 @@ extern int      keyboard_isfsexit(void);
 extern int      keyboard_isfsexit_up(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
+
+extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
+extern void         kbc_at_handler(int set, void *priv);
 
 extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
 extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);

@@ -186,7 +186,11 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #else
 #    include "x86_ops_flag.h"
 #endif
-#include "x86_ops_fpu.h"
+#ifdef OPS_286_386
+#    include "x86_ops_fpu_2386.h"
+#else
+#    include "x86_ops_fpu.h"
+#endif
 #include "x86_ops_inc_dec.h"
 #include "x86_ops_int.h"
 #include "x86_ops_io.h"
@@ -216,7 +220,11 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #endif
 #include "x86_ops_mul.h"
 #include "x86_ops_pmode.h"
-#include "x86_ops_prefix.h"
+#ifdef OPS_286_386
+#    include "x86_ops_prefix_2386.h"
+#else
+#    include "x86_ops_prefix.h"
+#endif
 #ifdef IS_DYNAREC
 #    include "x86_ops_rep_dyn.h"
 #else

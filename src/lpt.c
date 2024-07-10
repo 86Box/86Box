@@ -11,7 +11,10 @@
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/prt_devs.h>
-#include <86box/net_plip.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/network.h>
 
 lpt_port_t lpt_ports[PARALLEL_MAX];
 
@@ -39,6 +42,7 @@ static const struct {
     {"text_prt",        &lpt_prt_text_device      },
     {"dot_matrix",      &lpt_prt_escp_device      },
     {"postscript",      &lpt_prt_ps_device        },
+    {"pcl",             &lpt_prt_pcl_device        },
     {"plip",            &lpt_plip_device          },
     {"dongle_savquest", &lpt_hasp_savquest_device },
     {"",                NULL                      }

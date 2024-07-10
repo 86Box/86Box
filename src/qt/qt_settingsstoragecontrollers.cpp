@@ -52,7 +52,7 @@ void
 SettingsStorageControllers::save()
 {
     /* Storage devices category */
-    for (int i = 0; i < SCSI_BUS_MAX; ++i) {
+    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
@@ -62,6 +62,7 @@ SettingsStorageControllers::save()
     ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
     ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
     cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;
+    lba_enhancer_enabled    = ui->checkBoxLbaEnhancer->isChecked() ? 1 : 0;
 }
 
 void
@@ -109,6 +110,14 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     c           = 0;
     selectedRow = 0;
     while (true) {
+#if 0
+        /* Skip "internal" if machine doesn't have it. */
+        if ((c == 1) && (machine_has_flags(machineId, MACHINE_FDC) == 0)) {
+            c++;
+            continue;
+        }
+#endif
+
         QString name = DeviceConfig::DeviceName(fdc_card_getdevice(c), fdc_card_get_internal_name(c), 1);
         if (name.isEmpty()) {
             break;
@@ -160,7 +169,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxCDInterface->setCurrentIndex(-1);
     ui->comboBoxCDInterface->setCurrentIndex(selectedRow);
 
-    for (int i = 0; i < SCSI_BUS_MAX; ++i) {
+    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
         auto *cbox  = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         model       = cbox->model();
         removeRows  = model->rowCount();
@@ -204,6 +213,9 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         ui->checkBoxCassette->setChecked(false);
         ui->checkBoxCassette->setEnabled(false);
     }
+
+    ui->checkBoxLbaEnhancer->setChecked(lba_enhancer_enabled > 0 && device_available(&lba_enhancer_device));
+    ui->pushButtonConfigureLbaEnhancer->setEnabled(ui->checkBoxLbaEnhancer->isChecked());
 }
 
 void
@@ -333,3 +345,15 @@ SettingsStorageControllers::on_pushButtonSCSI4_clicked()
 {
     DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
 }
+
+void SettingsStorageControllers::on_checkBoxLbaEnhancer_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureLbaEnhancer->setEnabled(arg1 != 0);
+}
+
+
+void SettingsStorageControllers::on_pushButtonConfigureLbaEnhancer_clicked()
+{
+    DeviceConfig::ConfigureDevice(&lba_enhancer_device);
+}
+

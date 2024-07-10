@@ -43,7 +43,6 @@
 #include <86box/bswap.h>
 #include <86box/nvr.h>
 #include "cpu.h"
-#include <86box/net_rtl8139.h>
 #include <86box/plat_unused.h>
 
 #define PCI_PERIOD 30 /* 30 ns period = 33.333333 Mhz frequency */
@@ -3284,8 +3283,8 @@ nic_init(const device_t *info)
     params.default_content = (uint16_t *) s->eeprom_data;
     params.filename        = filename;
     snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-    s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
-    if (!s->eeprom) {
+    s->eeprom = device_add_params(&nmc93cxx_device, &params);
+    if (s->eeprom == NULL) {
         free(s);
         return NULL;
     }

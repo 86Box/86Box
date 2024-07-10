@@ -1328,7 +1328,10 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 size_idx     = 4;
 
                 memset(dev->temp_buffer, 0, 8);
-                dev->temp_buffer[0] = 0;    /*SCSI HD*/
+                if ((cdb[1] & 0xe0) || ((dev->cur_lun > 0x00) && (dev->cur_lun < 0xff)))
+                    dev->temp_buffer[0] = 0x7f; /*No physical device on this LUN*/
+                else
+                    dev->temp_buffer[0] = 0;    /*SCSI HD*/
                 dev->temp_buffer[1] = 0;    /*Fixed*/
                 dev->temp_buffer[2] = (dev->drv->bus == HDD_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
                 dev->temp_buffer[3] = (dev->drv->bus == HDD_BUS_SCSI) ? 0x02 : 0x21;

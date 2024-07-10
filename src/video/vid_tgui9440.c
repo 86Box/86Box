@@ -3155,7 +3155,7 @@ tgui_init(const device_t *info)
             break;
         case TGUI_9660:
         case TGUI_9680:
-            bios_fn = ROM_TGUI_96xx;
+            bios_fn = (info->local & ONBOARD) ? NULL : ROM_TGUI_96xx;
             break;
         default:
             free(tgui);
@@ -3397,6 +3397,20 @@ const device_t tgui9660_pci_device = {
     .close         = tgui_close,
     .reset         = NULL,
     { .available = tgui96xx_available },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw  = tgui_force_redraw,
+    .config        = tgui96xx_config
+};
+
+const device_t tgui9660_onboard_pci_device = {
+    .name          = "Trident TGUI 9660XGi On-Board PCI",
+    .internal_name = "tgui9660_onboard_pci",
+    .flags         = DEVICE_PCI,
+    .local         = TGUI_9660 | ONBOARD,
+    .init          = tgui_init,
+    .close         = tgui_close,
+    .reset         = NULL,
+    { .available = NULL },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config

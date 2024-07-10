@@ -24,6 +24,7 @@ extern const device_t acc2168_device;
 extern const device_t ali1217_device;
 extern const device_t ali1429_device;
 extern const device_t ali1429g_device;
+extern const device_t ali1409_device;
 extern const device_t ali1435_device;
 extern const device_t ali1489_device;
 extern const device_t ali1531_device;
@@ -130,8 +131,16 @@ extern const device_t sis_85c471_device;
 extern const device_t sis_85c496_device;
 extern const device_t sis_85c496_ls486e_device;
 extern const device_t sis_85c50x_device;
+extern const device_t sis_550x_85c503_device;
+extern const device_t sis_85c50x_5503_device;
+extern const device_t sis_550x_device;
 extern const device_t sis_5511_device;
 extern const device_t sis_5571_device;
+extern const device_t sis_5581_device;
+extern const device_t sis_5591_1997_device;
+extern const device_t sis_5591_device;
+extern const device_t sis_5600_1997_device;
+extern const device_t sis_5600_device;
 
 /* ST */
 extern const device_t stpc_client_device;
@@ -144,6 +153,8 @@ extern const device_t stpc_lpt_device;
 /* UMC */
 extern const device_t umc_8886f_device;
 extern const device_t umc_8886af_device;
+extern const device_t umc_8886bf_device;
+extern const device_t umc_8890_device;
 extern const device_t umc_hb4_device;
 
 /* VIA */

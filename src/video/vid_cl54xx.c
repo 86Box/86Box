@@ -816,7 +816,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                             svga->seqregs[svga->seqaddr] &= 0x0f;
                         if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)
                             svga->set_reset_disabled = svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA;
-                        gd54xx_recalc_banking(gd54xx);
+
                         gd54xx_set_svga_fast(gd54xx);
                         svga_recalctimings(svga);
                         break;
@@ -1642,8 +1642,6 @@ gd54xx_recalc_banking(gd54xx_t *gd54xx)
         } else
             svga->extra_banks[1] = svga->extra_banks[0] + 0x8000;
     }
-
-    svga->write_bank = svga->read_bank = svga->extra_banks[0];
 }
 
 static void
@@ -1752,7 +1750,7 @@ gd54xx_recalctimings(svga_t *svga)
     uint8_t         rdmask;
     uint8_t         linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
 
-    svga->hblankstart = svga->crtc[2] + 1;
+    svga->hblankstart = svga->crtc[2];
 
     if (svga->crtc[0x1b] & ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5424) ? 0xa0 : 0x20)) {
         /* Special blanking mode: the blank start and end become components of the window generator,
@@ -1762,11 +1760,11 @@ gd54xx_recalctimings(svga_t *svga)
         svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00) |
                                (((svga->crtc[0x1a] >> 4) & 3) << 6);
 
-        svga->hblank_end_mask = 0x0000007f;
+        svga->hblank_end_mask = 0x000000ff;
 
         if (svga->crtc[0x1b] & 0x20) {
-            svga->hblankstart = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
-            svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+            svga->hblankstart = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3) + 1*/;
+            svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
             /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
 	    if (!svga->scrblank && svga->attr_palette_enable)
@@ -1977,10 +1975,15 @@ gd54xx_recalctimings(svga_t *svga)
         svga->htotal += ((svga->crtc[0x1c] >> 3) & 0x07);
 
     if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-        if (svga->seqregs[1] & 8) {
+        if (svga->seqregs[1] & 8)
             svga->render = svga_render_text_40;
-        } else
+        else
             svga->render = svga_render_text_80;
+    }
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
+        svga->extra_banks[0] = 0;
+        svga->extra_banks[1] = 0x8000;
     }
 }
 
@@ -2192,13 +2195,8 @@ gd54xx_write(uint32_t addr, uint8_t val, void *priv)
         return;
     }
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40)) {
-        svga_write(addr, val, svga);
-        return;
-    }
-
+    addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
-
     svga_write_linear(addr, val, svga);
 }
 
@@ -2214,11 +2212,7 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *priv)
         return;
     }
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40)) {
-        svga_writew(addr, val, svga);
-        return;
-    }
-
+    addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
 
     if (svga->writemode < 4)
@@ -2243,11 +2237,7 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *priv)
         return;
     }
 
-    if ((svga->seqregs[0x07] & 0x01) == 0) {
-        svga_writel(addr, val, svga);
-        return;
-    }
-
+    addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
 
     if (svga->writemode < 4)
@@ -2769,12 +2759,10 @@ gd54xx_read(uint32_t addr, void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
     svga_t   *svga   = &gd54xx->svga;
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40))
-        return svga_read(addr, svga);
-
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
         return gd54xx_mem_sys_dest_read(gd54xx, 0);
 
+    addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
     return svga_read_linear(addr, svga);
 }
@@ -2786,15 +2774,13 @@ gd54xx_readw(uint32_t addr, void *priv)
     svga_t   *svga   = &gd54xx->svga;
     uint16_t  ret;
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40))
-        return svga_readw(addr, svga);
-
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
         ret = gd54xx_read(addr, priv);
         ret |= gd54xx_read(addr + 1, priv) << 8;
         return ret;
     }
 
+    addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
     return svga_readw_linear(addr, svga);
 }
@@ -2806,9 +2792,6 @@ gd54xx_readl(uint32_t addr, void *priv)
     svga_t   *svga   = &gd54xx->svga;
     uint32_t  ret;
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40))
-        return svga_readl(addr, svga);
-
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
         ret = gd54xx_read(addr, priv);
         ret |= gd54xx_read(addr + 1, priv) << 8;
@@ -2817,6 +2800,7 @@ gd54xx_readl(uint32_t addr, void *priv)
         return ret;
     }
 
+    addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
     return svga_readl_linear(addr, svga);
 }
@@ -4148,7 +4132,11 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5436:
-            romfn = BIOS_GD5436_PATH;
+            if (info->local & 0x200) {
+                romfn            = NULL;
+                gd54xx->has_bios = 0;
+            } else
+                romfn = BIOS_GD5436_PATH;
             break;
 
         case CIRRUS_ID_CLGD5430:
@@ -5159,6 +5147,20 @@ const device_t gd5434_pci_device = {
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
     { .available = gd5434_available },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd5434_config
+};
+
+const device_t gd5436_onboard_pci_device = {
+    .name          = "Cirrus Logic GD5436 (PCI) (On-Board)",
+    .internal_name = "cl_gd5436_onboard_pci",
+    .flags         = DEVICE_PCI,
+    .local         = CIRRUS_ID_CLGD5436 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    { .available = NULL },
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd5434_config

@@ -56,10 +56,14 @@ typedef struct ctrf_t {
     };
 
     uint32_t   l;
+
+    uint64_t   pit_const;
+
     pc_timer_t timer;
 
     void (*load_func)(uint8_t new_m, int new_count);
-    void (*out_func)(int new_out, int old_out);
+    void (*out_func)(int new_out, int old_out, void *priv);
+    void *priv;
 } ctrf_t;
 
 typedef struct pitf_t {
@@ -67,7 +71,21 @@ typedef struct pitf_t {
     ctrf_t counters[3];
 
     uint8_t ctrl;
+
+    void *dev_priv;
 } pitf_t;
+
+extern void pitf_set_pit_const(void *data, uint64_t pit_const);
+
+extern void pitf_handler(int set, uint16_t base, int size, void *priv);
+
+extern void pitf_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv));
+
+extern void pitf_ctr_set_using_timer(void *data, int counter_id, int using_timer);
+
+extern void pitf_ctr_set_gate(void *data, int counter_id, int gate);
+
+extern void pitf_ctr_clock(void *data, int counter_id);
 
 extern uint8_t pitf_read_reg(void *priv, uint8_t reg);
 

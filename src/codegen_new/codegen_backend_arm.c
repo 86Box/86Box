@@ -15,6 +15,7 @@
 #    include "x86.h"
 #    include "x86seg_common.h"
 #    include "x86seg.h"
+#    include "x87_sf.h"
 #    include "x87.h"
 
 #    if defined(__linux__) || defined(__APPLE__)

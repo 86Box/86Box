@@ -66,15 +66,17 @@ typedef struct ems_page_t {
 } ems_page_t;
 
 typedef struct scat_t {
-    int type;
+    uint8_t  max_reg;
+    uint8_t  reg_2xA;
 
-    int     indx;
-    uint8_t regs[256];
-    uint8_t reg_2xA;
+    uint8_t  regs[256];
 
     uint32_t xms_bound;
 
-    int external_is_RAS;
+    int      type;
+    int      indx;
+
+    int      external_is_RAS;
 
     ems_page_t null_page;
     ems_page_t page[32];
@@ -1233,7 +1235,8 @@ scat_in(uint16_t port, void *priv)
                     break;
 
                 default:
-                    ret = dev->regs[dev->indx];
+                    if (dev->indx <= dev->max_reg)
+                        ret = dev->regs[dev->indx];
                     break;
             }
             break;
@@ -1392,6 +1395,8 @@ scat_init(const device_t *info)
     dev->type = info->local;
 
     sx = (dev->type == 32) ? 1 : 0;
+
+    dev->max_reg = sx ? 0x64 : 0x4f;
 
     for (uint32_t i = 0; i < sizeof(dev->regs); i++)
         dev->regs[i] = 0xff;

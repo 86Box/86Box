@@ -10,7 +10,7 @@ extern "C" {
 }
 class QMenu;
 
-class MediaMenu : QObject {
+class MediaMenu : public QObject {
     Q_OBJECT
 public:
     MediaMenu(QWidget *parent);
@@ -41,7 +41,7 @@ public:
     void floppyUpdateMenu(int i);
 
     void cdromMute(int i);
-    void cdromMount(int i, int dir);
+    void cdromMount(int i, int dir, const QString &arg);
     void cdromMount(int i, const QString &filename);
     void cdromEject(int i);
     void cdromReload(int index, int slot);
@@ -67,6 +67,12 @@ public:
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
 
+public slots:
+    void cdromUpdateUi(int i);
+
+signals:
+    void onCdromUpdateUi(int i);
+
 private:
     QWidget *parentWidget = nullptr;
 
@@ -80,6 +86,8 @@ private:
 
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;
+
+    const QByteArray driveLetters = QByteArrayLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
     int cassetteRecordPos;
     int cassettePlayPos;

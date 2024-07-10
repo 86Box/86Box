@@ -63,7 +63,6 @@ extern wchar_t  sdl_win_title[512];
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t      joystick_state[MAX_JOYSTICKS];
 int             joysticks_present;
-int             status_icons_fullscreen = 0; /* unused. */
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
@@ -247,37 +246,37 @@ wchar_t *
 plat_get_string(int i)
 {
     switch (i) {
-        case IDS_2077:
+        case STRING_MOUSE_CAPTURE:
             return L"Click to capture mouse";
-        case IDS_2078:
+        case STRING_MOUSE_RELEASE:
             return L"Press CTRL-END to release mouse";
-        case IDS_2079:
+        case STRING_MOUSE_RELEASE_MMB:
             return L"Press CTRL-END or middle button to release mouse";
-        case IDS_2131:
+        case STRING_INVALID_CONFIG:
             return L"Invalid configuration";
-        case IDS_4099:
+        case STRING_NO_ST506_ESDI_CDROM:
             return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case IDS_2094:
-            return L"Failed to set up PCap";
-        case IDS_2095:
+        case STRING_PCAP_ERROR_NO_DEVICES:
             return L"No PCap devices found";
-        case IDS_2096:
+        case STRING_PCAP_ERROR_INVALID_DEVICE:
             return L"Invalid PCap device";
-        case IDS_2112:
-            return L"Unable to initialize SDL, libsdl2 is required";
-        case IDS_2133:
+        case STRING_GHOSTSCRIPT_ERROR_DESC:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case IDS_2130:
+        case STRING_PCAP_ERROR_DESC:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case IDS_2115:
+        case STRING_GHOSTSCRIPT_ERROR_TITLE:
             return L"Unable to initialize Ghostscript";
-        case IDS_2063:
+        case STRING_GHOSTPCL_ERROR_TITLE:
+            return L"Unable to initialize GhostPCL";
+        case STRING_GHOSTPCL_ERROR_DESC:
+            return L"libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
+        case STRING_HW_NOT_AVAILABLE_MACHINE:
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
-        case IDS_2064:
+        case STRING_HW_NOT_AVAILABLE_VIDEO:
             return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
-        case IDS_2129:
+        case STRING_HW_NOT_AVAILABLE_TITLE:
             return L"Hardware not available";
-        case IDS_2143:
+        case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
     }
     return L"";
@@ -451,12 +450,6 @@ plat_get_ticks(void)
     return (uint32_t) (plat_get_ticks_common() / 1000);
 }
 
-uint32_t
-plat_get_micro_ticks(void)
-{
-    return (uint32_t) plat_get_ticks_common();
-}
-
 void
 plat_remove(char *path)
 {
@@ -581,9 +574,9 @@ main_thread(void *param)
         /* If needed, handle a screen resize. */
         if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
             if (vid_resize & 2)
-                plat_resize(fixed_size_x, fixed_size_y);
+                plat_resize(fixed_size_x, fixed_size_y, 0);
             else
-                plat_resize(scrnsz_x, scrnsz_y);
+                plat_resize(scrnsz_x, scrnsz_y, 0);
             atomic_store(&doresize_monitors[0], 1);
         }
     }
@@ -649,10 +642,6 @@ ui_msgbox_header(int flags, void *header, void *message)
 
     if (!header)
         header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
-    if (header <= (void *) 7168)
-        header = (void *) plat_get_string((uintptr_t) header);
-    if (message <= (void *) 7168)
-        message = (void *) plat_get_string((uintptr_t) message);
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
@@ -700,7 +689,7 @@ plat_get_exe_name(char *s, int size)
 void
 plat_power_off(void)
 {
-    confirm_exit = 0;
+    confirm_exit_cmdl = 0;
     nvr_save();
     config_save();
 
@@ -841,15 +830,32 @@ plat_init_rom_paths(void)
 }
 
 void
-plat_get_global_config_dir(char *strptr)
+plat_get_global_config_dir(char *outbuf, const uint8_t len)
 {
-#ifdef __APPLE__
-    char *prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box");
-#else
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-#endif
-    strncpy(strptr, prefPath, 1024);
-    path_slash(strptr);
+    strncpy(outbuf, prefPath, len);
+    path_slash(outbuf);
+    SDL_free(prefPath);
+}
+
+void
+plat_get_global_data_dir(char *outbuf, const uint8_t len)
+{
+    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
+    strncpy(outbuf, prefPath, len);
+    path_slash(outbuf);
+    SDL_free(prefPath);
+}
+
+void
+plat_get_temp_dir(char *outbuf, uint8_t len)
+{
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL) {
+        tmpdir = "/tmp";
+    }
+    strncpy(outbuf, tmpdir, len);
+    path_slash(outbuf);
 }
 
 bool
@@ -1359,12 +1365,6 @@ char *
 plat_vidapi_name(int i)
 {
     return "default";
-}
-
-void
-set_language(uint32_t id)
-{
-    lang_id = id;
 }
 
 /* Sets up the program language before initialization. */

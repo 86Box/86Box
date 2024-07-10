@@ -408,7 +408,7 @@ ati28800_recalctimings(svga_t *svga)
     int               clock_sel;
 
     if (ati28800->regs[0xad] & 0x08)
-        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[2];
 
     clock_sel = ((svga->miscout >> 2) & 3) | ((ati28800->regs[0xbe] & 0x10) >> 1) |
                 ((ati28800->regs[0xb9] & 2) << 1);
@@ -492,8 +492,7 @@ ati28800_recalctimings(svga_t *svga)
                             else {
                                 svga->render = svga_render_15bpp_highres;
                                 svga->hdisp >>= 1;
-                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
-                                svga->hblank_end_val >>= 1;
+                                svga->dots_per_clock >>= 1;
                                 svga->rowoffset <<= 1;
                                 svga->ma_latch <<= 1;
                             }

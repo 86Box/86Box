@@ -55,7 +55,8 @@
 #define WRBUF_DELAY 1
 #define RSM_FRAC    10
 
-#define OPL_FREQ FREQ_48000
+// #define OPL_FREQ FREQ_48000
+#define OPL_FREQ FREQ_49716
 
 // Channel types
 enum {
@@ -189,7 +190,7 @@ typedef struct {
     pc_timer_t timers[2];
 
     int     pos;
-    int32_t buffer[SOUNDBUFLEN * 2];
+    int32_t buffer[MUSICBUFLEN * 2];
 } nuked_drv_t;
 
 enum {
@@ -1382,10 +1383,19 @@ nuked_generate_resampled(nuked_t *dev, int32_t *bufp)
 }
 
 void
+nuked_generate_raw(nuked_t *dev, int32_t *bufp)
+{
+    nuked_generate(dev, dev->samples);
+
+    bufp[0] = (int32_t) dev->samples[0];
+    bufp[1] = (int32_t) dev->samples[1];
+}
+
+void
 nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 {
     for (uint32_t i = 0; i < num; i++) {
-        nuked_generate_resampled(dev, sndptr);
+        nuked_generate_raw(dev, sndptr);
         sndptr += 2;
     }
 }
@@ -1533,14 +1543,14 @@ nuked_drv_update(void *priv)
 {
     nuked_drv_t *dev = (nuked_drv_t *) priv;
 
-    if (dev->pos >= sound_pos_global)
+    if (dev->pos >= music_pos_global)
         return dev->buffer;
 
     nuked_generate_stream(&dev->opl,
                           &dev->buffer[dev->pos * 2],
-                          sound_pos_global - dev->pos);
+                          music_pos_global - dev->pos);
 
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < music_pos_global; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }

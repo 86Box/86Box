@@ -8,11 +8,10 @@
 
 #include <memory>
 #include <array>
+#include <atomic>
 
 class MediaMenu;
 class RendererStack;
-
-extern std::atomic<bool> blitDummied;
 
 namespace Ui {
 class MainWindow;
@@ -56,7 +55,7 @@ signals:
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
 
-    void showMessageForNonQtThread(int flags, const QString &header, const QString &message);
+    void showMessageForNonQtThread(int flags, const QString &header, const QString &message, std::atomic_bool* done);
     void getTitleForNonQtThread(wchar_t *title);
 public slots:
     void showSettings();
@@ -75,7 +74,7 @@ private slots:
     void on_actionCtrl_Alt_Esc_triggered();
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
-    void on_actionKeyboard_requires_capture_triggered();
+    static void on_actionKeyboard_requires_capture_triggered();
     void on_actionResizable_window_triggered(bool checked);
     void on_actionInverted_VGA_monitor_triggered();
     void on_action0_5x_triggered();
@@ -122,7 +121,7 @@ private slots:
     void on_actionRenderer_options_triggered();
 
     void refreshMediaMenu();
-    void showMessage_(int flags, const QString &header, const QString &message);
+    void showMessage_(int flags, const QString &header, const QString &message, std::atomic_bool* done = nullptr);
     void getTitle_(wchar_t *title);
 
     void on_actionMCA_devices_triggered();
@@ -144,7 +143,6 @@ private slots:
     void on_actionCursor_Puck_triggered();
 
     void on_actionACPI_Shutdown_triggered();
-    void on_actionShow_status_icons_in_fullscreen_triggered();
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();

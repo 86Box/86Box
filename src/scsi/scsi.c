@@ -42,7 +42,7 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_spock.h>
 
-int scsi_card_current[SCSI_BUS_MAX] = { 0, 0, 0, 0 };
+int scsi_card_current[SCSI_CARD_MAX] = { 0, 0, 0, 0 };
 double scsi_bus_speed[SCSI_BUS_MAX] = { 0.0, 0.0, 0.0, 0.0 };
 
 static uint8_t next_scsi_bus = 0;
@@ -82,6 +82,7 @@ static SCSI_CARD scsi_cards[] = {
     { &scsi_rt1000b_device,      },
     { &scsi_rt1000mc_device,     },
     { &scsi_t128_device,         },
+    { &scsi_t228_device,         },
     { &scsi_t130b_device,        },
     { &aha1640_device,           },
     { &buslogic_640a_device,     },
@@ -168,12 +169,7 @@ scsi_card_get_from_internal_name(char *s)
 void
 scsi_card_init(void)
 {
-    int max = SCSI_BUS_MAX;
-
-    /* On-board SCSI controllers get the first bus, so if one is present,
-       increase our instance number here. */
-    if (machine_has_flags(machine, MACHINE_SCSI))
-        max--;
+    int max = SCSI_CARD_MAX;
 
     /* Do not initialize any controllers if we have do not have any SCSI
            bus left. */

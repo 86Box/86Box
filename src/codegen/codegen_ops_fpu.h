@@ -671,9 +671,10 @@ ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     ropFLD##name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
     {                                                                                                   \
         static double fp_imm = v;                                                                       \
+        static uint64_t *fptr = (uint64_t *) &fp_imm;                                                   \
                                                                                                         \
         FP_ENTER();                                                                                     \
-        FP_LOAD_IMM_Q(*(uint64_t *) &fp_imm);                                                           \
+        FP_LOAD_IMM_Q(*fptr);                                                                           \
                                                                                                         \
         return op_pc;                                                                                   \
     }

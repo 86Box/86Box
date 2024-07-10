@@ -353,7 +353,7 @@ ps1_setup(int model)
         device_add(&fdc_at_ps1_device);
 
         /* Enable the builtin HDC. */
-        if (hdc_current == 1) {
+        if (hdc_current == HDC_INTERNAL) {
             priv = device_add(&ps1_hdc_device);
 
             ps1_hdc_inform(priv, &ps->ps1_91);
@@ -378,7 +378,7 @@ ps1_setup(int model)
         if (gfxcard[0] == VID_INTERNAL)
             device_add(&ibm_ps1_2121_device);
 
-        device_add(&fdc_at_ps1_device);
+        device_add(&fdc_at_ps1_2121_device);
 
         device_add(&ide_isa_device);
 

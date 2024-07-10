@@ -63,46 +63,85 @@ ad1848_updatevolmask(ad1848_t *ad1848)
         ad1848->wave_vol_mask = 0x7f;
 }
 
+static double
+ad1848_get_default_freq(ad1848_t *ad1848)
+{
+    double freq = (ad1848->regs[8] & 1) ? 16934400.0 : 24576000.0;
+
+    switch ((ad1848->regs[8] >> 1) & 7) {
+        default:
+            break;
+
+        case 0:
+            freq /= 3072.0;
+            break;
+        case 1:
+            freq /= 1536.0;
+            break;
+        case 2:
+            freq /= 896.0;
+            break;
+        case 3:
+            freq /= 768.0;
+            break;
+        case 4:
+            freq /= 448.0;
+            break;
+        case 5:
+            freq /= 384.0;
+            break;
+        case 6:
+            freq /= 512.0;
+            break;
+        case 7:
+            freq /= 2560.0;
+            break;
+    }
+
+    return freq;
+}
+
 static void
 ad1848_updatefreq(ad1848_t *ad1848)
 {
-    double  freq = 0.0;
-    uint8_t set  = 0;
+    double  freq;
 
     if (ad1848->type >= AD1848_TYPE_CS4235) {
         if (ad1848->xregs[11] & 0x20) {
-            freq = 16934400LL;
+            freq = 16934400.0;
             switch (ad1848->xregs[13]) {
+                default:
+                    freq /= 16.0 * MAX(ad1848->xregs[13], 21);
+                    break;
                 case 1:
-                    freq /= 353;
+                    freq /= 353.0;
                     break;
                 case 2:
-                    freq /= 529;
+                    freq /= 529.0;
                     break;
                 case 3:
-                    freq /= 617;
+                    freq /= 617.0;
                     break;
                 case 4:
-                    freq /= 1058;
+                    freq /= 1058.0;
                     break;
                 case 5:
-                    freq /= 1764;
+                    freq /= 1764.0;
                     break;
                 case 6:
-                    freq /= 2117;
+                    freq /= 2117.0;
                     break;
                 case 7:
-                    freq /= 2558;
-                    break;
-                default:
-                    freq /= 16 * MAX(ad1848->xregs[13], 21);
+                    freq /= 2558.0;
                     break;
             }
-            set = 1;
         } else if (ad1848->regs[22] & 0x80) {
-            freq = (ad1848->regs[22] & 1) ? 33868800LL : 49152000LL;
-            set  = (ad1848->regs[22] >> 1) & 0x3f;
+            const uint8_t set = (ad1848->regs[22] >> 1) & 0x3f;
+            freq = (ad1848->regs[22] & 1) ? 33868800.0 : 49152000.0;
             switch (ad1848->regs[10] & 0x30) {
+                default:
+                    break;
+
                 case 0x00:
                     freq /= 128 * set;
                     break;
@@ -112,48 +151,13 @@ ad1848_updatefreq(ad1848_t *ad1848)
                 case 0x20:
                     freq /= 256 * set;
                     break;
-
-                default:
-                    break;
             }
-            set = 1;
-        }
-    }
+        } else
+            freq = ad1848_get_default_freq(ad1848);
+    } else
+        freq = ad1848_get_default_freq(ad1848);
 
-    if (!set) {
-        freq = (ad1848->regs[8] & 1) ? 16934400LL : 24576000LL;
-        switch ((ad1848->regs[8] >> 1) & 7) {
-            case 0:
-                freq /= 3072;
-                break;
-            case 1:
-                freq /= 1536;
-                break;
-            case 2:
-                freq /= 896;
-                break;
-            case 3:
-                freq /= 768;
-                break;
-            case 4:
-                freq /= 448;
-                break;
-            case 5:
-                freq /= 384;
-                break;
-            case 6:
-                freq /= 512;
-                break;
-            case 7:
-                freq /= 2560;
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    ad1848->freq        = freq;
+    ad1848->freq        = (int) trunc(freq);
     ad1848->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->freq));
 }
 
@@ -251,6 +255,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 9:
                     if (!ad1848->enable && (val & 0x41) == 0x01) {
                         ad1848->adpcm_pos = 0;
+                        ad1848->dma_ff = 0;
                         if (ad1848->timer_latch)
                             timer_set_delay_u64(&ad1848->timer_count, ad1848->timer_latch);
                         else
@@ -450,18 +455,32 @@ static int16_t
 ad1848_process_mulaw(uint8_t byte)
 {
     byte        = ~byte;
-    int16_t dec = ((byte & 0x0f) << 3) + 0x84;
-    dec <<= (byte & 0x70) >> 4;
-    return (byte & 0x80) ? (0x84 - dec) : (dec - 0x84);
+    int temp    = (((byte & 0x0f) << 3) + 0x84);
+    int16_t dec;
+    temp <<= ((byte & 0x70) >> 4);
+    temp = (byte & 0x80) ? (0x84 - temp) : (temp - 0x84);
+    if (temp > 32767)
+        dec = 32767;
+    else if (temp < -32768)
+        dec = -32768;
+    else
+        dec = (int16_t) temp;
+
+    return dec;
 }
 
 static int16_t
 ad1848_process_alaw(uint8_t byte)
 {
     byte ^= 0x55;
-    int16_t dec = (byte & 0x0f) << 4;
-    int     seg = (byte & 0x70) >> 4;
+    int           dec = ((byte & 0x0f) << 4);;
+    const int     seg = (int) ((byte & 0x70) >> 4);
     switch (seg) {
+        default:
+            dec |= 0x108;
+            dec <<= seg - 1;
+            break;
+
         case 0:
             dec |= 0x8;
             break;
@@ -469,13 +488,34 @@ ad1848_process_alaw(uint8_t byte)
         case 1:
             dec |= 0x108;
             break;
-
-        default:
-            dec |= 0x108;
-            dec <<= seg - 1;
-            break;
     }
-    return (byte & 0x80) ? dec : -dec;
+    dec = (byte & 0x80) ? dec : -dec;
+    return (int16_t) dec;
+}
+
+static uint32_t
+ad1848_dma_channel_read(ad1848_t *ad1848, int channel)
+{
+    uint32_t ret;
+
+    if (channel >= 4) {
+       if (ad1848->dma_ff) {
+           ret = (ad1848->dma_data & 0xff00) >> 8;
+           ret |= (ad1848->dma_data & 0xffff0000);
+       } else {
+           ad1848->dma_data = dma_channel_read(channel);
+
+           if (ad1848->dma_data == DMA_NODATA)
+               return DMA_NODATA;
+
+           ret = ad1848->dma_data & 0xff;
+       }
+
+       ad1848->dma_ff = !ad1848->dma_ff;
+    } else
+        ret = dma_channel_read(channel);
+
+    return ret;
 }
 
 static int16_t
@@ -485,7 +525,7 @@ ad1848_process_adpcm(ad1848_t *ad1848)
     if (ad1848->adpcm_pos++ & 1) {
         temp = (ad1848->adpcm_data & 0x0f) + ad1848->adpcm_step;
     } else {
-        ad1848->adpcm_data = dma_channel_read(ad1848->dma);
+        ad1848->adpcm_data = (int) (ad1848_dma_channel_read(ad1848, ad1848->dma) & 0xffff);
         temp               = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
     }
     if (temp < 0)
@@ -499,9 +539,9 @@ ad1848_process_adpcm(ad1848_t *ad1848)
     else if (ad1848->adpcm_ref < 0x00)
         ad1848->adpcm_ref = 0x00;
 
-    ad1848->adpcm_step = (ad1848->adpcm_step + adjustMap4[temp]) & 0xff;
+    ad1848->adpcm_step = (int8_t) ((ad1848->adpcm_step + adjustMap4[temp]) & 0xff);
 
-    return (ad1848->adpcm_ref ^ 0x80) << 8;
+    return (int16_t) ((ad1848->adpcm_ref ^ 0x80) << 8);
 }
 
 static void
@@ -521,42 +561,42 @@ ad1848_poll(void *priv)
 
         switch (ad1848->regs[8] & ad1848->fmt_mask) {
             case 0x00: /* Mono, 8-bit PCM */
-                ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
+                ad1848->out_l = ad1848->out_r = (int16_t) ((ad1848_dma_channel_read(ad1848, ad1848->dma) ^ 0x80) << 8);
                 break;
 
             case 0x10: /* Stereo, 8-bit PCM */
-                ad1848->out_l = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
-                ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
+                ad1848->out_l = (int16_t) ((ad1848_dma_channel_read(ad1848, ad1848->dma) ^ 0x80) << 8);
+                ad1848->out_r = (int16_t) ((ad1848_dma_channel_read(ad1848, ad1848->dma) ^ 0x80) << 8);
                 break;
 
             case 0x20: /* Mono, 8-bit Mu-Law */
-                ad1848->out_l = ad1848->out_r = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
+                ad1848->out_l = ad1848->out_r = ad1848_process_mulaw(ad1848_dma_channel_read(ad1848, ad1848->dma));
                 break;
 
             case 0x30: /* Stereo, 8-bit Mu-Law */
-                ad1848->out_l = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
-                ad1848->out_r = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
+                ad1848->out_l = ad1848_process_mulaw(ad1848_dma_channel_read(ad1848, ad1848->dma));
+                ad1848->out_r = ad1848_process_mulaw(ad1848_dma_channel_read(ad1848, ad1848->dma));
                 break;
 
             case 0x40: /* Mono, 16-bit PCM little endian */
-                temp          = dma_channel_read(ad1848->dma);
-                ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) << 8) | temp;
+                temp          = (int32_t) ad1848_dma_channel_read(ad1848, ad1848->dma);
+                ad1848->out_l = ad1848->out_r = (int16_t) ((ad1848_dma_channel_read(ad1848, ad1848->dma) << 8) | temp);
                 break;
 
             case 0x50: /* Stereo, 16-bit PCM little endian */
-                temp          = dma_channel_read(ad1848->dma);
-                ad1848->out_l = (dma_channel_read(ad1848->dma) << 8) | temp;
-                temp          = dma_channel_read(ad1848->dma);
-                ad1848->out_r = (dma_channel_read(ad1848->dma) << 8) | temp;
+                temp          = (int32_t) ad1848_dma_channel_read(ad1848, ad1848->dma);
+                ad1848->out_l = (int16_t) ((ad1848_dma_channel_read(ad1848, ad1848->dma) << 8) | temp);
+                temp          = (int32_t) ad1848_dma_channel_read(ad1848, ad1848->dma);
+                ad1848->out_r = (int16_t) ((ad1848_dma_channel_read(ad1848, ad1848->dma) << 8) | temp);
                 break;
 
             case 0x60: /* Mono, 8-bit A-Law */
-                ad1848->out_l = ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                ad1848->out_l = ad1848->out_r = ad1848_process_alaw(ad1848_dma_channel_read(ad1848, ad1848->dma));
                 break;
 
             case 0x70: /* Stereo, 8-bit A-Law */
-                ad1848->out_l = ad1848_process_alaw(dma_channel_read(ad1848->dma));
-                ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                ad1848->out_l = ad1848_process_alaw(ad1848_dma_channel_read(ad1848, ad1848->dma));
+                ad1848->out_r = ad1848_process_alaw(ad1848_dma_channel_read(ad1848, ad1848->dma));
                 break;
 
                 /* 0x80 and 0x90 reserved */
@@ -571,15 +611,15 @@ ad1848_poll(void *priv)
                 break;
 
             case 0xc0: /* Mono, 16-bit PCM big endian */
-                temp          = dma_channel_read(ad1848->dma);
-                ad1848->out_l = ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
+                temp          = (int32_t) ad1848_dma_channel_read(ad1848, ad1848->dma);
+                ad1848->out_l = ad1848->out_r = (int16_t) (ad1848_dma_channel_read(ad1848, ad1848->dma) | (temp << 8));
                 break;
 
             case 0xd0: /* Stereo, 16-bit PCM big endian */
-                temp          = dma_channel_read(ad1848->dma);
-                ad1848->out_l = dma_channel_read(ad1848->dma) | (temp << 8);
-                temp          = dma_channel_read(ad1848->dma);
-                ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
+                temp          = (int32_t) ad1848_dma_channel_read(ad1848, ad1848->dma);
+                ad1848->out_l = (int16_t) (ad1848_dma_channel_read(ad1848, ad1848->dma) | (temp << 8));
+                temp          = (int32_t) ad1848_dma_channel_read(ad1848, ad1848->dma);
+                ad1848->out_r = (int16_t) (ad1848_dma_channel_read(ad1848, ad1848->dma) | (temp << 8));
                 break;
 
                 /* 0xe0 and 0xf0 reserved */
@@ -591,12 +631,12 @@ ad1848_poll(void *priv)
         if (ad1848->regs[6] & 0x80)
             ad1848->out_l = 0;
         else
-            ad1848->out_l = (ad1848->out_l * ad1848_vols_7bits[ad1848->regs[6] & ad1848->wave_vol_mask]) >> 16;
+            ad1848->out_l = (int16_t) ((ad1848->out_l * ad1848_vols_7bits[ad1848->regs[6] & ad1848->wave_vol_mask]) >> 16);
 
         if (ad1848->regs[7] & 0x80)
             ad1848->out_r = 0;
         else
-            ad1848->out_r = (ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16;
+            ad1848->out_r = (int16_t) ((ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16);
 
         if (ad1848->count < 0) {
             ad1848->count     = ad1848->regs[15] | (ad1848->regs[14] << 8);

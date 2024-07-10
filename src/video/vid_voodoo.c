@@ -505,6 +505,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 voodoo->videoDimensions = val;
                 voodoo->h_disp          = (val & 0xfff) + 1;
                 voodoo->v_disp          = (val >> 16) & 0xfff;
+                if ((voodoo->v_disp == 386) || (voodoo->v_disp == 402) ||
+                    (voodoo->v_disp == 482) || (voodoo->v_disp == 602))
+                    voodoo->v_disp     -= 2;
                 break;
             case SST_fbiInit0:
                 if (voodoo->initEnable & 0x01) {

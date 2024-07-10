@@ -531,7 +531,12 @@ zip_load(zip_t *dev, char *fn)
     if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
         fatal("zip_load(): Error seeking to the beginning of the file\n");
 
-    strncpy(dev->drv->image_path, fn, strlen(dev->drv->image_path) + 1);
+    strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+    // After using strncpy, dev->drv->image_path needs to be explicitly null terminated to make gcc happy.
+    // In the event strlen(dev->drv->image_path) == sizeof(dev->drv->image_path) (no null terminator)
+    // it is placed at the very end. Otherwise, it is placed right after the string.
+    const size_t term = strlen(dev->drv->image_path) == sizeof(dev->drv->image_path) ? sizeof(dev->drv->image_path) - 1 : strlen(dev->drv->image_path);
+    dev->drv->image_path[term] = '\0';
 
     return 1;
 }
@@ -1860,8 +1865,8 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 size_idx     = 4;
 
                 memset(dev->buffer, 0, 8);
-                if (cdb[1] & 0xe0)
-                    dev->buffer[0] = 0x60; /*No physical device on this LUN*/
+                if ((cdb[1] & 0xe0) || ((dev->cur_lun > 0x00) && (dev->cur_lun < 0xff)))
+                    dev->buffer[0] = 0x7f; /*No physical device on this LUN*/
                 else
                     dev->buffer[0] = 0x00;                                           /*Hard disk*/
                 dev->buffer[1] = 0x80;                                               /*Removable*/

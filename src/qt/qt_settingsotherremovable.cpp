@@ -140,8 +140,8 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 
     model = new QStandardItemModel(0, 2, this);
     ui->tableViewZIP->setModel(model);
-    model->setHeaderData(0, Qt::Horizontal, "Bus");
-    model->setHeaderData(1, Qt::Horizontal, "Type");
+    model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Type"));
     model->insertRows(0, ZIP_NUM);
     for (int i = 0; i < ZIP_NUM; i++) {
         auto idx = model->index(i, 0);
@@ -201,6 +201,7 @@ SettingsOtherRemovable::onMORowChanged(const QModelIndex &current)
     if (!match.isEmpty())
         ui->comboBoxMOChannel->setCurrentIndex(match.first().row());
     ui->comboBoxMOType->setCurrentIndex(type);
+    enableCurrentlySelectedChannel_MO();
 }
 
 void
@@ -221,6 +222,16 @@ SettingsOtherRemovable::onZIPRowChanged(const QModelIndex &current)
     if (!match.isEmpty())
         ui->comboBoxZIPChannel->setCurrentIndex(match.first().row());
     ui->checkBoxZIP250->setChecked(is250);
+    enableCurrentlySelectedChannel_ZIP();
+}
+
+void
+SettingsOtherRemovable::reloadBusChannels_MO() {
+    auto selected = ui->comboBoxMOChannel->currentIndex();
+    Harddrives::populateBusChannels(ui->comboBoxMOChannel->model(),
+                                    ui->comboBoxMOBus->currentData().toInt(), Harddrives::busTrackClass);
+    ui->comboBoxMOChannel->setCurrentIndex(selected);
+    enableCurrentlySelectedChannel_MO();
 }
 
 void
@@ -231,7 +242,7 @@ SettingsOtherRemovable::on_comboBoxMOBus_currentIndexChanged(int index)
         bool enabled = (bus != MO_BUS_DISABLED);
         ui->comboBoxMOChannel->setEnabled(enabled);
         ui->comboBoxMOType->setEnabled(enabled);
-        Harddrives::populateBusChannels(ui->comboBoxMOChannel->model(), bus);
+        Harddrives::populateBusChannels(ui->comboBoxMOChannel->model(), bus, Harddrives::busTrackClass);
     }
 }
 
@@ -258,6 +269,17 @@ SettingsOtherRemovable::on_comboBoxMOBus_activated(int)
     Harddrives::busTrackClass->device_track(1, DEV_MO, ui->tableViewMO->model()->data(i,
                                             Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i,
                                             Qt::UserRole + 1).toInt());
+    emit moChannelChanged();
+}
+
+void
+SettingsOtherRemovable::enableCurrentlySelectedChannel_MO()
+{
+    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxMOChannel->model());
+    const auto index = ui->comboBoxMOChannel->currentIndex();
+    auto *item = item_model->item(index);
+    if (item)
+        item->setEnabled(true);
 }
 
 void
@@ -274,6 +296,7 @@ SettingsOtherRemovable::on_comboBoxMOChannel_activated(int)
     Harddrives::busTrackClass->device_track(1, DEV_MO, ui->tableViewMO->model()->data(i,
                                             Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i,
                                             Qt::UserRole + 1).toInt());
+    emit moChannelChanged();
 }
 
 void
@@ -287,6 +310,15 @@ SettingsOtherRemovable::on_comboBoxMOType_activated(int)
 }
 
 void
+SettingsOtherRemovable::reloadBusChannels_ZIP() {
+    auto selected = ui->comboBoxZIPChannel->currentIndex();
+    Harddrives::populateBusChannels(ui->comboBoxZIPChannel->model(),
+                                    ui->comboBoxZIPBus->currentData().toInt(), Harddrives::busTrackClass);
+    ui->comboBoxZIPChannel->setCurrentIndex(selected);
+    enableCurrentlySelectedChannel_ZIP();
+}
+
+void
 SettingsOtherRemovable::on_comboBoxZIPBus_currentIndexChanged(int index)
 {
     if (index >= 0) {
@@ -294,7 +326,7 @@ SettingsOtherRemovable::on_comboBoxZIPBus_currentIndexChanged(int index)
         bool enabled = (bus != ZIP_BUS_DISABLED);
         ui->comboBoxZIPChannel->setEnabled(enabled);
         ui->checkBoxZIP250->setEnabled(enabled);
-        Harddrives::populateBusChannels(ui->comboBoxZIPChannel->model(), bus);
+        Harddrives::populateBusChannels(ui->comboBoxZIPChannel->model(), bus, Harddrives::busTrackClass);
     }
 }
 
@@ -315,6 +347,17 @@ SettingsOtherRemovable::on_comboBoxZIPBus_activated(int)
     Harddrives::busTrackClass->device_track(1, DEV_ZIP, ui->tableViewZIP->model()->data(i,
                                             Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i,
                                             Qt::UserRole + 1).toInt());
+    emit zipChannelChanged();
+}
+
+void
+SettingsOtherRemovable::enableCurrentlySelectedChannel_ZIP()
+{
+    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxZIPChannel->model());
+    const auto index = ui->comboBoxZIPChannel->currentIndex();
+    auto *item = item_model->item(index);
+    if (item)
+        item->setEnabled(true);
 }
 
 void
@@ -331,6 +374,7 @@ SettingsOtherRemovable::on_comboBoxZIPChannel_activated(int)
     Harddrives::busTrackClass->device_track(1, DEV_ZIP, ui->tableViewZIP->model()->data(i,
                                             Qt::UserRole).toInt(),
                                             ui->tableViewZIP->model()->data(i, Qt::UserRole + 1).toInt());
+    emit zipChannelChanged();
 }
 
 void

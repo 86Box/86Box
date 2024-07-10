@@ -199,9 +199,10 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
         scancode = convert_scan_code(scancode);
 
         /* Remap it according to the list from the Registry */
-        if (scancode != scancode_map[scancode])
-            pclog("Scan code remap: %03X -> %03X\n", scancode, scancode);
-        scancode = scancode_map[scancode];
+        if ((scancode < (sizeof(scancode_map) / sizeof(scancode_map[0]))) && (scancode != scancode_map[scancode])) {
+            pclog("Scan code remap: %03X -> %03X\n", scancode, scancode_map[scancode]);
+            scancode = scancode_map[scancode];
+        }
 
         /* If it's not 0xFFFF, send it to the emulated
            keyboard.

@@ -46,28 +46,35 @@
 #    define S_ISDIR(m) (((m) &S_IFMT) == S_IFDIR)
 #endif
 
-#define VISO_SKIP(p, n)     \
-    {                       \
-        memset(p, 0x00, n); \
-        p += n;             \
+#ifdef _WIN32
+#    define stat _stat64
+typedef struct __stat64 stat_t;
+#else
+typedef struct stat stat_t;
+#endif
+
+#define VISO_SKIP(p, n)         \
+    {                           \
+        memset((p), 0x00, (n)); \
+        (p) += (n);             \
     }
 #define VISO_TIME_VALID(t) ((t) > 0)
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
-#define VISO_LBE_16(p, x)                   \
-    {                                       \
-        *((uint16_t *) p) = cpu_to_le16(x); \
-        p += 2;                             \
-        *((uint16_t *) p) = cpu_to_be16(x); \
-        p += 2;                             \
+#define VISO_LBE_16(p, x)                       \
+    {                                           \
+        *((uint16_t *) (p)) = cpu_to_le16((x)); \
+        (p) += 2;                               \
+        *((uint16_t *) (p)) = cpu_to_be16((x)); \
+        (p) += 2;                               \
     }
-#define VISO_LBE_32(p, x)                   \
-    {                                       \
-        *((uint32_t *) p) = cpu_to_le32(x); \
-        p += 4;                             \
-        *((uint32_t *) p) = cpu_to_be32(x); \
-        p += 4;                             \
+#define VISO_LBE_32(p, x)                       \
+    {                                           \
+        *((uint32_t *) (p)) = cpu_to_le32((x)); \
+        (p) += 4;                               \
+        *((uint32_t *) (p)) = cpu_to_be32((x)); \
+        (p) += 4;                               \
     }
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
@@ -106,7 +113,7 @@ typedef struct _viso_entry_ {
     };
     uint16_t pt_idx;
 
-    struct stat stats;
+    stat_t stats;
 
     struct _viso_entry_ *parent, *next, *next_dir, *first_child;
 
@@ -496,10 +503,6 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
     *p++ = 0;                             /* extended attribute length */
     VISO_SKIP(p, 8);                      /* sector offset */
     VISO_LBE_32(p, entry->stats.st_size); /* size (filled in later if this is a directory) */
-#ifdef _WIN32
-    if (entry->stats.st_mtime < 0)
-        pclog("VISO: Warning: Windows returned st_mtime %lld on file [%s]\n", (long long) entry->stats.st_mtime, entry->path);
-#endif
     p += viso_fill_time(p, entry->stats.st_mtime, viso->format, 0); /* time */
     *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00;             /* flags */
 
@@ -671,9 +674,9 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
     /* Handle reads in a sector by sector basis. */
     while (count > 0) {
         /* Determine the current sector, offset and remainder. */
-        uint32_t sector        = seek / viso->sector_size;
-        uint32_t sector_offset = seek % viso->sector_size;
-        uint32_t sector_remain = MIN(count, viso->sector_size - sector_offset);
+        size_t sector        = seek / viso->sector_size;
+        size_t sector_offset = seek % viso->sector_size;
+        size_t sector_remain = MIN(count, viso->sector_size - sector_offset);
 
         /* Handle sector. */
         if (sector < viso->metadata_sectors) {
@@ -830,7 +833,7 @@ viso_init(const char *dirname, int *error)
     strcpy(dir->path, dirname);
     if (stat(dirname, &dir->stats) != 0) {
         /* Use a blank structure if stat failed. */
-        memset(&dir->stats, 0x00, sizeof(struct stat));
+        memset(&dir->stats, 0x00, sizeof(stat_t));
     }
     if (!S_ISDIR(dir->stats.st_mode)) /* root is not a directory */
         goto end;
@@ -879,7 +882,7 @@ viso_init(const char *dirname, int *error)
             /* Stat the current directory or parent directory. */
             if (stat(children_count ? dir->parent->path : dir->path, &entry->stats) != 0) {
                 /* Use a blank structure if stat failed. */
-                memset(&entry->stats, 0x00, sizeof(struct stat));
+                memset(&entry->stats, 0x00, sizeof(stat_t));
             }
 
             /* Set basename. */
@@ -909,7 +912,7 @@ viso_init(const char *dirname, int *error)
                 /* Stat this child. */
                 if (stat(entry->path, &entry->stats) != 0) {
                     /* Use a blank structure if stat failed. */
-                    memset(&entry->stats, 0x00, sizeof(struct stat));
+                    memset(&entry->stats, 0x00, sizeof(stat_t));
                 }
 
                 /* Handle file size and El Torito boot code. */
@@ -1432,7 +1435,7 @@ next_entry:
     /* Allocate entry map for sector->file lookups. */
     size_t orig_sector_size = viso->sector_size;
     while (1) {
-        cdrom_image_viso_log("VISO: Allocating entry map for %d %d-byte sectors\n", viso->entry_map_size, viso->sector_size);
+        cdrom_image_viso_log("VISO: Allocating entry map for %zu %zu-byte sectors\n", viso->entry_map_size, viso->sector_size);
         viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
         if (viso->entry_map) {
             /* Successfully allocated. */
@@ -1444,7 +1447,7 @@ next_entry:
 
             /* If we don't have enough memory, double the sector size. */
             viso->sector_size *= 2;
-            if (viso->sector_size == 0) /* give up if sectors become too large */
+            if ((viso->sector_size < VISO_SECTOR_SIZE) || (viso->sector_size > (1 << 30))) /* give up if sectors become too large */
                 goto end;
 
             /* Go through files, recalculating the entry map size. */
@@ -1515,10 +1518,10 @@ next_entry:
         entry->data_offset = ((uint64_t) viso->all_sectors) * viso->sector_size;
 
         /* Determine how many sectors this file will take. */
-        uint32_t size = entry->stats.st_size / viso->sector_size;
+        size_t size = entry->stats.st_size / viso->sector_size;
         if (entry->stats.st_size % viso->sector_size)
             size++; /* round up to the next sector */
-        cdrom_image_viso_log("[%08X] %s => %" PRIu32 " + %" PRIu32 " sectors\n", entry, entry->path, viso->all_sectors, size);
+        cdrom_image_viso_log("[%08X] %s => %zu + %zu sectors\n", entry, entry->path, viso->all_sectors, size);
 
         /* Allocate sectors to this file. */
         viso->all_sectors += size;
@@ -1537,13 +1540,13 @@ next_entry:
         viso_pwrite(data, viso->vol_size_offsets[i], 8, 1, viso->tf.fp);
 
     /* Metadata processing is finished, read it back to memory. */
-    cdrom_image_viso_log("VISO: Reading back %d %d-byte sectors of metadata\n", viso->metadata_sectors, viso->sector_size);
+    cdrom_image_viso_log("VISO: Reading back %zu %zu-byte sectors of metadata\n", viso->metadata_sectors, viso->sector_size);
     viso->metadata = (uint8_t *) calloc(viso->metadata_sectors, viso->sector_size);
     if (!viso->metadata)
         goto end;
     fseeko64(viso->tf.fp, 0, SEEK_SET);
-    uint64_t metadata_size = viso->metadata_sectors * viso->sector_size;
-    uint64_t metadata_remain = metadata_size;
+    size_t metadata_size = viso->metadata_sectors * viso->sector_size;
+    size_t metadata_remain = metadata_size;
     while (metadata_remain > 0)
         metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, viso->sector_size), viso->tf.fp);
 

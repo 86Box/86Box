@@ -109,6 +109,7 @@ static const struct {
     { &ide_pci_2ch_device          },
     { &ide_vlb_device              },
     { &ide_vlb_2ch_device          },
+    { &mcide_device                },
     { NULL                         }
     // clang-format on
 };
@@ -131,7 +132,7 @@ hdc_reset(void)
             hdc_current, (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
 
     /* If we have a valid controller, add its device. */
-    if (hdc_current > 1)
+    if (hdc_current > HDC_INTERNAL)
         device_add(controllers[hdc_current].device);
 
     /* Now, add the tertiary and/or quaternary IDE controllers. */

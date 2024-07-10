@@ -9,6 +9,7 @@
 #    include "x86.h"
 #    include "x86seg_common.h"
 #    include "x86seg.h"
+#    include "x87_sf.h"
 #    include "x87.h"
 #    include "386_common.h"
 #    include "codegen.h"
@@ -648,10 +649,10 @@ codegen_FTST(codeblock_t *block, uop_t *uop)
         host_arm64_FSUB_D(block, REG_V_TEMP, REG_V_TEMP, REG_V_TEMP);
         host_arm64_MOVZ_IMM(block, dest_reg, 0);
         host_arm64_FCMP_D(block, src_reg_a, REG_V_TEMP);
-        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, C3);
-        host_arm64_ORR_IMM(block, REG_TEMP2, dest_reg, C0);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C3);
+        host_arm64_ORR_IMM(block, REG_TEMP2, dest_reg, FPU_SW_C0);
         host_arm64_CSEL_EQ(block, dest_reg, REG_TEMP, dest_reg);
-        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, C0 | C2 | C3);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         host_arm64_CSEL_CC(block, dest_reg, REG_TEMP2, dest_reg);
         host_arm64_CSEL_VS(block, dest_reg, REG_TEMP, dest_reg);
     } else
@@ -690,10 +691,10 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
     if (REG_IS_W(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
         host_arm64_MOVZ_IMM(block, dest_reg, 0);
         host_arm64_FCMP_D(block, src_reg_a, src_reg_b);
-        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, C3);
-        host_arm64_ORR_IMM(block, REG_TEMP2, dest_reg, C0);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C3);
+        host_arm64_ORR_IMM(block, REG_TEMP2, dest_reg, FPU_SW_C0);
         host_arm64_CSEL_EQ(block, dest_reg, REG_TEMP, dest_reg);
-        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, C0 | C2 | C3);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         host_arm64_CSEL_CC(block, dest_reg, REG_TEMP2, dest_reg);
         host_arm64_CSEL_VS(block, dest_reg, REG_TEMP, dest_reg);
     } else

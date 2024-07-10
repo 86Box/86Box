@@ -1237,6 +1237,7 @@ azt_init(const device_t *info)
     if (azt2316a->sb->opl_enabled)
         fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
 
+    sb_dsp_set_real_opl(&azt2316a->sb->dsp, 1);
     sb_dsp_init(&azt2316a->sb->dsp, SBPRO2, azt2316a->type, azt2316a);
     sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
     sb_dsp_setirq(&azt2316a->sb->dsp, azt2316a->cur_irq);
@@ -1253,6 +1254,8 @@ azt_init(const device_t *info)
 
     azt2316a_create_config_word(azt2316a);
     sound_add_handler(azt2316a_get_buffer, azt2316a);
+    if (azt2316a->sb->opl_enabled)
+        music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
     if (azt2316a->cur_mpu401_enabled) {

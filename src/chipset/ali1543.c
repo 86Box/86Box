@@ -197,6 +197,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x44: /* Set IRQ Line for Primary IDE if it's on native mode */
             dev->pci_conf[addr] = val & 0xdf;
             soft_reset_pci      = !!(val & 0x80);
+            pci_set_mirq_level(PCI_MIRQ0, !(val & 0x10));
             pci_set_mirq_level(PCI_MIRQ2, !(val & 0x10));
             ali1543_log("INTAJ = IRQ %i\n", ali1533_irq_routing[val & 0x0f]);
             pci_set_mirq_routing(PCI_MIRQ0, ali1533_irq_routing[val & 0x0f]);
@@ -412,11 +413,13 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x74: /* USB IRQ Routing - we cheat and use MIRQ4 */
             dev->pci_conf[addr] = val & 0xdf;
             /* TODO: MIRQ level/edge control - if bit 4 = 1, it's level */
+            pci_set_mirq_level(PCI_MIRQ4, !(val & 0x10));
             pci_set_mirq_routing(PCI_MIRQ4, ali1533_irq_routing[val & 0x0f]);
             break;
 
         case 0x75: /* Set IRQ Line for Secondary IDE if it's on native mode */
             dev->pci_conf[addr] = val & 0x1f;
+            pci_set_mirq_level(PCI_MIRQ1, !(val & 0x10));
             pci_set_mirq_level(PCI_MIRQ3, !(val & 0x10));
             ali1543_log("INTBJ = IRQ %i\n", ali1533_irq_routing[val & 0x0f]);
             pci_set_mirq_routing(PCI_MIRQ1, ali1533_irq_routing[val & 0x0f]);
@@ -704,7 +707,7 @@ ali5229_chip_reset(ali1543_t *dev)
     ali5229_write(0, 0x09, 0xfa, dev);
     ali5229_write(0, 0x52, 0x00, dev);
 
-    ali5229_write(0, 0x50, 0x00, dev);
+    ali5229_write(0, 0x50, 0x02, dev);
 
     sff_set_slot(dev->ide_controller[0], dev->ide_slot);
     sff_set_slot(dev->ide_controller[1], dev->ide_slot);
@@ -717,7 +720,7 @@ static void
 ali5229_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
-    ali1543_log("M5229: dev->ide_conf[%02x] = %02x\n", addr, val);
+    ali1543_log("M5229: [W] dev->ide_conf[%02x] = %02x\n", addr, val);
 
     if (func > 0)
         return;
@@ -756,6 +759,10 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
             ali5229_ide_irq_handler(dev);
             break;
 
+        case 0x0d: /* LT - Latency Timer */
+            dev->ide_conf[addr] = val;
+            break;
+
         /* Primary Base Address */
         case 0x10:
         case 0x11:
@@ -776,9 +783,9 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
             /* Datasheet erratum: the PCI BAR's actually have different sizes. */
             if (addr == 0x20)
                 dev->ide_conf[addr] = (val & 0xe0) | 0x01;
-            else if ((addr & 0x43) == 0x00)
+            else if ((addr & 0x07) == 0x00)
                 dev->ide_conf[addr] = (val & 0xf8) | 0x01;
-            else if ((addr & 0x43) == 0x40)
+            else if ((addr & 0x07) == 0x04)
                 dev->ide_conf[addr] = (val & 0xfc) | 0x01;
             else
                 dev->ide_conf[addr] = val;
@@ -887,13 +894,15 @@ ali5229_read(int func, int addr, void *priv)
     if (dev->ide_dev_enable && (func == 0)) {
         ret = dev->ide_conf[addr];
         if ((addr == 0x09) && !(dev->ide_conf[0x50] & 0x02))
-            ret &= 0x0f;
+            ret = (ret & 0x0f) | 0x80;
         else if (addr == 0x50)
             ret = (ret & 0xfe) | (dev->ide_dev_enable ? 0x01 : 0x00);
         else if (addr == 0x75)
             ret = ide_read_ali_75();
         else if (addr == 0x76)
             ret = ide_read_ali_76();
+
+        ali1543_log("M5229: [R] dev->ide_conf[%02x] = %02x\n", addr, ret);
     }
 
     return ret;

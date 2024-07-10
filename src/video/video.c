@@ -104,7 +104,7 @@ monitor_settings_t monitor_settings[MONITORS_NUM];
 atomic_bool        doresize_monitors[MONITORS_NUM];
 
 #ifdef _WIN32
-void *__cdecl (*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+void * (*__cdecl video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
 #else
 void *(*video_copy)(void *__restrict, const void *__restrict, size_t);
 #endif
@@ -831,9 +831,9 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
+    bitmap_t *b = calloc(sizeof(bitmap_t), (y * sizeof(uint32_t *)));
 
-    b->dat = malloc((size_t) x * y * 4);
+    b->dat = calloc((size_t) x * y, 4);
     for (int c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;
