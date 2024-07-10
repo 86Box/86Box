@@ -1277,7 +1277,6 @@ nuked_generate(void *priv, int32_t *bufp)
     int16_t   accm;
     int16_t   shift = 0;
     uint8_t   i;
-    uint8_t   j;
 
     bufp[1] = dev->mixbuff[1];
 
@@ -1294,9 +1293,7 @@ nuked_generate(void *priv, int32_t *bufp)
     for (i = 0; i < 18; i++) {
         ch   = &dev->chan[i];
         out  = ch->out;
-        for (j = 0; j < 4; j++)
-            accm += *out[j];
-
+        accm = *out[0] + *out[1] + *out[2] + *out[3];
         mix += (int16_t) (accm & ch->cha);
     }
 
@@ -1325,11 +1322,7 @@ nuked_generate(void *priv, int32_t *bufp)
     for (i = 0; i < 18; i++) {
         ch = &dev->chan[i];
         out = ch->out;
-        accm = 0;
-
-        for (j = 0; j < 4; j++)
-            accm += *out[j];
-
+        accm = *out[0] + *out[1] + *out[2] + *out[3];
         mix += (int16_t) (accm & ch->chb);
     }
 
