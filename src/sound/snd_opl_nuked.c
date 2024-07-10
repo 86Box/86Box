@@ -386,7 +386,7 @@ env_calc_exp(uint32_t level)
     if (level > 0x1fff)
         level = 0x1fff;
 
-    return ((exprom[level & 0xff] << 1) >> (level >> 8));
+    return ((exprom[level & 0xffu] << 1) >> (level >> 8));
 }
 
 static int16_t
@@ -401,9 +401,9 @@ env_calc_sin0(uint16_t phase, uint16_t env)
         neg = 0xffff;
 
     if (phase & 0x0100)
-        out = logsinrom[(phase & 0xff) ^ 0xff];
+        out = logsinrom[(phase & 0xffu) ^ 0xffu];
     else
-        out = logsinrom[phase & 0xff];
+        out = logsinrom[phase & 0xffu];
 
     return (env_calc_exp(out + (env << 3)) ^ neg);
 }
@@ -418,9 +418,9 @@ env_calc_sin1(uint16_t phase, uint16_t env)
     if (phase & 0x0200)
         out = 0x1000;
     else if (phase & 0x0100)
-        out = logsinrom[(phase & 0xff) ^ 0xff];
+        out = logsinrom[(phase & 0xffu) ^ 0xffu];
     else
-        out = logsinrom[phase & 0xff];
+        out = logsinrom[phase & 0xffu];
 
     return (env_calc_exp(out + (env << 3)));
 }
@@ -433,9 +433,9 @@ env_calc_sin2(uint16_t phase, uint16_t env)
     phase &= 0x03ff;
 
     if (phase & 0x0100)
-        out = logsinrom[(phase & 0xff) ^ 0xff];
+        out = logsinrom[(phase & 0xffu) ^ 0xffu];
     else
-        out = logsinrom[phase & 0xff];
+        out = logsinrom[phase & 0xffu];
 
     return (env_calc_exp(out + (env << 3)));
 }
@@ -450,7 +450,7 @@ env_calc_sin3(uint16_t phase, uint16_t env)
     if (phase & 0x0100)
         out = 0x1000;
     else
-        out = logsinrom[phase & 0xff];
+        out = logsinrom[phase & 0xffu];
 
     return (env_calc_exp(out + (env << 3)));
 }
@@ -469,9 +469,9 @@ env_calc_sin4(uint16_t phase, uint16_t env)
     if (phase & 0x0200)
         out = 0x1000;
     else if (phase & 0x80)
-        out = logsinrom[((phase ^ 0xff) << 1) & 0xff];
+        out = logsinrom[((phase ^ 0xffu) << 1u) & 0xffu];
     else
-        out = logsinrom[(phase << 1) & 0xff];
+        out = logsinrom[(phase << 1u) & 0xffu];
 
     return (env_calc_exp(out + (env << 3)) ^ neg);
 }
@@ -486,9 +486,9 @@ env_calc_sin5(uint16_t phase, uint16_t env)
     if (phase & 0x0200)
         out = 0x1000;
     else if (phase & 0x80)
-        out = logsinrom[((phase ^ 0xff) << 1) & 0xff];
+        out = logsinrom[((phase ^ 0xffu) << 1u) & 0xffu];
     else
-        out = logsinrom[(phase << 1) & 0xff];
+        out = logsinrom[(phase << 1u) & 0xffu];
 
     return (env_calc_exp(out + (env << 3)));
 }
@@ -538,7 +538,7 @@ static const env_sinfunc env_sin[8] = {
 static void
 env_update_ksl(slot_t *slot)
 {
-    int16_t ksl = (kslrom[slot->chan->f_num >> 6] << 2)
+    int16_t ksl = (kslrom[slot->chan->f_num >> 6u] << 2)
                   - ((0x08 - slot->chan->block) << 5);
 
     if (ksl < 0)
@@ -622,7 +622,7 @@ env_calc(slot_t *slot)
                         break;
                 }
         } else {
-            shift = (rate_hi & 0x03) + eg_incstep[rate_lo][slot->dev->timer & 0x03];
+            shift = (rate_hi & 0x03) + eg_incstep[rate_lo][slot->dev->timer & 0x03u];
             if (shift & 0x04)
                 shift = 0x03;
             if (!shift)
@@ -1128,7 +1128,7 @@ static void
 channel_write_d0(chan_t *ch, uint8_t data)
 {
     if (ch->dev->stereoext) {
-        ch->leftpan  = panpot_lut[data ^ 0xff];
+        ch->leftpan  = panpot_lut[data ^ 0xffu];
         ch->rightpan = panpot_lut[data];
     }
 }
@@ -1184,14 +1184,14 @@ channel_set_4op(nuked_t *dev, uint8_t data)
             chnum += 9 - 3;
 
         if ((data >> bit) & 0x01) {
-            dev->chan[chnum].chtype     = ch_4op;
-            dev->chan[chnum + 3].chtype = ch_4op2;
+            dev->chan[chnum].chtype      = ch_4op;
+            dev->chan[chnum + 3u].chtype = ch_4op2;
             channel_update_alg(&dev->chan[chnum]);
         } else {
-            dev->chan[chnum].chtype     = ch_2op;
-            dev->chan[chnum + 3].chtype = ch_2op;
+            dev->chan[chnum].chtype      = ch_2op;
+            dev->chan[chnum + 3u].chtype = ch_2op;
             channel_update_alg(&dev->chan[chnum]);
-            channel_update_alg(&dev->chan[chnum + 3]);
+            channel_update_alg(&dev->chan[chnum + 3u]);
         }
     }
 }
@@ -1247,31 +1247,31 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
 
         case 0x20:
         case 0x30:
-            if (ad_slot[regm & 0x1f] >= 0)
-                slot_write_20(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
+            if (ad_slot[regm & 0x1fu] >= 0)
+                slot_write_20(&dev->slot[18u * high + ad_slot[regm & 0x1fu]], val);
             break;
 
         case 0x40:
         case 0x50:
-            if (ad_slot[regm & 0x1f] >= 0)
-                slot_write_40(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
+            if (ad_slot[regm & 0x1fu] >= 0)
+                slot_write_40(&dev->slot[18u * high + ad_slot[regm & 0x1fu]], val);
             break;
 
         case 0x60:
         case 0x70:
-            if (ad_slot[regm & 0x1f] >= 0)
-                slot_write_60(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
+            if (ad_slot[regm & 0x1fu] >= 0)
+                slot_write_60(&dev->slot[18u * high + ad_slot[regm & 0x1fu]], val);
             break;
 
         case 0x80:
         case 0x90:
-            if (ad_slot[regm & 0x1f] >= 0)
-                slot_write_80(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
+            if (ad_slot[regm & 0x1fu] >= 0)
+                slot_write_80(&dev->slot[18u * high + ad_slot[regm & 0x1fu]], val);
             break;
 
         case 0xa0:
             if ((regm & 0x0f) < 9)
-                channel_write_a0(&dev->chan[9 * high + (regm & 0x0f)], val);
+                channel_write_a0(&dev->chan[9u * high + (regm & 0x0fu)], val);
             break;
 
         case 0xb0:
@@ -1280,31 +1280,31 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
                 dev->vibshift     = ((val >> 6) & 0x01) ^ 1;
                 channel_update_rhythm(dev, val);
             } else if ((regm & 0x0f) < 9) {
-                channel_write_b0(&dev->chan[9 * high + (regm & 0x0f)], val);
+                channel_write_b0(&dev->chan[9u * high + (regm & 0x0fu)], val);
 
                 if (val & 0x20)
-                    channel_key_on(&dev->chan[9 * high + (regm & 0x0f)]);
+                    channel_key_on(&dev->chan[9u * high + (regm & 0x0fu)]);
                 else
-                    channel_key_off(&dev->chan[9 * high + (regm & 0x0f)]);
+                    channel_key_off(&dev->chan[9u * high + (regm & 0x0fu)]);
             }
             break;
 
         case 0xc0:
             if ((regm & 0x0f) < 9)
-                channel_write_c0(&dev->chan[9 * high + (regm & 0x0f)], val);
+                channel_write_c0(&dev->chan[9u * high + (regm & 0x0fu)], val);
             break;
 
 #if OPL_ENABLE_STEREOEXT
         case 0xd0:
             if ((regm & 0x0f) < 9)
-                channel_write_d0(&dev->chan[9 * high + (regm & 0x0f)], val);
+                channel_write_d0(&dev->chan[9u * high + (regm & 0x0fu)], val);
             break;
 #endif
 
         case 0xe0:
         case 0xf0:
-            if (ad_slot[regm & 0x1f] >= 0)
-                slot_write_e0(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
+            if (ad_slot[regm & 0x1fu] >= 0)
+                slot_write_e0(&dev->slot[18u * high + ad_slot[regm & 0x1fu]], val);
             break;
 
         default:
@@ -1576,17 +1576,17 @@ nuked_init(nuked_t *dev, uint32_t samplerate)
     }
 
     for (i = 0; i < 18; i++) {
-        ch                                = &dev->chan[i];
-        local_ch_slot                     = ch_slot[i];
-        ch->slots[0]                      = &dev->slot[local_ch_slot];
-        ch->slots[1]                      = &dev->slot[local_ch_slot + 3];
-        dev->slot[local_ch_slot].chan     = ch;
-        dev->slot[local_ch_slot + 3].chan = ch;
+        ch                                 = &dev->chan[i];
+        local_ch_slot                      = ch_slot[i];
+        ch->slots[0]                       = &dev->slot[local_ch_slot];
+        ch->slots[1]                       = &dev->slot[local_ch_slot + 3u];
+        dev->slot[local_ch_slot].chan      = ch;
+        dev->slot[local_ch_slot + 3u].chan = ch;
 
         if ((i % 9) < 3)
-            ch->pair = &dev->chan[i + 3];
+            ch->pair = &dev->chan[i + 3u];
         else if ((i % 9) < 6)
-            ch->pair = &dev->chan[i - 3];
+            ch->pair = &dev->chan[i - 3u];
 
         ch->dev    = dev;
         ch->out[0] = &dev->zeromod;
