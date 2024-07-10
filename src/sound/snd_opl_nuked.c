@@ -1451,7 +1451,7 @@ nuked_generate_4ch(void *priv, int32_t *buf4)
     }
 
     if (dev->eg_timerrem || dev->eg_state) {
-        if (dev->eg_timer == 0xfffffffff) {
+        if (dev->eg_timer == UINT64_C(0xfffffffff)) {
             dev->eg_timer    = 0;
             dev->eg_timerrem = 1;
         } else {
