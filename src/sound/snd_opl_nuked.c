@@ -56,11 +56,13 @@
 #define OPL_ENABLE_STEREOEXT 0
 #endif
 
-#if OPL_ENABLE_STEREOEXT
+#if OPL_ENABLE_STEREOEXT && !defined OPL_SIN
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES 1
 #endif
 #include <math.h>
+// input: [0, 256), output: [0, 65536]
+#define OPL_SIN(x) ((int32_t)(sin((x) * M_PI / 512.0) * 65536.0))
 #endif
 
 /* Quirk: Some FM channels are output one sample later on the left side than the right. */
@@ -1551,7 +1553,7 @@ nuked_init(nuked_t *dev, uint32_t samplerate)
 #if OPL_ENABLE_STEREOEXT
     if (!panpot_lut_build) {
         for (int32_t i = 0; i < 256; i++)
-            panpot_lut[i] = (int32_t)(sin(i * M_PI / 512.0) * 65536.0);
+            panpot_lut[i] = OPL_SIN(i);
         panpot_lut_build = 1;
     }
 #endif
