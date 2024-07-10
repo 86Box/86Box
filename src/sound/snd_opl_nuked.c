@@ -51,6 +51,11 @@
 #include <86box/device.h>
 #include <86box/snd_opl.h>
 
+/* Quirk: Some FM channels are output one sample later on the left side than the right. */
+#ifndef OPL_QUIRK_CHANNELSAMPLEDELAY
+#define OPL_QUIRK_CHANNELSAMPLEDELAY 1
+#endif
+
 #define WRBUF_SIZE  1024
 #define WRBUF_DELAY 1
 #define RSM_FRAC    10
@@ -1287,7 +1292,11 @@ nuked_generate(void *priv, int32_t *bufp)
 
     bufp[1] = dev->mixbuff[1];
 
+#if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 0; i < 15; i++)
+#else
+    for (i = 0; i < 36; i++)
+#endif
         process_slot(&dev->slot[i]);
 
     mix = 0;
@@ -1301,13 +1310,17 @@ nuked_generate(void *priv, int32_t *bufp)
 
     dev->mixbuff[0] = mix;
 
+#if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 15; i < 18; i++)
         process_slot(&dev->slot[i]);
+#endif
 
     bufp[0] = dev->mixbuff[0];
 
+#if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 18; i < 33; i++)
         process_slot(&dev->slot[i]);
+#endif
 
     mix = 0;
 
@@ -1320,8 +1333,10 @@ nuked_generate(void *priv, int32_t *bufp)
 
     dev->mixbuff[1] = mix;
 
+#if OPL_QUIRK_CHANNELSAMPLEDELAY
     for (i = 33; i < 36; i++)
         process_slot(&dev->slot[i]);
+#endif
 
     if ((dev->timer & 0x3f) == 0x3f)
         dev->tremolopos = (dev->tremolopos + 1) % 210;
