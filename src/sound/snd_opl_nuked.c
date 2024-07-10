@@ -1265,11 +1265,18 @@ nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
     dev->wrbuf_last     = (writebuf_last + 1) % WRBUF_SIZE;
 }
 
+static void process_slot(slot_t *slot)
+{
+    slot_calc_fb(slot);
+    env_calc(slot);
+    phase_generate(slot);
+    slot_generate(slot);
+}
+
 void
 nuked_generate(void *priv, int32_t *bufp)
 {
     nuked_t *dev = (nuked_t *) priv;
-    slot_t  *slot;
     chan_t  *ch;
     wrbuf_t *writebuf;
     int16_t **out;
@@ -1280,13 +1287,8 @@ nuked_generate(void *priv, int32_t *bufp)
 
     bufp[1] = dev->mixbuff[1];
 
-    for (i = 0; i < 15; i++) {
-        slot = &dev->slot[i];
-        slot_calc_fb(slot);
-        env_calc(slot);
-        phase_generate(slot);
-        slot_generate(slot);
-    }
+    for (i = 0; i < 15; i++)
+        process_slot(&dev->slot[i]);
 
     mix = 0;
 
@@ -1299,23 +1301,13 @@ nuked_generate(void *priv, int32_t *bufp)
 
     dev->mixbuff[0] = mix;
 
-    for (i = 15; i < 18; i++) {
-        slot = &dev->slot[i];
-        slot_calc_fb(slot);
-        env_calc(slot);
-        phase_generate(slot);
-        slot_generate(slot);
-    }
+    for (i = 15; i < 18; i++)
+        process_slot(&dev->slot[i]);
 
     bufp[0] = dev->mixbuff[0];
 
-    for (i = 18; i < 33; i++) {
-        slot = &dev->slot[i];
-        slot_calc_fb(slot);
-        env_calc(slot);
-        phase_generate(slot);
-        slot_generate(slot);
-    }
+    for (i = 18; i < 33; i++)
+        process_slot(&dev->slot[i]);
 
     mix = 0;
 
@@ -1328,13 +1320,8 @@ nuked_generate(void *priv, int32_t *bufp)
 
     dev->mixbuff[1] = mix;
 
-    for (i = 33; i < 36; i++) {
-        slot = &dev->slot[i];
-        slot_calc_fb(slot);
-        env_calc(slot);
-        phase_generate(slot);
-        slot_generate(slot);
-    }
+    for (i = 33; i < 36; i++)
+        process_slot(&dev->slot[i]);
 
     if ((dev->timer & 0x3f) == 0x3f)
         dev->tremolopos = (dev->tremolopos + 1) % 210;
