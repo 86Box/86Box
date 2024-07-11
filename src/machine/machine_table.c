@@ -2994,6 +2994,48 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /*Has custom Award firmware for Wells American*/
+{
+        .name = "[ISA] Wells American A*Star ",
+        .internal_name = "wellamerastar",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_wellamerastar_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 14000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 1024,
+            .step = 512
+        },
+        .nvrmask = 63,
+        .kbc_device = &keyboard_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
     /* Has Olivetti KBC firmware. */
     {

@@ -439,7 +439,7 @@ extern int machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadt
 extern int machine_at_ibmxt286_init(const machine_t *);
 
 extern int machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
-
+extern int machine_at_wellamerastar_init(const machine_t *); // Wells American A*Star with custom award BIOS 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 extern int machine_at_openat_init(const machine_t *);
 #endif
