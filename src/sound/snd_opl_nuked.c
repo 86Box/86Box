@@ -170,6 +170,7 @@ typedef struct chip {
     uint8_t  eg_timerrem;
     uint8_t  eg_state;
     uint8_t  eg_add;
+    uint64_t eg_timer_lo;
     uint8_t  newm;
     uint8_t  nts;
     uint8_t  rhy;
@@ -622,7 +623,7 @@ env_calc(slot_t *slot)
                         break;
                 }
         } else {
-            shift = (rate_hi & 0x03) + eg_incstep[rate_lo][slot->dev->timer & 0x03u];
+            shift = (rate_hi & 0x03) + eg_incstep[rate_lo][slot->dev->eg_timer_lo];
             if (shift & 0x04)
                 shift = 0x03;
             if (!shift)
@@ -1438,16 +1439,16 @@ nuked_generate_4ch(void *priv, int32_t *buf4)
         dev->vibpos = (dev->vibpos + 1) & 7;
 
     dev->timer++;
-    dev->eg_add = 0;
 
-    if (dev->eg_timer) {
-        while (shift < 36 && ((dev->eg_timer >> shift) & 1) == 0)
+    if (dev->eg_state) {
+        while (shift < 13 && ((dev->eg_timer >> shift) & 1) == 0)
             shift++;
 
         if (shift > 12)
             dev->eg_add = 0;
         else
             dev->eg_add = shift + 1;
+        dev->eg_timer_lo = (uint8_t) (dev->eg_timer & 0x3u);
     }
 
     if (dev->eg_timerrem || dev->eg_state) {
