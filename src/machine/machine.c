@@ -81,6 +81,7 @@ machine_init_ex(int m)
 
         machine_snd              = NULL;
 
+        is_pc98x1                = 0;
         is_vpc                   = 0;
 
         standalone_gameport_type = NULL;

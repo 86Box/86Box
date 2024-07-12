@@ -210,6 +210,7 @@ int cpu_iscyrix;
 int hascache;
 int isibm486;
 int israpidcad;
+int is_pc98x1;
 int is_vpc;
 int is_am486;
 int is_am486dxl;

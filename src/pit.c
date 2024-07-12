@@ -956,6 +956,7 @@ static void *
 pit_pc98_init(const device_t *info)
 {
     pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
+
     pit_reset(dev);
 
     timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
@@ -1167,7 +1168,7 @@ pit_set_clock(uint32_t clock)
         else
             cpuclock = (double) clock;
 
-        if (machine_pc98.init)
+        if (is_pc98x1)
             PITCONSTD    = (cpuclock / 2457600.0);
         else
             PITCONSTD    = (cpuclock / 1193182.0);
@@ -1225,7 +1226,7 @@ pit_set_clock(uint32_t clock)
             PITCONST  = (24ULL << 32LL);
             CGACONST  = (16ULL << 32LL);
         } else if (cpuclock != 14318184.0) {
-            if (machine_pc98.init)
+            if (is_pc98x1)
                 PITCONSTD = (cpuclock / 2457600.0);
             else
                 PITCONSTD = (cpuclock / 1193182.0);

@@ -662,6 +662,7 @@ extern uint32_t old_rammask;
 extern int acycs;
 #endif
 extern int pic_pending;
+extern int is_pc98x1;
 extern int is_vpc;
 extern int soft_reset_mask;
 extern int alt_access;
