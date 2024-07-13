@@ -204,10 +204,10 @@ typedef struct chip {
     uint32_t wrbuf_last;
     uint64_t wrbuf_lasttime;
     wrbuf_t  wrbuf[WRBUF_SIZE];
-} nuked_t;
+} opl3_chip;
 
 typedef struct {
-    nuked_t opl;
+    opl3_chip opl;
     int8_t  flags;
     int8_t  pad;
 
@@ -703,7 +703,7 @@ phase_generate(opl3_slot *slot)
     uint16_t phase;
     int8_t   range;
     uint8_t  vibpos;
-    nuked_t *dev;
+    opl3_chip *dev;
 
     dev   = slot->dev;
     f_num = slot->chan->f_num;
@@ -849,7 +849,7 @@ static void
 channel_setup_alg(chan_t *ch);
 
 static void
-channel_update_rhythm(nuked_t *dev, uint8_t data)
+channel_update_rhythm(opl3_chip *dev, uint8_t data)
 {
     chan_t *ch6;
     chan_t *ch7;
@@ -1174,7 +1174,7 @@ channel_key_off(chan_t *ch)
 }
 
 static void
-channel_set_4op(nuked_t *dev, uint8_t data)
+channel_set_4op(opl3_chip *dev, uint8_t data)
 {
     uint8_t chnum;
 
@@ -1209,7 +1209,7 @@ process_slot(opl3_slot *slot)
 inline void
 nuked_generate_4ch(void *priv, int32_t *buf4)
 {
-    nuked_t *dev = (nuked_t *) priv;
+    opl3_chip *dev = (opl3_chip *) priv;
     chan_t  *ch;
     wrbuf_t *writebuf;
     int16_t **out;
@@ -1332,7 +1332,7 @@ nuked_generate_4ch(void *priv, int32_t *buf4)
 }
 
 void
-nuked_generate(nuked_t *dev, int32_t *buf)
+nuked_generate(opl3_chip *dev, int32_t *buf)
 {
     int32_t samples[4];
     nuked_generate_4ch(dev, samples);
@@ -1341,7 +1341,7 @@ nuked_generate(nuked_t *dev, int32_t *buf)
 }
 
 void
-nuked_generate_4ch_resampled(nuked_t *dev, int32_t *buf4)
+nuked_generate_4ch_resampled(opl3_chip *dev, int32_t *buf4)
 {
     while (dev->samplecnt >= dev->rateratio) {
         dev->oldsamples[0] = dev->samples[0];
@@ -1369,7 +1369,7 @@ nuked_generate_4ch_resampled(nuked_t *dev, int32_t *buf4)
 }
 
 void
-nuked_generate_resampled(nuked_t *dev, int16_t *buf4)
+nuked_generate_resampled(opl3_chip *dev, int16_t *buf4)
 {
     int16_t samples[4];
     nuked_generate_4ch_resampled(dev, samples);
@@ -1378,7 +1378,7 @@ nuked_generate_resampled(nuked_t *dev, int16_t *buf4)
 }
 
 void
-nuked_generate_raw(nuked_t *dev, int32_t *bufp)
+nuked_generate_raw(opl3_chip *dev, int32_t *bufp)
 {
     nuked_generate(dev, dev->samples);
 
@@ -1389,7 +1389,7 @@ nuked_generate_raw(nuked_t *dev, int32_t *bufp)
 uint16_t
 nuked_write_addr(void *priv, uint16_t port, uint8_t val)
 {
-    const nuked_t *dev = (nuked_t *) priv;
+    const opl3_chip *dev = (opl3_chip *) priv;
     uint16_t addr;
 
     addr = val;
@@ -1402,7 +1402,7 @@ nuked_write_addr(void *priv, uint16_t port, uint8_t val)
 void
 nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
 {
-    nuked_t *dev  = (nuked_t *) priv;
+    opl3_chip *dev = (opl3_chip *) priv;
     uint8_t  high = (reg >> 8) & 0x01;
     uint8_t  regm = reg & 0xff;
 
@@ -1505,7 +1505,7 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
 void
 nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
 {
-    nuked_t *dev = (nuked_t *) priv;
+    opl3_chip *dev = (opl3_chip *) priv;
     uint64_t time1;
     uint64_t time2;
     wrbuf_t *writebuf;
@@ -1535,7 +1535,7 @@ nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
 }
 
 void
-nuked_generate_4ch_stream(nuked_t *dev, int16_t *sndptr1, int16_t *sndptr2, uint32_t numsamples)
+nuked_generate_4ch_stream(opl3_chip *dev, int16_t *sndptr1, int16_t *sndptr2, uint32_t numsamples)
 {
     int16_t samples[4];
 
@@ -1551,7 +1551,7 @@ nuked_generate_4ch_stream(nuked_t *dev, int16_t *sndptr1, int16_t *sndptr2, uint
 }
 
 void
-nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
+nuked_generate_stream(opl3_chip *dev, int32_t *sndptr, uint32_t num)
 {
     for (uint_fast32_t i = 0; i < num; i++) {
         nuked_generate_resampled(dev, sndptr);
@@ -1560,14 +1560,14 @@ nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 }
 
 void
-nuked_init(nuked_t *dev, uint32_t samplerate)
+nuked_init(opl3_chip *dev, uint32_t samplerate)
 {
     opl3_slot *slot;
     chan_t *ch;
     uint8_t i;
     uint8_t local_ch_slot;
 
-    memset(dev, 0x00, sizeof(nuked_t));
+    memset(dev, 0x00, sizeof(opl3_chip));
 
     for (i = 0; i < 36; i++) {
         slot           = &dev->slot[i];
