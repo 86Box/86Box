@@ -131,10 +131,10 @@ typedef struct slot {
     uint32_t     pg_phase;
     uint16_t     pg_phase_out;
     uint8_t      slot_num;
-} slot_t;
+} opl3_slot;
 
 typedef struct chan {
-    slot_t      *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
+    opl3_slot   *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
     struct chan *pair;
     struct chip *dev;
     int16_t     *out[4];
@@ -164,7 +164,7 @@ typedef struct wrbuf {
 
 typedef struct chip {
     chan_t   chan[18];
-    slot_t   slot[36];
+    opl3_slot slot[36];
     uint16_t timer;
     uint64_t eg_timer;
     uint8_t  eg_timerrem;
@@ -379,7 +379,7 @@ static uint8_t panpot_lut_build = 0;
 
 // Envelope generator
 typedef int16_t (*envelope_sinfunc)(uint16_t phase, uint16_t envelope);
-typedef void (*envelope_genfunc)(slot_t *slot);
+typedef void (*envelope_genfunc)(opl3_slot *slot);
 
 static int16_t
 envelope_calc_exp(uint32_t level)
@@ -537,7 +537,7 @@ static const envelope_sinfunc envelope_sin[8] = {
 };
 
 static void
-envelope_update_ksl(slot_t *slot)
+envelope_update_ksl(opl3_slot *slot)
 {
     int16_t ksl = (kslrom[slot->chan->f_num >> 6u] << 2)
                   - ((0x08 - slot->chan->block) << 5);
@@ -549,7 +549,7 @@ envelope_update_ksl(slot_t *slot)
 }
 
 static void
-envelope_calc(slot_t *slot)
+envelope_calc(opl3_slot *slot)
 {
     uint8_t  nonzero;
     uint8_t  rate;
@@ -681,19 +681,19 @@ envelope_calc(slot_t *slot)
 }
 
 static void
-envelope_key_on(slot_t *slot, uint8_t type)
+envelope_key_on(opl3_slot *slot, uint8_t type)
 {
     slot->key |= type;
 }
 
 static void
-envelope_key_off(slot_t *slot, uint8_t type)
+envelope_key_off(opl3_slot *slot, uint8_t type)
 {
     slot->key &= ~type;
 }
 
 static void
-phase_generate(slot_t *slot)
+phase_generate(opl3_slot *slot)
 {
     uint16_t f_num;
     uint32_t basefreq;
@@ -776,7 +776,7 @@ phase_generate(slot_t *slot)
 }
 
 static void
-slot_write_20(slot_t *slot, uint8_t data)
+slot_write_20(opl3_slot *slot, uint8_t data)
 {
     if ((data >> 7) & 0x01)
         slot->trem = &slot->dev->tremolo;
@@ -790,7 +790,7 @@ slot_write_20(slot_t *slot, uint8_t data)
 }
 
 static void
-slot_write_40(slot_t *slot, uint8_t data)
+slot_write_40(opl3_slot *slot, uint8_t data)
 {
     slot->reg_ksl = (data >> 6) & 0x03;
     slot->reg_tl  = data & 0x3f;
@@ -799,14 +799,14 @@ slot_write_40(slot_t *slot, uint8_t data)
 }
 
 static void
-slot_write_60(slot_t *slot, uint8_t data)
+slot_write_60(opl3_slot *slot, uint8_t data)
 {
     slot->reg_ar = (data >> 4) & 0x0f;
     slot->reg_dr = data & 0x0f;
 }
 
 static void
-slot_write_80(slot_t *slot, uint8_t data)
+slot_write_80(opl3_slot *slot, uint8_t data)
 {
     slot->reg_sl = (data >> 4) & 0x0f;
 
@@ -817,7 +817,7 @@ slot_write_80(slot_t *slot, uint8_t data)
 }
 
 static void
-slot_write_e0(slot_t *slot, uint8_t data)
+slot_write_e0(opl3_slot *slot, uint8_t data)
 {
     slot->reg_wf = data & 0x07;
 
@@ -826,14 +826,14 @@ slot_write_e0(slot_t *slot, uint8_t data)
 }
 
 static void
-slot_generate(slot_t *slot)
+slot_generate(opl3_slot *slot)
 {
     slot->out = envelope_sin[slot->reg_wf](slot->pg_phase_out + *slot->mod,
                                       slot->eg_out);
 }
 
 static void
-slot_calc_fb(slot_t *slot)
+slot_calc_fb(opl3_slot *slot)
 {
     if (slot->chan->fb != 0x00)
         slot->fbmod = (slot->prout + slot->out) >> (0x09 - slot->chan->fb);
@@ -1198,7 +1198,7 @@ channel_set_4op(nuked_t *dev, uint8_t data)
 }
 
 static void
-process_slot(slot_t *slot)
+process_slot(opl3_slot *slot)
 {
     slot_calc_fb(slot);
     envelope_calc(slot);
@@ -1562,7 +1562,7 @@ nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 void
 nuked_init(nuked_t *dev, uint32_t samplerate)
 {
-    slot_t *slot;
+    opl3_slot *slot;
     chan_t *ch;
     uint8_t i;
     uint8_t local_ch_slot;
