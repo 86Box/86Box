@@ -1378,6 +1378,72 @@ nuked_generate_resampled(opl3_chip *dev, int32_t *buf4)
 }
 
 void
+nuked_init(opl3_chip *dev, uint32_t samplerate)
+{
+    opl3_slot *slot;
+    chan_t *ch;
+    uint8_t i;
+    uint8_t local_ch_slot;
+
+    memset(dev, 0x00, sizeof(opl3_chip));
+
+    for (i = 0; i < 36; i++) {
+        slot           = &dev->slot[i];
+        slot->dev      = dev;
+        slot->mod      = &dev->zeromod;
+        slot->eg_rout  = 0x01ff;
+        slot->eg_out   = 0x01ff;
+        slot->eg_gen   = envelope_gen_num_release;
+        slot->trem     = (uint8_t *) &dev->zeromod;
+        slot->slot_num = i;
+    }
+
+    for (i = 0; i < 18; i++) {
+        ch                                 = &dev->chan[i];
+        local_ch_slot                      = ch_slot[i];
+        ch->slotz[0]                       = &dev->slot[local_ch_slot];
+        ch->slotz[1]                       = &dev->slot[local_ch_slot + 3u];
+        dev->slot[local_ch_slot].chan      = ch;
+        dev->slot[local_ch_slot + 3u].chan = ch;
+
+        if ((i % 9) < 3)
+            ch->pair = &dev->chan[i + 3u];
+        else if ((i % 9) < 6)
+            ch->pair = &dev->chan[i - 3u];
+
+        ch->dev    = dev;
+        ch->out[0] = &dev->zeromod;
+        ch->out[1] = &dev->zeromod;
+        ch->out[2] = &dev->zeromod;
+        ch->out[3] = &dev->zeromod;
+        ch->chtype = ch_2op;
+        ch->cha    = 0xffff;
+        ch->chb    = 0xffff;
+#if OPL_ENABLE_STEREOEXT
+        ch->leftpan  = 0x10000;
+        ch->rightpan = 0x10000;
+#endif
+        ch->ch_num = i;
+
+        channel_setup_alg(ch);
+    }
+
+    dev->noise        = 1;
+    dev->rateratio    = (samplerate << RSM_FRAC) / 49716;
+    dev->tremoloshift = 4;
+    dev->vibshift     = 1;
+
+
+#if OPL_ENABLE_STEREOEXT
+    if (!panpot_lut_build) {
+        for (int32_t i = 0; i < 256; i++)
+            panpot_lut[i] = OPL_SIN(i);
+        panpot_lut_build = 1;
+    }
+#endif
+}
+
+void
 nuked_generate_raw(opl3_chip *dev, int32_t *bufp)
 {
     nuked_generate(dev, dev->samples);
@@ -1557,72 +1623,6 @@ nuked_generate_stream(opl3_chip *dev, int32_t *sndptr, uint32_t num)
         nuked_generate_resampled(dev, sndptr);
         sndptr += 2;
     }
-}
-
-void
-nuked_init(opl3_chip *dev, uint32_t samplerate)
-{
-    opl3_slot *slot;
-    chan_t *ch;
-    uint8_t i;
-    uint8_t local_ch_slot;
-
-    memset(dev, 0x00, sizeof(opl3_chip));
-
-    for (i = 0; i < 36; i++) {
-        slot           = &dev->slot[i];
-        slot->dev      = dev;
-        slot->mod      = &dev->zeromod;
-        slot->eg_rout  = 0x01ff;
-        slot->eg_out   = 0x01ff;
-        slot->eg_gen   = envelope_gen_num_release;
-        slot->trem     = (uint8_t *) &dev->zeromod;
-        slot->slot_num = i;
-    }
-
-    for (i = 0; i < 18; i++) {
-        ch                                 = &dev->chan[i];
-        local_ch_slot                      = ch_slot[i];
-        ch->slotz[0]                       = &dev->slot[local_ch_slot];
-        ch->slotz[1]                       = &dev->slot[local_ch_slot + 3u];
-        dev->slot[local_ch_slot].chan      = ch;
-        dev->slot[local_ch_slot + 3u].chan = ch;
-
-        if ((i % 9) < 3)
-            ch->pair = &dev->chan[i + 3u];
-        else if ((i % 9) < 6)
-            ch->pair = &dev->chan[i - 3u];
-
-        ch->dev    = dev;
-        ch->out[0] = &dev->zeromod;
-        ch->out[1] = &dev->zeromod;
-        ch->out[2] = &dev->zeromod;
-        ch->out[3] = &dev->zeromod;
-        ch->chtype = ch_2op;
-        ch->cha    = 0xffff;
-        ch->chb    = 0xffff;
-#if OPL_ENABLE_STEREOEXT
-        ch->leftpan  = 0x10000;
-        ch->rightpan = 0x10000;
-#endif
-        ch->ch_num = i;
-
-        channel_setup_alg(ch);
-    }
-
-    dev->noise        = 1;
-    dev->rateratio    = (samplerate << RSM_FRAC) / 49716;
-    dev->tremoloshift = 4;
-    dev->vibshift     = 1;
-
-
-#if OPL_ENABLE_STEREOEXT
-    if (!panpot_lut_build) {
-        for (int32_t i = 0; i < 256; i++)
-            panpot_lut[i] = OPL_SIN(i);
-        panpot_lut_build = 1;
-    }
-#endif
 }
 
 static void
