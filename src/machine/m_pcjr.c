@@ -353,7 +353,7 @@ vid_poll(void *priv)
                     break;
                 case 0x03: /*640x200x4*/
                     for (x = 0; x < pcjr->crtc[1]; x++) {
-                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) | pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
+                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1] << 8) | pcjr->vram[((pcjr->ma << 1) & mask) + offset];
                         pcjr->ma++;
                         for (uint8_t c = 0; c < 8; c++) {
                             chr = (dat >> 7) & 1;
