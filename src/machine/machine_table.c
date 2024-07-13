@@ -2994,7 +2994,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /*Has custom Award firmware for Wells American*/
+    
 {
         .name = "[ISA] Wells American A*Star ",
         .internal_name = "wellamerastar",
