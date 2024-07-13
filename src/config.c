@@ -431,6 +431,10 @@ load_video(void)
                 strcpy(p, "none");
             }
             free_p = 1;
+        } else if (!strcmp(p, "c&t_69000")) {
+            p = (char *) malloc((strlen("chips_69000") + 1) * sizeof(char));
+            strcpy(p, "chips_69000");
+            free_p = 1;
         }
         gfxcard[0] = video_get_video_from_internal_name(p);
         if (free_p) {

@@ -156,7 +156,7 @@ typedef struct chips_69000_t {
 
     rom_t bios_rom;
 
-    void* i2c_ddc, *ddc;
+    void *i2c, *ddc;
 
     uint8_t st01;
 } chips_69000_t;
@@ -1497,10 +1497,10 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             {
                 val = chips->ext_regs[index];
                 if (!(chips->ext_regs[0x62] & 0x8))
-                    val = (val & ~8) | (i2c_gpio_get_scl(chips->i2c_ddc) << 3);
+                    val = (val & ~8) | (i2c_gpio_get_scl(chips->i2c) << 3);
                 
                 if (!(chips->ext_regs[0x62] & 0x4))
-                    val = (val & ~4) | (i2c_gpio_get_sda(chips->i2c_ddc) << 2);
+                    val = (val & ~4) | (i2c_gpio_get_sda(chips->i2c) << 2);
 
                 break;
             }
@@ -1560,14 +1560,14 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
                 if (chips->ext_regs[0x62] & 0x8)
                     scl = !!(val & 8);
                 else
-                    scl = i2c_gpio_get_scl(chips->i2c_ddc);
+                    scl = i2c_gpio_get_scl(chips->i2c);
                 
                 if (chips->ext_regs[0x62] & 0x4)
                     sda = !!(val & 4);
                 else
-                    scl = i2c_gpio_get_sda(chips->i2c_ddc);
+                    scl = i2c_gpio_get_sda(chips->i2c);
                 
-                i2c_gpio_set(chips->i2c_ddc, scl, sda);
+                i2c_gpio_set(chips->i2c, scl, sda);
 
                 chips->ext_regs[chips->ext_index] = val & 0x9F;
                 break;
@@ -2455,7 +2455,7 @@ chips_69000_init(const device_t *info)
 
     io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
-    pci_add_card(PCI_ADD_VIDEO, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
+    pci_add_card(info->local ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
 
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
@@ -2477,8 +2477,8 @@ chips_69000_init(const device_t *info)
     timer_add(&chips->decrement_timer, chips_69000_decrement_timer, chips, 0);
     timer_on_auto(&chips->decrement_timer, 1000000. / 2000.);
 
-    chips->i2c_ddc = i2c_gpio_init("c&t_69000_mga");
-    chips->ddc     = ddc_init(i2c_gpio_get_bus(chips->i2c_ddc));
+    chips->i2c = i2c_gpio_init("chips_69000_ddc");
+    chips->ddc = ddc_init(i2c_gpio_get_bus(chips->i2c));
     
     chips->flat_panel_regs[0x01] = 1;
 
@@ -2500,7 +2500,7 @@ chips_69000_close(void *p)
 //    thread_set_event(chips->fifo_event);
  //   thread_wait(chips->accel_thread);
     ddc_close(chips->ddc);
-    i2c_gpio_close(chips->i2c_ddc);
+    i2c_gpio_close(chips->i2c);
     svga_close(&chips->svga);
 
     free(chips);
@@ -2524,7 +2524,7 @@ chips_69000_force_redraw(void *p)
 
 const device_t chips_69000_device = {
     .name          = "Chips & Technologies B69000",
-    .internal_name = "c&t_69000",
+    .internal_name = "chips_69000",
     .flags         = DEVICE_PCI,
     .local         = 0,
     .init          = chips_69000_init,
@@ -2537,8 +2537,8 @@ const device_t chips_69000_device = {
 };
 
 const device_t chips_69000_onboard_device = {
-    .name          = "Chips & Technologies B69000 (onboard)",
-    .internal_name = "c&t_69000_onboard",
+    .name          = "Chips & Technologies B69000 On-Board",
+    .internal_name = "chips_69000_onboard",
     .flags         = DEVICE_PCI,
     .local         = 1,
     .init          = chips_69000_init,
