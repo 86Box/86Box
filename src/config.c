@@ -558,36 +558,24 @@ load_sound(void)
     char         *p;
 
     p = ini_section_get_string(cat, "sndcard", NULL);
-    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
-    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
-        p = "es1371";
     if (p != NULL)
         sound_card_current[0] = sound_card_get_from_internal_name(p);
     else
         sound_card_current[0] = 0;
 
     p = ini_section_get_string(cat, "sndcard2", NULL);
-    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
-    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
-        p = "es1371";
     if (p != NULL)
         sound_card_current[1] = sound_card_get_from_internal_name(p);
     else
         sound_card_current[1] = 0;
 
     p = ini_section_get_string(cat, "sndcard3", NULL);
-    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
-    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
-        p = "es1371";
     if (p != NULL)
         sound_card_current[2] = sound_card_get_from_internal_name(p);
     else
         sound_card_current[2] = 0;
 
     p = ini_section_get_string(cat, "sndcard4", NULL);
-    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
-    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
-        p = "es1371";
     if (p != NULL)
         sound_card_current[3] = sound_card_get_from_internal_name(p);
     else
