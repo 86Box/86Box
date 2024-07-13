@@ -18,7 +18,7 @@
  *            siliconpr0n.org(John McMaster, digshadow):
  *            YMF262 and VRC VII decaps and die shots.
  *
- *          Version: 1.8.0
+ *          Version: 1.8
  *
  *          Translation from C++ into C done by Miran Grca.
  *
@@ -378,11 +378,11 @@ static uint8_t panpot_lut_build = 0;
 #endif
 
 // Envelope generator
-typedef int16_t (*env_sinfunc)(uint16_t phase, uint16_t envelope);
-typedef void (*env_genfunc)(slot_t *slot);
+typedef int16_t (*envelope_sinfunc)(uint16_t phase, uint16_t envelope);
+typedef void (*envelope_genfunc)(slot_t *slot);
 
 static int16_t
-env_calc_exp(uint32_t level)
+envelope_calc_exp(uint32_t level)
 {
     if (level > 0x1fff)
         level = 0x1fff;
@@ -391,7 +391,7 @@ env_calc_exp(uint32_t level)
 }
 
 static int16_t
-env_calc_sin0(uint16_t phase, uint16_t env)
+envelope_calc_sin0(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
     uint16_t neg = 0;
@@ -406,11 +406,11 @@ env_calc_sin0(uint16_t phase, uint16_t env)
     else
         out = logsinrom[phase & 0xffu];
 
-    return (env_calc_exp(out + (env << 3)) ^ neg);
+    return (envelope_calc_exp(out + (envelope << 3)) ^ neg);
 }
 
 static int16_t
-env_calc_sin1(uint16_t phase, uint16_t env)
+envelope_calc_sin1(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
@@ -423,11 +423,11 @@ env_calc_sin1(uint16_t phase, uint16_t env)
     else
         out = logsinrom[phase & 0xffu];
 
-    return (env_calc_exp(out + (env << 3)));
+    return (envelope_calc_exp(out + (envelope << 3)));
 }
 
 static int16_t
-env_calc_sin2(uint16_t phase, uint16_t env)
+envelope_calc_sin2(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
@@ -438,11 +438,11 @@ env_calc_sin2(uint16_t phase, uint16_t env)
     else
         out = logsinrom[phase & 0xffu];
 
-    return (env_calc_exp(out + (env << 3)));
+    return (envelope_calc_exp(out + (envelope << 3)));
 }
 
 static int16_t
-env_calc_sin3(uint16_t phase, uint16_t env)
+envelope_calc_sin3(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
@@ -453,11 +453,11 @@ env_calc_sin3(uint16_t phase, uint16_t env)
     else
         out = logsinrom[phase & 0xffu];
 
-    return (env_calc_exp(out + (env << 3)));
+    return (envelope_calc_exp(out + (envelope << 3)));
 }
 
 static int16_t
-env_calc_sin4(uint16_t phase, uint16_t env)
+envelope_calc_sin4(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
     uint16_t neg = 0;
@@ -474,11 +474,11 @@ env_calc_sin4(uint16_t phase, uint16_t env)
     else
         out = logsinrom[(phase << 1u) & 0xffu];
 
-    return (env_calc_exp(out + (env << 3)) ^ neg);
+    return (envelope_calc_exp(out + (envelope << 3)) ^ neg);
 }
 
 static int16_t
-env_calc_sin5(uint16_t phase, uint16_t env)
+envelope_calc_sin5(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
@@ -491,11 +491,11 @@ env_calc_sin5(uint16_t phase, uint16_t env)
     else
         out = logsinrom[(phase << 1u) & 0xffu];
 
-    return (env_calc_exp(out + (env << 3)));
+    return (envelope_calc_exp(out + (envelope << 3)));
 }
 
 static int16_t
-env_calc_sin6(uint16_t phase, uint16_t env)
+envelope_calc_sin6(uint16_t phase, uint16_t envelope)
 {
     uint16_t neg = 0;
 
@@ -504,11 +504,11 @@ env_calc_sin6(uint16_t phase, uint16_t env)
     if (phase & 0x0200)
         neg = 0xffff;
 
-    return (env_calc_exp(env << 3) ^ neg);
+    return (envelope_calc_exp(envelope << 3) ^ neg);
 }
 
 static int16_t
-env_calc_sin7(uint16_t phase, uint16_t env)
+envelope_calc_sin7(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
     uint16_t neg = 0;
@@ -522,22 +522,22 @@ env_calc_sin7(uint16_t phase, uint16_t env)
 
     out = phase << 3;
 
-    return (env_calc_exp(out + (env << 3)) ^ neg);
+    return (envelope_calc_exp(out + (envelope << 3)) ^ neg);
 }
 
-static const env_sinfunc env_sin[8] = {
-    env_calc_sin0,
-    env_calc_sin1,
-    env_calc_sin2,
-    env_calc_sin3,
-    env_calc_sin4,
-    env_calc_sin5,
-    env_calc_sin6,
-    env_calc_sin7
+static const envelope_sinfunc envelope_sin[8] = {
+    envelope_calc_sin0,
+    envelope_calc_sin1,
+    envelope_calc_sin2,
+    envelope_calc_sin3,
+    envelope_calc_sin4,
+    envelope_calc_sin5,
+    envelope_calc_sin6,
+    envelope_calc_sin7
 };
 
 static void
-env_update_ksl(slot_t *slot)
+envelope_update_ksl(slot_t *slot)
 {
     int16_t ksl = (kslrom[slot->chan->f_num >> 6u] << 2)
                   - ((0x08 - slot->chan->block) << 5);
@@ -549,7 +549,7 @@ env_update_ksl(slot_t *slot)
 }
 
 static void
-env_calc(slot_t *slot)
+envelope_calc(slot_t *slot)
 {
     uint8_t  nonzero;
     uint8_t  rate;
@@ -681,13 +681,13 @@ env_calc(slot_t *slot)
 }
 
 static void
-env_key_on(slot_t *slot, uint8_t type)
+envelope_key_on(slot_t *slot, uint8_t type)
 {
     slot->key |= type;
 }
 
 static void
-env_key_off(slot_t *slot, uint8_t type)
+envelope_key_off(slot_t *slot, uint8_t type)
 {
     slot->key &= ~type;
 }
@@ -795,7 +795,7 @@ slot_write_40(slot_t *slot, uint8_t data)
     slot->reg_ksl = (data >> 6) & 0x03;
     slot->reg_tl  = data & 0x3f;
 
-    env_update_ksl(slot);
+    envelope_update_ksl(slot);
 }
 
 static void
@@ -828,7 +828,7 @@ slot_write_e0(slot_t *slot, uint8_t data)
 static void
 slot_generate(slot_t *slot)
 {
-    slot->out = env_sin[slot->reg_wf](slot->pg_phase_out + *slot->mod,
+    slot->out = envelope_sin[slot->reg_wf](slot->pg_phase_out + *slot->mod,
                                       slot->eg_out);
 }
 
@@ -883,43 +883,43 @@ channel_update_rhythm(nuked_t *dev, uint8_t data)
 
         // hh
         if (dev->rhy & 0x01)
-            env_key_on(ch7->slotz[0], egk_drum);
+            envelope_key_on(ch7->slotz[0], egk_drum);
         else
-            env_key_off(ch7->slotz[0], egk_drum);
+            envelope_key_off(ch7->slotz[0], egk_drum);
 
         // tc
         if (dev->rhy & 0x02)
-            env_key_on(ch8->slotz[1], egk_drum);
+            envelope_key_on(ch8->slotz[1], egk_drum);
         else
-            env_key_off(ch8->slotz[1], egk_drum);
+            envelope_key_off(ch8->slotz[1], egk_drum);
 
         // tom
         if (dev->rhy & 0x04)
-            env_key_on(ch8->slotz[0], egk_drum);
+            envelope_key_on(ch8->slotz[0], egk_drum);
         else
-            env_key_off(ch8->slotz[0], egk_drum);
+            envelope_key_off(ch8->slotz[0], egk_drum);
 
         // sd
         if (dev->rhy & 0x08)
-            env_key_on(ch7->slotz[1], egk_drum);
+            envelope_key_on(ch7->slotz[1], egk_drum);
         else
-            env_key_off(ch7->slotz[1], egk_drum);
+            envelope_key_off(ch7->slotz[1], egk_drum);
 
         // bd
         if (dev->rhy & 0x10) {
-            env_key_on(ch6->slotz[0], egk_drum);
-            env_key_on(ch6->slotz[1], egk_drum);
+            envelope_key_on(ch6->slotz[0], egk_drum);
+            envelope_key_on(ch6->slotz[1], egk_drum);
         } else {
-            env_key_off(ch6->slotz[0], egk_drum);
-            env_key_off(ch6->slotz[1], egk_drum);
+            envelope_key_off(ch6->slotz[0], egk_drum);
+            envelope_key_off(ch6->slotz[1], egk_drum);
         }
     } else {
         for (chnum = 6; chnum < 9; chnum++) {
             dev->chan[chnum].chtype = ch_2op;
 
             channel_setup_alg(&dev->chan[chnum]);
-            env_key_off(dev->chan[chnum].slotz[0], egk_drum);
-            env_key_off(dev->chan[chnum].slotz[1], egk_drum);
+            envelope_key_off(dev->chan[chnum].slotz[0], egk_drum);
+            envelope_key_off(dev->chan[chnum].slotz[1], egk_drum);
         }
     }
 }
@@ -934,15 +934,15 @@ channel_write_a0(chan_t *ch, uint8_t data)
     ch->ksv   = (ch->block << 1)
                  | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
 
-    env_update_ksl(ch->slotz[0]);
-    env_update_ksl(ch->slotz[1]);
+    envelope_update_ksl(ch->slotz[0]);
+    envelope_update_ksl(ch->slotz[1]);
 
     if (ch->dev->newm && ch->chtype == ch_4op) {
         ch->pair->f_num = ch->f_num;
         ch->pair->ksv   = ch->ksv;
 
-        env_update_ksl(ch->pair->slotz[0]);
-        env_update_ksl(ch->pair->slotz[1]);
+        envelope_update_ksl(ch->pair->slotz[0]);
+        envelope_update_ksl(ch->pair->slotz[1]);
     }
 }
 
@@ -957,16 +957,16 @@ channel_write_b0(chan_t *ch, uint8_t data)
     ch->ksv   = (ch->block << 1)
                  | ((ch->f_num >> (0x09 - ch->dev->nts)) & 0x01);
 
-    env_update_ksl(ch->slotz[0]);
-    env_update_ksl(ch->slotz[1]);
+    envelope_update_ksl(ch->slotz[0]);
+    envelope_update_ksl(ch->slotz[1]);
 
     if (ch->dev->newm && ch->chtype == ch_4op) {
         ch->pair->f_num = ch->f_num;
         ch->pair->block = ch->block;
         ch->pair->ksv   = ch->ksv;
 
-        env_update_ksl(ch->pair->slotz[0]);
-        env_update_ksl(ch->pair->slotz[1]);
+        envelope_update_ksl(ch->pair->slotz[0]);
+        envelope_update_ksl(ch->pair->slotz[1]);
     }
 }
 
@@ -1140,17 +1140,17 @@ channel_key_on(chan_t *ch)
 {
     if (ch->dev->newm) {
         if (ch->chtype == ch_4op) {
-            env_key_on(ch->slotz[0], egk_norm);
-            env_key_on(ch->slotz[1], egk_norm);
-            env_key_on(ch->pair->slotz[0], egk_norm);
-            env_key_on(ch->pair->slotz[1], egk_norm);
+            envelope_key_on(ch->slotz[0], egk_norm);
+            envelope_key_on(ch->slotz[1], egk_norm);
+            envelope_key_on(ch->pair->slotz[0], egk_norm);
+            envelope_key_on(ch->pair->slotz[1], egk_norm);
         } else if (ch->chtype == ch_2op || ch->chtype == ch_drum) {
-            env_key_on(ch->slotz[0], egk_norm);
-            env_key_on(ch->slotz[1], egk_norm);
+            envelope_key_on(ch->slotz[0], egk_norm);
+            envelope_key_on(ch->slotz[1], egk_norm);
         }
     } else {
-        env_key_on(ch->slotz[0], egk_norm);
-        env_key_on(ch->slotz[1], egk_norm);
+        envelope_key_on(ch->slotz[0], egk_norm);
+        envelope_key_on(ch->slotz[1], egk_norm);
     }
 }
 
@@ -1159,17 +1159,17 @@ channel_key_off(chan_t *ch)
 {
     if (ch->dev->newm) {
         if (ch->chtype == ch_4op) {
-            env_key_off(ch->slotz[0], egk_norm);
-            env_key_off(ch->slotz[1], egk_norm);
-            env_key_off(ch->pair->slotz[0], egk_norm);
-            env_key_off(ch->pair->slotz[1], egk_norm);
+            envelope_key_off(ch->slotz[0], egk_norm);
+            envelope_key_off(ch->slotz[1], egk_norm);
+            envelope_key_off(ch->pair->slotz[0], egk_norm);
+            envelope_key_off(ch->pair->slotz[1], egk_norm);
         } else if (ch->chtype == ch_2op || ch->chtype == ch_drum) {
-            env_key_off(ch->slotz[0], egk_norm);
-            env_key_off(ch->slotz[1], egk_norm);
+            envelope_key_off(ch->slotz[0], egk_norm);
+            envelope_key_off(ch->slotz[1], egk_norm);
         }
     } else {
-        env_key_off(ch->slotz[0], egk_norm);
-        env_key_off(ch->slotz[1], egk_norm);
+        envelope_key_off(ch->slotz[0], egk_norm);
+        envelope_key_off(ch->slotz[1], egk_norm);
     }
 }
 
@@ -1201,7 +1201,7 @@ static void
 process_slot(slot_t *slot)
 {
     slot_calc_fb(slot);
-    env_calc(slot);
+    envelope_calc(slot);
     phase_generate(slot);
     slot_generate(slot);
 }
