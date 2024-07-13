@@ -172,7 +172,6 @@ port_pc98_cpu_init(const device_t *info)
 
     timer_add(&dev->pulse_timer, port_pc98_cpu_pulse, dev, 0);
 
-    dev->reg    = 0;
     mem_a20_alt = 0;
     mem_a20_recalc();
 
