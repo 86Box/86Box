@@ -20,6 +20,6 @@
 #ifndef SOUND_OPL_NUKED_H
 #define SOUND_OPL_NUKED_H
 
-void nuked_write_reg(opl3_chip *dev, uint16_t reg, uint8_t val);
+void nuked_write_reg(void *priv, uint16_t reg, uint8_t val);
 
 #endif /*SOUND_OPL_NUKED_H*/

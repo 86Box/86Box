@@ -1206,7 +1206,7 @@ process_slot(opl3_slot *slot)
     slot_generate(slot);
 }
 
-inline void
+static inline void
 nuked_generate_4ch(void *priv, int32_t *buf4)
 {
     opl3_chip *dev = (opl3_chip *) priv;
@@ -1369,9 +1369,9 @@ nuked_generate_4ch_resampled(opl3_chip *dev, int32_t *buf4)
 }
 
 void
-nuked_generate_resampled(opl3_chip *dev, int16_t *buf4)
+nuked_generate_resampled(opl3_chip *dev, int32_t *buf4)
 {
-    int16_t samples[4];
+    int32_t samples[4];
     nuked_generate_4ch_resampled(dev, samples);
     buf4[0] = samples[0];
     buf4[1] = samples[1];
@@ -1537,7 +1537,7 @@ nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
 void
 nuked_generate_4ch_stream(opl3_chip *dev, int16_t *sndptr1, int16_t *sndptr2, uint32_t numsamples)
 {
-    int16_t samples[4];
+    int32_t samples[4];
 
     for (uint_fast32_t i = 0; i < numsamples; i++) {
         nuked_generate_4ch_resampled(dev, samples);
