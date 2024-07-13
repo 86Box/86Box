@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>544</width>
-    <height>617</height>
+    <height>363</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,6 +35,18 @@
    </item>
    <item>
     <widget class="QTableView" name="tableViewFloppy">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>150</height>
+      </size>
+     </property>
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -53,49 +65,38 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Type:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBoxFloppyType">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="checkBoxTurboTimings">
-       <property name="text">
-        <string>Turbo timings</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="checkBoxCheckBPB">
-       <property name="text">
-        <string>Check BPB</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
+    <widget class="QWidget" name="floppyControls" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBoxFloppyType">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxTurboTimings">
+        <property name="text">
+         <string>Turbo timings</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxCheckBPB">
+        <property name="text">
+         <string>Check BPB</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
    <item>
     <widget class="QLabel" name="label_6">
@@ -106,6 +107,18 @@
    </item>
    <item>
     <widget class="QTableView" name="tableViewCDROM">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>150</height>
+      </size>
+     </property>
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -124,64 +137,66 @@
     </widget>
    </item>
    <item>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_3">
-       <property name="text">
-        <string>Bus:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Channel:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Speed:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Type:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxBus">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="3">
-      <widget class="QComboBox" name="comboBoxChannel">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="comboBoxSpeed">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1" colspan="3">
-      <widget class="QComboBox" name="comboBoxCDROMType">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <widget class="QWidget" name="cdControls" native="true">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Bus:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Channel:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Speed:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="comboBoxBus">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QComboBox" name="comboBoxChannel">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="comboBoxSpeed">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1" colspan="3">
+       <widget class="QComboBox" name="comboBoxCDROMType">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>
