@@ -83,7 +83,7 @@ typedef struct chan {
     uint16_t     chc;
     uint16_t     chd;
     uint8_t      ch_num;
-} chan_t;
+} opl3_channel;
 
 typedef struct wrbuf {
     uint64_t time;
@@ -92,7 +92,7 @@ typedef struct wrbuf {
 } wrbuf_t;
 
 typedef struct chip {
-    chan_t   channel[18];
+    opl3_channel channel[18];
     opl3_slot slot[36];
     uint16_t timer;
     uint64_t eg_timer;

@@ -695,14 +695,14 @@ slot_calc_fb(opl3_slot *slot)
 
 // Channel
 static void
-channel_setup_alg(chan_t *channel);
+channel_setup_alg(opl3_channel *channel);
 
 static void
 channel_update_rhythm(opl3_chip *chip, uint8_t data)
 {
-    chan_t *channel6;
-    chan_t *channel7;
-    chan_t *channel8;
+    opl3_channel *channel6;
+    opl3_channel *channel7;
+    opl3_channel *channel8;
     uint8_t chnum;
 
     chip->rhy = data & 0x3f;
@@ -774,7 +774,7 @@ channel_update_rhythm(opl3_chip *chip, uint8_t data)
 }
 
 static void
-channel_write_a0(chan_t *channel, uint8_t data)
+channel_write_a0(opl3_channel *channel, uint8_t data)
 {
     if (channel->chip->newm && channel->chtype == ch_4op2)
         return;
@@ -796,7 +796,7 @@ channel_write_a0(chan_t *channel, uint8_t data)
 }
 
 static void
-channel_write_b0(chan_t *channel, uint8_t data)
+channel_write_b0(opl3_channel *channel, uint8_t data)
 {
     if (channel->chip->newm && channel->chtype == ch_4op2)
         return;
@@ -820,7 +820,7 @@ channel_write_b0(chan_t *channel, uint8_t data)
 }
 
 static void
-channel_setup_alg(chan_t *channel)
+channel_setup_alg(opl3_channel *channel)
 {
     if (channel->chtype == ch_drum) {
         if (channel->ch_num == 7 || channel->ch_num == 8) {
@@ -929,7 +929,7 @@ channel_setup_alg(chan_t *channel)
 }
 
 static void
-channel_update_alg(chan_t *channel)
+channel_update_alg(opl3_channel *channel)
 {
     channel->alg = channel->con;
 
@@ -949,7 +949,7 @@ channel_update_alg(chan_t *channel)
 }
 
 static void
-channel_write_c0(chan_t *channel, uint8_t data)
+channel_write_c0(opl3_channel *channel, uint8_t data)
 {
     channel->fb  = (data & 0x0e) >> 1;
     channel->con = data & 0x01;
@@ -975,7 +975,7 @@ channel_write_c0(chan_t *channel, uint8_t data)
 
 #if OPL_ENABLE_STEREOEXT
 static void
-channel_write_d0(chan_t *channel, uint8_t data)
+channel_write_d0(opl3_channel *channel, uint8_t data)
 {
     if (channel->chip->stereoext) {
         channel->leftpan  = panpot_lut[data ^ 0xffu];
@@ -985,7 +985,7 @@ channel_write_d0(chan_t *channel, uint8_t data)
 #endif
 
 static void
-channel_key_on(chan_t *channel)
+channel_key_on(opl3_channel *channel)
 {
     if (channel->chip->newm) {
         if (channel->chtype == ch_4op) {
@@ -1004,7 +1004,7 @@ channel_key_on(chan_t *channel)
 }
 
 static void
-channel_key_off(chan_t *channel)
+channel_key_off(opl3_channel *channel)
 {
     if (channel->chip->newm) {
         if (channel->chtype == ch_4op) {
@@ -1058,14 +1058,14 @@ process_slot(opl3_slot *slot)
 static inline void
 nuked_generate_4ch(void *priv, int32_t *buf4)
 {
-    opl3_chip *chip = (opl3_chip *) priv;
-    chan_t    *channel;
-    wrbuf_t   *writebuf;
-    int16_t  **out;
-    int32_t    mix[2];
-    int16_t    accm;
-    int16_t    shift = 0;
-    uint8_t    i;
+    opl3_chip    *chip = (opl3_chip *) priv;
+    opl3_channel *channel;
+    wrbuf_t      *writebuf;
+    int16_t     **out;
+    int32_t       mix[2];
+    int16_t       accm;
+    int16_t       shift = 0;
+    uint8_t       i;
 
     buf4[1] = chip->mixbuff[1];
     buf4[3] = chip->mixbuff[3];
@@ -1229,10 +1229,10 @@ nuked_generate_resampled(opl3_chip *chip, int32_t *buf4)
 void
 nuked_init(opl3_chip *chip, uint32_t samplerate)
 {
-    opl3_slot *slot;
-    chan_t    *channel;
-    uint8_t    i;
-    uint8_t    local_ch_slot;
+    opl3_slot    *slot;
+    opl3_channel *channel;
+    uint8_t       i;
+    uint8_t       local_ch_slot;
 
     memset(chip, 0x00, sizeof(opl3_chip));
 
