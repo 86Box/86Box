@@ -472,7 +472,7 @@ paradise_readw(uint32_t addr, void *priv)
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
-    if ((svga->gdcreg[0x0e] & 0x01) || (svga->gdcreg[5] & 0x40)) { {
+    if ((svga->gdcreg[0x0e] & 0x01) || (svga->gdcreg[5] & 0x40)) {
         if (((svga->gdcreg[6] & 0x0c) == 0x04) && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4) {
             prev_addr  = addr & 3;
             prev_addr2 = addr & 0xfffc;
