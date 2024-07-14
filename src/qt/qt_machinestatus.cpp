@@ -393,14 +393,23 @@ MachineStatus::refreshIcons()
     }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
+        if (machine_status.cdrom[i].active)
+            ui_sb_update_icon(SB_CDROM | i, 0);
+
         d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
     }
     for (size_t i = 0; i < ZIP_NUM; i++) {
         d->zip[i].setActive(machine_status.zip[i].active);
+        if (machine_status.zip[i].active)
+            ui_sb_update_icon(SB_ZIP | i, 0);
+
         d->zip[i].setEmpty(machine_status.zip[i].empty);
     }
     for (size_t i = 0; i < MO_NUM; i++) {
         d->mo[i].setActive(machine_status.mo[i].active);
+        if (machine_status.mo[i].active)
+            ui_sb_update_icon(SB_MO | i, 0);
+
         d->mo[i].setEmpty(machine_status.mo[i].empty);
     }
 
@@ -408,6 +417,8 @@ MachineStatus::refreshIcons()
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
+        if (machine_status.hdd[i].active)
+            ui_sb_update_icon(SB_HDD | i, 0);
     }
 
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
