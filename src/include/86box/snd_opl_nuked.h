@@ -31,7 +31,7 @@ struct chan;
 struct chip;
 
 typedef struct slot {
-    struct chan *chan;
+    struct chan *channel;
     struct chip *chip;
     int16_t      out;
     int16_t      fbmod;
@@ -92,7 +92,7 @@ typedef struct wrbuf {
 } wrbuf_t;
 
 typedef struct chip {
-    chan_t   chan[18];
+    chan_t   channel[18];
     opl3_slot slot[36];
     uint16_t timer;
     uint64_t eg_timer;
