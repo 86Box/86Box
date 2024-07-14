@@ -20,6 +20,12 @@
 #ifndef SOUND_OPL_NUKED_H
 #define SOUND_OPL_NUKED_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <inttypes.h>
+
 #ifndef OPL_ENABLE_STEREOEXT
 #define OPL_ENABLE_STEREOEXT 0
 #endif
@@ -27,63 +33,66 @@
 #define OPL_WRITEBUF_SIZE  1024
 #define OPL_WRITEBUF_DELAY 2
 
-struct chan;
-struct chip;
+typedef struct _opl3_slot    opl3_slot;
+typedef struct _opl3_channel opl3_channel;
+typedef struct _opl3_chip    opl3_chip;
 
-typedef struct slot {
-    struct chan *channel;
-    struct chip *chip;
-    int16_t      out;
-    int16_t      fbmod;
-    int16_t     *mod;
-    int16_t      prout;
-    int16_t      eg_rout;
-    int16_t      eg_out;
-    uint8_t      eg_inc;
-    uint8_t      eg_gen;
-    uint8_t      eg_rate;
-    uint8_t      eg_ksl;
-    uint8_t     *trem;
-    uint8_t      reg_vib;
-    uint8_t      reg_type;
-    uint8_t      reg_ksr;
-    uint8_t      reg_mult;
-    uint8_t      reg_ksl;
-    uint8_t      reg_tl;
-    uint8_t      reg_ar;
-    uint8_t      reg_dr;
-    uint8_t      reg_sl;
-    uint8_t      reg_rr;
-    uint8_t      reg_wf;
-    uint8_t      key;
-    uint32_t     pg_reset;
-    uint32_t     pg_phase;
-    uint16_t     pg_phase_out;
-    uint8_t      slot_num;
-} opl3_slot;
+struct _opl3_slot {
+    opl3_channel *channel;
+    opl3_chip    *chip;
+    int16_t       out;
+    int16_t       fbmod;
+    int16_t      *mod;
+    int16_t       prout;
+    uint16_t      eg_rout;
+    uint16_t      eg_out;
+    uint8_t       eg_inc;
+    uint8_t       eg_gen;
+    uint8_t       eg_rate;
+    uint8_t       eg_ksl;
+    uint8_t      *trem;
+    uint8_t       reg_vib;
+    uint8_t       reg_type;
+    uint8_t       reg_ksr;
+    uint8_t       reg_mult;
+    uint8_t       reg_ksl;
+    uint8_t       reg_tl;
+    uint8_t       reg_ar;
+    uint8_t       reg_dr;
+    uint8_t       reg_sl;
+    uint8_t       reg_rr;
+    uint8_t       reg_wf;
+    uint8_t       key;
+    uint32_t      pg_reset;
+    uint32_t      pg_phase;
+    uint16_t      pg_phase_out;
+    uint8_t       slot_num;
+};
 
-typedef struct chan {
-    opl3_slot   *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
-    struct chan *pair;
-    struct chip *chip;
-    int16_t     *out[4];
+struct _opl3_channel {
+    opl3_slot    *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
+    opl3_channel *pair;
+    opl3_chip    *chip;
+    int16_t      *out[4];
+
 #if OPL_ENABLE_STEREOEXT
-    int32_t      leftpan;
-    int32_t      rightpan;
+    int32_t       leftpan;
+    int32_t       rightpan;
 #endif
-    uint8_t      chtype;
-    uint16_t     f_num;
-    uint8_t      block;
-    uint8_t      fb;
-    uint8_t      con;
-    uint8_t      alg;
-    uint8_t      ksv;
-    uint16_t     cha;
-    uint16_t     chb;
-    uint16_t     chc;
-    uint16_t     chd;
-    uint8_t      ch_num;
-} opl3_channel;
+
+    uint8_t       chtype;
+    uint16_t      f_num;
+    uint8_t       block;
+    uint8_t       fb;
+    uint8_t       con;
+    uint8_t       alg;
+    uint8_t       ksv;
+    uint16_t      cha;
+    uint16_t      chb;
+    uint16_t      chc;
+    uint16_t      chd;
+    uint8_t       ch_num;
+};
 
 typedef struct _opl3_writebuf {
     uint64_t time;
@@ -91,7 +100,7 @@ typedef struct _opl3_writebuf {
     uint8_t  data;
 } opl3_writebuf;
 
-typedef struct chip {
+struct _opl3_chip {
     opl3_channel channel[18];
     opl3_slot slot[36];
     uint16_t timer;
@@ -99,7 +108,7 @@ typedef struct chip {
     uint8_t  eg_timerrem;
     uint8_t  eg_state;
     uint8_t  eg_add;
-    uint64_t eg_timer_lo;
+    uint8_t  eg_timer_lo;
     uint8_t  newm;
     uint8_t  nts;
     uint8_t  rhy;
@@ -119,26 +128,26 @@ typedef struct chip {
     uint8_t  rm_tc_bit5;
 
 #if OPL_ENABLE_STEREOEXT
-    uint8_t stereoext;
+    uint8_t  stereoext;
 #endif
 
     // OPL3L
-    int32_t rateratio;
-    int32_t samplecnt;
-    int32_t oldsamples[4];
-    int32_t samples[4];
+    int32_t  rateratio;
+    int32_t  samplecnt;
+    int32_t  oldsamples[4];
+    int32_t  samples[4];
 
     uint64_t writebuf_samplecnt;
     uint32_t writebuf_cur;
     uint32_t writebuf_last;
     uint64_t writebuf_lasttime;
     opl3_writebuf writebuf[OPL_WRITEBUF_SIZE];
-} opl3_chip;
+};
 
 typedef struct {
     opl3_chip opl;
-    int8_t  flags;
-    int8_t  pad;
+    int8_t    flags;
+    int8_t    pad;
 
     uint16_t port;
     uint8_t  status;
@@ -173,6 +182,19 @@ enum {
     CTRL_TMR1_START = 0x01
 };
 
-void nuked_write_reg(void *priv, uint16_t reg, uint8_t val);
+void OPL3_Generate(opl3_chip *chip, int32_t *buf);
+void OPL3_GenerateResampled(opl3_chip *chip, int32_t *buf);
+void OPL3_Reset(opl3_chip *chip, uint32_t samplerate);
+void OPL3_WriteReg(void *priv, uint16_t reg, uint8_t val);
+void OPL3_WriteRegBuffered(void *priv, uint16_t reg, uint8_t val);
+void OPL3_GenerateStream(opl3_chip *chip, int32_t *sndptr, uint32_t numsamples);
+
+static void OPL3_Generate4Ch(void *priv, int32_t *buf4);
+void OPL3_Generate4Ch_Resampled(opl3_chip *chip, int32_t *buf4);
+void OPL3_Generate4Ch_Stream(opl3_chip *chip, int32_t *sndptr1, int32_t *sndptr2, uint32_t numsamples);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*SOUND_OPL_NUKED_H*/
