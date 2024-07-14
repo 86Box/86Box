@@ -686,7 +686,7 @@ static void
 slot_calc_fb(opl3_slot *slot)
 {
     if (slot->channel->fb != 0x00)
-        slot->fbmod = (slot->prout + slot->out) >> (0x09 - slot->chan->fb);
+        slot->fbmod = (slot->prout + slot->out) >> (0x09 - slot->channel->fb);
     else
         slot->fbmod = 0;
 
@@ -960,9 +960,9 @@ channel_write_c0(chan_t *channel, uint8_t data)
         channel->chc = ((data >> 6) & 0x01) ? ~0 : 0;
         channel->chd = ((data >> 7) & 0x01) ? ~0 : 0;
     } else {
-        channel->cha = ch->chb = (uint16_t) ~0;
+        channel->cha = channel->chb = (uint16_t) ~0;
         // TODO: Verify on real chip if DAC2 output is disabled in compat mode
-        channel->chc = ch->chd = 0;
+        channel->chc = channel->chd = 0;
     }
 
 #if OPL_ENABLE_STEREOEXT
