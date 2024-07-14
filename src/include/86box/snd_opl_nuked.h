@@ -24,8 +24,8 @@
 #define OPL_ENABLE_STEREOEXT 0
 #endif
 
-#define WRBUF_SIZE  1024
-#define WRBUF_DELAY 1
+#define OPL_WRITEBUF_SIZE  1024
+#define OPL_WRITEBUF_DELAY 2
 
 struct chan;
 struct chip;
@@ -85,11 +85,11 @@ typedef struct chan {
     uint8_t      ch_num;
 } opl3_channel;
 
-typedef struct wrbuf {
+typedef struct _opl3_writebuf {
     uint64_t time;
     uint16_t reg;
     uint8_t  data;
-} wrbuf_t;
+} opl3_writebuf;
 
 typedef struct chip {
     opl3_channel channel[18];
@@ -128,11 +128,11 @@ typedef struct chip {
     int32_t oldsamples[4];
     int32_t samples[4];
 
-    uint64_t wrbuf_samplecnt;
-    uint32_t wrbuf_cur;
-    uint32_t wrbuf_last;
-    uint64_t wrbuf_lasttime;
-    wrbuf_t  wrbuf[WRBUF_SIZE];
+    uint64_t writebuf_samplecnt;
+    uint32_t writebuf_cur;
+    uint32_t writebuf_last;
+    uint64_t writebuf_lasttime;
+    opl3_writebuf writebuf[OPL_WRITEBUF_SIZE];
 } opl3_chip;
 
 typedef struct {

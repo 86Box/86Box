@@ -1058,14 +1058,14 @@ process_slot(opl3_slot *slot)
 static inline void
 nuked_generate_4ch(void *priv, int32_t *buf4)
 {
-    opl3_chip    *chip = (opl3_chip *) priv;
-    opl3_channel *channel;
-    wrbuf_t      *writebuf;
-    int16_t     **out;
-    int32_t       mix[2];
-    int16_t       accm;
-    int16_t       shift = 0;
-    uint8_t       i;
+    opl3_chip     *chip = (opl3_chip *) priv;
+    opl3_channel  *channel;
+    opl3_writebuf *writebuf;
+    int16_t      **out;
+    int32_t        mix[2];
+    int16_t        accm;
+    int16_t        shift = 0;
+    uint8_t        i;
 
     buf4[1] = chip->mixbuff[1];
     buf4[3] = chip->mixbuff[3];
@@ -1166,7 +1166,7 @@ nuked_generate_4ch(void *priv, int32_t *buf4)
 
     chip->eg_state ^= 1;
 
-    while (writebuf = &chip->wrbuf[chip->wrbuf_cur], writebuf->time <= chip->wrbuf_samplecnt) {
+    while (writebuf = &chip->writebuf[chip->writebuf_cur], writebuf->time <= chip->writebuf_samplecnt) {
         if (!(writebuf->reg & 0x200))
             break;
 
@@ -1174,10 +1174,10 @@ nuked_generate_4ch(void *priv, int32_t *buf4)
 
         nuked_write_reg(chip, writebuf->reg, writebuf->data);
 
-        chip->wrbuf_cur = (chip->wrbuf_cur + 1) % WRBUF_SIZE;
+        chip->writebuf_cur = (chip->writebuf_cur + 1) % OPL_WRITEBUF_SIZE;
     }
 
-    chip->wrbuf_samplecnt++;
+    chip->writebuf_samplecnt++;
 }
 
 void
@@ -1419,33 +1419,33 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
 void
 nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
 {
-    opl3_chip *chip = (opl3_chip *) priv;
-    uint64_t   time1;
-    uint64_t   time2;
-    wrbuf_t   *writebuf;
-    uint32_t   writebuf_last;
+    opl3_chip     *chip = (opl3_chip *) priv;
+    uint64_t       time1;
+    uint64_t       time2;
+    opl3_writebuf *writebuf;
+    uint32_t       writebuf_last;
 
-    writebuf_last = chip->wrbuf_last;
-    writebuf      = &chip->wrbuf[writebuf_last];
+    writebuf_last = chip->writebuf_last;
+    writebuf      = &chip->writebuf[writebuf_last];
 
     if (writebuf->reg & 0x0200) {
         nuked_write_reg(chip, writebuf->reg & 0x01ff, writebuf->data);
 
-        chip->wrbuf_cur       = (writebuf_last + 1) % WRBUF_SIZE;
-        chip->wrbuf_samplecnt = writebuf->time;
+        chip->writebuf_cur       = (writebuf_last + 1) % OPL_WRITEBUF_SIZE;
+        chip->writebuf_samplecnt = writebuf->time;
     }
 
     writebuf->reg  = reg | 0x0200;
     writebuf->data = val;
-    time1          = chip->wrbuf_lasttime + WRBUF_DELAY;
-    time2          = chip->wrbuf_samplecnt;
+    time1          = chip->writebuf_lasttime + OPL_WRITEBUF_DELAY;
+    time2          = chip->writebuf_samplecnt;
 
     if (time1 < time2)
         time1 = time2;
 
-    writebuf->time      = time1;
-    chip->wrbuf_lasttime = time1;
-    chip->wrbuf_last     = (writebuf_last + 1) % WRBUF_SIZE;
+    writebuf->time          = time1;
+    chip->writebuf_lasttime = time1;
+    chip->writebuf_last     = (writebuf_last + 1) % OPL_WRITEBUF_SIZE;
 }
 
 void
