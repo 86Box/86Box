@@ -32,7 +32,7 @@ struct chip;
 
 typedef struct slot {
     struct chan *chan;
-    struct chip *dev;
+    struct chip *chip;
     int16_t      out;
     int16_t      fbmod;
     int16_t     *mod;
@@ -65,7 +65,7 @@ typedef struct slot {
 typedef struct chan {
     opl3_slot   *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
     struct chan *pair;
-    struct chip *dev;
+    struct chip *chip;
     int16_t     *out[4];
 #if OPL_ENABLE_STEREOEXT
     int32_t      leftpan;
