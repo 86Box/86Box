@@ -461,7 +461,7 @@ scsi_disk_command_common(scsi_disk_t *dev)
                               (uint64_t) period);
                 dev->callback += period;
                 break;
-            default:    
+            default:
                 dev->callback = 0;
                 break;
         }
@@ -511,7 +511,6 @@ scsi_disk_command_common(scsi_disk_t *dev)
 static void
 scsi_disk_command_complete(scsi_disk_t *dev)
 {
-    ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_disk_command_common(dev);
 }
@@ -1647,7 +1646,7 @@ scsi_disk_identify(ide_t *ide, int ide_has_dma)
     scsi_disk_log("ATAPI Identify: %s\n", device_identify);
 
     /* ATAPI device, direct-access device, non-removable media, accelerated DRQ */
-    ide->buffer[0] = 0x8000 | (0 << 8) | 0x00 | (2 << 5); 
+    ide->buffer[0] = 0x8000 | (0 << 8) | 0x00 | (2 << 5);
     ide_padstr((char *) (ide->buffer + 10), "", 20);          /* Serial Number */
 
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);   /* Firmware */

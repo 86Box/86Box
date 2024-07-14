@@ -875,7 +875,6 @@ zip_command_common(zip_t *dev)
 static void
 zip_command_complete(zip_t *dev)
 {
-    ui_sb_update_icon(SB_ZIP | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     zip_command_common(dev);
 }
