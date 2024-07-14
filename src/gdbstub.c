@@ -365,13 +365,7 @@ gdbstub_break(void)
 static void
 gdbstub_jump(uint32_t new_pc)
 {
-    /* Nasty hack; qemu always uses the full 32-bit EIP internally... */
-    if (cpu_state.op32 || ((new_pc >= cs) && (new_pc < (cs + 65536)))) {
-        cpu_state.pc = new_pc - cs;
-    } else {
-        loadseg((new_pc >> 4) & 0xf000, &cpu_state.seg_cs);
-        cpu_state.pc = new_pc & 0xffff;
-    }
+    cpu_state.pc = new_pc - cs;
     flushmmucache();
 }
 
