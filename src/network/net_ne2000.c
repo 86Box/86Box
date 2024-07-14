@@ -934,7 +934,8 @@ nic_init(const device_t *info)
         if (dev->board != NE2K_ETHERNEXT_MC) {
             dev->base_address = device_get_config_hex16("base");
             dev->base_irq     = device_get_config_int("irq");
-            if ((dev->board == NE2K_NE2000) || (dev->board == NE2K_NE2000_COMPAT)) {
+            if ((dev->board == NE2K_NE2000) || (dev->board == NE2K_NE2000_COMPAT) || 
+                (dev->board == NE2K_NE2000_COMPAT_8BIT) ) {
                 dev->bios_addr = device_get_config_hex20("bios_addr");
                 dev->has_bios  = !!dev->bios_addr;
             } else {
@@ -1003,6 +1004,16 @@ nic_init(const device_t *info)
             dev->maclocal[0] = 0x00; /* 00:86:B0 (86Box OID) */
             dev->maclocal[1] = 0x86;
             dev->maclocal[2] = 0xB0;
+            rom              = ROM_PATH_NE2000;
+            dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
+            dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
+            break;
+
+        case NE2K_NE2000_COMPAT_8BIT:
+            dev->maclocal[0] = 0x00; /* 00:86:B0 (86Box OID) */
+            dev->maclocal[1] = 0x86;
+            dev->maclocal[2] = 0xB0;
+            dev->is_8bit     = 1;
             rom              = ROM_PATH_NE2000;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
@@ -1448,6 +1459,87 @@ static const device_config_t ne2000_compat_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t ne2000_compat_8bit_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            /* Source: board docs, https://github.com/skiselev/isa8_eth */
+            { .description = "0x200", .value = 0x200 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x2a0", .value = 0x2a0 },
+            { .description = "0x2c0", .value = 0x2c0 },
+            { .description = "0x2e0", .value = 0x2e0 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = "0x3a0", .value = 0x3a0 },
+            { .description = "0x3c0", .value = 0x3c0 },
+            { .description = "0x3e0", .value = 0x3e0 },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            /* Source: board docs, https://github.com/skiselev/isa8_eth */
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 4",  .value =  4 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 9",  .value =  9 },
+            { .description = ""                    }
+        },
+    },
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    {
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+			/* Source: board docs, https://github.com/skiselev/isa8_eth */
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C000",     .value = 0xC0000 },
+            { .description = "C400",     .value = 0xC4000 },
+            { .description = "C800",     .value = 0xC8000 },
+            { .description = "CC00",     .value = 0xCC000 },
+            { .description = "D000",     .value = 0xD0000 },
+            { .description = "D400",     .value = 0xD4000 },
+            { .description = "D800",     .value = 0xD8000 },
+            { .description = "DC00",     .value = 0xDC000 },
+            { .description = ""                           }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+
 static const device_config_t rtl8019as_config[] = {
     {
         .name = "mac",
@@ -1543,6 +1635,20 @@ const device_t ne2000_compat_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ne2000_compat_config
+};
+
+const device_t ne2000_compat_8bit_device = {
+    .name          = "NE2000 Compatible 8-bit",
+    .internal_name = "ne2k8",
+    .flags         = DEVICE_ISA, 
+    .local         = NE2K_NE2000_COMPAT_8BIT,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ne2000_compat_8bit_config
 };
 
 const device_t ethernext_mc_device = {
