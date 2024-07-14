@@ -115,6 +115,7 @@ static const device_t *net_cards[] = {
     &de220p_device,
     &ne1000_compat_device,
     &ne2000_compat_device,
+    &ne2000_compat_8bit_device,
     &ne1000_device,
     &ne2000_device,
     &pcnet_am79c960_eb_device,
