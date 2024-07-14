@@ -1080,7 +1080,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
 static void
 scsi_cdrom_command_complete(scsi_cdrom_t *dev)
 {
-    ui_sb_update_icon(SB_CDROM | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_cdrom_command_common(dev);
     dev->tf->phase = 3;
@@ -1637,9 +1636,29 @@ skip_ready_check:
         dev->media_status = (dev->unit_attention) ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
 
     if ((scsi_cdrom_command_flags[cdb[0]] & CHECK_READY) && !ready) {
-        scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
-        scsi_cdrom_not_ready(dev);
-        return 0;
+        if (scsi_cdrom_command_flags[cdb[0]] & SCSI_ONLY) { /*Note by TC1995: Some vendor commands from X vendor don't really check for ready status
+                                                              but they do on Y vendor. Quite confusing I know.*/
+            switch (dev->drv->type) {
+                case CDROM_TYPE_DEC_RRD45_0436:
+                case CDROM_TYPE_SONY_CDU541_10i:
+                case CDROM_TYPE_SONY_CDU561_18k:
+                case CDROM_TYPE_SONY_CDU76S_100:
+                case CDROM_TYPE_TEXEL_DMXX24_100:
+                    if (cdb[0] == 0xC0)
+                        break;
+                    scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
+                    scsi_cdrom_not_ready(dev);
+                    return 0;
+                default:
+                    scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
+                    scsi_cdrom_not_ready(dev);
+                    return 0;
+            }
+        } else {
+            scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
+            scsi_cdrom_not_ready(dev);
+            return 0;
+        }
     }
 
     scsi_cdrom_log("CD-ROM %i: Continuing with command %02X\n", dev->id, cdb[0]);
@@ -3223,7 +3242,6 @@ begin:
                         case CDROM_TYPE_TEAC_CD50_100:
                         case CDROM_TYPE_TEAC_R55S_10R:
                         case CDROM_TYPE_TEXEL_DMXX24_100:
-                        case CDROM_TYPE_TOSHIBA_XM3201B_3232:
                             dev->buffer[2] = 0x00;
                             dev->buffer[3] = 0x01; /*SCSI-1 compliant*/
                             break;
@@ -3234,6 +3252,10 @@ begin:
                         case CDROM_TYPE_NEC_211_100:
                         case CDROM_TYPE_NEC_464_105:
                             dev->buffer[3] = 0x00; /*SCSI unknown version per NEC manuals*/
+                            break;
+                        case CDROM_TYPE_TOSHIBA_XM3201B_3232:
+                            dev->buffer[2] = 0x01;
+                            dev->buffer[3] = 0x01; /*SCSI-1 compliant*/
                             break;
                         default:
                             dev->buffer[2] = 0x02; /*SCSI-2 compliant*/

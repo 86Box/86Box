@@ -701,7 +701,6 @@ mo_command_common(mo_t *dev)
 static void
 mo_command_complete(mo_t *dev)
 {
-    ui_sb_update_icon(SB_MO | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     mo_command_common(dev);
 }
