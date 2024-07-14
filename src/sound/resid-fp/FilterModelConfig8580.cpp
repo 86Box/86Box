@@ -143,9 +143,9 @@ FilterModelConfig8580::FilterModelConfig8580() :
         vmax);
 #endif
 
-    #pragma omp parallel sections
+//    #pragma omp parallel sections
     {
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -179,7 +179,7 @@ FilterModelConfig8580::FilterModelConfig8580() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -211,7 +211,7 @@ FilterModelConfig8580::FilterModelConfig8580() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -242,7 +242,7 @@ FilterModelConfig8580::FilterModelConfig8580() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
