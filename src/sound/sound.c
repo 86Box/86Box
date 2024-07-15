@@ -137,6 +137,11 @@ static const SOUND_CARD sound_cards[] = {
     { &cms_device                   },
     { &cs4235_device                },
     { &cs4236b_device               },
+    { &ess_688_device               },
+    { &ess_ess0100_pnp_device       },
+    { &ess_1688_device              },
+    { &ess_ess0102_pnp_device       },
+    { &ess_ess0968_pnp_device       },
     { &gus_device                   },
     { &sb_1_device                  },
     { &sb_15_device                 },
@@ -176,11 +181,6 @@ static const SOUND_CARD sound_cards[] = {
     { &ct5880_device                },
     { &ad1881_device                },
     { &cs4297a_device               },
-    { &ess_688_device               },
-    { &ess_ess0100_pnp_device       },
-    { &ess_1688_device              },
-    { &ess_ess0102_pnp_device       },
-    { &ess_ess0968_pnp_device       },
     { NULL                          }
     // clang-format on
 };
