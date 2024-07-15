@@ -171,7 +171,11 @@ net_slirp_notify(void *opaque)
     (void) opaque;
 }
 
+#if SLIRP_CHECK_VERSION(4, 8, 0)
+slirp_ssize_t
+#else
 ssize_t
+#endif
 net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 {
     net_slirp_t *slirp = (net_slirp_t *) opaque;
