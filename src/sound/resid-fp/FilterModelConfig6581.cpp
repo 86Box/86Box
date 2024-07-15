@@ -131,9 +131,9 @@ FilterModelConfig6581::FilterModelConfig6581() :
         vmax);
 #endif
 
-    #pragma omp parallel sections
+//    #pragma omp parallel sections
     {
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -167,7 +167,7 @@ FilterModelConfig6581::FilterModelConfig6581() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -199,7 +199,7 @@ FilterModelConfig6581::FilterModelConfig6581() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -230,7 +230,7 @@ FilterModelConfig6581::FilterModelConfig6581() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
 #ifdef _OPENMP
             OpAmp opampModel(
@@ -261,7 +261,7 @@ FilterModelConfig6581::FilterModelConfig6581() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
             const double nVddt = N16 * (Vddt - vmin);
 
@@ -275,7 +275,7 @@ FilterModelConfig6581::FilterModelConfig6581() :
             }
         }
 
-        #pragma omp section
+//        #pragma omp section
         {
             //  EKV model:
             //

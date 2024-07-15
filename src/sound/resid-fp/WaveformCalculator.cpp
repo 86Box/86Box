@@ -68,15 +68,19 @@ static float exponentialDistance(float distance, int i)
     return pow(distance, -i);
 }
 
+#if 0
 MAYBE_UNUSED static float linearDistance(float distance, int i)
 {
     return 1.f / (1.f + i * distance);
 }
+#endif
 
+#if 0
 MAYBE_UNUSED static float quadraticDistance(float distance, int i)
 {
     return 1.f / (1.f + (i*i) * distance);
 }
+#endif
 
 /// Calculate triangle waveform
 static unsigned int triXor(unsigned int val)
