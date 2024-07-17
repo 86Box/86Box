@@ -23,6 +23,9 @@ target_link_libraries(86Box PkgConfig::SLIRP)
 
 if(WIN32)
     target_link_libraries(PkgConfig::SLIRP INTERFACE wsock32 ws2_32 iphlpapi iconv)
+    if(STATIC_BUILD)
+        add_compile_definitions(LIBSLIRP_STATIC)
+    endif()
 endif()
 
 if (HAIKU)

@@ -2477,7 +2477,7 @@ chips_69000_init(const device_t *info)
     timer_add(&chips->decrement_timer, chips_69000_decrement_timer, chips, 0);
     timer_on_auto(&chips->decrement_timer, 1000000. / 2000.);
 
-    chips->i2c = i2c_gpio_init("chips_69000_ddc");
+    chips->i2c = i2c_gpio_init("ddc_chips_69000");
     chips->ddc = ddc_init(i2c_gpio_get_bus(chips->i2c));
     
     chips->flat_panel_regs[0x01] = 1;

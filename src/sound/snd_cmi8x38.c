@@ -860,7 +860,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x1b:
             if (dev->type == CMEDIA_CMI8338)
-                val &= 0xf0;
+                val &= 0xf4; /* bit 2 reserved, mpxplay driver expects writable */
             else
                 val &= 0xd7;
             break;
@@ -909,6 +909,24 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                 dev->sb->opl.write(addr, val, dev->sb->opl.priv);
             return;
 
+        case 0x80 ... 0x83:
+        case 0x88 ... 0x8b:
+            dev->io_regs[addr]                      = val;
+            dev->dma[(addr & 0x78) >> 3].sample_ptr = *((uint32_t *) &dev->io_regs[addr & 0xfc]);
+            return;
+
+        case 0x84 ... 0x85:
+        case 0x8c ... 0x8d:
+            dev->io_regs[addr]                           = val;
+            dev->dma[(addr & 0x78) >> 3].frame_count_dma = dev->dma[(addr & 0x78) >> 3].sample_count_out = *((uint16_t *) &dev->io_regs[addr & 0xfe]) + 1;
+            return;
+
+        case 0x86 ... 0x87:
+        case 0x8e ... 0x8f:
+            dev->io_regs[addr]                                = val;
+            dev->dma[(addr & 0x78) >> 3].frame_count_fragment = *((uint16_t *) &dev->io_regs[addr & 0xfe]) + 1;
+            return;
+
         case 0x92:
             if (dev->type == CMEDIA_CMI8338)
                 return;
@@ -927,7 +945,6 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
         case 0x26:
         case 0x70:
         case 0x71:
-        case 0x80 ... 0x8f:
             break;
 
         default:
