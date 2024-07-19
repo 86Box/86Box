@@ -553,8 +553,12 @@ sb_resume_dma(const sb_dsp_t *dsp, const int is_8)
     } else if (is_8)
         dma_set_drq(dsp->sb_8_dmanum, 1);
     else {
-        if (dsp->sb_16_dmanum != 0xff)
-            dma_set_drq(dsp->sb_16_dmanum, 1);
+        if (dsp->sb_16_dmanum != 0xff) {
+            if (dsp->sb_16_dmanum == 4)
+                dma_set_drq(dsp->sb_8_dmanum, 1);
+            else
+                dma_set_drq(dsp->sb_16_dmanum, 1);
+        }
 
         if (dsp->sb_16_8_dmanum != 0xff)
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
@@ -566,8 +570,12 @@ sb_stop_dma(const sb_dsp_t *dsp)
 {
     dma_set_drq(dsp->sb_8_dmanum, 0);
 
-    if (dsp->sb_16_dmanum != 0xff)
-        dma_set_drq(dsp->sb_16_dmanum, 0);
+    if (dsp->sb_16_dmanum != 0xff) {
+        if (dsp->sb_16_dmanum == 4)
+            dma_set_drq(dsp->sb_8_dmanum, 0);
+        else
+            dma_set_drq(dsp->sb_16_dmanum, 0);
+    }
 
     if (dsp->sb_16_8_dmanum != 0xff)
         dma_set_drq(dsp->sb_16_8_dmanum, 0);
@@ -609,9 +617,12 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->output_timer))
             timer_set_delay_u64(&dsp->output_timer, (uint64_t) dsp->sblatcho);
 
-        if (dsp->sb_16_dma_supported)
-            dma_set_drq(dsp->sb_16_dmanum, 1);
-        else
+        if (dsp->sb_16_dma_supported) {
+            if (dsp->sb_16_dmanum == 4)
+                dma_set_drq(dsp->sb_8_dmanum, 1);
+            else
+                dma_set_drq(dsp->sb_16_dmanum, 1);
+        } else
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
 
@@ -649,9 +660,12 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, (uint64_t) dsp->sblatchi);
 
-        if (dsp->sb_16_dma_supported)
-            dma_set_drq(dsp->sb_16_dmanum, 1);
-        else
+        if (dsp->sb_16_dma_supported) {
+            if (dsp->sb_16_dmanum == 4)
+                dma_set_drq(dsp->sb_8_dmanum, 1);
+            else
+                dma_set_drq(dsp->sb_16_dmanum, 1);
+        } else
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
 
@@ -761,13 +775,16 @@ sb_16_read_dma(void *priv)
     int ret;
     int dma_ch = dsp->sb_16_dmanum;
 
-    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch != 4))
         ret = dma_channel_read(dma_ch);
     else {
         if (dsp->sb_16_dma_enabled) {
             /* High DMA channel enabled, either translation is enabled or
                16-bit transfers are not supported. */
-            dma_ch = dsp->sb_16_8_dmanum;
+            if (dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch == 4))
+                dma_ch = dsp->sb_8_dmanum;
+            else
+                dma_ch = dsp->sb_16_8_dmanum;
         } else
             /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
@@ -795,13 +812,16 @@ sb_16_write_dma(void *priv, uint16_t val)
     int dma_ch = dsp->sb_16_dmanum;
     int ret;
 
-    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch != 4))
         ret = dma_channel_write(dma_ch, val) == DMA_NODATA;
     else {
         if (dsp->sb_16_dma_enabled) {
             /* High DMA channel enabled, either translation is enabled or
                16-bit transfers are not supported. */
-            dma_ch = dsp->sb_16_8_dmanum;
+            if (dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch == 4))
+                dma_ch = dsp->sb_8_dmanum;
+            else
+                dma_ch = dsp->sb_16_8_dmanum;
         } else
             /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
