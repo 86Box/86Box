@@ -186,7 +186,7 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
                 devices[c]     = NULL;
                 device_priv[c] = NULL;
 
-                if (init_dev != NULL)
+                if ((init_dev != NULL) && (init_dev != (device_t *) dev))
                     free(init_dev);
 
                 return (NULL);
