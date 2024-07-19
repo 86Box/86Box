@@ -816,7 +816,7 @@ machine_at_vectra54_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&fdc37c931apm_device);
+    device_add(&fdc37c932_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
