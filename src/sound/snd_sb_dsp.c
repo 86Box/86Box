@@ -1886,6 +1886,10 @@ sb_read(uint16_t a, void *priv)
                 dsp->state = DSP_S_NORMAL;
             break;
         case 0xC: /* Write data ready */
+            /* Advance the state just in case something reads from here
+               without reading the status first. */
+            if (dsp->state == DSP_S_RESET_WAIT)
+                dsp->state = DSP_S_NORMAL;
             if ((dsp->state == DSP_S_NORMAL) || IS_ESS(dsp)) {
                 if (dsp->sb_8_enable || dsp->sb_type >= SB16)
                     dsp->busy_count = (dsp->busy_count + 1) & 3;
