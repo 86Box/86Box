@@ -1395,7 +1395,7 @@ machine_ps2_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     dma16_init();

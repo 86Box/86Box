@@ -779,7 +779,7 @@ machine_at_compaq_init(const machine_t *model, int type)
 {
     compaq_machine_type = type;
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     if (type < COMPAQ_PORTABLEIII386) {

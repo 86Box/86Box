@@ -2317,7 +2317,7 @@ machine_xt_m24_init(const machine_t *model)
     machine_common_init(model);
 
     /* On-board FDC can be disabled only on M24SP */
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
     /* Address 66-67 = mainboard dip-switch settings */
@@ -2393,7 +2393,7 @@ machine_xt_m240_init(const machine_t *model)
     m24_kbd_init(m24_kbd);
     device_add_ex(&m24_kbd_device, m24_kbd);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device); /* io.c logs clearly show it using port 3F7 */
 
     if (joystick_type)

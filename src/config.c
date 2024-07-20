@@ -792,9 +792,9 @@ load_storage_controllers(void)
     p = ini_section_get_string(cat, "fdc", NULL);
 #if 1
     if (p != NULL)
-        fdc_type = fdc_card_get_from_internal_name(p);
+        fdc_current[0] = fdc_card_get_from_internal_name(p);
     else
-        fdc_type = FDC_INTERNAL;
+        fdc_current[0] = FDC_INTERNAL;
 #else
     if (p == NULL) {
         if (machine_has_flags(machine, MACHINE_FDC)) {
@@ -807,7 +807,7 @@ load_storage_controllers(void)
         free_p = 1;
     }
 
-    fdc_type = fdc_card_get_from_internal_name(p);
+    fdc_current[0] = fdc_card_get_from_internal_name(p);
 
     if (free_p) {
         free(p);
@@ -2296,11 +2296,11 @@ save_storage_controllers(void)
                                    scsi_card_get_internal_name(scsi_card_current[c]));
     }
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         ini_section_delete_var(cat, "fdc");
     else
         ini_section_set_string(cat, "fdc",
-                               fdc_card_get_internal_name(fdc_type));
+                               fdc_card_get_internal_name(fdc_current[0]));
 
     ini_section_set_string(cat, "hdc",
                            hdc_get_internal_name(hdc_current));

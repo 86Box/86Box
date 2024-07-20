@@ -77,7 +77,7 @@ int         lastbyte = 0;
 int floppymodified[4];
 int floppyrate[4];
 
-int fdc_type = 0;
+int fdc_current[2] = { 0, 0 };
 
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
@@ -162,8 +162,8 @@ fdc_card_get_from_internal_name(char *s)
 void
 fdc_card_init(void)
 {
-    if ((fdc_type > FDC_INTERNAL) && fdc_cards[fdc_type].device)
-        device_add_inst(fdc_cards[fdc_type].device, 0);
+    if ((fdc_current[0] > FDC_INTERNAL) && fdc_cards[fdc_current[0]].device)
+        device_add_inst(fdc_cards[fdc_current[0]].device, 0);
 }
 
 uint8_t

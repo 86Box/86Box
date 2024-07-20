@@ -370,7 +370,7 @@ machine_at_pat54pv_init(const machine_t *model)
     device_add(&opti5x7_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -400,7 +400,7 @@ machine_at_hot543_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
