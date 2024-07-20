@@ -752,30 +752,16 @@ const device_t vendex_xt_rtc_onboard_device = {
     .config        = NULL
 };
 
-static const device_t isartc_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &isartc_none_device },
-    { &ev170_device       },
-    { &pii147_device      },
-    { &p5pak_device       },
-    { &a6pak_device       },
-    { NULL                },
+    { &device_none   },
+    { &ev170_device  },
+    { &pii147_device },
+    { &p5pak_device  },
+    { &a6pak_device  },
+    { NULL           },
     // clang-format on
 };
 
