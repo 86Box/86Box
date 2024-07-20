@@ -50,40 +50,12 @@ hdc_log(const char *fmt, ...)
 #    define hdc_log(fmt, ...)
 #endif
 
-static const device_t hdc_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const device_t hdc_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const struct {
     const device_t *device;
 } controllers[] = {
     // clang-format off
-    { &hdc_none_device             },
-    { &hdc_internal_device         },
+    { &device_none                 },
+    { &device_internal             },
     { &st506_xt_xebec_device       },
     { &st506_xt_wdxt_gen_device    },
     { &st506_xt_dtc5150x_device    },

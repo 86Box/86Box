@@ -96,38 +96,10 @@ static void *filter_cd_audio_p                                          = NULL;
 void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
 void *filter_pc_speaker_p                                          = NULL;
 
-static const device_t sound_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const device_t sound_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const SOUND_CARD sound_cards[] = {
     // clang-format off
-    { &sound_none_device            },
-    { &sound_internal_device        },
+    { &device_none                  },
+    { &device_internal              },
     { &acermagic_s20_device         },
     { &mirosound_pcm10_device       },
     { &adlib_device                 },
