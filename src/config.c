@@ -829,15 +829,15 @@ load_storage_controllers(void)
     }
     /* Migrate renamed and merged cards. */
     if (!strcmp(p, "xtide_plus")) {
-        hdc_current = hdc_get_from_internal_name("xtide");
+        hdc_current[0] = hdc_get_from_internal_name("xtide");
         migration_cat = ini_find_or_create_section(config, "PC/XT XTIDE");
         ini_section_set_string(migration_cat, "bios", "xt_plus");
     } else if (!strcmp(p, "xtide_at_386")) {
-        hdc_current = hdc_get_from_internal_name("xtide_at");
+        hdc_current[0] = hdc_get_from_internal_name("xtide_at");
         migration_cat = ini_find_or_create_section(config, "PC/AT XTIDE");
         ini_section_set_string(migration_cat, "bios", "at_386");
     } else
-        hdc_current = hdc_get_from_internal_name(p);
+        hdc_current[0] = hdc_get_from_internal_name(p);
 
     if (free_p) {
         free(p);
@@ -1631,7 +1631,7 @@ config_load(void)
         video_fullscreen_first = 1;
         video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
-        hdc_current            = hdc_get_from_internal_name("none");
+        hdc_current[0]         = hdc_get_from_internal_name("none");
 
         com_ports[0].enabled = 1;
         com_ports[1].enabled = 1;
@@ -2303,7 +2303,7 @@ save_storage_controllers(void)
                                fdc_card_get_internal_name(fdc_current[0]));
 
     ini_section_set_string(cat, "hdc",
-                           hdc_get_internal_name(hdc_current));
+                           hdc_get_internal_name(hdc_current[0]));
 
     if (cdrom_interface_current == 0)
         ini_section_delete_var(cat, "cdrom_interface");

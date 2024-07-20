@@ -30,7 +30,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 
-int hdc_current;
+int hdc_current[2];
 
 #ifdef ENABLE_HDC_LOG
 int hdc_do_log = ENABLE_HDC_LOG;
@@ -101,11 +101,11 @@ void
 hdc_reset(void)
 {
     hdc_log("HDC: reset(current=%d, internal=%d)\n",
-            hdc_current, (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
+            hdc_current[0], (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
 
     /* If we have a valid controller, add its device. */
-    if (hdc_current > HDC_INTERNAL)
-        device_add(controllers[hdc_current].device);
+    if (hdc_current[0] > HDC_INTERNAL)
+        device_add(controllers[hdc_current[0]].device);
 
     /* Now, add the tertiary and/or quaternary IDE controllers. */
     if (ide_ter_enabled)
