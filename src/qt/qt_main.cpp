@@ -145,9 +145,11 @@ main_thread_fn()
     }
 
     is_quit = 1;
-    if (gfxcard[1]) {
-        ui_deinit_monitor(1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if (gfxcard[i]) {
+            ui_deinit_monitor(i);
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
     }
     QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }

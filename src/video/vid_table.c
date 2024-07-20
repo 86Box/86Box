@@ -322,12 +322,14 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
-        (gfxcard[1] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
-        video_monitor_init(1);
-        monitor_index_global = 1;
-        device_add(video_cards[gfxcard[1]].device);
-        monitor_index_global = 0;
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
+            (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine)) {
+            video_monitor_init(i);
+            monitor_index_global = 1;
+            device_add(video_cards[gfxcard[i]].device);
+            monitor_index_global = 0;
+        }
     }
 
     /* Do not initialize internal cards here. */
