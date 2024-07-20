@@ -39,7 +39,8 @@
 
 enum mtouch_modes {
     MODE_TABLET = 1,
-    MODE_RAW    = 2
+    MODE_RAW    = 2,
+	MODE_HEX    = 3
 };
 
 typedef struct mouse_microtouch_t {
@@ -50,7 +51,7 @@ typedef struct mouse_microtouch_t {
     char       cmd[512];
     int        cmd_pos;
     int        mode;
-    uint8_t    cal_cntr, pen_mode;
+    uint8_t    cal_cntr, pen_mode, prev_b;
     bool       soh;
     bool       in_reset;
     serial_t  *serial;
@@ -93,80 +94,85 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     for (i = 0; i < strlen(mtouch->cmd); i++) {
         mtouch->cmd[i] = toupper(mtouch->cmd[i]);
     }
-    if (mtouch->cmd[0] == 'Z') {
+    if (mtouch->cmd[0] == 'Z') { // Null
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') {
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') { // Finger Only
         mtouch->pen_mode = 1;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') {
+    if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') { // Unit Type
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "TP****00\r", sizeof("TP****00\r") - 1);
     }
-    if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') {
+    if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { // Output Identity
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "P50200\r", sizeof("P50200\r") - 1);
     }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') {
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { // Format Tablet
         mtouch->mode = MODE_TABLET;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') {
+	if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { // Format Hexadecimal
+		mtouch->mode = MODE_HEX;
+        fifo8_push(&mtouch->resp, 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t *)"0\r", 2);
+    }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { // Format Raw
         mtouch->mode     = MODE_RAW;
         mtouch->cal_cntr = 0;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') {
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') { // Mode Stream
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'R') {
+    if (mtouch->cmd[0] == 'R') { // Reset
         mtouch->in_reset = true;
         mtouch->mode     = MODE_TABLET;
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
     }
-    if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) {
+    if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) { // Autobaud Enable/Disable
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'N' && mtouch->cmd[1] == 'M') {
+    if (mtouch->cmd[0] == 'N' && mtouch->cmd[1] == 'M') { // ??
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
     }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'Q') {
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'Q') { // ??
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
     }
-    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'F') {
+    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'F') { // ??
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
     }
     if (mtouch->cmd[0] == 'P') {
-        if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;
-        else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2;
+        if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;      // Pen or Finger
+        else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2; // Pen Only
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) {
+    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { // Calibrate New/Extended
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
         mtouch->cal_cntr = 2;
     }
-    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') {
+    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { // Get Parameter Block 1
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", sizeof("0000000000000000000000000\r") - 1);
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') {
+    if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { // Set Parameter Block 1
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
     }
@@ -219,46 +225,52 @@ static int
 mtouch_poll(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+	
+	if (fifo8_num_free(&dev->resp) <= 10 || dev->mode == MODE_RAW) {
+		return 0;
+	}
+	
+	unsigned int abs_x_int = 0, abs_y_int = 0;
+    double       abs_x;
+    double       abs_y;
+    int          b = mouse_get_buttons_ex();
 
-    if (dev->mode != MODE_RAW && fifo8_num_free(&dev->resp) >= 10) {
-        unsigned int abs_x_int = 0, abs_y_int = 0;
-        double       abs_x;
-        double       abs_y;
-        int          b = mouse_get_buttons_ex();
-        mouse_get_abs_coords(&abs_x, &abs_y);
-        dev->b |= !!(b & 3);
-        
+    mouse_get_abs_coords(&abs_x, &abs_y);
+    dev->b |= !!(b & 3); // any button pressed
+    
+    if (abs_x >= 1.0)
+        abs_x = 1.0;
+    if (abs_y >= 1.0)
+        abs_y = 1.0;
+    if (abs_x <= 0.0)
+        abs_x = 0.0;
+    if (abs_y <= 0.0)
+        abs_y = 0.0;
+    if (enable_overscan) {
+        int index = mouse_tablet_in_proximity - 1;
+        if (mouse_tablet_in_proximity == -1)
+            mouse_tablet_in_proximity = 0;
+
+        abs_x *= monitors[index].mon_unscaled_size_x - 1;
+        abs_y *= monitors[index].mon_efscrnsz_y - 1;
+
+        if (abs_x <= (monitors[index].mon_overscan_x / 2.)) {
+            abs_x = (monitors[index].mon_overscan_x / 2.);
+        }
+        if (abs_y <= (monitors[index].mon_overscan_y / 2.)) {
+            abs_y = (monitors[index].mon_overscan_y / 2.);
+        }
+        abs_x -= (monitors[index].mon_overscan_x / 2.);
+        abs_y -= (monitors[index].mon_overscan_y / 2.);
+        abs_x = abs_x / (double) monitors[index].mon_xsize;
+        abs_y = abs_y / (double) monitors[index].mon_ysize;
         if (abs_x >= 1.0)
             abs_x = 1.0;
         if (abs_y >= 1.0)
             abs_y = 1.0;
-        if (abs_x <= 0.0)
-            abs_x = 0.0;
-        if (abs_y <= 0.0)
-            abs_y = 0.0;
-        if (enable_overscan) {
-            int index = mouse_tablet_in_proximity - 1;
-            if (mouse_tablet_in_proximity == -1)
-                mouse_tablet_in_proximity = 0;
+    }
 
-            abs_x *= monitors[index].mon_unscaled_size_x - 1;
-            abs_y *= monitors[index].mon_efscrnsz_y - 1;
-
-            if (abs_x <= (monitors[index].mon_overscan_x / 2.)) {
-                abs_x = (monitors[index].mon_overscan_x / 2.);
-            }
-            if (abs_y <= (monitors[index].mon_overscan_y / 2.)) {
-                abs_y = (monitors[index].mon_overscan_y / 2.);
-            }
-            abs_x -= (monitors[index].mon_overscan_x / 2.);
-            abs_y -= (monitors[index].mon_overscan_y / 2.);
-            abs_x = abs_x / (double) monitors[index].mon_xsize;
-            abs_y = abs_y / (double) monitors[index].mon_ysize;
-            if (abs_x >= 1.0)
-                abs_x = 1.0;
-            if (abs_y >= 1.0)
-                abs_y = 1.0;
-        }
+    if (dev->mode == MODE_TABLET) {
         if (dev->cal_cntr && (!(dev->b & 1) && !!(b & 3))) {
             dev->b |= 1;
         } else if (dev->cal_cntr && ((dev->b & 1) && !(b & 3))) {
@@ -268,7 +280,7 @@ mtouch_poll(void *priv)
         if (dev->cal_cntr) {
             return 0;
         }
-        if (!!(b & 3)) {
+        if (!!(b & 3)) { // Hover
             dev->abs_x = abs_x;
             dev->abs_y = abs_y;
             dev->b |= 1;
@@ -281,7 +293,7 @@ mtouch_poll(void *priv)
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
-        } else if ((dev->b & 1) && !(b & 3)) {
+        } else if ((dev->b & 1) && !(b & 3)) { // Touch
             dev->b &= ~1;
             abs_x_int = dev->abs_x * 16383;
             abs_y_int = 16383 - dev->abs_y * 16383;
@@ -296,6 +308,28 @@ mtouch_poll(void *priv)
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
         }
+    }
+	
+    else if (dev->mode == MODE_HEX) {
+        abs_x_int = abs_x * 1023;
+        abs_y_int = 1023 - (abs_y * 1023);
+        char buffer[20];
+        
+		if (dev->cal_cntr && !b && dev->prev_b) { 
+            microtouch_calibrate_timer(dev);
+        }		
+        else if (b & 1) {
+            if (dev->prev_b == 0) { // Touchdown
+                snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
+            } else { // Touch Continuation
+                snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
+            }
+            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
+        } else if (dev->prev_b == 1) { // Liftoff
+            snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
+            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
+        }
+		dev->prev_b = b & 1;
     }
     return 0;
 }
