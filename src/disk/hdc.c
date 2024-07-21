@@ -30,7 +30,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 
-int hdc_current[2];
+int hdc_current[HDC_MAX] = { 0, 0 };
 
 #ifdef ENABLE_HDC_LOG
 int hdc_do_log = ENABLE_HDC_LOG;
