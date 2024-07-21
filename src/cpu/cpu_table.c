@@ -1507,10 +1507,58 @@ const cpu_family_t cpu_families[] = {
     .name = "386SLC",
     .internal_name = "ibm386slc",
     .cpus = (const CPU[]) {
-        {"16",  CPU_IBM386SLC, fpus_80386, 16000000, 1, 5000, 0xA301, 0, 0, 0, 3,3,3,3, 2},
-        {"20",  CPU_IBM386SLC, fpus_80386, 20000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},
-        {"25",  CPU_IBM386SLC, fpus_80386, 25000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},
-        {"", 0}
+        {
+            .name = "16",
+            .cpu_type = CPU_IBM386SLC,
+            .fpus = fpus_80386,
+            .rspeed = 16000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0xA301,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 3,
+            .mem_write_cycles = 3,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 2
+        },
+        {
+            .name = "20",
+            .cpu_type = CPU_IBM386SLC,
+            .fpus = fpus_80386,
+            .rspeed = 20000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0xA301,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 4,
+            .mem_write_cycles = 4,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 3
+        },
+        {
+            .name = "25",
+            .cpu_type = CPU_IBM386SLC,
+            .fpus = fpus_80386,
+            .rspeed = 25000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0xA301,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 4,
+            .mem_write_cycles = 4,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 3
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_386SX,
@@ -1518,10 +1566,58 @@ const cpu_family_t cpu_families[] = {
     .name = "Cx486SLC",
     .internal_name = "cx486slc",
     .cpus = (const CPU[]) {
-        {"20",  CPU_486SLC, fpus_80386, 20000000, 1, 5000, 0x400, 0, 0x0000, 0, 4,4,3,3, 3},
-        {"25",  CPU_486SLC, fpus_80386, 25000000, 1, 5000, 0x400, 0, 0x0000, 0, 4,4,3,3, 3},
-        {"33",  CPU_486SLC, fpus_80386, 33333333, 1, 5000, 0x400, 0, 0x0000, 0, 6,6,3,3, 4},
-        {"", 0}
+        {
+            .name = "20",
+            .cpu_type = CPU_486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 20000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0x400,
+            .cpuid_model = 0,
+            .cyrix_id = 0x0000,
+            .cpu_flags = 0,
+            .mem_read_cycles = 4,
+            .mem_write_cycles = 4,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 3
+        },
+        {
+            .name = "25",
+            .cpu_type = CPU_486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 25000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0x400,
+            .cpuid_model = 0,
+            .cyrix_id = 0x0000,
+            .cpu_flags = 0,
+            .mem_read_cycles = 4,
+            .mem_write_cycles = 4,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 3
+        },
+        {
+            .name = "33",
+            .cpu_type = CPU_486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 33333333,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0x400,
+            .cpuid_model = 0,
+            .cyrix_id = 0x0000,
+            .cpu_flags = 0,
+            .mem_read_cycles = 6,
+            .mem_write_cycles = 6,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 4
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_386SX,
@@ -1529,10 +1625,58 @@ const cpu_family_t cpu_families[] = {
     .name = "Cx486SRx2",
     .internal_name = "cx486srx2",
     .cpus = (const CPU[]) {
-        {"32", CPU_486SLC, fpus_80386, 32000000, 2, 5000, 0x406, 0, 0x0006, 0, 6,6,6,6, 4},
-        {"40", CPU_486SLC, fpus_80386, 40000000, 2, 5000, 0x406, 0, 0x0006, 0, 8,8,6,6, 6},
-        {"50", CPU_486SLC, fpus_80386, 50000000, 2, 5000, 0x406, 0, 0x0006, 0, 8,8,6,6, 6},
-        {"", 0}
+        {
+            .name = "32",
+            .cpu_type = CPU_486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 32000000,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0x406,
+            .cpuid_model = 0,
+            .cyrix_id = 0x0006,
+            .cpu_flags = 0,
+            .mem_read_cycles = 6,
+            .mem_write_cycles = 6,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 4
+        },
+        {
+            .name = "40",
+            .cpu_type = CPU_486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 40000000,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0x406,
+            .cpuid_model = 0,
+            .cyrix_id = 0x0006,
+            .cpu_flags = 0,
+            .mem_read_cycles = 8,
+            .mem_write_cycles = 8,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 6
+        },
+        {
+            .name = "50",
+            .cpu_type = CPU_486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 50000000,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0x406,
+            .cpuid_model = 0,
+            .cyrix_id = 0x0006,
+            .cpu_flags = 0,
+            .mem_read_cycles = 8,
+            .mem_write_cycles = 8,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 6
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_486SLC_IBM,
@@ -1540,8 +1684,24 @@ const cpu_family_t cpu_families[] = {
     .name = "486SLC",
     .internal_name = "ibm486slc",
     .cpus = (const CPU[]) {
-        {"33",   CPU_IBM486SLC, fpus_80386, 33333333,  1, 5000, 0xA401, 0, 0, 0, 6,6,3,3,    4},
-        {"", 0}
+        {
+            .name = "33",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 33333333,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0xA401,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 6,
+            .mem_write_cycles = 6,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 4
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_486SLC_IBM,
@@ -1549,10 +1709,58 @@ const cpu_family_t cpu_families[] = {
     .name = "486SLC2",
     .internal_name = "ibm486slc2",
     .cpus = (const CPU[]) {
-        {"40",  CPU_IBM486SLC, fpus_80386, 40000000,  2, 5000, 0xA421, 0, 0, 0, 7,7,6,6,    5},
-        {"50",  CPU_IBM486SLC, fpus_80386, 50000000,  2, 5000, 0xA421, 0, 0, 0, 8,8,6,6,    6},
-        {"66",  CPU_IBM486SLC, fpus_80386, 66666666,  2, 5000, 0xA421, 0, 0, 0, 12,12,6,6,  8},
-        {"", 0}
+        {
+            .name = "40",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 40000000,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0xA421,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 7,
+            .mem_write_cycles = 7,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 5
+        },
+        {
+            .name = "50",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 50000000,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0xA421,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 8,
+            .mem_write_cycles = 8,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 6
+        },
+        {
+            .name = "66",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 66666666,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0xA421,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 12,
+            .mem_write_cycles = 12,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 8
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_486SLC_IBM,
@@ -1560,10 +1768,58 @@ const cpu_family_t cpu_families[] = {
     .name = "486SLC3",
     .internal_name = "ibm486slc3",
     .cpus = (const CPU[]) {
-        {"60",  CPU_IBM486SLC, fpus_80386, 60000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  7},
-        {"75",  CPU_IBM486SLC, fpus_80386, 75000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  9},
-        {"100", CPU_IBM486SLC, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},
-        {"", 0}
+        {
+            .name = "60",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 60000000,
+            .multi = 3,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 12,
+            .mem_write_cycles = 12,
+            .cache_read_cycles = 9,
+            .cache_write_cycles = 9,
+            .atclk_div = 7
+        },
+        {
+            .name = "75",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 75000000,
+            .multi = 3,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 12,
+            .mem_write_cycles = 12,
+            .cache_read_cycles = 9,
+            .cache_write_cycles = 9,
+            .atclk_div = 9
+        },
+        {
+            .name = "100",
+            .cpu_type = CPU_IBM486SLC,
+            .fpus = fpus_80386,
+            .rspeed = 100000000,
+            .multi = 3,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 18,
+            .mem_write_cycles = 18,
+            .cache_read_cycles = 9,
+            .cache_write_cycles = 9,
+            .atclk_div = 12
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_486BL,
@@ -1571,9 +1827,41 @@ const cpu_family_t cpu_families[] = {
     .name = "486BL2",
     .internal_name = "ibm486bl2",
     .cpus = (const CPU[]) {
-        {"50",  CPU_IBM486BL, fpus_80386, 50000000,  2, 5000, 0xA439, 0, 0, 0, 8,8,6,6,    6},
-        {"66",  CPU_IBM486BL, fpus_80386, 66666666,  2, 5000, 0xA439, 0, 0, 0, 12,12,6,6,  8},
-        {"", 0}
+        {
+            .name = "50",
+            .cpu_type = CPU_IBM486BL,
+            .fpus = fpus_80386,
+            .rspeed = 50000000,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 8,
+            .mem_write_cycles = 8,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 6
+        },
+        {
+            .name = "66",
+            .cpu_type = CPU_IBM486BL,
+            .fpus = fpus_80386,
+            .rspeed = 66666666,
+            .multi = 2,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 12,
+            .mem_write_cycles = 12,
+            .cache_read_cycles = 6,
+            .cache_write_cycles = 6,
+            .atclk_div = 8
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_486BL,
@@ -1581,9 +1869,41 @@ const cpu_family_t cpu_families[] = {
     .name = "486BL3",
     .internal_name = "ibm486bl3",
     .cpus = (const CPU[]) {
-        {"75",  CPU_IBM486BL, fpus_80386, 75000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  9},
-        {"100", CPU_IBM486BL, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},
-        {"", 0}
+        {
+            .name = "75",
+            .cpu_type = CPU_IBM486BL,
+            .fpus = fpus_80386,
+            .rspeed = 75000000,
+            .multi = 3,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 12,
+            .mem_write_cycles = 12,
+            .cache_read_cycles = 9,
+            .cache_write_cycles = 9,
+            .atclk_div = 9
+        },
+        {
+            .name = "100",
+            .cpu_type = CPU_IBM486BL,
+            .fpus = fpus_80386,
+            .rspeed = 100000000,
+            .multi = 3,
+            .voltage = 5000,
+            .edx_reset = 0xA439,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 18,
+            .mem_write_cycles = 18,
+            .cache_read_cycles = 9,
+            .cache_write_cycles = 9,
+            .atclk_div = 12
+        },
+        { .name = "", 0 }
     }
     }, {
     .package = CPU_PKG_386DX,
