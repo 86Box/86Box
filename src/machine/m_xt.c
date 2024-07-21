@@ -375,6 +375,8 @@ machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
+    device_add(&keyboard_xt_device);
+
     machine_xt_common_init(model, 0);
 
     return ret;
