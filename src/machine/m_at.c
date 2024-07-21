@@ -258,6 +258,23 @@ machine_at_siemens_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_wellamerastar_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/wellamerastar/W_3.031_L.BIN",
+                                "roms/machines/wellamerastar/W_3.031_H.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 int
 machine_at_openat_init(const machine_t *model)

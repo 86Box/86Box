@@ -2968,10 +2968,9 @@ umc_smram_recalc(uint32_t start, int set)
 }
 
 void
-mem_remap_top(int kb)
+mem_remap_top_ex(int kb, uint32_t start)
 {
     uint32_t   c;
-    uint32_t   start = (mem_size >= 1024) ? mem_size : 1024;
     int        offset;
     int        size = mem_size - 640;
     int        set        = 1;
@@ -3095,6 +3094,12 @@ mem_remap_top(int kb)
     }
 
     flushmmucache();
+}
+
+void
+mem_remap_top(int kb)
+{
+    mem_remap_top_ex(kb, (mem_size >= 1024) ? mem_size : 1024);
 }
 
 void

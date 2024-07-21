@@ -41,6 +41,7 @@
 #include <86box/sio.h>
 #include <86box/hdc.h>
 #include <86box/port_6x.h>
+#include <86box/port_92.h>
 #include <86box/video.h>
 #include <86box/flash.h>
 #include <86box/scsi_ncr53c8xx.h>
@@ -2289,6 +2290,98 @@ machine_at_atc1762_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&ali1429g_device);
     device_add(&keyboard_ps2_ami_pci_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_dataexpert386wb_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dataexpert386wb/st0386-wb-ver2-0-618f078c738cb397184464.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti391_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_genoa486_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/genoa486/AMI486.BIO",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&compaq_genoa_device);
+    device_add(&port_92_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_ga486l_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ga486l/ga-486l_bios.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&opti381_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_cougar_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cougar/COUGRMRB.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_vlb_device);
+
+    device_add(&opti499_device);
+    device_add(&fdc37c665_ide_pri_device);
+
+    device_add(&keyboard_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
