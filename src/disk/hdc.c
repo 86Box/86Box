@@ -30,7 +30,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 
-int hdc_current;
+int hdc_current[HDC_MAX] = { 0, 0 };
 
 #ifdef ENABLE_HDC_LOG
 int hdc_do_log = ENABLE_HDC_LOG;
@@ -50,40 +50,12 @@ hdc_log(const char *fmt, ...)
 #    define hdc_log(fmt, ...)
 #endif
 
-static const device_t hdc_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const device_t hdc_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const struct {
     const device_t *device;
 } controllers[] = {
     // clang-format off
-    { &hdc_none_device             },
-    { &hdc_internal_device         },
+    { &device_none                 },
+    { &device_internal             },
     { &st506_xt_xebec_device       },
     { &st506_xt_wdxt_gen_device    },
     { &st506_xt_dtc5150x_device    },
@@ -129,11 +101,11 @@ void
 hdc_reset(void)
 {
     hdc_log("HDC: reset(current=%d, internal=%d)\n",
-            hdc_current, (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
+            hdc_current[0], (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
 
     /* If we have a valid controller, add its device. */
-    if (hdc_current > HDC_INTERNAL)
-        device_add(controllers[hdc_current].device);
+    if (hdc_current[0] > HDC_INTERNAL)
+        device_add(controllers[hdc_current[0]].device);
 
     /* Now, add the tertiary and/or quaternary IDE controllers. */
     if (ide_ter_enabled)

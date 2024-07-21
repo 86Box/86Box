@@ -77,37 +77,9 @@
 #    include <winsock2.h>
 #endif
 
-static const device_t net_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = NET_TYPE_NONE,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const device_t net_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = NET_TYPE_NONE,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const device_t *net_cards[] = {
-    &net_none_device,
-    &net_internal_device,
+    &device_none,
+    &device_internal,
     &threec501_device,
     &threec503_device,
     &pcnet_am79c960_device,

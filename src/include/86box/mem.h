@@ -451,6 +451,7 @@ extern void mem_a20_recalc(void);
 extern void mem_init(void);
 extern void mem_close(void);
 extern void mem_reset(void);
+extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 
 extern void umc_smram_recalc(uint32_t start, int set);

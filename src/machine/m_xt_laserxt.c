@@ -147,7 +147,7 @@ machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
     nmi_init();

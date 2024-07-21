@@ -59,7 +59,7 @@ machine_at_mr286_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -70,7 +70,7 @@ machine_at_headland_common_init(int type)
 {
     device_add(&keyboard_at_ami_device);
 
-    if ((type != 2) && (fdc_type == FDC_INTERNAL))
+    if ((type != 2) && (fdc_current[0] == FDC_INTERNAL))
         device_add(&fdc_at_device);
 
     if (type == 2)
@@ -137,7 +137,7 @@ machine_at_quadt286_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&headland_gc10x_device);
@@ -160,7 +160,7 @@ machine_at_quadt386sx_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&headland_gc10x_device);
@@ -183,7 +183,7 @@ machine_at_neat_init(const machine_t *model)
 
     device_add(&neat_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -204,7 +204,7 @@ machine_at_neat_ami_init(const machine_t *model)
 
     device_add(&neat_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&keyboard_at_ami_device);
@@ -226,7 +226,7 @@ machine_at_px286_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&neat_device);
@@ -248,7 +248,7 @@ machine_at_micronics386_init(const machine_t *model)
 
     machine_at_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -284,7 +284,7 @@ machine_at_scatsx_init(const machine_t *model)
 
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&scat_sx_device);
@@ -303,7 +303,7 @@ machine_at_award286_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&ide_isa_device);
@@ -324,7 +324,7 @@ machine_at_gdc212m_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&ide_isa_device);
@@ -365,7 +365,7 @@ machine_at_senor_scat286_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -386,7 +386,7 @@ machine_at_super286c_init(const machine_t *model)
 
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&neat_device);
@@ -407,7 +407,7 @@ machine_at_super286tr_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -426,7 +426,7 @@ machine_at_spc4200p_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&ide_isa_device);
@@ -448,7 +448,7 @@ machine_at_spc4216p_init(const machine_t *model)
 
     machine_at_scat_init(model, 1, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -471,7 +471,7 @@ machine_at_spc4620p_init(const machine_t *model)
 
     machine_at_scat_init(model, 1, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&ide_isa_device);
@@ -508,7 +508,7 @@ machine_at_deskmaster286_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
         
     device_add(&ide_isa_device);
@@ -533,7 +533,7 @@ machine_at_shuttle386sx_init(const machine_t *model)
     device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -557,7 +557,7 @@ machine_at_adi386sx_init(const machine_t *model)
     device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -603,7 +603,7 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
 
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&neat_device);
@@ -624,7 +624,7 @@ machine_at_scamp_common_init(const machine_t *model, int is_ps2)
     else
         device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&vlsi_scamp_device);
@@ -699,7 +699,7 @@ machine_at_awardsx_init(const machine_t *model)
 
     device_add(&opti291_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -718,7 +718,7 @@ machine_at_acer100t_init(const machine_t *model)
 
     machine_at_ps2_ide_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
     
     device_add(&ali1409_device);
@@ -896,7 +896,7 @@ machine_at_pc8_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&keyboard_at_ncr_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -921,7 +921,7 @@ machine_at_3302_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&neat_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -953,7 +953,7 @@ machine_at_pc916sx_init(const machine_t *model)
     device_add(&keyboard_at_ncr_device);
     mem_remap_top(384);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -975,7 +975,7 @@ machine_at_m290_init(const machine_t *model)
     device_add(&keyboard_at_olivetti_device);
     device_add(&port_6x_olivetti_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&olivetti_eva_device);

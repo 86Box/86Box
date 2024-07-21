@@ -316,7 +316,7 @@ line_gain:
             val = (val & i) | (prev & ~i);
 
             /* Update status bits to reflect powerdowns. */
-            val = (val & ~0x000f) | (~(val >> 8) & 0x000f);
+            val = (val & ~0x300f) | (~(val >> 8) & 0x000f); /* also clear write-only PR4 and PR5 */
             if (val & 0x0800) /* PR3 clears both ANL and REF */
                 val &= ~0x0004;
             break;
@@ -527,7 +527,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
     /* Apply full mute and powerdowns. */
     int full_mute = (reg < 0x36);
     if ((full_mute && (val & AC97_MUTE)) ||                     /* full mute */
-        (dev->regs[0x26 >> 1] & 0x3e00) ||                      /* DAC powerdown */
+        (dev->regs[0x26 >> 1] & 0x0e00) ||                      /* DAC powerdown */
         ((reg == 0x38) && (dev->regs[0x2a >> 1] & AC97_PRJ))) { /* surround DAC powerdown */
         *l = 0;
         *r = 0;

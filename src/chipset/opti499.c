@@ -84,7 +84,7 @@ opti499_recalc(opti499_t *dev)
             shflags = MEM_READ_INTERNAL;
             shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
         } else {
-            if (dev->regs[0x2d] && (1 << ((i >> 1) + 2)))
+            if (dev->regs[0x2d] & (1 << ((i >> 1) + 2)))
                 shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
             else
                 shflags = MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
@@ -101,13 +101,13 @@ opti499_recalc(opti499_t *dev)
             shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
         } else {
             if (dev->regs[0x26] & 0x40) {
-                if (dev->regs[0x2d] && (1 << (i >> 1)))
+                if (dev->regs[0x2d] & (1 << (i >> 1)))
                     shflags = MEM_READ_EXTANY;
                 else
                     shflags = MEM_READ_EXTERNAL;
                 shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
             } else {
-                if (dev->regs[0x2d] && (1 << (i >> 1)))
+                if (dev->regs[0x2d] & (1 << (i >> 1)))
                     shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
                 else
                     shflags = MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;

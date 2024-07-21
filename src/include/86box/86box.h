@@ -21,6 +21,7 @@
 #define EMU_86BOX_H
 
 /* Configuration values. */
+#define GFXCARD_MAX  2
 #define SERIAL_MAX   7
 #define PARALLEL_MAX 4
 #define SCREEN_RES_X 640
@@ -124,7 +125,7 @@ extern int      force_43;                   /* (C) video */
 extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
-extern int      gfxcard[2];                 /* (C) graphics/video card */
+extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
 extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */

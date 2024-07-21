@@ -660,7 +660,7 @@ europc_boot(UNUSED(const device_t *info))
      *
      * We only do this if we have not configured another one.
      */
-    if (hdc_current == HDC_INTERNAL)
+    if (hdc_current[0] == HDC_INTERNAL)
         (void) device_add(&xta_hd20_device);
 
     return sys;

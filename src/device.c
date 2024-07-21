@@ -186,7 +186,8 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
                 devices[c]     = NULL;
                 device_priv[c] = NULL;
 
-                free(init_dev);
+                if ((init_dev != NULL) && (init_dev != (device_t *) dev))
+                    free(init_dev);
 
                 return (NULL);
             }
@@ -842,3 +843,31 @@ device_context_get_device(void)
 {
     return device_current.dev;
 }
+
+const device_t device_none = {
+    .name          = "None",
+    .internal_name = "none",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t device_internal = {
+    .name          = "Internal",
+    .internal_name = "internal",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};

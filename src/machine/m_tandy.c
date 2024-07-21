@@ -1738,7 +1738,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 
     device_add(&keyboard_tandy_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_tandy_device);
 
     video_reset(gfxcard[0]);
