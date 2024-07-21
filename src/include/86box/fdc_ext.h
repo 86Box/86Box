@@ -44,4 +44,4 @@ extern const device_t *fdc_card_getdevice(int card);
 extern int             fdc_card_has_config(int card);
 extern int             fdc_card_available(int card);
 
-#endif /*EMU_FDC_H*/
+#endif /*EMU_FDC_EXT_H*/
