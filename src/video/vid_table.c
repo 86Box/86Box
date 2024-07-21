@@ -47,38 +47,11 @@ static video_timings_t timing_default = { .type = VIDEO_ISA, .write_b = 8, .writ
 
 static int was_reset = 0;
 
-static const device_t vid_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-static const device_t vid_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const VIDEO_CARD
 video_cards[] = {
   // clang-format off
-    { &vid_none_device                                 },
-    { &vid_internal_device                             },
+    { &device_none                                     },
+    { &device_internal                                 },
     { &atiega800p_device                               },
     { &mach8_vga_isa_device,      VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,         VIDEO_FLAG_TYPE_8514 },
@@ -349,12 +322,14 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
-        (gfxcard[1] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
-        video_monitor_init(1);
-        monitor_index_global = 1;
-        device_add(video_cards[gfxcard[1]].device);
-        monitor_index_global = 0;
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
+            (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine)) {
+            video_monitor_init(i);
+            monitor_index_global = 1;
+            device_add(video_cards[gfxcard[i]].device);
+            monitor_index_global = 0;
+        }
     }
 
     /* Do not initialize internal cards here. */

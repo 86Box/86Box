@@ -112,7 +112,7 @@ machine_at_cmdpc_init(const machine_t *model)
 
     mem_remap_top(384);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     cmd_uart = device_add(&ns8250_device);

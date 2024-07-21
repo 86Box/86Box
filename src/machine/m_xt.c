@@ -25,7 +25,7 @@ extern const device_t vendex_xt_rtc_onboard_device;
 static void
 machine_xt_common_init(const machine_t *model, int fixed_floppy)
 {
-    if ((fdc_type == FDC_INTERNAL) || fixed_floppy)
+    if ((fdc_current[0] == FDC_INTERNAL) || fixed_floppy)
         device_add(&fdc_xt_device);
 
     machine_common_init(model);

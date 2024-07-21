@@ -105,7 +105,7 @@ machine_at_ibm_common_init(const machine_t *model)
 
     mem_remap_top(384);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 }
 
@@ -252,7 +252,7 @@ machine_at_siemens_init(const machine_t *model)
 
     mem_remap_top(384);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;

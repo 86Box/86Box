@@ -179,7 +179,7 @@ int      postcard_enabled                       = 0;              /* (C) enable 
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
-int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */
+int      gfxcard[GFXCARD_MAX]                   = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                         = 1;              /* (C) sound uses FP values */
 int      voodoo_enabled                         = 0;              /* (C) video option */
@@ -1004,12 +1004,15 @@ pc_init_modules(void)
         }
     }
 
-    if (!video_card_available(gfxcard[1])) {
-        char tempc[512] = { 0 };
-        device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO2), tempc);
-        ui_msgbox_header(MBX_INFO, plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE), temp);
-        gfxcard[1] = 0;
+    // TODO
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if (!video_card_available(gfxcard[i])) {
+            char tempc[512] = { 0 };
+            device_get_name(video_card_getdevice(gfxcard[i]), 0, tempc);
+            swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO2), tempc);
+            ui_msgbox_header(MBX_INFO, plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE), temp);
+            gfxcard[i] = 0;
+        }
     }
 
     atfullspeed = 0;

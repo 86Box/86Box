@@ -244,6 +244,9 @@ extern const char *device_get_internal_name(const device_t *dev);
 extern int   machine_get_config_int(char *s);
 extern char *machine_get_config_string(char *s);
 
+extern const device_t device_none;
+extern const device_t device_internal;
+
 #ifdef __cplusplus
 }
 #endif
