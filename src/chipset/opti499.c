@@ -226,8 +226,6 @@ opti499_reset(void *priv)
     cpu_update_waitstates();
 
     opti499_recalc(dev);
-
-    free(dev);
 }
 
 static void
