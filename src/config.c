@@ -1720,7 +1720,7 @@ save_general(void)
     char          temp[512];
     char          buffer[512] = { 0 };
 
-    const char *va_name = NULL;
+    const char *va_name;
 
     ini_section_set_int(cat, "vid_resize", vid_resize);
     if (vid_resize == 0)
