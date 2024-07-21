@@ -140,7 +140,7 @@ machine_xt_z184_init(const machine_t *model)
 
     machine_zenith_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
     lpt1_remove(); /* only one parallel port */
@@ -170,7 +170,7 @@ machine_xt_z151_init(const machine_t *model)
 
     machine_zenith_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_tandy_device);
 
     return ret;
@@ -193,7 +193,7 @@ machine_xt_z159_init(const machine_t *model)
 
     machine_zenith_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_tandy_device);
 
     /* parallel port is on the memory board */

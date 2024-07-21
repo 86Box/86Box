@@ -113,8 +113,8 @@ typedef struct config_t {
 #    endif
 
     /* Other peripherals category */
-    int fdc_type;                 /* Floppy disk controller type */
-    int hdc_current;              /* Hard disk controller type */
+    int fdc_current[FDC_MAX];     /* Floppy disk controller type */
+    int hdc_current[HDC_MAX];     /* Hard disk controller type */
     int hdc;                      /* Hard disk controller */
     int scsi_card;                /* SCSI controller */
     int ide_ter_enabled;          /* Tertiary IDE controller enabled */
