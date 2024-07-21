@@ -22,8 +22,6 @@
 #ifndef EMU_FDC_H
 #define EMU_FDC_H
 
-extern int fdc_current[2];
-
 #define FDC_PRIMARY_ADDR        0x03f0
 #define FDC_PRIMARY_IRQ         6
 #define FDC_PRIMARY_DMA         2

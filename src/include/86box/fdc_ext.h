@@ -22,7 +22,9 @@
 #ifndef EMU_FDC_EXT_H
 #define EMU_FDC_EXT_H
 
-extern int fdc_current[2];
+#define FDC_MAX 2
+
+extern int fdc_current[FDC_MAX];
 
 /* Controller types. */
 #define FDC_NONE     0

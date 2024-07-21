@@ -77,7 +77,7 @@ int         lastbyte = 0;
 int floppymodified[4];
 int floppyrate[4];
 
-int fdc_current[2] = { 0, 0 };
+int fdc_current[FDC_MAX] = { 0, 0 };
 
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
