@@ -97,14 +97,12 @@ device_set_context(device_context_t *c, const device_t *dev, int inst)
     if (inst) {
         sprintf(c->name, "%s #%i", dev->name, inst);
 
-        /* If this is the first instance and a numbered section is not present, but a non-numbered
-           section of the same name is, rename the non-numbered section to numbered. */
-        if (inst == 1) {
-            const void *sec        = config_find_section(c->name);
-            void *      single_sec = config_find_section((char *) dev->name);
-            if ((sec == NULL) && (single_sec != NULL))
-                config_rename_section(single_sec, c->name);
-        }
+        /* If a numbered section is not present, but a non-numbered of the same name
+           is, rename the non-numbered section to numbered. */
+        const void *sec        = config_find_section(c->name);
+        void *      single_sec = config_find_section((char *) dev->name);
+        if ((sec == NULL) && (single_sec != NULL))
+            config_rename_section(single_sec, c->name);
     } else
         sprintf(c->name, "%s", dev->name);
 }
