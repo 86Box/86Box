@@ -422,6 +422,14 @@ kbc_delay_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
     dev->stat_hi = stat_hi;
     dev->pending = 1;
     dev->state = STATE_KBC_DELAY_OUT;
+
+    if (dev->is_asic && (channel == 0) && (dev->status & STAT_OFULL)) {
+        /* Expedite the sending to the output buffer to prevent the wrong
+           data from being accidentally read. */
+        kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+        dev->state = STATE_MAIN_IBF;
+        dev->pending = 0;
+    }
 }
 
 static void kbc_at_process_cmd(void *priv);

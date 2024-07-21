@@ -56,8 +56,8 @@ SettingsStorageControllers::save()
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
-    hdc_current             = ui->comboBoxHD->currentData().toInt();
-    fdc_type                = ui->comboBoxFD->currentData().toInt();
+    hdc_current[0]          = ui->comboBoxHD->currentData().toInt();
+    fdc_current[0]          = ui->comboBoxFD->currentData().toInt();
     cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
     ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
     ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
@@ -92,7 +92,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
 
             if (device_is_valid(hdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
-                if (c == hdc_current) {
+                if (c == hdc_current[0]) {
                     selectedRow = row - removeRows;
                 }
             }
@@ -128,7 +128,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
 
             if (device_is_valid(fdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
-                if (c == fdc_type) {
+                if (c == fdc_current[0]) {
                     selectedRow = row - removeRows;
                 }
             }

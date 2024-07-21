@@ -746,6 +746,25 @@ compaq_386_init(UNUSED(const device_t *info))
     return dev;
 }
 
+static void
+compaq_genoa_outw(uint16_t port, uint16_t val, void *priv)
+{
+    if (port == 0x0c02) {
+        if (val)
+            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        else
+            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    }
+}
+
+static void *
+compaq_genoa_init(UNUSED(const device_t *info))
+{
+    io_sethandler(0x0c02, 3, NULL, NULL, NULL, NULL, compaq_genoa_outw, NULL, ram);
+
+    return ram;
+}
+
 const device_t compaq_386_device = {
     .name          = "Compaq 386 Memory Control",
     .internal_name = "compaq_386",
@@ -753,6 +772,20 @@ const device_t compaq_386_device = {
     .local         = 0,
     .init          = compaq_386_init,
     .close         = compaq_386_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t compaq_genoa_device = {
+    .name          = "Compaq Genoa Memory Control",
+    .internal_name = "compaq_genoa",
+    .flags         = 0,
+    .local         = 0,
+    .init          = compaq_genoa_init,
+    .close         = NULL,
     .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,

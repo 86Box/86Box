@@ -22,7 +22,9 @@
 #ifndef EMU_FDC_EXT_H
 #define EMU_FDC_EXT_H
 
-extern int fdc_type;
+#define FDC_MAX 2
+
+extern int fdc_current[FDC_MAX];
 
 /* Controller types. */
 #define FDC_NONE     0
@@ -42,4 +44,4 @@ extern const device_t *fdc_card_getdevice(int card);
 extern int             fdc_card_has_config(int card);
 extern int             fdc_card_available(int card);
 
-#endif /*EMU_FDC_H*/
+#endif /*EMU_FDC_EXT_H*/

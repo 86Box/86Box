@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -327,55 +326,17 @@ plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track,
 }
 
 int
-plat_cdrom_get_sector_size(uint32_t sector)
+plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
 {
-    /* Sector size returned by Windows is always a power of two, which is pointless. */
-    return 2352;
-}
+    long size;
+    DISK_GEOMETRY dgCDROM;
 
-/* Used EXCLUSIVELY to read raw sectors, not to detect tracks. */
-static int
-plat_cdrom_read_scsi_direct(uint32_t sector, uint8_t *buffer)
-{
-	DWORD unused;
-    int ret;
-    typedef struct SCSI_PASS_THROUGH_DIRECT_BUF {
-        SCSI_PASS_THROUGH_DIRECT spt;
-        ULONG Filler;
-        UCHAR SenseBuf[32];
-    } SCSI_PASS_THROUGH_DIRECT_BUF;
+    plat_cdrom_open();
+    DeviceIoControl(handle, IOCTL_CDROM_GET_DRIVE_GEOMETRY, NULL, 0, &dgCDROM, sizeof(dgCDROM), (LPDWORD)&size, NULL);
+    plat_cdrom_close();
 
-    SCSI_PASS_THROUGH_DIRECT_BUF req;
-
-    memset(&req, 0, sizeof(req));
-    req.Filler = 0;
-    req.spt.Length = sizeof(SCSI_PASS_THROUGH_DIRECT);
-    req.spt.CdbLength = 12;
-    req.spt.DataIn = SCSI_IOCTL_DATA_IN;
-    req.spt.SenseInfoOffset = offsetof(SCSI_PASS_THROUGH_DIRECT_BUF, SenseBuf);
-    req.spt.SenseInfoLength = sizeof(req.SenseBuf);
-    req.spt.TimeOutValue = 6;
-    req.spt.DataTransferLength = 2352;
-    req.spt.DataBuffer = buffer;
-
-    /* Fill in the CDB. */
-    req.spt.Cdb[0] = 0xBE; /* READ CD */
-    req.spt.Cdb[1] = 0x00; /* DAP = 0, Any Sector Type. */
-    req.spt.Cdb[2] = (sector & 0xFF000000) >> 24;
-    req.spt.Cdb[3] = (sector & 0xFF0000) >> 16;
-    req.spt.Cdb[4] = (sector & 0xFF00) >> 8;
-    req.spt.Cdb[5] = (sector & 0xFF); /* Starting Logical Block Address. */
-    req.spt.Cdb[6] = 0;
-    req.spt.Cdb[7] = 0;
-    req.spt.Cdb[8] = 1; /* Transfer Length. */
-    req.spt.Cdb[9] = 0xF8; /* 2352 bytes of data (non-subchannel). */
-    req.spt.Cdb[10] = 0; /* No subchannel data. */
-    req.spt.Cdb[11] = 0;
-
-    ret = DeviceIoControl(handle, IOCTL_SCSI_PASS_THROUGH_DIRECT, &req, sizeof(req), &req, sizeof(req), &unused, NULL) && req.spt.DataTransferLength == 2352;
-
-    win_cdrom_ioctl_log("plat_cdrom_read_scsi_direct: ret = %d, req.spt.DataTransferLength = %lu\n", ret, req.spt.DataTransferLength);
-    return ret;
+    win_cdrom_ioctl_log("BytesPerSector=%d\n", dgCDROM.BytesPerSector);
+    return dgCDROM.BytesPerSector;
 }
 
 int
@@ -390,18 +351,13 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
     if (raw) {
         win_cdrom_ioctl_log("Raw\n");
         /* Raw */
-        status = plat_cdrom_read_scsi_direct(sector, buffer);
-        if (status) {
-            return 1;
-        } else {
-            RAW_READ_INFO in;
-            in.DiskOffset.LowPart  = sector * COOKED_SECTOR_SIZE;
-            in.DiskOffset.HighPart = 0;
-            in.SectorCount         = 1;
-            in.TrackMode           = CDDA;
-            status = DeviceIoControl(handle, IOCTL_CDROM_RAW_READ, &in, sizeof(in),
-                                    buffer, buflen, (LPDWORD)&size, NULL);
-        }
+        RAW_READ_INFO in;
+        in.DiskOffset.LowPart  = sector * COOKED_SECTOR_SIZE;
+        in.DiskOffset.HighPart = 0;
+        in.SectorCount         = 1;
+        in.TrackMode           = CDDA;
+        status = DeviceIoControl(handle, IOCTL_CDROM_RAW_READ, &in, sizeof(in),
+                                 buffer, buflen, (LPDWORD)&size, NULL);
     } else {
         win_cdrom_ioctl_log("Cooked\n");
         /* Cooked */

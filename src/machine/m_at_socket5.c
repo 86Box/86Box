@@ -345,7 +345,8 @@ machine_at_pt2000_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device);
+    /* Should be VIA, but we do not emulate that yet. */
+    device_add(&keyboard_ps2_holtek_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&pc87332_398_device);
@@ -370,7 +371,7 @@ machine_at_pat54pv_init(const machine_t *model)
     device_add(&opti5x7_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -400,7 +401,7 @@ machine_at_hot543_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;

@@ -178,7 +178,7 @@ machine_elt_init(const machine_t *model)
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
     if (gfxcard[0] == VID_INTERNAL) {
