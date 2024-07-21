@@ -3373,8 +3373,40 @@ const cpu_family_t cpu_families[] = {
         .name = "STPC-DX",
         .internal_name = "stpc_dx",
         .cpus = (const CPU[]) {
-            {"66",     CPU_STPC,    fpus_internal,  66666666, 1.0, 3300, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
-            {"75",     CPU_STPC,    fpus_internal,  75000000, 1.0, 3300, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+            {
+                .name = "66",
+                .cpu_type = CPU_STPC,
+                .fpus = fpus_internal,
+                .rspeed = 66666666,
+                .multi = 1.0,
+                .voltage = 3300,
+                .edx_reset = 0x430,
+                .cpuid_model = 0,
+                .cyrix_id = 0x051a,
+                .cpu_flags = CPU_SUPPORTS_DYNAREC,
+                .mem_read_cycles = 7,
+                .mem_write_cycles = 7,
+                .cache_read_cycles = 3,
+                .cache_write_cycles = 3,
+                .atclk_div = 5
+            },
+            {
+                .name = "75",
+                .cpu_type = CPU_STPC,
+                .fpus = fpus_internal,
+                .rspeed = 75000000,
+                .multi = 1.0,
+                .voltage = 3300,
+                .edx_reset = 0x430,
+                .cpuid_model = 0,
+                .cyrix_id = 0x051a,
+                .cpu_flags = CPU_SUPPORTS_DYNAREC,
+                .mem_read_cycles = 7,
+                .mem_write_cycles = 7,
+                .cache_read_cycles = 3,
+                .cache_write_cycles = 3,
+                .atclk_div = 5
+            },
             { .name = "", 0 }
         }
     },
@@ -3384,7 +3416,23 @@ const cpu_family_t cpu_families[] = {
         .name = "STPC-DX2",
         .internal_name = "stpc_dx2",
         .cpus = (const CPU[]) {
-            {"133",    CPU_STPC,     fpus_internal, 133333333, 2.0, 3300, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
+            {
+                .name = "133",
+                .cpu_type = CPU_STPC,
+                .fpus = fpus_internal,
+                .rspeed = 133333333,
+                .multi = 2.0,
+                .voltage = 3300,
+                .edx_reset = 0x430,
+                .cpuid_model = 0,
+                .cyrix_id = 0x0b1b,
+                .cpu_flags = CPU_SUPPORTS_DYNAREC,
+                .mem_read_cycles = 14,
+                .mem_write_cycles = 14,
+                .cache_read_cycles = 6,
+                .cache_write_cycles = 6,
+                .atclk_div = 10
+            },
             { .name = "", 0 }
         }
     },
