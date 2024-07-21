@@ -375,7 +375,7 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&vl82c113_device);
     device_add(&fdc37c651_ide_device);
 
     return ret;

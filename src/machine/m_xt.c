@@ -365,6 +365,24 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 }
 
 int
+machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pravetz16s/PR16S.BIN",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
 machine_xt_micoms_xl7turbo_init(const machine_t *model)
 {
     int ret;

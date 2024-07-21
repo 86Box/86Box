@@ -38,7 +38,7 @@ qt_nvr_save(void)
 char icon_set[256] = ""; /* name of the iconset to be used */
 
 int
-plat_vidapi(char *api)
+plat_vidapi(const char *api)
 {
     if (!strcasecmp(api, "default") || !strcasecmp(api, "system")) {
         return 0;
