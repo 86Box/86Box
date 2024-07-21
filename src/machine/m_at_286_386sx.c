@@ -725,6 +725,7 @@ machine_at_acer100t_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);   
      
+    device_add(&ali5105_device);
     
     return ret;
 }
