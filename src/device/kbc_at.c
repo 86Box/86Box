@@ -1189,6 +1189,20 @@ write60_ami(void *priv, uint8_t val)
     return 1;
 }
 
+void
+kbc_at_set_ps2(void *priv, const uint8_t ps2)
+{
+    atkbc_t *dev     = (atkbc_t *) priv;
+
+    dev->ami_flags = (dev->ami_flags & 0xfe) | (!!ps2);
+    dev->misc_flags &= ~FLAG_PS2;
+    if (ps2) {
+        dev->misc_flags |= FLAG_PS2;
+        kbc_at_do_poll = kbc_at_poll_ps2;
+    } else
+        kbc_at_do_poll = kbc_at_poll_at;
+}
+
 static uint8_t
 write64_ami(void *priv, uint8_t val)
 {

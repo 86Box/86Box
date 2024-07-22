@@ -2557,6 +2557,19 @@ mem_mapping_set_handler(mem_mapping_t *map,
 }
 
 void
+mem_mapping_set_write_handler(mem_mapping_t *map,
+                              void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                              void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                              void (*write_l)(uint32_t addr, uint32_t val, void *priv))
+{
+    map->write_b = write_b;
+    map->write_w = write_w;
+    map->write_l = write_l;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+void
 mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
 {
     /* Remove old mapping. */

@@ -41,12 +41,70 @@ typedef struct monster_fdc_t {
     rom_t  bios_rom;
     fdc_t *fdc_pri;
     fdc_t *fdc_sec;
+    char  *nvr_path;
 } monster_fdc_t;
+
+static void
+rom_write(uint32_t addr, uint8_t val, void *priv)
+{
+    const rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: read byte from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < rom->mapping.base)
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
+static void
+rom_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: read word from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < (rom->mapping.base - 1))
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    *(uint16_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
+static void
+rom_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: read long from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < (rom->mapping.base - 3))
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    *(uint32_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
 
 static void
 monster_fdc_close(void *priv)
 {
     monster_fdc_t *dev = (monster_fdc_t *) priv;
+
+    FILE *f = fopen(dev->nvr_path, "wb");
+    if (f != NULL) {
+        fwrite(dev->bios_rom.rom, 1, 0x2000, f);
+        fclose(f);
+    }
 
     free(dev);
 }
@@ -79,9 +137,18 @@ monster_fdc_init(UNUSED(const device_t *info))
         fdc_set_dma_ch(dev->fdc_sec, sec_dma);
 #endif
 
-#if 0
     uint8_t rom_writes_enabled = device_get_config_int("rom_writes_enabled");
-#endif
+    if (rom_writes_enabled) {
+        mem_mapping_set_write_handler(&dev->bios_rom.mapping, rom_write, rom_writew, rom_writel);
+        dev->nvr_path     = "monster_fdc_0.nvr";
+        dev->nvr_path[12] = device_get_instance() + 0x30;
+        FILE *f = fopen(dev->nvr_path, "rb");
+        if (f != NULL) {
+            fread(dev->bios_rom.rom, 1, 0x2000, f);
+            fclose(f);
+        }
+    } else
+        dev->nvr_path = NULL;
 
     return dev;
 }
@@ -197,6 +264,7 @@ static const device_config_t monster_fdc_config[] = {
             { .description = ""                 }
         }
     },
+#endif
     {
         .name = "rom_writes_enabled",
         .description = "Enable BIOS extension ROM Writes",
@@ -204,7 +272,6 @@ static const device_config_t monster_fdc_config[] = {
         .default_string = "",
         .default_int = 0
     },
-#endif
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };

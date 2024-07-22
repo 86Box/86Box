@@ -1856,7 +1856,8 @@ dc390_init(UNUSED(const device_t *info))
     if (dev->has_bios)
         esp_bios_disable(dev);
 
-    dev->nvr_path = "dc390.nvr";
+    dev->nvr_path    = "dc390_0.nvr";
+    dev->nvr_path[6] = device_get_instance() + 0x30;
 
     /* Load the serial EEPROM. */
     dc390_load_eeprom(dev);
