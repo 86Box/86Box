@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Cacodemon345
+ * Authors: Cacodemon345, mourix
  *
  *          Copyright 2024 Cacodemon345
  */
@@ -415,7 +415,7 @@ static const device_config_t mtouch_config[] = {
 };
 
 const device_t mouse_mtouch_device = {
-    .name          = "3M MicroTouch TouchPen 4",
+    .name          = "3M MicroTouch (Serial)",
     .internal_name = "microtouch_touchpen",
     .flags         = DEVICE_COM,
     .local         = 0,
