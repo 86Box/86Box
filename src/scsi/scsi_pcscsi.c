@@ -152,7 +152,7 @@
 typedef struct esp_t {
     mem_mapping_t mmio_mapping;
     mem_mapping_t ram_mapping;
-    char         *nvr_path;
+    char          nvr_path[64];
     uint8_t       pci_slot;
     int           has_bios;
     int           BIOSBase;
@@ -1856,8 +1856,7 @@ dc390_init(UNUSED(const device_t *info))
     if (dev->has_bios)
         esp_bios_disable(dev);
 
-    dev->nvr_path    = "dc390_0.nvr";
-    dev->nvr_path[6] = device_get_instance() + 0x30;
+    sprintf(dev->nvr_path, "dc390_%i.nvr", device_get_instance());
 
     /* Load the serial EEPROM. */
     dc390_load_eeprom(dev);

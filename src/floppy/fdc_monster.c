@@ -26,6 +26,8 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
 #include <86box/rom.h>
 #include <86box/machine.h>
 #include <86box/timer.h>
@@ -41,7 +43,7 @@ typedef struct monster_fdc_t {
     rom_t  bios_rom;
     fdc_t *fdc_pri;
     fdc_t *fdc_sec;
-    char  *nvr_path;
+    char   nvr_path[64];
 } monster_fdc_t;
 
 static void
@@ -100,10 +102,12 @@ monster_fdc_close(void *priv)
 {
     monster_fdc_t *dev = (monster_fdc_t *) priv;
 
-    FILE *f = fopen(dev->nvr_path, "wb");
-    if (f != NULL) {
-        fwrite(dev->bios_rom.rom, 1, 0x2000, f);
-        fclose(f);
+    if (dev->nvr_path[0] != 0x00) {
+        FILE *f = nvr_fopen(dev->nvr_path, "wb");
+        if (f != NULL) {
+            fwrite(dev->bios_rom.rom, 1, 0x2000, f);
+            fclose(f);
+        }
     }
 
     free(dev);
@@ -114,8 +118,7 @@ monster_fdc_init(UNUSED(const device_t *info))
 {
     monster_fdc_t *dev;
 
-    dev = (monster_fdc_t *) malloc(sizeof(monster_fdc_t));
-    memset(dev, 0, sizeof(monster_fdc_t));
+    dev = (monster_fdc_t *) calloc(1, sizeof(monster_fdc_t));
 
 #if 0
     uint8_t sec_irq = device_get_config_int("sec_irq");
@@ -140,15 +143,13 @@ monster_fdc_init(UNUSED(const device_t *info))
     uint8_t rom_writes_enabled = device_get_config_int("rom_writes_enabled");
     if (rom_writes_enabled) {
         mem_mapping_set_write_handler(&dev->bios_rom.mapping, rom_write, rom_writew, rom_writel);
-        dev->nvr_path     = "monster_fdc_0.nvr";
-        dev->nvr_path[12] = device_get_instance() + 0x30;
-        FILE *f = fopen(dev->nvr_path, "rb");
+        sprintf(dev->nvr_path, "monster_fdc_%i.nvr", device_get_instance());
+        FILE *f = nvr_fopen(dev->nvr_path, "rb");
         if (f != NULL) {
             fread(dev->bios_rom.rom, 1, 0x2000, f);
             fclose(f);
         }
-    } else
-        dev->nvr_path = NULL;
+    }
 
     return dev;
 }
