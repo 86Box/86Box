@@ -240,7 +240,6 @@ reset_common(int hard)
 
     if (!hard && reset_on_hlt) {
         hlt_reset_pending++;
-        pclog("hlt_reset_pending = %i\n", hlt_reset_pending);
         if (hlt_reset_pending == 2)
             hlt_reset_pending = 0;
         else
@@ -352,7 +351,8 @@ reset_common(int hard)
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */
         device_reset_all(DEVICE_KBC);
-    }
+    } else
+        device_reset_all(DEVICE_SOFTRESET);
 
     if (!is286)
         reset_808x(hard);

@@ -37,6 +37,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/plat_unused.h>
+#include <86box/chipset.h>
 
 #define RAM_DIAG_L_BASE_MEM_640KB    0x00
 #define RAM_DIAG_L_BASE_MEM_INV      0x10
@@ -749,18 +750,18 @@ compaq_386_init(UNUSED(const device_t *info))
 static void
 compaq_genoa_outw(uint16_t port, uint16_t val, void *priv)
 {
-    if (port == 0x0c02) {
-        if (val)
-            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        else
-            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    }
+     if (port == 0x0c02)
+        cpq_write_regs(0x80c00000, val, priv);
 }
 
 static void *
 compaq_genoa_init(UNUSED(const device_t *info))
 {
-    io_sethandler(0x0c02, 3, NULL, NULL, NULL, NULL, compaq_genoa_outw, NULL, ram);
+    void *cpq = device_add(&compaq_386_device);
+
+    pclog_toggle_suppr();
+
+    io_sethandler(0x0c02, 2, NULL, NULL, NULL, NULL, compaq_genoa_outw, NULL, cpq);
 
     return ram;
 }

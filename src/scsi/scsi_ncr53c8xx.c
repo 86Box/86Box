@@ -205,7 +205,7 @@ typedef enum {
 } scsi_state_t;
 
 typedef struct ncr53c8xx_t {
-    char         *nvr_path;
+    char          nvr_path[64];
     uint8_t       pci_slot;
     uint8_t       chip, wide;
     int           has_bios;
@@ -2571,33 +2571,33 @@ ncr53c8xx_init(const device_t *info)
 
     switch (dev->chip) {
         case CHIP_810:
-            dev->nvr_path = "ncr53c810.nvr";
+            sprintf(dev->nvr_path, "ncr53c810_%i.nvr", device_get_instance());
             dev->wide     = 0;
             break;
         case CHIP_815:
             dev->chip_rev = 0x04;
-            dev->nvr_path = "ncr53c815.nvr";
+            sprintf(dev->nvr_path, "ncr53c815_%i.nvr", device_get_instance());
             dev->wide     = 0;
             break;
         case CHIP_820:
-            dev->nvr_path = "ncr53c820.nvr";
+            sprintf(dev->nvr_path, "ncr53c820_%i.nvr", device_get_instance());
             dev->wide     = 1;
             break;
         case CHIP_825:
             dev->chip_rev = 0x26;
-            dev->nvr_path = "ncr53c825a.nvr";
+            sprintf(dev->nvr_path, "ncr53c825a_%i.nvr", device_get_instance());
             dev->wide     = 1;
             break;
         case CHIP_860:
             scsi_bus_set_speed(dev->bus, 20000000.0);
             dev->chip_rev = 0x04;
-            dev->nvr_path = "ncr53c860.nvr";
+            sprintf(dev->nvr_path, "ncr53c860_%i.nvr", device_get_instance());
             dev->wide     = 1;
             break;
         case CHIP_875:
             scsi_bus_set_speed(dev->bus, 40000000.0);
             dev->chip_rev = 0x04;
-            dev->nvr_path = "ncr53c875.nvr";
+            sprintf(dev->nvr_path, "ncr53c875_%i.nvr", device_get_instance());
             dev->wide     = 1;
             break;
     }

@@ -141,6 +141,7 @@ typedef struct sb_dsp_t {
     int        wb_full;
 
     pc_timer_t irq_timer;
+    pc_timer_t irq16_timer;
 
     int busy_count;
 

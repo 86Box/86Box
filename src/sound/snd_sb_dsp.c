@@ -1722,19 +1722,18 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_add_data(dsp, dsp->sb_test);
             break;
         case 0xF2: /* Trigger 8-bit IRQ */
-            sb_dsp_log("Trigger IRQ\n");
-            if (IS_ESS(dsp)) {
-                if (!timer_is_enabled(&dsp->irq_timer)) {
-                    timer_set_delay_u64(&dsp->irq_timer, (100ULL * TIMER_USEC));
-                }
-            } else {
-                sb_irq(dsp, 1);
-                dsp->ess_irq_generic = true;
+            sb_dsp_log("Trigger 8-bit IRQ\n");
+            if (!timer_is_enabled(&dsp->irq_timer)) {
+                timer_set_delay_u64(&dsp->irq_timer, (100ULL * TIMER_USEC));
             }
             break;
         case 0xF3: /* Trigger 16-bit IRQ */
-            sb_dsp_log("Trigger IRQ\n");
-            dsp->ess_irq_generic = true;
+            sb_dsp_log("Trigger 16-bit IRQ\n");
+            if (IS_ESS(dsp))
+                dsp->ess_irq_generic = true;
+            else if (!timer_is_enabled(&dsp->irq16_timer)) {
+                timer_set_delay_u64(&dsp->irq16_timer, (100ULL * TIMER_USEC));
+            }
             break;
         case 0xF8:
             if (dsp->sb_type < SB16)
@@ -2062,6 +2061,15 @@ sb_dsp_irq_poll(void *priv)
 }
 
 void
+sb_dsp_irq16_poll(void *priv)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    sb_irq(dsp, 0);
+    dsp->ess_irq_generic = true;
+}
+
+void
 sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
 {
     dsp->sb_type    = type;
@@ -2095,15 +2103,18 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     timer_add(&dsp->input_timer, sb_poll_i, dsp, 0);
     timer_add(&dsp->wb_timer, NULL, dsp, 0);
     timer_add(&dsp->irq_timer, sb_dsp_irq_poll, dsp, 0);
+    timer_add(&dsp->irq16_timer, sb_dsp_irq16_poll, dsp, 0);
 
     if (IS_ESS(dsp))
         /* Initialize ESS filter to 8 kHz. This will be recalculated when a set frequency command is
            sent. */
         recalc_sb16_filter(0, 8000 * 2);
-    else
+    else {
+        timer_add(&dsp->irq16_timer, sb_dsp_irq16_poll, dsp, 0);
         /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
            a set frequency command is sent. */
         recalc_sb16_filter(0, 3200 * 2);
+    }
     if (IS_ESS(dsp) || (dsp->sb_type >= SBPRO2)) {
         /* OPL3 or dual OPL2 is stereo. */
         if (dsp->sb_has_real_opl)
