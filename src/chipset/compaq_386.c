@@ -752,12 +752,18 @@ compaq_genoa_outw(uint16_t port, uint16_t val, void *priv)
 {
      if (port == 0x0c02) {
         if (val)
-            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
         else
             mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 
         flushmmucache_nopc();
     }
+}
+
+static void
+compaq_genoa_reset(void *priv)
+{
+    mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 }
 
 static void *
@@ -787,11 +793,11 @@ const device_t compaq_386_device = {
 const device_t compaq_genoa_device = {
     .name          = "Compaq Genoa Memory Control",
     .internal_name = "compaq_genoa",
-    .flags         = 0,
+    .flags         = DEVICE_SOFTRESET,
     .local         = 0,
     .init          = compaq_genoa_init,
     .close         = NULL,
-    .reset         = NULL,
+    .reset         = compaq_genoa_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
