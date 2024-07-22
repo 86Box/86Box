@@ -106,11 +106,11 @@ opti391_shadow_recalc(opti391_t *dev)
     for (uint8_t i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
         if (base >= 0xe0000) {
-            sh_master = (dev->regs[0x02] & 0x40);
-            sh_wp     = (dev->regs[0x02] & 0x10);
-        } else {
             sh_master = (dev->regs[0x02] & 0x20);
             sh_wp     = (dev->regs[0x02] & 0x08);
+        } else {
+            sh_master = (dev->regs[0x02] & 0x40);
+            sh_wp     = (dev->regs[0x02] & 0x10);
         }
         sh_enable = dev->regs[0x03] & (1 << i);
 
@@ -253,7 +253,7 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x02:
                 case 0x03:
                 case 0x06:
-                    pclog("Write %02X: %02X\n", dev->index - dev->reg_base, val);
+                    opti391_log("Write %02X: %02X\n", dev->index - dev->reg_base, val);
                     dev->regs[dev->index - dev->reg_base] = val;
                     opti391_shadow_recalc(dev);
                     break;
