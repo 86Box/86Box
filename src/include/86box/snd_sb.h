@@ -187,6 +187,8 @@ typedef struct sb_t {
     uint8_t pnp_rom[512];
 
     uint16_t opl_pnp_addr;
+
+    uint16_t midi_addr;
     uint16_t gameport_addr;
 
     void   *opl_mixer;
