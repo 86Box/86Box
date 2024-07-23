@@ -91,6 +91,8 @@ typedef struct sb_dsp_t {
     uint8_t sbref;
     int8_t  sbstep;
 
+    uint8_t activity;
+
     int sbdacpos;
 
     int sbleftright;
