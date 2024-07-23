@@ -218,7 +218,6 @@ SettingsFloppyCDROM::save()
     /* Removable devices category */
     model = ui->tableViewCDROM->model();
     for (int i = 0; i < CDROM_NUM; i++) {
-        cdrom[i].is_dir = 0;
         cdrom[i].priv = NULL;
         cdrom[i].ops = NULL;
         cdrom[i].image = NULL;
