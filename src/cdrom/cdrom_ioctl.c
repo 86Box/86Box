@@ -254,7 +254,6 @@ cdrom_ioctl_open(cdrom_t *dev, const char *drv)
 
     /* All good, reset state. */
     dev->cd_status      = CD_STATUS_STOPPED;
-    dev->is_dir         = 0;
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
     dev->cdrom_capacity = ioctl_get_capacity(dev);
