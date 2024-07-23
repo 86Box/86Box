@@ -226,7 +226,6 @@ typedef struct cdrom {
     uint8_t speed;
     uint8_t cur_speed;
 
-    int   is_dir;
     void *priv;
 
     char image_path[1024];

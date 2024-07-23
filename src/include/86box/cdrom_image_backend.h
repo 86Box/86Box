@@ -53,6 +53,8 @@ typedef struct track_file_t {
     char  fn[260];
     FILE *fp;
     void *priv;
+
+    int motorola;
 } track_file_t;
 
 typedef struct track_t {
@@ -63,7 +65,7 @@ typedef struct track_t {
     int           mode2;
     int           form;
     int           pre;
-    int           pad;
+    int           noskip; /* Do not skip by 8 bytes.*/
     uint64_t      start;
     uint64_t      length;
     uint64_t      skip;
