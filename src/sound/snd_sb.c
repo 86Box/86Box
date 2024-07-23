@@ -2242,10 +2242,6 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                              ess->opl.read, NULL, NULL,
                              ess->opl.write, NULL, NULL,
                              ess->opl.priv);
-            io_removehandler(addr, 0x0004,
-                             ess_fm_midi_read, NULL, NULL,
-                             ess_fm_midi_write, NULL, NULL,
-                             ess);
             io_removehandler(addr + 8, 0x0002,
                              ess->opl.read, NULL, NULL,
                              ess->opl.write, NULL, NULL,
@@ -2314,10 +2310,6 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                                   ess->opl.read, NULL, NULL,
                                   ess->opl.write, NULL, NULL,
                                   ess->opl.priv);
-                    io_sethandler(addr, 0x0004,
-                                  ess_fm_midi_read, NULL, NULL,
-                                  ess_fm_midi_write, NULL, NULL,
-                                  ess);
                     io_sethandler(addr + 8, 0x0002,
                                   ess->opl.read, NULL, NULL,
                                   ess->opl.write, NULL, NULL,
@@ -2451,10 +2443,6 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
                          ess->opl.priv);
-        io_removehandler(ess->dsp.sb_addr, 0x0004,
-                         ess_fm_midi_read, NULL, NULL,
-                         ess_fm_midi_write, NULL, NULL,
-                         ess);
         io_removehandler(ess->dsp.sb_addr + 8, 0x0002,
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
@@ -2523,10 +2511,6 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL,
                           ess->opl.priv);
-            io_sethandler(ess->dsp.sb_addr, 0x0004,
-                          ess_fm_midi_read, NULL, NULL,
-                          ess_fm_midi_write, NULL, NULL,
-                          ess);
             io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL,
@@ -2622,10 +2606,6 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
                          ess->opl.priv);
-        io_removehandler(ess->dsp.sb_addr, 0x0004,
-                         ess_fm_midi_read, NULL, NULL,
-                         ess_fm_midi_write, NULL, NULL,
-                         ess);
         io_removehandler(ess->dsp.sb_addr + 8, 0x0002,
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
@@ -2684,10 +2664,6 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL,
                           ess->opl.priv);
-            io_sethandler(ess->dsp.sb_addr, 0x0004,
-                          ess_fm_midi_read, NULL, NULL,
-                          ess_fm_midi_write, NULL, NULL,
-                          ess);
             io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL,
@@ -2703,7 +2679,7 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
                           ess_fm_midi_read, NULL, NULL,
                           ess_fm_midi_write, NULL, NULL,
                           ess);
-            io_sethandler(ess->dsp.sb_addr + 4, 0x0002,
+            io_sethandler(ess->dsp.sb_addr + 4, 0x0004,
                           ess_mixer_read, NULL, NULL,
                           ess_mixer_write, NULL, NULL,
                           ess);
@@ -3722,10 +3698,6 @@ ess_x688_init(UNUSED(const device_t *info))
                   ess->opl.read, NULL, NULL,
                   ess->opl.write, NULL, NULL,
                   ess->opl.priv);
-    io_sethandler(addr, 0x0004,
-                  ess_fm_midi_read, NULL, NULL,
-                  ess_fm_midi_write, NULL, NULL,
-                  ess);
     io_sethandler(addr + 8, 0x0002,
                   ess->opl.read, NULL, NULL,
                   ess->opl.write, NULL, NULL,
