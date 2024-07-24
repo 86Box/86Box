@@ -47,7 +47,7 @@ jobs:
 #            preset: debug
 #            slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: dev_debug
             slug: -Dev
         dynarec:
           - name: ODR
