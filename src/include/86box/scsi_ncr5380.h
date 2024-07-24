@@ -138,9 +138,6 @@ extern const device_t scsi_t128_device;
 extern const device_t scsi_t228_device;
 extern const device_t scsi_t130b_device;
 extern const device_t scsi_ls2000_device;
-#if defined(DEV_BRANCH) && defined(USE_SUMO)
-extern const device_t scsi_scsiat_device;
-#endif
 #endif
 
 #endif /*SCSI_NCR5380_H*/
