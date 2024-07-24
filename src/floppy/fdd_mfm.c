@@ -454,9 +454,12 @@ mfm_load(int drive, char *fn)
         dev->br_rounded = (int) dbr;
         mfm_log("Rounded bit rate: %i kbps\n", dev->br_rounded);
 
-        dbr              = round(((double) dev->hdr.rpm) / 60.0) * 60.0;
+        if (dev->hdr.rpm != 0)
+            dbr              = round(((double) dev->hdr.rpm) / 60.0) * 60.0;
+        else
+            dbr              = (dev->br_rounded == 300) ? 360.0 : 300.0;
         dev->rpm_rounded = (int) dbr;
-        mfm_log("Rounded RPM: %i kbps\n", dev->rpm_rounded);
+        mfm_log("Rounded RPM: %i rpm\n", dev->rpm_rounded);
     }
 
     /* Set up the drive unit. */
