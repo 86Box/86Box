@@ -450,20 +450,16 @@ mfm_load(int drive, char *fn)
     }
 
     if (!(dev->hdr.if_type & 0x80)) {
-        pclog("Bit rate = %i\n", dev->hdr.bit_rate);
         dbr             = round(((double) dev->hdr.bit_rate) / 50.0) * 50.0;
         dev->br_rounded = (int) dbr;
         mfm_log("Rounded bit rate: %i kbps\n", dev->br_rounded);
-        pclog("Rounded bit rate: %i kbps\n", dev->br_rounded);
 
-        pclog("RPM      = %i\n", dev->hdr.rpm);
         if (dev->hdr.rpm != 0)
             dbr              = round(((double) dev->hdr.rpm) / 60.0) * 60.0;
         else
-            dbr              = (dev->br_rounded == 300) ? 360 : 300;
+            dbr              = (dev->br_rounded == 300) ? 360.0 : 300.0;
         dev->rpm_rounded = (int) dbr;
-        mfm_log("Rounded RPM: %i kbps\n", dev->rpm_rounded);
-        pclog("Rounded RPM: %i kbps\n", dev->rpm_rounded);
+        mfm_log("Rounded RPM: %i rpm\n", dev->rpm_rounded);
     }
 
     /* Set up the drive unit. */
