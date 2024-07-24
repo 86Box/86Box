@@ -173,8 +173,6 @@ sw_write(void *priv)
     if (!JOYSTICK_PRESENT(0))
         return;
 
-    timer_process();
-
     if (!sw->poll_left) {
         sw->poll_clock = 1;
         timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 50);
