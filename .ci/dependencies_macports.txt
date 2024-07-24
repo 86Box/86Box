@@ -15,3 +15,4 @@ fluidsynth
 ghostscript
 libslirp
 vde2
+libsndfile
