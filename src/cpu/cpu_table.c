@@ -16,13 +16,15 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          RichardG, <richardg867@gmail.com>
  *          dob205,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 leilei.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2024 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2020      RichardG.
  *          Copyright 2021      dob205.
+ *          Copyright 2022-2024 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
