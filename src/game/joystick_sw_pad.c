@@ -92,9 +92,7 @@ sw_timer_over(void *priv)
     if (sw->poll_left == 1 && !sw->poll_clock)
         timer_advance_u64(&sw->poll_timer, TIMER_USEC * 160);
     else if (sw->poll_left)
-        timer_advance_u64(&sw->poll_timer, TIMER_USEC * 5);
-    else
-        timer_disable(&sw->poll_timer);
+        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 5);
 }
 
 static void
@@ -175,7 +173,7 @@ sw_write(void *priv)
 
     if (!sw->poll_left) {
         sw->poll_clock = 1;
-        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 50);
+        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 40);
 
         if (time_since_last > 9900 && time_since_last < 9940) {
             sw->poll_mode = 0;
