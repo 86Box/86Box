@@ -42,6 +42,9 @@ typedef struct opti895_t {
     smram_t *smram;
 } opti895_t;
 
+static uint8_t masks[0x10] = { 0x3f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe,
+                               0xe3, 0xff, 0xe3, 0xff, 0x00, 0xff, 0xff, 0xff };
+
 #ifdef ENABLE_OPTI895_LOG
 int opti895_do_log = ENABLE_OPTI895_LOG;
 
@@ -153,8 +156,12 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
         case 0x24:
-            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) || ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
-                dev->regs[dev->idx] = val;
+            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f) && (dev->idx != 0x2c)) ||
+                ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
+                if (dev->idx > 0x2f)
+                    dev->regs[dev->idx] = val;
+                else
+                    dev->regs[dev->idx] = val & masks[dev->idx - 0x20];
                 opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
 
                 /* TODO: Registers 0x30-0x3F for OPTi 802GP and 898. */
@@ -217,7 +224,8 @@ opti895_read(uint16_t addr, void *priv)
             break;
         case 0x24:
             /* TODO: Registers 0x30-0x3F for OPTi 802GP and 898. */
-            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) || ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
+            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f) && (dev->idx != 0x2c)) ||
+                ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
                 ret = dev->regs[dev->idx];
                 if (dev->idx == 0xe0)
                     ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
