@@ -178,6 +178,9 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
     opti391_log("[W] %04X = %02X\n", addr, val);
 
     switch (addr) {
+        default:
+            break;
+
         case 0x22:
             dev->index = val;
             break;
@@ -200,6 +203,9 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                     reset_on_hlt = !!(val & 0x02);
                     break;
             } else  switch (dev->index - dev->reg_base) {
+                default:
+                    break;
+
                 case 0x00:
                     if (dev->type == 2) {
                         reset_on_hlt = !!(val & 0x02);
@@ -222,8 +228,14 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                         opti391_recalcremap(dev);
                     break;
 
-                case 0x04:
                 case 0x05:
+                    if (dev->type == 2)
+                        dev->regs[dev->index - dev->reg_base] = val & 0xf8;
+                    else
+                        dev->regs[dev->index - dev->reg_base] = val;
+                    break;
+
+                case 0x04:
                 case 0x09:
                 case 0x0a:
                 case 0x0b:
@@ -238,8 +250,10 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
                 case 0x08:
-                    dev->regs[dev->index - dev->reg_base] = val;
-                    if (dev->type < 2) {
+                    if (dev->type == 2)
+                        dev->regs[dev->index - dev->reg_base] = val & 0xe3;
+                    else {
+                        dev->regs[dev->index - dev->reg_base] = val;
                         cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x40);
                         cpu_update_waitstates();
                     }
@@ -257,13 +271,9 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index - dev->reg_base] = val;
                     opti391_shadow_recalc(dev);
                     break;
-
-                default:
-                    break;
             }
-            break;
 
-        default:
+            dev->index = 0xff;
             break;
     }
 }
@@ -271,14 +281,16 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti391_read(uint16_t addr, void *priv)
 {
-    const opti391_t *dev = (opti391_t *) priv;
-    uint8_t          ret = 0xff;
+    opti391_t *dev = (opti391_t *) priv;
+    uint8_t    ret = 0xff;
 
     if (addr == 0x24) {
         if ((dev->index <= 0x01) && (dev->type < 2))
             ret = dev->regs[dev->index + 0x10];
         else if ((dev->index >= dev->min_reg) && (dev->index <= dev->max_reg))
             ret = dev->regs[dev->index - dev->reg_base];
+
+        dev->index = 0xff;
     }
 
     opti391_log("[R] %04X = %02X\n", addr, ret);
