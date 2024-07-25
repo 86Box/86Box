@@ -18,8 +18,9 @@
 /* Reference: https://www.touchwindow.com/mm5/drivers/mtsctlrm.pdf */
 
 /* TODO:
-    Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
+    - Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
     - Dynamic baud rate selection from software following this.
+	- Add additional SMT2/3 commands plus config option for controller type.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -38,20 +39,18 @@
 #include <86box/video.h> /* Needed to account for overscan. */
 
 enum mtouch_modes {
-    MODE_TABLET = 1,
-    MODE_RAW    = 2,
+    MODE_RAW    = 1,
+	MODE_TABLET = 2,
     MODE_HEX    = 3
 };
 
 typedef struct mouse_microtouch_t {
-    double     abs_x;
-    double     abs_y;
     double     baud_rate;
     int        b;
     char       cmd[512];
     int        cmd_pos;
     int        mode;
-    uint8_t    cal_cntr, pen_mode, prev_b;
+    uint8_t    cal_cntr, pen_mode;
     bool       soh;
     bool       in_reset;
     serial_t  *serial;
@@ -117,7 +116,8 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
-        mtouch->mode = MODE_HEX;
+        /* Do not reset Mode Status for now as Photo Play 2000 relies on it */
+		mtouch->mode = MODE_HEX;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *)"0\r", 2);
     }
@@ -236,7 +236,6 @@ mtouch_poll(void *priv)
     int          b = mouse_get_buttons_ex();
 
     mouse_get_abs_coords(&abs_x, &abs_y);
-    dev->b |= !!(b & 3); /* Old state OR mouse click */
     
     if (abs_x >= 1.0)
         abs_x = 1.0;
@@ -269,34 +268,26 @@ mtouch_poll(void *priv)
         if (abs_y >= 1.0)
             abs_y = 1.0;
     }
+	
+	if (dev->cal_cntr || (!b && !dev->b)) { /* Calibration or no buttonpress */
+		if (!b && dev->b) {
+			microtouch_calibrate_timer(dev);
+		}
+		dev->b = b; /* Save lack of buttonpress */
+		return 0;
+	}
 
     if (dev->mode == MODE_TABLET) {
-        if (dev->cal_cntr && (!(dev->b & 1) && !!(b & 3))) {
-            dev->b |= 1;
-        } else if (dev->cal_cntr && ((dev->b & 1) && !(b & 3))) {
-            dev->b &= ~1;
-            microtouch_calibrate_timer(dev);
-        }
-        if (dev->cal_cntr) {
-            return 0;
-        }
-        if (!!(b & 3)) { /* Touchdown/Continuation */
-            dev->abs_x = abs_x;
-            dev->abs_y = abs_y;
-            dev->b |= 1;
-
-            abs_x_int = abs_x * 16383;
-            abs_y_int = 16383 - abs_y * 16383;
-
+		abs_x_int = abs_x * 16383;
+        abs_y_int = 16383 - abs_y * 16383;
+		
+        if (b) { /* Touchdown/Continuation */
             fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5) | ((b & 3))) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
-        } else if ((dev->b & 1) && !(b & 3)) { /* Liftoff */
-            dev->b &= ~1;
-            abs_x_int = dev->abs_x * 16383;
-            abs_y_int = 16383 - dev->abs_y * 16383;
+        } else if (dev->b) { /* Liftoff */
             fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
@@ -310,27 +301,24 @@ mtouch_poll(void *priv)
         }
     }
     
-    else if (dev->mode == MODE_HEX) {
+    if (dev->mode == MODE_HEX) {
         abs_x_int = abs_x * 1023;
         abs_y_int = 1023 - (abs_y * 1023);
-        char buffer[20];
+        char buffer[10];
         
-        if (dev->cal_cntr && !b && dev->prev_b) { 
-            microtouch_calibrate_timer(dev);
-        }
-        else if (b & 1) {
-            if (dev->prev_b == 0) { /* Touchdown */
+        if (b) {
+            if (!dev->b) { /* Touchdown */
                 snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
             } else { /* Touch Continuation */
                 snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
             }
-            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
-        } else if (dev->prev_b == 1) { /* Liftoff */
+        } else if (dev->b) { /* Liftoff */
             snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
-            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
         }
-        dev->prev_b = b & 1;
+		fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
     }
+	
+	dev->b = b; /* Save buttonpress */
     return 0;
 }
 
