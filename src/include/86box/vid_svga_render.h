@@ -48,6 +48,8 @@ extern void svga_render_text_80_ksc5601(svga_t *svga);
 
 extern void svga_render_2bpp_lowres(svga_t *svga);
 extern void svga_render_2bpp_highres(svga_t *svga);
+extern void svga_render_2bpp_s3_lowres(svga_t *svga);
+extern void svga_render_2bpp_s3_highres(svga_t *svga);
 extern void svga_render_2bpp_headland_highres(svga_t *svga);
 extern void svga_render_4bpp_lowres(svga_t *svga);
 extern void svga_render_4bpp_highres(svga_t *svga);

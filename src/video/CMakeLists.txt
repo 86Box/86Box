@@ -29,6 +29,10 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c vid_xga.c
     vid_bochs_vbe.c)
 
+if(G100)
+    target_compile_definitions(vid PRIVATE USE_G100)
+endif()
+
 if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()

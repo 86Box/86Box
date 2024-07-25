@@ -384,7 +384,12 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
                pkthdr[0], pkthdr[1], pkthdr[2], pkthdr[3]);
 
     /* Copy into buffer, update curpage, and signal interrupt if config'd */
-    startptr = &dev->mem[(dev->curr_page * 256) - dev->mem_start];
+    if (((dev->curr_page * 256) - dev->mem_start) >= dev->mem_size)
+        /* Do this to fix Windows 2000 crashing the emulator when its
+           MPU-401 probe hits the NIC. */
+        startptr = &dev->sink_buffer;
+    else
+        startptr = &dev->mem[(dev->curr_page * 256) - dev->mem_start];
     memcpy(startptr, pkthdr, sizeof(pkthdr));
     if ((nextpage > dev->curr_page) || ((dev->curr_page + pages) == dev->page_stop)) {
         memcpy(startptr + sizeof(pkthdr), buf, io_len);

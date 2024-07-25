@@ -685,9 +685,10 @@ svga_recalctimings(svga_t *svga)
                     else
                         svga->render = svga_render_4bpp_highres;
                 } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 8) { /*Low res (320)*/
                         svga->render = svga_render_2bpp_lowres;
-                    else
+                        pclog("2 bpp low res\n");
+                    } else
                         svga->render = svga_render_2bpp_highres;
                 } else {
                     svga->map8 = svga->pallook;
