@@ -387,7 +387,7 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
     if (((dev->curr_page * 256) - dev->mem_start) >= dev->mem_size)
         /* Do this to fix Windows 2000 crashing the emulator when its
            MPU-401 probe hits the NIC. */
-        startptr = &dev->sink_buffer;
+        startptr = dev->sink_buffer;
     else
         startptr = &dev->mem[(dev->curr_page * 256) - dev->mem_start];
     memcpy(startptr, pkthdr, sizeof(pkthdr));
