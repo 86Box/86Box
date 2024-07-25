@@ -454,7 +454,7 @@ machine_at_epc2102_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i82091aa_device);
     device_add(&intel_flash_bxt_device);
 
