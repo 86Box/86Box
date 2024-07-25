@@ -5486,8 +5486,8 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
             .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi = 0,
             .max_multi = 0
         },
