@@ -160,19 +160,19 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { // Calibrate New/Extended
+    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { /* Calibrate New/Extended */
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
         mtouch->cal_cntr = 2;
     }
-    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { // Get Parameter Block 1
+    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Get Parameter Block 1 */
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", sizeof("0000000000000000000000000\r") - 1);
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
     }
-    if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { // Set Parameter Block 1
+    if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Set Parameter Block 1 */
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
     }
@@ -236,7 +236,7 @@ mtouch_poll(void *priv)
     int          b = mouse_get_buttons_ex();
 
     mouse_get_abs_coords(&abs_x, &abs_y);
-    dev->b |= !!(b & 3); /* any button pressed */
+    dev->b |= !!(b & 3); /* Old state OR mouse click */
     
     if (abs_x >= 1.0)
         abs_x = 1.0;
@@ -280,7 +280,7 @@ mtouch_poll(void *priv)
         if (dev->cal_cntr) {
             return 0;
         }
-        if (!!(b & 3)) { /* Hover */
+        if (!!(b & 3)) { /* Touchdown/Continuation */
             dev->abs_x = abs_x;
             dev->abs_y = abs_y;
             dev->b |= 1;
@@ -293,7 +293,7 @@ mtouch_poll(void *priv)
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
-        } else if ((dev->b & 1) && !(b & 3)) { /* Touch */
+        } else if ((dev->b & 1) && !(b & 3)) { /* Liftoff */
             dev->b &= ~1;
             abs_x_int = dev->abs_x * 16383;
             abs_y_int = 16383 - dev->abs_y * 16383;
