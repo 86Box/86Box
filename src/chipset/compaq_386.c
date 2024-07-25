@@ -759,8 +759,6 @@ compaq_genoa_init(UNUSED(const device_t *info))
 {
     void *cpq = device_add(&compaq_386_device);
 
-    pclog_toggle_suppr();
-
     io_sethandler(0x0c02, 2, NULL, NULL, NULL, NULL, compaq_genoa_outw, NULL, cpq);
 
     return ram;
