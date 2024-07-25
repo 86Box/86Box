@@ -242,7 +242,7 @@ bin_close(void *priv)
 static track_file_t *
 bin_init(const char *filename, int *error)
 {
-    track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
+    track_file_t *tf = (track_file_t *) calloc(1, sizeof(track_file_t));
     struct stat   stats;
 
     if (tf == NULL) {
@@ -534,7 +534,7 @@ cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint3
              to get sector size? */
     const int      sector_size = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
     const uint32_t buf_len     = num * sector_size;
-    uint8_t       *buf         = (uint8_t *) malloc(buf_len * sizeof(uint8_t));
+    uint8_t       *buf         = (uint8_t *) calloc(1, buf_len * sizeof(uint8_t));
 
     for (uint32_t i = 0; i < num; i++) {
         success = cdi_read_sector(cdi, &buf[i * sector_size], raw, sector + i);
@@ -646,7 +646,7 @@ cdi_track_push_back(cd_img_t *cdi, track_t *trk)
 int
 cdi_get_iso_track(cd_img_t *cdi, track_t *trk, const char *filename)
 {
-    int error;
+    int error = 0;
     int ret = 2;
     memset(trk, 0, sizeof(track_t));
 
@@ -712,7 +712,7 @@ int
 cdi_load_iso(cd_img_t *cdi, const char *filename)
 {
     int     ret = 2;
-    track_t trk;
+    track_t trk = { 0 };
 
     cdi->tracks     = NULL;
     cdi->tracks_num = 0;

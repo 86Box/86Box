@@ -606,7 +606,6 @@ static int
 sf_FNOP(uint32_t fetchdat)
 {
     FP_ENTER();
-    pclog("FNOP.\n");
     FPU_check_pending_exceptions();
     cpu_state.pc++;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
