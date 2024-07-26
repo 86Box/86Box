@@ -20,7 +20,7 @@
 /* TODO:
     - Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
     - Dynamic baud rate selection from software following this.
-	- Add additional SMT2/3 commands plus config option for controller type.
+    - Add additional SMT2/3 commands plus config option for controller type.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -40,7 +40,7 @@
 
 enum mtouch_modes {
     MODE_RAW    = 1,
-	MODE_TABLET = 2,
+    MODE_TABLET = 2,
     MODE_HEX    = 3
 };
 
@@ -117,7 +117,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
         /* Do not reset Mode Status for now as Photo Play 2000 relies on it */
-		mtouch->mode = MODE_HEX;
+        mtouch->mode = MODE_HEX;
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *)"0\r", 2);
     }
@@ -176,8 +176,9 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
     }
-    if (fifo8_num_used(&mtouch->resp) != fifo_used)
+    if (fifo8_num_used(&mtouch->resp) != fifo_used) {
         pclog("Command received: %s\n", mtouch->cmd);
+    }
 }
 
 void
@@ -193,10 +194,9 @@ mtouch_write_to_host(void *priv)
             goto no_write_to_machine;
         }
     }
-
-    if (dev->in_reset)
+    if (dev->in_reset) {
         goto no_write_to_machine;
-
+    }
     if (fifo8_num_used(&dev->resp)) {
         serial_write_fifo(dev->serial, fifo8_pop(&dev->resp));
     }
@@ -268,19 +268,19 @@ mtouch_poll(void *priv)
         if (abs_y >= 1.0)
             abs_y = 1.0;
     }
-	
-	if (dev->cal_cntr || (!b && !dev->b)) { /* Calibration or no buttonpress */
-		if (!b && dev->b) {
-			microtouch_calibrate_timer(dev);
-		}
-		dev->b = b; /* Save lack of buttonpress */
-		return 0;
-	}
+    
+    if (dev->cal_cntr || (!b && !dev->b)) { /* Calibration or no buttonpress */
+        if (!b && dev->b) {
+            microtouch_calibrate_timer(dev);
+        }
+        dev->b = b; /* Save lack of buttonpress */
+        return 0;
+    }
 
     if (dev->mode == MODE_TABLET) {
-		abs_x_int = abs_x * 16383;
+        abs_x_int = abs_x * 16383;
         abs_y_int = 16383 - abs_y * 16383;
-		
+        
         if (b) { /* Touchdown/Continuation */
             fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5) | ((b & 3))) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
@@ -315,10 +315,10 @@ mtouch_poll(void *priv)
         } else if (dev->b) { /* Liftoff */
             snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
         }
-		fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
+        fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
     }
-	
-	dev->b = b; /* Save buttonpress */
+    
+    dev->b = b; /* Save buttonpress */
     return 0;
 }
 
