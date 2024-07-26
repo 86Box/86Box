@@ -341,7 +341,7 @@ mtouch_init(const device_t *info)
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->mode        = MODE_TABLET;
     dev->pen_mode    = 3;
-    mouse_input_mode = 1;
+    mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
     mouse_set_poll_ex(mtouch_poll_global);
 
@@ -397,6 +397,13 @@ static const device_config_t mtouch_config[] = {
             { .description =   "2400", .value =   2400 },
             { .description =   "1200", .value =   1200 }
         }
+    },
+    {
+        .name = "crosshair",
+        .description = "Show Crosshair",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
