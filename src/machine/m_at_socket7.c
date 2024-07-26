@@ -457,7 +457,7 @@ machine_at_epc2102_init(const machine_t *model)
     device_add(&piix3_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i82091aa_device);
-    device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_39sf010_device);
 
     return ret;
 }
