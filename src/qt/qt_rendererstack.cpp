@@ -251,6 +251,8 @@ RendererStack::enterEvent(QEvent *event)
     mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
 
     if (mouse_input_mode == 1)
+        QApplication::setOverrideCursor(Qt::BlankCursor);
+    else if (mouse_input_mode == 2)
         QApplication::setOverrideCursor(Qt::CrossCursor);
 }
 
