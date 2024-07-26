@@ -263,7 +263,7 @@ modem_read_phonebook_file(modem_t *modem, const char *path)
 
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
-            modem_log("Modem: Invalid character in phone number %s\n", entry.phone);
+            pclog("Modem: Invalid character in phone number %s\n", entry.phone);
             continue;
         }
 
