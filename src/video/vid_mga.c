@@ -6963,6 +6963,7 @@ const device_t millennium_ii_device = {
     .config        = millennium_ii_config
 };
 
+#ifdef USE_G100
 const device_t productiva_g100_device = {
     .name          = "Matrox Productiva G100",
     .internal_name = "productiva_g100",
@@ -6976,3 +6977,4 @@ const device_t productiva_g100_device = {
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
 };
+#endif

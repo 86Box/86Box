@@ -4153,6 +4153,11 @@ s3_recalctimings(svga_t *svga)
         svga->hoverride = 1;
     else
         svga->hoverride = 0;
+
+    if (svga->render == svga_render_2bpp_lowres)
+        svga->render = svga_render_2bpp_s3_lowres;
+    else if (svga->render == svga_render_2bpp_highres)
+        svga->render = svga_render_2bpp_s3_highres;
 }
 
 static void
@@ -4333,6 +4338,11 @@ s3_trio64v_recalctimings(svga_t *svga)
     }
 
     svga->hoverride = 1;
+
+    if (svga->render == svga_render_2bpp_lowres)
+        svga->render = svga_render_2bpp_s3_lowres;
+    else if (svga->render == svga_render_2bpp_highres)
+        svga->render = svga_render_2bpp_s3_highres;
 }
 
 static void
