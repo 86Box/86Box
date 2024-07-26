@@ -686,7 +686,7 @@ modem_dial(modem_t *modem, const char *str)
 {
     modem->tcpIpConnCounter = 0;
     modem->tcpIpMode        = false;
-    if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1)) {
+    if (!strcmp(str, "0.0.0.0") || !strcmp(str, "0000")) {
         modem_log("Turning on SLIP\n");
         modem_enter_connected_state(modem);
         modem->numberinprogress[0] = 0;
