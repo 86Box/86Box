@@ -54,9 +54,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
-#ifndef _WIN32
-#    include <sys/time.h>
-#endif /* _WIN32 */
+#include <sys/time.h>
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -122,8 +120,7 @@ int  network_ndev;
 netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
-
-#if defined     ENABLE_NETWORK_LOG && !defined(_WIN32)
+#ifdef ENABLE_NETWORK_LOG
 int             network_do_log = ENABLE_NETWORK_LOG;
 static FILE    *network_dump   = NULL;
 static mutex_t *network_dump_mutex;
@@ -149,9 +146,15 @@ network_dump_packet(netpkt_t *pkt)
     struct timeval tv;
     gettimeofday(&tv, NULL);
     struct {
-        uint32_t ts_sec, ts_usec, incl_len, orig_len;
+        uint32_t ts_sec;
+        uint32_t ts_usec;
+        uint32_t incl_len;
+        uint32_t orig_len;
     } pcap_packet_hdr = {
-        tv.tv_sec, tv.tv_usec, pkt->len, pkt->len
+          .ts_sec = tv.tv_sec,
+         .ts_usec = tv.tv_usec,
+        .incl_len = pkt->len,
+        .orig_len = pkt->len
     };
 
     if (network_dump_mutex)
@@ -165,8 +168,9 @@ network_dump_packet(netpkt_t *pkt)
         if ((written = fwrite(pkt->data, 1, pkt->len, network_dump)) < pkt->len) {
             network_log("NETWORK: failed to write dump packet data\n");
             fseek(network_dump, -written - sizeof(pcap_packet_hdr), SEEK_CUR);
+        } else {
+            fflush(network_dump);
         }
-        fflush(network_dump);
     }
 
     if (network_dump_mutex)
@@ -219,28 +223,41 @@ network_init(void)
     
 #ifdef HAS_VDE
     // Try to load the VDE plug library
-    if(net_vde_prepare()==0) {
+    if (!net_vde_prepare())
         network_devmap.has_vde = 1;
-    }
 #endif
 
-#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
+#ifdef ENABLE_NETWORK_LOG
     /* Start packet dump. */
     network_dump = fopen("network.pcap", "wb");
-
-    struct {
-        uint32_t magic_number;
-        uint16_t version_major, version_minor;
-        int32_t  thiszone;
-        uint32_t sigfigs, snaplen, network;
-    } pcap_hdr = {
-        0xa1b2c3d4,
-        2, 4,
-        0,
-        0, 65535, 1
-    };
-    fwrite(&pcap_hdr, sizeof(pcap_hdr), 1, network_dump);
-    fflush(network_dump);
+    if (network_dump) {
+        struct {
+            uint32_t magic_number;
+            uint16_t version_major;
+            uint16_t version_minor;
+            int32_t  thiszone;
+            uint32_t sigfigs;
+            uint32_t snaplen;
+            uint32_t network;
+        } pcap_hdr = {
+             .magic_number = 0xa1b2c3d4,
+            .version_major = 2,
+            .version_minor = 4,
+                 .thiszone = 0,
+                  .sigfigs = 0,
+                  .snaplen = 65535,
+                  .network = 1
+        };
+        if (fwrite(&pcap_hdr, 1, sizeof(pcap_hdr), network_dump) < sizeof(pcap_hdr)) {
+            network_log("NETWORK: failed to write dump header\n");
+            fclose(network_dump);
+            network_dump = NULL;
+        } else {
+            fflush(network_dump);
+        }
+    } else {
+        network_log("NETWORK: failed to open dump file\n");
+    }
 #endif
 }
 
@@ -297,10 +314,8 @@ network_queue_put_swap(netqueue_t *queue, netpkt_t *src_pkt)
             network_log("Discarded zero length packet.\n");
         } else if (src_pkt->len > NET_MAX_FRAME) {
             network_log("Discarded oversized packet of len=%d.\n", src_pkt->len);
-            network_dump_packet(src_pkt);
         } else {
             network_log("Discarded %d bytes packet because the queue is full.\n", src_pkt->len);
-            network_dump_packet(src_pkt);
         }
 #endif
         return 0;
@@ -501,7 +516,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             free(card->queued_pkt.data);
             free(card);
             // Placeholder - insert the error message
-            fatal("Error initializing the network device: Null driver initialization failed");
+            fatal("Error initializing the network device: Null driver initialization failed\n");
             return NULL;
         }
 
@@ -533,7 +548,7 @@ netcard_close(netcard_t *card)
 void
 network_close(void)
 {
-#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
+#ifdef ENABLE_NETWORK_LOG
     thread_close_mutex(network_dump_mutex);
     network_dump_mutex = NULL;
 #endif
@@ -554,7 +569,7 @@ network_reset(void)
 {
     ui_sb_update_icon(SB_NETWORK, 0);
 
-#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
+#ifdef ENABLE_NETWORK_LOG
     network_dump_mutex = thread_create_mutex();
 #endif
 
@@ -598,6 +613,7 @@ network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
     for (int i = 0; i < vec_size; i++) {
         if (!network_queue_get_swap(queue, pkt_vec))
             break;
+        network_dump_packet(pkt_vec);
         pkt_count++;
         pkt_vec++;
     }
