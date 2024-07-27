@@ -263,7 +263,7 @@ modem_read_phonebook_file(modem_t *modem, const char *path)
 
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
-            modem_log("Modem: Invalid character in phone number %s\n", entry.phone);
+            pclog("Modem: Invalid character in phone number %s\n", entry.phone);
             continue;
         }
 
@@ -575,14 +575,6 @@ modem_send_res(modem_t *modem, const ResTypes response)
         } else if (response_str != NULL) {
             modem_send_line(modem, response_str);
         }
-
-        // if(CSerial::CanReceiveByte())	// very fast response
-        //	if(rqueue->inuse() && CSerial::getRTS())
-        //	{ uint8_t rbyte =rqueue->getb();
-        //		CSerial::receiveByte(rbyte);
-        //	LOG_MSG("SERIAL: Port %" PRIu8 " modem sending byte %2x back to UART2",
-        //	        GetPortNumber(), rbyte);
-        //	}
     }
 }
 
@@ -686,7 +678,7 @@ modem_dial(modem_t *modem, const char *str)
 {
     modem->tcpIpConnCounter = 0;
     modem->tcpIpMode        = false;
-    if (!strncmp(str, "0.0.0.0", sizeof("0.0.0.0") - 1)) {
+    if (!strcmp(str, "0.0.0.0") || !strcmp(str, "0000")) {
         modem_log("Turning on SLIP\n");
         modem_enter_connected_state(modem);
         modem->numberinprogress[0] = 0;
@@ -1099,6 +1091,10 @@ modem_do_command(modem_t *modem, int repeat)
                     }
                     break;
                 }
+            case '%': // % escaped commands
+                // Windows 98 modem prober sends unknown command AT%V
+                modem_send_res(modem, ResERROR);
+                return;
             case '\0':
                 modem_send_res(modem, ResOK);
                 return;
