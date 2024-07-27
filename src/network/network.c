@@ -459,8 +459,9 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
         network_queue_init(&card->queues[i]);
     }
 
-    if (!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem") && net_type >= NET_TYPE_PCAP) {
-        /* Force SLiRP here. Modem only operates on non-Ethernet frames. */
+    if ((!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem") ||
+         !strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "plip")) && (net_type >= NET_TYPE_PCAP)) {
+        /* Force SLiRP here. Modem and PLIP only operate on non-Ethernet frames. */
         net_type = NET_TYPE_SLIRP;
     }
 
