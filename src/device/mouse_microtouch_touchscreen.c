@@ -108,7 +108,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     }
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { /* Output Identity */
         fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "P50200\r", sizeof("P50200\r") - 1);
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "A30600\r", sizeof("A30600\r") - 1);
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
         mtouch->mode = MODE_TABLET;
@@ -176,8 +176,10 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push(&mtouch->resp, 1);
         fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
     }
-    if (fifo8_num_used(&mtouch->resp) != fifo_used) {
-        pclog("Command received: %s\n", mtouch->cmd);
+    if (fifo8_num_used(&mtouch->resp) != fifo_used || mtouch->in_reset) {
+        pclog("Command handled: %s\n", mtouch->cmd);
+    } else {
+        pclog("Command ignored: %s\n", mtouch->cmd);
     }
 }
 
@@ -216,6 +218,7 @@ mtouch_write(serial_t *serial, void *priv, uint8_t data)
             dev->cmd[dev->cmd_pos++] = data;
         } else {
             dev->cmd[dev->cmd_pos++] = data;
+            dev->soh = 0;
             microtouch_process_commands(dev);
         }
     }
