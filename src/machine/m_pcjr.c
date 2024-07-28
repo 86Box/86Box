@@ -465,22 +465,22 @@ vid_poll(void *priv)
                         buffer32->line[l][ef_x + 2] = buffer32->line[l][ef_x + 3] =
                         buffer32->line[l + 1][ef_x] = buffer32->line[l + 1][ef_x + 1] =
                         buffer32->line[l + 1][ef_x + 2] = buffer32->line[l + 1][ef_x + 3] =
-                            pcjr->array[((dat >> 12) & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
                         buffer32->line[l][ef_x + 4] = buffer32->line[l][ef_x + 5] =
                         buffer32->line[l][ef_x + 6] = buffer32->line[l][ef_x + 7] =
-                        buffer32->line[l + 1][(x << 4) + 12] = buffer32->line[l + 1][(x << 4) + 13] =
-                        buffer32->line[l + 1][(x << 4) + 14] = buffer32->line[l + 1][(x << 4) + 15] =
-                            pcjr->array[((dat >> 8) & pcjr->array[1]) + 16] + 16;
+                        buffer32->line[l + 1][ef_x + 4] = buffer32->line[l + 1][ef_x + 5] =
+                        buffer32->line[l + 1][ef_x + 6] = buffer32->line[l + 1][ef_x + 7] =
+                            pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
                         buffer32->line[l][ef_x + 8] = buffer32->line[l][ef_x + 9] =
                         buffer32->line[l][ef_x + 10] = buffer32->line[l][ef_x + 11] =
                         buffer32->line[l + 1][ef_x + 8] = buffer32->line[l + 1][ef_x + 9] =
                         buffer32->line[l + 1][ef_x + 10] = buffer32->line[l + 1][ef_x + 11] =
-                            pcjr->array[((dat >> 4) & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
                         buffer32->line[l][ef_x + 12] = buffer32->line[l][ef_x + 13] =
                         buffer32->line[l][ef_x + 14] = buffer32->line[l][ef_x + 15] =
                         buffer32->line[l + 1][ef_x + 12] = buffer32->line[l + 1][ef_x + 13] =
                         buffer32->line[l + 1][ef_x + 14] = buffer32->line[l + 1][ef_x + 15] =
-                            pcjr->array[(dat & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
                     }
                     break;
                 case 0x03: /*640x200x4*/

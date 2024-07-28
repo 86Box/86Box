@@ -640,8 +640,12 @@ ui_msgbox_header(int flags, void *header, void *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-    if (!header)
-        header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
+    if (!header) {
+        if (flags & MBX_ANSI)
+            header = (void *) "86Box";
+        else
+            header = (void *) L"86Box";
+    }
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";

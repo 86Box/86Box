@@ -14,7 +14,8 @@
  *          The DOSBox Team
  *
  *          Copyright 2024 Cacodemon345
- *          Copyright 2002-2021 The DOSBox Team
+ *          Copyright (C) 2022       The DOSBox Staging Team
+ *          Copyright (C) 2002-2021  The DOSBox Team
  */
 
 #include <stdarg.h>

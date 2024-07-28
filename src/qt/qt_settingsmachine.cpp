@@ -61,7 +61,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             break;
     }
 
-    auto warning_icon = ui->softFloatWarningIcon->style()->standardIcon(QStyle::SP_MessageBoxWarning);
+    auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
     ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
     ui->softFloatWarningIcon->setVisible(false);
     ui->softFloatWarningText->setVisible(false);
