@@ -38,10 +38,10 @@
 #include <86box/fifo.h>
 #include <86box/video.h> /* Needed to account for overscan. */
 
-enum mtouch_modes {
-    MODE_RAW    = 1,
-    MODE_TABLET = 2,
-    MODE_HEX    = 3
+enum mtouch_formats {
+    FORMAT_RAW    = 1,
+    FORMAT_TABLET = 2,
+    FORMAT_HEX    = 3
 };
 
 const char* mtouch_identity[] = {
@@ -56,7 +56,7 @@ typedef struct mouse_microtouch_t {
     int        b;
     char       cmd[512];
     int        cmd_pos;
-    int        mode;
+    int        format;
     uint8_t    id, cal_cntr, pen_mode;
     bool       soh;
     bool       in_reset;
@@ -120,16 +120,15 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mt_fifo8_puts(&mtouch->resp, mtouch_identity[mtouch->id]);
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
-        mtouch->mode = MODE_TABLET;
+        mtouch->format = FORMAT_TABLET;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
-        /* Do not reset Mode Status for now as Photo Play 2000 relies on it */
-        mtouch->mode = MODE_HEX;
+        mtouch->format = FORMAT_HEX;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { /* Format Raw */
-        mtouch->mode     = MODE_RAW;
+        mtouch->format     = FORMAT_RAW;
         mtouch->cal_cntr = 0;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
@@ -138,7 +137,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     }
     if (mtouch->cmd[0] == 'R') { /* Reset */
         mtouch->in_reset = true;
-        mtouch->mode     = MODE_TABLET;
+        mtouch->format     = FORMAT_TABLET;
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
@@ -225,7 +224,7 @@ mtouch_poll(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
-    if (fifo8_num_free(&dev->resp) <= 10 || dev->mode == MODE_RAW) {
+    if (fifo8_num_free(&dev->resp) <= 10 || dev->format == FORMAT_RAW) {
         return 0;
     }
     
@@ -276,7 +275,7 @@ mtouch_poll(void *priv)
         return 0;
     }
 
-    if (dev->mode == MODE_TABLET) {
+    if (dev->format == FORMAT_TABLET) {
         abs_x_int = abs_x * 16383;
         abs_y_int = 16383 - abs_y * 16383;
         
@@ -300,7 +299,7 @@ mtouch_poll(void *priv)
         }
     }
     
-    if (dev->mode == MODE_HEX) {
+    if (dev->format == FORMAT_HEX) {
         abs_x_int = abs_x * 1023;
         abs_y_int = 1023 - (abs_y * 1023);
         char buffer[10];
@@ -339,7 +338,7 @@ mtouch_init(const device_t *info)
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->id          = device_get_config_int("identity");
-    dev->mode        = MODE_TABLET;
+    dev->format        = FORMAT_TABLET;
     dev->pen_mode    = 3;
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
