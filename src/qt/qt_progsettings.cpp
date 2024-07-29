@@ -159,16 +159,18 @@ ProgSettings::on_pushButton_released()
 QString
 ProgSettings::getFontName(uint32_t lcid)
 {
-        if (lcid == 0x0804) /* zh-CN */
-            return "Microsoft YaHei";
-        else if (lcid == 0x0404) /* zh-TW */
+    switch (lcid) {
+        case 0x0404: /* zh-TW */
             return "Microsoft JhengHei";
-        else if (lcid == 0x0411) /* ja-JP */
+        case 0x0411: /* ja-JP */
             return "Meiryo UI";
-        else if (lcid == 0x0412) /* ko-KR */
+        case 0x0412: /* ko-KR */
             return "Malgun Gothic";
-        else
+        case 0x0804: /* zh-CN */
+            return "Microsoft YaHei";
+        default:
             return "Segoe UI";
+    }
 }
 #endif
 

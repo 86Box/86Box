@@ -741,6 +741,9 @@ msgstr "H"
 msgid "S"
 msgstr "S"
 
+msgid "MiB"
+msgstr "МіБ"
+
 msgid "KB"
 msgstr "КБ"
 
