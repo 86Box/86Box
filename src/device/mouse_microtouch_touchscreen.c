@@ -330,11 +330,6 @@ mtouch_poll(void *priv)
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
         } else if (dev->b) { /* Liftoff */
-            fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
-            fifo8_push(&dev->resp, abs_x_int & 0b1111111);
-            fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, abs_y_int & 0b1111111);
-            fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
             fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, abs_x_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
