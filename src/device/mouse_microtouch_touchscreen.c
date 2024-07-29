@@ -62,13 +62,20 @@ typedef struct mouse_microtouch_t {
 static mouse_microtouch_t *mtouch_inst = NULL;
 
 void
+mt_fifo8_puts(Fifo8 *fifo, const uint8_t *data)
+{
+	fifo8_push(fifo, 1);
+	fifo8_push_all(fifo, data, strlen(data));
+	fifo8_push(fifo, '\r');
+}
+
+void
 microtouch_reset_complete(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
 
     mtouch->in_reset = false;
-    fifo8_push(&mtouch->resp, 1);
-    fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+    mt_fifo8_puts(&mtouch->resp, "0");
 }
 
 void
@@ -78,8 +85,7 @@ microtouch_calibrate_timer(void *priv)
 
     if (!fifo8_num_used(&mtouch->resp)) {
         mtouch->cal_cntr--;
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "1");
     }
 }
 
@@ -94,42 +100,34 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mtouch->cmd[i] = toupper(mtouch->cmd[i]);
     }
     if (mtouch->cmd[0] == 'Z') { /* Null */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+		mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') { /* Finger Only */
         mtouch->pen_mode = 1;
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+		mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') { /* Unit Type */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "TP****00\r", sizeof("TP****00\r") - 1);
+		mt_fifo8_puts(&mtouch->resp, "TP****00");
     }
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { /* Output Identity */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "A30600\r", sizeof("A30600\r") - 1);
+		mt_fifo8_puts(&mtouch->resp, "A30600");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
         mtouch->mode = MODE_TABLET;
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
         /* Do not reset Mode Status for now as Photo Play 2000 relies on it */
         mtouch->mode = MODE_HEX;
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *)"0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { /* Format Raw */
         mtouch->mode     = MODE_RAW;
         mtouch->cal_cntr = 0;
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') { /* Mode Stream */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'R') { /* Reset */
         mtouch->in_reset = true;
@@ -139,42 +137,33 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
     }
     if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) { /* Autobaud Enable/Disable */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'N' && mtouch->cmd[1] == 'M') { /* ?? */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "1");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'Q') { /* ?? */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "1");
     }
     if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'F') { /* ?? */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "1\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "1");
     }
     if (mtouch->cmd[0] == 'P') {
         if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;      /* Pen or Finger */
         else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2; /* Pen Only */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");;
     }
     if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { /* Calibrate New/Extended */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "0");
         mtouch->cal_cntr = 2;
     }
     if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Get Parameter Block 1 */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", sizeof("0000000000000000000000000\r") - 1);
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0\r", 2);
+		mt_fifo8_puts(&mtouch->resp, "A");
+		mt_fifo8_puts(&mtouch->resp, "0000000000000000000000000");
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Set Parameter Block 1 */
-        fifo8_push(&mtouch->resp, 1);
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "A\r", 2);
+        mt_fifo8_puts(&mtouch->resp, "A");
     }
     if (fifo8_num_used(&mtouch->resp) != fifo_used || mtouch->in_reset) {
         pclog("Command handled: %s\n", mtouch->cmd);
