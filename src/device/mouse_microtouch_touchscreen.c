@@ -44,13 +44,20 @@ enum mtouch_modes {
     MODE_HEX    = 3
 };
 
+const char* mtouch_identity[] = {
+    "A30100", /* SMT2 Serial / SMT3(R)V */
+    "A40100", /* PC Bus SMT2 */
+    "P50100", /* TouchPen 4 (+) */
+    "Q10100", /* SMT3(R) Serial */
+};
+
 typedef struct mouse_microtouch_t {
     double     baud_rate;
     int        b;
     char       cmd[512];
     int        cmd_pos;
     int        mode;
-    uint8_t    cal_cntr, pen_mode;
+    uint8_t    id, cal_cntr, pen_mode;
     bool       soh;
     bool       in_reset;
     serial_t  *serial;
@@ -64,9 +71,9 @@ static mouse_microtouch_t *mtouch_inst = NULL;
 void
 mt_fifo8_puts(Fifo8 *fifo, const uint8_t *data)
 {
-	fifo8_push(fifo, 1);
-	fifo8_push_all(fifo, data, strlen(data));
-	fifo8_push(fifo, '\r');
+    fifo8_push(fifo, 1);
+    fifo8_push_all(fifo, data, strlen(data));
+    fifo8_push(fifo, '\r');
 }
 
 void
@@ -100,17 +107,17 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mtouch->cmd[i] = toupper(mtouch->cmd[i]);
     }
     if (mtouch->cmd[0] == 'Z') { /* Null */
-		mt_fifo8_puts(&mtouch->resp, "0");
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') { /* Finger Only */
         mtouch->pen_mode = 1;
-		mt_fifo8_puts(&mtouch->resp, "0");
+        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') { /* Unit Type */
-		mt_fifo8_puts(&mtouch->resp, "TP****00");
+        mt_fifo8_puts(&mtouch->resp, "TP****00");
     }
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { /* Output Identity */
-		mt_fifo8_puts(&mtouch->resp, "A30600");
+        mt_fifo8_puts(&mtouch->resp, mtouch_identity[mtouch->id]);
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
         mtouch->mode = MODE_TABLET;
@@ -158,8 +165,8 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mtouch->cal_cntr = 2;
     }
     if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Get Parameter Block 1 */
-		mt_fifo8_puts(&mtouch->resp, "A");
-		mt_fifo8_puts(&mtouch->resp, "0000000000000000000000000");
+        mt_fifo8_puts(&mtouch->resp, "A");
+        mt_fifo8_puts(&mtouch->resp, "0000000000000000000000000");
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Set Parameter Block 1 */
@@ -331,6 +338,7 @@ mtouch_init(const device_t *info)
     timer_add(&dev->host_to_serial_timer, mtouch_write_to_host, dev, 0);
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
+    dev->id          = device_get_config_int("identity");
     dev->mode        = MODE_TABLET;
     dev->pen_mode    = 3;
     mouse_input_mode = device_get_config_int("crosshair") + 1;
@@ -388,6 +396,21 @@ static const device_config_t mtouch_config[] = {
             { .description =   "4800", .value =   4800 },
             { .description =   "2400", .value =   2400 },
             { .description =   "1200", .value =   1200 }
+        }
+    },
+    {
+        .name = "identity",
+        .description = "Controller",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = NULL,
+        .spinner = { 0 },
+        .selection = {
+            { .description =  "A3 - SMT2 Serial / SMT3(R)V", .value =   0 },
+            { .description =  "A4 - SMT2 PCBus",             .value =   1 },
+            { .description =  "P5 - TouchPen 4(+)",          .value =   2 },
+            { .description =  "Q1 - SMT3(R) Serial",         .value =   3 }
         }
     },
     {
