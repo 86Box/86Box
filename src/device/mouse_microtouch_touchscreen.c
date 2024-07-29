@@ -39,9 +39,10 @@
 #include <86box/video.h> /* Needed to account for overscan. */
 
 enum mtouch_formats {
-    FORMAT_RAW    = 1,
-    FORMAT_TABLET = 2,
-    FORMAT_HEX    = 3
+    FORMAT_DEC    = 1,
+    FORMAT_HEX    = 2,
+    FORMAT_RAW    = 3,
+    FORMAT_TABLET = 4
 };
 
 const char* mtouch_identity[] = {
@@ -119,8 +120,8 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { /* Output Identity */
         mt_fifo8_puts(&mtouch->resp, mtouch_identity[mtouch->id]);
     }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
-        mtouch->format = FORMAT_TABLET;
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'D') { /* Format Decimal */
+        mtouch->format = FORMAT_DEC;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
@@ -128,8 +129,12 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { /* Format Raw */
-        mtouch->format     = FORMAT_RAW;
+        mtouch->format = FORMAT_RAW;
         mtouch->cal_cntr = 0;
+        mt_fifo8_puts(&mtouch->resp, "0");
+    }
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
+        mtouch->format = FORMAT_TABLET;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') { /* Mode Stream */
@@ -137,9 +142,14 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     }
     if (mtouch->cmd[0] == 'R') { /* Reset */
         mtouch->in_reset = true;
-        mtouch->format     = FORMAT_TABLET;
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
+        
+        if (mtouch->id < 2)
+            mtouch->format = FORMAT_DEC;
+        else
+            mtouch->format = FORMAT_TABLET;
+        
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
     }
     if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) { /* Autobaud Enable/Disable */
@@ -274,8 +284,42 @@ mtouch_poll(void *priv)
         dev->b = b; /* Save lack of buttonpress */
         return 0;
     }
-
-    if (dev->format == FORMAT_TABLET) {
+    
+    if (dev->format == FORMAT_DEC) {
+        abs_x_int = abs_x * 999;
+        abs_y_int = 999 - (abs_y * 999);
+        char buffer[10];
+        
+        if (b) {
+            if (!dev->b) { /* Touchdown */
+                snprintf(buffer, sizeof(buffer), "\x19%03d,%03d\r", abs_x_int, abs_y_int);
+            } else { /* Touch Continuation */
+                snprintf(buffer, sizeof(buffer), "\x1c%03d,%03d\r", abs_x_int, abs_y_int);
+            }
+        } else if (dev->b) { /* Liftoff */
+            snprintf(buffer, sizeof(buffer), "\x18%03d,%03d\r", abs_x_int, abs_y_int);
+        }
+        fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));    
+    }
+    
+    else if (dev->format == FORMAT_HEX) {
+        abs_x_int = abs_x * 1023;
+        abs_y_int = 1023 - (abs_y * 1023);
+        char buffer[10];
+        
+        if (b) {
+            if (!dev->b) { /* Touchdown */
+                snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
+            } else { /* Touch Continuation */
+                snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
+            }
+        } else if (dev->b) { /* Liftoff */
+            snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
+        }
+        fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
+    }
+    
+    else if (dev->format == FORMAT_TABLET) {
         abs_x_int = abs_x * 16383;
         abs_y_int = 16383 - abs_y * 16383;
         
@@ -297,23 +341,6 @@ mtouch_poll(void *priv)
             fifo8_push(&dev->resp, abs_y_int & 0b1111111);
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
         }
-    }
-    
-    if (dev->format == FORMAT_HEX) {
-        abs_x_int = abs_x * 1023;
-        abs_y_int = 1023 - (abs_y * 1023);
-        char buffer[10];
-        
-        if (b) {
-            if (!dev->b) { /* Touchdown */
-                snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
-            } else { /* Touch Continuation */
-                snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
-            }
-        } else if (dev->b) { /* Liftoff */
-            snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
-        }
-        fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
     }
     
     dev->b = b; /* Save buttonpress */
@@ -338,8 +365,13 @@ mtouch_init(const device_t *info)
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->id          = device_get_config_int("identity");
-    dev->format        = FORMAT_TABLET;
-    dev->pen_mode    = 3;
+    dev->pen_mode   = 3;
+    
+    if (dev->id < 2) /* legacy controllers */
+        dev->format = FORMAT_DEC;
+    else
+        dev->format = FORMAT_TABLET;
+     
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
     mouse_set_poll_ex(mtouch_poll_global);
