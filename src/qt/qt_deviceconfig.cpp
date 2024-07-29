@@ -298,7 +298,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 int   currentIndex  = 0;
                 auto  serialDevices = EnumerateSerialDevices();
 
-                Models::AddEntry(model, "None", -1);
+                Models::AddEntry(model, tr("None"), -1);
                 for (int i = 0; i < serialDevices.size(); i++) {
                     const int row = Models::AddEntry(model, serialDevices[i], i);
                     if (selected == serialDevices[i])
@@ -401,7 +401,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
                         auto  path = cbox->currentText().toUtf8();
-                        if (path == "None")
+                        if (cbox->currentData().toInt() == -1)
                             path = "";
                         config_set_string(device_context.name, const_cast<char *>(config->name), path);
                         break;
