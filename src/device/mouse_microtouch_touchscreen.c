@@ -20,7 +20,8 @@
 /* TODO:
     - Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
     - Dynamic baud rate selection from software following this.
-    - Add additional SMT2/3 commands plus config option for controller type.
+    - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
+    - Add additional SMT2/3 modes as we currently hardcode Mode Stream + Mode Status.
 */
 #include <ctype.h>
 #include <stdint.h>
