@@ -48,8 +48,8 @@ enum mtouch_formats {
 
 const char* mtouch_identity[] = {
     "A30100", /* SMT2 Serial / SMT3(R)V */
-    "A40100", /* PC Bus SMT2 */
-    "P50100", /* TouchPen 4 (+) */
+    "A40100", /* SMT2 PCBus */
+    "P50100", /* TouchPen 4(+) */
     "Q10100", /* SMT3(R) Serial */
 };
 
@@ -176,7 +176,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     }
     if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Get Parameter Block 1 */
         mt_fifo8_puts(&mtouch->resp, "A");
-        mt_fifo8_puts(&mtouch->resp, "0000000000000000000000000");
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", sizeof("0000000000000000000000000\r") - 1);
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Set Parameter Block 1 */
@@ -282,7 +282,7 @@ mtouch_poll(void *priv)
         if (!b && dev->b) {
             microtouch_calibrate_timer(dev);
         }
-        dev->b = b; /* Save lack of buttonpress */
+        dev->b = b; /* Save buttonpress */
         return 0;
     }
     
