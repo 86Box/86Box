@@ -11894,7 +11894,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11908,7 +11908,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device = NULL,
         .snd_device = &sb_vibra16c_onboard_device,
         .net_device = NULL
     },
