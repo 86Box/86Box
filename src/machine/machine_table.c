@@ -7329,10 +7329,10 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = &tgui9440_onboard_pci_device,
+        .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &tgui9440_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
