@@ -12176,12 +12176,12 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 66666667,
+            .min_bus = 50000000,
             .max_bus = 66666667,
-            .min_voltage = 1900,
-            .max_voltage = 2800,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
             .min_multi = 1.5,
-            .max_multi = 5.5
+            .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO,
