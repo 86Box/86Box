@@ -1499,7 +1499,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Tandy 1000",
+        .name = "[8088] Tandy 1000 SX",
         .internal_name = "tandy",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
