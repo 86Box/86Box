@@ -1504,7 +1504,8 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
                 pas16->timeout_count = val;
                 if (timer_is_enabled(&pas16->scsi_timer))
                     timer_disable(&pas16->scsi_timer);
-                timer_set_delay_u64(&pas16->scsi_timer, (val & 0x3f) * PASSCSICONST);
+                if ((val & 0x3f) > 0x00)
+                    timer_set_delay_u64(&pas16->scsi_timer, (val & 0x3f) * PASSCSICONST);
             }
             break;
 
