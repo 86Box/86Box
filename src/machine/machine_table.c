@@ -12264,7 +12264,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_AV | MACHINE_NIC | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -13618,7 +13618,7 @@ const machine_t machines[] = {
             .max_bus = 66666667,
             .min_voltage = 2900,
             .max_voltage = 3300,
-            .min_multi = 2.0,
+            .min_multi = 1.5,
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
@@ -13698,7 +13698,7 @@ const machine_t machines[] = {
             .max_bus = 66666667,
             .min_voltage = 2100,
             .max_voltage = 3500,
-            .min_multi = 2.0,
+            .min_multi = 1.5,
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
@@ -13744,7 +13744,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO | MACHINE_USB, /* Machine has internal video: S3 ViRGE/DX and sound: Crystal CS4236B */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_AV | MACHINE_USB, /* Machine has internal video: S3 ViRGE/DX and sound: Crystal CS4236B */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -13952,7 +13952,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
