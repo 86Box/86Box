@@ -19,6 +19,7 @@
 
 /* TODO:
     - Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
+    - Decouple serial packet generation from mouse poll rate.
     - Dynamic baud rate selection from software following this.
     - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
     - Add additional SMT2/3 modes as we currently hardcode Mode Stream + Mode Status.
@@ -56,7 +57,7 @@ const char* mtouch_identity[] = {
 typedef struct mouse_microtouch_t {
     double     baud_rate;
     int        b;
-    char       cmd[512];
+    char       cmd[256];
     int        cmd_pos;
     int        format;
     uint8_t    id, cal_cntr, pen_mode;
@@ -122,23 +123,30 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mt_fifo8_puts(&mtouch->resp, mtouch_identity[mtouch->id]);
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'D') { /* Format Decimal */
+        mouse_set_sample_rate(106);
         mtouch->format = FORMAT_DEC;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
+        mouse_set_sample_rate(106);
         mtouch->format = FORMAT_HEX;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { /* Format Raw */
+        mouse_set_sample_rate(106);
         mtouch->format = FORMAT_RAW;
         mtouch->cal_cntr = 0;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
+        mouse_set_sample_rate(192);
         mtouch->format = FORMAT_TABLET;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') { /* Mode Stream */
+        mt_fifo8_puts(&mtouch->resp, "0");
+    }
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'T') { /* Mode Status */
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'R') { /* Reset */
@@ -146,10 +154,14 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
         
-        if (mtouch->id < 2)
+        if (mtouch->id < 2) {
+            mouse_set_sample_rate(106);
             mtouch->format = FORMAT_DEC;
-        else
+        }
+        else {
+            mouse_set_sample_rate(192);
             mtouch->format = FORMAT_TABLET;
+        }
         
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
     }
@@ -235,7 +247,7 @@ mtouch_poll(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
-    if (fifo8_num_free(&dev->resp) <= 10 || dev->format == FORMAT_RAW) {
+    if (fifo8_num_free(&dev->resp) <= 256 - 10 || dev->format == FORMAT_RAW) {
         return 0;
     }
     
@@ -360,18 +372,22 @@ mtouch_init(const device_t *info)
     serial_set_dsr(dev->serial, 1);
     serial_set_dcd(dev->serial, 1);
     
-    fifo8_create(&dev->resp, 512);
+    fifo8_create(&dev->resp, 256);
     timer_add(&dev->host_to_serial_timer, mtouch_write_to_host, dev, 0);
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->id          = device_get_config_int("identity");
     dev->pen_mode   = 3;
     
-    if (dev->id < 2) /* legacy controllers */
+    if (dev->id < 2) { /* legacy controllers */
         dev->format = FORMAT_DEC;
-    else
+        mouse_set_sample_rate(106);
+    }
+    else {
         dev->format = FORMAT_TABLET;
-     
+        mouse_set_sample_rate(192);
+    }
+    
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
     mouse_set_poll_ex(mtouch_poll_global);
