@@ -356,6 +356,10 @@ mtouch_init(const device_t *info)
 
     dev->serial = serial_attach(device_get_config_int("port"), NULL, mtouch_write, dev);
     dev->baud_rate = device_get_config_int("baudrate");
+    serial_set_cts(dev->serial, 1);
+    serial_set_dsr(dev->serial, 1);
+    serial_set_dcd(dev->serial, 1);
+    
     fifo8_create(&dev->resp, 512);
     timer_add(&dev->host_to_serial_timer, mtouch_write_to_host, dev, 0);
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
