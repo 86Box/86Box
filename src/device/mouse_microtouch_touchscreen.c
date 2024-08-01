@@ -22,7 +22,7 @@
     - Decouple serial packet generation from mouse poll rate.
     - Dynamic baud rate selection from software following this.
     - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
-    - Add additional SMT2/3 modes as we currently hardcode Mode Stream + Mode Status.
+    - Add additional SMT2/3 modes as we currently hardcode Mode Stream.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -59,7 +59,8 @@ typedef struct mouse_microtouch_t {
     int        b;
     char       cmd[256];
     int        cmd_pos;
-    int        format;
+    uint8_t    format;
+    bool       mode_status;
     uint8_t    id, cal_cntr, pen_mode;
     bool       soh;
     bool       in_reset;
@@ -83,7 +84,7 @@ void
 microtouch_reset_complete(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
-
+    
     mtouch->in_reset = false;
     mt_fifo8_puts(&mtouch->resp, "0");
 }
@@ -92,7 +93,7 @@ void
 microtouch_calibrate_timer(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
-
+    
     if (!fifo8_num_used(&mtouch->resp)) {
         mtouch->cal_cntr--;
         mt_fifo8_puts(&mtouch->resp, "1");
@@ -147,12 +148,14 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'T') { /* Mode Status */
+        mtouch->mode_status = true;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'R') { /* Reset */
         mtouch->in_reset = true;
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
+        mtouch->mode_status = false;
         
         if (mtouch->id < 2) {
             mouse_set_sample_rate(106);
@@ -255,7 +258,7 @@ mtouch_poll(void *priv)
     double       abs_x;
     double       abs_y;
     int          b = mouse_get_buttons_ex();
-
+    
     mouse_get_abs_coords(&abs_x, &abs_y);
     
     if (abs_x >= 1.0)
@@ -268,12 +271,13 @@ mtouch_poll(void *priv)
         abs_y = 0.0;
     if (enable_overscan) {
         int index = mouse_tablet_in_proximity - 1;
-        if (mouse_tablet_in_proximity == -1)
+        if (mouse_tablet_in_proximity == -1) {
             mouse_tablet_in_proximity = 0;
-
+        }
+        
         abs_x *= monitors[index].mon_unscaled_size_x - 1;
         abs_y *= monitors[index].mon_efscrnsz_y - 1;
-
+        
         if (abs_x <= (monitors[index].mon_overscan_x / 2.)) {
             abs_x = (monitors[index].mon_overscan_x / 2.);
         }
@@ -303,16 +307,23 @@ mtouch_poll(void *priv)
         abs_y_int = 999 - (abs_y * 999);
         char buffer[10];
         
-        if (b) {
-            if (!dev->b) { /* Touchdown */
-                snprintf(buffer, sizeof(buffer), "\x19%03d,%03d\r", abs_x_int, abs_y_int);
-            } else { /* Touch Continuation */
-                snprintf(buffer, sizeof(buffer), "\x1c%03d,%03d\r", abs_x_int, abs_y_int);
+        if (!dev->mode_status) {
+            if (b) { // Touch
+                snprintf(buffer, sizeof(buffer), "\x1%03d,%03d\r", abs_x_int, abs_y_int);
+                fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
             }
-        } else if (dev->b) { /* Liftoff */
-            snprintf(buffer, sizeof(buffer), "\x18%03d,%03d\r", abs_x_int, abs_y_int);
+        } else {
+            if (b) {
+                if (!dev->b) { /* Touchdown Status */
+                    snprintf(buffer, sizeof(buffer), "\x19%03d,%03d\r", abs_x_int, abs_y_int);
+                } else { /* Touch Continuation Status */
+                    snprintf(buffer, sizeof(buffer), "\x1c%03d,%03d\r", abs_x_int, abs_y_int);
+                }
+            } else if (dev->b) { /* Liftoff Status */
+                snprintf(buffer, sizeof(buffer), "\x18%03d,%03d\r", abs_x_int, abs_y_int);
+            }
+            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
         }
-        fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));    
     }
     
     else if (dev->format == FORMAT_HEX) {
@@ -320,16 +331,23 @@ mtouch_poll(void *priv)
         abs_y_int = 1023 - (abs_y * 1023);
         char buffer[10];
         
-        if (b) {
-            if (!dev->b) { /* Touchdown */
-                snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
-            } else { /* Touch Continuation */
-                snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
+        if (!dev->mode_status) {
+            if (b) { // Touch
+                snprintf(buffer, sizeof(buffer), "\x1%03X,%03X\r", abs_x_int, abs_y_int);
+                fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
             }
-        } else if (dev->b) { /* Liftoff */
-            snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
+        } else {
+            if (b) {
+                if (!dev->b) { /* Touchdown Status */
+                    snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
+                } else { /* Touch Continuation Status */
+                    snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
+                }
+            } else if (dev->b) { /* Liftoff Status */
+                snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
+            }
+            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
         }
-        fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
     }
     
     else if (dev->format == FORMAT_TABLET) {
@@ -365,7 +383,7 @@ void *
 mtouch_init(const device_t *info)
 {
     mouse_microtouch_t *dev = calloc(1, sizeof(mouse_microtouch_t));
-
+    
     dev->serial = serial_attach(device_get_config_int("port"), NULL, mtouch_write, dev);
     dev->baud_rate = device_get_config_int("baudrate");
     serial_set_cts(dev->serial, 1);
@@ -377,7 +395,8 @@ mtouch_init(const device_t *info)
     timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->id          = device_get_config_int("identity");
-    dev->pen_mode   = 3;
+    dev->pen_mode    = 3;
+    dev->mode_status = false;
     
     if (dev->id < 2) { /* legacy controllers */
         dev->format = FORMAT_DEC;
