@@ -109,7 +109,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) { /* Autobaud Enable/Disable */
         mt_fifo8_puts(&mtouch->resp, "0");
     }
-	if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { /* Calibrate New/Extended */
+    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { /* Calibrate New/Extended */
         mt_fifo8_puts(&mtouch->resp, "0");
         mtouch->cal_cntr = 2;
     }
@@ -118,7 +118,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         mtouch->format = FORMAT_DEC;
         mt_fifo8_puts(&mtouch->resp, "0");
     }
-	if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'N') { /* Filter Number */
+    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'N') { /* Filter Number */
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') { /* Finger Only */
@@ -196,10 +196,10 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Set Parameter Block 1 */
         mt_fifo8_puts(&mtouch->resp, "A");
     }
-	if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') { /* Unit Type */
+    if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') { /* Unit Type */
         mt_fifo8_puts(&mtouch->resp, "TP****00");
     }
-	if (mtouch->cmd[0] == 'Z') { /* Null */
+    if (mtouch->cmd[0] == 'Z') { /* Null */
         mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (fifo8_num_used(&mtouch->resp) != fifo_used || mtouch->in_reset) {
@@ -230,7 +230,7 @@ mtouch_write_to_host(void *priv)
     }
 
 no_write_to_machine:
-    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) 9600.0) * (double) (1 + 8 + 1));
+    timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) dev->baud_rate) * (double) (1 + 8 + 1));
 }
 
 void
@@ -415,9 +415,9 @@ mtouch_init(const device_t *info)
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
     mouse_set_poll_ex(mtouch_poll_global);
-
+    
     mtouch_inst = dev;
-
+    
     return dev;
 }
 
@@ -430,7 +430,7 @@ mtouch_close(void *priv)
     /* Detach serial port from the mouse. */
     if (dev && dev->serial && dev->serial->sd)
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
-
+    
     free(dev);
     mtouch_inst = NULL;
 }
