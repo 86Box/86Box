@@ -129,6 +129,7 @@ intel_lsmm_segment_recalc(intel_815ep_t *dev, uint8_t val)
         case 3:
             smram_enable(dev->lsmm_segment, 0x000a0000, 0x000a0000, 0x20000, 0, 1);
             break;
+
         default:
             break;
     }

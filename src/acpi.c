@@ -136,8 +136,7 @@ acpi_timer_overflow(void *priv)
 
     dev->regs.pmsts |= TMROF_STS;
 /*
-    if (dev->regs.pmen & 1) /* Timer Overflow Interrupt Enable */
-    {
+    if (dev->regs.pmen & 1) { /* Timer Overflow Interrupt Enable */
         acpi_log("ACPI: Overflow detected. Provoking an %s\n", sci_en ? "SCI" : "SMI");
 
         if (sci_en) /* Trigger an SCI or SMI depending on the status of the SCI_EN register */
@@ -2162,6 +2161,9 @@ acpi_reg_read_common(int size, uint16_t addr, void *priv)
         case VEN_INTEL:
             ret = acpi_reg_read_intel(size, addr, priv);
             break;
+        case VEN_INTEL_ICH2:
+            ret = acpi_reg_read_intel_ich2(size, addr, priv);
+            break;
         case VEN_SMC:
             ret = acpi_reg_read_smc(size, addr, priv);
             break;
@@ -2208,6 +2210,9 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case VEN_INTEL:
             acpi_reg_write_intel(size, addr, val, priv);
+            break;
+        case VEN_INTEL_ICH2:
+            acpi_reg_write_intel_ich2(size, addr, val, priv);
             break;
         case VEN_SMC:
             acpi_reg_write_smc(size, addr, val, priv);

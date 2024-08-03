@@ -307,10 +307,9 @@ typedef struct {
     uint64_t mtrr_fix16k_8000; /* 0x00000258 */
     uint64_t mtrr_fix16k_a000; /* 0x00000259 */
     uint64_t mtrr_fix4k[8];    /* 0x00000268 - 0x0000026f */
-    uint64_t mtrr_deftype;     /* 0x000002ff */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t pat;        /* 0x00000277 - Pentium II Deschutes and later */
+    uint64_t pat; /* 0x00000277 - Pentium II Deschutes and later */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
        on the VIA Cyrix III */
@@ -323,7 +322,7 @@ typedef struct {
     uint64_t ecx19d; /* 0x0000019d */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 */
+    uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
     uint64_t ecx570;     /* 0x00000570 */
 
     /* Other/Unclassified MSRs */
@@ -420,7 +419,7 @@ typedef struct {
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
-#define smbase   cpu_state._smbase
+#define smbase cpu_state._smbase
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
