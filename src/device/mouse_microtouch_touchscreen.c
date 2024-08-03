@@ -55,19 +55,20 @@ const char* mtouch_identity[] = {
 };
 
 typedef struct mouse_microtouch_t {
-    double     baud_rate;
-    int        b;
-    char       cmd[256];
-    int        cmd_pos;
-    uint8_t    format;
-    bool       mode_status;
-    uint8_t    id, cal_cntr, pen_mode;
-    bool       soh;
-    bool       in_reset;
-    serial_t  *serial;
-    Fifo8      resp;
-    pc_timer_t host_to_serial_timer;
-    pc_timer_t reset_timer;
+    double       baud_rate;
+    unsigned int abs_x_int, abs_y_int;
+    int          b;
+    char         cmd[256];
+    int          cmd_pos;
+    uint8_t      format;
+    bool         mode_status;
+    uint8_t      id, cal_cntr, pen_mode;
+    bool         soh;
+    bool         in_reset;
+    serial_t    *serial;
+    Fifo8        resp;
+    pc_timer_t   host_to_serial_timer;
+    pc_timer_t   reset_timer;
 } mouse_microtouch_t;
 
 static mouse_microtouch_t *mtouch_inst = NULL;
@@ -296,7 +297,7 @@ mtouch_poll(void *priv)
                     snprintf(buffer, sizeof(buffer), "\x1c%03d,%03d\r", abs_x_int, abs_y_int);
                 }
             } else if (dev->b) { /* Liftoff Status */
-                snprintf(buffer, sizeof(buffer), "\x18%03d,%03d\r", abs_x_int, abs_y_int);
+                snprintf(buffer, sizeof(buffer), "\x18%03d,%03d\r", dev->abs_x_int, dev->abs_y_int);
             }
             fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
         }
@@ -320,7 +321,7 @@ mtouch_poll(void *priv)
                     snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
                 }
             } else if (dev->b) { /* Liftoff Status */
-                snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", abs_x_int, abs_y_int);
+                snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", dev->abs_x_int, dev->abs_y_int);
             }
             fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
         }
@@ -338,14 +339,17 @@ mtouch_poll(void *priv)
             fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
         } else if (dev->b) { /* Liftoff */
             fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
-            fifo8_push(&dev->resp, abs_x_int & 0b1111111);
-            fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, abs_y_int & 0b1111111);
-            fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, dev->abs_x_int & 0b1111111);
+            fifo8_push(&dev->resp, (dev->abs_x_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, dev->abs_y_int & 0b1111111);
+            fifo8_push(&dev->resp, (dev->abs_y_int >> 7) & 0b1111111);
         }
     }
     
-    dev->b = b; /* Save buttonpress */
+    /* Save old states*/
+    dev->abs_x_int = abs_x_int;
+    dev->abs_y_int = abs_y_int;
+    dev->b = b; 
     return 0;
 }
 
