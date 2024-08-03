@@ -73,20 +73,12 @@ typedef struct mouse_microtouch_t {
 static mouse_microtouch_t *mtouch_inst = NULL;
 
 void
-mt_fifo8_puts(Fifo8 *fifo, const uint8_t *data)
-{
-    fifo8_push(fifo, 1);
-    fifo8_push_all(fifo, data, strlen(data));
-    fifo8_push(fifo, '\r');
-}
-
-void
 microtouch_reset_complete(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
     
     mtouch->in_reset = false;
-    mt_fifo8_puts(&mtouch->resp, "0");
+    fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
 }
 
 void
@@ -96,85 +88,55 @@ microtouch_calibrate_timer(void *priv)
     
     if (!fifo8_num_used(&mtouch->resp)) {
         mtouch->cal_cntr--;
-        mt_fifo8_puts(&mtouch->resp, "1");
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x31\x0D", 3); /* <SOH>1<CR>  */
     }
 }
 
 void
 microtouch_process_commands(mouse_microtouch_t *mtouch)
 {
-    int fifo_used                           = fifo8_num_used(&mtouch->resp);
     mtouch->cmd[strcspn(mtouch->cmd, "\r")] = '\0';
-    mtouch->cmd_pos                         = 0;
-    if (mtouch->cmd[0] == 'A' && (mtouch->cmd[1] == 'D' || mtouch->cmd[1] == 'E')) { /* Autobaud Enable/Disable */
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
+    pclog("MT Command: %s\n", mtouch->cmd);
+    
     if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { /* Calibrate New/Extended */
-        mt_fifo8_puts(&mtouch->resp, "0");
         mtouch->cal_cntr = 2;
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'D') { /* Format Decimal */
         mouse_set_sample_rate(106);
         mtouch->format = FORMAT_DEC;
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'N') { /* Filter Number */
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') { /* Finger Only */
         mtouch->pen_mode = 1;
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
         mouse_set_sample_rate(106);
         mtouch->format = FORMAT_HEX;
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'Q') { /* ?? */
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { /* Format Raw */
         mouse_set_sample_rate(106);
         mtouch->format = FORMAT_RAW;
         mtouch->cal_cntr = 0;
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
         mouse_set_sample_rate(192);
         mtouch->format = FORMAT_TABLET;
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'F') { /* ?? */
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'G' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Get Parameter Block 1 */
-        mt_fifo8_puts(&mtouch->resp, "A");
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", sizeof("0000000000000000000000000\r") - 1);
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'P') { /* ?? */
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') { /* Mode Stream */
-        mt_fifo8_puts(&mtouch->resp, "0");
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x41\x0D", 3); /* <SOH>A<CR>  */
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", 26);
     }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'T') { /* Mode Status */
         mtouch->mode_status = true;
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (mtouch->cmd[0] == 'N' && mtouch->cmd[1] == 'M') { /* ?? */
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { /* Output Identity */
-        mt_fifo8_puts(&mtouch->resp, mtouch_identity[mtouch->id]);
+        fifo8_push(&mtouch->resp, 0x01);
+        fifo8_push_all(&mtouch->resp, (uint8_t *) mtouch_identity[mtouch->id], 6);
+        fifo8_push(&mtouch->resp, 0x0D);
+        return;
     }
     if (mtouch->cmd[0] == 'P') { 
         if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;      /* Pen or Finger */
         else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2; /* Pen Only */
-        mt_fifo8_puts(&mtouch->resp, "0"); /* Also 'PL' Parameter Lock */
-    }
-    if (mtouch->cmd[0] == 'Q' && mtouch->cmd[1] == 'P') { /* ?? */
-        mt_fifo8_puts(&mtouch->resp, "0");
     }
     if (mtouch->cmd[0] == 'R') { /* Reset */
         mtouch->in_reset = true;
@@ -185,28 +147,31 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         if (mtouch->id < 2) {
             mouse_set_sample_rate(106);
             mtouch->format = FORMAT_DEC;
-        }
-        else {
+        } else {
             mouse_set_sample_rate(192);
             mtouch->format = FORMAT_TABLET;
         }
         
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
+        return;
     }
     if (mtouch->cmd[0] == 'S' && mtouch->cmd[1] == 'P' && mtouch->cmd[2] == '1') { /* Set Parameter Block 1 */
-        mt_fifo8_puts(&mtouch->resp, "A");
+        fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x41\x0D", 3); /* <SOH>A<CR>  */
+        return;
     }
     if (mtouch->cmd[0] == 'U' && mtouch->cmd[1] == 'T') { /* Unit Type */
-        mt_fifo8_puts(&mtouch->resp, "TP****00");
+        fifo8_push(&mtouch->resp, 0x01);
+        
+        if (mtouch->id == 2) {
+            fifo8_push_all(&mtouch->resp, (uint8_t *) "TP****00", 8);
+        } else {
+            fifo8_push_all(&mtouch->resp, (uint8_t *) "QM****00", 8);
+        }
+        fifo8_push(&mtouch->resp, 0x0D);
+        return;
     }
-    if (mtouch->cmd[0] == 'Z') { /* Null */
-        mt_fifo8_puts(&mtouch->resp, "0");
-    }
-    if (fifo8_num_used(&mtouch->resp) != fifo_used || mtouch->in_reset) {
-        pclog("Command handled: %s\n", mtouch->cmd);
-    } else {
-        pclog("Command ignored: %s\n", mtouch->cmd);
-    }
+    
+    fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
 }
 
 void
@@ -243,8 +208,14 @@ mtouch_write(serial_t *serial, void *priv, uint8_t data)
         if (data != '\r') {
             dev->cmd[dev->cmd_pos++] = data;
         } else {
-            dev->cmd[dev->cmd_pos++] = data;
             dev->soh = 0;
+            
+            if (!dev->cmd_pos) {
+                return;
+            }
+            
+            dev->cmd[dev->cmd_pos++] = data;
+            dev->cmd_pos = 0;
             microtouch_process_commands(dev);
         }
     }
