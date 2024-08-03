@@ -58,6 +58,7 @@ extern void isartc_reset(void);
 extern const char     *isartc_get_internal_name(int t);
 extern int             isartc_get_from_internal_name(char *s);
 extern const device_t *isartc_get_device(int t);
+extern int             isartc_has_config(int board);
 
 #ifdef __cplusplus
 }

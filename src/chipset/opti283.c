@@ -31,6 +31,7 @@
 #include <86box/mem.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/port_92.h>
 #include <86box/chipset.h>
 
 #ifdef ENABLE_OPTI283_LOG
@@ -215,16 +216,27 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
     opti283_t *dev = (opti283_t *) priv;
 
     switch (addr) {
+        default:
+            break;
+
         case 0x22:
             dev->index = val;
+            break;
+
+        case 0x23:
+            if (dev->index == 0x01)
+                dev->regs[dev->index] = val;
             break;
 
         case 0x24:
             opti283_log("OPTi 283: dev->regs[%02x] = %02x\n", dev->index, val);
 
             switch (dev->index) {
+                default:
+                    break;
+
                 case 0x10:
-                    dev->regs[dev->index] = val;
+                    dev->regs[dev->index] = (dev->regs[dev->index] & 0x80) | (val & 0x7f);
                     break;
 
                 case 0x14:
@@ -236,13 +248,9 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index] = val;
                     opti283_shadow_recalc(dev);
                     break;
-
-                default:
-                    break;
             }
-            break;
 
-        default:
+            dev->index = 0xff;
             break;
     }
 }
@@ -250,11 +258,17 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti283_read(uint16_t addr, void *priv)
 {
-    const opti283_t *dev = (opti283_t *) priv;
-    uint8_t          ret = 0xff;
+    opti283_t *dev = (opti283_t *) priv;
+    uint8_t    ret = 0xff;
 
-    if (addr == 0x24)
+    if ((addr == 0x23) && (dev->index == 0x01))
         ret = dev->regs[dev->index];
+    else if (addr == 0x24) {
+        if ((dev->index >= 0x10) && (dev->index <= 0x14))
+            ret = dev->regs[dev->index];
+
+        dev->index = 0xff;
+    }
 
     return ret;
 }
@@ -274,6 +288,7 @@ opti283_init(UNUSED(const device_t *info))
     memset(dev, 0x00, sizeof(opti283_t));
 
     io_sethandler(0x0022, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
+    io_sethandler(0x0023, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
 
     dev->regs[0x10] = 0x3f;
@@ -295,6 +310,8 @@ opti283_init(UNUSED(const device_t *info))
     mem_mapping_disable(&dev->mem_mappings[1]);
 
     opti283_shadow_recalc(dev);
+
+    device_add(&port_92_device);
 
     return dev;
 }

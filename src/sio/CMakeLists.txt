@@ -22,7 +22,7 @@ add_library(sio OBJECT sio_acc3221.c sio_ali5123.c sio_f82c710.c sio_82091aa.c
     sio_prime3b.c sio_prime3c.c
     sio_w83627hf.c sio_w83787f.c sio_w83877f.c sio_w83977f.c
     sio_um8663f.c sio_um8669f.c
-    sio_vt82c686.c)
+    sio_vl82c113.c sio_vt82c686.c)
 
 if(SIO_DETECT)
     target_sources(sio PRIVATE sio_detect.c)

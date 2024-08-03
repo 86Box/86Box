@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+#define VIDEOCARD_MAX 2
+
 namespace Ui {
 class SettingsDisplay;
 }
@@ -36,7 +38,7 @@ private slots:
 private:
     Ui::SettingsDisplay *ui;
     int                  machineId    = 0;
-    int                  videoCard[2] = { 0, 0 };
+    int                  videoCard[VIDEOCARD_MAX] = { 0, 0 };
 };
 
 #endif // QT_SETTINGSDISPLAY_HPP

@@ -23,6 +23,7 @@
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/mem.h>
@@ -92,7 +93,7 @@ static int         pci_card;
 static int         pci_bus;
 static int         pci_key;
 static int         pci_trc_reg = 0;
-static uint32      pci_enable = 0x00000000;
+static uint32_t    pci_enable = 0x00000000;
 
 static void        pci_reset_regs(void);
 
@@ -202,6 +203,21 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                         irq_line = slot & PCI_IRQ_MAX;
                         break;
                 }
+            }
+            break;
+        case (PCI_IIRQ_BASE | 0x00) ... (PCI_IIRQ_BASE | PCI_IIRQS_NUM):
+            /* PCI internal routing. */
+            if (slot > 0x00) {
+                slot = (slot - 1) & PCI_INT_PINS_MAX;
+
+                irq_line    = pci_irqs[slot];
+
+                /* Ignore what was provided to us as a parameter and override it with whatever
+                   the chipset is set to. */
+                level       = !!pci_irq_level[slot];
+            } else {
+                irq_line    = 0xff;
+                level       = 0;
             }
             break;
         case (PCI_MIRQ_BASE | 0x00) ... (PCI_MIRQ_BASE | PCI_MIRQ_MAX):
@@ -405,7 +421,14 @@ pci_trc_reset(uint8_t val)
         flushmmucache();
     }
 
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        cpu_init = 1;
+    else
+        resetx86();
+#else
     resetx86();
+#endif
 }
 
 void
@@ -767,7 +790,7 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv),
     if (next_pci_card < PCI_CARDS_NUM) {
         dev = &pci_card_descs[next_pci_card];
 
-        dev->type = add_type;
+        dev->type = add_type | PCI_ADD_STRICT;
         dev->read  = read;
         dev->write = write;
         dev->priv  = priv;

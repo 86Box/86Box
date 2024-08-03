@@ -129,6 +129,7 @@ sf_FFREEP_sti(uint32_t fetchdat)
     FPU_settagi(X87_TAG_EMPTY, fetchdat & 7);
     if (cpu_state.abrt)
         return 1;
+
     FPU_pop();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ffree) : (x87_timings.ffree * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ffree) : (x87_concurrency.ffree * cpu_multi));

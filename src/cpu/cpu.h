@@ -21,8 +21,6 @@
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
 
-#include "softfloat/softfloat.h"
-
 enum {
     FPU_NONE,
     FPU_8087,
@@ -419,22 +417,6 @@ typedef struct {
     uint32_t _smbase;
 } cpu_state_t;
 
-typedef struct {
-    uint16_t      cwd;
-    uint16_t      swd;
-    uint16_t      tag;
-    uint16_t      foo;
-    uint32_t      fip;
-    uint32_t      fdp;
-    uint16_t      fcs;
-    uint16_t      fds;
-    floatx80      st_space[8];
-    unsigned char tos;
-    unsigned char align1;
-    unsigned char align2;
-    unsigned char align3;
-} fpu_state_t;
-
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
@@ -515,7 +497,6 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 /* Global variables. */
 extern cpu_state_t cpu_state;
-extern fpu_state_t fpu_state;
 
 extern const cpu_family_t         cpu_families[];
 extern cpu_family_t              *cpu_f;
@@ -604,8 +585,6 @@ extern uint32_t eip_msr;
 /* For the AMD K6. */
 extern uint64_t amd_efer;
 extern uint64_t star;
-
-#define FPU_CW_Reserved_Bits (0xe0c0)
 
 #define cr0                  cpu_state.CR0.l
 #define msw                  cpu_state.CR0.w
@@ -841,5 +820,10 @@ extern int lock_legal_ba[8];
 extern int lock_legal_80[8];
 extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
+
+extern int in_lock;
+extern int cpu_override_interpreter;
+
+extern int is_lock_legal(uint32_t fetchdat);
 
 #endif /*EMU_CPU_H*/

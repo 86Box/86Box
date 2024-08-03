@@ -1394,7 +1394,7 @@ next_line:
 void
 voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_even)
 {
-    voodoo_state_t state;
+    voodoo_state_t state = { 0 };
     int            vertexAy_adjusted;
     int            vertexCy_adjusted;
     int            dx;
@@ -1405,6 +1405,8 @@ voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_even)
     uint64_t tempLOD;
     int      LOD;
     int      lodbias;
+
+    state.dx1 = state.dx2 = 0;
 
     voodoo->tri_count++;
 

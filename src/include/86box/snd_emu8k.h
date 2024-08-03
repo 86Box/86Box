@@ -390,12 +390,12 @@ typedef struct emu8k_t {
     int16_t out_r;
 
     emu8k_chorus_eng_t chorus_engine;
-    int32_t            chorus_in_buffer[SOUNDBUFLEN];
+    int32_t            chorus_in_buffer[WTBUFLEN];
     emu8k_reverb_eng_t reverb_engine;
-    int32_t            reverb_in_buffer[SOUNDBUFLEN];
+    int32_t            reverb_in_buffer[WTBUFLEN];
 
     int     pos;
-    int32_t buffer[SOUNDBUFLEN * 2];
+    int32_t buffer[WTBUFLEN * 2];
 
     uint16_t addr;
 } emu8k_t;
@@ -405,6 +405,8 @@ void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram);
 void emu8k_close(emu8k_t *emu8k);
 
 void emu8k_update(emu8k_t *emu8k);
+
+#define EMU8K_ROM_PATH "roms/sound/creative/awe32.raw"
 
 /*
 

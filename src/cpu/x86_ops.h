@@ -434,9 +434,9 @@ extern const OpFn ops_2386_REPE[1024];
 extern const OpFn ops_2386_REPNE[1024];
 extern const OpFn ops_2386_3DNOW[256];
 
-#define C0 (1 << 8)
-#define C1 (1 << 9)
-#define C2 (1 << 10)
-#define C3 (1 << 14)
+#define FPU_SW_C3              (0x4000)  /* condition bit 3 */
+#define FPU_SW_C2              (0x0400)  /* condition bit 2 */
+#define FPU_SW_C1              (0x0200)  /* condition bit 1 */
+#define FPU_SW_C0              (0x0100)  /* condition bit 0 */
 
 #endif /*_X86_OPS_H*/

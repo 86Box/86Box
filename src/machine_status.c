@@ -33,7 +33,7 @@ machine_status_init(void)
         machine_status.fdd[i].active = false;
     }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
-        machine_status.cdrom[i].empty  = cdrom[i].host_drive != 200 || (strlen(cdrom[i].image_path) == 0);
+        machine_status.cdrom[i].empty  = (strlen(cdrom[i].image_path) == 0);
         machine_status.cdrom[i].active = false;
     }
     for (size_t i = 0; i < ZIP_NUM; i++) {

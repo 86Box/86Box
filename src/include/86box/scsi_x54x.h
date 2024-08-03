@@ -476,7 +476,8 @@ typedef struct x54x_t {
     /* 8 bytes */
     char *bios_path;  /* path to BIOS image file */
     char *mcode_path; /* path to microcode image file, needed by the AHA-1542CP */
-    char *nvr_path;   /* path to NVR image file */
+
+    char nvr_path[64]; /* path to NVR image file */
 
     /* 56 bytes */
     /* Pointer to a structure of vendor-specific data that only the vendor-specific code can understand */

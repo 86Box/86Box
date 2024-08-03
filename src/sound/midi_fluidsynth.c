@@ -7,7 +7,6 @@
 #ifdef __unix__
 #    include <unistd.h>
 #endif
-#define FLUIDSYNTH_NOT_A_DLL
 #include <fluidsynth.h>
 
 #include <86box/86box.h>

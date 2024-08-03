@@ -38,6 +38,9 @@ typedef struct opti499_t {
     uint8_t scratch[2];
 } opti499_t;
 
+/* According to The Last Byte, register 2Dh bit 7 must still be writable, even if it is unused. */
+static uint8_t masks[0x0e] = { 0x3f, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff, 0xff, 0xe3, 0xff, 0xfb, 0xff, 0x00, 0xff };
+
 #ifdef ENABLE_OPTI499_LOG
 int opti499_do_log = ENABLE_OPTI499_LOG;
 
@@ -84,7 +87,7 @@ opti499_recalc(opti499_t *dev)
             shflags = MEM_READ_INTERNAL;
             shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
         } else {
-            if (dev->regs[0x2d] && (1 << ((i >> 1) + 2)))
+            if (dev->regs[0x2d] & (1 << ((i >> 1) + 2)))
                 shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
             else
                 shflags = MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
@@ -101,13 +104,13 @@ opti499_recalc(opti499_t *dev)
             shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
         } else {
             if (dev->regs[0x26] & 0x40) {
-                if (dev->regs[0x2d] && (1 << (i >> 1)))
+                if (dev->regs[0x2d] & (1 << (i >> 1)))
                     shflags = MEM_READ_EXTANY;
                 else
                     shflags = MEM_READ_EXTERNAL;
                 shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
             } else {
-                if (dev->regs[0x2d] && (1 << (i >> 1)))
+                if (dev->regs[0x2d] & (1 << (i >> 1)))
                     shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
                 else
                     shflags = MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
@@ -126,19 +129,25 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
     opti499_t *dev = (opti499_t *) priv;
 
     switch (addr) {
+        default:
+            break;
+
         case 0x22:
             opti499_log("[%04X:%08X] [W] dev->idx = %02X\n", CS, cpu_state.pc, val);
             dev->idx = val;
             break;
         case 0x24:
-            if ((dev->idx >= 0x20) && (dev->idx <= 0x2d)) {
-                if (dev->idx == 0x20)
-                    dev->regs[dev->idx] = (dev->regs[dev->idx] & 0xc0) | (val & 0x3f);
-                else
-                    dev->regs[dev->idx] = val;
+            if ((dev->idx >= 0x20) && (dev->idx <= 0x2d) && (dev->idx != 0x2c)) {
                 opti499_log("[%04X:%08X] [W] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, val);
 
+                dev->regs[dev->idx] = val & masks[dev->idx - 0x20];
+                if (dev->idx == 0x2a)
+                    dev->regs[dev->idx] |= 0x04;
+
                 switch (dev->idx) {
+                    default:
+                        break;
+
                     case 0x20:
                         reset_on_hlt = !(val & 0x02);
                         break;
@@ -154,19 +163,15 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x2d:
                         opti499_recalc(dev);
                         break;
-
-                    default:
-                        break;
                 }
             }
+
+            dev->idx = 0xff;
             break;
 
         case 0xe1:
         case 0xe2:
             dev->scratch[~addr & 0x01] = val;
-            break;
-
-        default:
             break;
     }
 }
@@ -178,24 +183,22 @@ opti499_read(uint16_t addr, void *priv)
     opti499_t *dev = (opti499_t *) priv;
 
     switch (addr) {
+        default:
+            break;
+
         case 0x22:
             opti499_log("[%04X:%08X] [R] dev->idx = %02X\n", CS, cpu_state.pc, ret);
             break;
         case 0x24:
-            if ((dev->idx >= 0x20) && (dev->idx <= 0x2d)) {
-                if (dev->idx == 0x2d)
-                    ret = dev->regs[dev->idx] & 0xbf;
-                else
-                    ret = dev->regs[dev->idx];
+            if ((dev->idx >= 0x20) && (dev->idx <= 0x2d) && (dev->idx != 0x2c)) {
+                ret = dev->regs[dev->idx];
                 opti499_log("[%04X:%08X] [R] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, ret);
             }
+            dev->idx = 0xff;
             break;
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[~addr & 0x01];
-            break;
-
-        default:
             break;
     }
 
@@ -226,8 +229,6 @@ opti499_reset(void *priv)
     cpu_update_waitstates();
 
     opti499_recalc(dev);
-
-    free(dev);
 }
 
 static void

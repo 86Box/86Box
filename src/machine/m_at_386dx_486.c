@@ -41,6 +41,7 @@
 #include <86box/sio.h>
 #include <86box/hdc.h>
 #include <86box/port_6x.h>
+#include <86box/port_92.h>
 #include <86box/video.h>
 #include <86box/flash.h>
 #include <86box/scsi_ncr53c8xx.h>
@@ -63,7 +64,7 @@ machine_at_acc386_init(const machine_t *model)
     device_add(&acc2168_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -84,7 +85,27 @@ machine_at_asus386_init(const machine_t *model)
     device_add(&rabbit_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_tandy4000_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tandy4000/BIOS Tandy 4000 v1.03.01.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -97,7 +118,7 @@ machine_at_sis401_common_init(const machine_t *model)
     device_add(&sis_85c401_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 }
 
@@ -148,7 +169,7 @@ machine_at_av4_init(const machine_t *model)
     device_add(&sis_85c460_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -172,7 +193,7 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     device_add(&keyboard_ps2_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -193,7 +214,7 @@ machine_at_ecs386_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&cs8230_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&keyboard_at_ami_device);
@@ -216,7 +237,7 @@ machine_at_spc6000a_init(const machine_t *model)
     machine_at_common_init_ex(model, 1);
     device_add(&cs8230_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&keyboard_at_ami_device);
@@ -239,7 +260,7 @@ machine_at_ecs386v_init(const machine_t *model)
     device_add(&ali1429_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -261,7 +282,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
     device_add(&opti283_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -283,7 +304,7 @@ machine_at_486vchd_init(const machine_t *model)
     device_add(&via_vt82c49x_device);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -304,7 +325,7 @@ machine_at_cs4031_init(const machine_t *model)
     device_add(&cs4031_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -354,7 +375,7 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&vl82c113_device);
     device_add(&fdc37c651_ide_device);
 
     return ret;
@@ -379,8 +400,10 @@ machine_at_d824_init(const machine_t *model)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_device);
-    device_add(&fdc37c651_device);
 
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_device);
+    
     return ret;
 }
 
@@ -426,7 +449,7 @@ machine_at_acerv10_init(const machine_t *model)
     device_add(&keyboard_ps2_acer_pci_device);
     device_add(&ide_isa_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -470,7 +493,7 @@ machine_at_ali1429_common_init(const machine_t *model, int is_green)
 
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 }
 
@@ -523,7 +546,7 @@ machine_at_opti495_init(const machine_t *model)
 
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -538,7 +561,7 @@ machine_at_opti495_ami_common_init(const machine_t *model)
 
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 }
 
@@ -590,7 +613,7 @@ machine_at_exp4349_init(const machine_t *model)
     device_add(&ali1429g_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
     return ret;
 }
@@ -608,7 +631,7 @@ machine_at_403tg_common_init(const machine_t *model, int nvr_hack)
 
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 }
 
@@ -665,45 +688,38 @@ machine_at_pb450_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pb450/OPTI802.BIN",
+    ret = bios_load_linear("roms/machines/pb450/OPTI802.bin",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&ide_vlb_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      5, 4, 3, 2);
-    pci_register_slot(0x12, PCI_CARD_NORMAL,      9, 8, 7, 6);
-
-    device_add(&opti895_device);
-    device_add(&opti822_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&fdc37c661_ide_device);
-    device_add(&ide_opti611_vlb_sec_device);
-    device_add(&ide_vlb_2ch_device);
-    device_add(&intel_flash_bxt_device);
-    device_add(&phoenix_486_jumper_pci_device);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      5, 6, 7, 8);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_vlb_onboard_device);
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&opti895_device);
+    device_add(&opti602_device);
+    device_add(&opti822_device);
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&fdc37c665_ide_device);
+    device_add(&ide_opti611_vlb_sec_device);
+    device_add(&intel_flash_bxt_device);
+    device_add(&phoenix_486_jumper_pci_device);
 
     return ret;
 }
 
-int
-machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse */
+static void
+machine_at_pc330_6573_common_init(const machine_t *model)
 {
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc330_6573/$IMAGES.USF",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
     machine_at_common_init_ex(model, 2);
     device_add(&ide_vlb_2ch_device);
 
@@ -718,7 +734,7 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
     pci_register_slot(0x0E, PCI_CARD_VIDEO,       13, 14, 15, 16);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5430_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&opti602_device);
     device_add(&opti802g_device);
@@ -727,6 +743,36 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
     device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
+}
+
+int
+machine_at_aptiva510_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/aptiva510/$IMAGES.USF",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_pc330_6573_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_pc330_6573_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc330_6573/$IMAGES.USF",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_pc330_6573_common_init(model);
 
     return ret;
 }
@@ -756,7 +802,7 @@ machine_at_sis_85c471_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&sis_85c471_device);
@@ -875,7 +921,7 @@ machine_at_pci400ca_init(const machine_t *model)
     device_add(&i420tx_device);
     device_add(&ncr53c810_onboard_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -911,7 +957,7 @@ machine_at_greenb_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&contaq_82c597_device);
@@ -934,7 +980,7 @@ machine_at_4gpv5_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&contaq_82c596a_device);
@@ -949,7 +995,7 @@ machine_at_sis_85c496_common_init(UNUSED(const machine_t *model))
 {
     device_add(&ide_pci_2ch_device);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
@@ -1322,7 +1368,7 @@ machine_at_amis76_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted("roms/machines/s76p/s76p.rom", 
+    ret = bios_load_linear_inverted("roms/machines/s76p/S76P.ROM", 
                                     0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1372,7 +1418,7 @@ machine_at_pci400cb_init(const machine_t *model)
 
     device_add(&ims8848_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -1401,7 +1447,7 @@ machine_at_g486ip_init(const machine_t *model)
 
     device_add(&ims8848_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -1461,7 +1507,7 @@ machine_at_486ap4_init(const machine_t *model)
     pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 0c = Slot 4 */
     device_add(&keyboard_ps2_ami_pci_device);                  /* Uses the AMIKEY KBC */
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     device_add(&i420ex_device);
@@ -1941,7 +1987,7 @@ machine_at_atc1415_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -2178,10 +2224,10 @@ machine_at_dvent4xx_init(const machine_t *model)
     device_add(&sis_85c471_device);
     device_add(&ide_cmd640_vlb_pri_device);
     device_add(&fdc37c665_ide_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&keyboard_ps2_phoenix_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio32_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -2202,7 +2248,7 @@ machine_at_ecsal486_init(const machine_t *model)
     device_add(&ali1429g_device);
     device_add(&keyboard_ps2_ami_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -2245,9 +2291,100 @@ machine_at_atc1762_init(const machine_t *model)
     device_add(&ali1429g_device);
     device_add(&keyboard_ps2_ami_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    return ret;
+}
+
+int
+machine_at_dataexpert386wb_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dataexpert386wb/st0386-wb-ver2-0-618f078c738cb397184464.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti391_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_genoa486_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/genoa486/AMI486.BIO",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&compaq_genoa_device);
+    device_add(&port_92_key_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_ga486l_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ga486l/ga-486l_bios.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&opti381_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_cougar_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cougar/COUGRMRB.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_vlb_device);
+
+    device_add(&opti499_device);
+    device_add(&fdc37c665_ide_pri_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }

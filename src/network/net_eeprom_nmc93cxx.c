@@ -60,14 +60,14 @@ nmc93cxx_eeprom_log(int lvl, const char *fmt, ...)
 #endif
 
 static void *
-nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void *params)
+nmc93cxx_eeprom_init(const device_t *info)
 {
     uint16_t                  nwords         = 64;
     uint8_t                   addrbits       = 6;
     uint8_t                   filldefault    = 1;
-    nmc93cxx_eeprom_params_t *params_details = (nmc93cxx_eeprom_params_t *) params;
+    nmc93cxx_eeprom_params_t *params_details = (nmc93cxx_eeprom_params_t *) info->local;
     nmc93cxx_eeprom_t        *eeprom         = NULL;
-    if (!params)
+    if (info->local == 0)
         return NULL;
 
     nwords = params_details->nwords;
@@ -263,7 +263,7 @@ nmc93cxx_eeprom_close(void *priv)
 uint16_t *
 nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *eeprom)
 {
-    if (UNLIKELY(!eeprom))
+    if (UNLIKELY(eeprom == NULL))
         return NULL;
     /* Get EEPROM data array. */
     return &eeprom->dev.data[0];
@@ -272,9 +272,9 @@ nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *eeprom)
 const device_t nmc93cxx_device = {
     .name          = "National Semiconductor NMC93Cxx",
     .internal_name = "nmc93cxx",
-    .flags         = DEVICE_EXTPARAMS,
+    .flags         = 0,
     .local         = 0,
-    .init_ext      = nmc93cxx_eeprom_init_params,
+    .init          = nmc93cxx_eeprom_init,
     .close         = nmc93cxx_eeprom_close,
     .reset         = NULL,
     { .available = NULL },

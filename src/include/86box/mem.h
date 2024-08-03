@@ -302,6 +302,8 @@ extern int memspeed[11];
 extern int     mmu_perm;
 extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
 
+extern uint8_t *_mem_exec[MEM_MAPPINGS_NO];
+
 extern uint32_t pages_sz; /* #pages in table */
 extern int      read_type;
 
@@ -389,6 +391,11 @@ extern void mem_mapping_set_handler(mem_mapping_t *,
                                     void (*write_w)(uint32_t addr, uint16_t val, void *priv),
                                     void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
+extern void mem_mapping_set_write_handler(mem_mapping_t *,
+                                          void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                          void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                                          void (*write_l)(uint32_t addr, uint32_t val, void *priv));
+
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
@@ -449,6 +456,7 @@ extern void mem_a20_recalc(void);
 extern void mem_init(void);
 extern void mem_close(void);
 extern void mem_reset(void);
+extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 
 extern void umc_smram_recalc(uint32_t start, int set);

@@ -80,6 +80,8 @@ int hlt_reset_pending;
 
 int fpu_cycles = 0;
 
+int in_lock = 0;
+
 #ifdef ENABLE_X86_LOG
 void dumpregs(int);
 
@@ -238,7 +240,6 @@ reset_common(int hard)
 
     if (!hard && reset_on_hlt) {
         hlt_reset_pending++;
-        pclog("hlt_reset_pending = %i\n", hlt_reset_pending);
         if (hlt_reset_pending == 2)
             hlt_reset_pending = 0;
         else
@@ -277,7 +278,11 @@ reset_common(int hard)
     cr4              = 0;
     cpu_state.eflags = 0;
     cgate32          = 0;
+#ifdef USE_DEBUG_REGS_486
+    if (is386) {
+#else
     if (is386 && !is486) {
+#endif
         for (uint8_t i = 0; i < 4; i++)
             dr[i] = 0x00000000;
         dr[6] = 0xffff1ff0;
@@ -346,10 +351,13 @@ reset_common(int hard)
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */
         device_reset_all(DEVICE_KBC);
-    }
+    } else
+        device_reset_all(DEVICE_SOFTRESET);
 
     if (!is286)
         reset_808x(hard);
+
+    in_lock    = 0;
 
     cpu_cpurst_on_sr = 0;
 }

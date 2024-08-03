@@ -21,10 +21,14 @@ endif()
 add_executable(86Box 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
     dma.c ddma.c nmi.c pic.c pit.c pit_fast.c port_6x.c port_92.c ppi.c pci.c
     mca.c usb.c fifo.c fifo8.c device.c nvr.c nvr_at.c nvr_ps2.c
-    machine_status.c ini.c)
+    machine_status.c ini.c cJSON.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_compile_definitions(_FILE_OFFSET_BITS=64 _LARGEFILE_SOURCE=1 _LARGEFILE64_SOURCE=1)
+endif()
+
+if(PCL)
+    target_compile_definitions(86Box PRIVATE USE_PCL)
 endif()
 
 if(CPPTHREADS)
@@ -57,12 +61,16 @@ if(DISCORD)
     target_sources(86Box PRIVATE discord.c)
 endif()
 
+if(DEBUGREGS486)
+    add_compile_definitions(USE_DEBUG_REGS_486)
+endif()
+
 if(VNC)
     find_package(LibVNCServer)
     if(LibVNCServer_FOUND)
         add_compile_definitions(USE_VNC)
         add_library(vnc OBJECT vnc.c vnc_keymap.c)
-            target_link_libraries(86Box vnc LibVNCServer::vncserver)
+        target_link_libraries(86Box vnc LibVNCServer::vncserver)
         if(WIN32)
             target_link_libraries(86Box ws2_32)
         endif()
@@ -226,8 +234,6 @@ endif()
 
 if (QT)
     add_subdirectory(qt)
-elseif(WIN32)
-    add_subdirectory(win)
 else()
     add_compile_definitions(USE_SDL_UI)
     add_subdirectory(unix)

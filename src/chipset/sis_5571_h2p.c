@@ -119,18 +119,18 @@ sis_5571_smram_recalc(sis_5571_host_to_pci_t *dev)
 {
     smram_disable_all();
 
-    switch (dev->pci_conf[0x68] >> 6) {
+    switch (dev->pci_conf[0xa3] >> 6) {
         case 0:
-            smram_enable(dev->smram, 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0x68] & 0x10, 1);
+            smram_enable(dev->smram, 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0xa3] & 0x10, 1);
             break;
         case 1:
-            smram_enable(dev->smram, 0x000e0000, 0x000a0000, 0x8000, dev->pci_conf[0x68] & 0x10, 1);
+            smram_enable(dev->smram, 0x000e0000, 0x000a0000, 0x8000, dev->pci_conf[0xa3] & 0x10, 1);
             break;
         case 2:
-            smram_enable(dev->smram, 0x000e0000, 0x000b0000, 0x8000, dev->pci_conf[0x68] & 0x10, 1);
+            smram_enable(dev->smram, 0x000e0000, 0x000b0000, 0x8000, dev->pci_conf[0xa3] & 0x10, 1);
             break;
         case 3:
-            smram_enable(dev->smram, 0x000a0000, 0x000a0000, 0x10000, dev->pci_conf[0x68] & 0x10, 1);
+            smram_enable(dev->smram, 0x000a0000, 0x000a0000, 0x10000, dev->pci_conf[0xa3] & 0x10, 1);
             break;
 
         default:

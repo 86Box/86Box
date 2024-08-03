@@ -41,8 +41,12 @@ endif()
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
 
 find_package(Threads REQUIRED)
-find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
+find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL Gui REQUIRED)
 find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+if(NOT USE_QT6)
+    # For <qpa/qplatformwindow.h>  in src/qt/qt_mainwindow.cpp
+    include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+endif ()
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
@@ -61,7 +65,6 @@ add_library(plat STATIC
 
 add_library(ui STATIC
     qt_ui.cpp
-    qt_cdrom.c
 
     qt_mainwindow.cpp
     qt_mainwindow.hpp
@@ -189,15 +192,8 @@ endif()
 
 if(WIN32)
     enable_language(RC)
-    target_sources(86Box PUBLIC ../win/86Box-qt.rc)
+    target_sources(86Box PUBLIC 86Box-qt.rc)
     target_sources(plat PRIVATE win_dynld.c)
-    if(DINPUT)
-        target_sources(plat PRIVATE win_joystick.cpp)
-        target_link_libraries(86Box dinput8)
-    else()
-        target_sources(plat PRIVATE win_joystick_rawinput.c)
-    endif()
-    target_link_libraries(86Box hid)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -205,25 +201,39 @@ if(WIN32)
         # MSVC linker adds its own manifest to the executable, which fails if
         # we include ours in 86Box.rc. We therefore need to pass the manifest
         # directly as as a source file, so the linker can use that instead.
-        set_property(SOURCE ../win/86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
-        target_sources(86Box PRIVATE ../win/86Box.manifest)
+        set_property(SOURCE 86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        target_sources(86Box PRIVATE 86Box.manifest)
     endif()
 
     if (MINGW)
         add_compile_definitions(NTDDI_VERSION=0x06010000)
     endif()
+
+    option(SDL_JOYSTICK "Use SDL2 joystick backend instead of raw input" OFF)
+endif()
+
+if(WIN32 AND NOT SDL_JOYSTICK)
+    target_sources(plat PRIVATE win_joystick_rawinput.c)
+    target_link_libraries(86Box hid)
 else()
-    target_sources(plat PRIVATE sdl_joystick.cpp)
+    target_sources(plat PRIVATE sdl_joystick.c)
 endif()
 
 if(WIN32 AND NOT MINGW)
-    target_sources(plat PRIVATE ../win/win_opendir.c)
+    target_sources(plat PRIVATE win_opendir.c)
 endif()
 
 if(WIN32)
-    target_sources(plat PRIVATE ../win/win_serial_passthrough.c)
+    target_sources(plat PRIVATE win_serial_passthrough.c win_netsocket.c)
 else()
-    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c)
+    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
+endif()
+
+if(WIN32)
+    target_sources(plat PRIVATE win_cdrom_ioctl.c)
+else()
+# Replace with proper *nix and mac handler files once they are done.
+    target_sources(plat PRIVATE dummy_cdrom_ioctl.c)
 endif()
 
 if (APPLE)

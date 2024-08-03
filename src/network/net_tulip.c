@@ -1530,6 +1530,9 @@ nic_init(const device_t *info)
             s->eeprom_data[40] = 0x00;
             s->eeprom_data[41] = 0x00;
         } else {
+            /*SROM Format Version 3*/
+            s->eeprom_data[18] = 0x03;
+
             /*Block Count*/
             s->eeprom_data[32] = 0x01;
 
@@ -1610,8 +1613,8 @@ nic_init(const device_t *info)
         params.default_content = (uint16_t *) s->eeprom_data;
         params.filename        = filename;
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-        s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
-        if (!s->eeprom) {
+        s->eeprom = device_add_params(&nmc93cxx_device, &params);
+        if (s->eeprom == NULL) {
             free(s);
             return NULL;
         }
@@ -1677,7 +1680,7 @@ static const device_config_t dec_tulip_21140_config[] = {
 // clang-format on
 
 const device_t dec_tulip_device = {
-    .name          = "DE500A Fast Ethernet (DECchip 21143 \"Tulip\")",
+    .name          = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")",
     .internal_name = "dec_21143_tulip",
     .flags         = DEVICE_PCI,
     .local         = 0,

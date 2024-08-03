@@ -12,6 +12,7 @@
 #include "x86.h"
 #include "x86_ops.h"
 #include "x86seg_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "386_common.h"
 #include "codegen.h"

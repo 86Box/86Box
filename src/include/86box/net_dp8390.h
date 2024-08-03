@@ -171,6 +171,8 @@ typedef struct dp8390_t {
     /* DP8390 memory */
     uint8_t *mem; /* on-chip packet memory */
 
+    uint8_t sink_buffer[4096];
+
     uint8_t macaddr[32];  /* ASIC ROM'd MAC address, even bytes */
     uint8_t macaddr_size, /* Defaults to 16 but can be 32 */
         flags,            /* Flags affecting some behaviors. */

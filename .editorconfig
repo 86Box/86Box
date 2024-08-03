@@ -5,34 +5,11 @@ indent_style = space
 indent_size = 4
 tab_width = 4
 
-# Disabled for now since not all editors support setting a tab_width value different from indent_size
-# Relevant VSCode extension issue: https://github.com/editorconfig/editorconfig-vscode/issues/190
-# [*.rc]
-# indent_style = space
-# indent_size = 4
-# tab_width = 4
-
-# [Makefile.*]
-# indent_style = space
-# indent_size = 4
-# tab_width = 4
-
 [*.manifest]
-indent_style = space
 indent_size = 2
 
 [*.yml]
-indent_style = space
 indent_size = 2
 
-[**/CMakeLists.txt]
-indent_style = space
-indent_size = 4
-
-[*.cmake]
-indent_style = space
-indent_size = 4
-
-[*.json]
-indent_style = space
-indent_size = 4
+[*.ui]
+indent_size = 1

@@ -211,6 +211,7 @@ extern const device_t ne1000_device;
 extern const device_t ne1000_compat_device;
 extern const device_t ne2000_device;
 extern const device_t ne2000_compat_device;
+extern const device_t ne2000_compat_8bit_device;
 extern const device_t ethernext_mc_device;
 extern const device_t rtl8019as_device;
 extern const device_t de220p_device;
@@ -224,6 +225,9 @@ extern const device_t pcnet_am79c961_device;
 extern const device_t pcnet_am79c970a_device;
 extern const device_t pcnet_am79c973_device;
 extern const device_t pcnet_am79c973_onboard_device;
+
+/* Modem */
+extern const device_t modem_device;
 
 /* PLIP */
 #ifdef EMU_LPT_H

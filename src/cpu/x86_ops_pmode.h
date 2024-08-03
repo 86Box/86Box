@@ -430,12 +430,21 @@ op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
         case 0x20: /*SMSW*/
             if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
-            if (is486 || isibm486)
-                seteaw(msw);
-            else if (is386)
-                seteaw(msw | /* 0xFF00 */ 0xFFE0);
-            else
-                seteaw(msw | 0xFFF0);
+            if (is386 && is32 && (cpu_mod == 3)) {
+                if (is486 || isibm486)
+                    seteaw(cr0);
+                else if (is386 && !cpu_16bitbus)
+                    seteaw(cr0 | /* 0x7FFFFF00 */ 0x7FFFFFE0);
+                else
+                    seteaw(cr0 | 0x7FFFFFF0);
+            } else {
+                if (is486 || isibm486)
+                    seteaw(msw);
+                else if (is386 && !cpu_16bitbus)
+                    seteaw(msw | /* 0xFF00 */ 0xFFE0);
+                else
+                    seteaw(msw | 0xFFF0);
+            }
             CLOCK_CYCLES(2);
             PREFETCH_RUN(2, 2, rmdat, 0, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);
             break;

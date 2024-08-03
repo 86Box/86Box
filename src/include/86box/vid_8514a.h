@@ -32,12 +32,19 @@ typedef struct hwcursor8514_t {
     uint32_t pitch;
 } hwcursor8514_t;
 
+typedef union {
+    uint64_t q;
+    uint32_t d[2];
+    uint16_t w[4];
+    uint8_t  b[8];
+} latch8514_t;
+
 typedef struct ibm8514_t {
     rom_t bios_rom;
-    rom_t bios_rom2;
     hwcursor8514_t hwcursor;
     hwcursor8514_t hwcursor_latch;
     uint8_t        pos_regs[8];
+    char *rom_path;
 
     int force_old_addr;
     int type;
@@ -49,6 +56,7 @@ typedef struct ibm8514_t {
     uint32_t vram_size;
     uint32_t vram_mask;
     uint32_t pallook[512];
+    uint32_t bios_addr;
 
     PALETTE   vgapal;
     uint8_t   hwcursor_oddeven;
@@ -217,6 +225,8 @@ typedef struct ibm8514_t {
     int      ext_pitch;
     int      ext_crt_pitch;
     int      extensions;
+
+    latch8514_t latch;
 } ibm8514_t;
 
 #endif /*VIDEO_8514A_H*/

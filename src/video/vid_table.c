@@ -47,38 +47,11 @@ static video_timings_t timing_default = { .type = VIDEO_ISA, .write_b = 8, .writ
 
 static int was_reset = 0;
 
-static const device_t vid_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-static const device_t vid_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const VIDEO_CARD
 video_cards[] = {
   // clang-format off
-    { &vid_none_device                                 },
-    { &vid_internal_device                             },
+    { &device_none                                     },
+    { &device_internal                                 },
     { &atiega800p_device                               },
     { &mach8_vga_isa_device,      VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,         VIDEO_FLAG_TYPE_8514 },
@@ -91,9 +64,7 @@ video_cards[] = {
     { &ati28800_wonderxl24_device                      },
 #endif
     { &ati18800_device                                 },
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     { &ati18800_wonder_device                          },
-#endif
     { &cga_device                                      },
     { &sega_device                                     },
     { &gd5401_isa_device                               },
@@ -144,6 +115,7 @@ video_cards[] = {
     { &sigma_device                                    },
     { &tvga8900b_device                                },
     { &tvga8900d_device                                },
+    { &tvga8900dr_device                               },
     { &tvga9000b_device                                },
     { &nec_sv9000_device                               },
     { &et4000k_isa_device                              },
@@ -164,11 +136,8 @@ video_cards[] = {
     { &mach32_pci_device,         VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_pci_device                             },
     { &mach64vt2_device                                },
-    { &et4000w32p_videomagic_revb_pci_device           },
-    { &et4000w32p_revc_pci_device                      },
-    { &et4000w32p_cardex_pci_device                    },
-    { &et4000w32p_noncardex_pci_device                 },
-    { &et4000w32p_pci_device                           },
+    { &bochs_svga_device                               },
+    { &chips_69000_device                              },
     { &gd5430_pci_device,                              },
     { &gd5434_pci_device                               },
     { &gd5436_pci_device,      VIDEO_FLAG_TYPE_SPECIAL },
@@ -176,6 +145,11 @@ video_cards[] = {
     { &gd5446_pci_device,      VIDEO_FLAG_TYPE_SPECIAL },
     { &gd5446_stb_pci_device,  VIDEO_FLAG_TYPE_SPECIAL },
     { &gd5480_pci_device                               },
+    { &et4000w32p_videomagic_revb_pci_device           },
+    { &et4000w32p_revc_pci_device                      },
+    { &et4000w32p_cardex_pci_device                    },
+    { &et4000w32p_noncardex_pci_device                 },
+    { &et4000w32p_pci_device                           },
     { &s3_spea_mercury_lite_86c928_pci_device          },
     { &s3_diamond_stealth64_964_pci_device             },
     { &s3_elsa_winner2000_pro_x_964_pci_device         },
@@ -187,6 +161,7 @@ video_cards[] = {
     { &s3_diamond_stealth64_pci_device                 },
     { &s3_9fx_pci_device                               },
     { &s3_phoenix_trio64_pci_device                    },
+    { &s3_diamond_stealth64_968_pci_device             },
     { &s3_elsa_winner2000_pro_x_pci_device             },
     { &s3_mirovideo_40sv_ergo_968_pci_device           },
     { &s3_9fx_771_pci_device                           },
@@ -207,7 +182,6 @@ video_cards[] = {
     { &s3_virge_357_pci_device                         },
     { &s3_diamond_stealth_4000_pci_device              },
     { &s3_trio3d2x_pci_device                          },
-    { &chips_69000_device                              },
     { &millennium_device                               },
     { &millennium_ii_device                            },
     { &mystique_device                                 },
@@ -252,8 +226,7 @@ video_cards[] = {
     { &s3_9fx_vlb_device                               },
     { &s3_phoenix_trio64_vlb_device                    },
     { &s3_spea_mirage_p64_vlb_device                   },
-    { &s3_phoenix_vision968_vlb_device                 },
-    { &s3_phoenix_vision868_vlb_device                 },
+    { &s3_diamond_stealth64_968_vlb_device             },
     { &s3_stb_powergraph_64_video_vlb_device           },
     { &ht216_32_standalone_device                      },
     { &tgui9400cxi_device                              },
@@ -261,7 +234,9 @@ video_cards[] = {
     { &s3_virge_357_agp_device                         },
     { &s3_diamond_stealth_4000_agp_device              },
     { &s3_trio3d2x_agp_device                          },
+#ifdef USE_G100
     { &productiva_g100_device, VIDEO_FLAG_TYPE_SPECIAL },
+#endif
     { &velocity_100_agp_device                         },
     { &velocity_200_agp_device                         },
     { &voodoo_3_1000_agp_device                        },
@@ -349,12 +324,14 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
-        (gfxcard[1] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
-        video_monitor_init(1);
-        monitor_index_global = 1;
-        device_add(video_cards[gfxcard[1]].device);
-        monitor_index_global = 0;
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
+            (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine)) {
+            video_monitor_init(i);
+            monitor_index_global = 1;
+            device_add(video_cards[gfxcard[i]].device);
+            monitor_index_global = 0;
+        }
     }
 
     /* Do not initialize internal cards here. */

@@ -71,59 +71,31 @@ typedef struct
     const device_t *device;
 } MIDI_OUT_DEVICE, MIDI_IN_DEVICE;
 
-static const device_t midi_out_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const MIDI_OUT_DEVICE devices[] = {
     // clang-format off
-    { &midi_out_none_device  },
+    { &device_none          },
 #ifdef USE_FLUIDSYNTH
-    { &fluidsynth_device     },
+    { &fluidsynth_device    },
 #endif
 #ifdef USE_MUNT
-    { &mt32_old_device       },
-    { &mt32_new_device       },
-    { &cm32l_device          },
-    { &cm32ln_device         },
+    { &mt32_old_device      },
+    { &mt32_new_device      },
+    { &cm32l_device         },
+    { &cm32ln_device        },
 #endif
 #ifdef USE_RTMIDI
-    { &rtmidi_output_device  },
+    { &rtmidi_output_device },
 #endif
 #if defined(DEV_BRANCH) && defined(USE_OPL4ML)
-    { &opl4_midi_device      },
+    { &opl4_midi_device     },
 #endif
-    { NULL                   }
+    { NULL                  }
     // clang-format on
-};
-
-static const device_t midi_in_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] = {
     // clang-format off
-    { &midi_in_none_device },
+    { &device_none         },
 #ifdef USE_RTMIDI
     { &rtmidi_input_device },
 #endif

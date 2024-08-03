@@ -433,6 +433,31 @@ serial_set_dcd(serial_t *dev, uint8_t enabled)
 }
 
 void
+serial_set_ri(serial_t *dev, uint8_t enabled)
+{
+    uint8_t prev_state = !!(dev->msr & 0x40);
+    if (dev->mctrl & 0x10)
+        return;
+
+    dev->msr &= ~0x40;
+    dev->msr |= (!!enabled) << 6;
+    dev->msr_set &= ~0x40;
+    dev->msr_set |= (!!enabled) << 6;
+
+    if (prev_state == 0 && (!!enabled) == 1) {
+        dev->msr |= 0x4;
+        dev->int_status |= SERIAL_INT_MSR;
+        serial_update_ints(dev);
+    }
+}
+
+int
+serial_get_ri(serial_t *dev)
+{
+    return !!(dev->msr & (1 << 6));
+}
+
+void
 serial_set_clock_src(serial_t *dev, double clock_src)
 {
     dev->clock_src = clock_src;
@@ -570,7 +595,9 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 serial_do_irq(dev, 0);
             if ((val ^ dev->mctrl) & 0x10)
                 serial_reset_fifo(dev);
-            dev->mctrl = val;
+            if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
+                dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
+            dev->mctrl = val & 0x1f;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
                 new_msr |= (val & 0x02) ? 0x10 : 0;
@@ -686,7 +713,10 @@ serial_read(uint16_t addr, void *priv)
             serial_update_ints(dev);
             break;
         case 6:
-            ret = dev->msr | dev->msr_set;
+            if (dev->mctrl & 0x10)
+                ret = dev->msr;
+            else
+                ret = dev->msr | dev->msr_set;
             dev->msr &= ~0x0f;
             dev->int_status &= ~SERIAL_INT_MSR;
             serial_update_ints(dev);
@@ -794,6 +824,25 @@ serial_attach_ex(int port,
     return sd->serial;
 }
 
+serial_t *
+serial_attach_ex_2(int port,
+                 void (*rcr_callback)(struct serial_s *serial, void *priv),
+                 void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                 void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                 void *priv)
+{
+    serial_device_t *sd = &serial_devices[port];
+
+    sd->rcr_callback             = rcr_callback;
+    sd->dtr_callback             = dtr_callback;
+    sd->dev_write                = dev_write;
+    sd->transmit_period_callback = NULL;
+    sd->lcr_callback             = NULL;
+    sd->priv                     = priv;
+
+    return sd->serial;
+}
+
 static void
 serial_speed_changed(void *priv)
 {
@@ -863,7 +912,13 @@ serial_init(const device_t *info)
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
-        if (next_inst == 3)
+        if (next_inst == 6)
+            serial_setup(dev, COM7_ADDR, COM7_IRQ);
+        else if (next_inst == 5)
+            serial_setup(dev, COM6_ADDR, COM6_IRQ);
+        else if (next_inst == 4)
+            serial_setup(dev, COM5_ADDR, COM5_IRQ);
+        else if (next_inst == 3)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);

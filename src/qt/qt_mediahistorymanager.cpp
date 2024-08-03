@@ -306,7 +306,7 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
         }
         // For this check, explicitly prepend `usr_path` to relative paths to account for $CWD platform variances
         QFileInfo absolute_path = file_info.isRelative() ? QFileInfo(getUsrPath().append(file_info.filePath())) : file_info;
-        if (!absolute_path.exists()) {
+        if ((file_info.filePath().left(8) != "ioctl://") && !absolute_path.exists()) {
             qWarning("Image file %s does not exist - removing from history", qPrintable(file_info.filePath()));
             checked_path = "";
         }

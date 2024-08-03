@@ -123,6 +123,8 @@ uint8_t high_page = 0; /* if a high (> 4 gb) page was detected */
 mem_mapping_t        *read_mapping[MEM_MAPPINGS_NO];
 mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
 
+uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
+
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static uint8_t       *page_lookupp; /* pagetable mmu_perm lookup */
 static uint8_t       *readlookupp;
@@ -131,7 +133,6 @@ static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
-static uint8_t       *_mem_exec[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp_bus[MEM_MAPPINGS_NO];
 static uint8_t        ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
@@ -792,6 +793,9 @@ readmembl(uint32_t addr)
     uint64_t       a;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
+#ifdef USE_DEBUG_REGS_486
+    mem_debug_check_addr(addr, read_type);
+#endif
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -821,6 +825,9 @@ writemembl(uint32_t addr, uint8_t val)
     uint64_t       a;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
+#ifdef USE_DEBUG_REGS_486
+    mem_debug_check_addr(addr, 2);
+#endif
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -907,6 +914,10 @@ readmemwl(uint32_t addr)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
+#ifdef USE_DEBUG_REGS_486
+    mem_debug_check_addr(addr, read_type);
+    mem_debug_check_addr(addr + 1, read_type);
+#endif
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
@@ -965,6 +976,10 @@ writememwl(uint32_t addr, uint16_t val)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
+#ifdef USE_DEBUG_REGS_486
+    mem_debug_check_addr(addr, 2);
+    mem_debug_check_addr(addr + 1, 2);
+#endif
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
@@ -1141,8 +1156,12 @@ readmemll(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++) {
         addr64a[i] = (uint64_t) (addr + i);
+#ifdef USE_DEBUG_REGS_486
+        mem_debug_check_addr(addr + i, read_type);
+#endif
+    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 4);
 
     mem_logical_addr = addr;
@@ -1215,8 +1234,12 @@ writememll(uint32_t addr, uint32_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++) {
         addr64a[i] = (uint64_t) (addr + i);
+#ifdef USE_DEBUG_REGS_486
+        mem_debug_check_addr(addr + i, 2);
+#endif
+    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
@@ -1419,8 +1442,12 @@ readmemql(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < 8; i++) {
         addr64a[i] = (uint64_t) (addr + i);
+#ifdef USE_DEBUG_REGS_486
+        mem_debug_check_addr(addr + i, read_type);
+#endif
+    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 8);
 
     mem_logical_addr = addr;
@@ -1485,8 +1512,12 @@ writememql(uint32_t addr, uint64_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < 8; i++) {
         addr64a[i] = (uint64_t) (addr + i);
+#ifdef USE_DEBUG_REGS_486
+        mem_debug_check_addr(addr + i, 2);
+#endif
+    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 8);
 
     mem_logical_addr = addr;
@@ -1583,7 +1614,9 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     int      cond = 1;
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
-
+#ifdef USE_DEBUG_REGS_486
+    mem_debug_check_addr(addr, write ? 2 : read_type);
+#endif
     for (i = 0; i < num; i++)
         a64[i] = (uint64_t) addr;
 
@@ -2524,6 +2557,19 @@ mem_mapping_set_handler(mem_mapping_t *map,
 }
 
 void
+mem_mapping_set_write_handler(mem_mapping_t *map,
+                              void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                              void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                              void (*write_l)(uint32_t addr, uint32_t val, void *priv))
+{
+    map->write_b = write_b;
+    map->write_w = write_w;
+    map->write_l = write_l;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+void
 mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
 {
     /* Remove old mapping. */
@@ -2760,8 +2806,8 @@ mem_reset(void)
      */
     if (is286) {
         if (cpu_16bitbus) {
-            /* 80286/386SX; maximum address space is 16MB. */
-            m = 4096;
+            /* 80286/386SX; maximum address space is 16MB + 16 MB for EMS. */
+            m = 8192;
             /* ALi M6117; maximum address space is 64MB. */
             if (is6117)
                 m <<= 2;
@@ -2935,10 +2981,9 @@ umc_smram_recalc(uint32_t start, int set)
 }
 
 void
-mem_remap_top(int kb)
+mem_remap_top_ex(int kb, uint32_t start)
 {
     uint32_t   c;
-    uint32_t   start = (mem_size >= 1024) ? mem_size : 1024;
     int        offset;
     int        size = mem_size - 640;
     int        set        = 1;
@@ -3062,6 +3107,12 @@ mem_remap_top(int kb)
     }
 
     flushmmucache();
+}
+
+void
+mem_remap_top(int kb)
+{
+    mem_remap_top_ex(kb, (mem_size >= 1024) ? mem_size : 1024);
 }
 
 void

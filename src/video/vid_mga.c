@@ -315,6 +315,7 @@
 #define DWGCTRL_TRANS_MASK            (0xf << DWGCTRL_TRANS_SHIFT)
 #define DWGCTRL_BLTMOD_MASK           (0xf << 25)
 #define DWGCTRL_BLTMOD_BMONOLEF       (0x0 << 25)
+#define DWGCTRL_BLTMOD_BPLAN          (0x1 << 25)
 #define DWGCTRL_BLTMOD_BFCOL          (0x2 << 25)
 #define DWGCTRL_BLTMOD_BU32BGR        (0x3 << 25)
 #define DWGCTRL_BLTMOD_BMONOWF        (0x4 << 25)
@@ -336,7 +337,7 @@
 #define MACCESS_NODITHER              (1 << 30)
 #define MACCESS_DIT555                (1 << 31)
 
-#define PITCH_MASK                    0x7e0
+#define PITCH_MASK                    0xfe0
 #define PITCH_YLIN                    (1 << 15)
 
 #define SGN_SDYDXL                    (1 << 0)
@@ -490,7 +491,7 @@ typedef struct mystique_t {
 
     struct
     {
-        uint8_t funcnt, stylelen,
+        uint8_t funcnt : 7, stylelen,
             dmamod;
 
         int16_t fxleft, fxright,
@@ -504,7 +505,7 @@ typedef struct mystique_t {
             ta_key, ta_mask, lastpix_r, lastpix_g,
             lastpix_b, highv_line, beta, dither, err, k1, k2;
 
-        int pattern[8][16];
+        bool pattern[8][16];
 
         uint32_t dwgctrl, dwgctrl_running, bcol, fcol,
             pitch, plnwt, ybot, ydstorg,
@@ -815,7 +816,10 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
-            svga_recalctimings(svga);
+            if (!((mystique->type >= MGA_1064SG) && (mystique->crtcext_idx == 0) &&
+                (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE)))
+                svga_recalctimings(svga);
+
             break;
 
         default:
@@ -1558,14 +1562,14 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
         switch (addr & 0x3fff) {
             case REG_FIFOSTATUS:
                 fifocount = FIFO_SIZE - FIFO_ENTRIES;
-                if (fifocount > 64)
-                    fifocount = 64;
+                if (fifocount > (mystique->type <= MGA_1064SG ? 32 : 64))
+                    fifocount = (mystique->type <= MGA_1064SG ? 32 : 64);
                 ret = fifocount;
                 break;
             case REG_FIFOSTATUS + 1:
                 if (FIFO_EMPTY)
                     ret |= 2;
-                else if (FIFO_ENTRIES >= 64)
+                else if (FIFO_ENTRIES >= (mystique->type <= MGA_1064SG ? 32 : 64))
                     ret |= 1;
                 break;
             case REG_FIFOSTATUS + 2:
@@ -1579,6 +1583,10 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
                     ret |= REG_STATUS_VSYNCSTS;
                 if (ret & 1)
                     mystique->softrap_status_read = 1;
+                if (mystique->softrap_status_read == 0 && !(ret & 1)) {
+                    mystique->softrap_status_read = 1;
+                    ret |= 1;
+                }
                 break;
             case REG_STATUS + 1:
                 ret = (mystique->status >> 8) & 0xff;
@@ -3578,6 +3586,12 @@ blit_fbitblt(mystique_t *mystique)
     mystique->blitter_complete_refcount++;
 }
 
+static uint8_t
+dither_24_to_8(int r, int g, int b)
+{
+    return ((b >> 6) & 3) | (((g >> 5) & 7) << 2) | (((r >> 5) & 7) << 5);
+}
+
 static void
 blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 {
@@ -3810,6 +3824,26 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
                     while (size >= 24) {
                         if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
                             switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+                                case MACCESS_PWIDTH_16:
+                                {
+                                    dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w];
+
+                                    dst = bitop(dither(mystique, (data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF, mystique->dwgreg.xdst & 1, mystique->dwgreg.selline & 1), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w) >> 11] = changeframecount;
+                                    break;
+                                }
+                                case MACCESS_PWIDTH_8:
+                                {
+                                    dst = ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask];
+
+                                    dst = bitop(dither_24_to_8((data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask) >> 12] = changeframecount;
+                                    break;
+                                }
                                 case MACCESS_PWIDTH_32:
                                     dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l];
 
@@ -3853,11 +3887,36 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
                         int draw = (!transc || (data & bltcmsk) != bltckey) && trans[mystique->dwgreg.xdst & 3];
 
                         if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && draw) {
-                            dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l];
+                            switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+                                case MACCESS_PWIDTH_16:
+                                {
+                                    dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w];
 
-                            dst                                                                                                    = bitop(data, dst, mystique->dwgreg.dwgctrl_running);
-                            ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l] = dst;
-                            svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l) >> 10] = changeframecount;
+                                    dst = bitop(dither(mystique, (data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF, mystique->dwgreg.xdst & 1, mystique->dwgreg.selline & 1), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w) >> 11] = changeframecount;
+                                    break;
+                                }
+                                case MACCESS_PWIDTH_8:
+                                {
+                                    dst = ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask];
+
+                                    dst = bitop(dither_24_to_8((data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask) >> 12] = changeframecount;
+                                    break;
+                                }
+                                default: {
+                                    dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l];
+
+                                    dst                                                                                                    = bitop(data, dst, mystique->dwgreg.dwgctrl_running);
+                                    ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l) >> 10] = changeframecount;
+                                    break;
+                                }
+                            }
                         }
 
                         size = 0;
@@ -4317,15 +4376,20 @@ blit_line(mystique_t *mystique, int closed, int autoline)
     uint32_t old_dst;
     int      x = mystique->dwgreg.xdst;
     int      z_write;
+    int      pattern_x, pattern_y;
+    bool     transc = !!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC);
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_RSTR:
         case DWGCTRL_ATYPE_RPL:
             while (mystique->dwgreg.length >= 0) {
                 if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
+                    pattern_y = ((mystique->dwgreg.funcnt % (mystique->dwgreg.stylelen + 1)) >> 4) & 0x7;
+                    pattern_x = (mystique->dwgreg.funcnt % (mystique->dwgreg.stylelen + 1)) & 0xf;
+                    if (!transc || (transc && (mystique->dwgreg.pattern[pattern_y][pattern_x])))
                     switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                         case MACCESS_PWIDTH_8:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             dst = svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask];
 
                             dst                                                                              = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
@@ -4342,7 +4406,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                             break;
 
                         case MACCESS_PWIDTH_16:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w];
 
                             dst                                                                                = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
@@ -4359,7 +4423,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                             break;
 
                         case MACCESS_PWIDTH_24:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             old_dst = *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask];
 
                             dst                                                                                    = bitop(src, old_dst, mystique->dwgreg.dwgctrl_running);
@@ -4376,7 +4440,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                             break;
 
                         case MACCESS_PWIDTH_32:
-                            src = mystique->dwgreg.fcol;
+                            src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                             dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l];
 
                             dst                                                                                = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
@@ -4419,6 +4483,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                     mystique->dwgreg.err += mystique->dwgreg.k1;
 
                 mystique->dwgreg.length--;
+                mystique->dwgreg.funcnt--;
             }
             break;
 
@@ -4452,6 +4517,19 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                         int b = 0;
 
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+                            case MACCESS_PWIDTH_8:
+                                if (!(mystique->dwgreg.dr[4] & (1 << 23)))
+                                    r = (mystique->dwgreg.dr[4] >> 20) & 0x7;
+                                if (!(mystique->dwgreg.dr[8] & (1 << 23)))
+                                    g = (mystique->dwgreg.dr[8] >> 20) & 0x7;
+                                if (!(mystique->dwgreg.dr[12] & (1 << 23)))
+                                    b = (mystique->dwgreg.dr[12] >> 21) & 0x3;
+                                dst = (r << 5) | (g << 2) | b;
+
+                                ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask] = dst;
+                                svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask) >> 12] = changeframecount;
+                                break;
+
                             case MACCESS_PWIDTH_16:
                                 if (!(mystique->dwgreg.dr[4] & (1 << 23)))
                                     r = (mystique->dwgreg.dr[4] >> 18) & 0x1f;
@@ -4463,6 +4541,33 @@ blit_line(mystique_t *mystique, int closed, int autoline)
 
                                 ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w] = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w) >> 11] = changeframecount;
+                                break;
+
+                            case MACCESS_PWIDTH_24:
+                                old_dst = *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask];
+                                if (!(mystique->dwgreg.dr[4] & (1 << 23)))
+                                    r = (mystique->dwgreg.dr[4] >> 15) & 0xff;
+                                if (!(mystique->dwgreg.dr[8] & (1 << 23)))
+                                    g = (mystique->dwgreg.dr[8] >> 15) & 0xff;
+                                if (!(mystique->dwgreg.dr[12] & (1 << 23)))
+                                    b = (mystique->dwgreg.dr[12] >> 15) & 0xff;
+                                dst = (r << 16) | (g << 8) | b;
+
+                                ((uint32_t *) svga->vram)[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask] = dst | (old_dst & 0xFF000000);
+                                svga->changedvram[(((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask) >> 12] = changeframecount;
+                                break;
+
+                            case MACCESS_PWIDTH_32:
+                                if (!(mystique->dwgreg.dr[4] & (1 << 23)))
+                                    r = (mystique->dwgreg.dr[4] >> 15) & 0xff;
+                                if (!(mystique->dwgreg.dr[8] & (1 << 23)))
+                                    g = (mystique->dwgreg.dr[8] >> 15) & 0xff;
+                                if (!(mystique->dwgreg.dr[12] & (1 << 23)))
+                                    b = (mystique->dwgreg.dr[12] >> 15) & 0xff;
+                                dst = (r << 16) | (g << 8) | b;
+
+                                ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l] = dst;
+                                svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l) >> 10] = changeframecount;
                                 break;
 
                             default:
@@ -5006,8 +5111,8 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
 
         s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
         t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
-        s_frac = (((int32_t) mystique->dwgreg.tmr[6] >> s_shift) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int32_t) mystique->dwgreg.tmr[7] >> t_shift) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        s_frac = (((int32_t) mystique->dwgreg.tmr[6]) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int32_t) mystique->dwgreg.tmr[7]) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     } else {
         const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
         const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
@@ -5016,7 +5121,7 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
         t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
         s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     }
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
@@ -5228,6 +5333,15 @@ blit_texture_trap(mystique_t *mystique)
                                     }
                                     break;
 
+                                case (TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY):
+                                    if (!ctransp)
+                                        goto skip_pixel;
+
+                                    tex_r = i_r;
+                                    tex_g = i_g;
+                                    tex_b = i_b;
+                                    break;
+
                                 default:
                                     fatal("Bad TEXCTL %08x %08x\n", mystique->dwgreg.texctl, mystique->dwgreg.texctl & (TEXCTL_TMODULATE | TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY));
                             }
@@ -5367,6 +5481,19 @@ blit_bitblt(mystique_t *mystique)
     int16_t   x_start   = mystique->dwgreg.sgn.scanleft ? mystique->dwgreg.fxright : mystique->dwgreg.fxleft;
     int16_t   x_end     = mystique->dwgreg.sgn.scanleft ? mystique->dwgreg.fxleft : mystique->dwgreg.fxright;
     const int trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
+    uint32_t  bltckey   = mystique->dwgreg.fcol;
+    uint32_t  bltcmsk   = mystique->dwgreg.bcol;
+
+    switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+        case MACCESS_PWIDTH_8:
+            bltckey &= 0xff;
+            bltcmsk &= 0xff;
+            break;
+        case MACCESS_PWIDTH_16:
+            bltckey &= 0xffff;
+            bltcmsk &= 0xffff;
+            break;
+    }
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_BLK:
@@ -5478,6 +5605,91 @@ blit_bitblt(mystique_t *mystique)
             }
         case DWGCTRL_ATYPE_RSTR:
             switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
+                /* TODO: This isn't exactly perfect. */
+                case DWGCTRL_BLTMOD_BPLAN:
+                    if (mystique->dwgreg.dwgctrl_running & DWGCTRL_PATTERN)
+                        fatal("BITBLT RPL/RSTR BPLAN with pattern\n");
+
+                    src_addr = mystique->dwgreg.ar[3];
+
+                    for (y = 0; y < mystique->dwgreg.length; y++) {
+                        uint8_t const *const trans = &trans_masks[trans_sel][(mystique->dwgreg.selline & 3) * 4];
+                        int16_t              x     = x_start;
+
+                        while (1) {
+                            uint32_t byte_addr = src_addr & mystique->vram_mask;
+
+                            if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && ((svga->vram[byte_addr] & 1) || !(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC)) && trans[x & 3]) {
+                                uint32_t src = (svga->vram[byte_addr] & 1) ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
+                                uint32_t dst;
+                                uint32_t old_dst;
+
+                                switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+                                    case MACCESS_PWIDTH_8:
+                                        dst = svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask];
+
+                                        dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
+
+                                        svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask]                = dst;
+                                        svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask) >> 12] = changeframecount;
+                                        break;
+
+                                    case MACCESS_PWIDTH_16:
+                                        dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w];
+
+                                        dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
+
+                                        ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w] = dst;
+                                        svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w) >> 11] = changeframecount;
+                                        break;
+
+                                    case MACCESS_PWIDTH_24:
+                                        old_dst = *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask];
+
+                                        dst = bitop(src, old_dst, mystique->dwgreg.dwgctrl_running); // & DWGCTRL_BOP_MASK
+
+                                        *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask] = (dst & 0xffffff) | (old_dst & 0xff000000);
+                                        svga->changedvram[(((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask) >> 12] = changeframecount;
+                                        break;
+
+                                    case MACCESS_PWIDTH_32:
+                                        dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l];
+
+                                        dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
+
+                                        ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l] = dst;
+                                        svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l) >> 10] = changeframecount;
+                                        break;
+
+                                    default:
+                                        fatal("BITBLT RPL BPLAN PWIDTH %x %08x\n", mystique->maccess_running & MACCESS_PWIDTH_MASK, mystique->dwgreg.dwgctrl_running);
+                                }
+                            }
+
+                            if (src_addr == mystique->dwgreg.ar[0]) {
+                                mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
+                                mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
+                                src_addr = mystique->dwgreg.ar[3];
+                            } else
+                                src_addr += x_dir;
+
+                            if (x != x_end)  {
+                                if ((x > x_end) && (x_dir == 1))
+                                    x--;
+                                else if ((x < x_end) && (x_dir == -1))
+                                    x++;
+                                else
+                                    x += x_dir;
+                            } else
+                                break;
+                        }
+
+                        if (mystique->dwgreg.sgn.sdy)
+                            mystique->dwgreg.ydst_lin -= (mystique->dwgreg.pitch & PITCH_MASK);
+                        else
+                            mystique->dwgreg.ydst_lin += (mystique->dwgreg.pitch & PITCH_MASK);
+                    }
+                    break;
                 case DWGCTRL_BLTMOD_BMONOLEF:
                 case DWGCTRL_BLTMOD_BMONOWF:
                     if (mystique->dwgreg.dwgctrl_running & DWGCTRL_PATTERN)
@@ -5584,6 +5796,8 @@ blit_bitblt(mystique_t *mystique)
                                     case MACCESS_PWIDTH_8:
                                         src = svga->vram[src_addr & mystique->vram_mask];
                                         dst = svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask];
+                                        if (!((!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) || (src & bltcmsk) != bltckey)))
+                                            break;
 
                                         dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
 
@@ -5594,6 +5808,8 @@ blit_bitblt(mystique_t *mystique)
                                     case MACCESS_PWIDTH_16:
                                         src = ((uint16_t *) svga->vram)[src_addr & mystique->vram_mask_w];
                                         dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w];
+                                        if (!((!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) || (src & bltcmsk) != bltckey)))
+                                            break;
 
                                         dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
 
@@ -5604,6 +5820,8 @@ blit_bitblt(mystique_t *mystique)
                                     case MACCESS_PWIDTH_24:
                                         src     = *(uint32_t *) &svga->vram[(src_addr * 3) & mystique->vram_mask];
                                         old_dst = *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask];
+                                        if (!((!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) || (src & bltcmsk) != bltckey)))
+                                            break;
 
                                         dst = bitop(src, old_dst, mystique->dwgreg.dwgctrl_running);
 
@@ -5614,6 +5832,8 @@ blit_bitblt(mystique_t *mystique)
                                     case MACCESS_PWIDTH_32:
                                         src = ((uint32_t *) svga->vram)[src_addr & mystique->vram_mask_l];
                                         dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l];
+                                        if (!((!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) || (src & bltcmsk) != bltckey)))
+                                            break;
 
                                         dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
 
@@ -5923,6 +6143,17 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
                     svga->monitor->target_buffer->line[displine][(offset + svga->x_add) & 2047] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, mystique->cursor.col[1]) : svga_lookup_lut_ram(svga, mystique->cursor.col[0]);
                 else if (dat[0] & (1ULL << 63))
                     svga->monitor->target_buffer->line[displine][(offset + svga->x_add) & 2047] ^= 0xffffff;
+
+                offset++;
+                dat[0] <<= 1;
+                dat[1] <<= 1;
+            }
+            break;
+
+        case XCURCTRL_CURMODE_XWIN:
+            for (uint8_t x = 0; x < 64; x++) {
+                if ((dat[1] & (1ULL << 63)))
+                    svga->monitor->target_buffer->line[displine][(offset + svga->x_add) & 2047] = (dat[0] & (1ULL << 63)) ? (mystique->cursor.col[1]) : (mystique->cursor.col[0]);
 
                 offset++;
                 dat[0] <<= 1;
@@ -6590,11 +6821,13 @@ millennium_ii_available(void)
     return rom_present(ROM_MILLENNIUM_II);
 }
 
+#ifdef USE_G100
 static int
 matrox_g100_available(void)
 {
     return rom_present(ROM_G100);
 }
+#endif
 
 static void
 mystique_speed_changed(void *priv)
@@ -6732,6 +6965,7 @@ const device_t millennium_ii_device = {
     .config        = millennium_ii_config
 };
 
+#ifdef USE_G100
 const device_t productiva_g100_device = {
     .name          = "Matrox Productiva G100",
     .internal_name = "productiva_g100",
@@ -6745,3 +6979,4 @@ const device_t productiva_g100_device = {
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
 };
+#endif

@@ -24,6 +24,7 @@ extern "C" {
 #include <86box/isamem.h>
 #include <86box/isartc.h>
 #include <86box/unittester.h>
+#include <86box/novell_cardkey.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -46,7 +47,10 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
     ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
+    ui->checkBoxKeyCard->setChecked((machineHasIsa && (novell_keycard_enabled > 0)) ? true : false);
     ui->checkBoxISABugger->setEnabled(machineHasIsa);
+    ui->checkBoxKeyCard->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureKeyCard->setEnabled(novell_keycard_enabled > 0);
     ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->comboBoxRTC->setEnabled(machineHasIsa);
     ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
@@ -77,6 +81,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         ++d;
     }
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
+    ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsa);
 
     for (int c = 0; c < ISAMEM_MAX; c++) {
         auto *cbox  = findChild<QComboBox *>(QString("comboBoxCard%1").arg(c + 1));
@@ -102,7 +107,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         cbox->setCurrentIndex(-1);
         cbox->setCurrentIndex(selectedRow);
         cbox->setEnabled(machineHasIsa);
-        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled(isamem_type[c] != 0 && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled((isamem_type[c] != 0) && isamem_has_config(isamem_type[c]) && machineHasIsa);
     }
 }
 
@@ -115,10 +120,11 @@ void
 SettingsOtherPeripherals::save()
 {
     /* Other peripherals category */
-    bugger_enabled     = ui->checkBoxISABugger->isChecked() ? 1 : 0;
-    postcard_enabled   = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
-    unittester_enabled = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
-    isartc_type        = ui->comboBoxRTC->currentData().toInt();
+    bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;
+    postcard_enabled       = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
+    unittester_enabled     = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
+    novell_keycard_enabled = ui->checkBoxKeyCard->isChecked() ? 1 : 0;
+    isartc_type            = ui->comboBoxRTC->currentData().toInt();
 
     /* ISA memory boards. */
     for (int i = 0; i < ISAMEM_MAX; i++) {
@@ -133,7 +139,7 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureRTC->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -148,7 +154,7 @@ SettingsOtherPeripherals::on_comboBoxCard1_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard1->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard1->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -163,7 +169,7 @@ SettingsOtherPeripherals::on_comboBoxCard2_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard2->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard2->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -178,7 +184,7 @@ SettingsOtherPeripherals::on_comboBoxCard3_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard3->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard3->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -193,7 +199,7 @@ SettingsOtherPeripherals::on_comboBoxCard4_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard4->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureCard4->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void
@@ -213,3 +219,14 @@ SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
 {
     DeviceConfig::ConfigureDevice(&unittester_device);
 }
+
+void SettingsOtherPeripherals::on_pushButtonConfigureKeyCard_clicked()
+{
+    DeviceConfig::ConfigureDevice(&novell_keycard_device);
+}
+
+void SettingsOtherPeripherals::on_checkBoxKeyCard_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureKeyCard->setEnabled(arg1 != 0);
+}
+

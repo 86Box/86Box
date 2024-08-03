@@ -33,8 +33,10 @@
  *
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek <jriwanek@gmail.com>
  *
- *          Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018      Fred N. van Kempen.
+ *          Copyright 2022-2024 Jasmine Iwanek.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -88,15 +90,19 @@
 #define ISAMEM_GENXT_CARD      1
 #define ISAMEM_RAMCARD_CARD    2
 #define ISAMEM_SYSTEMCARD_CARD 3
-#define ISAMEM_IBMAT_CARD      4
-#define ISAMEM_GENAT_CARD      5
-#define ISAMEM_P5PAK_CARD      6
-#define ISAMEM_A6PAK_CARD      7
-#define ISAMEM_EMS5150_CARD    8
+#define ISAMEM_IBMAT_128K_CARD 4
+#define ISAMEM_IBMAT_CARD      5
+#define ISAMEM_GENAT_CARD      6
+#define ISAMEM_P5PAK_CARD      7
+#define ISAMEM_A6PAK_CARD      8
+#define ISAMEM_EMS5150_CARD    9
 #define ISAMEM_EV159_CARD      10
 #define ISAMEM_RAMPAGEXT_CARD  11
 #define ISAMEM_ABOVEBOARD_CARD 12
-#define ISAMEM_BRAT_CARD       13
+#define ISAMEM_BRXT_CARD       13
+#define ISAMEM_BRAT_CARD       14
+#define ISAMEM_EV165A_CARD     15
+#define ISAMEM_LOTECH_CARD     16
 
 #define ISAMEM_DEBUG           0
 
@@ -105,6 +111,8 @@
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
 #define EMS_MAXSIZE            (2048 << 10) /* max EMS memory size */
+#define EMS_EV159_MAXSIZE      (3072 << 10) /* max EMS memory size for EV-159 cards */
+#define EMS_LOTECH_MAXSIZE     (4096 << 10) /* max EMS memory size for lotech cards */
 #define EMS_PGSIZE             (16 << 10)   /* one page is this big */
 #define EMS_MAXPAGE            4            /* number of viewport pages */
 
@@ -119,6 +127,11 @@ typedef struct emsreg_t {
     char          pad;
     uint8_t      *addr;    /* start addr in EMS RAM */
     mem_mapping_t mapping; /* mapping entry for page */
+    uint8_t      *ram;
+    uint8_t      *frame_val;
+    uint16_t     *ems_size;
+    uint16_t     *ems_pages;
+    uint32_t     *frame_addr;
 } emsreg_t;
 
 typedef struct ext_ram_t {
@@ -131,20 +144,23 @@ typedef struct memdev_t {
     uint8_t     board    : 6; /* board type */
     uint8_t     reserved : 2;
 
-    uint8_t flags;
+    uint8_t  flags;
 #define FLAG_CONFIG 0x01 /* card is configured */
 #define FLAG_WIDE   0x10 /* card uses 16b mode */
 #define FLAG_FAST   0x20 /* fast (<= 120ns) chips */
 #define FLAG_EMS    0x40 /* card has EMS mode enabled */
 
-    uint16_t total_size; /* configured size in KB */
-    uint32_t base_addr;  /* configured I/O address */
-    uint32_t start_addr; /* configured memory start */
-    uint32_t frame_addr; /* configured frame address */
+    uint8_t  frame_val[2];
 
-    uint16_t ems_size;  /* EMS size in KB */
-    uint16_t ems_pages; /* EMS size in pages */
-    uint32_t ems_start; /* start of EMS in RAM */
+    uint16_t total_size;    /* configured size in KB */
+    uint16_t base_addr[2];  /* configured I/O address */
+
+    uint32_t start_addr;    /* configured memory start */
+    uint32_t frame_addr[2]; /* configured frame address */
+
+    uint16_t ems_size[2];   /* EMS size in KB */
+    uint16_t ems_pages[2];  /* EMS size in pages */
+    uint32_t ems_start[2];  /* start of EMS in RAM */
 
     uint8_t *ram; /* allocated RAM buffer */
 
@@ -153,7 +169,7 @@ typedef struct memdev_t {
     mem_mapping_t low_mapping;  /* mapping for low mem */
     mem_mapping_t high_mapping; /* mapping for high mem */
 
-    emsreg_t ems[EMS_MAXPAGE]; /* EMS controller registers */
+    emsreg_t ems[EMS_MAXPAGE * 2]; /* EMS controller registers */
 } memdev_t;
 
 #ifdef ENABLE_ISAMEM_LOG
@@ -226,14 +242,14 @@ ram_writew(uint32_t addr, uint16_t val, void *priv)
 static uint8_t
 ems_readb(uint32_t addr, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
+    emsreg_t *dev = (emsreg_t *) priv;
     uint8_t   ret = 0xff;
 
     /* Grab the data. */
-    ret = *(uint8_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff));
+    ret = *(uint8_t *) (dev->addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS readb(%06x) = %02x\n", addr - dev & 0x3fff, ret);
+        isamem_log("EMS readb(%06x) = %02x\n", addr & 0x3fff, ret);
 #endif
 
     return ret;
@@ -243,14 +259,14 @@ ems_readb(uint32_t addr, void *priv)
 static uint16_t
 ems_readw(uint32_t addr, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
+    emsreg_t *dev = (emsreg_t *) priv;
     uint16_t  ret = 0xffff;
 
     /* Grab the data. */
-    ret = *(uint16_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff));
+    ret = *(uint16_t *) (dev->addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS readw(%06x) = %04x\n", addr - dev & 0x3fff, ret);
+        isamem_log("EMS readw(%06x) = %04x\n", addr & 0x3fff, ret);
 #endif
 
     return ret;
@@ -260,46 +276,50 @@ ems_readw(uint32_t addr, void *priv)
 static void
 ems_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
+    emsreg_t *dev = (emsreg_t *) priv;
 
     /* Write the data. */
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS writeb(%06x, %02x)\n", addr - dev & 0x3fff, val);
+        isamem_log("EMS writeb(%06x, %02x)\n", addr & 0x3fff, val);
 #endif
-    *(uint8_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff)) = val;
+    *(uint8_t *) (dev->addr + (addr & 0x3fff)) = val;
 }
 
 /* Write one word to onboard paged RAM. */
 static void
 ems_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
+    emsreg_t *dev = (emsreg_t *) priv;
 
     /* Write the data. */
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
         isamem_log("EMS writew(%06x, %04x)\n", addr & 0x3fff, val);
 #endif
-    *(uint16_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff)) = val;
+    *(uint16_t *) (dev->addr + (addr & 0x3fff)) = val;
 }
 
 /* Handle a READ operation from one of our registers. */
 static uint8_t
-ems_read(uint16_t port, void *priv)
+ems_in(uint16_t port, void *priv)
 {
-    const memdev_t *dev = (memdev_t *) priv;
-    uint8_t         ret = 0xff;
+    const emsreg_t *dev           = (emsreg_t *) priv;
+    uint8_t         ret           = 0xff;
+#ifdef ENABLE_ISAMEM_LOG
     int             vpage;
+#endif
 
     /* Get the viewport page number. */
+#ifdef ENABLE_ISAMEM_LOG
     vpage = (port / EMS_PGSIZE);
+#endif
     port &= (EMS_PGSIZE - 1);
 
-    switch (port - dev->base_addr) {
+    switch (port & 0x0001) {
         case 0x0000: /* page number register */
-            ret = dev->ems[vpage].page;
-            if (dev->ems[vpage].enabled)
+            ret = dev->page;
+            if (dev->enabled)
                 ret |= 0x80;
             break;
 
@@ -310,85 +330,142 @@ ems_read(uint16_t port, void *priv)
             break;
     }
 
-#if ISAMEM_DEBUG
-    isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
-#endif
+    isamem_log("ISAMEM: read(%04x) = %02x) page=%d\n", port, ret, vpage);
+
+    return ret;
+}
+
+/* Handle a READ operation from one of our registers. */
+static uint8_t
+consecutive_ems_in(uint16_t port, void *priv)
+{
+    const memdev_t *dev = (memdev_t *) priv;
+    uint8_t         ret = 0xff;
+    int             vpage;
+
+    /* Get the viewport page number. */
+    vpage = (port - dev->base_addr[0]);
+ 
+    ret = dev->ems[vpage].page;
+    if (dev->ems[vpage].enabled)
+        ret |= 0x80;
+
+    isamem_log("ISAMEM: read(%04x) = %02x) page=%d\n", port, ret, vpage);
 
     return ret;
 }
 
 /* Handle a WRITE operation to one of our registers. */
 static void
-ems_write(uint16_t port, uint8_t val, void *priv)
+ems_out(uint16_t port, uint8_t val, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
+    emsreg_t *dev           = (emsreg_t *) priv;
     int       vpage;
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);
     port &= (EMS_PGSIZE - 1);
 
-#if ISAMEM_DEBUG
-    isamem_log("ISAMEM: write(%04x, %02x) page=%d\n", port, val, vpage);
-#endif
-
-    switch (port - dev->base_addr) {
+    switch (port & 0x0001) {
         case 0x0000: /* page mapping registers */
             /* Set the page number. */
-            dev->ems[vpage].enabled = (val & 0x80);
-            dev->ems[vpage].page    = (val & 0x7f);
+            dev->enabled = (val & 0x80);
+            dev->page    = (val & 0x7f);
 
-            /* Make sure we can do that.. */
-            if (dev->flags & FLAG_CONFIG) {
-                if (dev->ems[vpage].page < dev->ems_pages) {
-                    /* Pre-calculate the page address in EMS RAM. */
-                    dev->ems[vpage].addr = dev->ram + dev->ems_start + ((val & 0x7f) * EMS_PGSIZE);
-                } else {
-                    /* That page does not exist. */
-                    dev->ems[vpage].enabled = 0;
-                }
+            if (dev->enabled && (dev->page < *dev->ems_pages)) {
+                /* Pre-calculate the page address in EMS RAM. */
+                dev->addr = dev->ram + ((val & 0x7f) * EMS_PGSIZE);
 
-                if (dev->ems[vpage].enabled) {
-                    /* Update the EMS RAM address for this page. */
-                    mem_mapping_set_exec(&dev->ems[vpage].mapping,
-                                         dev->ems[vpage].addr);
+                isamem_log("ISAMEM: map port %04X, page %i, starting at %08X: %08X -> %08X\n", port,
+                           vpage, *dev->frame_addr,
+                           *dev->frame_addr + (EMS_PGSIZE * (vpage & 3)), dev->addr - dev->ram);
+                mem_mapping_set_addr(&dev->mapping, *dev->frame_addr + (EMS_PGSIZE * vpage), EMS_PGSIZE);
 
-                    /* Enable this page. */
-                    mem_mapping_enable(&dev->ems[vpage].mapping);
-                } else {
-                    /* Disable this page. */
-                    mem_mapping_disable(&dev->ems[vpage].mapping);
-                }
+                /* Update the EMS RAM address for this page. */
+                mem_mapping_set_exec(&dev->mapping, dev->addr);
+
+                /* Enable this page. */
+                mem_mapping_enable(&dev->mapping);
+            } else {
+                isamem_log("ISAMEM: map port %04X, page %i, starting at %08X: %08X -> N/A\n",
+                           port, vpage, *dev->frame_addr, *dev->frame_addr + (EMS_PGSIZE * vpage));
+
+                /* Disable this page. */
+                mem_mapping_disable(&dev->mapping);
             }
             break;
 
         case 0x0001: /* page frame registers */
-                     /*
-                      * The EV-159 EMM driver configures the frame address
-                      * by setting bits in these registers. The information
-                      * in their manual is unclear, but here is what was
-                      * found out by repeatedly changing EMM's config:
-                      *
-                      * 00 04 08  Address
-                      * -----------------
-                      * 80 c0 e0  C0000
-                      * 80 c0 e0  C4000
-                      * 80 c0 e0  C8000
-                      * 80 c0 e0  CC000
-                      * 80 c0 e0  D0000
-                      * 80 c0 e0  D4000
-                      * 80 c0 e0  D8000
-                      * 80 c0 e0  DC000
-                      * 80 c0 e0  E0000
-                      */
-            isamem_log("EMS: write(%02x) to register 1 !\n");
-            dev->ems[vpage].frame = val;
-            if (val)
-                dev->flags |= FLAG_CONFIG;
+            /*
+             * The EV-159 EMM driver configures the frame address
+             * by setting bits in these registers. The information
+             * in their manual is unclear, but here is what was
+             * found out by repeatedly changing EMM's config:
+             *
+             * 08 04 00  Address
+             * -----------------
+             * 00 00 00  C4000
+             * 00 00 80  C8000
+             * 00 80 00  CC000
+             * 00 80 80  D0000
+             * 80 00 00  D4000
+             * 80 00 80  D8000
+             * 80 80 00  DC000
+             * 80 80 80  E0000
+             */
+            dev->frame = val;
+            *dev->frame_val = (*dev->frame_val & ~(1 << vpage)) | ((val >> 7) << vpage);
+            *dev->frame_addr = 0x000c4000 + (*dev->frame_val << 14);
+            isamem_log("ISAMEM: map port %04X page %i: frame_addr = %08X\n", port, vpage, *dev->frame_addr);
+            /* Destroy the page registers. */
+            for (uint8_t i = 0; i < 4; i ++) {
+                isamem_log("    ");
+                outb((port & 0x3ffe) + (i << 14), 0x00);
+            }
             break;
-        
+
         default:
             break;
+    }
+}
+
+/* Handle a WRITE operation to one of our registers. */
+static void
+consecutive_ems_out(uint16_t port, uint8_t val, void *priv)
+{
+    memdev_t *dev = (memdev_t *) priv;
+    int       vpage;
+
+    /* Get the viewport page number. */
+    vpage = (port - dev->base_addr[0]);
+
+    isamem_log("ISAMEM: write(%04x, %02x) to page mapping registers! (page=%d)\n", port, val, vpage);
+
+    /* Set the page number. */
+    dev->ems[vpage].enabled = 1;
+    dev->ems[vpage].page    = val;
+
+    /* Make sure we can do that.. */
+    if (dev->flags & FLAG_CONFIG) {
+        if (dev->ems[vpage].page < dev->ems_pages[0]) {
+            /* Pre-calculate the page address in EMS RAM. */
+            dev->ems[vpage].addr = dev->ram + dev->ems_start[0] + (val * EMS_PGSIZE);
+        } else {
+            /* That page does not exist. */
+            dev->ems[vpage].enabled = 0;
+        }
+
+        if (dev->ems[vpage].enabled) {
+            /* Update the EMS RAM address for this page. */
+            mem_mapping_set_exec(&dev->ems[vpage].mapping,
+                                 dev->ems[vpage].addr);
+
+            /* Enable this page. */
+            mem_mapping_enable(&dev->ems[vpage].mapping);
+        } else {
+            /* Disable this page. */
+            mem_mapping_disable(&dev->ems[vpage].mapping);
+        }
     }
 }
 
@@ -401,6 +478,8 @@ isamem_init(const device_t *info)
     uint32_t  t;
     uint32_t  addr;
     uint32_t  tot;
+    /* EMS 3.2 cannot have more than 2048KB per board. */
+    uint32_t  ems_max = EMS_MAXSIZE;
     uint8_t  *ptr;
 
     /* Find our device and create an instance. */
@@ -408,6 +487,9 @@ isamem_init(const device_t *info)
     memset(dev, 0x00, sizeof(memdev_t));
     dev->name  = info->name;
     dev->board = info->local;
+
+    dev->base_addr[1]  = 0x0000;
+    dev->frame_addr[1] = 0x00000000;
 
     /* Do per-board initialization. */
     tot = 0;
@@ -423,6 +505,13 @@ isamem_init(const device_t *info)
             tot             = dev->total_size;
             break;
 
+        case ISAMEM_IBMAT_128K_CARD: /* IBM PC/AT 128K Memory Expansion Option */
+            dev->total_size = 128;
+            dev->start_addr = 512;
+            tot             = dev->total_size;
+            dev->flags |= FLAG_WIDE;
+            break;
+
         case ISAMEM_IBMAT_CARD: /* IBM PC/AT Memory Expansion Card */
         case ISAMEM_GENAT_CARD: /* Generic PC/AT Memory Expansion Card */
             dev->total_size = device_get_config_int("size");
@@ -432,37 +521,74 @@ isamem_init(const device_t *info)
             break;
 
         case ISAMEM_EMS5150_CARD: /* Micro Mainframe EMS-5150(T) */
-            dev->base_addr  = device_get_config_hex16("base");
-            dev->total_size = device_get_config_int("size");
-            dev->frame_addr = 0xD0000;
-            dev->flags |= (FLAG_EMS | FLAG_CONFIG);
+            dev->base_addr[0]  = device_get_config_hex16("base");
+            dev->total_size    = device_get_config_int("size");
+            dev->start_addr    = 0;
+            dev->frame_addr[0] = 0xd0000;
+            dev->flags        |= (FLAG_EMS | FLAG_CONFIG);
             break;
 
         case ISAMEM_EV159_CARD: /* Everex EV-159 RAM 3000 */
-            dev->base_addr  = device_get_config_hex16("base");
-            dev->total_size = device_get_config_int("size");
-            dev->start_addr = device_get_config_int("start");
-            tot             = device_get_config_int("length");
+            /* The EV-159 cannot have more than 3072KB per board. */
+            ems_max = EMS_EV159_MAXSIZE;
+            dev->base_addr[0]  = device_get_config_hex16("base");
+            dev->base_addr[1]  = device_get_config_hex16("base2");
+            dev->total_size    = device_get_config_int("size");
+            dev->start_addr    = device_get_config_int("start");
+            tot                = device_get_config_int("length");
             if (!!device_get_config_int("width"))
-                dev->flags |= FLAG_WIDE;
+                dev->flags    |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
-                dev->flags |= FLAG_FAST;
+                dev->flags    |= FLAG_FAST;
             if (!!device_get_config_int("ems"))
-                dev->flags |= FLAG_EMS;
-            dev->frame_addr = 0xE0000;
+                dev->flags    |= FLAG_EMS;
+            dev->frame_addr[0] = 0xd0000;
+            dev->frame_addr[1] = 0xe0000;
+            break;
+
+        case ISAMEM_EV165A_CARD: /* Everex Maxi Magic EV-165A */
+            dev->base_addr[0]  = device_get_config_hex16("base");
+            dev->total_size    = device_get_config_int("size");
+            dev->start_addr    = device_get_config_int("start");
+            tot                = device_get_config_int("length");
+            if (!!device_get_config_int("ems"))
+                dev->flags    |= FLAG_EMS;
+            dev->frame_addr[0] = 0xe0000;
             break;
 
         case ISAMEM_RAMPAGEXT_CARD:  /* AST RAMpage/XT */
+            dev->base_addr[0]  = device_get_config_hex16("base");
+            dev->total_size    = device_get_config_int("size");
+            dev->start_addr    = device_get_config_int("start");
+            tot                = dev->total_size;
+            dev->flags        |= FLAG_EMS;
+            dev->frame_addr[0] = 0xe0000;
+            break;
+
         case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard */
         case ISAMEM_BRAT_CARD:       /* BocaRAM/AT */
-            dev->base_addr  = device_get_config_hex16("base");
-            dev->total_size = device_get_config_int("size");
-            dev->start_addr = device_get_config_int("start");
-            dev->frame_addr = device_get_config_hex20("frame");
+            dev->base_addr[0]   = device_get_config_hex16("base");
+            dev->total_size     = device_get_config_int("size");
+            if (!!device_get_config_int("start"))
+                dev->start_addr = device_get_config_int("start");
+            dev->frame_addr[0]  = device_get_config_hex20("frame");
+            dev->flags         |= FLAG_EMS;
             if (!!device_get_config_int("width"))
-                dev->flags |= FLAG_WIDE;
+                dev->flags     |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
-                dev->flags |= FLAG_FAST;
+                dev->flags     |= FLAG_FAST;
+            break;
+
+        case ISAMEM_LOTECH_CARD: /* Lotech EMS */
+            /* The Lotech EMS cannot have more than 4096KB per board. */
+            ems_max = EMS_LOTECH_MAXSIZE;
+            fallthrough;
+        case ISAMEM_BRXT_CARD:   /* BocaRAM/XT */
+            dev->base_addr[0]   = device_get_config_hex16("base");
+            dev->total_size     = device_get_config_int("size");
+            dev->start_addr     = 0;
+            dev->frame_addr[0]  = device_get_config_hex20("frame");
+            dev->flags         |= (FLAG_EMS | FLAG_CONFIG);
             break;
 
         default:
@@ -614,21 +740,38 @@ isamem_init(const device_t *info)
 
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
-        /* EMS 3.2 cannot have more than 2048KB per board. */
         t = k;
-        if (t > EMS_MAXSIZE)
-            t = EMS_MAXSIZE;
+
+        if (t > ems_max)
+            t = ems_max;
 
         /* Set up where EMS begins in local RAM, and how much we have. */
-        dev->ems_start = ptr - dev->ram;
-        dev->ems_size  = t >> 10;
-        dev->ems_pages = t / EMS_PGSIZE;
-        isamem_log("ISAMEM: EMS enabled, I/O=%04XH, %iKB (%i pages)",
-                   dev->base_addr, dev->ems_size, dev->ems_pages);
-        if (dev->frame_addr > 0)
-            isamem_log(", Frame=%05XH", dev->frame_addr);
+        dev->ems_start[0]     = ptr - dev->ram;
+        if ((dev->board == ISAMEM_EV159_CARD) && (t > (2 << 20))) {
+            dev->ems_size[0]  = 2 << 10;
+            dev->ems_pages[0] = (2 << 20) / EMS_PGSIZE;
+        } else {
+            dev->ems_size[0]  = t >> 10;
+            dev->ems_pages[0] = t / EMS_PGSIZE;
+        }
+        isamem_log("ISAMEM: EMS #1 enabled, I/O=%04XH, %iKB (%i pages)",
+                   dev->base_addr[0], dev->ems_size[0], dev->ems_pages[0]);
+        if (dev->frame_addr[0] > 0)
+            isamem_log(", Frame[0]=%05XH", dev->frame_addr[0]);
 
         isamem_log("\n");
+
+        if ((dev->board == ISAMEM_EV159_CARD) && (t > (2 << 20))) {
+            dev->ems_start[1] = dev->ems_start[0] + (2 << 20);
+            dev->ems_size[1]  = (t - (2 << 20)) >> 10;
+            dev->ems_pages[1] = (t - (2 << 20)) / EMS_PGSIZE;
+            isamem_log("ISAMEM: EMS #2 enabled, I/O=%04XH, %iKB (%i pages)",
+                       dev->base_addr[1], dev->ems_size[1], dev->ems_pages[1]);
+            if (dev->frame_addr[1] > 0)
+                isamem_log(", Frame[1]=%05XH", dev->frame_addr[1]);
+
+            isamem_log("\n");
+        }
 
         /*
          * For each supported page (we can have a maximum of 4),
@@ -636,9 +779,15 @@ isamem_init(const device_t *info)
          * up the I/O control handler.
          */
         for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
+            dev->ems[i].ram        = dev->ram + dev->ems_start[0];
+            dev->ems[i].frame_val  = &dev->frame_val[0];
+            dev->ems[i].ems_size   = &dev->ems_size[0];
+            dev->ems[i].ems_pages  = &dev->ems_pages[0];
+            dev->ems[i].frame_addr = &dev->frame_addr[0];
+
             /* Create and initialize a page mapping. */
             mem_mapping_add(&dev->ems[i].mapping,
-                            dev->frame_addr + (EMS_PGSIZE * i), EMS_PGSIZE,
+                            dev->frame_addr[0] + (EMS_PGSIZE * i), EMS_PGSIZE,
                             ems_readb,
                             (dev->flags & FLAG_WIDE) ? ems_readw : NULL,
                             NULL,
@@ -646,15 +795,46 @@ isamem_init(const device_t *info)
                             (dev->flags & FLAG_WIDE) ? ems_writew : NULL,
                             NULL,
                             ptr, MEM_MAPPING_EXTERNAL,
-                            dev);
+                            &(dev->ems[i]));
 
             /* For now, disable it. */
             mem_mapping_disable(&dev->ems[i].mapping);
 
             /* Set up an I/O port handler. */
-            io_sethandler(dev->base_addr + (EMS_PGSIZE * i), 2,
-                          ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
+            if (dev->board != ISAMEM_LOTECH_CARD)
+                io_sethandler(dev->base_addr[0] + (EMS_PGSIZE * i), 2,
+                              ems_in, NULL, NULL, ems_out, NULL, NULL, &(dev->ems[i]));
+
+            if ((dev->board == ISAMEM_EV159_CARD) && (t > (2 << 20))) {
+                dev->ems[i | 4].ram        = dev->ram + dev->ems_start[1];
+                dev->ems[i | 4].frame_val  = &dev->frame_val[1];
+                dev->ems[i | 4].ems_size   = &dev->ems_size[1];
+                dev->ems[i | 4].ems_pages  = &dev->ems_pages[1];
+                dev->ems[i | 4].frame_addr = &dev->frame_addr[1];
+
+                /* Create and initialize a page mapping. */
+                mem_mapping_add(&dev->ems[i | 4].mapping,
+                                dev->frame_addr[1] + (EMS_PGSIZE * i), EMS_PGSIZE,
+                                ems_readb,
+                                (dev->flags & FLAG_WIDE) ? ems_readw : NULL,
+                                NULL,
+                                ems_writeb,
+                                (dev->flags & FLAG_WIDE) ? ems_writew : NULL,
+                                NULL,
+                                ptr + (2 << 20), MEM_MAPPING_EXTERNAL,
+                                &(dev->ems[i | 4]));
+
+                /* For now, disable it. */
+                mem_mapping_disable(&dev->ems[i | 4].mapping);
+
+                io_sethandler(dev->base_addr[1] + (EMS_PGSIZE * i), 2,
+                              ems_in, NULL, NULL, ems_out, NULL, NULL, &(dev->ems[i | 4]));
+            }
         }
+
+        if (dev->board == ISAMEM_LOTECH_CARD)
+            io_sethandler(dev->base_addr[0], 4,
+                          consecutive_ems_in, NULL, NULL, consecutive_ems_out, NULL, NULL, dev);
     }
 
     /* Let them know our device instance. */
@@ -667,18 +847,107 @@ isamem_close(void *priv)
 {
     memdev_t *dev = (memdev_t *) priv;
 
-    if (dev->flags & FLAG_EMS) {
-        for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
-            io_removehandler(dev->base_addr + (EMS_PGSIZE * i), 2,
-                             ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
-        }
-    }
-
     if (dev->ram != NULL)
         free(dev->ram);
 
     free(dev);
 }
+
+static const device_config_t ibmxt_32k_config[] = {
+  // clang-format off
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 32,
+        .file_filter = "",
+        .spinner = {
+            .min = 32,
+            .max = 576,
+            .step = 32
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 608,
+            .step = 32
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t ibmxt_32k_device = {
+    .name          = "IBM PC/XT 32K Memory Expansion Option",
+    .internal_name = "ibmxt_32k",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_IBMXT_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt_32k_config
+};
+
+static const device_config_t ibmxt_64k_config[] = {
+  // clang-format off
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 64,
+            .max = 576,
+            .step = 64
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 576,
+            .step = 64
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t ibmxt_64k_device = {
+    .name          = "IBM PC/XT 64K Memory Expansion Option",
+    .internal_name = "ibmxt_64k",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_IBMXT_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt_64k_config
+};
 
 static const device_config_t ibmxt_config[] = {
   // clang-format off
@@ -690,9 +959,9 @@ static const device_config_t ibmxt_config[] = {
         .default_int = 128,
         .file_filter = "",
         .spinner = {
-            .min = 0,
-            .max = 512,
-            .step = 16
+            .min = 64,
+            .max = 576,
+            .step = 64
         },
         .selection = { { 0 } }
     },
@@ -715,7 +984,7 @@ static const device_config_t ibmxt_config[] = {
 };
 
 static const device_t ibmxt_device = {
-    .name          = "IBM PC/XT Memory Expansion",
+    .name          = "IBM PC/XT 64/256K Memory Expansion Option",
     .internal_name = "ibmxt",
     .flags         = DEVICE_ISA,
     .local         = ISAMEM_IBMXT_CARD,
@@ -872,6 +1141,20 @@ static const device_t mssystemcard_device = {
     .config        = mssystemcard_config
 };
 
+static const device_t ibmat_128k_device = {
+    .name          = "IBM PC/AT 128KB Memory Expansion Option",
+    .internal_name = "ibmat_128k",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_IBMAT_128K_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 static const device_config_t ibmat_config[] = {
   // clang-format off
     {
@@ -893,7 +1176,7 @@ static const device_config_t ibmat_config[] = {
         .description = "Start Address",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 512,
+        .default_int = 1024,
         .file_filter = "",
         .spinner = {
             .min = 0,
@@ -932,7 +1215,7 @@ static const device_config_t genericat_config[] = {
         .spinner = {
             .min = 0,
             .max = 16384,
-            .step = 512
+            .step = 128
         },
         .selection = { { 0 } }
     },
@@ -941,7 +1224,7 @@ static const device_config_t genericat_config[] = {
         .description = "Start Address",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 512,
+        .default_int = 1024,
         .file_filter = "",
         .spinner = {
             .min = 0,
@@ -1220,6 +1503,25 @@ static const device_config_t ev159_config[] = {
             { .description = ""                      }
         },
     },
+    {
+        .name = "base2",
+        .description = "Address for > 2 MB",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0268,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "2A8H", .value = 0x02A8 },
+            { .description = "2B8H", .value = 0x02B8 },
+            { .description = "2E8H", .value = 0x02E8 },
+            { .description = ""                      }
+        },
+    },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
@@ -1238,15 +1540,109 @@ static const device_t ev159_device = {
     .config        = ev159_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
-static const device_config_t brat_config[] = {
+static const device_config_t ev165a_config[] = {
   // clang-format off
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 2048,
+            .step = 512
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 896,
+            .step = 128
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "length",
+        .description = "Contiguous Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 16384,
+            .step = 128
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "ems",
+        .description = "EMS mode",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0 },
+            { .description = "Enabled",  .value = 1 },
+            { .description = ""                     }
+        },
+    },
     {
         .name = "base",
         .description = "Address",
         .type = CONFIG_HEX16,
         .default_string = "",
         .default_int = 0x0258,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "2A8H", .value = 0x02A8 },
+            { .description = "2B8H", .value = 0x02B8 },
+            { .description = "2E8H", .value = 0x02E8 },
+            { .description = ""                      }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t ev165a_device = {
+    .name          = "Everex Magi Magic EV-165A",
+    .internal_name = "ev165a",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_EV165A_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ev165a_config
+};
+
+static const device_config_t brxt_config[] = {
+  // clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0268,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -1262,11 +1658,75 @@ static const device_config_t brat_config[] = {
         .description = "Frame Address",
         .type = CONFIG_HEX20,
         .default_string = "",
-        .default_int = 0,
+        .default_int = 0xD0000,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Disabled", .value = 0x00000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
+        },
+    },
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 2048,
+            .step = 512
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t brxt_device = {
+    .name          = "BocaRAM/XT",
+    .internal_name = "brxt",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_BRXT_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = brxt_config
+};
+
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
+static const device_config_t brat_config[] = {
+  // clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0268,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
             { .description = "D000H",    .value = 0xD0000 },
             { .description = "E000H",    .value = 0xE0000 },
             { .description = ""                           }
@@ -1305,14 +1765,27 @@ static const device_config_t brat_config[] = {
         .description = "Memory Size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 128,
+        .default_int = 512,
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 8192,
+            .max = 4096,
             .step = 512
         },
         .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 14336,
+            .step = 512
+        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1333,7 +1806,74 @@ static const device_t brat_device = {
 };
 #endif
 
+static const device_config_t lotech_config[] = {
+// clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0260,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "260H", .value = 0x0260 },
+            { .description = "264H", .value = 0x0264 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "26CH", .value = 0x026C },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xe0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C000H",    .value = 0xC0000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
+        },
+    },
+    {
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 2048,
+        .file_filter = "",
+        .spinner = {
+            .min = 512,
+            .max = 4096,
+            .step = 512
+        },
+        .selection = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
+};
+
+static const device_t lotech_device = {
+    .name = "Lo-tech EMS Board",
+    .internal_name = "lotechems",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_LOTECH_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = lotech_config
+};
+
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
+// TODO: Dual Paging support
+// TODO: Conventional memory suppport
 static const device_config_t rampage_config[] = {
   // clang-format off
     {
@@ -1341,7 +1881,7 @@ static const device_config_t rampage_config[] = {
         .description = "Address",
         .type = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0x0258,
+        .default_int = 0x0218,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -1356,62 +1896,31 @@ static const device_config_t rampage_config[] = {
         },
     },
     {
-        .name = "frame",
-        .description = "Frame Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Disabled", .value = 0x00000 },
-            { .description = "C000H",    .value = 0xC0000 },
-            { .description = "D000H",    .value = 0xD0000 },
-            { .description = "E000H",    .value = 0xE0000 },
-            { .description = ""                           }
-        },
-    },
-    {
-        .name = "width",
-        .description = "I/O Width",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 8,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "8-bit",  .value =  8 },
-            { .description = "16-bit", .value = 16 },
-            { .description = ""                    }
-        },
-    },
-    {
-        .name = "speed",
-        .description = "Transfer Speed",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Standard",   .value = 0 },
-            { .description = "High-Speed", .value = 1 },
-            { .description = ""                       }
-        }
-    },
-    {
         .name = "size",
         .description = "Memory Size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 128,
+        .default_int = 256, /* Technically 128k, but banks 2-7 must be 256, headaches elsewise */
+        .file_filter = "",
+        .spinner = {
+            .min = 256,
+            .max = 2048,
+            .step = 256
+        },
+        .selection = { { 0 } }
+    },
+    {
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 640,
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 8192,
-            .step = 128
+            .max = 640,
+            .step = 64
         },
-        .selection = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1531,35 +2040,29 @@ static const device_t iab_device = {
 };
 #endif
 
-static const device_t isa_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &isa_none_device     },
+    { &device_none         },
+    // XT Ram Expansion Cards
+    { &ibmxt_32k_device    },
+    { &ibmxt_64k_device    },
     { &ibmxt_device        },
     { &genericxt_device    },
     { &msramcard_device    },
     { &mssystemcard_device },
+    // AT RAM Expansion Cards
+    { &ibmat_128k_device   },
     { &ibmat_device        },
     { &genericat_device    },
+    // EMS Cards
     { &p5pak_device        },
     { &a6pak_device        },
     { &ems5150_device      },
     { &ev159_device        },
+    { &ev165a_device       },
+    { &brxt_device         },
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
     { &brat_device         },
 #endif
@@ -1569,6 +2072,7 @@ static const struct {
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
     { &iab_device          },
 #endif
+    { &lotech_device       },
     { NULL                 }
     // clang-format on
 };
@@ -1626,4 +2130,13 @@ isamem_get_device(int board)
 {
     /* Add the instance to the system. */
     return boards[board].dev;
+}
+
+int
+isamem_has_config(int board)
+{
+    if (boards[board].dev == NULL)
+        return 0;
+
+    return (boards[board].dev->config ? 1 : 0);
 }

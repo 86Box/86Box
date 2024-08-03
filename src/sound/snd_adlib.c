@@ -112,7 +112,7 @@ adlib_init(UNUSED(const device_t *info))
                   adlib->opl.read, NULL, NULL,
                   adlib->opl.write, NULL, NULL,
                   adlib->opl.priv);
-    sound_add_handler(adlib_get_buffer, adlib);
+    music_add_handler(adlib_get_buffer, adlib);
     return adlib;
 }
 

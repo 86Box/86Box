@@ -59,6 +59,8 @@ extern int nmi_enable;
 extern int oddeven;
 extern int inttype;
 
+extern int cpu_init;
+
 extern uint32_t  use32;
 extern uint32_t  rmdat;
 extern uint32_t  easeg;

@@ -64,8 +64,8 @@ machine_at_dellplato_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.bio",
-                                    "roms/machines/dellplato/1016AX1J.bi1",
+    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.BIO",
+                                    "roms/machines/dellplato/1016AX1J.BI1",
                                     0x1d000, 128);
 
     if (bios_only || !ret)
@@ -345,7 +345,8 @@ machine_at_pt2000_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device);
+    /* Should be VIA, but we do not emulate that yet. */
+    device_add(&keyboard_ps2_holtek_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&pc87332_398_device);
@@ -370,7 +371,7 @@ machine_at_pat54pv_init(const machine_t *model)
     device_add(&opti5x7_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -400,7 +401,7 @@ machine_at_hot543_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
     device_add(&keyboard_at_device);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
@@ -465,7 +466,7 @@ machine_at_sq588_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     /* Correct: 0D (01), 0F (02), 11 (03), 13 (04) */
@@ -496,7 +497,7 @@ machine_at_p54sps_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x06, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -526,7 +527,7 @@ machine_at_ms5109_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1994_nvr_device);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_IDE, 0, 0, 0, 0);
@@ -557,7 +558,7 @@ machine_at_torino_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1994_nvr_device);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x08, PCI_CARD_VIDEO, 0, 0, 0, 0);

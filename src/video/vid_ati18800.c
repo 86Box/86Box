@@ -32,21 +32,14 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-#    define BIOS_ROM_PATH_WONDER "roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
-#endif
+#define BIOS_ROM_PATH_WONDER         "roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
 #define BIOS_ROM_PATH_VGA88          "roms/video/ati18800/vga88.bin"
 #define BIOS_ROM_PATH_EDGE16         "roms/video/ati18800/vgaedge16.vbi"
 
 enum {
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     ATI18800_WONDER = 0,
     ATI18800_VGA88,
     ATI18800_EDGE16
-#else
-    ATI18800_VGA88 = 0,
-    ATI18800_EDGE16
-#endif
 };
 
 typedef struct ati18800_t {
@@ -257,11 +250,10 @@ ati18800_init(const device_t *info)
 
     switch (info->local) {
         default:
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
         case ATI18800_WONDER:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_WONDER, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            ati18800->memory = device_get_config_int("memory");
             break;
-#endif
         case ATI18800_VGA88:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_VGA88, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             ati18800->memory = 256;
@@ -291,13 +283,11 @@ ati18800_init(const device_t *info)
     return ati18800;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 static int
 ati18800_wonder_available(void)
 {
     return rom_present(BIOS_ROM_PATH_WONDER);
 }
-#endif
 
 static int
 ati18800_vga88_available(void)
@@ -337,7 +327,31 @@ ati18800_force_redraw(void *priv)
     ati18800->svga.fullchange = changeframecount;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
+static const device_config_t ati18800_wonder_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+};
+
 const device_t ati18800_wonder_device = {
     .name          = "ATI-18800",
     .internal_name = "ati18800w",
@@ -349,9 +363,8 @@ const device_t ati18800_wonder_device = {
     { .available = ati18800_wonder_available },
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
-    .config        = NULL
+    .config        = ati18800_wonder_config
 };
-#endif
 
 const device_t ati18800_vga88_device = {
     .name          = "ATI 18800-1",

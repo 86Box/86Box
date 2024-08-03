@@ -14,6 +14,8 @@
  *
  *          Copyright 2022 Teemu Korhonen
  */
+#include <QDir>
+#include <QFileInfo>
 #include <QStringBuilder>
 #include <QStringList>
 #include <QWidget>
@@ -21,7 +23,19 @@
 #if QT_VERSION <= QT_VERSION_CHECK(5, 14, 0)
 #    include <QDesktopWidget>
 #endif
+#include <QUuid>
 #include "qt_util.hpp"
+
+extern "C" {
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/device.h>
+#include <86box/ini.h>
+#include <86box/random.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/network.h>
+}
 
 namespace util {
 QScreen *
@@ -54,6 +68,66 @@ DlgFilter(std::initializer_list<QString> extensions, bool last)
     temp.removeDuplicates();
 #endif
     return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
+}
+
+QString currentUuid()
+{
+    auto configPath = QFileInfo(cfg_path).dir().canonicalPath();
+    if(!configPath.endsWith("/")) {
+        configPath.append("/");
+    }
+    return QUuid::createUuidV5(QUuid{}, configPath).toString(QUuid::WithoutBraces);
+}
+
+bool compareUuid()
+{
+    // A uuid not set in the config file will have a zero length.
+    // Any uuid that is lower than the minimum length will be considered invalid
+    // and a new one will be generated
+    if (const auto currentUuidLength = QString(uuid).length(); currentUuidLength < UUID_MIN_LENGTH) {
+        storeCurrentUuid();
+        return true;
+    }
+    // Do not prompt on mismatch if the system does not have any configured NICs. Just update the uuid
+    if(!hasConfiguredNICs() && uuid != currentUuid()) {
+        storeCurrentUuid();
+        return true;
+    }
+    // The uuid appears to be a valid, at least by length.
+    // Compare with a simple string match
+    return uuid == currentUuid();
+}
+
+void
+storeCurrentUuid()
+{
+    strncpy(uuid, currentUuid().toUtf8().constData(), sizeof(uuid) - 1);
+}
+
+void
+generateNewMacAdresses()
+{
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
+        auto net_card = net_cards_conf[i];
+        if (net_card.device_num != 0) {
+            const auto       network_device = network_card_getdevice(net_card.device_num);
+            device_context_t device_context;
+            device_set_context(&device_context, network_device, i + 1);
+            auto generatedMac = QString::asprintf("%02X:%02X:%02X", random_generate(), random_generate(), random_generate()).toLower();
+            config_set_string(device_context.name, "mac", generatedMac.toUtf8().constData());
+        }
+    }
+}
+
+bool
+hasConfiguredNICs()
+{
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
+        if (const auto net_card = net_cards_conf[i]; net_card.device_num != 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 }

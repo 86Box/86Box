@@ -56,7 +56,6 @@ static uint32_t *opseg[4];
 static x86seg   *_opseg[4];
 
 static int noint   = 0;
-static int in_lock = 0;
 static int cpu_alu_op, pfq_size;
 
 static uint32_t cpu_src = 0, cpu_dest = 0;
@@ -545,7 +544,6 @@ reset_808x(int hard)
 {
     biu_cycles = 0;
     in_rep     = 0;
-    in_lock    = 0;
     completed  = 1;
     repeating  = 0;
     clear_lock = 0;
@@ -787,6 +785,7 @@ seteaq(uint64_t val)
    complicates compiling. */
 #define FPU_8087
 #define tempc tempc_fpu
+#include "x87_sf.h"
 #include "x87.h"
 #include "x87_ops.h"
 #undef tempc
@@ -3198,31 +3197,66 @@ execx86(int cycs)
                     if (!hasfpu)
                         geteaw();
                     else
-                        switch (opcode) {
-                            case 0xD8:
-                                ops_fpu_8087_d8[(rmdat >> 3) & 0x1f]((uint32_t) rmdat);
-                                break;
-                            case 0xD9:
-                                ops_fpu_8087_d9[rmdat & 0xff]((uint32_t) rmdat);
-                                break;
-                            case 0xDA:
-                                ops_fpu_8087_da[rmdat & 0xff]((uint32_t) rmdat);
-                                break;
-                            case 0xDB:
-                                ops_fpu_8087_db[rmdat & 0xff]((uint32_t) rmdat);
-                                break;
-                            case 0xDC:
-                                ops_fpu_8087_dc[(rmdat >> 3) & 0x1f]((uint32_t) rmdat);
-                                break;
-                            case 0xDD:
-                                ops_fpu_8087_dd[rmdat & 0xff]((uint32_t) rmdat);
-                                break;
-                            case 0xDE:
-                                ops_fpu_8087_de[rmdat & 0xff]((uint32_t) rmdat);
-                                break;
-                            case 0xDF:
-                                ops_fpu_8087_df[rmdat & 0xff]((uint32_t) rmdat);
-                                break;
+                        if (fpu_softfloat) {
+                            switch (opcode) {
+                                case 0xD8:
+                                    ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
+                                    break;
+                                case 0xD9:
+                                    ops_sf_fpu_8087_d9[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDA:
+                                    ops_sf_fpu_8087_da[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDB:
+                                    ops_sf_fpu_8087_db[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDC:
+                                    ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
+                                    break;
+                                case 0xDD:
+                                    ops_sf_fpu_8087_dd[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDE:
+                                    ops_sf_fpu_8087_de[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDF:
+                                    ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
+                                    break;
+
+                                default:
+                                    break;
+                            }
+                        } else {
+                            switch (opcode) {
+                                case 0xD8:
+                                    ops_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
+                                    break;
+                                case 0xD9:
+                                    ops_fpu_8087_d9[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDA:
+                                    ops_fpu_8087_da[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDB:
+                                    ops_fpu_8087_db[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDC:
+                                    ops_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
+                                    break;
+                                case 0xDD:
+                                    ops_fpu_8087_dd[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDE:
+                                    ops_fpu_8087_de[rmdat & 0xff](rmdat);
+                                    break;
+                                case 0xDF:
+                                    ops_fpu_8087_df[rmdat & 0xff](rmdat);
+                                    break;
+
+                                default:
+                                    break;
+                            }
                         }
                     cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                              the 286+ core, but not here. */
