@@ -346,6 +346,7 @@ update_src_stride(voodoo_t *voodoo)
             break;
         case SRC_FORMAT_COL_32_BPP:
         case SRC_FORMAT_COL_YUYV:
+        case SRC_FORMAT_COL_UYVY:
             bpp = 32;
             break;
 
@@ -731,6 +732,13 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 src_data_yuv = *(uint32_t *) &src_p[src_x_real];
                                 break;
                             }
+                        case SRC_FORMAT_COL_UYVY:
+                            {
+                                src_data_yuv = *(uint32_t *) &src_p[src_x_real];
+                                src_data_yuv = ((src_data_yuv & 0xFF00) >> 8) | ((src_data_yuv & 0xFF) << 8) |
+                                                ((src_data_yuv & 0xFF000000) >> 8) | ((src_data_yuv & 0xFF0000) << 8);
+                                break;
+                            }
 
                         default:
                             fatal("banshee_do_screen_to_screen_blt: unknown srcFormat %08x\n", voodoo->banshee_blt.srcFormat);
@@ -744,7 +752,8 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                         src_data = (b >> 3) | ((g >> 2) << 5) | ((r >> 3) << 11);
                     }
 
-                    if ((voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_MASK) == SRC_FORMAT_COL_YUYV) {
+                    if ((voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_MASK) == SRC_FORMAT_COL_YUYV
+                    || (voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_MASK) == SRC_FORMAT_COL_UYVY) {
                         if (((voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) == DST_FORMAT_COL_24_BPP) ||
                             ((voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) == DST_FORMAT_COL_32_BPP)) {
                             uint32_t rgbcol[2] = { 0, 0 };
@@ -1488,6 +1497,7 @@ voodoo_2d_reg_writel(voodoo_t *voodoo, uint32_t addr, uint32_t val)
                     break;
                 case SRC_FORMAT_COL_32_BPP:
                 case SRC_FORMAT_COL_YUYV:
+                case SRC_FORMAT_COL_UYVY:
                     voodoo->banshee_blt.src_bpp = 32;
                     break;
                 case SRC_FORMAT_COL_16_BPP:
