@@ -803,6 +803,7 @@ extern int machine_at_lgibmx7g_init(const machine_t *);
 extern int machine_at_p3bf_init(const machine_t *);
 extern int machine_at_bf6_init(const machine_t *);
 extern int machine_at_ax6bc_init(const machine_t *);
+extern int machine_at_ax6lc_init(const machine_t *);
 extern int machine_at_atc6310bxii_init(const machine_t *);
 extern int machine_at_686bx_init(const machine_t *);
 extern int machine_at_s1846_init(const machine_t *);
