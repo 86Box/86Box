@@ -64,7 +64,7 @@ typedef struct mouse_microtouch_t {
     bool         mode_status;
     uint8_t      id, cal_cntr, pen_mode;
     bool         soh;
-    bool         in_reset;
+    bool         in_reset, reset;
     serial_t    *serial;
     Fifo8        resp;
     pc_timer_t   host_to_serial_timer;
@@ -78,6 +78,7 @@ microtouch_reset_complete(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
     
+    mtouch->reset = true;   
     mtouch->in_reset = false;
     fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
 }
@@ -135,11 +136,19 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push(&mtouch->resp, 0x0D);
         return;
     }
+    if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'S') { /* Output Status */
+        if (mtouch->reset) {
+            fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x40\x60\x0D", 4);
+        } else {
+            fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x40\x40\x0D", 4);
+        }
+        return;
+    }
     if (mtouch->cmd[0] == 'P') { 
         if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;      /* Pen or Finger */
         else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2; /* Pen Only */
     }
-    if (mtouch->cmd[0] == 'R') { /* Reset */
+    if (mtouch->cmd[0] == 'R') { /* Reset/Defaults */
         mtouch->in_reset = true;
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
