@@ -341,7 +341,7 @@ midi_raw_out_byte(uint8_t val)
                     else if ((midi_out->midi_sysex_data[5] == 0x10) && (midi_out->midi_sysex_data[6] == 0x00) && (midi_out->midi_sysex_data[7] == 0x01))
                         midi_out->midi_sysex_delay = 30; /* Dark Sun 1 */
                     else
-                        midi_out->midi_sysex_delay = (unsigned int) (((float) (midi_out->midi_pos) * 1.25f) * 1000.0f / 3125.0f) + 2;
+                        midi_out->midi_sysex_delay = (unsigned int) (((double) (midi_out->midi_pos) * 1.25) / 3.125) + 2;
 
                     midi_out->midi_sysex_start = plat_get_ticks();
                 }
@@ -583,4 +583,11 @@ midi_in_sysex(uint8_t *buffer, uint32_t len)
         else
             break;
     }
+}
+
+void
+midi_reset(void)
+{
+    if (midi_out && midi_out->m_out_device && midi_out->m_out_device->reset)
+        midi_out->m_out_device->reset();
 }
