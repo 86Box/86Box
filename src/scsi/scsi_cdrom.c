@@ -3231,9 +3231,6 @@ begin:
                 if (dev->drv->bus_type == CDROM_BUS_SCSI) {
                     dev->buffer[3] = 0x02;
                     switch (dev->drv->type) {
-                        case CDROM_TYPE_86BOX_100:
-                            dev->buffer[2] = 0x05; /*SCSI-2 compliant*/
-                            break;
                         case CDROM_TYPE_CHINON_CDS431_H42:
                         case CDROM_TYPE_DEC_RRD45_0436:
                         case CDROM_TYPE_MATSHITA_501_10b:
