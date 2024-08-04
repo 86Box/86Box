@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          3M MicroTouch SMT3 emulation.
+ *          3M MicroTouch Serial emulation.
  *
  *
  *
@@ -47,6 +47,13 @@ enum mtouch_formats {
     FORMAT_TABLET = 4
 };
 
+enum mtouch_modes {
+    MODE_DOWNUP   = 1,
+    MODE_INACTIVE = 2,
+    MODE_POINT    = 3,
+    MODE_STREAM   = 4,
+};
+
 const char* mtouch_identity[] = {
     "A30100", /* SMT2 Serial / SMT3(R)V */
     "A40100", /* SMT2 PCBus */
@@ -60,7 +67,7 @@ typedef struct mouse_microtouch_t {
     int          b;
     char         cmd[256];
     int          cmd_pos;
-    uint8_t      format;
+    uint8_t      format, mode;
     bool         mode_status;
     uint8_t      id, cal_cntr, pen_mode;
     bool         soh;
@@ -106,6 +113,7 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'D') { /* Format Decimal */
         mouse_set_sample_rate(106);
         mtouch->format = FORMAT_DEC;
+        mtouch->mode_status = false;
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'O') { /* Finger Only */
         mtouch->pen_mode = 1;
@@ -113,10 +121,12 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'H') { /* Format Hexadecimal */
         mouse_set_sample_rate(106);
         mtouch->format = FORMAT_HEX;
+        mtouch->mode_status = false;
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'R') { /* Format Raw */
         mouse_set_sample_rate(106);
         mtouch->format = FORMAT_RAW;
+        mtouch->mode = MODE_INACTIVE;
         mtouch->cal_cntr = 0;
     }
     if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'T') { /* Format Tablet */
@@ -127,8 +137,20 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x41\x0D", 3); /* <SOH>A<CR>  */
         fifo8_push_all(&mtouch->resp, (uint8_t *) "0000000000000000000000000\r", 26);
     }
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'D' && mtouch->cmd[2] == 'U') { /* Mode Down/Up */
+        mtouch->mode = MODE_DOWNUP;
+    }
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'I') { /* Mode Inactive */
+        mtouch->mode = MODE_INACTIVE;
+    }
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'P') { /* Mode Point */
+        mtouch->mode = MODE_POINT;
+    }
     if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'T') { /* Mode Status */
         mtouch->mode_status = true;
+    }
+    if (mtouch->cmd[0] == 'M' && mtouch->cmd[1] == 'S') { /* Mode Stream */
+        mtouch->mode = MODE_STREAM;
     }
     if (mtouch->cmd[0] == 'O' && mtouch->cmd[1] == 'I') { /* Output Identity */
         fifo8_push(&mtouch->resp, 0x01);
@@ -148,18 +170,22 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
         if (mtouch->cmd[1] == 'F') mtouch->pen_mode = 3;      /* Pen or Finger */
         else if (mtouch->cmd[1] == 'O') mtouch->pen_mode = 2; /* Pen Only */
     }
-    if (mtouch->cmd[0] == 'R') { /* Reset/Defaults */
+    if (mtouch->cmd[0] == 'R') { /* Reset */
         mtouch->in_reset = true;
         mtouch->cal_cntr = 0;
         mtouch->pen_mode = 3;
-        mtouch->mode_status = false;
         
-        if (mtouch->id < 2) {
-            mouse_set_sample_rate(106);
-            mtouch->format = FORMAT_DEC;
-        } else {
-            mouse_set_sample_rate(192);
-            mtouch->format = FORMAT_TABLET;
+        if (mtouch->cmd[0] == 'D') { /* Restore Defaults */
+            mtouch->mode = MODE_STREAM;
+            mtouch->mode_status = false;
+            
+            if (mtouch->id < 2) {
+                mouse_set_sample_rate(106);
+                mtouch->format = FORMAT_DEC;
+            } else {
+                mouse_set_sample_rate(192);
+                mtouch->format = FORMAT_TABLET;
+            }
         }
         
         timer_on_auto(&mtouch->reset_timer, 500. * 1000.);
@@ -236,7 +262,7 @@ mtouch_poll(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
-    if (fifo8_num_free(&dev->resp) <= 256 - 10 || dev->format == FORMAT_RAW) {
+    if (fifo8_num_free(&dev->resp) <= 256 - 10 || dev->mode == MODE_INACTIVE) {
         return 0;
     }
     
@@ -385,7 +411,7 @@ mtouch_init(const device_t *info)
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->id          = device_get_config_int("identity");
     dev->pen_mode    = 3;
-    dev->mode_status = false;
+    dev->mode        = MODE_STREAM;
     
     if (dev->id < 2) { /* legacy controllers */
         dev->format = FORMAT_DEC;
