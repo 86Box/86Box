@@ -3,6 +3,9 @@ name: CodeQL Analysis (macos)
 on:
 
   push:
+    branches:
+      - main
+
     paths:
       - src/**
       - cmake/**

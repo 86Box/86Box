@@ -3,6 +3,9 @@ name: CMake (Linux)
 on:
 
   push:
+    branches:
+      - main
+
     paths:
       - src/**
       - cmake/**

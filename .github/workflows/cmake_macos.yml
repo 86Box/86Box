@@ -3,6 +3,9 @@ name: CMake (macos)
 on:
 
   push:
+    branches:
+      - main
+
     paths:
       - src/**
       - cmake/**
