@@ -135,7 +135,7 @@ acpi_timer_overflow(void *priv)
     int     sci_en = dev->regs.pmcntrl & 1;
 
     dev->regs.pmsts |= TMROF_STS;
-/*
+#if 0
     if (dev->regs.pmen & 1) { /* Timer Overflow Interrupt Enable */
         acpi_log("ACPI: Overflow detected. Provoking an %s\n", sci_en ? "SCI" : "SMI");
 
@@ -144,7 +144,7 @@ acpi_timer_overflow(void *priv)
         else
             acpi_raise_smi(dev, 1);
     }
-*/
+#endif
     acpi_update_irq(dev);
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
 }
