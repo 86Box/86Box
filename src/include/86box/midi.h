@@ -32,6 +32,7 @@ typedef struct midi_device_t {
     void (*play_sysex)(uint8_t *sysex, unsigned int len);
     void (*play_msg)(uint8_t *msg);
     void (*poll)(void);
+    void (*reset)(void);
     int (*write)(uint8_t val);
 } midi_device_t;
 
@@ -77,6 +78,7 @@ extern void midi_raw_out_thru_rt_byte(uint8_t val);
 extern void midi_raw_out_byte(uint8_t val);
 extern void midi_clear_buffer(void);
 extern void midi_poll(void);
+extern void midi_reset(void);
 
 extern void midi_in_handler(int set, void (*msg)(void *priv, uint8_t *msg, uint32_t len), int (*sysex)(void *priv, uint8_t *buffer, uint32_t len, int abort), void *priv);
 extern void midi_in_handlers_clear(void);

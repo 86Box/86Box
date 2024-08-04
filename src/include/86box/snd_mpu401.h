@@ -26,9 +26,9 @@
 
 #define MPU401_VERSION      0x15
 #define MPU401_REVISION     0x01
-#define MPU401_QUEUE        1024
+#define MPU401_QUEUE        32
 #define MPU401_INPUT_QUEUE  1024
-#define MPU401_TIMECONSTANT (60000000 / 1000.0f)
+#define MPU401_TIMECONSTANT (60000000.0 / 1000.0)
 #define MPU401_RESETBUSY    27.0f
 
 /*helpers*/
@@ -89,7 +89,7 @@ typedef struct mpu_t {
     uint32_t ch_toref[16];
     struct track {
         int         counter;
-        uint8_t     value[3];
+        uint8_t     value[8];
         uint8_t     sys_val;
         uint8_t     vlength;
         uint8_t     length;
@@ -106,7 +106,6 @@ typedef struct mpu_t {
         int      wsm;
         int      wsd_start;
         int      run_irq;
-        int      irq_pending;
         int      track_req;
         int      send_now;
         int      eoi_scheduled;
@@ -116,9 +115,11 @@ typedef struct mpu_t {
         int      sysex_in_finished;
         int      rec_copy;
         RecState rec;
+        uint8_t  irq_pending;
         uint8_t  tmask;
         uint8_t  cmask;
         uint8_t  amask;
+        uint8_t  queued_eois;
         uint8_t  last_rtcmd;
         uint16_t midi_mask;
         uint16_t req_mask;
