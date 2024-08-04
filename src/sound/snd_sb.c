@@ -3190,7 +3190,8 @@ sb_16_init(UNUSED(const device_t *info))
     if (mpu_addr) {
         sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
         memset(sb->mpu, 0, sizeof(mpu_t));
-        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
+        mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
+                    device_get_config_int("receive_input401"));
     } else
         sb->mpu = NULL;
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
@@ -3534,7 +3535,8 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (mpu_addr) {
         sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
         memset(sb->mpu, 0, sizeof(mpu_t));
-        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
+        mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
+                    device_get_config_int("receive_input401"));
     } else
         sb->mpu = NULL;
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
