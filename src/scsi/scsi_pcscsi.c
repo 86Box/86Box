@@ -526,7 +526,7 @@ esp_do_command_phase(esp_t *dev)
     dev->ti_size      = sd->buffer_length;
     dev->xfer_counter = sd->buffer_length;
 
-    pclog("ESP SCSI Command = 0x%02x, ID = %d, LUN = %d, len = %d, phase = %02x.\n", buf[0], dev->id, dev->lun, sd->buffer_length, sd->phase);
+    esp_log("ESP SCSI Command = 0x%02x, ID = %d, LUN = %d, len = %d, phase = %02x.\n", buf[0], dev->id, dev->lun, sd->buffer_length, sd->phase);
 
     fifo8_reset(&dev->cmdfifo);
 
@@ -549,7 +549,7 @@ esp_do_command_phase(esp_t *dev)
             esp_set_phase(dev, STAT_DI);
             scsi_device_command_phase1(sd);
         }
-        pclog("ESP SCSI Command with no length\n");
+        esp_log("ESP SCSI Command with no length\n");
         esp_command_complete(dev, sd->status);
     }
     esp_transfer_data(dev);
@@ -571,10 +571,12 @@ esp_do_message_phase(esp_t *dev)
 
         if (scsi_device_present(&scsi_devices[dev->bus][dev->id]) && (dev->lun > 0)) {
             /* We only support LUN 0 */
-            pclog("LUN = %i\n", dev->lun);
+            esp_log("LUN = %i\n", dev->lun);
             dev->rregs[ESP_RSTAT] = 0;
             dev->rregs[ESP_RINTR] = INTR_DC;
+            dev->rregs[ESP_RSEQ]  = SEQ_0;
             esp_raise_irq(dev);
+            fifo8_reset(&dev->cmdfifo);
             return;
         }
 
@@ -679,7 +681,7 @@ esp_do_dma(esp_t *dev)
     uint8_t  buf[ESP_CMDFIFO_SZ];
     uint32_t len;
 
-    pclog("ESP SCSI Actual DMA len = %d\n", esp_get_tc(dev));
+    esp_log("ESP SCSI Actual DMA len = %d\n", esp_get_tc(dev));
 
     len = esp_get_tc(dev);
 
@@ -865,7 +867,7 @@ esp_do_dma(esp_t *dev)
 
             if ((dev->xfer_counter <= 0) && !dev->ti_size && esp_get_tc(dev)) {
                 /* If the guest underflows TC then terminate SCSI request */
-                pclog("ESP SCSI Read finished (underflow).\n");
+                esp_log("ESP SCSI Read finished (underflow).\n");
                 scsi_device_command_phase1(sd);
                 esp_command_complete(dev, sd->status);
                 return;
@@ -874,11 +876,11 @@ esp_do_dma(esp_t *dev)
             if ((dev->xfer_counter <= 0) && (fifo8_num_used(&dev->fifo) < 2)) {
                 /* Defer until the scsi layer has completed */
                 if (dev->ti_size <= 0) {
-                    pclog("ESP SCSI Read finished\n");
+                    esp_log("ESP SCSI Read finished\n");
                     scsi_device_command_phase1(sd);
                     esp_command_complete(dev, sd->status);
                 } else {
-                    pclog("ESP SCSI Keep reading\n");
+                    esp_log("ESP SCSI Keep reading\n");
                     esp_do_dma(dev);
                 }
                 return;
@@ -2049,7 +2051,7 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
             return PCI_INTA;
 
         case 0x40 ... 0x4f:
-            pclog("ESP PCI: Read value %02X to register %02X, ID=%d\n", esp_pci_regs[addr], addr, dev->id);
+            esp_log("ESP PCI: Read value %02X to register %02X, ID=%d\n", esp_pci_regs[addr], addr, dev->id);
             return esp_pci_regs[addr];
 
         default:
@@ -2458,7 +2460,7 @@ const device_t am53c974_pci_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = bios_enable_config
+    .config        = NULL
 };
 
 const device_t ncr53c90a_mca_device = {
