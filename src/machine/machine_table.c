@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/keyboard.h>
+#include <86box/sio.h>
 #include <86box/sound.h>
 #include <86box/video.h>
 #include <86box/plat_unused.h>
