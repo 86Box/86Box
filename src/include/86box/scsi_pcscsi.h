@@ -25,6 +25,7 @@
 #ifndef SCSI_PCSCSI_H
 #define SCSI_PCSCSI_H
 
+extern const device_t am53c974_pci_device;
 extern const device_t dc390_pci_device;
 extern const device_t ncr53c90a_mca_device;
 
