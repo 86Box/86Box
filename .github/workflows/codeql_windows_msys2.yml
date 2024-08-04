@@ -45,8 +45,8 @@ jobs:
       matrix:
         language: [ 'cpp' ]
         build:
-#          - name: Regular
-#            preset: regular
+          - name: Regular
+            preset: regular
 #          - name: Debug
 #            preset: debug
 #            slug: -Debug
