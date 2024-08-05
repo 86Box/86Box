@@ -715,13 +715,8 @@ recalc_timings(tandy_t *dev)
     double _dispofftime;
     double disptime;
 
-    if (vid->mode & 1) {
-        disptime    = vid->crtc[0] + 1;
-        _dispontime = vid->crtc[1];
-    } else {
-        disptime    = (vid->crtc[0] + 1) << 1;
-        _dispontime = vid->crtc[1] << 1;
-    }
+    disptime    = vid->crtc[0] + 1;
+    _dispontime = vid->crtc[1];
 
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
@@ -1589,6 +1584,10 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
                 mem_mapping_set_addr(&dev->ram_mapping,
                                      ((val >> 1) & 7) * 128 * 1024, 0x20000);
             }
+            if (val & 0x01)
+                mem_mapping_set_addr(&dev->vid->mapping, 0xc0000, 0x10000);
+            else
+                mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
             dev->ram_bank = val;
             break;
 
