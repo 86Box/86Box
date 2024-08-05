@@ -715,13 +715,8 @@ recalc_timings(tandy_t *dev)
     double _dispofftime;
     double disptime;
 
-    if (vid->mode & 1) {
-        disptime    = vid->crtc[0] + 1;
-        _dispontime = vid->crtc[1];
-    } else {
-        disptime    = (vid->crtc[0] + 1) << 1;
-        _dispontime = vid->crtc[1] << 1;
-    }
+    disptime    = vid->crtc[0] + 1;
+    _dispontime = vid->crtc[1];
 
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
