@@ -129,6 +129,7 @@ typedef struct tandy_t {
 
     uint32_t base;
     uint32_t mask;
+    int      is_hx;
     int      is_sl2;
 
     t1kvid_t *vid;
@@ -1571,12 +1572,12 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x00a0:
-            if (val & 0x10) {
+            if (dev->is_hx && (val & 0x10)) {
                 dev->base = (mem_size - 256) * 1024;
                 dev->mask = 0x3ffff;
                 mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
                 mem_mapping_set_addr(&dev->ram_mapping,
-                                     ((val >> 1) & 7) * 128 * 1024, 0x40000);
+                                     (((val >> 1) & 7) - 1) * 128 * 1024, 0x40000);
             } else {
                 dev->base = (mem_size - 128) * 1024;
                 dev->mask = 0x1ffff;
@@ -1584,10 +1585,22 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
                 mem_mapping_set_addr(&dev->ram_mapping,
                                      ((val >> 1) & 7) * 128 * 1024, 0x20000);
             }
-            if (val & 0x01)
-                mem_mapping_set_addr(&dev->vid->mapping, 0xc0000, 0x10000);
-            else
-                mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+            if (dev->is_hx) {
+                io_removehandler(0x03d0, 16,
+                                 vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+                if (val & 0x01)
+                    mem_mapping_disable(&dev->vid->mapping);
+                else {
+                    io_sethandler(0x03d0, 16,
+                                  vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+                    mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+                }
+            } else {
+                if (val & 0x01)
+                    mem_mapping_set_addr(&dev->vid->mapping, 0xc0000, 0x10000);
+                else
+                    mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+            }
             dev->ram_bank = val;
             break;
 
@@ -1717,8 +1730,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 {
     tandy_t *dev;
 
-    dev = malloc(sizeof(tandy_t));
-    memset(dev, 0x00, sizeof(tandy_t));
+    dev = calloc(1, sizeof(tandy_t));
 
     machine_common_init(model);
 
@@ -1753,6 +1765,7 @@ machine_tandy1k_init(const machine_t *model, int type)
             break;
 
         case TYPE_TANDY1000HX:
+            dev->is_hx = 1;
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
