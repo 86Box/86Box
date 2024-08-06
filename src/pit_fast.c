@@ -670,7 +670,7 @@ pitf_reset(pitf_t *dev)
 {
     memset(dev, 0, sizeof(pitf_t));
 
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
         ctr_reset(&dev->counters[i]);
 
     /* Disable speaker gate. */
@@ -683,7 +683,7 @@ pitf_set_pit_const(void *data, uint64_t pit_const)
     pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr;
 
-    for (uint8_t i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++) {
         ctr = &pit->counters[i];
         ctr->pit_const = pit_const;
     }
@@ -728,7 +728,7 @@ pitf_init(const device_t *info)
     dev->flags = info->local;
 
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < NUM_COUNTERS; i++) {
             ctrf_t *ctr = &dev->counters[i];
             ctr->priv = dev;
             timer_add(&ctr->timer, pitf_timer_over, (void *) ctr, 0);
