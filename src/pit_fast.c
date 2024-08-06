@@ -476,7 +476,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
                         pitf_ctr_set_out(ctr, 1, dev);
                     ctr->disabled = 1;
 
-                    pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
+                    pit_log("PIT %i: M = %i, RM/WM = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->out);
                 }
                 ctr->thit = 0;
             }
