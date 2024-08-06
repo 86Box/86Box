@@ -1560,7 +1560,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 384,
+            .min = 256,
             .max = 640,
             .step = 128
         },
