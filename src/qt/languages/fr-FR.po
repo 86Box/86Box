@@ -741,6 +741,9 @@ msgstr "T"
 msgid "S"
 msgstr "S"
 
+msgid "MiB"
+msgstr "Mio"
+
 msgid "KB"
 msgstr "Ko"
 

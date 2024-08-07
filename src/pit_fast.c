@@ -47,22 +47,22 @@
 #define PIT_CUSTOM_CLOCK 64  /* The PIT uses custom clock inputs provided by another provider. */
 #define PIT_SECONDARY    128 /* The PIT is secondary (ports 0048-004B). */
 
-#ifdef ENABLE_PIT_LOG
-int pit_do_log = ENABLE_PIT_LOG;
+#ifdef ENABLE_PIT_FAST_LOG
+int pit_fast_do_log = ENABLE_PIT_FAST_LOG;
 
 static void
-pit_log(const char *fmt, ...)
+pit_fast_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (pit_do_log) {
+    if (pit_fast_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define pit_log(fmt, ...)
+#    define pit_fast_log(fmt, ...)
 #endif
 
 static void
@@ -420,7 +420,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
     int     t   = (addr & 3);
     ctrf_t *ctr;
 
-    pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
+    pit_fast_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
     cycles -= ISA_CYCLES(8);
 
@@ -438,7 +438,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
                             pitf_ctr_latch_count(&dev->counters[1]);
                         if (val & 8)
                             pitf_ctr_latch_count(&dev->counters[2]);
-                        pit_log("PIT %i: Initiated readback command\n", t);
+                        pit_fast_log("PIT %i: Initiated readback command\n", t);
                     }
                     if (!(val & 0x10)) {
                         if (val & 2)
@@ -456,7 +456,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
                 if (!(dev->ctrl & 0x30)) {
                     pitf_ctr_latch_count(ctr);
                     dev->ctrl |= 0x30;
-                    pit_log("PIT %i: Initiated latched read, %i bytes latched\n",
+                    pit_fast_log("PIT %i: Initiated latched read, %i bytes latched\n",
                             t, ctr->latched);
                 } else {
                     ctr->ctrl = val;
@@ -476,7 +476,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
                         pitf_ctr_set_out(ctr, 1, dev);
                     ctr->disabled = 1;
 
-                    pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
+                    pit_fast_log("PIT %i: M = %i, RM/WM = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->out);
                 }
                 ctr->thit = 0;
             }
@@ -619,7 +619,7 @@ pitf_read(uint16_t addr, void *priv)
             break;
     }
 
-    pit_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+    pit_fast_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
 
     return ret;
 }
@@ -670,7 +670,7 @@ pitf_reset(pitf_t *dev)
 {
     memset(dev, 0, sizeof(pitf_t));
 
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
         ctr_reset(&dev->counters[i]);
 
     /* Disable speaker gate. */
@@ -683,7 +683,7 @@ pitf_set_pit_const(void *data, uint64_t pit_const)
     pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr;
 
-    for (uint8_t i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++) {
         ctr = &pit->counters[i];
         ctr->pit_const = pit_const;
     }
@@ -728,7 +728,7 @@ pitf_init(const device_t *info)
     dev->flags = info->local;
 
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < NUM_COUNTERS; i++) {
             ctrf_t *ctr = &dev->counters[i];
             ctr->priv = dev;
             timer_add(&ctr->timer, pitf_timer_over, (void *) ctr, 0);

@@ -78,7 +78,11 @@ opFINIT(uint32_t fetchdat)
     cpu_state.npxc                                = 0x37F;
 #endif
     codegen_set_rounding_mode(X87_ROUNDING_NEAREST);
+#ifdef FPU_8087
+    cpu_state.npxs &= 0x4700;
+#else
     cpu_state.npxs = 0;
+#endif
     p              = (uint64_t *) cpu_state.tag;
 #ifdef USE_NEW_DYNAREC
     *p = 0;
@@ -406,7 +410,11 @@ FSAVE(void)
 
     cpu_state.npxc = 0x37F;
     codegen_set_rounding_mode(X87_ROUNDING_NEAREST);
+#ifdef FPU_8087
+    cpu_state.npxs &= 0x4700;
+#else
     cpu_state.npxs = 0;
+#endif
     p              = (uint64_t *) cpu_state.tag;
 #ifdef USE_NEW_DYNAREC
     *p = 0;

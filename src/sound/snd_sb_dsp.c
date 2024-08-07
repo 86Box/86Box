@@ -442,7 +442,7 @@ sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
 {
     dsp->mpu = mpu;
 
-    if (mpu != NULL)
+    if (IS_NOT_ESS(dsp) && (mpu != NULL))
         mpu401_irq_attach(mpu, sb_dsp_irq_update, sb_dsp_irq_pending, dsp);
 }
 

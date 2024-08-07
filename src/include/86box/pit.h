@@ -19,6 +19,8 @@
 #ifndef EMU_PIT_H
 #define EMU_PIT_H
 
+#define NUM_COUNTERS 3
+
 typedef struct ctr_t {
     uint8_t m;
     uint8_t ctrl;
@@ -68,7 +70,7 @@ typedef struct PIT {
     int        clock;
     pc_timer_t callback_timer;
 
-    ctr_t counters[3];
+    ctr_t counters[NUM_COUNTERS];
 
     uint8_t ctrl;
 

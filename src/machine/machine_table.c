@@ -1499,11 +1499,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Tandy 1000",
+        .name = "[8088] Tandy 1000 SX",
         .internal_name = "tandy",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_tandy_init,
+        .init = machine_tandy1000sx_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -1521,7 +1521,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 128,
+            .min = 384,
             .max = 640,
             .step = 128
         },
@@ -1560,7 +1560,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 384,
+            .min = 256,
             .max = 640,
             .step = 128
         },
