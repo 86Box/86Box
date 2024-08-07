@@ -998,7 +998,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
         case 0x10b: /* Microsoft scroll up normal */
         case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
             /* This key uses a break code as make. Send it manually, only on press. */
-            if (down) {
+            if (down && (mouse_capture || !kbd_req_capture || video_fullscreen)) {
                 if (keycode & 0x100)
                     keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
@@ -1011,7 +1011,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             break;
 
         case 0x137: /* Print Screen */
-            if (keyboard_recv(0x38) || keyboard_recv(0x138)) { /* Alt+ */
+            if (keyboard_recv_ui(0x38) || keyboard_recv_ui(0x138)) { /* Alt+ */
                 keycode = 0x54;
             } else if (down) {
                 keyboard_input(down, 0x12a);
@@ -1022,7 +1022,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             break;
 
         case 0x145: /* Pause */
-            if (keyboard_recv(0x1d) || keyboard_recv(0x11d)) { /* Ctrl+ */
+            if (keyboard_recv_ui(0x1d) || keyboard_recv_ui(0x11d)) { /* Ctrl+ */
                 keycode = 0x146;
             } else {
                 keyboard_input(down, 0xe11d);
@@ -1196,6 +1196,8 @@ MainWindow::on_actionFullscreen_triggered()
         ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
     }
+    fs_on_signal = false;
+    fs_off_signal = false;
     ui->stackedWidget->onResize(width(), height());
 }
 
