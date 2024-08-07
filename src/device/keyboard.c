@@ -25,6 +25,7 @@
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include <86box/keyboard.h>
+#include <86box/plat.h>
 
 #include "cpu.h"
 
@@ -50,7 +51,8 @@ uint16_t key_uncapture_2 = 0x14f;    /* End */
 
 void (*keyboard_send)(uint16_t val);
 
-static int recv_key[512]; /* keyboard input buffer */
+static int recv_key[512] = { 0 }; /* keyboard input buffer */
+static int recv_key_ui[512] = { 0 }; /* keyboard input buffer */
 static int oldkey[512];
 #if 0
 static int keydelay[512];
@@ -238,16 +240,13 @@ keyboard_input(int down, uint16_t scan)
         }
     }
 
-    /* NOTE: Shouldn't this be some sort of bit shift? An array of 8 unsigned 64-bit integers
-             should be enough. */
-#if 0
-    recv_key[scan >> 6] |= ((uint64_t) down << ((uint64_t) scan & 0x3fLL));
-#endif
-
     /* pclog("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
-    recv_key[scan & 0x1ff] = down;
+    recv_key_ui[scan & 0x1ff] = down;
 
-    key_process(scan & 0x1ff, down);
+    if (mouse_capture || !kbd_req_capture || video_fullscreen) {
+        recv_key[scan & 0x1ff] = down;
+        key_process(scan & 0x1ff, down);
+    }
 }
 
 static uint8_t
@@ -343,30 +342,36 @@ keyboard_recv(uint16_t key)
     return recv_key[key];
 }
 
+int
+keyboard_recv_ui(uint16_t key)
+{
+    return recv_key_ui[key];
+}
+
 /* Do we have Control-Alt-PgDn in the keyboard buffer? */
 int
 keyboard_isfsenter(void)
 {
-    return ((recv_key[0x01d] || recv_key[0x11d]) && (recv_key[0x038] || recv_key[0x138]) && (recv_key[0x049] || recv_key[0x149]));
+    return ((recv_key_ui[0x01d] || recv_key_ui[0x11d]) && (recv_key_ui[0x038] || recv_key_ui[0x138]) && (recv_key_ui[0x049] || recv_key_ui[0x149]));
 }
 
 int
 keyboard_isfsenter_up(void)
 {
-    return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x049] && !recv_key[0x149]);
+    return (!recv_key_ui[0x01d] && !recv_key_ui[0x11d] && !recv_key_ui[0x038] && !recv_key_ui[0x138] && !recv_key_ui[0x049] && !recv_key_ui[0x149]);
 }
 
 /* Do we have Control-Alt-PgDn in the keyboard buffer? */
 int
 keyboard_isfsexit(void)
 {
-    return ((recv_key[0x01d] || recv_key[0x11d]) && (recv_key[0x038] || recv_key[0x138]) && (recv_key[0x051] || recv_key[0x151]));
+    return ((recv_key_ui[0x01d] || recv_key_ui[0x11d]) && (recv_key_ui[0x038] || recv_key_ui[0x138]) && (recv_key_ui[0x051] || recv_key_ui[0x151]));
 }
 
 int
 keyboard_isfsexit_up(void)
 {
-    return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x051] && !recv_key[0x151]);
+    return (!recv_key_ui[0x01d] && !recv_key_ui[0x11d] && !recv_key_ui[0x038] && !recv_key_ui[0x138] && !recv_key_ui[0x051] && !recv_key_ui[0x151]);
 }
 
 /* Do we have the mouse uncapture combination in the keyboard buffer? */
@@ -374,10 +379,10 @@ int
 keyboard_ismsexit(void)
 {
     if ((key_prefix_2_1 != 0x000) || (key_prefix_2_2 != 0x000))
-        return ((recv_key[key_prefix_1_1] || recv_key[key_prefix_1_2]) &&
-                (recv_key[key_prefix_2_1] || recv_key[key_prefix_2_2]) &&
-                (recv_key[key_uncapture_1] || recv_key[key_uncapture_2]));
+        return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
+                (recv_key_ui[key_prefix_2_1] || recv_key_ui[key_prefix_2_2]) &&
+                (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
     else
-        return ((recv_key[key_prefix_1_1] || recv_key[key_prefix_1_2]) &&
-                (recv_key[key_uncapture_1] || recv_key[key_uncapture_2]));
+        return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
+                (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
 }

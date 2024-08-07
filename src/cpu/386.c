@@ -279,7 +279,7 @@ exec386_2386(int32_t cycs)
             if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 if (in_smm)
-                    x386_2386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
+                    x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
