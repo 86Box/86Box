@@ -1724,9 +1724,6 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
            that condition. */
         dev->unit_attention = 0;
     }
-
-    /* Clear the sense stuff as per the spec. */
-    scsi_cdrom_sense_clear(dev, GPCMD_REQUEST_SENSE);
 }
 
 void
@@ -1841,6 +1838,10 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
         return;
 
 begin:
+    if (cdb[0] != GPCMD_REQUEST_SENSE) {
+        /* Clear the sense stuff as per the spec. */
+        scsi_cdrom_sense_clear(dev, cdb[0]);
+    }
     switch (cdb[0]) {
         case GPCMD_TEST_UNIT_READY:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
