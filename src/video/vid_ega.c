@@ -55,9 +55,9 @@ enum {
 };
 
 enum {
-    EGA_TYPE_IBM    = 0;
-    EGA_TYPE_OTHER  = 1;
-    EGA_TYPE_COMPAQ = 2;
+    EGA_TYPE_IBM    = 0,
+    EGA_TYPE_OTHER  = 1,
+    EGA_TYPE_COMPAQ = 2
 };
 
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
