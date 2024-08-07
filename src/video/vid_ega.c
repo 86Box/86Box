@@ -54,11 +54,17 @@ enum {
     EGA_TSENG
 };
 
+enum {
+    EGA_TYPE_IBM    = 0;
+    EGA_TYPE_OTHER  = 1;
+    EGA_TYPE_COMPAQ = 2;
+};
+
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 static uint8_t         ega_rotate[8][256];
 static uint32_t        pallook16[256];
 static uint32_t        pallook64[256];
-static int             ega_type           = 0;
+static int             ega_type           = EGA_TYPE_IBM;
 static int             old_overscan_color = 0;
 
 /* 3C2 controls default mode on EGA. On VGA, it determines monitor type (mono or colour):
@@ -180,7 +186,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             }
             break;
         case 0x3c6:
-            if (ega_type == 2)
+            if (ega_type == EGA_TYPE_COMPAQ)
                 ega->ctl_mode = val;
             break;
         case 0x3ce:
@@ -295,47 +301,47 @@ ega_in(uint16_t addr, void *priv)
             break;
 
         case 0x3c0:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->attraddr | ega->attr_palette_enable;
             break;
         case 0x3c1:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->attrregs[ega->attraddr];
             break;
         case 0x3c2:
             ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
             break;
         case 0x3c4:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->seqaddr;
             break;
         case 0x3c5:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->seqregs[ega->seqaddr & 0xf];
             break;
         case 0x3c6:
-            if (ega_type == 2)
+            if (ega_type == EGA_TYPE_COMPAQ)
                 ret = ega->ctl_mode;
             break;
         case 0x3c8:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = 2;
             break;
         case 0x3cc:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->miscout;
             break;
         case 0x3ce:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->gdcaddr;
             break;
         case 0x3cf:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->gdcreg[ega->gdcaddr & 0xf];
             break;
         case 0x3d0:
         case 0x3d4:
-            if (ega_type == 1)
+            if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->crtcreg;
             break;
         case 0x3d1:
@@ -349,28 +355,28 @@ ega_in(uint16_t addr, void *priv)
                     break;
 
                 case 0x10:
-                    if (ega_type == 1)
+                    if (ega_type == EGA_TYPE_OTHER)
                         ret = ega->crtc[ega->crtcreg];
                     else
                         ret = ega->light_pen >> 8;
                     break;
 
                 case 0x11:
-                    if (ega_type == 1)
+                    if (ega_type == EGA_TYPE_OTHER)
                         ret = ega->crtc[ega->crtcreg];
                     else
                         ret = ega->light_pen & 0xff;
                     break;
 
                 default:
-                    if (ega_type == 1)
+                    if (ega_type == EGA_TYPE_OTHER)
                         ret = ega->crtc[ega->crtcreg];
                     break;
             }
             break;
         case 0x3da:
             ega->attrff = 0;
-            if (ega_type == 2) {
+            if (ega_type == EGA_TYPE_COMPAQ) {
                 ret = ega->stat & 0xcf;
                 switch ((ega->attrregs[0x12] >> 4) & 0x03) {
                     case 0x00:
@@ -466,7 +472,7 @@ ega_recalctimings(ega_t *ega)
     ega->linedbl  = ega->crtc[9] & 0x80;
     ega->rowcount = ega->crtc[9] & 0x1f;
 
-    if (ega_type == 2) {
+    if (ega_type == EGA_TYPE_COMPAQ) {
         color = (ega->miscout & 1);
         clksel = ((ega->miscout & 0xc) >> 2);
 
@@ -1396,7 +1402,7 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     ega->crtc[6] = 255;
 
     timer_add(&ega->timer, ega_poll, ega, 1);
-    if (ega_type == 2)
+    if (ega_type == EGA_TYPE_COMPAQ)
         timer_add(&ega->dot_timer, ega_dot_poll, ega, 1);
 }
 
@@ -1416,11 +1422,11 @@ ega_standalone_init(const device_t *info)
     ega->y_add = 14;
 
     if ((info->local == EGA_IBM) || (info->local == EGA_ISKRA) || (info->local == EGA_TSENG))
-        ega_type = 0;
+        ega_type = EGA_TYPE_IBM;
     else if (info->local == EGA_COMPAQ)
-        ega_type = 2;
+        ega_type = EGA_TYPE_COMPAQ;
     else
-        ega_type = 1;
+        ega_type = EGA_TYPE_OTHER;
 
     ega->actual_type = info->local;
     ega->chipset = 0;
