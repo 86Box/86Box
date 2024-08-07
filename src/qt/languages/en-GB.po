@@ -6,9 +6,6 @@ msgstr ""
 "X-Language: en_GB\n"
 "X-Source-Language: en_US\n"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Fullscreen\tCtrl+Alt+PgUp"
-
 msgid "RGB &Color"
 msgstr "RGB &Colour"
 

@@ -5,6 +5,3 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Language: en_US\n"
 "X-Source-Language: en_US\n"
-
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Fullscreen\tCtrl+Alt+PgUp"
