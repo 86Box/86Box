@@ -52,6 +52,7 @@ enum {
 
 enum {
     TYPE_TANDY = 0,
+    TYPE_TANDY1000SX,
     TYPE_TANDY1000HX,
     TYPE_TANDY1000SL2
 };
@@ -1756,6 +1757,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 
     switch (type) {
         case TYPE_TANDY:
+        case TYPE_TANDY1000SX:
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
@@ -1802,7 +1804,7 @@ tandy1k_eeprom_read(void)
 }
 
 int
-machine_tandy_init(const machine_t *model)
+machine_tandy1000sx_init(const machine_t *model)
 {
     int ret;
 
@@ -1812,7 +1814,7 @@ machine_tandy_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_tandy1k_init(model, TYPE_TANDY);
+    machine_tandy1k_init(model, TYPE_TANDY1000SX);
 
     return ret;
 }
