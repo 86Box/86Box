@@ -1503,7 +1503,7 @@ const machine_t machines[] = {
         .internal_name = "tandy",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_tandy_init,
+        .init = machine_tandy1000sx_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -1560,7 +1560,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 384,
+            .min = 256,
             .max = 640,
             .step = 128
         },
