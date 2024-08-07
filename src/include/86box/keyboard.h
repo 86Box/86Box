@@ -272,6 +272,7 @@ extern uint8_t  keyboard_get_shift(void);
 extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int      keyboard_recv(uint16_t key);
+extern int      keyboard_recv_ui(uint16_t key);
 extern int      keyboard_isfsenter(void);
 extern int      keyboard_isfsenter_up(void);
 extern int      keyboard_isfsexit(void);
