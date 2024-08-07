@@ -22,13 +22,14 @@
  *          Copyright 2011-2023 Benjamin Poirier.
  *          Copyright 2023 Cacodemon345.
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/pci.h>

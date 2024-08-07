@@ -11,10 +11,11 @@
  *
  *
  * Authors:  Jasmine Iwanek, <jasmine@iwanek.co.uk>
+ *           Miran Grca, <mgrca8@gmail.com>
  *
- *           Copyright 2022 Jasmine Iwanek.
+ *           Copyright 2022-2024 Jasmine Iwanek.
+ *           Copyright 2024      Miran Grca.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -103,10 +104,10 @@ monster_fdc_close(void *priv)
     monster_fdc_t *dev = (monster_fdc_t *) priv;
 
     if (dev->nvr_path[0] != 0x00) {
-        FILE *f = nvr_fopen(dev->nvr_path, "wb");
-        if (f != NULL) {
-            fwrite(dev->bios_rom.rom, 1, 0x2000, f);
-            fclose(f);
+        FILE *fp = nvr_fopen(dev->nvr_path, "wb");
+        if (fp != NULL) {
+            fwrite(dev->bios_rom.rom, 1, 0x2000, fp);
+            fclose(fp);
         }
     }
 
@@ -144,10 +145,10 @@ monster_fdc_init(UNUSED(const device_t *info))
     if (rom_writes_enabled) {
         mem_mapping_set_write_handler(&dev->bios_rom.mapping, rom_write, rom_writew, rom_writel);
         sprintf(dev->nvr_path, "monster_fdc_%i.nvr", device_get_instance());
-        FILE *f = nvr_fopen(dev->nvr_path, "rb");
-        if (f != NULL) {
-            fread(dev->bios_rom.rom, 1, 0x2000, f);
-            fclose(f);
+        FILE *fp = nvr_fopen(dev->nvr_path, "rb");
+        if (fp != NULL) {
+            (void) !fread(dev->bios_rom.rom, 1, 0x2000, fp);
+            fclose(fp);
         }
     }
 
