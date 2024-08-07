@@ -170,25 +170,23 @@ cleanup_error:
 static int
 bin_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 {
-    track_file_t *tf;
-
-    cdrom_image_backend_log("CDROM: binary_read(%08lx, pos=%" PRIu64 " count=%lu)\n",
-                            tf->fp, seek, count);
+    track_file_t *tf = NULL;
 
     if ((tf = (track_file_t *) priv)->fp == NULL)
         return 0;
 
+    cdrom_image_backend_log("CDROM: binary_read(%08lx, pos=%" PRIu64 " count=%lu)\n",
+                            tf->fp, seek, count);
+
     if (fseeko64(tf->fp, seek, SEEK_SET) == -1) {
-#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
         cdrom_image_backend_log("CDROM: binary_read failed during seek!\n");
-#endif
+
         return 0;
     }
 
     if (fread(buffer, count, 1, tf->fp) != 1) {
-#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
         cdrom_image_backend_log("CDROM: binary_read failed during read!\n");
-#endif
+
         return 0;
     }
 
@@ -207,9 +205,7 @@ bin_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 static uint64_t
 bin_get_length(void *priv)
 {
-    track_file_t *tf;
-
-    cdrom_image_backend_log("CDROM: binary_length(%08lx)\n", tf->fp);
+    track_file_t *tf = NULL;
 
     if ((tf = (track_file_t *) priv)->fp == NULL)
         return 0;
@@ -1159,10 +1155,9 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
                 trk.file = audio_init(filename, &error);
             }
             if (error) {
-#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
                 cdrom_image_backend_log("CUE: cannot open file '%s' in cue sheet!\n",
                                         filename);
-#endif
+
                 if (trk.file != NULL) {
                     trk.file->close(trk.file);
                     trk.file = NULL;
@@ -1177,9 +1172,8 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
             /* Ignored commands. */
             success = 1;
         } else {
-#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
             cdrom_image_backend_log("CUE: unsupported command '%s' in cue sheet!\n", command);
-#endif
+
             success = 0;
         }
 

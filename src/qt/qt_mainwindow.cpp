@@ -1218,7 +1218,7 @@ MainWindow::getTitle(wchar_t *title)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
-    if (!dopause && (mouse_capture || !kbd_req_capture)) {
+    if (!dopause) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
             if (shortcutEvent->key() == ui->actionExit->shortcut()) {
@@ -1299,7 +1299,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture)) {
+    if (send_keyboard_input) {
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
 #else
@@ -1312,10 +1312,10 @@ MainWindow::keyPressEvent(QKeyEvent *event)
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
 
-    if ((video_fullscreen > 0) && (keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
-        if (keyboard_recv(0x57))
+    if ((video_fullscreen > 0) && (keyboard_recv_ui(0x1D) || keyboard_recv_ui(0x11D))) {
+        if (keyboard_recv_ui(0x57))
             ui->actionTake_screenshot->trigger();
-        else if (keyboard_recv(0x58))
+        else if (keyboard_recv_ui(0x58))
             pc_send_cad();
     }
 
@@ -1338,7 +1338,7 @@ void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Pause) {
-        if (keyboard_recv(0x38) && keyboard_recv(0x138)) {
+        if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
             plat_pause(dopause ^ 1);
         }
     }
