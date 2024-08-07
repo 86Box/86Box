@@ -107,8 +107,8 @@ sis_85c50x_shadow_recalc(sis_85c50x_t *dev)
         if (dev->states[8 + i] != state) {
             mem_set_mem_state_both(base, 0x00004000, state);
             sis_85c50x_log("%05X-%05X: R%c, W%c\n", base, base + 0x3fff,
-                           (dev->pci_conf[0x543 & (0x80 >> i)) ?
-                           ((dev->pci_conf[0x54] & 0x40) ? 'I' : 'D') : 'E',
+                           (dev->pci_conf[0x54] & (0x80 >> i)) ?
+                           ((dev->pci_conf[0x53] & 0x40) ? 'I' : 'D') : 'E',
                            (dev->pci_conf[0x54] & (0x80 >> i)) ?
                            ((dev->pci_conf[0x53] & 0x20) ? 'P' : 'I') : 'E');
             dev->states[8 + i] = state;
