@@ -148,7 +148,7 @@ smbus_sis5595_read_data(void *priv)
             break;
     }
 
-    smbus_sis5595_log("SMBus SIS5595: read(%02X) = %02x\n", addr, ret);
+    smbus_sis5595_log("SMBus SIS5595: read(%02X) = %02x\n", dev->addr, ret);
 
     return ret;
 }
@@ -171,7 +171,7 @@ smbus_sis5595_write_data(void *priv, uint8_t val)
     uint16_t         prev_stat;
     uint16_t         timer_bytes = 0;
 
-    smbus_sis5595_log("SMBus SIS5595: write(%02X, %02X)\n", addr, val);
+    smbus_sis5595_log("SMBus SIS5595: write(%02X, %02X)\n", dev->addr, val);
 
     prev_stat      = dev->next_stat;
     dev->next_stat = 0x0000;
