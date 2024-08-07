@@ -545,10 +545,6 @@ esp_do_command_phase(esp_t *dev)
         esp_log("ESP SCSI Start reading/writing\n");
         esp_do_dma(dev);
     } else {
-        if (dev->mca && (buf[0] == 0x43) && (sd->phase == SCSI_PHASE_STATUS)) {
-            esp_set_phase(dev, STAT_DI);
-            scsi_device_command_phase1(sd);
-        }
         esp_log("ESP SCSI Command with no length\n");
         esp_command_complete(dev, sd->status);
     }
