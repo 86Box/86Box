@@ -40,6 +40,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86seg.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "x87_ops_conv.h"
 #include <86box/io.h>
