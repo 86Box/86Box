@@ -1278,6 +1278,10 @@ ega_read(uint32_t addr, void *priv)
         temp4 &= (ega->colournocare & 8) ? 0xff : 0;
         return ~(temp | temp2 | temp3 | temp4);
     }
+
+    if ((ega_type == 2) && (ega->gdcreg[4] & 0x04))
+        return 0xff;
+
     return ega->vram[addr | readplane];
 }
 
