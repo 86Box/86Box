@@ -1763,7 +1763,7 @@ machine_tandy1k_init(const machine_t *model, int type)
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
             vid_init(dev);
             device_add_ex(&vid_device, dev);
-            device_add(&sn76489_device);
+            device_add((type == TYPE_TANDY1000SX) ? &ncr8496_device : &sn76489_device);
             break;
 
         case TYPE_TANDY1000HX:
