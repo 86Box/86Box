@@ -156,7 +156,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             if (!(val & 1))
                 io_sethandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
             ega_recalctimings(ega);
-            if ((ega_type == 2) && !(val & 0x02))
+            if ((ega_type == EGA_TYPE_COMPAQ) && !(val & 0x02))
                 mem_mapping_disable(&ega->mapping);
             else  switch (ega->gdcreg[6] & 0xc) {
                 case 0x0: /*128k at A0000*/
@@ -227,7 +227,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     ega->chain2_read = val & 0x10;
                     break;
                 case 6:
-                    if ((ega_type == 2) && !(ega->miscout & 0x02))
+                    if ((ega_type == EGA_TYPE_COMPAQ) && !(ega->miscout & 0x02))
                         mem_mapping_disable(&ega->mapping);
                     else  switch (val & 0xc) {
                         case 0x0: /*128k at A0000*/
@@ -615,7 +615,7 @@ ega_recalctimings(ega_t *ega)
     if (ega->dispofftime < TIMER_USEC)
         ega->dispofftime = TIMER_USEC;
 
-    if (ega_type == 2) {
+    if (ega_type == EGA_TYPE_COMPAQ) {
         ega->dot_time  = (uint64_t) (ega->dot_clock);
         if (ega->dot_time < TIMER_USEC)
             ega->dot_time = TIMER_USEC;
@@ -1313,7 +1313,7 @@ ega_read(uint32_t addr, void *priv)
         return ~(temp | temp2 | temp3 | temp4);
     }
 
-    if ((ega_type == 2) && (ega->gdcreg[4] & 0x04))
+    if ((ega_type == EGA_TYPE_COMPAQ) && (ega->gdcreg[4] & 0x04))
         return 0xff;
 
     return ega->vram[addr | readplane];
@@ -1504,7 +1504,7 @@ ega_standalone_init(const device_t *info)
     ega->vrammask   = ega->vram_limit - 1;
 
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-    if (ega_type == 2)
+    if (ega_type == EGA_TYPE_COMPAQ)
         mem_mapping_disable(&ega->mapping);
     io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
