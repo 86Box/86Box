@@ -45,3 +45,8 @@ endif()
 if(LASERXT)
     target_compile_definitions(dev PRIVATE USE_LASERXT)
 endif()
+
+if(WACOM)
+    target_compile_definitions(dev PRIVATE USE_WACOM)
+    target_sources(dev PRIVATE mouse_wacom_tablet.c)
+endif()
