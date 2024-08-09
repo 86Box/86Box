@@ -482,8 +482,11 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
                         svga->hwcursor.y = (svga->crtc[0x42] | (svga->crtc[0x43] << 8)) & 0x7ff;
 
                         if ((tgui->accel.ger22 & 0xff) == 8) {
-                            if (svga->bpp != 24)
+                            if (svga->bpp != 24) {
                                 svga->hwcursor.x <<= 1;
+                                if ((tgui->type == TGUI_9440) && (svga->crtc[0x1e] & 4))
+                                    svga->hwcursor.x >>= 1;
+                            }
                         }
 
                         svga->hwcursor.xoff = svga->crtc[0x46] & 0x3f;
@@ -788,6 +791,9 @@ tgui_recalctimings(svga_t *svga)
                         default:
                             break;
                     }
+                } else {
+                    if ((svga->hdisp == 1280) && (svga->dispend == (1020 >> 1)) && svga->interlace)
+                        svga->dispend++;
                 }
                 break;
             case 15:
