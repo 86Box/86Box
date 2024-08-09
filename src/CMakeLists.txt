@@ -48,10 +48,6 @@ if(DYNAREC)
     add_compile_definitions(USE_DYNAREC)
 endif()
 
-if(DEV_BRANCH)
-    add_compile_definitions(DEV_BRANCH)
-endif()
-
 if(DISCORD)
     add_compile_definitions(DISCORD)
     target_sources(86Box PRIVATE discord.c)
