@@ -76,19 +76,19 @@ static const MIDI_OUT_DEVICE devices[] = {
     { &device_none          },
 #ifdef USE_FLUIDSYNTH
     { &fluidsynth_device    },
-#endif
+#endif /* USE_FLUIDSYNTH */
 #ifdef USE_MUNT
     { &mt32_old_device      },
     { &mt32_new_device      },
     { &cm32l_device         },
     { &cm32ln_device        },
-#endif
+#endif /*USE_MUNT */
 #ifdef USE_RTMIDI
     { &rtmidi_output_device },
-#endif
-#if defined(DEV_BRANCH) && defined(USE_OPL4ML)
+#endif /* USE_RTMIDI */
+#ifdef USE_OPL4ML
     { &opl4_midi_device     },
-#endif
+#endif /* USE_OPL4ML */
     { NULL                  }
     // clang-format on
 };
@@ -98,7 +98,7 @@ static const MIDI_IN_DEVICE midi_in_devices[] = {
     { &device_none         },
 #ifdef USE_RTMIDI
     { &rtmidi_input_device },
-#endif
+#endif /* USE_RTMIDI */
     { NULL                 }
     // clang-format on
 };

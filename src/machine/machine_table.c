@@ -12105,11 +12105,9 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 262144,
-            .max = 786432,
             .step = 8192
         },
         .nvrmask = 127,
-        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
