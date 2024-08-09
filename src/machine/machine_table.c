@@ -7077,8 +7077,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_VIDEO,
         .ram = {
-            .min = 1024,
-            .max = 65536,
+            .min = 4096,
+            .max = 69632,
             .step = 1024
         },
         .nvrmask = 127,
@@ -7329,10 +7329,10 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = &tgui9440_onboard_pci_device,
+        .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &tgui9440_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -10890,49 +10890,6 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 
-    /* 430VX */
-    /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
-       MegaKey (revision '5') KBC firmware. */
-    {
-        .name = "[i430VX] Gateway 2000 Tigereye",
-        .internal_name = "gw2kte",
-        .type = MACHINE_TYPE_SOCKET7_3V,
-        .chipset = MACHINE_CHIPSET_INTEL_430VX,
-        .init = machine_at_gw2kte_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 50000000,
-            .max_bus = 66666667,
-            .min_voltage = 3380,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 3.0
-        },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
-        .ram = {
-            .min = 8192,
-            .max = 131072,
-            .step = 8192
-        },
-        .nvrmask = 511,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-
     /* SiS 5501 */
     /* Has the Lance LT38C41 KBC. */
     {
@@ -11914,6 +11871,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
+       MegaKey (revision '5') KBC firmware. */
+    {
+        .name = "[i430VX] Gateway 2000 Tigereye",
+        .internal_name = "gw2kte",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_gw2kte_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 511,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
+        .net_device = NULL
+    },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
@@ -12079,46 +12077,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Unknown PS/2 KBC. */
-    {
-        .name = "[i430HX] Radisys EPC-2102",
-        .internal_name = "epc2102",
-        .type = MACHINE_TYPE_SOCKET7,
-        .chipset = MACHINE_CHIPSET_INTEL_430HX,
-        .init = machine_at_epc2102_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 50000000,
-            .max_bus = 83333333,
-            .min_voltage = 2500,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 3.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
-        .ram = {
-            .min = 8192,
-            .max = 262144,
-            .step = 8192
-        },
-        .nvrmask = 127,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
     {
@@ -12264,7 +12222,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_AV | MACHINE_NIC | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -12844,7 +12802,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -12884,7 +12842,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -12926,7 +12884,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 786432,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -13090,7 +13048,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -13170,7 +13128,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -13210,7 +13168,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -13420,7 +13378,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 786432,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -13618,7 +13576,7 @@ const machine_t machines[] = {
             .max_bus = 66666667,
             .min_voltage = 2900,
             .max_voltage = 3300,
-            .min_multi = 2.0,
+            .min_multi = 1.5,
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
@@ -13698,7 +13656,7 @@ const machine_t machines[] = {
             .max_bus = 66666667,
             .min_voltage = 2100,
             .max_voltage = 3500,
-            .min_multi = 2.0,
+            .min_multi = 1.5,
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
@@ -13744,7 +13702,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO | MACHINE_USB, /* Machine has internal video: S3 ViRGE/DX and sound: Crystal CS4236B */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_AV | MACHINE_USB, /* Machine has internal video: S3 ViRGE/DX and sound: Crystal CS4236B */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -13786,7 +13744,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -13801,7 +13759,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &cs4236b_device,
         .net_device = NULL
     },
     /* Has the AMIKey-2 (updated 'H') KBC firmware. */
@@ -13952,7 +13910,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -14950,7 +14908,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
