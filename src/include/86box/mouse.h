@@ -71,8 +71,10 @@ extern const device_t mouse_mssystems_device;
 extern const device_t mouse_msserial_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
+#    ifdef USE_WACOM
 extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
+#    endif
 extern const device_t mouse_mtouch_device;
 #endif
 

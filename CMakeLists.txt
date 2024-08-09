@@ -163,6 +163,7 @@ cmake_dependent_option(OPEN_AT        "OpenAT"                                  
 cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(PCL            "Generic PCL5e Printer"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(WACOM          "Wacom Input Devices"                         ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt

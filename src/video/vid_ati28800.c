@@ -37,9 +37,9 @@
 #include <86box/vid_svga_render.h>
 
 #define VGAWONDERXL 1
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
 #    define VGAWONDERXL24 2
-#endif
+#endif /* USE_XL24 */
 
 #define BIOS_ATIKOR_PATH         "roms/video/ati28800/atikorvga.bin"
 #define BIOS_ATIKOR_4620P_PATH_L "roms/machines/spc4620p/31005h.u8"
@@ -52,10 +52,10 @@
 #define BIOS_VGAXL_EVEN_PATH     "roms/video/ati28800/xleven.bin"
 #define BIOS_VGAXL_ODD_PATH      "roms/video/ati28800/xlodd.bin"
 
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
 #    define BIOS_XL24_EVEN_PATH "roms/video/ati28800/112-14318-102.bin"
 #    define BIOS_XL24_ODD_PATH  "roms/video/ati28800/112-14319-102.bin"
-#endif
+#endif /* USE_XL24 */
 
 #define BIOS_ROM_PATH       "roms/video/ati28800/bios.bin"
 #define BIOS_VGAXL_ROM_PATH "roms/video/ati28800/ATI_VGAWonder_XL.bin"
@@ -609,7 +609,7 @@ ati28800_init(const device_t *info)
             ati28800->svga.ramdac = device_add(&sc11486_ramdac_device);
             break;
 
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
         case VGAWONDERXL24:
             ati28800->id = 6;
             rom_init_interleaved(&ati28800->bios_rom,
@@ -618,7 +618,7 @@ ati28800_init(const device_t *info)
                                  0xc0000, 0x10000, 0xffff,
                                  0, MEM_MAPPING_EXTERNAL);
             break;
-#endif
+#endif /* USE_XL24 */
 
         default:
             ati28800->id = 5;
@@ -653,11 +653,11 @@ ati28800_init(const device_t *info)
             ati_eeprom_load(&ati28800->eeprom, "ati28800xl.nvr", 0);
             break;
 
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
         case VGAWONDERXL24:
             ati_eeprom_load(&ati28800->eeprom, "ati28800xl24.nvr", 0);
             break;
-#endif
+#endif /* USE_XL24 */
 
         default:
             ati_eeprom_load(&ati28800->eeprom, "ati28800.nvr", 0);
@@ -685,13 +685,13 @@ compaq_ati28800_available(void)
     return (rom_present(BIOS_VGAXL_ROM_PATH));
 }
 
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
 static int
 ati28800_wonderxl24_available(void)
 {
     return (rom_present(BIOS_XL24_EVEN_PATH) && rom_present(BIOS_XL24_ODD_PATH));
 }
-#endif
+#endif /* USE_XL24 */
 
 static void
 ati28800_close(void *priv)
@@ -749,7 +749,7 @@ static const device_config_t ati28800_config[] = {
     }
 };
 
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
 static const device_config_t ati28800_wonderxl_config[] = {
     {
         .name = "memory",
@@ -778,7 +778,7 @@ static const device_config_t ati28800_wonderxl_config[] = {
         .type = CONFIG_END
     }
 };
-#endif
+#endif /* USE_XL24 */
 // clang-format on
 
 const device_t ati28800_device = {
@@ -851,7 +851,7 @@ const device_t compaq_ati28800_device = {
     .config        = ati28800_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
 const device_t ati28800_wonderxl24_device = {
     .name          = "ATI-28800 (VGA Wonder XL24)",
     .internal_name = "ati28800w",
@@ -865,4 +865,4 @@ const device_t ati28800_wonderxl24_device = {
     .force_redraw  = ati28800_force_redraw,
     .config        = ati28800_wonderxl_config
 };
-#endif
+#endif /* USE_XL24 */

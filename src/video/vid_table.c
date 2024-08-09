@@ -60,9 +60,9 @@ video_cards[] = {
     { &ati18800_vga88_device                           },
     { &ati28800_device                                 },
     { &compaq_ati28800_device                          },
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+#ifdef USE_XL24
     { &ati28800_wonderxl24_device                      },
-#endif
+#endif /* USE_XL24 */
     { &ati18800_device                                 },
     { &ati18800_wonder_device                          },
     { &cga_device                                      },
@@ -236,7 +236,7 @@ video_cards[] = {
     { &s3_trio3d2x_agp_device                          },
 #ifdef USE_G100
     { &productiva_g100_device, VIDEO_FLAG_TYPE_SPECIAL },
-#endif
+#endif /*USE_G100 */
     { &velocity_100_agp_device                         },
     { &velocity_200_agp_device                         },
     { &voodoo_3_1000_agp_device                        },

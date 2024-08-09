@@ -972,7 +972,7 @@ machine_at_tx97_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_AN430TX)
+#ifdef USE_AN430TX
 int
 machine_at_an430tx_init(const machine_t *model)
 {
@@ -1016,7 +1016,7 @@ machine_at_an430tx_init(const machine_t *model)
 
     return ret;
 }
-#endif
+#endif /* USE_AN430TX */
 
 int
 machine_at_ym430tx_init(const machine_t *model)
