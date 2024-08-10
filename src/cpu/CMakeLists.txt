@@ -19,6 +19,12 @@ add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c
 
 if(AMD_K5)
     target_compile_definitions(cpu PRIVATE USE_AMD_K5)
+
+if(DYNAREC)
+    add_library(ctk5 OBJECT codegen_timing_k5.c)
+    target_link_libraries(86Box ctk5)
+endif()
+
 endif()
 
 if(CYRIX_6X86)
