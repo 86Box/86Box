@@ -30,8 +30,10 @@ endif()
 if(CYRIX_6X86)
     target_compile_definitions(cpu PRIVATE USE_CYRIX_6X86)
 
+if(DYNAREC)
     add_library(ct686 OBJECT codegen_timing_686.c)
     target_link_libraries(86Box ct686)
+endif()
 endif()
 
 if(DYNAREC)
