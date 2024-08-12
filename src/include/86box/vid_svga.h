@@ -87,6 +87,7 @@ typedef struct svga_t {
     int dac_b;
     int vtotal;
     int dispend;
+    int vdisp;
     int vsyncstart;
     int split;
     int vblankstart;
