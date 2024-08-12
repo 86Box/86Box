@@ -3233,6 +3233,8 @@ s3_recalctimings(svga_t *svga)
     svga->hdisp = svga->hdisp_old;
     svga->ma_latch |= (s3->ma_ext << 16);
 
+    svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
+
     if (s3->chip >= S3_86C928) {
         if (svga->crtc[0x5d] & 0x01)
             svga->htotal |= 0x100;
@@ -3246,8 +3248,8 @@ s3_recalctimings(svga_t *svga)
             svga->dispend |= 0x400;
         if (svga->crtc[0x5e] & 0x04)
             svga->vblankstart |= 0x400;
-        else
-            svga->vblankstart = svga->dispend;
+        else if ((svga->crtc[0x3a] & 0x10) && !svga->lowres)
+            svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
         if (svga->crtc[0x5e] & 0x10)
             svga->vsyncstart |= 0x400;
         if (svga->crtc[0x5e] & 0x40)
@@ -3293,8 +3295,6 @@ s3_recalctimings(svga_t *svga)
         default:
             break;
     }
-
-    svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
 
     if (s3->chip != S3_86C801)
         mask |= 0x01;
@@ -4140,6 +4140,9 @@ s3_recalctimings(svga_t *svga)
                 if (svga->crtc[0x31] & 0x08) {
                     svga->vram_display_mask = s3->vram_mask;
                     if (svga->bpp == 8) {
+                        if (!(svga->crtc[0x5e] & 0x04))
+                            svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
+
                         /*Enhanced 4bpp mode, just like the 8bpp mode per the spec. */
                         svga->render = svga_render_8bpp_highres;
                         svga->rowoffset <<= 1;
