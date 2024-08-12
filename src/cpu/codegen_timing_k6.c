@@ -1769,7 +1769,7 @@ static int fpu_st_timestamp[8];
 static int last_uop_timestamp = 0;
 
 void
-decode_flush(void)
+decode_flush_k6(void)
 {
     int uop_timestamp = 0;
 
@@ -1908,7 +1908,7 @@ decode_instruction(const risc86_instruction_t *ins, uint64_t deps, uint32_t fetc
                 }
                 decode_buffer.nr_uops += ins->nr_uops;
 
-                decode_flush();
+                decode_flush_k6();
             } else {
                 decode_buffer.nr_uops           = ins->nr_uops;
                 decode_buffer.uops[0]           = &ins->uop[0];
@@ -1922,7 +1922,7 @@ decode_instruction(const risc86_instruction_t *ins, uint64_t deps, uint32_t fetc
 
         case DECODE_LONG:
             if (decode_buffer.nr_uops)
-                decode_flush();
+                decode_flush_k6();
 
             decode_buffer.nr_uops = ins->nr_uops;
             for (c = 0; c < ins->nr_uops; c++) {
@@ -1932,12 +1932,12 @@ decode_instruction(const risc86_instruction_t *ins, uint64_t deps, uint32_t fetc
                 else
                     decode_buffer.earliest_start[c] = -1;
             }
-            decode_flush();
+            decode_flush_k6();
             break;
 
         case DECODE_VECTOR:
             if (decode_buffer.nr_uops)
-                decode_flush();
+                decode_flush_k6();
 
             decode_timestamp++;
             d = 0;
@@ -1953,12 +1953,12 @@ decode_instruction(const risc86_instruction_t *ins, uint64_t deps, uint32_t fetc
                 if (d == 4) {
                     d                     = 0;
                     decode_buffer.nr_uops = 4;
-                    decode_flush();
+                    decode_flush_k6();
                 }
             }
             if (d) {
                 decode_buffer.nr_uops = d;
-                decode_flush();
+                decode_flush_k6();
             }
             break;
     }
@@ -2209,7 +2209,7 @@ codegen_timing_k6_block_end(void)
 {
     if (decode_buffer.nr_uops) {
         int old_last_complete_timestamp = last_complete_timestamp;
-        decode_flush();
+        decode_flush_k6();
         codegen_block_cycles += (last_complete_timestamp - old_last_complete_timestamp);
     }
 }
