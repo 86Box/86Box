@@ -513,7 +513,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
     if (addr >= svga->vram_max)
         return;
 
-    for (int x = 0; x <= svga->hdisp; x += 64) {
+    for (int x = 0; x < svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
         if (svga->changedvram[addr >> 12] || svga->fullchange) {

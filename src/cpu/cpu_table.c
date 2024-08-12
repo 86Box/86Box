@@ -4474,7 +4474,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
+#ifdef USE_AMD_K5
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "AMD",
@@ -4629,7 +4629,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#endif
+#endif /* USE_AMD_K5 */
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "AMD",
@@ -5982,7 +5982,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+#ifdef USE_CYRIX_6X86
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Cyrix",
@@ -6342,7 +6342,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#endif
+#endif /* USE_CYRIX_6X86 */
     {
         .package       = CPU_PKG_SOCKET8,
         .manufacturer  = "Intel",

@@ -330,9 +330,9 @@ extern const device_t ati28800k_device;
 extern const device_t ati28800k_spc4620p_device;
 extern const device_t ati28800k_spc6033p_device;
 extern const device_t compaq_ati28800_device;
-#    if defined(DEV_BRANCH) && defined(USE_XL24)
+#    ifdef USE_XL24
 extern const device_t ati28800_wonderxl24_device;
-#    endif
+#    endif /* USE_XL24 */
 
 /* Bochs */
 extern const device_t bochs_svga_device;
@@ -448,7 +448,7 @@ extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
 #ifdef USE_G100
 extern const device_t productiva_g100_device;
-#endif
+#endif /* USE_G100 */
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;

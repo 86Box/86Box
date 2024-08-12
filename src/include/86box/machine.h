@@ -447,9 +447,9 @@ extern int machine_at_ibmxt286_init(const machine_t *);
 extern int machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
 extern int machine_at_wellamerastar_init(const machine_t *); // Wells American A*Star with custom award BIOS 
-#if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
+#ifdef USE_OPEN_AT
 extern int machine_at_openat_init(const machine_t *);
-#endif
+#endif /* USE_OPEN_AT */
 
 /* m_at_286_386sx.c */
 extern int machine_at_tg286m_init(const machine_t *);
@@ -478,9 +478,9 @@ extern int machine_at_deskmaster286_init(const machine_t *);
 extern int machine_at_pc8_init(const machine_t *);
 extern int machine_at_3302_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+#ifdef USE_OLIVETTI
 extern int machine_at_m290_init(const machine_t *);
-#endif
+#endif /* USE_OLIVETTI */
 
 extern int machine_at_shuttle386sx_init(const machine_t *);
 extern int machine_at_adi386sx_init(const machine_t *);
@@ -736,9 +736,9 @@ extern int machine_at_i430vx_init(const machine_t *);
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_AN430TX)
+#ifdef USE_AN430TX
 extern int machine_at_an430tx_init(const machine_t *);
-#endif
+#endif /* USE_AN430TX */
 extern int machine_at_ym430tx_init(const machine_t *);
 extern int machine_at_thunderbolt_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
@@ -951,10 +951,10 @@ extern int machine_xt_compaq_deskpro_init(const machine_t *);
 extern int machine_xt_compaq_portable_init(const machine_t *);
 
 /* m_xt_laserxt.c */
-#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+#ifdef USE_LASERXT
 extern int machine_xt_laserxt_init(const machine_t *);
 extern int machine_xt_lxt3_init(const machine_t *);
-#endif
+#endif /* USE_LASERXT */
 
 /* m_xt_philips.c */
 extern int machine_xt_p3105_init(const machine_t *);
