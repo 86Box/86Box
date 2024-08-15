@@ -25,6 +25,7 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/video.h>
 #include <86box/vid_xga_device.h>
+#include <86box/vid_ps55da2.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -56,6 +57,7 @@ SettingsDisplay::save()
     voodoo_enabled             = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
     ibm8514_standalone_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_standalone_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
+    da2_standalone_enabled = ui->checkBoxDa2->isChecked() ? 1 : 0;
 }
 
 void
@@ -162,12 +164,16 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = (((machineHasIsa16 && device_available(&xga_isa_device)) || (machineHasMca && device_available(&xga_device))) && !videoCardHasXga);
+    bool machineSupportsDa2 = machineHasMca && device_available(&ps55da2_device);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
     ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
 
     ui->checkBoxXga->setEnabled(machineSupportsXga);
     ui->checkBoxXga->setChecked(xga_standalone_enabled && machineSupportsXga);
+
+    ui->checkBoxDa2->setEnabled(machineSupportsDa2);
+    ui->checkBoxDa2->setChecked(da2_standalone_enabled && machineSupportsDa2);
 
     ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
 
