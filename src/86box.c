@@ -186,6 +186,7 @@ int      voodoo_enabled                         = 0;              /* (C) video o
 int      lba_enhancer_enabled                   = 0;              /* (C) enable Vision Systems LBA Enhancer */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
+int      da2_standalone_enabled                 = 0;              /* (C) video option */
 uint32_t mem_size                               = 0;              /* (C) memory size (Installed on
                                                                          system board)*/
 uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
@@ -1061,12 +1062,13 @@ pc_init_modules(void)
 void
 pc_send_ca(uint16_t sc)
 {
+    /* Use R-Alt because 5576-002 keyboard assigns L-Alt as  */
     keyboard_input(1, 0x1D); /* Ctrl key pressed */
-    keyboard_input(1, 0x38); /* Alt key pressed */
+    keyboard_input(1, 0x138); /* R-Alt key pressed */
     keyboard_input(1, sc);
     usleep(50000);
     keyboard_input(0, sc);
-    keyboard_input(0, 0x38); /* Alt key released */
+    keyboard_input(0, 0x138); /* R-Alt key released */
     keyboard_input(0, 0x1D); /* Ctrl key released */
 }
 
