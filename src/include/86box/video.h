@@ -313,6 +313,9 @@ extern const device_t mach32_mca_device;
 extern const device_t mach32_pci_device;
 extern const device_t mach32_onboard_pci_device;
 
+/* IBM Display Adapter (PS/55) */
+extern void da2_device_add(void);
+
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
