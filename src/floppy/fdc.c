@@ -734,6 +734,20 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 drive = real_drive(fdc, fdc->dor & 3);
                 fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
             }
+            /* FIFO test mode (PS/55 only? This is not documented in neither the PS/2 HITR nor the 82077AA datasheet.) 
+               The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
+               If it fails, then floppy drives will be treated as DD drives. */
+            if (fdc->flags & FDC_FLAG_PS55) {
+                if (val & 0x04)
+                {
+                    fdc->tfifo = 8;
+                    fdc->fifointest = 1;
+                }
+                else {
+                    fdc->tfifo = 1;
+                    fdc->fifointest = 0;
+                }
+            }
             return;
         case 4:
             if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
@@ -761,6 +775,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             fdc->dsr = val;
             return;
         case 5: /*Command register*/
+            if (fdc->fifointest)
+            {
+                pclog("FIFO buffer position = %X\n", ((fifo_t *)fdc->fifo_p)->end);
+                fifo_write(val, fdc->fifo_p);
+                if (fifo_get_full(fdc->fifo_p))
+                    fdc->stat &= ~0x80;
+                break;
+            }
             if ((fdc->stat & 0xf0) == 0xb0) {
                 if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
                     fdc->dat = val;
@@ -1249,7 +1271,27 @@ fdc_read(uint16_t addr, void *priv)
                     ret |= 0x40;
                 if (fdc->fintr || fdc->reset_stat) /* INTR */
                     ret |= 0x80;
-            } else
+            }
+            else if (fdc->flags & FDC_FLAG_PS55) {
+                /* Status Register A (PS/2, PS/55) */
+                /* | INT PEND | nDRV2 | STEP | nTRK0 | HDSEL | nIDX | nWP | DIR | */
+                ret = 0x04;
+                if (!fdc->seek_dir) /* DIRECTION */
+                    ret |= 0x01;
+                if (!writeprot[drive]) /* nWRITEPROT */
+                    ret |= 0x02;
+                if (fdd_get_head(drive)) /* HDSEL */
+                    ret |= 0x08;
+                if (!fdd_track0(drive)) /* nTRK0 */
+                    ret |= 0x10;
+                if (fdc->step) /* STEP */
+                    ret |= 0x20;
+                if (!fdd_get_type(1)) /* -Drive 2 Installed */
+                    ret |= 0x40;
+                if (fdc->fintr || fdc->reset_stat) /* INTR */
+                    ret |= 0x80;
+            }
+            else
                 ret = 0xff;
             break;
         case 1: /* STB */
@@ -1277,7 +1319,19 @@ fdc_read(uint16_t addr, void *priv)
                     default:
                         break;
                 }
-            } else {
+            }
+            else if (fdc->flags & FDC_FLAG_PS55) {
+                /* Status Register B (PS/2, PS/55) */
+                /* | 1 | 1 | DS0 | WD TOGGLE | RD TOGGLE | WE | MOT EN1 | MOT EN0 | */
+                ret = 0xc0;
+                if (motoron[0]) /* Bit 0: MOT EN0 */
+                    ret |= 1;
+                if (motoron[1]) /* Bit 1: MOT EN1 */
+                    ret |= 2;
+                if(real_drive(fdc, fdc->dor & 3) == 0) /* Bit 5: Drive Select 0 */
+                    ret |= 0x20;
+            }
+            else {
                 if (is486 || !fdc->enable_3f1)
                     ret = 0xff;
                 else {
@@ -1326,7 +1380,12 @@ fdc_read(uint16_t addr, void *priv)
                     ret = 0x10;
                 else
                     ret = 0x00;
-            } else if (!fdc->enh_mode)
+            }
+            else if (fdc->flags & FDC_FLAG_PS55) {
+                /* error when ret = 1, 2*/
+                ret = (fdc->fifointest) ? 4 : 0;
+            }
+            else if (!fdc->enh_mode)
                 ret = 0x20;
             else
                 ret = fdc->rwc[drive] << 4;
@@ -1335,6 +1394,11 @@ fdc_read(uint16_t addr, void *priv)
             ret = fdc->stat;
             break;
         case 5: /*Data*/
+            if (fdc->fifointest)
+            {
+                ret = fifo_read(fdc->fifo_p);
+                break;
+            }
             if ((fdc->stat & 0xf0) == 0xf0) {
                 fdc->stat &= ~0x80;
                 if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
@@ -1377,7 +1441,18 @@ fdc_read(uint16_t addr, void *priv)
                     ret |= (fdc->rate & 0x03);
                 } else
                     ret = 0x00;
-            } else {
+            }
+            else if (fdc->flags & FDC_FLAG_PS55) {
+                /* Digital Input Register (PS/2, PS/55) */
+                /* | DSKCHG | 1 | 1 | 1 | 1 | DRATE1 | DRATE0 | nHDEN | */
+                ret = 0x78;
+                ret |= (fdc->rate & 0x03) << 1;
+                if (fdc->rate == 1 || fdc->rate == 2)
+                    ret |= 0x01;
+                if (fdc->dor & (0x10 << drive))
+                    ret |= (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
+            }
+            else {
                 if (fdc->dor & (0x10 << drive)) {
                     if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
                         ret = 0x00;
@@ -1409,7 +1484,7 @@ static void
 fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
 {
     fdc_int(fdc, 1);
-    if (!(fdc->flags & FDC_FLAG_PS1))
+    if (!(fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS55)))
         fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
@@ -1635,6 +1710,8 @@ fdc_callback(void *priv)
                     return;
                 }
                 if (fdd_get_head(real_drive(fdc, fdc->drive)) == 0) {
+                    fdc->sector = 1;
+                    fdc->head |= 1;
                     fdd_set_head(real_drive(fdc, fdc->drive), 1);
                     if (!fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
                         fdc_noidam(fdc);
@@ -1646,6 +1723,7 @@ fdc_callback(void *priv)
             else if (fdc->params[5] == 0)
                 fdc->sector++;
             ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
+            //fdc_log("cb_rwsect: %d %d %d %d %d %xh\n", real_drive(fdc, fdc->drive), fdc->sector, fdc->rw_track, fdc->head, fdc->rate, fdc->params[4]);
             switch (fdc->interrupt) {
                 case 5:
                 case 9:
@@ -1708,7 +1786,7 @@ fdc_callback(void *priv)
             } else {
                 fdc->interrupt = -2;
                 fdc_int(fdc, 1);
-                if (!(fdc->flags & FDC_FLAG_PS1))
+                if (!(fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS55)))
                     fdc->fintr = 0;
                 fdc->stat = 0xD0;
                 fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
@@ -1800,7 +1878,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
     timer_disable(&fdc->timer);
 
     fdc_int(fdc, 1);
-    if (!(fdc->flags & FDC_FLAG_PS1))
+    if (!(fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS55)))
         fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
@@ -1964,6 +2042,7 @@ fdc_noidam(fdc_t *fdc)
 void
 fdc_nosector(fdc_t *fdc)
 {
+    pclog("nosector error\n");
     fdc_error(fdc, 4, 0);
 }
 
@@ -2209,7 +2288,7 @@ fdc_reset(void *priv)
     fdc->enable_3f1 = 1;
 
     fdc_update_enh_mode(fdc, 0);
-    if (fdc->flags & FDC_FLAG_PS1)
+    if (fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS55))
         fdc_update_densel_polarity(fdc, 0);
     else
         fdc_update_densel_polarity(fdc, 1);
@@ -2230,6 +2309,7 @@ fdc_reset(void *priv)
 
     fdc->fifo  = 0;
     fdc->tfifo = 1;
+    fdc->fifointest = 0;
 
     if (fdc->flags & FDC_FLAG_PCJR) {
         fdc->dma        = 0;
@@ -2549,6 +2629,20 @@ const device_t fdc_at_ps1_2121_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t fdc_at_ps55_device = {
+    .name = "PC/AT Floppy Drive Controller (PS/55)",
+    .internal_name = "fdc_at_ps55",
+    .flags = 0,
+    .local = FDC_FLAG_AT | FDC_FLAG_PS55,
+    .init = fdc_init,
+    .close = fdc_close,
+    .reset = fdc_reset,
+    {.available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc_at_smc_device = {
