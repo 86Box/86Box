@@ -311,10 +311,6 @@ static video_timings_t timing_diamond_stealth3d_3000_pci = { .type = VIDEO_PCI, 
 static video_timings_t timing_virge_dx_pci               = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
 static video_timings_t timing_virge_agp                  = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
 
-static inline void wake_fifo_thread(virge_t *virge) {
-    thread_set_event(virge->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
-}
-
 static void s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri);
 
 static void s3_virge_recalctimings(svga_t *svga);
@@ -761,21 +757,21 @@ s3_virge_recalctimings(svga_t *svga)
     }
 
     if (svga->crtc[0x5d] & 0x01)
-        svga->htotal += 0x100;
+        svga->htotal |= 0x100;
     if (svga->crtc[0x5d] & 0x02) {
-        svga->hdisp_time += 0x100;
-        svga->hdisp += 0x100 * svga->dots_per_clock;
+        svga->hdisp_time |= 0x100;
+        svga->hdisp |= (0x100 * svga->dots_per_clock);
     }
     if (svga->crtc[0x5e] & 0x01)
-        svga->vtotal += 0x400;
+        svga->vtotal |= 0x400;
     if (svga->crtc[0x5e] & 0x02)
-        svga->dispend += 0x400;
+        svga->dispend |= 0x400;
     if (svga->crtc[0x5e] & 0x04)
-        svga->vblankstart += 0x400;
+        svga->vblankstart |= 0x400;
     if (svga->crtc[0x5e] & 0x10)
-        svga->vsyncstart += 0x400;
+        svga->vsyncstart |= 0x400;
     if (svga->crtc[0x5e] & 0x40)
-        svga->split += 0x400;
+        svga->split |= 0x400;
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     if (((svga->miscout >> 2) & 3) == 3) {
@@ -821,9 +817,9 @@ s3_virge_recalctimings(svga_t *svga)
     {
         svga->ma_latch |= (virge->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
-            svga->rowoffset += (svga->crtc[0x51] & 0x30) << 4;
+            svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
-            svga->rowoffset += 0x100;
+            svga->rowoffset |= 0x100;
         if (!svga->rowoffset)
             svga->rowoffset = 256;
 
@@ -1092,7 +1088,7 @@ s3_virge_vblank_start(svga_t *svga)
 
 static void s3_virge_wait_fifo_idle(virge_t *virge) {
     while (!FIFO_EMPTY) {
-        wake_fifo_thread(virge);
+        s3_virge_wake_fifo_thread(virge);
         thread_wait_event(virge->fifo_not_full_event, 1);
     }
 }
@@ -1121,6 +1117,8 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
 
             if (!virge->virge_busy)
                 s3_virge_wake_fifo_thread(virge);
+
+            s3_virge_log("Subsys status BYTE1, busy=%d, fiford=%d, fifowr=%d, ret=%x.\n", virge->virge_busy, virge->fifo_read_idx, virge->fifo_write_idx, ret);
             return ret;
 
         case 0x850c:
@@ -1321,7 +1319,7 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
             if (!virge->virge_busy)
                 s3_virge_wake_fifo_thread(virge);
 
-            s3_virge_log("Subsys status DWORD, busy=%d, fiford=%d, fifowr=%d.\n", virge->virge_busy, virge->fifo_read_idx, virge->fifo_write_idx2);
+            s3_virge_log("Subsys status DWORD, busy=%d, fiford=%d, fifowr=%d.\n", virge->virge_busy, virge->fifo_read_idx, virge->fifo_write_idx);
             break;
 
         case 0x850c:
@@ -1972,17 +1970,19 @@ s3_virge_fifo_thread(void *priv)
     virge_t *virge = (virge_t *)priv;
 
     while (virge->fifo_thread_run) {
+        s3_virge_log("Thread, entries=%d.\n", FIFO_ENTRIES);
         thread_set_event(virge->fifo_not_full_event);
-        thread_wait_event(virge->wake_fifo_thread, -1);
-        thread_reset_event(virge->wake_fifo_thread);
+        //thread_wait_event(virge->wake_fifo_thread, -1);
+        //thread_reset_event(virge->wake_fifo_thread);
         virge->virge_busy = 1;
+        s3_virge_log("Busy.\n");
         while (!FIFO_EMPTY) {
             s3_virge_log("COMMAND: RD=%d, WR=%d, addr=%04x, val=%08x.\n", virge->fifo_read_idx, virge->fifo_write_idx, virge->fifo[virge->fifo_read_idx].addr_type & FIFO_ADDR, virge->fifo[virge->fifo_read_idx].val);
-
             uint64_t start_time = plat_timer_read();
             uint64_t end_time;
             fifo_entry_t *fifo = &virge->fifo[virge->fifo_read_idx & FIFO_MASK];
             uint32_t val = fifo->val;
+            int op_type = (((fifo->addr_type & FIFO_ADDR) & 0x1c00) >> 10) - 1;
 
             switch (fifo->addr_type & FIFO_TYPE) {
                 case FIFO_WRITE_BYTE:
@@ -2004,8 +2004,14 @@ s3_virge_fifo_thread(void *priv)
             virge->fifo_read_idx++;
             fifo->addr_type = FIFO_INVALID;
 
-            if (FIFO_ENTRIES > 0xe000)
+            if (op_type) {
+                if (FIFO_ENTRIES > 0xe000)
+                    thread_set_event(virge->fifo_not_full_event);
+            } else {
                 thread_set_event(virge->fifo_not_full_event);
+                if (((fifo->addr_type & FIFO_ADDR) & 0xffff) >= 0x8000)
+                    virge->fifo_read_idx &= FIFO_MASK;
+            }
 
             end_time = plat_timer_read();
             virge->blitter_time += end_time - start_time;
@@ -2016,7 +2022,10 @@ s3_virge_fifo_thread(void *priv)
     }
 }
 
-static void s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type) {
+static void
+s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
+{
+    int op_type = ((addr & 0x1c00) >> 10) - 1;
     fifo_entry_t *fifo = &virge->fifo[virge->fifo_write_idx & FIFO_MASK];
 
     if (FIFO_FULL) {
@@ -2030,10 +2039,25 @@ static void s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t
 
     virge->fifo_write_idx++;
 
-    if (FIFO_ENTRIES > 0xe000)
-        wake_fifo_thread(virge);
-    if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
-        wake_fifo_thread(virge);
+    if (op_type) {
+        if (FIFO_ENTRIES > 0xe000)
+            s3_virge_wake_fifo_thread(virge);
+        if ((FIFO_ENTRIES > 0xe000) || (FIFO_ENTRIES < 8))
+            s3_virge_wake_fifo_thread(virge);
+    } else {
+        if (FIFO_ENTRIES < 16) {
+            s3_virge_wake_fifo_thread(virge);
+            s3_virge_log("FIFO ENTRIES=%d.\n", FIFO_ENTRIES);
+        } else {
+            s3_virge_log("FIFO FULL.\n");
+            thread_reset_event(virge->fifo_not_full_event);
+            thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+        }
+        if (((addr & 0xffff) >= 0x8000)) {
+            if (virge->fifo_write_idx == FIFO_SIZE)
+                virge->fifo_write_idx = 1;
+        }
+    }
 }
 
 static void
@@ -3820,7 +3844,7 @@ s3_virge_render_thread(void *priv)
             s3_virge_triangle(virge, &virge->s3d_buffer[virge->s3d_read_idx & RB_MASK]);
             virge->s3d_read_idx++;
 
-            if (RB_ENTRIES == RB_SIZE - 1)
+            if (RB_ENTRIES == RB_MASK)
                 thread_set_event(virge->not_full_event);
         }
         virge->s3d_busy = 0;

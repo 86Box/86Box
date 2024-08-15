@@ -3965,6 +3965,17 @@ s3_recalctimings(svga_t *svga)
                         svga->dots_per_clock = (svga->dots_per_clock << 1) / 3;
                         break;
 
+                    case S3_VISION968:
+                        switch (s3->card_type) {
+                            case S3_MIROVIDEO40SV_ERGO_968:
+                                svga->hdisp = (svga->hdisp / 3) << 2;
+                                svga->dots_per_clock = (svga->hdisp / 3) << 2;
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+
                     case S3_TRIO64:
                     case S3_TRIO32:
                         svga->hdisp /= 3;
