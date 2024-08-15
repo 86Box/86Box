@@ -516,7 +516,7 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
 
     svga->interlace = !!(ramdac->ccr & 0x40);
     /* TODO: Figure out gamma correction for 15/16 bpp color. */
-    svga->lut_map = !!(svga->bpp >= 15 && (ramdac->true_color & 0xf0) != 0x00);
+    svga->lut_map = !!((svga->bpp >= 15 && (svga->bpp != 24)) && (ramdac->true_color & 0xf0) != 0x00);
 
     if (!(ramdac->clock_sel & 0x70)) {
         if (ramdac->mcr != 0x98) {
