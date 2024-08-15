@@ -431,10 +431,24 @@ svga_in(uint16_t addr, void *priv)
             ret = svga->attrregs[svga->attraddr];
             break;
         case 0x3c2:
-            if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-                ret = 0;
+            if (svga->cable_connected)
+            {
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            }
             else
-                ret = 0x10;
+            {
+                // The Display Adapter has own Monitor Type Detection bit in the different I/O port (I/O 3E0h, 3E1h).
+                // When the monitor cable is connected to the Display Adapter, this port returns the value as no cable connection.
+                // The Power-on Self Test of PS/55 tries detecting the monitor on the planar VGA.
+                // If it fails, then the POST reads the NVRAM set by the reference diskette, and sets the BIOS Data Area (Mem 487h, 489h).
+                if (svga->vgapal[0].r >= 10 || svga->vgapal[0].g >= 10 || svga->vgapal[0].b >= 10)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            }
             break;
         case 0x3c3:
             ret = vga_on;
@@ -1359,6 +1373,8 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 32;
 
     svga->translate_address         = NULL;
+    
+    svga->cable_connected = 1;
     svga->ksc5601_english_font_type = 0;
 
     vga_on = 1;
