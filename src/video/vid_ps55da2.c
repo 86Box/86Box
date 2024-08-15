@@ -1568,7 +1568,6 @@ static void da2_render_text(da2_t* da2)
             }
             //Draw character
             for (uint32_t n = 0; n < 13; n++) p[n] = da2->pallook[da2->egapal[bg]];//draw blank
-            //draw -= 13;
             // SBCS or DBCS left half
             if (chr_wide == 0) {
                 if (attr & 0x01) chr_wide = 1;
@@ -1742,7 +1741,7 @@ static void da2_render_textm3(da2_t* da2)
                 //    fg = 0;
                 //}
                 for (uint32_t n = 0; n < 13; n++)
-                    p[n] = da2->pallook[da2->egapal[fg]];//under line (white)
+                    p[n] = da2->pallook[da2->egapal[fg]];
             }
             da2->ma += 2;
             p += 13;
@@ -2684,7 +2683,7 @@ void da2_poll(void* priv)
         da2->hdisp_on = 0;
 
         da2->linepos = 0;
-        if (da2->sc == (da2->crtc[LC_VERTICAL_SYNC_END] & 31))
+        if (da2->sc == (da2->crtc[LC_CURSOR_ROW_END] & 31))
             da2->con = 0;
         if (da2->dispon)
         {
@@ -2854,7 +2853,7 @@ void da2_poll(void* priv)
 
             //                        da2_log("ADDR %08X\n",hwcursor_addr);
         }
-        if (da2->sc == (da2->crtc[LC_VERTICAL_SYNC_START] & 31))
+        if (da2->sc == (da2->crtc[LC_CURSOR_ROW_START] & 31))
             da2->con = 1;
     }
     //        printf("2 %i\n",da2_vsyncstart);
