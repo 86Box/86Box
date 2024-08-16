@@ -1804,13 +1804,34 @@ fifo_thread(void *param) {
 }
 
 static void
-s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type) {
+s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
+{
     fifo_entry_t *fifo = &virge->fifo[virge->fifo_write_idx & FIFO_MASK];
+    int limit = 0;
 
-    if (FIFO_FULL) {
-        thread_reset_event(virge->fifo_not_full_event);
-        if (FIFO_FULL)
-            thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+    if (type == FIFO_WRITE_DWORD) {
+        switch (addr & 0xfffc) {
+            case 0xa500:
+                if (val & CMD_SET_AE)
+                    limit = 1;
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (limit) {
+        if (FIFO_ENTRIES >= 16) {
+            thread_reset_event(virge->fifo_not_full_event);
+            if (FIFO_ENTRIES >= 16)
+                thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+        }
+    } else {
+        if (FIFO_FULL) {
+            thread_reset_event(virge->fifo_not_full_event);
+            if (FIFO_FULL)
+                thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+        }
     }
 
     fifo->val = val;
@@ -2190,13 +2211,13 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat) {
         for (y = 0; y < 4; y++) {
              for (x = 0; x < 8; x++) {
                  if (virge->s3d.mono_pat_0 & (1 << (x + y * 8)))
-                     mono_pattern[y * 8 + x] = virge->s3d.pat_fg_clr;
+                     mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
                  else
-                     mono_pattern[y * 8 + x] = virge->s3d.pat_bg_clr;
+                     mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_bg_clr;
                  if (virge->s3d.mono_pat_1 & (1 << (x + y * 8)))
-                     mono_pattern[(y + 4) * 8 + x] = virge->s3d.pat_fg_clr;
+                     mono_pattern[(y + 4) * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
                  else
-                     mono_pattern[(y + 4) * 8 + x] = virge->s3d.pat_bg_clr;
+                     mono_pattern[(y + 4) * 8 + (7 - x)] = virge->s3d.pat_bg_clr;
              }
         }
     }
@@ -3312,7 +3333,7 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                           state->dest_rgba.g = ((state->dest_rgba.g * a) + (s3d_tri->fog_g * (255 - a))) / 255;
                           state->dest_rgba.b = ((state->dest_rgba.b * a) + (s3d_tri->fog_b * (255 - a))) / 255;
                       }
-                    
+
                       if (s3d_tri->cmd_set & CMD_SET_ABC_ENABLE) {
                           uint32_t src_col;
                           int      src_r = 0;
@@ -3375,7 +3396,7 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                   virge->pixel_count++;
               }
         }
-  
+
 tri_skip_line:
         state->x1     += dx1;
         state->x2     += dx2;
