@@ -259,14 +259,12 @@ typedef struct da2_t
     int crtcaddr;
 
     uint8_t miscout;
-    //int vidclock;
 
     uint32_t decode_mask;
     uint32_t vram_max;
     uint32_t vram_mask;
 
     uint32_t gdcla[8];
-    //int gdcramlatched;
     uint32_t gdcinput[8];
     uint32_t gdcsrc[8];
     uint32_t debug_vramold[8];
@@ -275,7 +273,6 @@ typedef struct da2_t
     int dac_read, dac_write, dac_pos;
     int dac_r, dac_g;
 
-    //IO 3DAh Input Status Register 2
     uint8_t cgastat;
 
     uint8_t plane_mask;
@@ -336,24 +333,11 @@ typedef struct da2_t
 
     int fullchange;
 
-    //int video_res_x, video_res_y, video_bpp;
-    //int video_res_override; /*If clear then SVGA code will set above variables, if
-    //                          set then card code will*/
-    //int frames, writelines;
-
     void (*render)(struct da2_t* da2);
-    //void (*recalctimings_ex)(struct da2_t* da2);
-
-    //void    (*video_out)(uint16_t addr, uint8_t val, void* p);
-    //uint8_t(*video_in) (uint16_t addr, void* p);
 
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int override;
-    //void* p;
-
-    /*Used to implement CRTC[0x17] bit 2 hsync divisor*/
-    //int hsync_divisor;
 
     /* end VGA compatible regs*/
     struct
@@ -852,7 +836,6 @@ void da2_out(uint16_t addr, uint16_t val, void *p)
             break;
         case 0x3C9: /* Data */
             //da2_log("DA2 Out addr %03X idx %d:%d val %02X %04X:%04X esdi %04X:%04X\n", addr, da2->dac_write, da2->dac_pos, val, cs >> 4, cpu_state.pc, ES, DI);
-            //da2_log("DS %X\n",DS);
             da2->dac_status = 0;
             da2->fullchange = changeframecount;
             switch (da2->dac_pos)
@@ -887,10 +870,9 @@ void da2_out(uint16_t addr, uint16_t val, void *p)
             //if (da2->ioctl[da2->ioctladdr & 15] != val)
             //    da2_log("ioctl changed %x: %x -> %x  %04X:%04X\n", da2->ioctladdr & 15, da2->ioctl[da2->ioctladdr & 15], val, cs >> 4, cpu_state.pc);
             oldval = da2->ioctl[da2->ioctladdr];
-            //if (da2->ioctladdr == 0x3) return;//monitor color
             da2->ioctl[da2->ioctladdr] = val;
             if (oldval != val) {
-                if (da2->ioctladdr == LS_RESET && val & 0x01) /* Mode register */
+                if (da2->ioctladdr == LS_RESET && val & 0x01) /* Reset register */
                     da2_reset_ioctl(da2);
                 else if (da2->ioctladdr == LS_MODE && ((oldval ^ val) & 0x03)) /* Mode register */
                 {
@@ -1077,10 +1059,8 @@ void da2_out(uint16_t addr, uint16_t val, void *p)
 uint16_t da2_in(uint16_t addr, void *p)
 {
         da2_t * da2 = (da2_t *)p;
-        //svga_t *svga = &da2->svga;
         uint16_t temp;
 
-//        if (addr != 0x3da) da2_log("IN gd5429 %04X\n", addr);
         switch (addr)
         {
         case 0x3c3:
@@ -1119,19 +1099,6 @@ uint16_t da2_in(uint16_t addr, void *p)
             if (da2->ioctladdr > 0xf) return 0xff;
             temp = da2->ioctl[da2->ioctladdr];
             if (da2->ioctladdr == LS_STATUS) { /* Status register */
-                //da2_log("Read 3E1 DAC status: %d, %d, %d\n", da2->vgapal[0].r, da2->vgapal[0].g, da2->vgapal[0].b);
-                //da2_log("attr palette: ");
-                //for (int i = 0; i < 16; i++) da2_log("%02x ", da2->attrregs[i]);
-                //da2_log("\n");
-                //da2_log("vram A0000h: ");
-                //for (int i = 0; i < 16; i++) da2_log("%02x ", da2->vram[i]);
-                //da2_log("\n");
-                //da2_log("vram B8000h: ");
-                //for (int i = 0; i < 16; i++) da2_log("%02x ", da2->vram[0x18000 + i]);
-                //da2_log("\n");
-                //da2_log("vram E0000h: ");
-                //for (int i = 0; i < 16; i++) da2_log("%02x ", da2->cram[i]);
-                //da2_log("\n");
                 if ((da2->vgapal[0].r + da2->vgapal[0].g + da2->vgapal[0].b) >= 0x50 && da2->attrregs[LV_COMPATIBILITY] & 0x08)
                     temp &= 0x7F; /* Inactive when the RGB output voltage is high(or the cable is not connected to the color monitor). */
                 else
@@ -1872,7 +1839,6 @@ void da2_updatevidselector(da2_t* da2) {
     }
 }
 
-
 void da2_recalctimings(da2_t* da2)
 {
     double crtcconst;
@@ -1921,24 +1887,11 @@ void da2_recalctimings(da2_t* da2)
     //if (da2->attr_palette_enable && (da2->attrregs[0x1f] & 0x08))
     if (da2->attrregs[LV_COMPATIBILITY] & 0x08)
     {
-        //if (da2->ioctl[0] & 0x01)//256 color mode
-        //{
-        //    da2_log("Set videomode to PS/55 8 bpp graphics.\n");
-        //    da2->vram_display_mask = 0x1ffff;
-        //    da2->render = da2_render_color_8bpp;
-        //}
-        //else 
         if (!(da2->ioctl[LS_MODE] & 0x01)) {//16 color graphics mode
             da2->hdisp *= 16;
             da2->char_width = 13;
             da2->hdisp_old = da2->hdisp;
-            //if (da2->plane_mask == 0x01) {//PS/55 monochrome
-            //    da2_log("Set videomode to PS/55 Monochrome graphics.\n");
-            //    //da2->render = da2_render_mono;
-            //    da2->render = da2_render_color_4bpp;
-            //    da2->vram_display_mask = 0x1ffff;
-            //}
-            if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {//PS/55 256 color
+            if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
                 da2_log("Set videomode to PS/55 8 bpp graphics.\n");
                 da2->render = da2_render_color_8bpp;
                 da2->vram_display_mask = DA2_MASK_GRAM;
@@ -1950,7 +1903,7 @@ void da2_recalctimings(da2_t* da2)
             }
         }
         else {//text mode
-            if (da2->attrregs[LV_ATTRIBUTE_CNTL] & 1) {//PS/55 Mode 03
+            if (da2->attrregs[LV_ATTRIBUTE_CNTL] & 1) {
                 da2_log("Set videomode to PS/55 Mode 03 text.\n");
                 da2->render = da2_render_textm3;
                 da2->vram_display_mask = DA2_MASK_CRAM;
@@ -1976,7 +1929,6 @@ void da2_recalctimings(da2_t* da2)
 
     //        da2_log("da2_render %08X : %08X %08X %08X %08X %08X  %i %i %02X %i %i\n", da2_render, da2_render_text_40, da2_render_text_80, da2_render_8bpp_lowres, da2_render_8bpp_highres, da2_render_blank, scrblank,gdcreg[6]&1,gdcreg[5]&0x60,bpp,seqregs[1]&8);
 
-    /*da2->char_width = 13;*///PS55TEXT = 13, GFX = 16
     //if (da2->recalctimings_ex)
     //    da2->recalctimings_ex(da2);
 
@@ -2174,12 +2126,8 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
     else if (!(da2->ioctl[LS_MODE] & 1))//8 or 256 color mode
     {
         cycles -= video_timing_read_b;
-        //readmode 1
-        //da2_log("da2_rp: %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->readplane, addr);
         for (int i = 0; i < 8; i++)
             da2->gdcla[i] = da2->vram[(addr << 3) | i];//read in byte
-            //da2->gdcla[i] = (uint16_t)(da2->vram[(addr << 3) | i]) | ((uint16_t)(da2->vram[((addr << 3) + 8) | i]) << 8);//read in word
-        //da2->gdcramlatched = 1;
         //da2_log("da2_Rb: %05x=%02x\n", addr, da2->gdcla[da2->readplane]);
         if (da2->gdcreg[LG_MODE] & 0x08) {//compare data across planes if the read mode bit (3EB 05, bit 3) is 1
             uint8_t ret = 0;
@@ -2212,7 +2160,7 @@ static uint16_t da2_mmio_readw(uint32_t addr, void* p)
         addr &= DA2_MASK_MMIO;
         for (int i = 0; i < 8; i++)
             da2->gdcla[i] = (uint16_t)(da2->vram[(addr << 3) | i]) | ((uint16_t)(da2->vram[((addr << 3) + 8) | i]) << 8);//read vram into latch
-        //da2->gdcramlatched = 1;
+
         ////debug
         //if (((int)addr - (int)da2->mmrdbg_vidaddr) > 2 || (((int)da2->mmrdbg_vidaddr - (int)addr) > 2) || da2->mmrdbg_vidaddr == addr)
         //{
@@ -2320,16 +2268,9 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
         da2->changedvram[addr >> 12] = changeframecount;
         addr <<= 3;
 
-        //if (GCLATCHCOND) {
-            //if (da2->writemode == 2) {
-            for (int i = 0; i < 8; i++)
-                da2->gdcsrc[i] = da2->gdcla[i];//use latch
-        //}
-        //else {
-        //    for (int i = 0; i < 8; i++)
-        //        da2->gdcsrc[i] = da2->vram[addr | i];//read in byte from vram
-        //}
-        //da2->gdcramlatched = 0;
+        for (int i = 0; i < 8; i++)
+            da2->gdcsrc[i] = da2->gdcla[i];//use latch
+
         //da2_log("da2_Wb m%02x r%02x %05x:%02x %x:%x\n", da2->gdcreg[0x5], da2->gdcreg[LG_COMMAND], addr >> 3, val, cs >> 4, cpu_state.pc);
         //da2_log("da2_Wb m%02x r%02x %05x:%02x=%02x%02x%02x%02x->", da2->gdcreg[0x5], da2->gdcreg[LG_COMMAND], addr >> 3, val, da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]);
 
@@ -2346,7 +2287,6 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
         switch (da2->writemode)
         {
         case 2:
-            //case 1:
             for (int i = 0; i < 8; i++)
                 if (da2->writemask & (1 << i)) da2->vram[addr | i] = da2->gdcsrc[i];
             break;
@@ -2372,7 +2312,6 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
                 ////                        da2_log("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
             }
             break;
-            //case 2:
         case 1:
             if (!(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ]))
             {
@@ -2445,17 +2384,8 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
     da2->changedvram[(addr + 1) >> 12] = changeframecount;
     addr <<= 3;
 
-    //if (((da2->gdcreg[LG_COMMAND] & 0x03) || da2->writemode == 2) && da2->writemode != 1) {
-    //if (GCLATCHCOND) {
-        //if (da2->writemode == 2) {
-        for (int i = 0; i < 8; i++)
-            da2->gdcsrc[i] = da2->gdcla[i];//use latch
-    //}
-    //else {
-    //    for (int i = 0; i < 8; i++)
-    //        da2->gdcsrc[i] = (uint16_t)(da2->vram[addr | i]) | ((uint16_t)(da2->vram[(addr + 8) | i]) << 8);//read in word
-    //}
-    //da2->gdcramlatched = 0;
+    for (int i = 0; i < 8; i++)
+        da2->gdcsrc[i] = da2->gdcla[i];//use latch
 
     if (!(da2->gdcreg[LG_COMMAND] & 0x08))
     {
@@ -2468,10 +2398,9 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
     }
     //da2_log("da2_Ww m%02x r%02x %05x:%04x=%02x%02x%02x%02x,%02x%02x%02x%02x->", da2->gdcreg[0x5], da2->gdcreg[LG_COMMAND], addr >> 3, val, da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]
     //    , da2->vram[addr + 8], da2->vram[addr + 9], da2->vram[addr + 10], da2->vram[addr + 11]);
-    switch (da2->writemode)// writemode 0 or 2 rop(0b) 0 or 3
+    switch (da2->writemode)
     {
     case 2:
-        //case 1:
         for (int i = 0; i < 8; i++)
             if (da2->writemask & (1 << i))
             {
@@ -2479,8 +2408,6 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
                 da2->vram[(addr + 8) | i] = da2->gdcsrc[i] >> 8;
             }
         break;
-        //case 2:win
-
     case 0:
         if (da2->gdcreg[LG_DATA_ROTATION] & 15)
             val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);//val = svga_rotate[da2->gdcreg[LG_DATA_ROTATION] & 7][val]; TODO this wont work
@@ -2498,14 +2425,10 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
             for (int i = 0; i < 8; i++)
                 if (da2->gdcreg[LG_ENABLE_SRJ] & (1 << i)) da2->gdcinput[i] = (da2->gdcreg[LG_SET_RESETJ] & (1 << i)) ? 0xffff : 0;
                 else da2->gdcinput[i] = val;
-
-            //for (int i = 0; i < 8; i++)//draft20240722 0211
-            //    da2->gdcla[i] = 0;//read in word
             da2_gdcropW(addr, bitmask, da2);
             //                        da2_log("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
         }
         break;
-        //case 2:
     case 1:
         if (!(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ]))
         {
@@ -2649,7 +2572,6 @@ void da2_poll(void* priv)
                 video_wait_for_buffer();
             }
 
-            //RENDER
             if (!da2->override)
                 da2->render(da2);
 
@@ -2705,20 +2627,12 @@ void da2_poll(void* priv)
                 da2->ma = da2->maback;
             }
         }
-        //da2->hsync_divisor = !da2->hsync_divisor;
-
-        //disable for 256 color mode
-        //if (da2->hsync_divisor && (da2->crtc[0x17] & 4))
-        //    return;
 
         da2->vc++;
         da2->vc &= 2047;
 
         if (da2->vc == da2->dispend)
         {
-            //if (da2->vblank_start)
-            //    da2->vblank_start(da2);
-            //                        da2_log("VC dispend\n");
             da2->dispon = 0;
             //if (da2->crtc[10] & 0x20) da2->cursoron = 0;
             //else                       da2->cursoron = da2->blink & 16;
@@ -2745,7 +2659,6 @@ void da2_poll(void* priv)
             if (da2->fullchange)
             {
                 da2->fullchange--;
-                //da2->fps++;
             }
         }
         if (da2->vc == da2->vsyncstart)
@@ -2763,8 +2676,6 @@ void da2_poll(void* priv)
             wy = da2->lastline - da2->firstline;
 
             da2_doblit(da2->firstline_draw, da2->lastline_draw + 1, wx, wy, da2);
-
-            //readflash = 0;
 
             da2->firstline = 2000;
             da2->lastline = 0;
@@ -2788,48 +2699,7 @@ void da2_poll(void* priv)
             da2->maback <<= 1;
             da2->ca <<= 1;
 
-            //if (!da2->video_res_override)
-            //{
-            //da2->video_res_x = wx;
-            //da2->video_res_y = wy + 1;
-
-            if (da2->ioctl[LS_MODE] & 1) /*Text mode*/
-            {
-                //da2->video_res_x /= da2->char_width;
-                //da2->video_res_y /= (da2->crtc[9] & 31) + 1;
-                //da2->video_bpp = 0;
-            }
-            else
-            {
-                //if (da2->crtc[9] & 0x80)
-                //    da2->video_res_y /= 2;
-                //if (!(da2->crtc[0x17] & 2))
-                //    da2->video_res_y *= 4;
-                //else if (!(da2->crtc[0x17] & 1))
-                //    da2->video_res_y *= 2;
-                //da2->video_res_y /= (da2->crtc[9] & 31) + 1;
-                //if (da2->render == da2_render_8bpp_lowres ||
-                //    da2->render == da2_render_15bpp_lowres ||
-                //    da2->render == da2_render_16bpp_lowres ||
-                //    da2->render == da2_render_24bpp_lowres ||
-                //    da2->render == da2_render_32bpp_lowres)
-                //da2->video_res_x /= 2;
-
-                //switch (da2->gdcreg[5] & 0x60)
-                //{
-                //case 0x00:            da2->video_bpp = 4;   break;
-                //case 0x20:            da2->video_bpp = 2;   break;
-                //case 0x40: case 0x60: da2->video_bpp = da2->bpp; break;
-                //}
-                //da2->video_bpp = da2->bpp;
-            }
-            //}
-            //if (da2->interlace && da2->oddeven) da2->ma = da2->maback = da2->ma + (da2->rowoffset << 1);
-
             //  da2_log("Addr %08X vson %03X vsoff %01X  %02X %02X %02X %i %i\n",ma,da2_vsyncstart,crtc[0x11]&0xF,crtc[0xD],crtc[0xC],crtc[0x33], da2_interlace, oddeven);
-
-            //if (da2->vsync_callback)
-            //    da2->vsync_callback(da2);
         }
         if (da2->vc == da2->vtotal)
         {
@@ -2842,16 +2712,6 @@ void da2_poll(void* priv)
             da2->dispon = 1;
             da2->displine = (da2->interlace && da2->oddeven) ? 1 : 0;
             da2->scrollcache = da2->attrregs[LV_PANNING] & 7;
-            //da2->linecountff = 0;
-
-            //da2->hwcursor_on = 0;
-            //da2->hwcursor_latch = da2->hwcursor;
-
-            //da2->overlay_on = 0;
-            //da2->overlay_latch = da2->overlay;
-            //                        da2_log("Latch HWcursor addr %08X\n", da2_hwcursor_latch.addr);
-
-            //                        da2_log("ADDR %08X\n",hwcursor_addr);
         }
         if (da2->sc == (da2->crtc[LC_CURSOR_ROW_START] & 31))
             da2->con = 1;
@@ -2933,7 +2793,6 @@ da2_reset(void* priv)
     da2->crtc[LC_HORIZONTAL_TOTAL] = 63; /* Horizontal Total */
     da2->crtc[LC_VERTICAL_TOTALJ] = 255; /* Vertical Total (These two must be set before the timer starts.) */
     da2->ma_latch = 0;
-    //da2->gdcramlatched = 0;
     da2->interlace = 0;
     da2->attrregs[LV_CURSOR_CONTROL] = 0x13; /* cursor options */
     da2->attr_palette_enable = 0; /* disable attribute generator */
@@ -2964,9 +2823,7 @@ static void *da2_init()
         int memsize = 1024 * 1024;
         da2->vram = malloc(memsize);
         da2->vram_mask = memsize - 1;
-        //da2->gram_display_mask = (memsize - 1) >> 3;
         da2->cram = malloc(0x1000);
-        //da2->cram_display_mask = 0x1000 - 1;
         da2->vram_display_mask = DA2_MASK_CRAM;
         da2->changedvram = malloc(/*(memsize >> 12) << 1*/0x1000000 >> 12);//XX000h
         da2_loadfont(DA2_FONTROM_PATH, da2);
@@ -3052,6 +2909,7 @@ void da2_close(void *p)
                 fprintf(f, "3ee(?)     %02X: %4X\n", i, da2->reg3ee[i]);
             fclose(f);
         }
+#endif
 #ifdef ENABLE_DA2_DEBUGBLT
         f = fopen("da2_bltdump.csv", "w");
         if (f != NULL && da2->bitblt.debug_reg_ip > 0) {
@@ -3079,7 +2937,6 @@ void da2_close(void *p)
         if (da2->mmrdbg_fp != NULL) fclose(da2->mmrdbg_fp);
         free(da2->bitblt.debug_reg);
 #endif
-#endif
         free(da2->cram);
         free(da2->vram);
         free(da2->changedvram);
@@ -3099,31 +2956,6 @@ void da2_force_redraw(void *p)
 
         da2->fullchange = changeframecount;
 }
-
-//void da2_add_status_info(char *s, int max_len, void *p)
-//{
-//    da2_t* da2 = (da2_t*)p;
-//    char temps[128];
-//    if (!(da2->pos_regs[2] & 0x01)) strcpy(temps, "Render: DA2 disabled\n");
-//    else if (da2->render == da2_render_blank) strcpy(temps, "Render: DA2 blank\n");
-//    else if (da2->render == da2_render_text) strcpy(temps, "Render: DA2 text (mode 8 or E)\n");
-//    else if (da2->render == da2_render_textm3) strcpy(temps, "Render: DA2 EGA compatible text (mode 3)\n");
-//    else if (da2->render == da2_render_color_4bpp) strcpy(temps, "Render: DA2 4 bpp graphics (mode A or D)\n");
-//    else if (da2->render == da2_render_color_8bpp) strcpy(temps, "Render: DA2 8 bpp graphics (mode F)\n");
-//    else strcpy(temps, "Render: DA2 unknown render\n");
-//    strncat(s, temps, max_len);
-//
-//    sprintf(temps, "Resolution : %i x %i\n", da2->video_res_x, da2->video_res_y);
-//    strncat(s, temps, max_len);
-//
-//    sprintf(temps, "Refresh rate : %i Hz\n", da2->frames);
-//    da2->frames = 0;
-//    strncat(s, temps, max_len);
-//
-//    sprintf(temps, "Render lines : %i\n\n", da2->writelines);
-//    da2->writelines = 0;
-//    strncat(s, temps, max_len);
-//}
 
 const device_t ps55da2_device = {
     .name          = "IBM Display Adapter II (MCA)",
