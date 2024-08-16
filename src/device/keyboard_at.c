@@ -1631,20 +1631,22 @@ static const scancode scancode_set3[512] = {
 };
 
 /*  IBM Japan 5576-001, 002 and 003 keyboards have three extra scancode sets; 81h, 82h, 8ah.
-    Scancode set 81h and 82h are not implemented yet.
     To implement them, we need take the following into consideration.
         * Add a UI to switch the type of keyboards and keyboard IDs.
         * Add modified scancode set 1 and 2 (in these modes, language input keys are used as an alternative key).
-        * Japanese keyboards traditionally use a typewriter layout. Its key mapping doesn't match with foreign keyboards.
+        * Japanese keyboards traditionally use a bit-paired layout. Its key mapping doesn't match with foreign keyboards.
 
     5576 keyboards kept 101-key compatible scancode sets because PS/55 had to support western (PS/2) versions of operating systems.
     The default scancode set is 2.
     In Japanese DOS, the keyboard driver confirms its keyboard ID, and sends a command to switch the scancode set to 8Ah.
+    Japanese OS/2 and Windows use the scancode set 82h.
 
-    The OADG standard and modern Japanese keyboards use the same keyboard ID and scancode set number as PS/2 keyboards use.
+    The OADG standard (1991-) and modern Japanese keyboards use the same keyboard ID and scancode set number as PS/2 keyboards use.
     Three extra scancode sets are no longer available. Instead, language input keys are available in scancode set 1 and 2.
-    However, it has a different key mapping.
+    However, their physical key layout is a bit-paired layout.
     Users have to choose the correct keyboard layout on setup, and the driver needs to remap keys.
+
+    Currently, scancode set 81h and 82h are not implemented yet. Also, the key layout is designed to match with the Japanese keyboard.
 
      [Japanese DOS and keyboard scancode set]
     |                           | K3.3 | J4.0 | J5.0 | J4.0/V | J5.0/V | OS/2 J1.3 | PC DOS 5 |
