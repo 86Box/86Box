@@ -4786,7 +4786,7 @@ const device_t s3_mirocrystal_3d_pci_device = {
     { .available = s3_mirocrystal_3d_available },
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_357_config
+    .config        = s3_virge_config
 };
 
 const device_t s3_diamond_stealth_3000_pci_device = {
