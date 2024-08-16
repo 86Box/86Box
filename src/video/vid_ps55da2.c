@@ -1022,6 +1022,10 @@ void da2_out(uint16_t addr, uint16_t val, void *p)
             }
             da2->attrff ^= 1;
             break;
+        case 0x3E9:
+            /* VZ Editor's CURSOR.COM writes via this port */
+            da2->attrregs[da2->attraddr & 0x3f] = val;
+            break;
         case LG_INDEX:
             da2->gdcaddr = val;
             break;
