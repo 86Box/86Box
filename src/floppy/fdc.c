@@ -777,7 +777,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
         case 5: /*Command register*/
             if (fdc->fifointest)
             {
-                pclog("FIFO buffer position = %X\n", ((fifo_t *)fdc->fifo_p)->end);
+                fdc_log("FIFO buffer position = %X\n", ((fifo_t *)fdc->fifo_p)->end);
                 fifo_write(val, fdc->fifo_p);
                 if (fifo_get_full(fdc->fifo_p))
                     fdc->stat &= ~0x80;
