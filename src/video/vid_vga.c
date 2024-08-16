@@ -108,7 +108,6 @@ void vga_disable(void* p)
     vga_t* vga = (vga_t*)p;
     svga_t* svga = &vga->svga;
 
-    pclog("vga_disable %04X:%04X\n", cs >> 4, cpu_state.pc);
     io_removehandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
     mem_mapping_disable(&svga->mapping);
     svga->vga_enabled = 0;
@@ -119,7 +118,6 @@ void vga_enable(void* p)
     vga_t* vga = (vga_t*)p;
     svga_t* svga = &vga->svga;
 
-    pclog("vga_enable %04X:%04X\n", cs >> 4, cpu_state.pc);
     io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
     if (!(svga->miscout & 1))
         io_sethandler(0x03a0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
