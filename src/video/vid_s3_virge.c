@@ -1661,7 +1661,8 @@ fifo_thread(void *param) {
                                 virge->s3d_tri.z_str = val & 0xff8;
                                 break;
                             case 0xb4ec:
-                                virge->s3d_tri.tex_base = val & 0x3ffff8;
+                                virge->s3d_tri.tex_base = val & ((virge->memory_size == 8) ?
+                                                                 (val & 0x7ffff8) : (val & 0x3ffff8));
                                 break;
                             case 0xb4f0:
                                 virge->s3d_tri.tex_bdr_clr = val & 0xffffff;
@@ -1900,12 +1901,14 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv) {
             virge->streams.blend_ctrl = val;
             break;
         case 0x81c0:
-            virge->streams.pri_fb0 = val & 0x3fffff;
+            virge->streams.pri_fb0 = val & ((virge->memory_size == 8) ?
+                                            (val & 0x7fffff) : (val & 0x3fffff));
             svga_recalctimings(svga);
             svga->fullchange = changeframecount;
             break;
         case 0x81c4:
-            virge->streams.pri_fb1 = val & 0x3fffff;
+            virge->streams.pri_fb1 = ((virge->memory_size == 8) ?
+                                      (val & 0x7fffff) : (val & 0x3fffff));
             svga_recalctimings(svga);
             svga->fullchange = changeframecount;
             break;
