@@ -1259,7 +1259,6 @@ esdi_mca_feedb(void *priv)
 static void esdi_reset(void* priv)
 {
     esdi_t* dev = (esdi_t*)priv;
-    pclog("esdi reset %d %x\n", dev->in_reset, dev->status);
     if (!dev->in_reset) {
         dev->in_reset = 1;
         esdi_mca_set_callback(dev, ESDI_TIME * 50);
@@ -1275,7 +1274,6 @@ esdi_init(UNUSED(const device_t *info))
     uint8_t  c;
     uint8_t  i;
 
-    pclog("esdi init\n");
     dev = malloc(sizeof(esdi_t));
     if (dev == NULL)
         return (NULL);
@@ -1352,7 +1350,6 @@ esdi_init(UNUSED(const device_t *info))
 
     /* Set the reply timer. */
     timer_add(&dev->timer, esdi_callback, dev, 0);
-    pclog("esdi init finish\n");
 
     return dev;
 }
