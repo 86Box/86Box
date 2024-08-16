@@ -4775,7 +4775,7 @@ const device_t s3_diamond_stealth_2000_pci_device = {
     .config        = s3_virge_config
 };
 
-const device_t s3_diamond_stealth_2000_pci_device = {
+const device_t s3_mirocrystal_3d_pci_device = {
     .name          = "S3 ViRGE (miroCRYSTAL 3D) PCI",
     .internal_name = "mirocrystal_3d_pci",
     .flags         = DEVICE_PCI,
