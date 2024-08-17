@@ -720,6 +720,9 @@ s3_virge_in(uint16_t addr, void *priv) {
                 case 0x31:
                     ret = (svga->crtc[0x31] & 0xcf) | ((virge->ma_ext & 3) << 4);
                     break;
+                case 0x33:
+                    ret = (svga->crtc[0x33] | 0x04);
+                    break;
                 case 0x35:
                     ret = (svga->crtc[0x35] & 0xf0) | (virge->bank & 0xf);
                     break;
