@@ -1635,6 +1635,8 @@ fdc_callback(void *priv)
                     return;
                 }
                 if (fdd_get_head(real_drive(fdc, fdc->drive)) == 0) {
+                    fdc->sector = 1;
+                    fdc->head |= 1;
                     fdd_set_head(real_drive(fdc, fdc->drive), 1);
                     if (!fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
                         fdc_noidam(fdc);
