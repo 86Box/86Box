@@ -396,7 +396,7 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
     } else {
         endbytes = (dev->page_stop - dev->curr_page) * 256;
         memcpy(startptr + sizeof(pkthdr), buf, endbytes - sizeof(pkthdr));
-        startptr = &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap];
+        startptr = &dev->mem[((dev->page_start * 256) - dev->mem_start) & dev->mem_wrap];
         memcpy(startptr, buf + endbytes - sizeof(pkthdr), io_len - endbytes + 8);
     }
     dev->curr_page = nextpage;

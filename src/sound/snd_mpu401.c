@@ -342,11 +342,15 @@ MPU401_Reset(mpu_t *mpu)
 static uint8_t
 MPU401_ReadStatus(mpu_t *mpu)
 {
-    uint8_t ret = 0x3f;
+    uint8_t ret = 0x00;
+
     if (mpu->state.cmd_pending)
-        ret |= STATUS_OUTPUT_NOT_READY;
+        ret = STATUS_OUTPUT_NOT_READY;
     if (!mpu->queue_used)
-        ret |= STATUS_INPUT_NOT_READY;
+        ret = STATUS_INPUT_NOT_READY;
+
+    ret |= 0x3f;
+
     return ret;
 }
 
@@ -377,15 +381,6 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
     /* The only command recognized in UART mode is 0xFF: Reset and return to Intelligent mode. */
     if ((val != 0xff) && (mpu->mode == M_UART))
         return;
-
-    if (mpu->state.reset) {
-        if (mpu->state.cmd_pending || (val != 0xff)) {
-            mpu->state.cmd_pending = val + 1;
-            return;
-        }
-        timer_disable(&mpu->mpu401_reset_callback);
-        mpu->state.reset = 0;
-    }
 
     /* In Intelligent mode, UART-only variants of the MPU-401 only support commands 0x3F and 0xFF. */
     if (!mpu->intelligent && (val != 0x3f) && (val != 0xff))

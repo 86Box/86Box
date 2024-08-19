@@ -199,7 +199,7 @@ extern const device_t nec_mate_unk_device;
 extern const device_t phoenix_486_jumper_device;
 extern const device_t phoenix_486_jumper_pci_device;
 
-#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+#ifdef USE_OLIVETTI
 extern const device_t olivetti_eva_device;
-#endif
+#endif /* USE_OLIVETTI */
 #endif /*EMU_CHIPSET_H*/

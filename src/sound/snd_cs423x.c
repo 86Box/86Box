@@ -752,7 +752,7 @@ cs423x_init(const device_t *info)
 
                 FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
                 if (fp) {
-                    fread(&(dev->eeprom_data[23]), 1, 8201, fp);
+                    (void) !fread(&(dev->eeprom_data[23]), 1, 8201, fp);
                     fclose(fp);
                 }
 

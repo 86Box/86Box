@@ -1505,7 +1505,7 @@ const machine_t machines[] = {
         .internal_name = "tandy",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_tandy_init,
+        .init = machine_tandy1000sx_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -1523,7 +1523,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 128,
+            .min = 384,
             .max = 640,
             .step = 128
         },
@@ -1562,7 +1562,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 384,
+            .min = 256,
             .max = 640,
             .step = 128
         },
@@ -1656,7 +1656,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+#ifdef USE_LASERXT
     {
         .name = "[8088] VTech Laser Turbo XT",
         .internal_name = "ltxt",
@@ -1696,7 +1696,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_LASERXT) */
+#endif /* USE_LASERXT */
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
     {
         .name = "[8088] Xi8088",
@@ -2521,7 +2521,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 
-#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+#ifdef USE_LASERXT
     {
         .name = "[8086] VTech Laser XT3",
         .internal_name = "lxt3",
@@ -2561,7 +2561,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_LASERXT) */
+#endif /* USE_LASERXT */
 
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */
@@ -3005,7 +3005,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+#ifdef USE_OLIVETTI
     /* Has Olivetti KBC firmware. */
     {
         .name = "[ISA] Olivetti M290",
@@ -3046,8 +3046,8 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_OLIVETTI) */
-#if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
+#endif /* USE_OLIVETTI */
+#ifdef USE_OPEN_AT
     /* Has IBM AT KBC firmware. */
     {
         .name = "[ISA] OpenAT",
@@ -3088,7 +3088,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_OPEN_AT) */
+#endif /* USE_OPEN_AT */
     /* Has IBM AT KBC firmware. */
     {
         .name = "[ISA] Phoenix IBM AT",
@@ -12107,11 +12107,9 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 262144,
-            .max = 786432,
             .step = 8192
         },
         .nvrmask = 127,
-        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
@@ -12286,7 +12284,7 @@ const machine_t machines[] = {
         .snd_device = &cs4236b_device,
         .net_device = &pcnet_am79c973_onboard_device
     },
-#if defined(DEV_BRANCH) && defined(USE_AN430TX)
+#ifdef USE_AN430TX
     /* This has the Phoenix MultiKey KBC firmware. */
     {
         .name = "[i430TX] Intel AN430TX",
@@ -12327,7 +12325,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_AN430TX) */
+#endif /* USE_AN430TX */
     /* This has the AMIKey KBC firmware, which is an updated 'F' type. */
     {
         .name = "[i430TX] Intel YM430TX",
