@@ -2291,7 +2291,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat) {
                 uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) +
                                      (virge->s3d.dest_y * virge->s3d.dest_str);
                 uint32_t source    = 0;
-                uint32_t dest;
+                uint32_t dest      = 0;
                 uint32_t pattern;
                 uint32_t out       = 0;
                 int update         = 1;
@@ -2396,7 +2396,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat) {
                 uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) +
                                      (virge->s3d.dest_y * virge->s3d.dest_str);
                 uint32_t source    = 0;
-                uint32_t dest;
+                uint32_t dest      = 0;
                 uint32_t pattern   = virge->s3d.pat_fg_clr;
                 uint32_t out       = 0;
                 int update         = 1;
@@ -2461,7 +2461,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat) {
                     uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) +
                              (virge->s3d.dest_y * virge->s3d.dest_str);
                     uint32_t source    = 0;
-                    uint32_t dest;
+                    uint32_t dest      = 0;
                     uint32_t pattern;
                     uint32_t out       = 0;
                     int      update    = 1;
@@ -2517,7 +2517,7 @@ skip_line:
                do {
                    uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (y * virge->s3d.dest_str);
                    uint32_t source    = 0;
-                   uint32_t dest;
+                   uint32_t dest      = 0;
                    uint32_t pattern;
                    uint32_t out       = 0;
                    int      update    = 1;
