@@ -2102,6 +2102,7 @@ keyboard_at_write(void *priv)
             /* TODO: This is supposed to resend multiple bytes after some commands. */
             case 0xfe: /* resend last scan code */
                 keyboard_at_log("%s: resend last scan code\n", dev->name);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 kbc_at_dev_queue_add(dev, dev->last_scan_code, 0);
                 break;
 
