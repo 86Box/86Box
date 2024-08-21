@@ -1225,7 +1225,7 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             switch (addr & 0x3ff) {
                 case 0x11b:
                     limit = 1;
-                break;
+                    break;
                 default:
                     break;
             }
