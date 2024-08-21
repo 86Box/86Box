@@ -443,16 +443,16 @@ vid_poll(void *priv)
                         pcjr->ma++;
                         buffer32->line[l][ef_x] = buffer32->line[l][ef_x + 1] =
                         buffer32->line[l + 1][ef_x] = buffer32->line[l + 1][ef_x + 1] =
-                            pcjr->array[((dat >> 12) & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
                         buffer32->line[l][ef_x + 2] = buffer32->line[l][ef_x + 3] =
                         buffer32->line[l + 1][ef_x + 2] = buffer32->line[l + 1][ef_x + 3] =
-                            pcjr->array[((dat >> 8) & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
                         buffer32->line[l][ef_x + 4] = buffer32->line[l][ef_x + 5] =
                         buffer32->line[l + 1][ef_x + 4] = buffer32->line[l + 1][ef_x + 5] =
-                            pcjr->array[((dat >> 4) & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
                         buffer32->line[l][ef_x + 6] = buffer32->line[l][ef_x + 7] =
                         buffer32->line[l + 1][ef_x + 6] = buffer32->line[l + 1][ef_x + 7] =
-                            pcjr->array[(dat & pcjr->array[1]) + 16] + 16;
+                            pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
                     }
                     break;
                 case 0x12: /*160x200x16*/
@@ -493,7 +493,7 @@ vid_poll(void *priv)
                             chr = (dat >> 7) & 1;
                             chr |= ((dat >> 14) & 2);
                             buffer32->line[l][ef_x + c] = buffer32->line[l + 1][ef_x + c] =
-                                pcjr->array[(chr & pcjr->array[1]) + 16] + 16;
+                                pcjr->array[(chr & pcjr->array[1] & 0x0f) + 16] + 16;
                             dat <<= 1;
                         }
                     }
@@ -505,13 +505,13 @@ vid_poll(void *priv)
                         attr       = pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
                         drawcursor = ((pcjr->ma == ca) && pcjr->con && pcjr->cursoron);
                         if (pcjr->array[3] & 4) {
-                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1]) + 16] + 16;
-                            cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1]) + 16] + 16;
+                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                            cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
                             if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
                                 cols[1] = cols[0];
                         } else {
-                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1]) + 16] + 16;
-                            cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1]) + 16] + 16;
+                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                            cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
                         }
                         if (pcjr->sc & 8)
                             for (uint8_t c = 0; c < 8; c++)
@@ -537,13 +537,13 @@ vid_poll(void *priv)
                         attr       = pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
                         drawcursor = ((pcjr->ma == ca) && pcjr->con && pcjr->cursoron);
                         if (pcjr->array[3] & 4) {
-                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1]) + 16] + 16;
-                            cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1]) + 16] + 16;
+                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                            cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
                             if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
                                 cols[1] = cols[0];
                         } else {
-                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1]) + 16] + 16;
-                            cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1]) + 16] + 16;
+                            cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                            cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
                         }
                         pcjr->ma++;
                         if (pcjr->sc & 8)

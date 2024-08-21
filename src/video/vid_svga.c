@@ -687,7 +687,7 @@ svga_recalctimings(svga_t *svga)
                 } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
                     if (svga->seqregs[1] & 8) { /*Low res (320)*/
                         svga->render = svga_render_2bpp_lowres;
-                        pclog("2 bpp low res\n");
+                        svga_log("2 bpp low res\n");
                     } else
                         svga->render = svga_render_2bpp_highres;
                 } else {
@@ -859,8 +859,10 @@ svga_recalctimings(svga_t *svga)
     svga->y_add = (svga->monitor->mon_overscan_y >> 1);
     svga->x_add = (svga->monitor->mon_overscan_x >> 1);
 
-    if (svga->vblankstart < svga->dispend)
+    if (svga->vblankstart < svga->dispend) {
+        svga_log("DISPEND > VBLANKSTART.\n");
         svga->dispend = svga->vblankstart;
+    }
 
     crtcconst = svga->clock * svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
@@ -1222,9 +1224,11 @@ svga_poll(void *priv)
             if (!svga->override) {
                 if (svga->vertical_linedbl) {
                     wy = (svga->lastline - svga->firstline) << 1;
+                    svga->vdisp = wy + 1;
                     svga_doblit(wx, wy, svga);
                 } else {
                     wy = svga->lastline - svga->firstline;
+                    svga->vdisp = wy + 1;
                     svga_doblit(wx, wy, svga);
                 }
             }
