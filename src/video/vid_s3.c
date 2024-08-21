@@ -9930,8 +9930,14 @@ s3_init(const device_t *info)
             s3->width         = 1024;
 
             svga->ramdac    = device_add(&sc11483_ramdac_device);
-            svga->clock_gen = device_add(&av9194_device);
-            svga->getclock  = av9194_getclock;
+            if (s3->card_type == S3_ORCHID_86C911) {
+                svga->clock_gen = device_add(&av9194_device);
+                svga->getclock  = av9194_getclock;
+            } else {
+                /* DCS2824-0 = Diamond ICD2061A-compatible. */
+                svga->clock_gen   = device_add(&icd2061_device);
+                svga->getclock    = icd2061_getclock;
+            }
             break;
 
         case S3_AMI_86C924:

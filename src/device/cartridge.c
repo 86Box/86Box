@@ -169,6 +169,7 @@ cart_close(int drive)
     cart_image_close(drive);
     cart_fns[drive][0] = 0;
     ui_sb_update_icon_state(SB_CARTRIDGE | drive, 1);
+    resetx86();
 }
 
 void
