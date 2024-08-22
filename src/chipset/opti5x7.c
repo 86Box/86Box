@@ -35,7 +35,7 @@
 typedef struct opti5x7_t {
     uint8_t idx;
     uint8_t is_pci;
-    uint8_t regs[16];
+    uint8_t regs[18];
 } opti5x7_t;
 
 #ifdef ENABLE_OPTI5X7_LOG
