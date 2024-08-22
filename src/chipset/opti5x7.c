@@ -158,7 +158,7 @@ opti5x7_read(uint16_t addr, void *priv)
 {
     const opti5x7_t *dev = (opti5x7_t *) priv;
 
-    return (addr == 0x24) ? dev->regs[dev->idx] : 0xff;
+    return ((addr == 0x24) && (dev->idx < sizeof(dev->regs))) ? dev->regs[dev->idx] : 0xff;
 }
 
 static void
