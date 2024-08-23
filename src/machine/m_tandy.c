@@ -27,6 +27,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/io.h>
+#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -1215,6 +1216,7 @@ vid_poll(void *priv)
                 vid->dispon    = 0;
                 vid->displine  = 0;
                 vid->vsynctime = 16;
+                picint(1 << 5);
                 if (vid->crtc[7]) {
                     if (vid->mode & 1)
                         x = (vid->crtc[1] << 3) + 16;
