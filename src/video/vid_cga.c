@@ -28,7 +28,6 @@
 #include "cpu.h"
 #include <86box/io.h>
 #include <86box/timer.h>
-#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -608,7 +607,6 @@ cga_poll(void *priv)
                 cga->cgadispon = 0;
                 cga->displine  = 0;
                 cga->vsynctime = 16;
-                picint(1 << 5);
                 if (cga->crtc[7]) {
                     if (cga->cgamode & 1)
                         x = (cga->crtc[1] << 3) + 16;
