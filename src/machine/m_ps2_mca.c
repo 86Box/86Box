@@ -1557,7 +1557,7 @@ machine_ps2_common_init(const machine_t *model)
     machine_common_init(model);
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+        device_add(&fdc_at_ps2_device);
 
     dma16_init();
     ps2_dma_init();
@@ -1801,23 +1801,7 @@ machine_ps55_model_50t_init(const machine_t* model)
     if (bios_only || !ret)
         return ret;
 
-    /* begin ps2 common init */
-    machine_common_init(model);
-
-    device_add(&fdc_at_ps55_device);
-
-    dma16_init();
-    ps2_dma_init();
-    device_add(&ps_no_nmi_nvr_device);
-    pic2_init();
-
-    int pit_type = ((pit_mode == -1 && is486) || pit_mode == 1) ? PIT_8254_FAST : PIT_8254;
-    pit_ps2_init(pit_type);
-
-    nmi_mask = 0x80;
-
-    ps2.uart = device_add_inst(&ns16550_device, 1);
-    /* end ps2 common init */
+    machine_ps2_common_init(model);
 
     /*
     * Planar ID
