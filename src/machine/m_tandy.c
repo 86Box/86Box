@@ -27,6 +27,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/io.h>
+#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -717,8 +718,13 @@ recalc_timings(tandy_t *dev)
     double _dispofftime;
     double disptime;
 
-    disptime    = vid->crtc[0] + 1;
-    _dispontime = vid->crtc[1];
+    if (vid->mode & 1) {
+        disptime    = vid->crtc[0] + 1;
+        _dispontime = vid->crtc[1];
+    } else {
+        disptime    = (vid->crtc[0] + 1) << 1;
+        _dispontime = vid->crtc[1] << 1;
+    }
 
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
@@ -794,7 +800,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x03d8:
+            old = vid->mode;
             vid->mode = val;
+            if ((old ^ val) & 0x01)
+                recalc_timings(dev);
             if (!dev->is_sl2)
                 update_cga16_color(vid->mode);
             break;
@@ -1215,6 +1224,7 @@ vid_poll(void *priv)
                 vid->dispon    = 0;
                 vid->displine  = 0;
                 vid->vsynctime = 16;
+                picint(1 << 5);
                 if (vid->crtc[7]) {
                     if (vid->mode & 1)
                         x = (vid->crtc[1] << 3) + 16;
