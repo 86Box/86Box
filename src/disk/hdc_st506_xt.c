@@ -1683,7 +1683,7 @@ st506_init(const device_t *info)
             dev->base     = device_get_config_hex16("base");
             dev->irq      = device_get_config_int("irq");
             if (dev->irq == 2)
-                dev->switches |= 0x40;
+                dev->switches |= 0x80;
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
@@ -1717,7 +1717,7 @@ st506_init(const device_t *info)
             dev->base     = device_get_config_hex16("base");
             dev->irq      = device_get_config_int("irq");
             if (dev->irq == 2)
-                dev->switches |= 0x40;
+                dev->switches |= 0x80;
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
