@@ -96,6 +96,7 @@ typedef struct pcjr_t {
     int           firstline;
     int           lastline;
     int           composite;
+    int           apply_hd;
 
     /* Keyboard Controller stuff. */
     int        latched;
@@ -727,8 +728,11 @@ vid_poll(void *priv)
                         if (enable_overscan) {
                             video_blit_memtoscreen(0, pcjr->firstline << 1,
                                                    xsize, actual_ys + 32);
-                        } else {
+                        } else if (pcjr->apply_hd) {
                             video_blit_memtoscreen(ho_s / 2, (pcjr->firstline << 1) + 16,
+                                                   xsize, actual_ys);
+                        } else {
+                            video_blit_memtoscreen(ho_d, (pcjr->firstline << 1) + 16,
                                                    xsize, actual_ys);
                         }
                     }
@@ -951,6 +955,13 @@ static const device_config_t pcjr_config[] = {
             { .description = ""                                   }
         }
     },
+    {
+        .name = "apply_hd",
+        .description = "Apply overscan deltas",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
@@ -990,6 +1001,7 @@ machine_pcjr_init(UNUSED(const machine_t *model))
         pcjr->memctrl &= ~0x24;
     display_type    = machine_get_config_int("display_type");
     pcjr->composite = (display_type != PCJR_RGB);
+    pcjr->apply_hd  = machine_get_config_int("display_type");
     overscan_x = 256;
     overscan_y = 32;
 
