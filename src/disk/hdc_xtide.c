@@ -46,6 +46,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/plat_unused.h>
 
+#define ROM_PATH_TINY   "roms/hdd/xtide/ide_tiny.bin"
 #define ROM_PATH_XT     "roms/hdd/xtide/ide_xt.bin"
 #define ROM_PATH_XTP    "roms/hdd/xtide/ide_xtp.bin"
 #define ROM_PATH_AT     "roms/hdd/xtide/ide_at.bin"
