@@ -163,7 +163,7 @@ create_block(MVHDMeta *vhdm, int blk)
     uint8_t footer[MVHD_FOOTER_SIZE] = { 0 };
 
     /* Seek to where the footer SHOULD be */
-    mvhd_fseeko64(vhdm->f, -MVHD_FOOTER_SIZE, SEEK_SET);
+    mvhd_fseeko64(vhdm->f, -MVHD_FOOTER_SIZE, SEEK_END);
     (void) !fread(footer, sizeof footer, 1, vhdm->f);
     mvhd_fseeko64(vhdm->f, -MVHD_FOOTER_SIZE, SEEK_END);
 
