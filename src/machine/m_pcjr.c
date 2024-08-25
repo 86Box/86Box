@@ -1438,6 +1438,34 @@ speed_changed(void *priv)
     recalc_timings(pcjr);
 }
 
+static void
+pcjr_vid_init(pcjr_t *pcjr)
+{
+    int     display_type;
+
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
+
+    pcjr->memctrl   = -1;
+    if (mem_size < 128)
+        pcjr->memctrl &= ~0x24;
+
+    display_type    = device_get_config_int("display_type");
+    pcjr->composite = (display_type != PCJR_RGB);
+    pcjr->apply_hd  = device_get_config_int("apply_hd");
+    overscan_x = 256;
+    overscan_y = 32;
+
+    mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
+                    vid_read, NULL, NULL,
+                    vid_write, NULL, NULL, NULL, 0, pcjr);
+    io_sethandler(0x03d0, 16,
+                  vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
+    timer_add(&pcjr->timer, vid_poll, pcjr, 1);
+
+    cga_palette = 0;
+    cgapal_rebuild();
+}
+
 void
 pit_irq0_timer_pcjr(int new_out, int old_out, UNUSED(void *priv))
 {
@@ -1494,7 +1522,6 @@ const device_t pcjr_device = {
 int
 machine_pcjr_init(UNUSED(const machine_t *model))
 {
-    int     display_type;
     pcjr_t *pcjr;
 
     int ret;
@@ -1507,14 +1534,6 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 
     pcjr = malloc(sizeof(pcjr_t));
     memset(pcjr, 0x00, sizeof(pcjr_t));
-    pcjr->memctrl   = -1;
-    if (mem_size < 128)
-        pcjr->memctrl &= ~0x24;
-    display_type    = machine_get_config_int("display_type");
-    pcjr->composite = (display_type != PCJR_RGB);
-    pcjr->apply_hd  = machine_get_config_int("apply_hd");
-    overscan_x = 256;
-    overscan_y = 32;
 
     pic_init_pcjr();
     pit_common_init(0, pit_irq0_timer_pcjr, NULL);
@@ -1524,16 +1543,10 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     /* Initialize the video controller. */
     video_reset(gfxcard[0]);
     loadfont("roms/video/mda/mda.rom", 0);
-    mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
-                    vid_read, NULL, NULL,
-                    vid_write, NULL, NULL, NULL, 0, pcjr);
-    io_sethandler(0x03d0, 16,
-                  vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
-    timer_add(&pcjr->timer, vid_poll, pcjr, 1);
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
+    device_context(&pcjr_device);
+    pcjr_vid_init(pcjr);
+    device_context_restore();
     device_add_ex(&pcjr_device, pcjr);
-    cga_palette = 0;
-    cgapal_rebuild();
 
     /* Initialize the keyboard. */
     keyboard_scan   = 1;
