@@ -1575,10 +1575,7 @@ cpu_set(void)
             timing_misaligned = 3;
 
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE;
-#if 0
-            cpu_CR4_mask |= CR4_PGE;
-#endif
+            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PGE;
 
 #ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_k5);
