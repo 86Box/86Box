@@ -5,11 +5,15 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 
+#if !defined(__unix__)
+
 struct event_cpp11_t {
     std::condition_variable cond;
     std::mutex              mutex;
     bool                    state = false;
 };
+
+#endif
 
 extern "C" {
 
