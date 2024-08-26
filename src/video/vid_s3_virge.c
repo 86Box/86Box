@@ -4203,7 +4203,7 @@ s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             s3_virge_updatemapping(virge);
             return;
         case 0x07:
-            virge->pci_regs[0x07] = val & 0x3e;
+            virge->pci_regs[0x07] &= ~(val & 0x30);
             return;
         case 0x0d:
             virge->pci_regs[0x0d] = val & 0xf8;
