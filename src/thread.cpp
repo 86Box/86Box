@@ -5,15 +5,11 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 
-#if !defined(__unix__)
-
-struct event_cpp11_t {
+struct event_cpp11_ex_t {
     std::condition_variable cond;
     std::mutex              mutex;
     bool                    state = false;
 };
-
-#endif
 
 extern "C" {
 
@@ -86,14 +82,14 @@ thread_close_mutex(mutex_t *_mutex)
 event_t *
 thread_create_event()
 {
-    auto ev = new event_cpp11_t;
+    auto ev = new event_cpp11_ex_t;
     return ev;
 }
 
 int
 thread_wait_event(event_t *handle, int timeout)
 {
-    auto event = reinterpret_cast<event_cpp11_t *>(handle);
+    auto event = reinterpret_cast<event_cpp11_ex_t *>(handle);
     auto lock  = std::unique_lock<std::mutex>(event->mutex);
 
     if (timeout < 0) {
@@ -116,7 +112,7 @@ thread_wait_event(event_t *handle, int timeout)
 void
 thread_set_event(event_t *handle)
 {
-    auto event = reinterpret_cast<event_cpp11_t *>(handle);
+    auto event = reinterpret_cast<event_cpp11_ex_t *>(handle);
     {
         auto lock    = std::unique_lock<std::mutex>(event->mutex);
         event->state = true;
@@ -127,7 +123,7 @@ thread_set_event(event_t *handle)
 void
 thread_reset_event(event_t *handle)
 {
-    auto event   = reinterpret_cast<event_cpp11_t *>(handle);
+    auto event   = reinterpret_cast<event_cpp11_ex_t *>(handle);
     auto lock    = std::unique_lock<std::mutex>(event->mutex);
     event->state = false;
 }
@@ -135,7 +131,7 @@ thread_reset_event(event_t *handle)
 void
 thread_destroy_event(event_t *handle)
 {
-    auto event = reinterpret_cast<event_cpp11_t *>(handle);
+    auto event = reinterpret_cast<event_cpp11_ex_t *>(handle);
     delete event;
 }
 }
