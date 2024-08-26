@@ -1536,6 +1536,52 @@ cpu_set(void)
 #ifdef USE_AMD_K5
         case CPU_K5:
         case CPU_5K86:
+#ifdef USE_DYNAREC
+            x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
+#else
+            x86_setopcodes(ops_386, ops_pentiummmx_0f);
+#endif /* USE_DYNAREC */
+
+            timing_rr  = 1; /* register dest - register src */
+            timing_rm  = 2; /* register dest - memory src */
+            timing_mr  = 3; /* memory dest   - register src */
+            timing_mm  = 3;
+            timing_rml = 2; /* register dest - memory src long */
+            timing_mrl = 3; /* memory dest   - register src long */
+            timing_mml = 3;
+            timing_bt  = 0; /* branch taken */
+            timing_bnt = 1; /* branch not taken */
+
+            timing_int                = 6;
+            timing_int_rm             = 11;
+            timing_int_v86            = 54;
+            timing_int_pm             = 25;
+            timing_int_pm_outer       = 42;
+            timing_iret_rm            = 7;
+            timing_iret_v86           = 27; /* unknown */
+            timing_iret_pm            = 10;
+            timing_iret_pm_outer      = 27;
+            timing_call_rm            = 4;
+            timing_call_pm            = 4;
+            timing_call_pm_gate       = 22;
+            timing_call_pm_gate_inner = 44;
+            timing_retf_rm            = 4;
+            timing_retf_pm            = 4;
+            timing_retf_pm_outer      = 23;
+            timing_jmp_rm             = 3;
+            timing_jmp_pm             = 3;
+            timing_jmp_pm_gate        = 18;
+
+            timing_misaligned = 3;
+
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
+            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PGE;
+
+#ifdef USE_DYNAREC
+            codegen_timing_set(&codegen_timing_k5);
+#endif /* USE_DYNAREC */
+            break;
+
 #endif /* USE_AMD_K5 */
         case CPU_K6:
         case CPU_K6_2:
@@ -1546,27 +1592,13 @@ cpu_set(void)
 #ifdef USE_DYNAREC
             if (cpu_s->cpu_type >= CPU_K6_2)
                 x86_setopcodes(ops_386, ops_k62_0f, dynarec_ops_386, dynarec_ops_k62_0f);
-#    ifdef USE_AMD_K5
-            else if (cpu_s->cpu_type == CPU_K6)
-                x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
-            else
-                x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
-#    else
             else
                 x86_setopcodes(ops_386, ops_k6_0f, dynarec_ops_386, dynarec_ops_k6_0f);
-#    endif /* USE_AMD_K5 */
 #else
             if (cpu_s->cpu_type >= CPU_K6_2)
                 x86_setopcodes(ops_386, ops_k62_0f);
-#    ifdef USE_AMD_K5
-            else if (cpu_s->cpu_type == CPU_K6)
-                x86_setopcodes(ops_386, ops_k6_0f);
-            else
-                x86_setopcodes(ops_386, ops_pentiummmx_0f);
-#    else
             else
                 x86_setopcodes(ops_386, ops_k6_0f);
-#    endif /* USE_AMD_K5 */
 #endif /* USE_DYNAREC */
 
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P)) {
@@ -1613,23 +1645,11 @@ cpu_set(void)
                 cpu_features |= CPU_FEATURE_3DNOW;
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P))
                 cpu_features |= CPU_FEATURE_3DNOWE;
-#ifdef USE_AMD_K5
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE;
-            if (cpu_s->cpu_type >= CPU_K6) {
-                cpu_CR4_mask |= (CR4_VME | CR4_PVI | CR4_PSE);
-                if (cpu_s->cpu_type <= CPU_K6)
-                    cpu_CR4_mask |= CR4_PCE;
-                else if (cpu_s->cpu_type >= CPU_K6_2C)
-                    cpu_CR4_mask |= CR4_PGE;
-            } else
-                cpu_CR4_mask |= CR4_PGE;
-#else
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE;
             if (cpu_s->cpu_type == CPU_K6)
                 cpu_CR4_mask |= CR4_PCE;
             else if (cpu_s->cpu_type >= CPU_K6_2C)
                 cpu_CR4_mask |= CR4_PGE;
-#endif /* USE_AMD_K5 */
 
 #ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_k6);
