@@ -26,6 +26,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/cdrom.h>
 #include <86box/fdd.h>
+#include <86box/path.h>
 }
 
 namespace ui {
@@ -275,9 +276,6 @@ MediaHistoryManager::pathAdjustSingle(QString checked_path)
     if (file_info.filePath().isEmpty() || current_usr_path.isEmpty() || file_info.isRelative()) {
         return checked_path;
     }
-    if (file_info.filePath().startsWith(current_usr_path)) {
-        checked_path = file_info.filePath().remove(current_usr_path);
-    }
     return checked_path;
 }
 
@@ -304,10 +302,25 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
         if (file_info.filePath().isEmpty()) {
             continue;
         }
-        // For this check, explicitly prepend `usr_path` to relative paths to account for $CWD platform variances
-        QFileInfo absolute_path = file_info.isRelative() ? QFileInfo(getUsrPath().append(file_info.filePath())) : file_info;
-        if ((file_info.filePath().left(8) != "ioctl://") && !absolute_path.exists()) {
-            qWarning("Image file %s does not exist - removing from history", qPrintable(file_info.filePath()));
+
+        char *p = checked_path.toUtf8().data();
+        char temp[1024] = { 0 };
+
+        if (path_abs(p)) {
+            if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+                fatal("removeMissingImages(): strlen(p) > 2047\n");
+            else
+                snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+        } else
+            snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                     path_get_slash(usr_path), p);
+        path_normalize(temp);
+
+        QString qstr = QString::fromUtf8(temp);
+        QFileInfo new_fi(qstr);
+
+        if ((new_fi.filePath().left(8) != "ioctl://") && !new_fi.exists()) {
+            qWarning("Image file %s does not exist - removing from history", qPrintable(new_fi.filePath()));
             checked_path = "";
         }
     }
