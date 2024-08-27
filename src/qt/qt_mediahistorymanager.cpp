@@ -24,8 +24,12 @@
 
 extern "C" {
 #include <86box/timer.h>
-#include <86box/cdrom.h>
+#include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/fdd.h>
+#include <86box/cdrom.h>
+#include <86box/zip.h>
+#include <86box/mo.h>
 #include <86box/path.h>
 }
 
@@ -101,7 +105,14 @@ MediaHistoryManager::getImageForSlot(int index, int slot, ui::MediaType type)
 int
 MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
 {
-    return type == ui::MediaType::Cassette ? 1 : 4;
+    switch (type) {
+        default:
+            return 4;
+        case ui::MediaType::Cassette:
+            return 1;
+        case ui::MediaType::Cartridge:
+            return 2;
+    }
 }
 
 void
@@ -164,14 +175,26 @@ MediaHistoryManager::initialDeduplication()
         for (int device_index = 0; device_index < maxDevicesSupported(device_type); device_index++) {
             device_index_list_t device_history = getHistoryListForDeviceIndex(device_index, device_type);
             switch (device_type) {
-                case ui::MediaType::Optical:
-                    current_image = cdrom[device_index].image_path;
+                default:
+                    continue;
+                    break;
+                case ui::MediaType::Cassette:
+                    current_image = cassette_fname;
+                    break;
+                case ui::MediaType::Cartridge:
+                    current_image = cart_fns[device_index];
                     break;
                 case ui::MediaType::Floppy:
                     current_image = floppyfns[device_index];
                     break;
-                default:
-                    continue;
+                case ui::MediaType::Optical:
+                    current_image = cdrom[device_index].image_path;
+                    break;
+                case ui::MediaType::Zip:
+                    current_image = zip[device_index].image_path;
+                    break;
+                case ui::MediaType::Mo:
+                    current_image = mo[device_index].image_path;
                     break;
             }
             deduplicateList(device_history, QVector<QString>(1, current_image));
@@ -191,12 +214,20 @@ char **
 MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
 {
     switch (type) {
-        case ui::MediaType::Optical:
-            return &cdrom[index].image_history[0];
-        case ui::MediaType::Floppy:
-            return &fdd_image_history[index][0];
         default:
             return nullptr;
+        case ui::MediaType::Cassette:
+            return &cassette_image_history[0];
+        case ui::MediaType::Cartridge:
+            return &cart_image_history[index][0];
+        case ui::MediaType::Floppy:
+            return &fdd_image_history[index][0];
+        case ui::MediaType::Optical:
+            return &cdrom[index].image_history[0];
+        case ui::MediaType::Zip:
+            return &zip[index].image_history[0];
+        case ui::MediaType::Mo:
+            return &mo[index].image_history[0];
     }
 }
 
