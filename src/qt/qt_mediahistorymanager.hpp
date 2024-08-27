@@ -65,7 +65,7 @@ static const MediaType AllSupportedMediaHistoryTypes[] = {
     MediaType::Zip,
     MediaType::Mo,
     MediaType::Cassette,
-    MediaType::Cartridge,
+    MediaType::Cartridge
 };
 
 class MediaHistoryManager {

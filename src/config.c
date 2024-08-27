@@ -870,7 +870,7 @@ load_storage_controllers(void)
     if (p[0] != 0x00) {
         if (path_abs(p)) {
             if (strlen(p) > 511)
-                fatal("load_storage_controllers(): strlen(p) > 511 (cassette_fname)\n);
+                fatal("load_storage_controllers(): strlen(p) > 511 (cassette_fname)\n");
             else
                 strncpy(cassette_fname, p, 511);
         } else
@@ -894,11 +894,11 @@ load_storage_controllers(void)
                     fatal("load_storage_controllers(): strlen(p) > 2047 "
                           "(cassette_image_history[%i])\n", i);
                 else
-                    snprintf(cassette_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                    snprintf(cassette_image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
             } else
-                snprintf(csasette_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                snprintf(cassette_image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
                          path_get_slash(usr_path), p);
-            path_normalize(cassette_image_history[c][i]);
+            path_normalize(cassette_image_history[i]);
         }
     }
     cassette_pos          = ini_section_get_int(cat, "cassette_position", 0);
@@ -927,7 +927,7 @@ load_storage_controllers(void)
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             cart_image_history[c][i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
-            sprintf(temp, "cart_%02i_image_history_%02i", c + 1, i + 1);
+            sprintf(temp, "cartridge_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
                 if (path_abs(p)) {

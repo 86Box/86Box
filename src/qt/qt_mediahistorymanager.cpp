@@ -24,10 +24,12 @@
 
 extern "C" {
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/cassette.h>
 #include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/path.h>
@@ -191,10 +193,10 @@ MediaHistoryManager::initialDeduplication()
                     current_image = cdrom[device_index].image_path;
                     break;
                 case ui::MediaType::Zip:
-                    current_image = zip[device_index].image_path;
+                    current_image = zip_drives[device_index].image_path;
                     break;
                 case ui::MediaType::Mo:
-                    current_image = mo[device_index].image_path;
+                    current_image = mo_drives[device_index].image_path;
                     break;
             }
             deduplicateList(device_history, QVector<QString>(1, current_image));
@@ -225,9 +227,9 @@ MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
         case ui::MediaType::Optical:
             return &cdrom[index].image_history[0];
         case ui::MediaType::Zip:
-            return &zip[index].image_history[0];
+            return &zip_drives[index].image_history[0];
         case ui::MediaType::Mo:
-            return &mo[index].image_history[0];
+            return &mo_drives[index].image_history[0];
     }
 }
 
