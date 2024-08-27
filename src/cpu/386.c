@@ -304,6 +304,14 @@ exec386_2386(int32_t cycs)
                 cpu_state.pc &= 0xffff;
 #endif
 
+            if (cpu_flush_pending == 1)
+                cpu_flush_pending++;
+            else if (cpu_flush_pending == 2) {
+                cpu_flush_pending = 0;
+                cr0 ^= 0x80000000;
+                flushmmucache();
+            }
+
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
