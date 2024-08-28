@@ -1328,11 +1328,10 @@ vid_init(tandy_t *dev)
     vid = malloc(sizeof(t1kvid_t));
     memset(vid, 0x00, sizeof(t1kvid_t));
     vid->memctrl = -1;
-    dev->vid     = vid;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
 
-    display_type   = machine_get_config_int("display_type");
+    display_type   = device_get_config_int("display_type");
     vid->composite = (display_type != TANDY_RGB);
 
     cga_comp_init(1);
@@ -1345,11 +1344,14 @@ vid_init(tandy_t *dev)
         io_sethandler(0x0065, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
     } else
         vid->b8000_mask = 0x3fff;
+
     timer_add(&vid->timer, vid_poll, dev, 1);
     mem_mapping_add(&vid->mapping, 0xb8000, 0x08000,
                     vid_read, NULL, NULL, vid_write, NULL, NULL, NULL, 0, dev);
     io_sethandler(0x03d0, 16,
                   vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+
+    dev->vid     = vid;
 }
 
 const device_config_t vid_config[] = {
@@ -1771,7 +1773,9 @@ machine_tandy1k_init(const machine_t *model, int type)
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device);
             vid_init(dev);
+            device_context_restore();
             device_add_ex(&vid_device, dev);
             device_add((type == TYPE_TANDY1000SX) ? &ncr8496_device : &sn76489_device);
             break;
@@ -1781,8 +1785,10 @@ machine_tandy1k_init(const machine_t *model, int type)
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device_hx);
             vid_init(dev);
-            device_add_ex(&vid_device, dev);
+            device_context_restore();
+            device_add_ex(&vid_device_hx, dev);
             device_add(&ncr8496_device);
             device_add(&eep_1000hx_device);
             break;
@@ -1792,7 +1798,9 @@ machine_tandy1k_init(const machine_t *model, int type)
             init_rom(dev);
             io_sethandler(0xffe8, 8,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device_sl);
             vid_init(dev);
+            device_context_restore();
             device_add_ex(&vid_device_sl, dev);
             device_add(&pssj_device);
             device_add(&eep_1000sl2_device);

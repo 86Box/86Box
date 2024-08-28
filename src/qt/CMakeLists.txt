@@ -227,6 +227,10 @@ if(WIN32 AND NOT MINGW)
     target_sources(plat PRIVATE win_opendir.c)
 endif()
 
+if(WIN32 AND NOT CPPTHREADS)
+    target_sources(plat PRIVATE win_thread.c)
+endif()
+
 if(WIN32)
     target_sources(plat PRIVATE win_serial_passthrough.c win_netsocket.c)
 else()

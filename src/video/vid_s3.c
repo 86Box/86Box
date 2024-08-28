@@ -9219,18 +9219,19 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
                 return s3->pci_regs[PCI_REG_COMMAND] | 0x80; /*Respond to IO and memory accesses*/
             else
                 return s3->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
-			break;
+            break;
 
         case 0x07:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x07] & 0x36) : (1 << 1); /*Medium DEVSEL timing*/
 
-        case 0x08: switch (s3->chip) { /*Revision ID*/
-            case S3_TRIO64V:
-                return 0x40;
-            case S3_TRIO64V2:
-                return 0x16; /*Confirmed on an onboard 64V2/DX*/
-            default:
-                return 0x00;
+        case 0x08:
+            switch (s3->chip) { /*Revision ID*/
+                case S3_TRIO64V:
+                    return 0x40;
+                case S3_TRIO64V2:
+                    return 0x16; /*Confirmed on an onboard 64V2/DX*/
+                default:
+                    return 0x00;
             }
             break;
         case 0x09:
@@ -9252,24 +9253,13 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x0d:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x0d] & 0xf8) : 0x00;
 
-        case 0x10:
-            return 0x00; /*Linear frame buffer address*/
-        case 0x11:
-            return 0x00;
         case 0x12:
-            if (svga->crtc[0x53] & 0x08)
-                return 0x00;
-            else
-                return (svga->crtc[0x5a] & 0x80);
-            break;
+            return ((s3->chip == S3_VISION868) || (s3->chip == S3_VISION968) || (s3->chip >= S3_TRIO64V)) ? 0x00 :
+                       (svga->crtc[0x5a] & 0x80);
 
         case 0x13:
-            if (svga->crtc[0x53] & 0x08) {
-                return (s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : (svga->crtc[0x59] & 0xfe);
-            } else {
-                return svga->crtc[0x59];
-            }
-            break;
+            return ((s3->chip == S3_VISION868) || (s3->chip == S3_VISION968) || (s3->chip >= S3_TRIO64V)) ?
+                       (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59];
 
         case 0x30:
             return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
@@ -9323,13 +9313,16 @@ s3_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 s3_io_set(s3);
             else
                 s3_io_remove(s3);
-            s3->pci_regs[PCI_REG_COMMAND] = (val & 0x23);
+            if (s3->chip >= S3_TRIO64V)
+                s3->pci_regs[PCI_REG_COMMAND] = (val & 0x27);
+            else
+                s3->pci_regs[PCI_REG_COMMAND] = (val & 0x23);
             s3_updatemapping(s3);
             break;
 
         case 0x07:
             if (s3->chip == S3_TRIO64V2) {
-                s3->pci_regs[0x07] = val & 0x3e;
+                s3->pci_regs[0x07] &= ~(val & 0x30);
                 return;
             }
             break;
@@ -9342,18 +9335,14 @@ s3_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x12:
-            if (!(svga->crtc[0x53] & 0x08)) {
-                svga->crtc[0x5a] = (svga->crtc[0x5a] & 0x7f) | (val & 0x80);
+            if (s3->chip < S3_TRIO64V) {
+                svga->crtc[0x5a] = val & 0x80;
                 s3_updatemapping(s3);
             }
             break;
 
         case 0x13:
-            if (svga->crtc[0x53] & 0x08) {
-                svga->crtc[0x59] = (s3->chip >= S3_TRIO64V) ? (val & 0xfc) : (val & 0xfe);
-            } else {
-                svga->crtc[0x59] = val;
-            }
+            svga->crtc[0x59] = (s3->chip >= S3_TRIO64V) ? (val & 0xfc) : val;
             s3_updatemapping(s3);
             break;
 

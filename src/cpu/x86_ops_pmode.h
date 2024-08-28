@@ -431,12 +431,21 @@ op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
             if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
             if (is386 && is32 && (cpu_mod == 3)) {
-                if (is486 || isibm486)
-                    seteaw(cr0);
-                else if (is386 && !cpu_16bitbus)
-                    seteaw(cr0 | /* 0x7FFFFF00 */ 0x7FFFFFE0);
-                else
-                    seteaw(cr0 | 0x7FFFFFF0);
+                if (cpu_flush_pending) {
+                    if (is486 || isibm486)
+                        seteaw(cr0 ^ 0x80000000);
+                    else if (is386 && !cpu_16bitbus)
+                        seteaw((cr0 ^ 0x80000000) | /* 0x7FFFFF00 */ 0x7FFFFFE0);
+                    else
+                        seteaw((cr0 ^ 0x80000000) | 0x7FFFFFF0);
+                } else {
+                    if (is486 || isibm486)
+                        seteaw(cr0);
+                    else if (is386 && !cpu_16bitbus)
+                        seteaw(cr0 | /* 0x7FFFFF00 */ 0x7FFFFFE0);
+                    else
+                        seteaw(cr0 | 0x7FFFFFF0);
+                }
             } else {
                 if (is486 || isibm486)
                     seteaw(msw);
