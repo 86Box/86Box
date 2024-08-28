@@ -5960,7 +5960,7 @@ const machine_t machines[] = {
     {
         .name = "[SiS 461] DEC DECpc LPV",
         .internal_name = "decpclpv",
-        .type = MACHINE_TYPE_486_S1,
+        .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_461,
         .init = machine_at_decpclpv_init,
         .p1_handler = NULL,
