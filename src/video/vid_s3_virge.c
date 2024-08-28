@@ -471,7 +471,8 @@ s3_virge_update_irqs(virge_t *virge) {
 }
 
 static void
-s3_virge_out(uint16_t addr, uint8_t val, void *priv) {
+s3_virge_out(uint16_t addr, uint8_t val, void *priv)
+{
     virge_t *virge = (virge_t *) priv;
     svga_t * svga = &virge->svga;
     uint8_t  old;
@@ -483,7 +484,7 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv) {
     switch (addr) {
         case 0x3c5:
             if (svga->seqaddr >= 0x10) {
-                svga->seqregs[svga->seqaddr & 0x1f] = val;
+                svga->seqregs[svga->seqaddr] = val;
                 svga_recalctimings(svga);
                 return;
             }
@@ -518,8 +519,6 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv) {
             if ((svga->crtcreg >= 0x40) && ((svga->crtc[0x39] & 0xe0) != 0xa0))
                 return;
             if ((svga->crtcreg == 0x36) && (svga->crtc[0x39] != 0xa5))
-                return;
-            if (svga->crtcreg >= 0x80)
                 return;
 
             old = svga->crtc[svga->crtcreg];
@@ -707,7 +706,7 @@ s3_virge_in(uint16_t addr, void *priv) {
 
         case 0x3c5:
             if (svga->seqaddr >= 8)
-                ret = svga->seqregs[svga->seqaddr & 0x1f];
+                ret = svga->seqregs[svga->seqaddr];
             else if (svga->seqaddr <= 4)
                 ret = svga_in(addr, svga);
             else
