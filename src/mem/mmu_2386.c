@@ -278,6 +278,7 @@ readmembl_2386(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t       a;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
 
@@ -287,7 +288,7 @@ readmembl_2386(uint32_t addr)
 
     high_page = 0;
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a      = mmutranslate_read_2386(addr);
         addr64 = (uint32_t) a;
 
@@ -308,6 +309,7 @@ writemembl_2386(uint32_t addr, uint8_t val)
 {
     mem_mapping_t *map;
     uint64_t       a;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     mem_debug_check_addr(addr, 2);
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
@@ -317,7 +319,7 @@ writemembl_2386(uint32_t addr, uint8_t val)
 
     high_page = 0;
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a      = mmutranslate_write_2386(addr);
         addr64 = (uint32_t) a;
 
@@ -336,12 +338,13 @@ uint8_t
 readmembl_no_mmut_2386(uint32_t addr, uint32_t a64)
 {
     mem_mapping_t *map;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
 
     mem_logical_addr = addr;
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         if (cpu_state.abrt || high_page)
             return 0xff;
 
@@ -361,12 +364,13 @@ void
 writemembl_no_mmut_2386(uint32_t addr, uint32_t a64, uint8_t val)
 {
     mem_mapping_t *map;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
 
     mem_logical_addr = addr;
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         if (cpu_state.abrt || high_page)
             return;
 
@@ -384,6 +388,7 @@ readmemwl_2386(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t       a;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
@@ -399,7 +404,7 @@ readmemwl_2386(uint32_t addr)
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 for (uint8_t i = 0; i < 2; i++) {
                     a          = mmutranslate_read_2386(addr + i);
                     addr64a[i] = (uint32_t) a;
@@ -414,7 +419,7 @@ readmemwl_2386(uint32_t addr)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a          = mmutranslate_read_2386(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -442,6 +447,7 @@ writememwl_2386(uint32_t addr, uint16_t val)
 {
     mem_mapping_t *map;
     uint64_t       a;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
@@ -457,7 +463,7 @@ writememwl_2386(uint32_t addr, uint16_t val)
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 for (uint8_t i = 0; i < 2; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
@@ -479,7 +485,7 @@ writememwl_2386(uint32_t addr, uint16_t val)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a          = mmutranslate_write_2386(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -508,6 +514,7 @@ uint16_t
 readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
 {
     mem_mapping_t *map;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 2);
 
@@ -517,7 +524,7 @@ readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 if (cpu_state.abrt || high_page)
                     return 0xffff;
             }
@@ -527,7 +534,7 @@ readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         if (cpu_state.abrt || high_page)
             return 0xffff;
 
@@ -552,6 +559,7 @@ void
 writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val)
 {
     mem_mapping_t *map;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 2);
 
@@ -561,7 +569,7 @@ writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val)
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 if (cpu_state.abrt || high_page)
                     return;
             }
@@ -572,7 +580,7 @@ writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         if (cpu_state.abrt || high_page)
             return;
 
@@ -600,6 +608,7 @@ readmemll_2386(uint32_t addr)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     for (i = 0; i < 4; i++) {
         addr64a[i] = (uint64_t) (addr + i);
@@ -615,7 +624,7 @@ readmemll_2386(uint32_t addr)
         if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 for (i = 0; i < 4; i++) {
                     if (i == 0) {
                         a          = mmutranslate_read_2386(addr + i);
@@ -644,7 +653,7 @@ readmemll_2386(uint32_t addr)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a          = mmutranslate_read_2386(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -674,6 +683,7 @@ writememll_2386(uint32_t addr, uint32_t val)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     for (i = 0; i < 4; i++) {
         addr64a[i] = (uint64_t) (addr + i);
@@ -689,7 +699,7 @@ writememll_2386(uint32_t addr, uint32_t val)
         if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 for (i = 0; i < 4; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
@@ -723,7 +733,7 @@ writememll_2386(uint32_t addr, uint32_t val)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a          = mmutranslate_write_2386(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -758,6 +768,7 @@ uint32_t
 readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
 {
     mem_mapping_t *map;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 4);
 
@@ -767,7 +778,7 @@ readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
         if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 if (cpu_state.abrt || high_page)
                     return 0xffffffff;
             }
@@ -777,7 +788,7 @@ readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         if (cpu_state.abrt || high_page)
             return 0xffffffff;
 
@@ -804,6 +815,7 @@ void
 writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
 {
     mem_mapping_t *map;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 4);
 
@@ -813,7 +825,7 @@ writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
         if ((addr & 3) && (!cpu_cyrix_alignment || (addr & 7) > 4))
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 if (cpu_state.abrt || high_page)
                     return;
             }
@@ -824,7 +836,7 @@ writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         if (cpu_state.abrt || high_page)
             return;
 
@@ -858,6 +870,7 @@ readmemql_2386(uint32_t addr)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     for (i = 0; i < 8; i++) {
         addr64a[i] = (uint64_t) (addr + i);
@@ -872,7 +885,7 @@ readmemql_2386(uint32_t addr)
     if (addr & 7) {
         cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xff8) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 for (i = 0; i < 8; i++) {
                     if (i == 0) {
                         a          = mmutranslate_read_2386(addr + i);
@@ -901,7 +914,7 @@ readmemql_2386(uint32_t addr)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         a          = mmutranslate_read_2386(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -924,6 +937,7 @@ writememql_2386(uint32_t addr, uint64_t val)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     for (i = 0; i < 8; i++) {
         addr64a[i] = (uint64_t) (addr + i);
@@ -938,7 +952,7 @@ writememql_2386(uint32_t addr, uint64_t val)
     if (addr & 7) {
         cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xff8) {
-            if (cr0 >> 31) {
+            if (temp_cr0 >> 31) {
                 for (i = 0; i < 8; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
@@ -972,7 +986,7 @@ writememql_2386(uint32_t addr, uint64_t val)
         }
     }
 
-    if (cr0 >> 31) {
+    if (temp_cr0 >> 31) {
         addr64a[0] = mmutranslate_write_2386(addr);
         if (addr64a[0] > 0xffffffffULL)
             return;
@@ -1013,13 +1027,14 @@ do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write)
     int i;
     uint32_t last_addr = addr + (num - 1);
     uint64_t a = 0x0000000000000000ULL;
+    uint32_t temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     mem_debug_check_addr(addr, write ? 2 : read_type);
 
     for (i = 0; i < num; i++)
 	a64[i] = (uint64_t) addr;
 
-    if (!(cr0 >> 31))
+    if (!(temp_cr0 >> 31))
         return;
 
     for (i = 0; i < num; i++) {

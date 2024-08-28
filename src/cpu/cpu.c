@@ -183,6 +183,7 @@ int cpu_waitstates;
 int cpu_cache_int_enabled;
 int cpu_cache_ext_enabled;
 int cpu_flush_pending;
+int cpu_old_paging;
 int cpu_isa_speed;
 int cpu_pci_speed;
 int cpu_isa_pci_div;
