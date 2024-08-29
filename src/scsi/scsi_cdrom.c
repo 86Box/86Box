@@ -1600,7 +1600,7 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 
     /* Transition, pretend we're not ready for one check so that
        Windows XP can recognize a medium change. */
-    if (dev->unit_attention & 0x10) {
+    if ((dev->unit_attention & 0xf0) == 0x10) {
         ready = 0;
         goto skip_ua_check;
     }
@@ -1719,7 +1719,7 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
         buffer[2]  = SENSE_ILLEGAL_REQUEST;
         buffer[12] = ASC_AUDIO_PLAY_OPERATION;
         buffer[13] = (dev->drv->cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-    } else if (dev->unit_attention && !(dev->unit_attention & 0x10) &&
+    } else if (dev->unit_attention && ((dev->unit_attention & 0xf0) != 0x10) &&
                ((scsi_cdrom_sense_key == 0) || (scsi_cdrom_sense_key == 2))) {
         buffer[2]  = SENSE_UNIT_ATTENTION;
         buffer[12] = ASC_MEDIUM_MAY_HAVE_CHANGED;
@@ -1728,7 +1728,7 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
 
     scsi_cdrom_log("CD-ROM %i: Reporting sense: %02X %02X %02X\n", dev->id, buffer[2], buffer[12], buffer[13]);
 
-    if (dev->unit_attention & 0x10)
+    if ((dev->unit_attention & 0xf0) == 0x10)
         dev->unit_attention &= 0x0f;
 
     if (buffer[2] == SENSE_UNIT_ATTENTION) {
