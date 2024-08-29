@@ -937,8 +937,7 @@ exec386(int32_t cycs)
                 cpu_flush_pending++;
             else if (cpu_flush_pending == 2) {
                 cpu_flush_pending = 0;
-                cr0 ^= 0x80000000;
-                flushmmucache();
+                flushmmucache_pc();
             }
 
 #ifndef USE_NEW_DYNAREC

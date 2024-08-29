@@ -1546,7 +1546,7 @@ scsi_cdrom_insert(void *priv)
     if (!dev)
         return;
 
-    dev->unit_attention = 1;
+    dev->unit_attention = 0x11;
     /* Turn off the medium changed status. */
     dev->drv->cd_status &= ~CD_STATUS_MEDIUM_CHANGED;
     scsi_cdrom_log("CD-ROM %i: Media insert\n", dev->id);
@@ -1598,6 +1598,13 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 
     ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
 
+    /* Transition, pretend we're not ready for one check so that
+       Windows XP can recognize a medium change. */
+    if ((dev->unit_attention & 0xf0) == 0x10) {
+        ready = 0;
+        goto skip_ua_check;
+    }
+
 skip_ready_check:
     /* If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
@@ -1624,6 +1631,7 @@ skip_ready_check:
         }
     }
 
+skip_ua_check:
     /* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
        the UNIT ATTENTION condition if it's set. */
     if (cdb[0] != GPCMD_REQUEST_SENSE)
@@ -1711,13 +1719,17 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
         buffer[2]  = SENSE_ILLEGAL_REQUEST;
         buffer[12] = ASC_AUDIO_PLAY_OPERATION;
         buffer[13] = (dev->drv->cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-    } else if (dev->unit_attention && (scsi_cdrom_sense_key == 0)) {
+    } else if (dev->unit_attention && ((dev->unit_attention & 0xf0) != 0x10) &&
+               ((scsi_cdrom_sense_key == 0) || (scsi_cdrom_sense_key == 2))) {
         buffer[2]  = SENSE_UNIT_ATTENTION;
         buffer[12] = ASC_MEDIUM_MAY_HAVE_CHANGED;
         buffer[13] = 0;
     }
 
     scsi_cdrom_log("CD-ROM %i: Reporting sense: %02X %02X %02X\n", dev->id, buffer[2], buffer[12], buffer[13]);
+
+    if ((dev->unit_attention & 0xf0) == 0x10)
+        dev->unit_attention &= 0x0f;
 
     if (buffer[2] == SENSE_UNIT_ATTENTION) {
         /* If the last remaining sense is unit attention, clear
@@ -2338,7 +2350,9 @@ begin:
             max_len = (cdb[7] << 8) | cdb[8];
 
             /* only feature 0 is supported */
-            if ((cdb[2] != 0) || (cdb[3] > 2)) {
+            if ((feature > 3) && (feature != 0x010) &&
+                (feature != 0x1d) && (feature != 0x01e) &&
+                (feature != 0x01f) && (feature != 0x103)) {
                 scsi_cdrom_invalid_field(dev);
                 scsi_cdrom_buf_free(dev);
                 return;
@@ -2409,6 +2423,65 @@ begin:
                 b[3] = 4;
 
                 b[4] = 2;
+
+                alloc_length += 8;
+                b += 8;
+            }
+            if ((feature == 3) || ((cdb[1] & 3) < 2)) {
+                b[1] = 2;
+                b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                b[3] = 4;
+
+                b[4] = 0x1d;
+
+                alloc_length += 8;
+                b += 8;
+            }
+            if ((feature == 0x10) || ((cdb[1] & 3) < 2)) {
+                b[1] = 0x10;
+                b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                b[3] = 8;
+
+                b[6] = 8;
+                b[9] = 0x10;
+
+                alloc_length += 12;
+                b += 12;
+            }
+            if ((feature == 0x1d) || ((cdb[1] & 3) < 2)) {
+                b[1] = 0x1d;
+                b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                b[3] = 0;
+
+                alloc_length += 4;
+                b += 4;
+            }
+            if ((feature == 0x1e) || ((cdb[1] & 3) < 2)) {
+                b[1] = 0x1e;
+                b[2] = (2 << 2) | 0x02 | 0x01; /* persistent and current */
+                b[3] = 4;
+
+                b[4] = 0;
+
+                alloc_length += 8;
+                b += 8;
+            }
+            if ((feature == 0x1f) || ((cdb[1] & 3) < 2)) {
+                b[1] = 0x1f;
+                b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                b[3] = 0;
+
+                alloc_length += 4;
+                b += 4;
+            }
+            if ((feature == 0x103) || ((cdb[1] & 3) < 2)) {
+                b[0] = 1;
+                b[1] = 3;
+                b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                b[3] = 0;
+
+                b[4] = 7;
+                b[6] = 1;
 
                 alloc_length += 8;
                 b += 8;

@@ -189,16 +189,15 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
                 if (is_p6 || cpu_use_dynarec)
                     flushmmucache();
-                else
+                else {
+                    flushmmucache_nopc();
                     cpu_flush_pending = 1;
+                }
             }
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
             if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
-            if (!is_p6 && !cpu_use_dynarec && ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000))
-                cr0 = (cr0 & 0x80000000) | (cpu_state.regs[cpu_rm].l & 0x7fffffff);
-            else
-                cr0 = cpu_state.regs[cpu_rm].l;
+            cr0 = cpu_state.regs[cpu_rm].l;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
             if (!(cr0 & 0x80000000))
@@ -255,16 +254,15 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
                 if (is_p6 || cpu_use_dynarec)
                     flushmmucache();
-                else
+                else {
+                    flushmmucache_nopc();
                     cpu_flush_pending = 1;
+                }
             }
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
             if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
-            if (!is_p6 && !cpu_use_dynarec && ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000))
-                cr0 = (cr0 & 0x80000000) | (cpu_state.regs[cpu_rm].l & 0x7fffffff);
-            else
-                cr0 = cpu_state.regs[cpu_rm].l;
+            cr0 = cpu_state.regs[cpu_rm].l;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
             if (!(cr0 & 0x80000000))

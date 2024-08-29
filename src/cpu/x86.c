@@ -326,6 +326,7 @@ reset_common(int hard)
         codegen_reset();
 #endif
     cpu_flush_pending = 0;
+    cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
     x86_was_reset = 1;
