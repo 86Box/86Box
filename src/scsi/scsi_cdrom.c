@@ -1182,7 +1182,7 @@ scsi_cdrom_cmd_error(scsi_cdrom_t *dev)
 {
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
     dev->tf->error = ((scsi_cdrom_sense_key & 0xf) << 4) | ABRT_ERR;
-    if (dev->unit_attention)
+    if (dev->unit_attention > 2)
         dev->tf->error |= MCR_ERR;
     dev->tf->status        = READY_STAT | ERR_STAT;
     dev->tf->phase         = 3;
@@ -1199,7 +1199,7 @@ scsi_cdrom_unit_attention(scsi_cdrom_t *dev)
 {
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
     dev->tf->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
-    if (dev->unit_attention)
+    if (dev->unit_attention > 2)
         dev->tf->error |= MCR_ERR;
     dev->tf->status     = READY_STAT | ERR_STAT;
     dev->tf->phase     = 3;
@@ -1546,10 +1546,38 @@ scsi_cdrom_insert(void *priv)
     if (!dev)
         return;
 
-    dev->unit_attention = 0x11;
+    dev->unit_attention = 1;
     /* Turn off the medium changed status. */
     dev->drv->cd_status &= ~CD_STATUS_MEDIUM_CHANGED;
     scsi_cdrom_log("CD-ROM %i: Media insert\n", dev->id);
+}
+
+static int
+scsi_command_check_ready(scsi_cdrom_t *dev, uint8_t *cdb)
+{
+    int ret = 0;
+
+    if (scsi_cdrom_command_flags[cdb[0]] & CHECK_READY) {
+        /*Note by TC1995: Some vendor commands from X vendor don't really check for ready status
+                           but they do on Y vendor. Quite confusing I know.*/
+        if (scsi_cdrom_command_flags[cdb[0]] & SCSI_ONLY)  switch (dev->drv->type) {
+            default:
+                ret = 1;
+                break;
+            case CDROM_TYPE_DEC_RRD45_0436:
+            case CDROM_TYPE_SONY_CDU541_10i:
+            case CDROM_TYPE_SONY_CDU561_18k:
+            case CDROM_TYPE_SONY_CDU76S_100:
+            case CDROM_TYPE_TEXEL_DMXX24_100:
+                if (cdb[0] == 0xC0)
+                    break;
+                ret = 1;
+                break;
+        } else
+            ret = 1;
+    }
+
+    return ret;
 }
 
 static int
@@ -1598,23 +1626,24 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 
     ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
 
-    /* Transition, pretend we're not ready for one check so that
-       Windows XP can recognize a medium change. */
-    if ((dev->unit_attention & 0xf0) == 0x10) {
-        ready = 0;
-        goto skip_ua_check;
-    }
-
 skip_ready_check:
     /* If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
        disc changes. */
-    if (!ready && dev->unit_attention)
+    if (!ready && (dev->unit_attention > 2))
         dev->unit_attention = 0;
 
     /* If the UNIT ATTENTION condition is set and the command does not allow
        execution under it, error out and report the condition. */
-    if (dev->unit_attention == 1) {
+    if ((dev->unit_attention > 0) && (dev->unit_attention < 3)) {
+        dev->media_status = MEC_MEDIA_REMOVAL;
+        if (scsi_command_check_ready(dev, cdb)) {
+            dev->unit_attention++;
+            scsi_cdrom_log("CD-ROM %i: Simulated not ready phase (%02X)\n", dev->id, cdb[0]);
+            scsi_cdrom_not_ready(dev);
+            return 0;
+        }
+    } else if (dev->unit_attention == 3) {
         /* Only increment the unit attention phase if the command can not pass through it. */
         if (!(scsi_cdrom_command_flags[cdb[0]] & ALLOW_UA)) {
             /* scsi_cdrom_log("CD-ROM %i: Unit attention now 2\n", dev->id); */
@@ -1624,53 +1653,31 @@ skip_ready_check:
             scsi_cdrom_unit_attention(dev);
             return 0;
         }
-    } else if (dev->unit_attention == 2) {
+    } else if (dev->unit_attention == 4) {
         if (cdb[0] != GPCMD_REQUEST_SENSE) {
             /* scsi_cdrom_log("CD-ROM %i: Unit attention now 0\n", dev->id); */
             dev->unit_attention = 0;
         }
     }
 
-skip_ua_check:
     /* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
        the UNIT ATTENTION condition if it's set. */
     if (cdb[0] != GPCMD_REQUEST_SENSE)
         scsi_cdrom_sense_clear(dev, cdb[0]);
 
     /* Next it's time for NOT READY. */
-    if (!ready)
+    if (!ready || ((dev->unit_attention > 0) && (dev->unit_attention < 3)))
         dev->media_status = MEC_MEDIA_REMOVAL;
     else
-        dev->media_status = (dev->unit_attention) ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
+        dev->media_status = (dev->unit_attention > 2) ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
 
-    if ((scsi_cdrom_command_flags[cdb[0]] & CHECK_READY) && !ready) {
-        if (scsi_cdrom_command_flags[cdb[0]] & SCSI_ONLY) { /*Note by TC1995: Some vendor commands from X vendor don't really check for ready status
-                                                              but they do on Y vendor. Quite confusing I know.*/
-            switch (dev->drv->type) {
-                case CDROM_TYPE_DEC_RRD45_0436:
-                case CDROM_TYPE_SONY_CDU541_10i:
-                case CDROM_TYPE_SONY_CDU561_18k:
-                case CDROM_TYPE_SONY_CDU76S_100:
-                case CDROM_TYPE_TEXEL_DMXX24_100:
-                    if (cdb[0] == 0xC0)
-                        break;
-                    scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
-                    scsi_cdrom_not_ready(dev);
-                    return 0;
-                default:
-                    scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
-                    scsi_cdrom_not_ready(dev);
-                    return 0;
-            }
-        } else {
-            scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
-            scsi_cdrom_not_ready(dev);
-            return 0;
-        }
+    if (!ready && scsi_command_check_ready(dev, cdb)) {
+        scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
+        scsi_cdrom_not_ready(dev);
+        return 0;
     }
 
     scsi_cdrom_log("CD-ROM %i: Continuing with command %02X\n", dev->id, cdb[0]);
-
     return 1;
 }
 
@@ -1719,7 +1726,7 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
         buffer[2]  = SENSE_ILLEGAL_REQUEST;
         buffer[12] = ASC_AUDIO_PLAY_OPERATION;
         buffer[13] = (dev->drv->cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-    } else if (dev->unit_attention && ((dev->unit_attention & 0xf0) != 0x10) &&
+    } else if ((dev->unit_attention > 2) &&
                ((scsi_cdrom_sense_key == 0) || (scsi_cdrom_sense_key == 2))) {
         buffer[2]  = SENSE_UNIT_ATTENTION;
         buffer[12] = ASC_MEDIUM_MAY_HAVE_CHANGED;
@@ -1727,9 +1734,6 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
     }
 
     scsi_cdrom_log("CD-ROM %i: Reporting sense: %02X %02X %02X\n", dev->id, buffer[2], buffer[12], buffer[13]);
-
-    if ((dev->unit_attention & 0xf0) == 0x10)
-        dev->unit_attention &= 0x0f;
 
     if (buffer[2] == SENSE_UNIT_ATTENTION) {
         /* If the last remaining sense is unit attention, clear
@@ -1746,7 +1750,7 @@ scsi_cdrom_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t al
     if (dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED)
         scsi_cdrom_insert((void *) dev);
 
-    if ((dev->drv->cd_status == CD_STATUS_EMPTY) && dev->unit_attention) {
+    if ((dev->drv->cd_status == CD_STATUS_EMPTY) && (dev->unit_attention > 2)) {
         /* If the drive is not ready, there is no reason to keep the
            UNIT ATTENTION condition present, as we only use it to mark
            disc changes. */
