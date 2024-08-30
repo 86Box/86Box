@@ -1020,7 +1020,7 @@ smram_restore_state_p6(uint32_t *saved_state)
     if (is6117)
         rammask |= 0x3000000;
 
-    if (saved_state[SMRAM_FIEL_P6_A20M] & 0x01)
+    if (saved_state[SMRAM_FIELD_P6_A20M] & 0x01)
         rammask &= ~0xffefffff;
 
     flushmmucache();
