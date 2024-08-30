@@ -65,7 +65,7 @@ const machine_filter_t machine_types[] = {
     { "[1992] 486SLC",                    MACHINE_TYPE_486SLC     },
     { "[1985] i386DX",                    MACHINE_TYPE_386DX      },
     { "[1989] i386DX/i486",               MACHINE_TYPE_386DX_486  },
-    { "[1992] i486 (Socket 168 and 1)",   MACHINE_TYPE_486        },
+    { "[1989] i486 (Socket 168 and 1)",   MACHINE_TYPE_486        },
     { "[1992] i486 (Socket 2)",           MACHINE_TYPE_486_S2     },
     { "[1994] i486 (Socket 3)",           MACHINE_TYPE_486_S3     },
     { "[1992] i486 (Miscellaneous)",      MACHINE_TYPE_486_MISC   },
