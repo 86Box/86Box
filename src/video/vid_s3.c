@@ -9441,12 +9441,18 @@ s3_disable_handlers(s3_t *s3)
 {
     s3_io_remove(s3);
 
+    mem_mapping_set_addr(&s3->linear_mapping, 0, 0);
     mem_mapping_disable(&s3->linear_mapping);
+    mem_mapping_set_addr(&s3->mmio_mapping, 0, 0);
     mem_mapping_disable(&s3->mmio_mapping);
+    mem_mapping_set_addr(&s3->new_mmio_mapping, 0, 0);
     mem_mapping_disable(&s3->new_mmio_mapping);
+    mem_mapping_set_addr(&s3->svga.mapping, 0xa0000, 0x20000);
     mem_mapping_disable(&s3->svga.mapping);
-    if (s3->pci)
+    if (s3->pci) {
+        mem_mapping_set_addr(&s3->bios_rom.mapping, 0xc0000, 0x8000);
         mem_mapping_disable(&s3->bios_rom.mapping);
+    }
 
     /* Save all the mappings and the timers because they are part of linked lists. */
     reset_state->linear_mapping   = s3->linear_mapping;
@@ -9457,6 +9463,11 @@ s3_disable_handlers(s3_t *s3)
 
     reset_state->svga.timer       = s3->svga.timer;
     reset_state->svga.timer8514   = s3->svga.timer8514;
+
+    memset(s3->svga.vram, 0x00, s3->svga.vram_max + 8);
+    memset(s3->svga.changedvram, 0x00, (s3->svga.vram_max >> 12) + 1);
+
+    pci_clear_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
 }
 
 static void
@@ -9471,6 +9482,7 @@ s3_reset(void *priv)
             reset_state->pci_slot = s3->pci_slot;
 
         *s3 = *reset_state;
+        s3_io_set(s3);
     }
 }
 
