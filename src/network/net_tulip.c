@@ -1638,7 +1638,7 @@ nic_init(const device_t *info)
     s->pci_conf[0x04]             = 7;
 
     /* Enable our BIOS space in PCI, if needed. */
-    if (s->bios_addr > 0) {
+    if (s->has_bios) {
         rom_init(&s->bios_rom, ROM_PATH_DEC21140, s->bios_addr, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         tulip_pci_bar[2].addr         = 0xffff0000;
     } else

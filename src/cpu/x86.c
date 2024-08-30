@@ -277,7 +277,7 @@ reset_common(int hard)
         cr0 = 0;
     if (is386 && !is486 && (fpu_type == FPU_387))
         cr0 |= 0x10;
-    cpu_cache_int_enabled = 0;
+    cpu_cache_int_enabled = 0;  
     cpu_update_waitstates();
     cr4              = 0;
     cpu_state.eflags = 0;
@@ -325,6 +325,8 @@ reset_common(int hard)
     if (hard)
         codegen_reset();
 #endif
+    cpu_flush_pending = 0;
+    cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
     x86_was_reset = 1;
