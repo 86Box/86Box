@@ -138,8 +138,17 @@ main_thread_fn()
             }
         } else {
             /* Just so we dont overload the host OS. */
+
+            /* Trigger a hard reset if one is pending. */
+            if (hard_reset_pending) {
+                hard_reset_pending = 0;
+                pc_reset_hard_close();
+                pc_reset_hard_init();
+            }
+
             if (dopause)
                 ack_pause();
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }

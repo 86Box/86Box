@@ -91,6 +91,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         cassetteMenu->addAction(tr("&Existing image..."), [this]() { cassetteSelectImage(false); });
         cassetteMenu->addAction(tr("Existing image (&Write-protected)..."), [this]() { cassetteSelectImage(true); });
         cassetteMenu->addSeparator();
+        for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+            cassetteImageHistoryPos[slot] = cassetteMenu->children().count();
+            cassetteMenu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, slot]() { cassetteMenuSelect(slot); })->setCheckable(false);
+        }
+        cassetteMenu->addSeparator();
         cassetteRecordPos = cassetteMenu->children().count();
         cassetteMenu->addAction(tr("&Record"), [this] { pc_cas_set_mode(cassette, 1); cassetteUpdateMenu(); })->setCheckable(true);
         cassettePlayPos = cassetteMenu->children().count();
@@ -110,6 +115,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         for (int i = 0; i < 2; i++) {
             auto *menu = parentMenu->addMenu("");
             menu->addAction(tr("&Image..."), [this, i]() { cartridgeSelectImage(i); });
+            menu->addSeparator();
+            for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+                cartridgeImageHistoryPos[slot] = menu->children().count();
+                menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { cartridgeMenuSelect(i, slot); })->setCheckable(false);
+            }
             menu->addSeparator();
             cartridgeEjectPos = menu->children().count();
             menu->addAction(tr("E&ject"), [this, i]() { cartridgeEject(i); });
@@ -179,10 +189,13 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(tr("&Existing image..."), [this, i]() { zipSelectImage(i, false); });
         menu->addAction(tr("Existing image (&Write-protected)..."), [this, i]() { zipSelectImage(i, true); });
         menu->addSeparator();
+        for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+            zipImageHistoryPos[slot] = menu->children().count();
+            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { zipReload(i, slot); })->setCheckable(false);
+        }
+        menu->addSeparator();
         zipEjectPos = menu->children().count();
         menu->addAction(tr("E&ject"), [this, i]() { zipEject(i); });
-        zipReloadPos = menu->children().count();
-        menu->addAction(tr("&Reload previous image"), [this, i]() { zipReload(i); });
         zipMenus[i] = menu;
         zipUpdateMenu(i);
     });
@@ -195,10 +208,13 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(tr("&Existing image..."), [this, i]() { moSelectImage(i, false); });
         menu->addAction(tr("Existing image (&Write-protected)..."), [this, i]() { moSelectImage(i, true); });
         menu->addSeparator();
+        for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+            moImageHistoryPos[slot] = menu->children().count();
+            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { moReload(i, slot); })->setCheckable(false);
+        }
+        menu->addSeparator();
         moEjectPos = menu->children().count();
         menu->addAction(tr("E&ject"), [this, i]() { moEject(i); });
-        moReloadPos = menu->children().count();
-        menu->addAction(tr("&Reload previous image"), [this, i]() { moReload(i); });
         moMenus[i] = menu;
         moUpdateMenu(i);
     });
@@ -244,8 +260,18 @@ MediaMenu::cassetteSelectImage(bool wp)
 }
 
 void
+MediaMenu::cassetteMenuSelect(int slot)
+{
+    QString filename = mhm.getImageForSlot(0, slot, ui::MediaType::Cassette);
+    cassetteMount(filename.toUtf8().constData(), 0);
+    cassetteUpdateMenu();
+    ui_sb_update_tip(SB_CASSETTE);
+}
+
+void
 MediaMenu::cassetteMount(const QString &filename, bool wp)
 {
+    auto previous_image = QFileInfo(cassette_fname);
     pc_cas_set_fname(cassette, nullptr);
     memset(cassette_fname, 0, sizeof(cassette_fname));
     cassette_ui_writeprot = wp ? 1 : 0;
@@ -257,6 +283,7 @@ MediaMenu::cassetteMount(const QString &filename, bool wp)
     }
 
     ui_sb_update_icon_state(SB_CASSETTE, filename.isEmpty() ? 1 : 0);
+    mhm.addImageToHistory(0, ui::MediaType::Cassette, previous_image.filePath(), filename);
     cassetteUpdateMenu();
     ui_sb_update_tip(SB_CASSETTE);
     config_save();
@@ -265,6 +292,7 @@ MediaMenu::cassetteMount(const QString &filename, bool wp)
 void
 MediaMenu::cassetteEject()
 {
+    mhm.addImageToHistory(0, ui::MediaType::Cassette, cassette_fname, QString());
     pc_cas_set_fname(cassette, nullptr);
     memset(cassette_fname, 0, sizeof(cassette_fname));
     ui_sb_update_icon_state(SB_CASSETTE, 1);
@@ -297,16 +325,22 @@ MediaMenu::cassetteUpdateMenu()
 
     cassetteMenu->setTitle(QString::asprintf(tr("Cassette: %s").toUtf8().constData(),
                            (name.isEmpty() ? tr("(empty)") : name).toUtf8().constData()));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+        updateImageHistory(0, slot, ui::MediaType::Cassette);
+    }
 }
 
 void
 MediaMenu::cartridgeMount(int i, const QString &filename)
 {
+    auto previous_image = QFileInfo(cart_fns[i]);
     cart_close(i);
     QByteArray filenameBytes = filename.toUtf8();
     cart_load(i, filenameBytes.data());
 
     ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
+    mhm.addImageToHistory(i, ui::MediaType::Cartridge, previous_image.filePath(), filename);
     cartridgeUpdateMenu(i);
     ui_sb_update_tip(SB_CARTRIDGE | i);
     config_save();
@@ -328,8 +362,18 @@ MediaMenu::cartridgeSelectImage(int i)
 }
 
 void
+MediaMenu::cartridgeMenuSelect(int index, int slot)
+{
+    QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Cartridge);
+    cartridgeMount(index, filename.toUtf8().constData());
+    cartridgeUpdateMenu(index);
+    ui_sb_update_tip(SB_CARTRIDGE | index);
+}
+
+void
 MediaMenu::cartridgeEject(int i)
 {
+    mhm.addImageToHistory(i, ui::MediaType::Cartridge, cart_fns[i], QString());
     cart_close(i);
     ui_sb_update_icon_state(SB_CARTRIDGE | i, 1);
     cartridgeUpdateMenu(i);
@@ -347,6 +391,10 @@ MediaMenu::cartridgeUpdateMenu(int i)
     ejectMenu->setEnabled(!name.isEmpty());
     // menu->setTitle(tr("Cartridge %1: %2").arg(QString::number(i+1), name.isEmpty() ? tr("(empty)") : name));
     menu->setTitle(QString::asprintf(tr("Cartridge %i: %ls").toUtf8().constData(), i + 1, name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+        updateImageHistory(i, slot, ui::MediaType::Cartridge);
+    }
 }
 
 void
@@ -580,6 +628,36 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
     QString menu_item_name;
 
     switch (type) {
+        default:
+            menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
+            return;
+        case ui::MediaType::Cassette:
+            if (!MachineStatus::hasCassette())
+                return;
+            menu                  = cassetteMenu;
+            children              = menu->children();
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cassetteImageHistoryPos[slot]]);
+            fi.setFile(fn);
+            menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
+            break;
+        case ui::MediaType::Cartridge:
+            if (!machine_has_cartridge(machine))
+                return;
+            menu                  = cartridgeMenus[index];
+            children              = menu->children();
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cartridgeImageHistoryPos[slot]]);
+            fi.setFile(fn);
+            menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
+            break;
+        case ui::MediaType::Floppy:
+            if (!floppyMenus.contains(index))
+                return;
+            menu                  = floppyMenus[index];
+            children              = menu->children();
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[floppyImageHistoryPos[slot]]);
+            fi.setFile(fn);
+            menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
+            break;
         case ui::MediaType::Optical:
             if (!cdromMenus.contains(index))
                 return;
@@ -600,18 +678,24 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             }
             imageHistoryUpdatePos->setIcon(menu_icon);
             break;
-        case ui::MediaType::Floppy:
-            if (!floppyMenus.contains(index))
+        case ui::MediaType::Zip:
+            if (!zipMenus.contains(index))
                 return;
-            menu                  = floppyMenus[index];
+            menu                  = zipMenus[index];
             children              = menu->children();
-            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[floppyImageHistoryPos[slot]]);
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[zipImageHistoryPos[slot]]);
             fi.setFile(fn);
             menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
             break;
-        default:
+        case ui::MediaType::Mo:
+            if (!moMenus.contains(index))
+                return;
+            menu                  = moMenus[index];
+            children              = menu->children();
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[moImageHistoryPos[slot]]);
+            fi.setFile(fn);
             menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
-            return;
+            break;
     }
 
     imageHistoryUpdatePos->setText(QString::asprintf(tr("%s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
@@ -727,6 +811,7 @@ MediaMenu::zipMount(int i, const QString &filename, bool wp)
         zip_load(dev, filenameBytes.data());
         zip_insert(dev);
     }
+    mhm.addImageToHistory(i, ui::MediaType::Zip, zip_drives[i].prev_image_path, zip_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_ZIP | i, filename.isEmpty() ? 1 : 0);
     zipUpdateMenu(i);
@@ -740,6 +825,7 @@ MediaMenu::zipEject(int i)
 {
     const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
 
+    mhm.addImageToHistory(i, ui::MediaType::Zip, zip_drives[i].image_path, QString());
     zip_disk_close(dev);
     zip_drives[i].image_path[0] = 0;
     if (zip_drives[i].bus_type) {
@@ -754,7 +840,7 @@ MediaMenu::zipEject(int i)
 }
 
 void
-MediaMenu::zipReload(int i)
+MediaMenu::zipReloadPrev(int i)
 {
     const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
 
@@ -769,6 +855,15 @@ MediaMenu::zipReload(int i)
     ui_sb_update_tip(SB_ZIP | i);
 
     config_save();
+}
+
+void
+MediaMenu::zipReload(int index, int slot)
+{
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Zip);
+    zipMount(index, filename, false);
+    zipUpdateMenu(index);
+    ui_sb_update_tip(SB_ZIP | index);
 }
 
 void
@@ -800,6 +895,9 @@ MediaMenu::zipUpdateMenu(int i)
 
     // menu->setTitle(tr("ZIP %1 %2 (%3): %4").arg((zip_drives[i].is_250 > 0) ? "250" : "100", QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name));
     menu->setTitle(QString::asprintf(tr("ZIP %03i %i (%s): %ls").toUtf8().constData(), (zip_drives[i].is_250 > 0) ? 250 : 100, i + 1, busName.toUtf8().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+        updateImageHistory(i, slot, ui::MediaType::Zip);
 }
 
 void
@@ -844,6 +942,7 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
         mo_load(dev, filenameBytes.data());
         mo_insert(dev);
     }
+    mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_MO | i, filename.isEmpty() ? 1 : 0);
     moUpdateMenu(i);
@@ -857,6 +956,7 @@ MediaMenu::moEject(int i)
 {
     const auto dev = static_cast<mo_t *>(mo_drives[i].priv);
 
+    mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].image_path, QString());
     mo_disk_close(dev);
     mo_drives[i].image_path[0] = 0;
     if (mo_drives[i].bus_type) {
@@ -871,7 +971,7 @@ MediaMenu::moEject(int i)
 }
 
 void
-MediaMenu::moReload(int i)
+MediaMenu::moReloadPrev(int i)
 {
     mo_t *dev = (mo_t *) mo_drives[i].priv;
 
@@ -886,6 +986,15 @@ MediaMenu::moReload(int i)
     ui_sb_update_tip(SB_MO | i);
 
     config_save();
+}
+
+void
+MediaMenu::moReload(int index, int slot)
+{
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Mo);
+    moMount(index, filename, false);
+    moUpdateMenu(index);
+    ui_sb_update_tip(SB_MO | index);
 }
 
 void
@@ -916,6 +1025,9 @@ MediaMenu::moUpdateMenu(int i)
     }
 
     menu->setTitle(QString::asprintf(tr("MO %i (%ls): %ls").toUtf8().constData(), i + 1, busName.toStdU16String().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+        updateImageHistory(i, slot, ui::MediaType::Mo);
 }
 
 void
@@ -1043,7 +1155,7 @@ zip_mount(uint8_t id, char *fn, uint8_t wp)
 void
 zip_reload(uint8_t id)
 {
-    MediaMenu::ptr->zipReload(id);
+    MediaMenu::ptr->zipReloadPrev(id);
 }
 
 void
@@ -1061,6 +1173,6 @@ mo_mount(uint8_t id, char *fn, uint8_t wp)
 void
 mo_reload(uint8_t id)
 {
-    MediaMenu::ptr->moReload(id);
+    MediaMenu::ptr->moReloadPrev(id);
 }
 }

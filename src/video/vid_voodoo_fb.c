@@ -364,6 +364,15 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
             addr >>= 1;
             break;
 
+        case LFB_FORMAT_XRGB8888:
+            colour_data[0].b = val & 0xff;
+            colour_data[0].g = (val >> 8) & 0xff;
+            colour_data[0].r = (val >> 16) & 0xff;
+            alpha_data[0]    = 0xff;
+            write_mask       = LFB_WRITE_COLOUR;
+            addr >>= 1;
+            break;
+
         case LFB_FORMAT_DEPTH:
             depth_data[0] = val;
             depth_data[1] = val >> 16;

@@ -946,10 +946,9 @@ MainWindow::on_actionSettings_triggered()
         default:
             break;
         case QDialog::Accepted:
-            pc_reset_hard_close();
             settings.save();
             config_changed = 2;
-            pc_reset_hard_init();
+            pc_reset_hard();
             break;
         case QDialog::Rejected:
             break;

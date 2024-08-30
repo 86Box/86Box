@@ -446,6 +446,7 @@ extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
 extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
+extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);

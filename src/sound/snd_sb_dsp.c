@@ -1959,7 +1959,9 @@ sb_read(uint16_t a, void *priv)
                     else
                         ret = 0x7f;
                 }
-            } else
+            } else if (IS_AZTECH(dsp))
+                ret = 0x00;
+            else
                 ret = 0xff;
             break;
         case 0xE: /* Read data ready */
