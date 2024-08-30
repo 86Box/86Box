@@ -153,6 +153,7 @@ extern int      enable_discord;             /* (C) enable Discord integration */
 extern int      other_ide_present;          /* IDE controllers from non-IDE cards are present */
 extern int      other_scsi_present;         /* SCSI controllers from non-SCSI cards are present */
 
+extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
 extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */

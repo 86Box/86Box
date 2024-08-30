@@ -14678,7 +14678,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[SMSC VictoryBX-66] A-Trend ATC-6310BXII",
+        .name = "[SMSC VictoryBX-66] A-Trend ATC6310BXII",
         .internal_name = "atc6310bxii",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_SMSC_VICTORYBX_66,
@@ -15397,7 +15397,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[SMSC VictoryBX-66] A-Trend ATC-7020BXII",
+        .name = "[SMSC VictoryBX-66] A-Trend ATC7020BXII",
         .internal_name = "atc7020bxii",
         .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_SMSC_VICTORYBX_66,

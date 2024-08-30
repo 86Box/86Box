@@ -535,6 +535,14 @@ then
 			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
 			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 		fi
+
+		# Patch wget to remove libproxy support, as it depends on shared-mime-info which
+		# fails to build for a 10.14 target, which we have to do despite wget only being
+		# a host dependency. MacPorts issue 69406 strongly implies this will not be fixed.
+		wget_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/net/wget/Portfile"
+		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
+		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
+
 		while :
 		do
 			# Attempt to install dependencies.
