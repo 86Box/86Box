@@ -616,6 +616,8 @@ extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
 extern int cpu_rom_prefetch_cycles;
 extern int cpu_waitstates;
+extern int cpu_flush_pending;
+extern int cpu_old_paging;
 extern int cpu_cache_int_enabled;
 extern int cpu_cache_ext_enabled;
 extern int cpu_isa_speed;

@@ -279,7 +279,7 @@ exec386_2386(int32_t cycs)
             if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 if (in_smm)
-                    x386_2386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
+                    x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
@@ -303,6 +303,13 @@ exec386_2386(int32_t cycs)
             if (!use32)
                 cpu_state.pc &= 0xffff;
 #endif
+
+            if (cpu_flush_pending == 1)
+                cpu_flush_pending++;
+            else if (cpu_flush_pending == 2) {
+                cpu_flush_pending = 0;
+                flushmmucache_pc();
+            }
 
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;

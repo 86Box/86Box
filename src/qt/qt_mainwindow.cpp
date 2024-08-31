@@ -946,10 +946,9 @@ MainWindow::on_actionSettings_triggered()
         default:
             break;
         case QDialog::Accepted:
-            pc_reset_hard_close();
             settings.save();
             config_changed = 2;
-            pc_reset_hard_init();
+            pc_reset_hard();
             break;
         case QDialog::Rejected:
             break;
@@ -998,7 +997,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
         case 0x10b: /* Microsoft scroll up normal */
         case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
             /* This key uses a break code as make. Send it manually, only on press. */
-            if (down) {
+            if (down && (mouse_capture || !kbd_req_capture || video_fullscreen)) {
                 if (keycode & 0x100)
                     keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
@@ -1011,7 +1010,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             break;
 
         case 0x137: /* Print Screen */
-            if (keyboard_recv(0x38) || keyboard_recv(0x138)) { /* Alt+ */
+            if (keyboard_recv_ui(0x38) || keyboard_recv_ui(0x138)) { /* Alt+ */
                 keycode = 0x54;
             } else if (down) {
                 keyboard_input(down, 0x12a);
@@ -1022,7 +1021,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             break;
 
         case 0x145: /* Pause */
-            if (keyboard_recv(0x1d) || keyboard_recv(0x11d)) { /* Ctrl+ */
+            if (keyboard_recv_ui(0x1d) || keyboard_recv_ui(0x11d)) { /* Ctrl+ */
                 keycode = 0x146;
             } else {
                 keyboard_input(down, 0xe11d);
@@ -1196,6 +1195,8 @@ MainWindow::on_actionFullscreen_triggered()
         ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
     }
+    fs_on_signal = false;
+    fs_off_signal = false;
     ui->stackedWidget->onResize(width(), height());
 }
 
@@ -1218,7 +1219,7 @@ MainWindow::getTitle(wchar_t *title)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
-    if (!dopause && (mouse_capture || !kbd_req_capture)) {
+    if (!dopause) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
             if (shortcutEvent->key() == ui->actionExit->shortcut()) {
@@ -1299,7 +1300,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture)) {
+    if (send_keyboard_input) {
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
 #else
@@ -1312,10 +1313,10 @@ MainWindow::keyPressEvent(QKeyEvent *event)
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
 
-    if ((video_fullscreen > 0) && (keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
-        if (keyboard_recv(0x57))
+    if ((video_fullscreen > 0) && (keyboard_recv_ui(0x1D) || keyboard_recv_ui(0x11D))) {
+        if (keyboard_recv_ui(0x57))
             ui->actionTake_screenshot->trigger();
-        else if (keyboard_recv(0x58))
+        else if (keyboard_recv_ui(0x58))
             pc_send_cad();
     }
 
@@ -1338,7 +1339,7 @@ void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Pause) {
-        if (keyboard_recv(0x38) && keyboard_recv(0x138)) {
+        if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
             plat_pause(dopause ^ 1);
         }
     }

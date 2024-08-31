@@ -6821,11 +6821,13 @@ millennium_ii_available(void)
     return rom_present(ROM_MILLENNIUM_II);
 }
 
+#ifdef USE_G100
 static int
 matrox_g100_available(void)
 {
     return rom_present(ROM_G100);
 }
+#endif
 
 static void
 mystique_speed_changed(void *priv)

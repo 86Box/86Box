@@ -226,6 +226,19 @@ flushmmucache(void)
 }
 
 void
+flushmmucache_pc(void)
+{
+    mmuflush++;
+
+    pccache  = (uint32_t) 0xffffffff;
+    pccache2 = (uint8_t *) 0xffffffff;
+
+#ifdef USE_DYNAREC
+    codegen_flush();
+#endif
+}
+
+void
 flushmmucache_nopc(void)
 {
     for (uint16_t c = 0; c < 256; c++) {

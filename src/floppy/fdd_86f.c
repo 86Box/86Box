@@ -1298,7 +1298,16 @@ d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am, ui
         find->sync_pos                                                = 0xFFFFFFFF;
         if (ignore_other_am & 1) {
             /* Skip mode, let's go back to finding ID. */
-            dev->state -= 2;
+            fdc_set_wrong_am(d86f_fdc);
+            dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+            dev->error_condition                                                                     = 0;
+            dev->state                                                                               = STATE_IDLE;
+            if (dev->state == STATE_02_READ_DATA)
+                fdc_track_finishread(d86f_fdc, dev->error_condition);
+            else if (dev->state == STATE_11_SCAN_DATA)
+                fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
+            else
+                fdc_sector_finishread(d86f_fdc);
         } else {
             /* Not skip mode, process the sector anyway. */
             fdc_set_wrong_am(d86f_fdc);
@@ -1377,7 +1386,16 @@ d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, u
             find->sync_pos                                                = 0xFFFFFFFF;
             if (ignore_other_am & 1) {
                 /* Skip mode, let's go back to finding ID. */
-                dev->state -= 2;
+                fdc_set_wrong_am(d86f_fdc);
+                dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+                dev->error_condition                                                                     = 0;
+                dev->state                                                                               = STATE_IDLE;
+                if (dev->state == STATE_02_READ_DATA)
+                    fdc_track_finishread(d86f_fdc, dev->error_condition);
+                else if (dev->state == STATE_11_SCAN_DATA)
+                    fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
+                else
+                    fdc_sector_finishread(d86f_fdc);
             } else {
                 /* Not skip mode, process the sector anyway. */
                 fdc_set_wrong_am(d86f_fdc);

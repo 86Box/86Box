@@ -21,7 +21,15 @@ static float volslog[16] = {
     7.51785f, 9.46440f, 11.9194f, 15.0000f
 };
 
-void
+static int
+sn76489_check_tap_2(sn76489_t *sn76489)
+{
+   int ret = ((sn76489->shift >> sn76489->white_noise_tap_2) & 1);
+
+   return (sn76489->type == SN76496) ? ret : !ret;
+}
+
+static void
 sn76489_update(sn76489_t *sn76489)
 {
     for (; sn76489->pos < sound_pos_global; sn76489->pos++) {
@@ -42,24 +50,28 @@ sn76489_update(sn76489_t *sn76489)
         result += (((sn76489->shift & 1) ^ 1) * 127 * volslog[sn76489->vol[0]] * 2);
 
         sn76489->count[0] -= (512 * sn76489->psgconst);
-        while (sn76489->count[0] < 0 && sn76489->latch[0]) {
+        while ((sn76489->count[0] < 0) && sn76489->latch[0]) {
             sn76489->count[0] += (sn76489->latch[0] * 4);
             if (!(sn76489->noise & 4)) {
-                if (sn76489->shift & 1)
-                    sn76489->shift |= 0x8000;
-                sn76489->shift >>= 1;
+                if ((sn76489->shift >> sn76489->white_noise_tap_1) & 1) {
+                    sn76489->shift >>= 1;
+                    sn76489->shift |= sn76489->feedback_mask;
+                } else
+                    sn76489->shift >>= 1;
             } else {
-                if ((sn76489->shift & 1) ^ ((sn76489->shift >> 1) & 1))
-                    sn76489->shift |= 0x8000;
-                sn76489->shift >>= 1;
+                if (((sn76489->shift >> sn76489->white_noise_tap_1) & 1) ^ sn76489_check_tap_2(sn76489)) {
+                    sn76489->shift >>= 1;
+                    sn76489->shift |= sn76489->feedback_mask;
+                } else
+                    sn76489->shift >>= 1;
             }
         }
 
-        sn76489->buffer[sn76489->pos] = result;
+        sn76489->buffer[sn76489->pos] = (sn76489->type == NCR8496) ? -result : result;
     }
 }
 
-void
+static void
 sn76489_get_buffer(int32_t *buffer, int len, void *priv)
 {
     sn76489_t *sn76489 = (sn76489_t *) priv;
@@ -74,7 +86,7 @@ sn76489_get_buffer(int32_t *buffer, int len, void *priv)
     sn76489->pos = 0;
 }
 
-void
+static void
 sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
 {
     sn76489_t *sn76489 = (sn76489_t *) priv;
@@ -88,7 +100,7 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
             case 0:
                 sn76489->freqlo[3] = data & 0xf;
                 sn76489->latch[3]  = (sn76489->freqlo[3] | (sn76489->freqhi[3] << 4)) << 6;
-                if (sn76489->extra_divide)
+                if (!sn76489->extra_divide)
                     sn76489->latch[3] &= 0x3ff;
                 if (!sn76489->latch[3])
                     sn76489->latch[3] = (sn76489->extra_divide ? 2048 : 1024) << 6;
@@ -101,7 +113,7 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
             case 0x20:
                 sn76489->freqlo[2] = data & 0xf;
                 sn76489->latch[2]  = (sn76489->freqlo[2] | (sn76489->freqhi[2] << 4)) << 6;
-                if (sn76489->extra_divide)
+                if (!sn76489->extra_divide)
                     sn76489->latch[2] &= 0x3ff;
                 if (!sn76489->latch[2])
                     sn76489->latch[2] = (sn76489->extra_divide ? 2048 : 1024) << 6;
@@ -114,7 +126,7 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
             case 0x40:
                 sn76489->freqlo[1] = data & 0xf;
                 sn76489->latch[1]  = (sn76489->freqlo[1] | (sn76489->freqhi[1] << 4)) << 6;
-                if (sn76489->extra_divide)
+                if (!sn76489->extra_divide)
                     sn76489->latch[1] &= 0x3ff;
                 if (!sn76489->latch[1])
                     sn76489->latch[1] = (sn76489->extra_divide ? 2048 : 1024) << 6;
@@ -125,15 +137,13 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
                 sn76489->vol[1] = 0xf - data;
                 break;
             case 0x60:
-                if ((data & 4) != (sn76489->noise & 4) || sn76489->type == SN76496)
-                    sn76489->shift = 0x4000;
+                if (((data & 4) != (sn76489->noise & 4)) || (sn76489->type == SN76496))
+                    sn76489->shift = sn76489->feedback_mask;
                 sn76489->noise = data & 0xf;
                 if ((data & 3) == 3)
                     sn76489->latch[0] = sn76489->latch[1];
                 else
                     sn76489->latch[0] = 0x400 << (data & 3);
-                if (sn76489->extra_divide)
-                    sn76489->latch[0] &= 0x3ff;
                 if (!sn76489->latch[0])
                     sn76489->latch[0] = (sn76489->extra_divide ? 2048 : 1024) << 6;
                 break;
@@ -146,20 +156,25 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
                 break;
         }
     } else {
+        /* NCR8496 ignores writes to registers 1, 3, 5, 6 and 7 with bit 7 clear. */
+        if ((sn76489->type != SN76496) && ((sn76489->firstdat & 0x10) || ((sn76489->firstdat & 0x70) == 0x60)))
+            return;
+
         if ((sn76489->firstdat & 0x70) == 0x60 && (sn76489->type == SN76496)) {
-            if ((data & 4) != (sn76489->noise & 4) || sn76489->type == SN76496)
-                sn76489->shift = 0x4000;
+            if (sn76489->type == SN76496)
+                sn76489->shift = sn76489->feedback_mask;
             sn76489->noise = data & 0xf;
             if ((data & 3) == 3)
                 sn76489->latch[0] = sn76489->latch[1];
             else
                 sn76489->latch[0] = 0x400 << (data & 3);
             if (!sn76489->latch[0])
-                sn76489->latch[0] = 1024 << 6;
+                sn76489->latch[0] = (sn76489->extra_divide ? 2048 : 1024) << 6;
         } else if ((sn76489->firstdat & 0x70) != 0x60) {
             sn76489->freqhi[sn76489->lasttone] = data & 0x7F;
-            freq                               = sn76489->freqlo[sn76489->lasttone] | (sn76489->freqhi[sn76489->lasttone] << 4);
-            if (sn76489->extra_divide)
+            freq                               = sn76489->freqlo[sn76489->lasttone] |
+                                                 (sn76489->freqhi[sn76489->lasttone] << 4);
+            if (!sn76489->extra_divide)
                 freq &= 0x3ff;
             if (!freq)
                 freq = sn76489->extra_divide ? 2048 : 1024;
@@ -174,12 +189,28 @@ void
 sn74689_set_extra_divide(sn76489_t *sn76489, int enable)
 {
     sn76489->extra_divide = enable;
+
+    if (!enable) {
+        for (uint8_t c = 1; c < 4; c++)
+            sn76489->latch[c] &= ~(0x400 << 6);
+        sn76489->latch[0] &= ~(0x400 << 6);
+    }
 }
 
 void
 sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int freq)
 {
     sound_add_handler(sn76489_get_buffer, sn76489);
+
+    if (type == SN76496) {
+        sn76489->white_noise_tap_1 = 0;
+        sn76489->white_noise_tap_2 = 1;
+        sn76489->feedback_mask     = 0x4000;
+    } else {
+        sn76489->white_noise_tap_1 = 1;
+        sn76489->white_noise_tap_2 = 5;
+        sn76489->feedback_mask     = 0x8000;
+    }
 
     sn76489->latch[0] = sn76489->latch[1] = sn76489->latch[2] = sn76489->latch[3] = 0x3FF << 6;
     sn76489->vol[0]                                                               = 0;
@@ -191,7 +222,7 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
     sn76489->count[2] = (rand() & 0x3FF) << 6;
     sn76489->count[3] = (rand() & 0x3FF) << 6;
     sn76489->noise    = 3;
-    sn76489->shift    = 0x4000;
+    sn76489->shift    = sn76489->feedback_mask;
     sn76489->type     = type;
     sn76489->psgconst = (((double) freq / 64.0) / (double) FREQ_48000);
 

@@ -36,7 +36,7 @@ JoystickConfiguration::JoystickConfiguration(int type, int joystick_nr, QWidget 
     ui->setupUi(this);
 
     auto model = ui->comboBoxDevice->model();
-    Models::AddEntry(model, "None", 0);
+    Models::AddEntry(model, tr("None"), 0);
     for (int c = 0; c < joysticks_present; c++) {
         Models::AddEntry(model, plat_joystick_state[c].name, c + 1);
     }
@@ -114,8 +114,8 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         }
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_povs; d++) {
-            Models::AddEntry(model, QString("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
-            Models::AddEntry(model, QString("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
         }
 
         int nr_axes = plat_joystick_state[joystick].nr_axes;
@@ -161,9 +161,9 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
     for (int c = 0; c < joystick_get_pov_count(type) * 2; c++) {
         QLabel *label;
         if (c & 1) {
-            label = new QLabel(QString("%1 (Y axis)").arg(joystick_get_pov_name(type, c / 2)), this);
+            label = new QLabel(tr("%1 (Y axis)").arg(joystick_get_pov_name(type, c / 2)), this);
         } else {
-            label = new QLabel(QString("%1 (X axis)").arg(joystick_get_pov_name(type, c / 2)), this);
+            label = new QLabel(tr("%1 (X axis)").arg(joystick_get_pov_name(type, c / 2)), this);
         }
         auto cbox = new QComboBox(this);
         cbox->setObjectName(QString("cboxPov%1").arg(QString::number(c)));
@@ -171,8 +171,8 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         auto model = cbox->model();
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_povs; d++) {
-            Models::AddEntry(model, QString("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
-            Models::AddEntry(model, QString("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
         }
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_axes; d++) {

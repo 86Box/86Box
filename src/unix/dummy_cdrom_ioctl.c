@@ -205,7 +205,7 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
         /* Cooked */
     }
     plat_cdrom_close();
-    dummy_cdrom_ioctl_log("ReadSector status=%d, sector=%d, size=%" PRId64 ".\n", status, sector, (long long) size);
+    dummy_cdrom_ioctl_log("ReadSector sector=%d.\n", sector);
 
     return 0;
 }

@@ -83,7 +83,9 @@ int fpu_cycles = 0;
 int in_lock = 0;
 
 #ifdef ENABLE_X86_LOG
+#if 0
 void dumpregs(int);
+#endif
 
 int x86_do_log = ENABLE_X86_LOG;
 int indump     = 0;
@@ -93,13 +95,14 @@ x86_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (x808x_do_log) {
+    if (x86_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 
+#if 0
 void
 dumpregs(int force)
 {
@@ -144,6 +147,7 @@ dumpregs(int force)
     x87_dumpregs();
     indump = 0;
 }
+#endif
 #else
 #    define x86_log(fmt, ...)
 #endif
@@ -273,7 +277,7 @@ reset_common(int hard)
         cr0 = 0;
     if (is386 && !is486 && (fpu_type == FPU_387))
         cr0 |= 0x10;
-    cpu_cache_int_enabled = 0;
+    cpu_cache_int_enabled = 0;  
     cpu_update_waitstates();
     cr4              = 0;
     cpu_state.eflags = 0;
@@ -321,6 +325,8 @@ reset_common(int hard)
     if (hard)
         codegen_reset();
 #endif
+    cpu_flush_pending = 0;
+    cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
     x86_was_reset = 1;

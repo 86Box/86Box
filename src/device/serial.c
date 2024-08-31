@@ -223,7 +223,7 @@ serial_write_fifo(serial_t *dev, uint8_t dat)
                ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ?
                fifo_get_count(dev->rcvr_fifo) : 0);
 
-    if (!(dev->mctrl & 0x10))
+    if ((dev != NULL) && !(dev->mctrl & 0x10))
         write_fifo(dev, dat);
 }
 

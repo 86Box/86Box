@@ -35,6 +35,7 @@ typedef struct cart_t {
 } cart_t;
 
 char cart_fns[2][512];
+char *cart_image_history[2][CART_IMAGE_HISTORY];
 
 static cart_t carts[2];
 
@@ -169,6 +170,7 @@ cart_close(int drive)
     cart_image_close(drive);
     cart_fns[drive][0] = 0;
     ui_sb_update_icon_state(SB_CARTRIDGE | drive, 1);
+    resetx86();
 }
 
 void
