@@ -131,7 +131,6 @@ option(RTMIDI       "RtMidi"                                                    
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(VNC          "VNC renderer"                                                  OFF)
-option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
@@ -141,8 +140,10 @@ option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"              
 
 if(WIN32)
     set(QT ON)
+    option(CPPTHREADS "C++11 threads" OFF)
 else()
     option(QT "Qt GUI" ON)
+    option(CPPTHREADS "C++11 threads" ON)
 endif()
 
 # Development branch features

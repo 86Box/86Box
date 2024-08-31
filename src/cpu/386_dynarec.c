@@ -933,6 +933,13 @@ exec386(int32_t cycs)
                 x386_dynarec_log("[%04X:%08X] ABRT\n", CS, cpu_state.pc);
 #endif
 
+            if (cpu_flush_pending == 1)
+                cpu_flush_pending++;
+            else if (cpu_flush_pending == 2) {
+                cpu_flush_pending = 0;
+                flushmmucache_pc();
+            }
+
 #ifndef USE_NEW_DYNAREC
             if (!use32)
                 cpu_state.pc &= 0xffff;

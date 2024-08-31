@@ -458,6 +458,7 @@ fastreadw_fetch(uint32_t a)
 {
     uint16_t ret;
 
+    cpu_old_paging = (cpu_flush_pending == 2);
     if ((a & 0xFFF) > 0xFFE) {
         ret = fastreadb(a);
         if (!cpu_state.abrt && (opcode_length[ret & 0xff] > 1))
@@ -469,6 +470,7 @@ fastreadw_fetch(uint32_t a)
         ret = readmemwl_2386(a);
         read_type = 4;
     }
+    cpu_old_paging = 0;
 
     return ret;
 }
@@ -486,7 +488,9 @@ fastreadl_fetch(uint32_t a)
         ret = 0;
     else {
         read_type = 1;
+        cpu_old_paging = (cpu_flush_pending == 2);
         ret = readmemll_2386(a);
+        cpu_old_paging = 0;
         read_type = 4;
     }
 
@@ -563,35 +567,52 @@ fastreadl_fetch(uint32_t a)
 }
 #endif
 
+#ifdef OPS_286_386
 static __inline uint8_t
 getbyte(void)
 {
+    uint8_t ret;
     cpu_state.pc++;
-    return fastreadb(cs + (cpu_state.pc - 1));
+    cpu_old_paging = (cpu_flush_pending == 2);
+    ret = fastreadb(cs + (cpu_state.pc - 1));
+    cpu_old_paging = 0;
+    return ret;
+
 }
 
 static __inline uint16_t
 getword(void)
 {
+    uint16_t ret;
     cpu_state.pc += 2;
-    return fastreadw(cs + (cpu_state.pc - 2));
+    cpu_old_paging = (cpu_flush_pending == 2);
+    ret = fastreadw(cs + (cpu_state.pc - 2));
+    cpu_old_paging = 0;
+    return ret;
 }
 
 static __inline uint32_t
 getlong(void)
 {
+    uint32_t ret;
     cpu_state.pc += 4;
-    return fastreadl(cs + (cpu_state.pc - 4));
+    cpu_old_paging = (cpu_flush_pending == 2);
+    ret = fastreadl(cs + (cpu_state.pc - 4));
+    cpu_old_paging = 0;
+    return ret;
 }
 
 static __inline uint64_t
 getquad(void)
 {
+    uint64_t ret;
     cpu_state.pc += 8;
-    return fastreadl(cs + (cpu_state.pc - 8)) | ((uint64_t) fastreadl(cs + (cpu_state.pc - 4)) << 32);
+    cpu_old_paging = (cpu_flush_pending == 2);
+    ret = fastreadl(cs + (cpu_state.pc - 8)) | ((uint64_t) fastreadl(cs + (cpu_state.pc - 4)) << 32);
+    cpu_old_paging = 0;
+    return ret;
 }
 
-#ifdef OPS_286_386
 static __inline uint8_t
 geteab(void)
 {
@@ -678,6 +699,34 @@ seteaq(uint64_t v)
 #    define seteaw_mem(v) writememwl_2386(easeg + cpu_state.eaaddr, v);
 #    define seteal_mem(v) writememll_2386(easeg + cpu_state.eaaddr, v);
 #else
+static __inline uint8_t
+getbyte(void)
+{
+    cpu_state.pc++;
+    return fastreadb(cs + (cpu_state.pc - 1));
+}
+
+static __inline uint16_t
+getword(void)
+{
+    cpu_state.pc += 2;
+    return fastreadw(cs + (cpu_state.pc - 2));
+}
+
+static __inline uint32_t
+getlong(void)
+{
+    cpu_state.pc += 4;
+    return fastreadl(cs + (cpu_state.pc - 4));
+}
+
+static __inline uint64_t
+getquad(void)
+{
+    cpu_state.pc += 8;
+    return fastreadl(cs + (cpu_state.pc - 8)) | ((uint64_t) fastreadl(cs + (cpu_state.pc - 4)) << 32);
+}
+
 static __inline uint8_t
 geteab(void)
 {

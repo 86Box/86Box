@@ -32,6 +32,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
+#include <86box/machine.h>
 #include <86box/nvr.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
@@ -131,7 +132,8 @@ fdc37c93x_gpio_read(uint16_t port, void *priv)
     const fdc37c93x_t *dev = (fdc37c93x_t *) priv;
     uint8_t            ret = 0xff;
 
-    ret = dev->gpio_regs[port & 1];
+    if (strcmp(machine_get_internal_name(), "vectra54"))
+        ret = dev->gpio_regs[port & 1];
 
     return ret;
 }

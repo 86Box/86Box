@@ -1016,9 +1016,14 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_gs.ar_high = (saved_state[SMRAM_FIELD_P6_GS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_gs);
 
-    mem_a20_alt = 0x00;
-    mem_a20_key = saved_state[SMRAM_FIELD_P6_A20M] ? 0x00 : 0x02;
-    mem_a20_recalc();
+    rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+    if (is6117)
+        rammask |= 0x3000000;
+
+    if (saved_state[SMRAM_FIELD_P6_A20M] & 0x01)
+        rammask &= 0xffefffff;
+
+    flushmmucache();
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
         smbase = saved_state[SMRAM_FIELD_P6_SMBASE_OFFSET];

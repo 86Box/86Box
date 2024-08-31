@@ -861,16 +861,46 @@ load_storage_controllers(void)
         cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
     else
         cassette_enable = 0;
+
     p = ini_section_get_string(cat, "cassette_file", "");
-    if (strlen(p) > 511)
-        fatal("load_storage_controllers(): strlen(p) > 511\n");
-    else
-        strncpy(cassette_fname, p, 511);
+
+    if (!strcmp(p, usr_path))
+        p[0] = 0x00;
+
+    if (p[0] != 0x00) {
+        if (path_abs(p)) {
+            if (strlen(p) > 511)
+                fatal("load_storage_controllers(): strlen(p) > 511 (cassette_fname)\n");
+            else
+                strncpy(cassette_fname, p, 511);
+        } else
+            path_append_filename(cassette_fname, usr_path, p);
+        path_normalize(cassette_fname);
+    }
+
     p = ini_section_get_string(cat, "cassette_mode", "");
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
         strncpy(cassette_mode, p, 511);
+
+    for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+        cassette_image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+        sprintf(temp, "cassette_image_history_%02i", i + 1);
+        p = ini_section_get_string(cat, temp, NULL);
+        if (p) {
+            if (path_abs(p)) {
+                if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+                    fatal("load_storage_controllers(): strlen(p) > 2047 "
+                          "(cassette_image_history[%i])\n", i);
+                else
+                    snprintf(cassette_image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+            } else
+                snprintf(cassette_image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                         path_get_slash(usr_path), p);
+            path_normalize(cassette_image_history[i]);
+        }
+    }
     cassette_pos          = ini_section_get_int(cat, "cassette_position", 0);
     cassette_srate        = ini_section_get_int(cat, "cassette_srate", 44100);
     cassette_append       = !!ini_section_get_int(cat, "cassette_append", 0);
@@ -893,6 +923,24 @@ load_storage_controllers(void)
             } else
                 path_append_filename(cart_fns[c], usr_path, p);
             path_normalize(cart_fns[c]);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            cart_image_history[c][i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+            sprintf(temp, "cartridge_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+                        fatal("load_storage_controllers(): strlen(p) > 2047 "
+                              "(cart_image_history[%i][%i])\n", c, i);
+                    else
+                        snprintf(cart_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                } else
+                    snprintf(cart_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(cart_image_history[c][i]);
+            }
         }
     }
 
@@ -2330,13 +2378,31 @@ save_storage_controllers(void)
 
     if (strlen(cassette_fname) == 0)
         ini_section_delete_var(cat, "cassette_file");
-    else
-        ini_section_set_string(cat, "cassette_file", cassette_fname);
+    else {
+        path_normalize(cassette_fname);
+        if (!strnicmp(cassette_fname, usr_path, strlen(usr_path)))
+            ini_section_set_string(cat, "cassette_file", &cassette_fname[strlen(usr_path)]);
+        else
+            ini_section_set_string(cat, "cassette_file", cassette_fname);
+    }
 
     if (strlen(cassette_mode) == 0)
         ini_section_delete_var(cat, "cassette_mode");
     else
         ini_section_set_string(cat, "cassette_mode", cassette_mode);
+
+    for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+        sprintf(temp, "cassette_image_history_%02i", i + 1);
+        if ((cassette_image_history[i] == 0) || strlen(cassette_image_history[i]) == 0)
+            ini_section_delete_var(cat, temp);
+        else {
+            path_normalize(cassette_image_history[i]);
+            if (!strnicmp(cassette_image_history[i], usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &cassette_image_history[i][strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, cassette_image_history[i]);
+        }
+    }
 
     if (cassette_pos == 0)
         ini_section_delete_var(cat, "cassette_position");
@@ -2365,10 +2431,29 @@ save_storage_controllers(void)
 
     for (c = 0; c < 2; c++) {
         sprintf(temp, "cartridge_%02i_fn", c + 1);
+
         if (strlen(cart_fns[c]) == 0)
             ini_section_delete_var(cat, temp);
-        else
-            ini_section_set_string(cat, temp, cart_fns[c]);
+        else {
+            path_normalize(cart_fns[c]);
+            if (!strnicmp(cart_fns[c], usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &cart_fns[c][strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, cart_fns[c]);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "cartridge_%02i_image_history_%02i", c + 1, i + 1);
+            if ((cart_image_history[c][i] == 0) || strlen(cart_image_history[c][i]) == 0)
+                ini_section_delete_var(cat, temp);
+            else {
+                path_normalize(cart_image_history[c][i]);
+                if (!strnicmp(cart_image_history[c][i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &cart_image_history[c][i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, cart_image_history[c][i]);
+            }
+        }
     }
 
     if (lba_enhancer_enabled == 0)
