@@ -121,5 +121,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Fri Jul 26 2024 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.2.1-1
+* Sat Aug 31 Jasmine Iwanek <jriwanek[AT]gmail.com> 4.2.1-1
 - Bump release
