@@ -828,7 +828,7 @@ write_p2(atkbc_t *dev, uint8_t val)
                    and can find out what they actually did to make it boot from FFFFF0
                    correctly despite A20 being gated when the CPU is reset, this will
                    have to do. */
-                if (kbc_ven == KBC_VEN_SIEMENS)
+                if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
                     is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
             }
         }
