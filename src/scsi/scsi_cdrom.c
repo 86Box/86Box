@@ -2436,7 +2436,15 @@ begin:
                 b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
                 b[3] = 4;
 
-                b[4] = 0x1d;
+                b[4] = 0x0d;
+                /* The early CD-ROM drives we emulate (NEC CDR-260 for ATAPI and
+                   early vendor SCSI CD-ROM models) are caddy drives, the later
+                   ones are tray drives. */
+                if (dev->drv->bus_type == CDROM_BUS_SCSI)
+                    b[4] |= ((dev->drv->type == CDROM_TYPE_86BOX_100) ? 0x20 : 0x00);
+                else
+                    b[4] |= ((dev->drv->type == CDROM_TYPE_NEC_260_100) ||
+                            ((dev->drv->type == CDROM_TYPE_NEC_260_101)) ? 0x00 : 0x20);
 
                 alloc_length += 8;
                 b += 8;
