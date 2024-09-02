@@ -279,7 +279,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default = {
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
-     { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
+     { GPMODE_CAPABILITIES_PAGE, 0x12, 7, 0, 0x3f, 1, 0x0d, 3, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_scsi = {
@@ -325,7 +325,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_scsi = {
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
-     { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
+     { GPMODE_CAPABILITIES_PAGE, 0x12, 7, 0, 0x3f, 1, 0x0d, 3, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_sony_scsi = {
@@ -371,7 +371,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_sony_scsi = 
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
-     { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
+     { GPMODE_CAPABILITIES_PAGE, 0x12, 7, 0, 0x3f, 1, 0x0d, 3, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_changeable = {
@@ -2436,7 +2436,15 @@ begin:
                 b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
                 b[3] = 4;
 
-                b[4] = 0x1d;
+                b[4] = 0x0d;
+                /* The early CD-ROM drives we emulate (NEC CDR-260 for ATAPI and
+                   early vendor SCSI CD-ROM models) are caddy drives, the later
+                   ones are tray drives. */
+                if (dev->drv->bus_type == CDROM_BUS_SCSI)
+                    b[4] |= ((dev->drv->type == CDROM_TYPE_86BOX_100) ? 0x20 : 0x00);
+                else
+                    b[4] |= ((dev->drv->type == CDROM_TYPE_NEC_260_100) ||
+                            ((dev->drv->type == CDROM_TYPE_NEC_260_101)) ? 0x00 : 0x20);
 
                 alloc_length += 8;
                 b += 8;
