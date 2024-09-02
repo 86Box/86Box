@@ -39,6 +39,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
         auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
         auto *bridge_line   = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+
         int  netType         = net_type_cbox->currentData().toInt();
         bool adaptersEnabled =  netType == NET_TYPE_NONE
                             ||  netType == NET_TYPE_SLIRP
@@ -158,6 +159,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             Models::AddEntry(model, "VDE", NET_TYPE_VDE);
         }
         Models::AddEntry(model, "TAP", NET_TYPE_TAP);
+
         model->removeRows(0, removeRows);
         cbox->setCurrentIndex(net_cards_conf[i].net_type);
 
@@ -181,8 +183,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
-        }
-        else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
+        } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
             QString currentTapDevice = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i+1));
             editline->setText(currentTapDevice);
