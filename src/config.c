@@ -653,6 +653,7 @@ load_network(void)
                 nc->net_type = NET_TYPE_NONE;
         } else
             nc->net_type = NET_TYPE_NONE;
+
         sprintf(temp, "net_%02i_host_device", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
@@ -2172,6 +2173,7 @@ save_network(void)
             case NET_TYPE_TAP:
                 ini_section_set_string(cat, temp, "tap");
                 break;
+
             default:
                 break;
         }
