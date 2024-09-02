@@ -279,7 +279,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default = {
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
-     { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
+     { GPMODE_CAPABILITIES_PAGE, 0x12, 7, 0, 0x3f, 1, 0x0d, 3, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_scsi = {
@@ -325,7 +325,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_scsi = {
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
-     { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
+     { GPMODE_CAPABILITIES_PAGE, 0x12, 7, 0, 0x3f, 1, 0x0d, 3, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_sony_scsi = {
@@ -371,7 +371,7 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_sony_scsi = 
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
-     { GPMODE_CAPABILITIES_PAGE, 0x12, 0, 0, 1, 0, 0, 0, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
+     { GPMODE_CAPABILITIES_PAGE, 0x12, 7, 0, 0x3f, 1, 0x0d, 3, 2, 0xC2, 1, 0, 0, 0, 2, 0xC2, 0, 0, 0, 0 }}
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_changeable = {
