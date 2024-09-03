@@ -914,7 +914,7 @@ machine_at_pci400ca_init(const machine_t *model)
     pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&keyboard_at_ami_device);
     device_add(&sio_device);
     device_add(&intel_flash_bxt_ami_device);
 
@@ -1352,7 +1352,7 @@ machine_at_486sp3_init(const machine_t *model)
     pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
     pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 06 = Slot 4 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
+    device_add(&keyboard_at_ami_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);
     device_add(&fdc37c663_ide_device);
     device_add(&sst_flash_29ee010_device);
