@@ -26,6 +26,9 @@
 #include <time.h>
 #include <wchar.h>
 #include <errno.h>
+#ifdef __unix__
+#include <unistd.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/path.h>
@@ -183,6 +186,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
 {
     uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 
+#ifndef __unix__
     uint32_t size;
     uint32_t t;
 
@@ -217,7 +221,16 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     pclog_toggle_suppr();
 
     free(empty_sector_1mb);
+#else
+    pclog("Creating hard disk image: ");
+    int ret = ftruncate(fileno(hdd_images[id].file), (size_t) target_size);
 
+    if (ret) {
+        pclog("failed\n");
+        fatal("Could not create hard disk image\n");
+    }
+    pclog("OK!\n");
+#endif
     hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 
     hdd_images[id].loaded = 1;
