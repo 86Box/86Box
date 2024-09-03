@@ -6476,7 +6476,7 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc_device = &keyboard_ps2_ami_device,
+        .kbc_device = &keyboard_at_ami_device,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
