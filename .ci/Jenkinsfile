@@ -23,8 +23,8 @@ def buildType = ['beta', 'alpha']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
-	'Windows': ['32', '64'],
-	'Linux': ['x86', 'x86_64', 'arm32', 'arm64'],
+	'Windows': ['64'],
+	'Linux': ['x86_64', 'arm64'],
 	'macOS': ['x86_64+x86_64h+arm64']
 ]
 
