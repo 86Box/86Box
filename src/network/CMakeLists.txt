@@ -9,13 +9,32 @@
 #          CMake build script.
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 #
 set(net_sources)
-list(APPEND net_sources network.c net_pcap.c net_slirp.c net_dp8390.c net_3c501.c
-    net_3c503.c net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c net_event.c net_null.c
-    net_eeprom_nmc93cxx.c net_tulip.c net_rtl8139.c net_l80225.c net_modem.c utils/getline.c)
+list(APPEND net_sources
+    network.c
+    net_pcap.c
+    net_slirp.c
+    net_dp8390.c
+    net_3c501.c
+    net_3c503.c
+    net_ne2000.c
+    net_pcnet.c
+    net_wd8003.c
+    net_plip.c
+    net_event.c
+    net_null.c
+    net_eeprom_nmc93cxx.c
+    net_tulip.c
+    net_rtl8139.c
+    net_l80225.c
+    net_modem.c
+    utils/getline.c
+)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SLIRP REQUIRED IMPORTED_TARGET slirp)
