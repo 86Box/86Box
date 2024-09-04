@@ -218,7 +218,7 @@ cmdfifo_get_f_2(voodoo_t *voodoo)
         float    f;
     } tempif;
 
-    tempif.i = cmdfifo_get(voodoo);
+    tempif.i = cmdfifo_get_2(voodoo);
     return tempif.f;
 }
 
