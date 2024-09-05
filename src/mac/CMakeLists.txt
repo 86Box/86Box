@@ -11,10 +11,12 @@
 # Authors: dob205,
 #          Jerome Vernet
 #          David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2021 dob205.
 #          Copyright 2021 Jerome Vernet.
 #          Copyright 2021 David Hrdlička.
+#          Copyright 2024 Jasmine Iwanek.
 #
 
 # Pick the bundle icon depending on the release channel

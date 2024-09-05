@@ -8,6 +8,11 @@
 #
 #          CMake build script.
 #
+# Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
+#
+#          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -232,9 +237,15 @@ if(WIN32 AND NOT CPPTHREADS)
 endif()
 
 if(WIN32)
-    target_sources(plat PRIVATE win_serial_passthrough.c win_netsocket.c)
+    target_sources(plat PRIVATE
+        win_serial_passthrough.c
+        win_netsocket.c
+    )
 else()
-    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
+    target_sources(plat PRIVATE
+        ../unix/unix_serial_passthrough.c
+        ../unix/unix_netsocket.c
+    )
 endif()
 
 if(WIN32)
@@ -268,18 +279,14 @@ if (WIN32)
     )
 endif()
 
-target_link_libraries(
-    plat
-    PRIVATE
+target_link_libraries(plat PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::Network
     Threads::Threads
 )
 
-target_link_libraries(
-    ui
-    PRIVATE
+target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::OpenGL

@@ -9,16 +9,49 @@
 #          CMake build script.
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 #
 
-add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_opl_ymfm.cpp snd_resid.cpp
-    midi.c snd_speaker.c snd_pssj.c snd_lpt_dac.c snd_ac97_codec.c snd_ac97_via.c
-    snd_lpt_dss.c snd_ps1.c snd_adlib.c snd_adlibgold.c snd_ad1848.c snd_audiopci.c
-    snd_azt2316a.c snd_cms.c snd_cmi8x38.c snd_cs423x.c snd_gus.c snd_sb.c snd_sb_dsp.c
-    snd_emu8k.c snd_mpu401.c snd_pas16.c snd_sn76489.c snd_ssi2001.c snd_wss.c snd_ym7128.c
-    snd_optimc.c esfmu/esfm.c esfmu/esfm_registers.c snd_opl_esfm.c)
+add_library(snd OBJECT
+    sound.c
+    snd_opl.c
+    snd_opl_nuked.c
+    snd_opl_ymfm.cpp
+    snd_resid.cpp
+    midi.c
+    snd_speaker.c
+    snd_pssj.c
+    snd_lpt_dac.c
+    snd_ac97_codec.c
+    snd_ac97_via.c
+    snd_lpt_dss.c
+    snd_ps1.c
+    snd_adlib.c
+    snd_adlibgold.c
+    snd_ad1848.c
+    snd_audiopci.c
+    snd_azt2316a.c
+    snd_cms.c
+    snd_cmi8x38.c
+    snd_cs423x.c
+    snd_gus.c
+    snd_sb.c
+    snd_sb_dsp.c
+    snd_emu8k.c
+    snd_mpu401.c
+    snd_pas16.c
+    snd_sn76489.c
+    snd_ssi2001.c
+    snd_wss.c
+    snd_ym7128.c
+    snd_optimc.c
+    esfmu/esfm.c
+    esfmu/esfm_registers.c
+    snd_opl_esfm.c
+)
 
 if(OPENAL)
     if(VCPKG_TOOLCHAIN)
