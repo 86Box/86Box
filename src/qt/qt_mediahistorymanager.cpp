@@ -337,7 +337,7 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
         }
 
         char *p = checked_path.toUtf8().data();
-        char temp[1024] = { 0 };
+        char temp[MAX_IMAGE_PATH_LEN -1] = { 0 };
 
         if (path_abs(p)) {
             if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
