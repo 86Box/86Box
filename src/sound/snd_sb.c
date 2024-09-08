@@ -1585,7 +1585,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                               ess->opl.priv);
                             }
                         }
-                        switch ((mixer->regs[0x40] >> 5) & 0x7) {
+                        if (ess->mpu != NULL)  switch ((mixer->regs[0x40] >> 5) & 0x7) {
                             default:
                                 break;
                             case 0:
@@ -2288,7 +2288,8 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                 addr = ess->midi_addr;
                 if (addr) {
                     ess->midi_addr = 0;
-                    mpu401_change_addr(ess->mpu, 0);
+                    if (ess->mpu != NULL)
+                        mpu401_change_addr(ess->mpu, 0);
                     io_removehandler(addr, 0x0002,
                                      ess_fm_midi_read, NULL, NULL,
                                      ess_fm_midi_write, NULL, NULL,
@@ -2298,7 +2299,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
 
             sb_dsp_setaddr(&ess->dsp, 0);
             sb_dsp_setirq(&ess->dsp, 0);
-            if (ess->pnp == 3)
+            if ((ess->pnp == 3) && (ess->mpu != NULL))
                 mpu401_setirq(ess->mpu, -1);
             sb_dsp_setdma8(&ess->dsp, ISAPNP_DMA_DISABLED);
             sb_dsp_setdma16_8(&ess->dsp, ISAPNP_DMA_DISABLED);
@@ -2357,7 +2358,8 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                 if (ess->pnp == 3) {
                     addr = config->io[2].base;
                     if (addr != ISAPNP_IO_DISABLED) {
-                        mpu401_change_addr(ess->mpu, addr);
+                        if (ess->mpu != NULL)
+                            mpu401_change_addr(ess->mpu, addr);
                         io_sethandler(addr, 0x0002,
                                       ess_fm_midi_read, NULL, NULL,
                                       ess_fm_midi_write, NULL, NULL,
@@ -2368,7 +2370,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                 val = config->irq[0].irq;
                 if (val != ISAPNP_IRQ_DISABLED) {
                     sb_dsp_setirq(&ess->dsp, val);
-                    if (ess->pnp == 3)
+                    if ((ess->pnp == 3) && (ess->mpu != NULL))
                         mpu401_setirq(ess->mpu, val);
                 }
 
@@ -2383,7 +2385,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
         case 1:
             if (ess->pnp == 3) { /* Game */
                 gameport_remap(ess->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
-            } else { /* MPU-401 */            
+            } else if (ess->mpu != NULL) { /* MPU-401 */
                 mpu401_change_addr(ess->mpu, 0);
                 mpu401_setirq(ess->mpu, -1);
 

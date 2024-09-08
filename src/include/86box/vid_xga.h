@@ -47,6 +47,8 @@ typedef struct xga_t {
 
     uint8_t  pos_regs[8];
     uint8_t  disp_addr;
+    uint8_t   dac_mask;
+    uint8_t   dac_status;
     uint8_t  cfg_reg;
     uint8_t  instance;
     uint8_t  op_mode;
@@ -106,6 +108,10 @@ typedef struct xga_t {
     uint16_t old_pal_addr_idx;
     uint16_t sprite_pal_addr_idx_prefetch;
 
+    int dac_addr;
+    int dac_pos;
+    int dac_r;
+    int dac_g;
     int v_total;
     int dispend;
     int v_syncstart;
