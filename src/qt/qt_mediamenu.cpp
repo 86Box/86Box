@@ -877,9 +877,7 @@ MediaMenu::zipUpdateMenu(int i)
     auto  childs = menu->children();
 
     auto *ejectMenu  = dynamic_cast<QAction *>(childs[zipEjectPos]);
-    auto *reloadMenu = dynamic_cast<QAction *>(childs[zipReloadPos]);
     ejectMenu->setEnabled(!name.isEmpty());
-    reloadMenu->setEnabled(!prev_name.isEmpty());
 
     QString busName = tr("Unknown Bus");
     switch (zip_drives[i].bus_type) {
@@ -1008,9 +1006,7 @@ MediaMenu::moUpdateMenu(int i)
     auto  childs = menu->children();
 
     auto *ejectMenu  = dynamic_cast<QAction *>(childs[moEjectPos]);
-    auto *reloadMenu = dynamic_cast<QAction *>(childs[moReloadPos]);
     ejectMenu->setEnabled(!name.isEmpty());
-    reloadMenu->setEnabled(!prev_name.isEmpty());
 
     QString busName = tr("Unknown Bus");
     switch (mo_drives[i].bus_type) {

@@ -20,11 +20,12 @@ def repository = ['https://github.com/86Box/86Box.git', scm.userRemoteConfigs[0]
 def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
 def branch = ['master', scm.branches[0].name]
 def buildType = ['beta', 'alpha']
+def tarballFlags = ['', '-s']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
-	'Windows': ['32', '64'],
-	'Linux': ['x86', 'x86_64', 'arm32', 'arm64'],
+	'Windows': ['64'],
+	'Linux': ['x86_64', 'arm64'],
 	'macOS': ['x86_64+x86_64h+arm64']
 ]
 
@@ -238,7 +239,7 @@ pipeline {
 								dir("${env.WORKSPACE_TMP}/output") {
 									/* Run source tarball creation process. */
 									def packageName = "${env.JOB_BASE_NAME}-Source$buildSuffix"
-									if (runBuild("-s \"$packageName\"") == 0) {
+									if (runBuild("-s \"$packageName\" ${tarballFlags[buildBranch]}") == 0) {
 										/* Archive resulting artifacts. */
 										archiveArtifacts artifacts: "$packageName*"
 									} else {
