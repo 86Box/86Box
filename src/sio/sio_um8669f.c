@@ -207,7 +207,7 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 um8669f_log("UM8669F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_init(config->io[0].base);
+                lpt1_setup(config->io[0].base);
             } else {
                 um8669f_log("UM8669F: LPT disabled\n");
             }

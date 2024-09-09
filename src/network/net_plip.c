@@ -26,12 +26,12 @@
 #include <stdarg.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/timer.h>
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/thread.h>
-#include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/plat_unused.h>
 

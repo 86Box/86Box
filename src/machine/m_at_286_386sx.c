@@ -66,7 +66,7 @@ machine_at_mr286_init(const machine_t *model)
 }
 
 static void
-machine_at_headland_common_init(int type)
+machine_at_headland_common_init(const machine_t *model, int type)
 {
     device_add(&keyboard_at_ami_device);
 
@@ -94,7 +94,7 @@ machine_at_tg286m_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    machine_at_headland_common_init(1);
+    machine_at_headland_common_init(model, 1);
 
     return ret;
 }
@@ -115,7 +115,7 @@ machine_at_ama932j_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti067_ama932j_device);
 
-    machine_at_headland_common_init(2);
+    machine_at_headland_common_init(model, 2);
 
     device_add(&ali5105_device);
 
@@ -755,7 +755,7 @@ machine_at_acer100t_init(const machine_t *model)
     
     device_add(&ali1409_device);
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&oti077_acer100t_device);   
+        device_add(&oti077_acer100t_device);
      
     device_add(&ali5105_device);
     

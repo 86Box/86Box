@@ -15,7 +15,7 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
 
@@ -194,8 +194,8 @@ typedef struct scancode {
 extern "C" {
 #endif
 
-extern uint8_t  keyboard_mode;
-extern int      keyboard_scan;
+extern uint8_t keyboard_mode;
+extern int     keyboard_scan;
 
 extern uint16_t scancode_map[768];
 
@@ -232,26 +232,26 @@ extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xt_hyundai_device;
 extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
-extern const device_t keyboard_at_siemens_device;
 extern const device_t keyboard_at_ami_device;
+extern const device_t keyboard_at_compaq_device;
+extern const device_t keyboard_at_ncr_device;
+extern const device_t keyboard_at_olivetti_device;
+extern const device_t keyboard_at_siemens_device;
 extern const device_t keyboard_at_tg_ami_device;
 extern const device_t keyboard_at_toshiba_device;
-extern const device_t keyboard_at_olivetti_device;
-extern const device_t keyboard_at_ncr_device;
-extern const device_t keyboard_at_compaq_device;
 extern const device_t keyboard_ps2_device;
 extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;
 extern const device_t keyboard_ps2_xi8088_device;
 extern const device_t keyboard_ps2_ami_device;
 extern const device_t keyboard_ps2_holtek_device;
-extern const device_t keyboard_ps2_tg_ami_device;
-extern const device_t keyboard_ps2_tg_ami_green_device;
-extern const device_t keyboard_ps2_olivetti_device;
-extern const device_t keyboard_ps2_phoenix_device;
 extern const device_t keyboard_ps2_mca_1_device;
 extern const device_t keyboard_ps2_mca_2_device;
+extern const device_t keyboard_ps2_olivetti_device;
+extern const device_t keyboard_ps2_phoenix_device;
 extern const device_t keyboard_ps2_quadtel_device;
+extern const device_t keyboard_ps2_tg_ami_device;
+extern const device_t keyboard_ps2_tg_ami_green_device;
 extern const device_t keyboard_ps2_pci_device;
 extern const device_t keyboard_ps2_ami_pci_device;
 extern const device_t keyboard_ps2_intel_ami_pci_device;

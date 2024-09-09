@@ -176,7 +176,7 @@ prime3b_lpt_handler(prime3b_t *dev)
 {
     uint16_t lpt_base = (ASR & 2) ? LPT_MDA_ADDR : (!(ASR & 1) ? LPT1_ADDR : LPT2_ADDR);
     lpt1_remove();
-    lpt1_init(lpt_base);
+    lpt1_setup(lpt_base);
     lpt1_irq(LPT1_IRQ);
     prime3b_log("Prime3B-LPT: Enabled with base %03x\n", lpt_base);
 }

@@ -305,7 +305,7 @@ acc3221_lpt_handle(acc3221_t *dev)
     lpt1_remove();
 
     if (!(dev->regs[0xbe] & REG_BE_LPT1_DISABLE))
-        lpt1_init(dev->regs[0xbf] << 2);
+        lpt1_setup(dev->regs[0xbf] << 2);
 }
 
 static void
@@ -437,7 +437,7 @@ acc3221_reset(acc3221_t *dev)
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(LPT1_ADDR);
+    lpt1_setup(LPT1_ADDR);
     lpt1_irq(LPT1_IRQ);
 
     fdc_reset(dev->fdc);

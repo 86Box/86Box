@@ -241,7 +241,7 @@ prime3c_lpt_handler(prime3c_t *dev)
     lpt1_remove();
     if (!(FUNCTION_SELECT & 0x03)) {
 
-        lpt1_init(LPT_BASE_ADDRESS << 2);
+        lpt1_setup(LPT_BASE_ADDRESS << 2);
         lpt1_irq(FDC_LPT_IRQ & 0xf);
         prime3c_log("Prime3C-LPT: BASE %04x IRQ %02x\n", LPT_BASE_ADDRESS << 2, FDC_LPT_IRQ & 0xf);
     }
