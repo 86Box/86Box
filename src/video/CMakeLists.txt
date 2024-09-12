@@ -9,10 +9,8 @@
 #          CMake build script.
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
-#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2024      Jasmine Iwanek.
 #
 
 add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
@@ -29,7 +27,7 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_tkd8001_ramdac.c vid_att20c49x_ramdac.c vid_s3.c vid_s3_virge.c
     vid_ibm_rgb528_ramdac.c vid_sdac_ramdac.c vid_ogc.c vid_mga.c vid_nga.c
     vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c vid_xga.c
-    vid_bochs_vbe.c )
+    vid_bochs_vbe.c)
 
 if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
@@ -39,19 +37,10 @@ if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
 
-add_library(voodoo OBJECT
-    vid_voodoo.c
-    vid_voodoo_banshee.c
-    vid_voodoo_banshee_blitter.c
-    vid_voodoo_blitter.c
-    vid_voodoo_display.c
-    vid_voodoo_fb.c
-    vid_voodoo_fifo.c
-    vid_voodoo_reg.c
-    vid_voodoo_render.c
-    vid_voodoo_setup.c
-    vid_voodoo_texture.c
-)
+add_library(voodoo OBJECT vid_voodoo.c vid_voodoo_banshee.c
+    vid_voodoo_banshee_blitter.c vid_voodoo_blitter.c vid_voodoo_display.c
+    vid_voodoo_fb.c vid_voodoo_fifo.c vid_voodoo_reg.c vid_voodoo_render.c
+    vid_voodoo_setup.c vid_voodoo_texture.c)
 
 if(NOT MSVC AND (ARCH STREQUAL "i386" OR ARCH STREQUAL "x86_64"))
     target_compile_options(voodoo PRIVATE "-msse2")
