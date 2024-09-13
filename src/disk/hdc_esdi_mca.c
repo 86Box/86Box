@@ -188,6 +188,7 @@ typedef struct esdi_t {
 #define CMD_READ_VERIFY            0x03
 #define CMD_WRITE_VERIFY           0x04
 #define CMD_SEEK                   0x05
+#define CMD_PARK_HEADS             0x06
 #define CMD_GET_DEV_STATUS         0x08
 #define CMD_GET_DEV_CONFIG         0x09
 #define CMD_GET_POS_INFO           0x0a
@@ -587,6 +588,35 @@ esdi_callback(void *priv)
             switch (dev->cmd_state) {
                 case 0:
                     dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
+                    esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
+                    dev->cmd_state = 1;
+                    break;
+
+                case 1:
+                    complete_command_status(dev);
+                    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+                    dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+                    dev->irq_in_progress = 1;
+                    set_irq(dev);
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
+        case CMD_PARK_HEADS:
+            ESDI_DRIVE_ONLY();
+
+            if (!drive->present) {
+                device_not_present(dev);
+                return;
+            }
+
+            switch (dev->cmd_state) {
+                case 0:
+                    dev->rba = 0x00000000;
                     cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
                     esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                     dev->cmd_state = 1;
