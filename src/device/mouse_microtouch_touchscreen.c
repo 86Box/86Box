@@ -22,7 +22,6 @@
     - Decouple serial packet generation from mouse poll rate.
     - Dynamic baud rate selection from software following this.
     - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
-    - Add additional SMT2/3 modes as we currently hardcode Mode Stream.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -62,8 +61,7 @@ const char* mtouch_identity[] = {
 };
 
 typedef struct mouse_microtouch_t {
-    double       baud_rate;
-    unsigned int abs_x_int, abs_y_int;
+    double       baud_rate, abs_x, abs_y;
     int          b;
     char         cmd[256];
     int          cmd_pos;
@@ -266,10 +264,10 @@ mtouch_poll(void *priv)
         return 0;
     }
     
-    unsigned int abs_x_int = 0, abs_y_int = 0;
     double       abs_x;
     double       abs_y;
     int          b = mouse_get_buttons_ex();
+    char         buffer[10];
     
     mouse_get_abs_coords(&abs_x, &abs_y);
     
@@ -314,76 +312,55 @@ mtouch_poll(void *priv)
         return 0;
     }
     
-    if (dev->format == FORMAT_DEC) {
-        abs_x_int = abs_x * 999;
-        abs_y_int = 999 - (abs_y * 999);
-        char buffer[10];
-        
-        if (!dev->mode_status) {
-            if (b) { // Touch
-                snprintf(buffer, sizeof(buffer), "\x1%03d,%03d\r", abs_x_int, abs_y_int);
+    if (dev->format == FORMAT_DEC || dev->format == FORMAT_HEX) {
+        if (b) {
+            if (!dev->b) { /* Touchdown (MS, MP, MDU)*/
+                fifo8_push(&dev->resp, (dev->mode_status) ? 0x19 : 0x01);
+                if (dev->format == FORMAT_DEC){
+                    snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
+                } else if (dev->format == FORMAT_HEX) {
+                    snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * abs_x), (uint16_t)(1023 * (1 - abs_y)));
+                }
+                fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
+            } else if (dev->mode == MODE_STREAM){ /* Touch Continuation (MS)*/
+                fifo8_push(&dev->resp, (dev->mode_status) ? 0x1c : 0x01);
+                if (dev->format == FORMAT_DEC){
+                    snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
+                } else if (dev->format == FORMAT_HEX) {
+                    snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * abs_x), (uint16_t)(1023 * (1 - abs_y)));
+                }
                 fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
             }
-        } else {
-            if (b) {
-                if (!dev->b) { /* Touchdown Status */
-                    snprintf(buffer, sizeof(buffer), "\x19%03d,%03d\r", abs_x_int, abs_y_int);
-                } else { /* Touch Continuation Status */
-                    snprintf(buffer, sizeof(buffer), "\x1c%03d,%03d\r", abs_x_int, abs_y_int);
-                }
-            } else if (dev->b) { /* Liftoff Status */
-                snprintf(buffer, sizeof(buffer), "\x18%03d,%03d\r", dev->abs_x_int, dev->abs_y_int);
-            }
-            fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
-        }
-    }
-    
-    else if (dev->format == FORMAT_HEX) {
-        abs_x_int = abs_x * 1023;
-        abs_y_int = 1023 - (abs_y * 1023);
-        char buffer[10];
-        
-        if (!dev->mode_status) {
-            if (b) { // Touch
-                snprintf(buffer, sizeof(buffer), "\x1%03X,%03X\r", abs_x_int, abs_y_int);
-                fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
-            }
-        } else {
-            if (b) {
-                if (!dev->b) { /* Touchdown Status */
-                    snprintf(buffer, sizeof(buffer), "\x19%03X,%03X\r", abs_x_int, abs_y_int);
-                } else { /* Touch Continuation Status */
-                    snprintf(buffer, sizeof(buffer), "\x1c%03X,%03X\r", abs_x_int, abs_y_int);
-                }
-            } else if (dev->b) { /* Liftoff Status */
-                snprintf(buffer, sizeof(buffer), "\x18%03X,%03X\r", dev->abs_x_int, dev->abs_y_int);
+        } else if (dev->b && dev->mode != MODE_POINT) { /* Touch Liftoff (MS, MDU)*/
+            fifo8_push(&dev->resp, (dev->mode_status) ? 0x18 : 0x01);
+            if (dev->format == FORMAT_DEC) {
+                snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * dev->abs_x), (uint16_t)(999 * (1 - dev->abs_y)));
+            } else if (dev->format == FORMAT_HEX) {
+                snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * dev->abs_x), (uint16_t)(1023 * (1 - dev->abs_y)));
             }
             fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
         }
     }
     
     else if (dev->format == FORMAT_TABLET) {
-        abs_x_int = abs_x * 16383;
-        abs_y_int = 16383 - abs_y * 16383;
-        
         if (b) { /* Touchdown/Continuation */
             fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5) | ((b & 3))) : 0));
-            fifo8_push(&dev->resp, abs_x_int & 0b1111111);
-            fifo8_push(&dev->resp, (abs_x_int >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, abs_y_int & 0b1111111);
-            fifo8_push(&dev->resp, (abs_y_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, (uint16_t)(16383 * abs_x) & 0b1111111);
+            fifo8_push(&dev->resp, ((uint16_t)(16383 * abs_x) >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, (uint16_t)(16383 * (1 - abs_y)) & 0b1111111);
+            fifo8_push(&dev->resp, ((uint16_t)(16383 * (1 - abs_y)) >> 7) & 0b1111111);
         } else if (dev->b) { /* Liftoff */
             fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
-            fifo8_push(&dev->resp, dev->abs_x_int & 0b1111111);
-            fifo8_push(&dev->resp, (dev->abs_x_int >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, dev->abs_y_int & 0b1111111);
-            fifo8_push(&dev->resp, (dev->abs_y_int >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, (uint16_t)(16383 * dev->abs_x) & 0b1111111);
+            fifo8_push(&dev->resp, ((uint16_t)(16383 * dev->abs_x) >> 7) & 0b1111111);
+            fifo8_push(&dev->resp, (uint16_t)(16383 * (1 - dev->abs_y))& 0b1111111);
+            fifo8_push(&dev->resp, ((uint16_t)(16383 * (1 - dev->abs_y)) >> 7) & 0b1111111);
         }
     }
     
     /* Save old states*/
-    dev->abs_x_int = abs_x_int;
-    dev->abs_y_int = abs_y_int;
+    dev->abs_x = abs_x;
+    dev->abs_y = abs_y;
     dev->b = b; 
     return 0;
 }
