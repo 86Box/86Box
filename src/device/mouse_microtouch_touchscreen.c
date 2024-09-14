@@ -259,26 +259,25 @@ static int
 mtouch_poll(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
-    
-    if (fifo8_num_free(&dev->resp) <= 256 - 10 || dev->mode == MODE_INACTIVE) {
-        return 0;
-    }
-    
     double       abs_x;
     double       abs_y;
     int          b = mouse_get_buttons_ex();
     char         buffer[10];
     
+    if (fifo8_num_free(&dev->resp) <= 256 - 10 || dev->mode == MODE_INACTIVE) {
+        return 0;
+    } 
+    
+    if (dev->cal_cntr || (!b && !dev->b)) { /* Calibration or no buttonpress */
+        if (!b && dev->b) {
+            microtouch_calibrate_timer(dev);
+        }
+        dev->b = b; /* Save buttonpress */
+        return 0;
+    } 
+ 
     mouse_get_abs_coords(&abs_x, &abs_y);
     
-    if (abs_x >= 1.0)
-        abs_x = 1.0;
-    if (abs_y >= 1.0)
-        abs_y = 1.0;
-    if (abs_x <= 0.0)
-        abs_x = 0.0;
-    if (abs_y <= 0.0)
-        abs_y = 0.0;
     if (enable_overscan) {
         int index = mouse_tablet_in_proximity - 1;
         if (mouse_tablet_in_proximity == -1) {
@@ -298,19 +297,12 @@ mtouch_poll(void *priv)
         abs_y -= (monitors[index].mon_overscan_y / 2.);
         abs_x = abs_x / (double) monitors[index].mon_xsize;
         abs_y = abs_y / (double) monitors[index].mon_ysize;
-        if (abs_x >= 1.0)
-            abs_x = 1.0;
-        if (abs_y >= 1.0)
-            abs_y = 1.0;
     }
     
-    if (dev->cal_cntr || (!b && !dev->b)) { /* Calibration or no buttonpress */
-        if (!b && dev->b) {
-            microtouch_calibrate_timer(dev);
-        }
-        dev->b = b; /* Save buttonpress */
-        return 0;
-    }
+    if (abs_x >= 1.0) abs_x = 1.0;
+    if (abs_y >= 1.0) abs_y = 1.0;
+    if (abs_x <= 0.0) abs_x = 0.0;
+    if (abs_y <= 0.0) abs_y = 0.0;
     
     if (dev->format == FORMAT_DEC || dev->format == FORMAT_HEX) {
         if (b) {
@@ -342,7 +334,7 @@ mtouch_poll(void *priv)
         }
     }
     
-    else if (dev->format == FORMAT_TABLET) {
+    if (dev->format == FORMAT_TABLET) {
         if (b) { /* Touchdown/Continuation */
             fifo8_push(&dev->resp, 0b11000000 | ((dev->pen_mode == 2) ? ((1 << 5) | ((b & 3))) : 0));
             fifo8_push(&dev->resp, (uint16_t)(16383 * abs_x) & 0b1111111);
@@ -393,8 +385,7 @@ mtouch_init(const device_t *info)
     if (dev->id < 2) { /* legacy controllers */
         dev->format = FORMAT_DEC;
         mouse_set_sample_rate(106);
-    }
-    else {
+    } else {
         dev->format = FORMAT_TABLET;
         mouse_set_sample_rate(192);
     }
@@ -402,7 +393,6 @@ mtouch_init(const device_t *info)
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
     mouse_set_poll_ex(mtouch_poll_global);
-    
     mtouch_inst = dev;
     
     return dev;
@@ -415,8 +405,9 @@ mtouch_close(void *priv)
 
     fifo8_destroy(&dev->resp);
     /* Detach serial port from the mouse. */
-    if (dev && dev->serial && dev->serial->sd)
+    if (dev && dev->serial && dev->serial->sd) {
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
+    }
     
     free(dev);
     mtouch_inst = NULL;
