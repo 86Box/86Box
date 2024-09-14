@@ -330,9 +330,9 @@ extern const device_t ati28800k_device;
 extern const device_t ati28800k_spc4620p_device;
 extern const device_t ati28800k_spc6033p_device;
 extern const device_t compaq_ati28800_device;
-#    if defined(DEV_BRANCH) && defined(USE_XL24)
+#    ifdef USE_XL24
 extern const device_t ati28800_wonderxl24_device;
-#    endif
+#    endif /* USE_XL24 */
 
 /* Bochs */
 extern const device_t bochs_svga_device;
@@ -448,7 +448,7 @@ extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
 #ifdef USE_G100
 extern const device_t productiva_g100_device;
-#endif
+#endif /* USE_G100 */
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
@@ -527,7 +527,9 @@ extern const device_t s3_trio64v2_dx_onboard_pci_device;
 
 /* S3 ViRGE */
 extern const device_t s3_virge_325_pci_device;
+extern const device_t s3_virge_325_onboard_pci_device;
 extern const device_t s3_diamond_stealth_2000_pci_device;
+extern const device_t s3_mirocrystal_3d_pci_device;
 extern const device_t s3_diamond_stealth_3000_pci_device;
 extern const device_t s3_stb_velocity_3d_pci_device;
 extern const device_t s3_virge_375_pci_device;

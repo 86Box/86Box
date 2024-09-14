@@ -965,7 +965,7 @@ machine_at_pc916sx_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+#ifdef USE_OLIVETTI
 int
 machine_at_m290_init(const machine_t *model)
 {
@@ -988,4 +988,4 @@ machine_at_m290_init(const machine_t *model)
 
     return ret;
 }
-#endif
+#endif /* USE_OLIVETTI */

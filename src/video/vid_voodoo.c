@@ -222,12 +222,12 @@ voodoo_readl(uint32_t addr, void *priv)
                 {
                     int fifo_entries = FIFO_ENTRIES;
                     int swap_count   = voodoo->swap_count;
-                    int written      = voodoo->cmd_written + voodoo->cmd_written_fifo;
+                    int written      = voodoo->cmd_written + voodoo->cmd_written_fifo + voodoo->cmd_written_fifo_2;
                     int busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr);
 
                     if (SLI_ENABLED && voodoo->type != VOODOO_2) {
                         voodoo_t *voodoo_other  = (voodoo == voodoo->set->voodoos[0]) ? voodoo->set->voodoos[1] : voodoo->set->voodoos[0];
-                        int       other_written = voodoo_other->cmd_written + voodoo_other->cmd_written_fifo;
+                        int       other_written = voodoo_other->cmd_written + voodoo_other->cmd_written_fifo + voodoo->cmd_written_fifo_2;
 
                         if (voodoo_other->swap_count > swap_count)
                             swap_count = voodoo_other->swap_count;

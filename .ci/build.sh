@@ -208,7 +208,7 @@ cmake_flags_extra=
 if [ -z "$package_name" -a -z "$tarball_name" ] || [ -n "$package_name" -a -z "$arch" ]
 then
 	echo '[!] Usage: build.sh -b {package_name} {architecture} [-t] [cmake_flags...]'
-	echo '           build.sh -s {source_tarball_name}'
+	echo '           build.sh -s {source_tarball_name} [-t]'
 	echo 'Dep. tree: build.sh -p [archive_tmp/path/to/binary]'
 	exit 100
 fi
@@ -228,7 +228,10 @@ then
 	[ ! -d "$cwd" ] && mkdir -p "$cwd"
 
 	# Save current HEAD commit to VERSION.
-	git log --stat -1 > VERSION || rm -f VERSION
+	if [ $strip -eq 0 ]
+	then
+		git log --stat -1 > VERSION || rm -f VERSION
+	fi
 
 	# Archive source.
 	make_tar "$cwd/$tarball_name.tar"
@@ -535,6 +538,14 @@ then
 			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
 			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 		fi
+
+		# Patch wget to remove libproxy support, as it depends on shared-mime-info which
+		# fails to build for a 10.13 target, which we have to do despite wget only being
+		# a host dependency. MacPorts issue 69406 strongly implies this will not be fixed.
+		wget_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/net/wget/Portfile"
+		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
+		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
+
 		while :
 		do
 			# Attempt to install dependencies.

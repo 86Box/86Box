@@ -98,7 +98,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_wacom_device        },
     { &mouse_wacom_artpad_device },
 #endif
-    { &mouse_mtouch_device                   },
+    { &mouse_mtouch_device       },
     { NULL                       }
     // clang-format on
 };
@@ -482,10 +482,10 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
     int z = atomic_load(&mouse_z);
     int real_z = invert ? -z : z;
 
-    if (mouse_z > max) {
+    if (real_z > max) {
         *delta_z = max;
         real_z -= max;
-    } else if (mouse_z < min) {
+    } else if (real_z < min) {
         *delta_z = min;
         real_z += ABS(min);
     } else {

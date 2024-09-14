@@ -68,7 +68,7 @@ typedef struct ctrf_t {
 
 typedef struct pitf_t {
     int    flags;
-    ctrf_t counters[3];
+    ctrf_t counters[NUM_COUNTERS];
 
     uint8_t ctrl;
 

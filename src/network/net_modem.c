@@ -1488,8 +1488,8 @@ modem_init(const device_t *info)
 
     modem->clientsocket = modem->serversocket = modem->waitingclientsocket = -1;
 
-    fifo8_create(&modem->data_pending, 0x10000);
-    fifo8_create(&modem->rx_data, 0x10000);
+    fifo8_create(&modem->data_pending, 0x20000);
+    fifo8_create(&modem->rx_data, 0x20000);
 
     timer_add(&modem->dtr_timer, modem_dtr_callback_timer, modem, 0);
     timer_add(&modem->host_to_serial_timer, host_to_modem_cb, modem, 0);

@@ -204,6 +204,17 @@ enum {
     cmdFifoDepth0 = 0x44,
     cmdHoleCnt0   = 0x48,
 
+    cmdBaseAddr1  = 0x50,
+    cmdBaseSize1  = 0x50 + 0x4,
+    cmdBump1      = 0x50 + 0x8,
+    cmdRdPtrL1    = 0x50 + 0xc,
+    cmdRdPtrH1    = 0x50 + 0x10,
+    cmdAMin1      = 0x50 + 0x14,
+    cmdAMax1      = 0x50 + 0x1c,
+    cmdStatus1    = 0x50 + 0x20,
+    cmdFifoDepth1 = 0x50 + 0x24,
+    cmdHoleCnt1   = 0x50 + 0x28,
+
     Agp_agpReqSize         = 0x00,
     Agp_agpHostAddressLow  = 0x04,
     Agp_agpHostAddressHigh = 0x08,
@@ -513,7 +524,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
     if (addr >= svga->vram_max)
         return;
 
-    for (int x = 0; x <= svga->hdisp; x += 64) {
+    for (int x = 0; x < svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
         if (svga->changedvram[addr >> 12] || svga->fullchange) {
@@ -1341,6 +1352,29 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
             ret = voodoo->cmdfifo_size;
             break;
 
+        case cmdBaseAddr1:
+            ret = voodoo->cmdfifo_base_2 >> 12;
+            //                banshee_log("Read cmdfifo_base %08x\n", ret);
+            break;
+
+        case cmdRdPtrL1:
+            ret = voodoo->cmdfifo_rp_2;
+            //                banshee_log("Read cmdfifo_rp %08x\n", ret);
+            break;
+
+        case cmdFifoDepth1:
+            ret = voodoo->cmdfifo_depth_wr_2 - voodoo->cmdfifo_depth_rd_2;
+            //                banshee_log("Read cmdfifo_depth %08x\n", ret);
+            break;
+
+        case cmdStatus1:
+            ret = voodoo->cmd_status_2;
+            break;
+
+        case cmdBaseSize1:
+            ret = voodoo->cmdfifo_size_2;
+            break;
+
         case 0x108:
             break;
 
@@ -1623,6 +1657,45 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
         case cmdFifoDepth0:
             voodoo->cmdfifo_depth_rd = 0;
             voodoo->cmdfifo_depth_wr = val & 0xffff;
+            break;
+
+        case cmdBaseAddr1:
+            voodoo->cmdfifo_base_2 = (val & 0xfff) << 12;
+            voodoo->cmdfifo_end_2  = voodoo->cmdfifo_base_2 + (((voodoo->cmdfifo_size_2 & 0xff) + 1) << 12);
+#if 0
+            banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x %08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end, val);
+#endif
+            break;
+
+        case cmdBaseSize1:
+            voodoo->cmdfifo_size_2    = val;
+            voodoo->cmdfifo_end_2     = voodoo->cmdfifo_base_2 + (((voodoo->cmdfifo_size_2 & 0xff) + 1) << 12);
+            voodoo->cmdfifo_enabled_2 = val & 0x100;
+            if (!voodoo->cmdfifo_enabled_2)
+                voodoo->cmdfifo_in_sub_2 = 0; /*Not sure exactly when this should be reset*/
+#if 0
+            banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+#endif
+            break;
+
+#if 0
+            voodoo->cmdfifo_end = ((val >> 16) & 0x3ff) << 12;
+            banshee_log("CMDFIFO base=%08x end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+            break;
+#endif
+
+        case cmdRdPtrL1:
+            voodoo->cmdfifo_rp_2 = val;
+            break;
+        case cmdAMin1:
+            voodoo->cmdfifo_amin_2 = val;
+            break;
+        case cmdAMax1:
+            voodoo->cmdfifo_amax_2 = val;
+            break;
+        case cmdFifoDepth1:
+            voodoo->cmdfifo_depth_rd_2 = 0;
+            voodoo->cmdfifo_depth_wr_2 = val & 0xffff;
             break;
 
         default:
@@ -2062,6 +2135,60 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *priv)
 #endif
             voodoo->cmdfifo_amax      = addr;
             voodoo->cmdfifo_holecount = ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2) - 1;
+#if 0
+            banshee_log("CMDFIFO out of order: amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+#endif
+        }
+    }
+
+    if (voodoo->cmdfifo_enabled_2 && addr >= voodoo->cmdfifo_base_2 && addr < voodoo->cmdfifo_end_2) {
+#if 0
+        banshee_log("CMDFIFO write %08x %08x  old amin=%08x amax=%08x hlcnt=%i depth_wr=%i rp=%08x\n", addr, val, voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount, voodoo->cmdfifo_depth_wr, voodoo->cmdfifo_rp);
+#endif
+        if (addr == voodoo->cmdfifo_base_2 && !voodoo->cmdfifo_holecount_2) {
+#if 0
+            if (voodoo->cmdfifo_holecount)
+                fatal("CMDFIFO reset pointers while outstanding holes\n");
+#endif
+            /*Reset pointers*/
+            voodoo->cmdfifo_amin_2 = voodoo->cmdfifo_base_2;
+            voodoo->cmdfifo_amax_2 = voodoo->cmdfifo_base_2;
+            voodoo->cmdfifo_depth_wr_2++;
+            voodoo_wake_fifo_thread(voodoo);
+        } else if (voodoo->cmdfifo_holecount_2) {
+#if 0
+            if ((addr <= voodoo->cmdfifo_amin && voodoo->cmdfifo_amin != -4) || addr >= voodoo->cmdfifo_amax)
+                fatal("CMDFIFO holecount write outside of amin/amax - amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+            banshee_log("holecount %i\n", voodoo->cmdfifo_holecount);
+#endif
+            voodoo->cmdfifo_holecount_2--;
+            if (!voodoo->cmdfifo_holecount_2) {
+                /*Filled in holes, resume normal operation*/
+                voodoo->cmdfifo_depth_wr_2 += ((voodoo->cmdfifo_amax_2 - voodoo->cmdfifo_amin_2) >> 2);
+                voodoo->cmdfifo_amin_2 = voodoo->cmdfifo_amax_2;
+                voodoo_wake_fifo_thread(voodoo);
+#if 0
+                banshee_log("hole filled! amin=%08x amax=%08x added %i words\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, words_to_add);
+#endif
+            }
+        } else if (addr == voodoo->cmdfifo_amax_2 + 4) {
+            /*In-order write*/
+            voodoo->cmdfifo_amin_2 = addr;
+            voodoo->cmdfifo_amax_2 = addr;
+            voodoo->cmdfifo_depth_wr_2++;
+            voodoo_wake_fifo_thread(voodoo);
+        } else {
+            /*Out-of-order write*/
+            if (addr < voodoo->cmdfifo_amin_2) {
+                /*Reset back to start. Note that write is still out of order!*/
+                voodoo->cmdfifo_amin_2 = voodoo->cmdfifo_base_2 - 4;
+            }
+#if 0
+            else if (addr < voodoo->cmdfifo_amax)
+                fatal("Out-of-order write really out of order\n");
+#endif
+            voodoo->cmdfifo_amax_2      = addr;
+            voodoo->cmdfifo_holecount_2 = ((voodoo->cmdfifo_amax_2 - voodoo->cmdfifo_amin_2) >> 2) - 1;
 #if 0
             banshee_log("CMDFIFO out of order: amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
 #endif
@@ -3313,6 +3440,7 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->voodoo->tex_mem_w[1] = (uint16_t *) banshee->svga.vram;
     banshee->voodoo->texture_mask = banshee->svga.vram_mask;
     banshee->voodoo->cmd_status   = (1 << 28);
+    banshee->voodoo->cmd_status_2 = (1 << 28);
     voodoo_generate_filter_v1(banshee->voodoo);
 
     banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;

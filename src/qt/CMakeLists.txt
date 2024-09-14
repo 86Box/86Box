@@ -8,6 +8,11 @@
 #
 #          CMake build script.
 #
+# Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
+#
+#          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -190,6 +195,10 @@ if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()
 
+if(WACOM)
+    target_compile_definitions(ui PRIVATE USE_WACOM)
+endif()
+
 if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC 86Box-qt.rc)
@@ -223,10 +232,20 @@ if(WIN32 AND NOT MINGW)
     target_sources(plat PRIVATE win_opendir.c)
 endif()
 
+if(WIN32 AND NOT CPPTHREADS)
+    target_sources(plat PRIVATE win_thread.c)
+endif()
+
 if(WIN32)
-    target_sources(plat PRIVATE win_serial_passthrough.c win_netsocket.c)
+    target_sources(plat PRIVATE
+        win_serial_passthrough.c
+        win_netsocket.c
+    )
 else()
-    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
+    target_sources(plat PRIVATE
+        ../unix/unix_serial_passthrough.c
+        ../unix/unix_netsocket.c
+    )
 endif()
 
 if(WIN32)
@@ -260,18 +279,14 @@ if (WIN32)
     )
 endif()
 
-target_link_libraries(
-    plat
-    PRIVATE
+target_link_libraries(plat PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::Network
     Threads::Threads
 )
 
-target_link_libraries(
-    ui
-    PRIVATE
+target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::OpenGL
@@ -404,7 +419,7 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
                 target_compile_definitions(ui PRIVATE XKBCOMMON_X11)
                 target_link_libraries(ui PRIVATE X11::xcb PUBLIC PkgConfig::XKBCOMMON_X11)
                 target_sources(ui PRIVATE xkbcommon_x11_keyboard.cpp)
-                set(QT5_PRIVATE_HEADERS ON)
+                set(QT_PRIVATE_HEADERS ON)
             endif()
         endif()
     endif()
@@ -426,13 +441,13 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
                     target_sources(ui PRIVATE xkbcommon_wl_keyboard.cpp)
                 endif()
                 target_compile_definitions(ui PRIVATE WAYLAND)
-                set(QT5_PRIVATE_HEADERS ON)
+                set(QT_PRIVATE_HEADERS ON)
             endif()
         endif()
     endif()
 
     # Add private headers for Qt5 if required.
-    if (NOT USE_QT6 AND DEFINED QT5_PRIVATE_HEADERS)
+    if (DEFINED QT_PRIVATE_HEADERS)
         find_package(Qt${QT_MAJOR}Gui)
         if (Qt${QT_MAJOR}Gui_FOUND)
             include_directories(${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})

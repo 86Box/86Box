@@ -3233,6 +3233,8 @@ s3_recalctimings(svga_t *svga)
     svga->hdisp = svga->hdisp_old;
     svga->ma_latch |= (s3->ma_ext << 16);
 
+    svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
+
     if (s3->chip >= S3_86C928) {
         if (svga->crtc[0x5d] & 0x01)
             svga->htotal |= 0x100;
@@ -3246,8 +3248,8 @@ s3_recalctimings(svga_t *svga)
             svga->dispend |= 0x400;
         if (svga->crtc[0x5e] & 0x04)
             svga->vblankstart |= 0x400;
-        else
-            svga->vblankstart = svga->dispend;
+        else if ((svga->crtc[0x3a] & 0x10) && !svga->lowres)
+            svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
         if (svga->crtc[0x5e] & 0x10)
             svga->vsyncstart |= 0x400;
         if (svga->crtc[0x5e] & 0x40)
@@ -3293,8 +3295,6 @@ s3_recalctimings(svga_t *svga)
         default:
             break;
     }
-
-    svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
 
     if (s3->chip != S3_86C801)
         mask |= 0x01;
@@ -3965,6 +3965,17 @@ s3_recalctimings(svga_t *svga)
                         svga->dots_per_clock = (svga->dots_per_clock << 1) / 3;
                         break;
 
+                    case S3_VISION968:
+                        switch (s3->card_type) {
+                            case S3_MIROVIDEO40SV_ERGO_968:
+                                svga->hdisp = (svga->hdisp / 3) << 2;
+                                svga->dots_per_clock = (svga->hdisp / 3) << 2;
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+
                     case S3_TRIO64:
                     case S3_TRIO32:
                         svga->hdisp /= 3;
@@ -4140,6 +4151,9 @@ s3_recalctimings(svga_t *svga)
                 if (svga->crtc[0x31] & 0x08) {
                     svga->vram_display_mask = s3->vram_mask;
                     if (svga->bpp == 8) {
+                        if (!(svga->crtc[0x5e] & 0x04))
+                            svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
+
                         /*Enhanced 4bpp mode, just like the 8bpp mode per the spec. */
                         svga->render = svga_render_8bpp_highres;
                         svga->rowoffset <<= 1;
@@ -9205,18 +9219,19 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
                 return s3->pci_regs[PCI_REG_COMMAND] | 0x80; /*Respond to IO and memory accesses*/
             else
                 return s3->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
-			break;
+            break;
 
         case 0x07:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x07] & 0x36) : (1 << 1); /*Medium DEVSEL timing*/
 
-        case 0x08: switch (s3->chip) { /*Revision ID*/
-            case S3_TRIO64V:
-                return 0x40;
-            case S3_TRIO64V2:
-                return 0x16; /*Confirmed on an onboard 64V2/DX*/
-            default:
-                return 0x00;
+        case 0x08:
+            switch (s3->chip) { /*Revision ID*/
+                case S3_TRIO64V:
+                    return 0x40;
+                case S3_TRIO64V2:
+                    return 0x16; /*Confirmed on an onboard 64V2/DX*/
+                default:
+                    return 0x00;
             }
             break;
         case 0x09:
@@ -9238,24 +9253,13 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x0d:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x0d] & 0xf8) : 0x00;
 
-        case 0x10:
-            return 0x00; /*Linear frame buffer address*/
-        case 0x11:
-            return 0x00;
         case 0x12:
-            if (svga->crtc[0x53] & 0x08)
-                return 0x00;
-            else
-                return (svga->crtc[0x5a] & 0x80);
-            break;
+            return ((s3->chip == S3_VISION868) || (s3->chip == S3_VISION968) || (s3->chip >= S3_TRIO64V)) ? 0x00 :
+                       (svga->crtc[0x5a] & 0x80);
 
         case 0x13:
-            if (svga->crtc[0x53] & 0x08) {
-                return (s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : (svga->crtc[0x59] & 0xfe);
-            } else {
-                return svga->crtc[0x59];
-            }
-            break;
+            return ((s3->chip == S3_VISION868) || (s3->chip == S3_VISION968) || (s3->chip >= S3_TRIO64V)) ?
+                       (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59];
 
         case 0x30:
             return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
@@ -9309,13 +9313,16 @@ s3_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 s3_io_set(s3);
             else
                 s3_io_remove(s3);
-            s3->pci_regs[PCI_REG_COMMAND] = (val & 0x23);
+            if (s3->chip >= S3_TRIO64V)
+                s3->pci_regs[PCI_REG_COMMAND] = (val & 0x27);
+            else
+                s3->pci_regs[PCI_REG_COMMAND] = (val & 0x23);
             s3_updatemapping(s3);
             break;
 
         case 0x07:
             if (s3->chip == S3_TRIO64V2) {
-                s3->pci_regs[0x07] = val & 0x3e;
+                s3->pci_regs[0x07] &= ~(val & 0x30);
                 return;
             }
             break;
@@ -9328,18 +9335,14 @@ s3_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x12:
-            if (!(svga->crtc[0x53] & 0x08)) {
-                svga->crtc[0x5a] = (svga->crtc[0x5a] & 0x7f) | (val & 0x80);
+            if (s3->chip < S3_TRIO64V) {
+                svga->crtc[0x5a] = val & 0x80;
                 s3_updatemapping(s3);
             }
             break;
 
         case 0x13:
-            if (svga->crtc[0x53] & 0x08) {
-                svga->crtc[0x59] = (s3->chip >= S3_TRIO64V) ? (val & 0xfc) : (val & 0xfe);
-            } else {
-                svga->crtc[0x59] = val;
-            }
+            svga->crtc[0x59] = (s3->chip >= S3_TRIO64V) ? (val & 0xfc) : val;
             s3_updatemapping(s3);
             break;
 
@@ -9454,6 +9457,9 @@ s3_disable_handlers(s3_t *s3)
 
     reset_state->svga.timer       = s3->svga.timer;
     reset_state->svga.timer8514   = s3->svga.timer8514;
+
+    memset(s3->svga.vram, 0x00, s3->svga.vram_max + 8);
+    memset(s3->svga.changedvram, 0x00, (s3->svga.vram_max >> 12) + 1);
 }
 
 static void
@@ -9916,8 +9922,14 @@ s3_init(const device_t *info)
             s3->width         = 1024;
 
             svga->ramdac    = device_add(&sc11483_ramdac_device);
-            svga->clock_gen = device_add(&av9194_device);
-            svga->getclock  = av9194_getclock;
+            if (s3->card_type == S3_ORCHID_86C911) {
+                svga->clock_gen = device_add(&av9194_device);
+                svga->getclock  = av9194_getclock;
+            } else {
+                /* DCS2824-0 = Diamond ICD2061A-compatible. */
+                svga->clock_gen   = device_add(&icd2061_device);
+                svga->getclock    = icd2061_getclock;
+            }
             break;
 
         case S3_AMI_86C924:

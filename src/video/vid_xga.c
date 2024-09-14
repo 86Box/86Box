@@ -417,8 +417,8 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
 
         case 0x60:
             xga->sprite_pal_addr_idx = (xga->sprite_pal_addr_idx & 0x3f00) | val;
-            svga->dac_pos            = 0;
-            svga->dac_addr           = val & 0xff;
+            xga->dac_pos             = 0;
+            xga->dac_addr            = val & 0xff;
             break;
         case 0x61:
             xga->sprite_pal_addr_idx = (xga->sprite_pal_addr_idx & 0xff) | ((val & 0x3f) << 8);
@@ -430,8 +430,8 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
 
         case 0x62:
             xga->sprite_pal_addr_idx_prefetch = (xga->sprite_pal_addr_idx_prefetch & 0x3f00) | val;
-            svga->dac_pos                     = 0;
-            svga->dac_addr                    = val & 0xff;
+            xga->dac_pos                      = 0;
+            xga->dac_addr                     = val & 0xff;
             break;
         case 0x63:
             xga->sprite_pal_addr_idx_prefetch = (xga->sprite_pal_addr_idx_prefetch & 0xff) | ((val & 0x3f) << 8);
@@ -439,29 +439,29 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             break;
 
         case 0x64:
-            svga->dac_mask = val;
+            xga->dac_mask = val;
             break;
 
         case 0x65:
             svga->fullchange = svga->monitor->mon_changeframecount;
-            switch (svga->dac_pos) {
+            switch (xga->dac_pos) {
                 case 0:
-                    svga->dac_r = val;
-                    svga->dac_pos++;
+                    xga->dac_r = val;
+                    xga->dac_pos++;
                     break;
                 case 1:
-                    svga->dac_g = val;
-                    svga->dac_pos++;
+                    xga->dac_g = val;
+                    xga->dac_pos++;
                     break;
                 case 2:
                     xga->pal_b            = val;
-                    index                 = svga->dac_addr & 0xff;
-                    svga->vgapal[index].r = svga->dac_r;
-                    svga->vgapal[index].g = svga->dac_g;
+                    index                 = xga->dac_addr & 0xff;
+                    svga->vgapal[index].r = xga->dac_r;
+                    svga->vgapal[index].g = xga->dac_g;
                     svga->vgapal[index].b = xga->pal_b;
                     xga->pallook[index]  = makecol32(svga->vgapal[index].r, svga->vgapal[index].g, svga->vgapal[index].b);
-                    svga->dac_pos         = 0;
-                    svga->dac_addr        = (svga->dac_addr + 1) & 0xff;
+                    xga->dac_pos         = 0;
+                    xga->dac_addr        = (xga->dac_addr + 1) & 0xff;
                     break;
 
                 default:
@@ -474,13 +474,13 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             break;
 
         case 0x67:
-            svga->dac_r = val;
+            xga->dac_r = val;
             break;
         case 0x68:
             xga->pal_b = val;
             break;
         case 0x69:
-            svga->dac_g = val;
+            xga->dac_g = val;
             break;
 
         case 0x6a:
@@ -730,24 +730,24 @@ xga_ext_inb(uint16_t addr, void *priv)
                     break;
 
                 case 0x64:
-                    ret = svga->dac_mask;
+                    ret = xga->dac_mask;
                     break;
 
                 case 0x65:
-                    index = svga->dac_addr & 0xff;
-                    switch (svga->dac_pos) {
+                    index = xga->dac_addr & 0xff;
+                    switch (xga->dac_pos) {
                         case 0:
-                            svga->dac_pos++;
+                            xga->dac_pos++;
                             ret = svga->vgapal[index].r;
                             break;
                         case 1:
-                            svga->dac_pos++;
+                            xga->dac_pos++;
                             ret = svga->vgapal[index].g;
                             break;
                         case 2:
-                            svga->dac_pos  = 0;
-                            svga->dac_addr = (svga->dac_addr + 1) & 0xff;
-                            ret            = svga->vgapal[index].b;
+                            xga->dac_pos  = 0;
+                            xga->dac_addr = (xga->dac_addr + 1) & 0xff;
+                            ret           = svga->vgapal[index].b;
                             break;
 
                         default:
@@ -760,13 +760,13 @@ xga_ext_inb(uint16_t addr, void *priv)
                     break;
 
                 case 0x67:
-                    ret = svga->dac_r;
+                    ret = xga->dac_r;
                     break;
                 case 0x68:
                     ret = xga->pal_b;
                     break;
                 case 0x69:
-                    ret = svga->dac_g;
+                    ret = xga->dac_g;
                     break;
 
                 case 0x6a:
