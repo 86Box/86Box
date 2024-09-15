@@ -22,6 +22,7 @@
     - Decouple serial packet generation from mouse poll rate.
     - Dynamic baud rate selection from software following this.
     - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
+    - Mode Polled.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -83,7 +84,7 @@ microtouch_reset_complete(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
     
-    mtouch->reset = true;   
+    mtouch->reset = true;
     mtouch->in_reset = false;
     fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
 }
@@ -266,7 +267,7 @@ mtouch_poll(void *priv)
     
     if (fifo8_num_free(&dev->resp) <= 256 - 10 || dev->mode == MODE_INACTIVE) {
         return 0;
-    } 
+    }
     
     if (dev->cal_cntr || (!b && !dev->b)) { /* Calibration or no buttonpress */
         if (!b && dev->b) {
@@ -274,7 +275,7 @@ mtouch_poll(void *priv)
         }
         dev->b = b; /* Save buttonpress */
         return 0;
-    } 
+    }
  
     mouse_get_abs_coords(&abs_x, &abs_y);
     
@@ -306,7 +307,7 @@ mtouch_poll(void *priv)
     
     if (dev->format == FORMAT_DEC || dev->format == FORMAT_HEX) {
         if (b) {
-            if (!dev->b) { /* Touchdown (MS, MP, MDU)*/
+            if (!dev->b) { /* Touchdown (MS, MP, MDU) */
                 fifo8_push(&dev->resp, (dev->mode_status) ? 0x19 : 0x01);
                 if (dev->format == FORMAT_DEC){
                     snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
@@ -314,7 +315,7 @@ mtouch_poll(void *priv)
                     snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * abs_x), (uint16_t)(1023 * (1 - abs_y)));
                 }
                 fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
-            } else if (dev->mode == MODE_STREAM){ /* Touch Continuation (MS)*/
+            } else if (dev->mode == MODE_STREAM){ /* Touch Continuation (MS) */
                 fifo8_push(&dev->resp, (dev->mode_status) ? 0x1c : 0x01);
                 if (dev->format == FORMAT_DEC){
                     snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
@@ -323,7 +324,7 @@ mtouch_poll(void *priv)
                 }
                 fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
             }
-        } else if (dev->b && dev->mode != MODE_POINT) { /* Touch Liftoff (MS, MDU)*/
+        } else if (dev->b && dev->mode != MODE_POINT) { /* Touch Liftoff (MS, MDU) */
             fifo8_push(&dev->resp, (dev->mode_status) ? 0x18 : 0x01);
             if (dev->format == FORMAT_DEC) {
                 snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * dev->abs_x), (uint16_t)(999 * (1 - dev->abs_y)));
@@ -353,7 +354,7 @@ mtouch_poll(void *priv)
     /* Save old states*/
     dev->abs_x = abs_x;
     dev->abs_y = abs_y;
-    dev->b = b; 
+    dev->b = b;
     return 0;
 }
 
