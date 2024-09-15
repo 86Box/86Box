@@ -36,9 +36,10 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define VGAWONDERXL 1
+#define VGAWONDERXL               1
+#define VGAWONDERXLPLUS           2
 #ifdef USE_XL24
-#    define VGAWONDERXL24 2
+#    define VGAWONDERXL24         3
 #endif /* USE_XL24 */
 
 #define BIOS_ATIKOR_PATH         "roms/video/ati28800/atikorvga.bin"
@@ -57,8 +58,9 @@
 #    define BIOS_XL24_ODD_PATH  "roms/video/ati28800/112-14319-102.bin"
 #endif /* USE_XL24 */
 
-#define BIOS_ROM_PATH       "roms/video/ati28800/bios.bin"
-#define BIOS_VGAXL_ROM_PATH "roms/video/ati28800/ATI_VGAWonder_XL.bin"
+#define BIOS_ROM_PATH            "roms/video/ati28800/bios.bin"
+#define BIOS_VGAXL_ROM_PATH      "roms/video/ati28800/ATI_VGAWonder_XL.bin"
+#define BIOS_VGAXL_PLUS_ROM_PATH "roms/video/ati28800/VGAWonder1024D_XL_Plus_VGABIOS_U19.BIN"
 
 typedef struct ati28800_t {
     svga_t       svga;
@@ -183,7 +185,7 @@ ati28800_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3C7:
         case 0x3C8:
         case 0x3C9:
-            if (ati28800->type == 1)
+            if ((ati28800->type == VGAWONDERXL) || (ati28800->type == VGAWONDERXLPLUS))
                 sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else
                 svga_out(addr, val, svga);
@@ -339,7 +341,7 @@ ati28800_in(uint16_t addr, void *priv)
         case 0x3C7:
         case 0x3C8:
         case 0x3C9:
-            if (ati28800->type == 1)
+            if ((ati28800->type == VGAWONDERXL) || (ati28800->type == VGAWONDERXLPLUS))
                 return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
             return svga_in(addr, svga);
 
@@ -609,6 +611,16 @@ ati28800_init(const device_t *info)
             ati28800->svga.ramdac = device_add(&sc11486_ramdac_device);
             break;
 
+        case VGAWONDERXLPLUS:
+            ati28800->id = 6;
+            rom_init(&ati28800->bios_rom,
+                     BIOS_VGAXL_PLUS_ROM_PATH,
+                     0xc0000, 0x8000, 0x7fff,
+                     0, MEM_MAPPING_EXTERNAL);
+            ati28800->svga.ramdac = device_add(&sc11483_ramdac_device);
+            ati28800->memory = 1024;
+            break;
+
 #ifdef USE_XL24
         case VGAWONDERXL24:
             ati28800->id = 6;
@@ -653,6 +665,10 @@ ati28800_init(const device_t *info)
             ati_eeprom_load(&ati28800->eeprom, "ati28800xl.nvr", 0);
             break;
 
+        case VGAWONDERXLPLUS:
+            ati_eeprom_load(&ati28800->eeprom, "ati28800_wonder1024d_xl_plus.nvr", 0);
+            break;
+
 #ifdef USE_XL24
         case VGAWONDERXL24:
             ati_eeprom_load(&ati28800->eeprom, "ati28800xl24.nvr", 0);
@@ -683,6 +699,12 @@ static int
 compaq_ati28800_available(void)
 {
     return (rom_present(BIOS_VGAXL_ROM_PATH));
+}
+
+static int
+ati28800_wonder1024d_xl_plus_available(void)
+{
+    return (rom_present(BIOS_VGAXL_PLUS_ROM_PATH));
 }
 
 #ifdef USE_XL24
@@ -849,6 +871,20 @@ const device_t compaq_ati28800_device = {
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = ati28800_config
+};
+
+const device_t ati28800_wonder1024d_xl_plus_device = {
+    .name          = "ATI 28800-6 (ATI VGA Wonder 1024D XL Plus)",
+    .internal_name = "ati28800_wonder1024d_xl_plus",
+    .flags         = DEVICE_ISA,
+    .local         = VGAWONDERXLPLUS,
+    .init          = ati28800_init,
+    .close         = ati28800_close,
+    .reset         = NULL,
+    { .available = ati28800_wonder1024d_xl_plus_available },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw  = ati28800_force_redraw,
+    .config        = NULL
 };
 
 #ifdef USE_XL24
