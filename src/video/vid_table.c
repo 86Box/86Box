@@ -60,6 +60,7 @@ video_cards[] = {
     { &ati18800_vga88_device                           },
     { &ati28800_device                                 },
     { &compaq_ati28800_device                          },
+    { &ati28800_wonder1024d_xl_plus_device             },
 #ifdef USE_XL24
     { &ati28800_wonderxl24_device                      },
 #endif /* USE_XL24 */
