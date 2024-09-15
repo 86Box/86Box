@@ -326,6 +326,7 @@ extern const device_t ati18800_device;
 
 /* ATi 28800 */
 extern const device_t ati28800_device;
+extern const device_t ati28800_wonder1024d_xl_plus_device;
 extern const device_t ati28800k_device;
 extern const device_t ati28800k_spc4620p_device;
 extern const device_t ati28800k_spc6033p_device;
