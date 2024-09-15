@@ -240,7 +240,7 @@ mtouch_write(serial_t *serial, void *priv, uint8_t data)
 static int
 mtouch_prepare_transmit(void *priv)    
 {
-    char buffer[10];
+    char buffer[16];
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
     double abs_x = dev->abs_x;
