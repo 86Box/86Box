@@ -372,7 +372,9 @@ esdi_callback(void *priv)
     if (dev->in_reset) {
         esdi_mca_log("ESDI reset.\n");
         dev->in_reset   = 0;
-        dev->status     = STATUS_IRQ;
+        dev->status     = STATUS_IRQ | STATUS_TRANSFER_REQ | STATUS_STATUS_OUT_FULL;
+        dev->status_len = 1; /*ToDo: better implementation for Xenix?*/
+        dev->status_data[0] = STATUS_LEN(1) | ATTN_HOST_ADAPTER;
         dev->irq_status = IRQ_HOST_ADAPTER | IRQ_RESET_COMPLETE;
         return;
     }
@@ -1055,8 +1057,10 @@ esdi_readw(uint16_t port, void *priv)
 
     switch (port & 7) {
         case 0: /*Status Interface Register*/
-            if (dev->status_pos >= dev->status_len)
+            if (dev->status_pos >= dev->status_len) {
+                esdi_mca_log("esdi_readw port=%04x, ret=0000 (pos=%d, len=%d).\n", port, dev->status_pos, dev->status_len);
                 return 0;
+            }
             ret = dev->status_data[dev->status_pos++];
             if (dev->status_pos >= dev->status_len) {
                 dev->status &= ~STATUS_STATUS_OUT_FULL;
@@ -1068,6 +1072,7 @@ esdi_readw(uint16_t port, void *priv)
             fatal("esdi_readw port=%04x\n", port);
     }
 
+    esdi_mca_log("esdi_readw port=%04x, ret=%04x.\n", port, ret);
     return ret;
 }
 
@@ -1250,7 +1255,7 @@ esdi_init(UNUSED(const device_t *info))
             drive->spt     = hdd[i].spt;
             drive->hpc     = hdd[i].hpc;
             drive->tracks  = hdd[i].tracks;
-            drive->sectors = hdd_image_get_last_sector(i) + 1;
+            drive->sectors = hdd_image_get_last_sector(i);
             drive->hdd_num = i;
 
             /* Mark drive as present. */
