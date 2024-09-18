@@ -256,6 +256,9 @@ ui_sb_update_icon_state(int tag, int state)
         case SB_TEXT:
             break;
     }
+
+    if (main_window != nullptr)
+        main_window->updateStatusEmptyIcons();
 }
 
 void
