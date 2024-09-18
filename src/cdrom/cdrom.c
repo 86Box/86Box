@@ -1076,6 +1076,7 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
 
     for (i = first_track; i <= last_track; i++) {
         cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
+        pclog("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
         dev->ops->get_track_info(dev, i + 1, 0, &ti);
 
         b[len++] = 0; /* reserved */
@@ -1173,6 +1174,7 @@ read_toc_raw(cdrom_t *dev, unsigned char *b)
     int          last_track;
 
     cdrom_log("read_toc_raw(%08X, %08X)\n", dev, b);
+    pclog("read_toc_raw(%08X, %08X)\n", dev, b);
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
@@ -1183,6 +1185,7 @@ read_toc_raw(cdrom_t *dev, unsigned char *b)
         dev->ops->get_track_info(dev, i + 1, 0, &ti);
 
         cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
+        pclog("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
 
         b[len++] = 1;         /* Session number */
         b[len++] = ti.attr;   /* Track ADR and Control */
@@ -2016,6 +2019,27 @@ cdrom_insert(uint8_t id)
         dev->insert(dev->priv);
 }
 
+void
+cdrom_exit(uint8_t id)
+{
+    cdrom_t *dev = &cdrom[id];
+
+    strcpy(dev->prev_image_path, dev->image_path);
+
+    if (dev->ops) {
+        if (dev->ops->exit)
+            dev->ops->exit(dev);
+
+        dev->ops = NULL;
+    }
+
+    memset(dev->image_path, 0, sizeof(dev->image_path));
+
+    cdrom_insert(id);
+
+    pclog("CD-ROM exited\n");
+}
+
 /* The mechanics of ejecting a CD-ROM from a drive. */
 void
 cdrom_eject(uint8_t id)
@@ -2028,13 +2052,7 @@ cdrom_eject(uint8_t id)
         return;
     }
 
-    strcpy(dev->prev_image_path, dev->image_path);
-
-    dev->ops->exit(dev);
-    dev->ops = NULL;
-    memset(dev->image_path, 0, sizeof(dev->image_path));
-
-    cdrom_insert(id);
+    cdrom_exit(id);
 
     plat_cdrom_ui_update(id, 0);
 

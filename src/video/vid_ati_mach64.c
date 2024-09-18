@@ -539,7 +539,7 @@ mach64_recalctimings(svga_t *svga)
                 break;
             case BPP_8:
                 if (mach64->type != MACH64_GX)
-                    svga->render = svga_render_8bpp_highres;
+                    svga->render = svga_render_8bpp_clone_highres;
                 svga->hdisp <<= 3;
                 svga->rowoffset >>= 1;
                 break;
