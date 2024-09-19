@@ -231,7 +231,7 @@ plat_getcwd(char *bufp, int max)
     strncpy(bufp, exe_path, max);
 #else
     CharPointer(bufp, max) = QDir::homePath().toUtf8();
-    path_append_fiename(bufp, bufp, "Library/86Box");
+    path_append_filename(bufp, bufp, "Library/86Box");
 #endif
 #else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
