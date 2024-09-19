@@ -227,7 +227,12 @@ plat_getcwd(char *bufp, int max)
 {
 #ifdef __APPLE__
     /* Working directory for .app bundles is undefined. */
+#ifdef USE_EXE_PATH
     strncpy(bufp, exe_path, max);
+#else
+    CharPointer(bufp, max) = QDir::homePath().toUtf8();
+    path_append_filename(bufp, bufp, "Library/86Box");
+#endif
 #else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
 #endif
