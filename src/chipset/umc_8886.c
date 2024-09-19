@@ -180,10 +180,10 @@ umc_8886_irq_recalc(umc_8886_t *dev)
     irq_routing = (conf[0x46] & 0x08) ? (conf[0x44] & 0x0f) : PCI_IRQ_DISABLED;
     pci_set_irq_routing(PCI_INTD, irq_routing);
 
-    pci_set_irq_level(PCI_INTA, !!(conf[0x47] & 0x01));
-    pci_set_irq_level(PCI_INTB, !!(conf[0x47] & 0x02));
-    pci_set_irq_level(PCI_INTC, !!(conf[0x47] & 0x04));
-    pci_set_irq_level(PCI_INTD, !!(conf[0x47] & 0x08));
+    pci_set_irq_level(PCI_INTA, !(conf[0x47] & 0x01));
+    pci_set_irq_level(PCI_INTB, !(conf[0x47] & 0x02));
+    pci_set_irq_level(PCI_INTC, !(conf[0x47] & 0x04));
+    pci_set_irq_level(PCI_INTD, !(conf[0x47] & 0x08));
 }
 
 static void
