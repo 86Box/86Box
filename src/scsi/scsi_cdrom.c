@@ -1182,8 +1182,6 @@ scsi_cdrom_cmd_error(scsi_cdrom_t *dev)
 {
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
     dev->tf->error = ((scsi_cdrom_sense_key & 0xf) << 4) | ABRT_ERR;
-    if (dev->unit_attention > 2)
-        dev->tf->error |= MCR_ERR;
     dev->tf->status        = READY_STAT | ERR_STAT;
     dev->tf->phase         = 3;
     dev->tf->pos           = 0;
@@ -1199,8 +1197,6 @@ scsi_cdrom_unit_attention(scsi_cdrom_t *dev)
 {
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
     dev->tf->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
-    if (dev->unit_attention > 2)
-        dev->tf->error |= MCR_ERR;
     dev->tf->status     = READY_STAT | ERR_STAT;
     dev->tf->phase     = 3;
     dev->tf->pos       = 0;
@@ -1543,13 +1539,23 @@ scsi_cdrom_insert(void *priv)
 {
     scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
 
-    if (!dev)
+    if ((dev == NULL) || (dev->drv == NULL))
         return;
 
-    dev->unit_attention = 1;
-    /* Turn off the medium changed status. */
-    dev->drv->cd_status &= ~CD_STATUS_MEDIUM_CHANGED;
-    scsi_cdrom_log("CD-ROM %i: Media insert\n", dev->id);
+    if (dev->drv->ops == NULL) {
+        dev->unit_attention = 0;
+        dev->drv->cd_status = CD_STATUS_EMPTY;
+        scsi_cdrom_log("CD-ROM %i: Media removal\n", dev->id);
+    } else if (dev->drv->cd_status & CD_STATUS_TRANSITION) {
+        dev->unit_attention = 1;
+        /* Turn off the medium changed status. */
+        dev->drv->cd_status &= ~(CD_STATUS_TRANSITION | CD_STATUS_MEDIUM_CHANGED);
+        scsi_cdrom_log("CD-ROM %i: Media insert\n", dev->id);
+    } else {
+        dev->unit_attention = 0;
+        dev->drv->cd_status |= CD_STATUS_TRANSITION;
+        scsi_cdrom_log("CD-ROM %i: Media transition\n", dev->id);
+    }
 }
 
 static int
@@ -1621,29 +1627,31 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
         goto skip_ready_check;
     }
 
-    if ((dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED) || (ext_medium_changed == 1))
-        scsi_cdrom_insert((void *) dev);
+    if (dev->drv->cd_status & CD_STATUS_TRANSITION) {
+        if ((cdb[0] == GPCMD_TEST_UNIT_READY) || (cdb[0] == GPCMD_REQUEST_SENSE))
+            ready = 0;
+        else {
+            scsi_cdrom_insert((void *) dev);
 
-    ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
+            ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
+        }
+    } else {
+        if ((dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED) || (ext_medium_changed == 1))
+            scsi_cdrom_insert((void *) dev);
+
+        ready = (dev->drv->cd_status != CD_STATUS_EMPTY) || (ext_medium_changed == -1);
+    }
 
 skip_ready_check:
     /* If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
        disc changes. */
-    if (!ready && (dev->unit_attention > 2))
+    if (!ready && (dev->unit_attention > 0))
         dev->unit_attention = 0;
 
     /* If the UNIT ATTENTION condition is set and the command does not allow
        execution under it, error out and report the condition. */
-    if ((dev->unit_attention > 0) && (dev->unit_attention < 3)) {
-        dev->media_status = MEC_MEDIA_REMOVAL;
-        if (scsi_command_check_ready(dev, cdb)) {
-            dev->unit_attention++;
-            scsi_cdrom_log("CD-ROM %i: Simulated not ready phase (%02X)\n", dev->id, cdb[0]);
-            scsi_cdrom_not_ready(dev);
-            return 0;
-        }
-    } else if (dev->unit_attention == 3) {
+    if (dev->unit_attention == 1) {
         /* Only increment the unit attention phase if the command can not pass through it. */
         if (!(scsi_cdrom_command_flags[cdb[0]] & ALLOW_UA)) {
             /* scsi_cdrom_log("CD-ROM %i: Unit attention now 2\n", dev->id); */
@@ -1653,7 +1661,7 @@ skip_ready_check:
             scsi_cdrom_unit_attention(dev);
             return 0;
         }
-    } else if (dev->unit_attention == 4) {
+    } else if (dev->unit_attention == 2) {
         if (cdb[0] != GPCMD_REQUEST_SENSE) {
             /* scsi_cdrom_log("CD-ROM %i: Unit attention now 0\n", dev->id); */
             dev->unit_attention = 0;
@@ -1666,10 +1674,10 @@ skip_ready_check:
         scsi_cdrom_sense_clear(dev, cdb[0]);
 
     /* Next it's time for NOT READY. */
-    if (!ready || ((dev->unit_attention > 0) && (dev->unit_attention < 3)))
-        dev->media_status = MEC_MEDIA_REMOVAL;
+    if (ready)
+        dev->media_status = dev->unit_attention ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
     else
-        dev->media_status = (dev->unit_attention > 2) ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
+        dev->media_status = MEC_MEDIA_REMOVAL;
 
     if (!ready && scsi_command_check_ready(dev, cdb)) {
         scsi_cdrom_log("CD-ROM %i: Not ready (%02X)\n", dev->id, cdb[0]);
@@ -1726,8 +1734,7 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
         buffer[2]  = SENSE_ILLEGAL_REQUEST;
         buffer[12] = ASC_AUDIO_PLAY_OPERATION;
         buffer[13] = (dev->drv->cd_status == CD_STATUS_PLAYING) ? ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS : ASCQ_AUDIO_PLAY_OPERATION_PAUSED;
-    } else if ((dev->unit_attention > 2) &&
-               ((scsi_cdrom_sense_key == 0) || (scsi_cdrom_sense_key == 2))) {
+    } else if (dev->unit_attention && ((scsi_cdrom_sense_key == 0) || (scsi_cdrom_sense_key == 2))) {
         buffer[2]  = SENSE_UNIT_ATTENTION;
         buffer[12] = ASC_MEDIUM_MAY_HAVE_CHANGED;
         buffer[13] = 0;
@@ -1740,6 +1747,9 @@ scsi_cdrom_request_sense(scsi_cdrom_t *dev, uint8_t *buffer, uint8_t alloc_lengt
            that condition. */
         dev->unit_attention = 0;
     }
+
+    if (dev->drv->cd_status & CD_STATUS_TRANSITION)
+        scsi_cdrom_insert((void *) dev);
 }
 
 void
@@ -1750,7 +1760,7 @@ scsi_cdrom_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t al
     if (dev->drv->cd_status & CD_STATUS_MEDIUM_CHANGED)
         scsi_cdrom_insert((void *) dev);
 
-    if ((dev->drv->cd_status == CD_STATUS_EMPTY) && (dev->unit_attention > 2)) {
+    if ((dev->drv->cd_status == CD_STATUS_EMPTY) && dev->unit_attention) {
         /* If the drive is not ready, there is no reason to keep the
            UNIT ATTENTION condition present, as we only use it to mark
            disc changes. */
@@ -1833,7 +1843,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     memcpy(dev->current_cdb, cdb, 12);
     dev->sony_vendor = 0;
 
-    if (cdb[0] != 0) {
+    // if (cdb[0] != 0) {
         scsi_cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n",
                        dev->id, cdb[0], scsi_cdrom_sense_key, scsi_cdrom_asc, scsi_cdrom_ascq,
                        dev->unit_attention);
@@ -1842,7 +1852,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
         scsi_cdrom_log("CD-ROM %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
                        dev->id, cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
                        cdb[8], cdb[9], cdb[10], cdb[11]);
-    }
+    // }
 
     msf             = cdb[1] & 2;
     dev->sector_len = 0;

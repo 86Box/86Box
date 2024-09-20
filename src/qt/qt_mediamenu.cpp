@@ -526,11 +526,8 @@ MediaMenu::cdromMount(int i, const QString &filename)
 {
     QByteArray fn = filename.toUtf8().data();
 
-    strcpy(cdrom[i].prev_image_path, cdrom[i].image_path);
-    if (cdrom[i].ops && cdrom[i].ops->exit)
-        cdrom[i].ops->exit(&(cdrom[i]));
+    cdrom_exit(i);
 
-    cdrom[i].ops = nullptr;
     memset(cdrom[i].image_path, 0, sizeof(cdrom[i].image_path));
 #ifdef Q_OS_WINDOWS
     if ((fn.data() != nullptr) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '/'))
@@ -543,6 +540,7 @@ MediaMenu::cdromMount(int i, const QString &filename)
         cdrom_ioctl_open(&(cdrom[i]), fn.data());
     else
         cdrom_image_open(&(cdrom[i]), fn.data());
+
     /* Signal media change to the emulated machine. */
     if (cdrom[i].insert)
         cdrom[i].insert(cdrom[i].priv);

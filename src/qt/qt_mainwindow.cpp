@@ -1905,6 +1905,13 @@ MainWindow::updateUiPauseState()
 }
 
 void
+MainWindow::updateStatusEmptyIcons()
+{
+    if (status != nullptr)
+        status->refreshEmptyIcons();
+}
+
+void
 MainWindow::on_actionPreferences_triggered()
 {
     ProgSettings progsettings(this);

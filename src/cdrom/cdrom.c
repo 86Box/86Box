@@ -2016,6 +2016,25 @@ cdrom_insert(uint8_t id)
         dev->insert(dev->priv);
 }
 
+void
+cdrom_exit(uint8_t id)
+{
+    cdrom_t *dev = &cdrom[id];
+
+    strcpy(dev->prev_image_path, dev->image_path);
+
+    if (dev->ops) {
+        if (dev->ops->exit)
+            dev->ops->exit(dev);
+
+        dev->ops = NULL;
+    }
+
+    memset(dev->image_path, 0, sizeof(dev->image_path));
+
+    cdrom_insert(id);
+}
+
 /* The mechanics of ejecting a CD-ROM from a drive. */
 void
 cdrom_eject(uint8_t id)
@@ -2028,13 +2047,7 @@ cdrom_eject(uint8_t id)
         return;
     }
 
-    strcpy(dev->prev_image_path, dev->image_path);
-
-    dev->ops->exit(dev);
-    dev->ops = NULL;
-    memset(dev->image_path, 0, sizeof(dev->image_path));
-
-    cdrom_insert(id);
+    cdrom_exit(id);
 
     plat_cdrom_ui_update(id, 0);
 

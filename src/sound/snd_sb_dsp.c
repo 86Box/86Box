@@ -1983,10 +1983,8 @@ sb_read(uint16_t a, void *priv)
                 else
                     ret = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x7f : 0xff;
             }
-            if (dsp->state == DSP_S_RESET_WAIT) {
-                ret &= 0x7f;
+            if (dsp->state == DSP_S_RESET_WAIT)
                 dsp->state = DSP_S_NORMAL;
-            }
             break;
         case 0xF: /* 16-bit ack */
             if (IS_NOT_ESS(dsp)) {
