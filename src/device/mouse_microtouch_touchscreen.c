@@ -322,6 +322,8 @@ void
 mtouch_write_to_host(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+    if (dev->serial == NULL)
+        goto no_write_to_machine;
     if ((dev->serial->type >= SERIAL_16550) && dev->serial->fifo_enabled) {
         if (fifo_get_full(dev->serial->rcvr_fifo)) {
             goto no_write_to_machine;

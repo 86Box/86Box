@@ -434,7 +434,7 @@ host_to_modem_cb(void *priv)
 {
     modem_t *modem = (modem_t *) priv;
 
-    if (modem->in_warmup)
+    if (modem->in_warmup || (modem->serial == NULL))
         goto no_write_to_machine;
 
     if ((modem->serial->type >= SERIAL_16550) && modem->serial->fifo_enabled) {
@@ -621,10 +621,12 @@ modem_enter_idle_state(modem_t *modem)
         }
     }
 
-    serial_set_cts(modem->serial, 1);
-    serial_set_dsr(modem->serial, 1);
-    serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
-    serial_set_ri(modem->serial, 0);
+    if (modem->serial != NULL) {
+        serial_set_cts(modem->serial, 1);
+        serial_set_dsr(modem->serial, 1);
+        serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
+        serial_set_ri(modem->serial, 0);
+    }
 }
 
 void
@@ -640,8 +642,11 @@ modem_enter_connected_state(modem_t *modem)
     plat_netsocket_close(modem->serversocket);
     modem->serversocket = -1;
     memset(&modem->telClient, 0, sizeof(modem->telClient));
-    serial_set_dcd(modem->serial, 1);
-    serial_set_ri(modem->serial, 0);
+
+    if (modem->serial != NULL) {
+        serial_set_dcd(modem->serial, 1);
+        serial_set_ri(modem->serial, 0);
+    }
 }
 
 void
@@ -1391,7 +1396,8 @@ modem_cmdpause_timer_callback(void *priv)
             } else {
                 modem->ringing = true;
                 modem_send_res(modem, ResRING);
-                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+                if (modem->serial != NULL)
+                    serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
                 modem->ringtimer            = 3000;
                 modem->reg[MREG_RING_COUNT] = 0;
             }
@@ -1405,7 +1411,8 @@ modem_cmdpause_timer_callback(void *priv)
                 return;
             }
             modem_send_res(modem, ResRING);
-            serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+            if (modem->serial != NULL)
+                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
 
             modem->ringtimer = 3000;
         }
