@@ -142,7 +142,8 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
     if (dev->buf_pos == 0)
         dev->acc_time = 0.0;
 
-    serial_write_fifo(dev->serial, dev->buf[dev->buf_pos]);
+    if (dev->serial)
+        serial_write_fifo(dev->serial, dev->buf[dev->buf_pos]);
 
     if (do_next) {
         dev->buf_pos = (dev->buf_pos + 1) % dev->buf_len;

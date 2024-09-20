@@ -61,6 +61,8 @@ extern uint64_t tsc;
 
 extern MainWindow *main_window;
 
+static bool sbar_initialized = false;
+
 namespace {
 struct PixmapSetActive {
     QPixmap normal;
@@ -381,39 +383,54 @@ hdd_count(int bus)
 }
 
 void
+MachineStatus::refreshEmptyIcons()
+{
+    /* Check if icons are initialized. */
+    if (!sbar_initialized)
+        return;
+
+    for (size_t i = 0; i < FDD_NUM; ++i)
+        d->fdd[i].setEmpty(machine_status.fdd[i].empty);
+    for (size_t i = 0; i < CDROM_NUM; ++i)
+        d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
+    for (size_t i = 0; i < ZIP_NUM; i++)
+        d->zip[i].setEmpty(machine_status.zip[i].empty);
+    for (size_t i = 0; i < MO_NUM; i++)
+        d->mo[i].setEmpty(machine_status.mo[i].empty);
+
+    d->cassette.setEmpty(machine_status.cassette.empty);
+
+    for (size_t i = 0; i < NET_CARD_MAX; i++)
+        d->net[i].setEmpty(machine_status.net[i].empty);
+
+    for (int i = 0; i < 2; ++i)
+        d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
+}
+
+void
 MachineStatus::refreshIcons()
 {
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
 
-    for (size_t i = 0; i < FDD_NUM; ++i) {
+    for (size_t i = 0; i < FDD_NUM; ++i)
         d->fdd[i].setActive(machine_status.fdd[i].active);
-        d->fdd[i].setEmpty(machine_status.fdd[i].empty);
-    }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
         if (machine_status.cdrom[i].active)
             ui_sb_update_icon(SB_CDROM | i, 0);
-
-        d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
     }
     for (size_t i = 0; i < ZIP_NUM; i++) {
         d->zip[i].setActive(machine_status.zip[i].active);
         if (machine_status.zip[i].active)
             ui_sb_update_icon(SB_ZIP | i, 0);
-
-        d->zip[i].setEmpty(machine_status.zip[i].empty);
     }
     for (size_t i = 0; i < MO_NUM; i++) {
         d->mo[i].setActive(machine_status.mo[i].active);
         if (machine_status.mo[i].active)
             ui_sb_update_icon(SB_MO | i, 0);
-
-        d->mo[i].setEmpty(machine_status.mo[i].empty);
     }
-
-    d->cassette.setEmpty(machine_status.cassette.empty);
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
@@ -421,14 +438,8 @@ MachineStatus::refreshIcons()
             ui_sb_update_icon(SB_HDD | i, 0);
     }
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CARD_MAX; i++)
         d->net[i].setActive(machine_status.net[i].active);
-        d->net[i].setEmpty(machine_status.net[i].empty);
-    }
-
-    for (int i = 0; i < 2; ++i) {
-        d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
-    }
 }
 
 void
@@ -664,6 +675,10 @@ MachineStatus::refresh(QStatusBar *sbar)
     sbar->addWidget(d->sound.get());
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());
+
+    sbar_initialized = true;
+
+    refreshEmptyIcons();
 }
 
 void
@@ -719,4 +734,6 @@ MachineStatus::updateTip(int tag)
         case SB_TEXT:
             break;
     }
+
+    refreshEmptyIcons();
 }
