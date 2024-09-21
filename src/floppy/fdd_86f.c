@@ -628,10 +628,12 @@ d86f_get_array_size(int drive, int side, int words)
     int hole;
     int rm;
     int ssd;
+    int mpc;
 
     rm   = d86f_get_rpm_mode(drive);
     ssd  = d86f_get_speed_shift_dir(drive);
-    hole = (d86f_handler[drive].disk_flags(drive) & 6) >> 1;
+    hole = (d86f_handler[drive].disk_flags(drive) >> 1) & 3;
+    mpc  = (d86f_handler[drive].disk_flags(drive) >> 13) & 1;
 
     if (!rm && ssd) /* Special case - extra bit cells size specifies entire array size. */
         array_size = 0;
@@ -703,13 +705,20 @@ d86f_get_array_size(int drive, int side, int words)
     array_size <<= 4;
     array_size += d86f_handler[drive].extra_bit_cells(drive, side);
 
-    if (array_size & 15)
-        array_size = (array_size >> 4) + 1;
-    else
-        array_size = (array_size >> 4);
+    if (mpc && !words) {
+        if (array_size & 7)
+            array_size = (array_size >> 3) + 1;
+        else
+            array_size = (array_size >> 3);
+    } else {
+        if (array_size & 15)
+            array_size = (array_size >> 4) + 1;
+        else
+            array_size = (array_size >> 4);
 
-    if (!words)
-        array_size <<= 1;
+        if (!words)
+            array_size <<= 1;
+    }
 
     return array_size;
 }
@@ -2869,22 +2878,22 @@ d86f_construct_encoded_buffer(int drive, int side)
             /* Source image has surface description data, so we have some more handling to do. */
             src1_fuzm = src1[i] & src1_s[i];
             src2_fuzm = src2[i] & src2_s[i];
-            dst_fuzm  = src1_fuzm | src2_fuzm; /* The bits that remain set are fuzzy in either one or
-                                                                  the other or both. */
-            src1_holm = src1[i] | (src1_s[i] ^ 0xffff);
-            src2_holm = src2[i] | (src2_s[i] ^ 0xffff);
-            dst_holm  = (src1_holm & src2_holm) ^ 0xffff; /* The bits that remain set are holes in both. */
-            dst_neim  = (dst_fuzm | dst_holm) ^ 0xffff;   /* The bits that remain set are those that are neither
-                                                                     fuzzy nor are holes in both. */
+            dst_fuzm  = src1_fuzm | src2_fuzm;     /* The bits that remain set are fuzzy in either one or
+                                                      the other or both. */
+            src1_holm = ~src1[i] & src1_s[i];
+            src2_holm = ~src2[i] & src2_s[i];
+            dst_holm  = src1_holm & src2_holm;     /* The bits that remain set are holes in both. */
+            dst_neim  = ~(dst_fuzm | dst_holm);    /* The bits that remain set are those that are neither
+                                                      fuzzy nor are holes in both. */
             src1_d = src1[i] & dst_neim;
             src2_d = src2[i] & dst_neim;
 
-            dst_s[i] = (dst_neim ^ 0xffff); /* The set bits are those that are either fuzzy or are
-                                                                       holes in both. */
-            dst[i] = (src1_d | src2_d);     /* Initial data is remaining data from Source 1 and
-                                                       Source 2. */
-            dst[i] |= dst_fuzm;             /* Add to it the fuzzy bytes (holes have surface bit set
-                                                       but data bit clear). */
+            dst_s[i] = ~dst_neim;                  /* The set bits are those that are either fuzzy or are
+                                                      holes in both. */
+            dst[i] = (src1_d | src2_d);            /* Initial data is remaining data from Source 1 and
+                                                      Source 2. */
+            dst[i] |= dst_fuzm;                    /* Add to it the fuzzy bytes (holes have surface bit set
+                                                      but data bit clear). */
         } else {
             /* No surface data, the handling is much simpler - a simple OR. */
             dst[i]   = src1[i] | src2[i];
