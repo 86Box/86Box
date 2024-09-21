@@ -1098,9 +1098,9 @@ d86f_get_bit(int drive, int side)
     /* In some cases, misindentification occurs so we need to make sure the surface data array is not
        not NULL. */
     if (d86f_has_surface_desc(drive) && dev->track_surface_data[side]) {
-        if (d86f_reverse_bytes(drive)) {
+        if (d86f_reverse_bytes(drive))
             surface_data = dev->track_surface_data[side][track_word] & 0xFF;
-        } else {
+        else {
             surface_data = (dev->track_surface_data[side][track_word] & 0xFF) << 8;
             surface_data |= (dev->track_surface_data[side][track_word] >> 8);
         }
@@ -1150,9 +1150,9 @@ d86f_put_bit(int drive, int side, int bit)
     }
 
     if (d86f_has_surface_desc(drive)) {
-        if (d86f_reverse_bytes(drive)) {
+        if (d86f_reverse_bytes(drive))
             surface_data = dev->track_surface_data[side][track_word] & 0xFF;
-        } else {
+        else {
             surface_data = (dev->track_surface_data[side][track_word] & 0xFF) << 8;
             surface_data |= (dev->track_surface_data[side][track_word] >> 8);
         }
@@ -1177,9 +1177,9 @@ d86f_put_bit(int drive, int side, int bit)
 
         surface_data &= ~(1 << track_bit);
         surface_data |= (surface_bit << track_bit);
-        if (d86f_reverse_bytes(drive)) {
+        if (d86f_reverse_bytes(drive))
             dev->track_surface_data[side][track_word] = surface_data;
-        } else {
+        else {
             dev->track_surface_data[side][track_word] = (surface_data & 0xFF) << 8;
             dev->track_surface_data[side][track_word] |= (surface_data >> 8);
         }
@@ -1191,9 +1191,9 @@ d86f_put_bit(int drive, int side, int bit)
     encoded_data &= ~(1 << track_bit);
     encoded_data |= (current_bit << track_bit);
 
-    if (d86f_reverse_bytes(drive)) {
+    if (d86f_reverse_bytes(drive))
         d86f_handler[drive].encoded_data(drive, side)[track_word] = encoded_data;
-    } else {
+    else {
         d86f_handler[drive].encoded_data(drive, side)[track_word] = (encoded_data & 0xFF) << 8;
         d86f_handler[drive].encoded_data(drive, side)[track_word] |= (encoded_data >> 8);
     }
@@ -1833,7 +1833,6 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
     uint16_t  mask_data;
     uint16_t  mask_surface;
     uint16_t  mask_hole;
-    uint16_t  mask_fuzzy;
     decoded_t dbyte;
     decoded_t dpbyte;
 
@@ -1866,13 +1865,18 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
     dev->preceding_bit[side] = encoded_byte & 1;
 
     if (d86f_has_surface_desc(drive)) {
-        mask_data    = dev->track_encoded_data[side][pos] ^= 0xFFFF;
+        /* Inverted track data, clear bits are now set. */
+        mask_data    = ~dev->track_encoded_data[side][pos];
+        /* Surface data. */
         mask_surface = dev->track_surface_data[side][pos];
-        mask_hole    = (mask_surface & mask_data) ^ 0xFFFF; /* This will retain bits that are both fuzzy and 0, therefore physical holes. */
-        encoded_byte &= mask_hole;                          /* Filter out physical hole bits from the encoded data. */
-        mask_data ^= 0xFFFF;                                /* Invert back so bits 1 are 1 again. */
-        mask_fuzzy = (mask_surface & mask_data) ^ 0xFFFF;   /* All fuzzy bits are 0. */
-        dev->track_surface_data[side][pos] &= mask_fuzzy;   /* Remove fuzzy bits (but not hole bits) from the surface mask, making them regular again. */
+
+        /* Hole = surface & ~data, so holes are one. */
+        mask_hole    = mask_surface & mask_data;
+        /* Hole bits are ones again, set the surface data to that. */
+        dev->track_surface_data[side][pos] = mask_hole;
+
+        /* Force the data of any hole to zero. */
+        encoded_byte &= ~mask_hole;
     }
 
     dev->track_encoded_data[side][pos] = encoded_byte;
@@ -2909,15 +2913,14 @@ d86f_decompose_encoded_buffer(int drive, int side)
         if (d86f_has_surface_desc(drive)) {
             /* Source image has surface description data, so we have some more handling to do.
                We need hole masks for both buffers. Holes have data bit clear and surface bit set. */
-            temp      = src1[i] & (src1_s[i] ^ 0xffff);
-            temp2     = src2[i] & (src2_s[i] ^ 0xffff);
-            src1[i]   = dst[i] & temp;
-            src1_s[i] = temp ^ 0xffff;
-            src2[i]   = dst[i] & temp2;
-            src2_s[i] = temp2 ^ 0xffff;
-        } else {
+            temp      = ~src1[i] & src1_s[i];
+            temp2     = ~src2[i] & src2_s[i];
+            src1[i]   = dst[i] & ~temp;
+            src1_s[i] = temp;
+            src2[i]   = dst[i] & ~temp2;
+            src2_s[i] = temp2;
+        } else
             src1[i] = src2[i] = dst[i];
-        }
     }
 }
 
@@ -3544,9 +3547,9 @@ d86f_load(int drive, char *fn)
         writeprot[drive] = 1;
     }
 
-    if (ui_writeprot[drive]) {
+    if (ui_writeprot[drive])
         writeprot[drive] = 1;
-    }
+
     fwriteprot[drive] = writeprot[drive];
 
     fseek(dev->fp, 0, SEEK_END);
