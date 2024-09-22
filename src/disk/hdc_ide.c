@@ -1901,8 +1901,7 @@ ide_status(ide_t *ide, ide_t *ide_other, int ch)
         /* On real hardware, a slave with a present master always
            returns a status of 0x00.
            Confirmed by the ATA-3 and ATA-4 specifications. */
-        // ret = 0x00;
-        ret = 0x01;
+        ret = 0x00;
     } else {
         ret = ide->tf->atastat;
         if (ide->type == IDE_ATAPI)
