@@ -2592,6 +2592,8 @@ mach_recalctimings(svga_t *svga)
         }
 
         svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
+        if (mach->accel.clock_sel & 0x40)
+            svga->clock8514 *= 2;
 
         if (dev->interlace)
             dev->dispend >>= 1;
@@ -3532,13 +3534,14 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
         case 0xaef:
             WRITE8(port, mach->cursor_offset_lo_reg, val);
             mach->cursor_offset_lo = mach->cursor_offset_lo_reg;
+            dev->hwcursor.addr = ((mach->cursor_offset_lo | (mach->cursor_offset_hi << 16)) << 2);
             break;
 
         case 0xeee:
         case 0xeef:
             WRITE8(port, mach->cursor_offset_hi_reg, val);
             mach->cursor_offset_hi = mach->cursor_offset_hi_reg & 0x0f;
-            dev->hwcursor.addr = (mach->cursor_offset_lo | (mach->cursor_offset_hi << 16)) << 2;
+            dev->hwcursor.addr = ((mach->cursor_offset_lo | (mach->cursor_offset_hi << 16)) << 2);
             dev->hwcursor.ena = !!(mach->cursor_offset_hi_reg & 0x8000);
             break;
 
@@ -4633,9 +4636,6 @@ mach32_write_common(uint32_t addr, uint8_t val, int linear, mach_t *mach, svga_t
     cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (linear) {
-        addr &= svga->decode_mask;
-        if (addr >= dev->vram_size)
-            return;
         addr &= dev->vram_mask;
         dev->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
         dev->vram[addr]              = val;
@@ -4825,9 +4825,6 @@ mach32_writew_linear(uint32_t addr, uint16_t val, mach_t *mach)
 
     cycles -= svga->monitor->mon_video_timing_write_w;
 
-    addr &= svga->decode_mask;
-    if (addr >= dev->vram_size)
-        return;
     addr &= dev->vram_mask;
     dev->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
     *(uint16_t *) &dev->vram[addr] = val;
@@ -4841,9 +4838,6 @@ mach32_writel_linear(uint32_t addr, uint32_t val, mach_t *mach)
 
     cycles -= svga->monitor->mon_video_timing_write_l;
 
-    addr &= svga->decode_mask;
-    if (addr >= dev->vram_size)
-        return;
     addr &= dev->vram_mask;
     dev->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
     *(uint32_t *) &dev->vram[addr] = val;
@@ -4862,10 +4856,6 @@ mach32_read_common(uint32_t addr, int linear, mach_t *mach, svga_t *svga)
     cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (linear) {
-        addr &= svga->decode_mask;
-        if (addr >= dev->vram_size)
-            return 0xff;
-
         return dev->vram[addr & dev->vram_mask];
     } else {
         addr = mach32_decode_addr(svga, addr, 0);
@@ -5022,10 +5012,6 @@ mach32_readw_linear(uint32_t addr, mach_t *mach)
 
     cycles -= svga->monitor->mon_video_timing_read_w;
 
-    addr &= svga->decode_mask;
-    if (addr >= dev->vram_size)
-        return 0xffff;
-
     return *(uint16_t *) &dev->vram[addr & dev->vram_mask];
 }
 
@@ -5036,10 +5022,6 @@ mach32_readl_linear(uint32_t addr, mach_t *mach)
     ibm8514_t       *dev        = (ibm8514_t *) svga->dev8514;
 
     cycles -= svga->monitor->mon_video_timing_read_l;
-
-    addr &= svga->decode_mask;
-    if (addr >= dev->vram_size)
-        return 0xffffffff;
 
     return *(uint32_t *) &dev->vram[addr & dev->vram_mask];
 }
@@ -5294,7 +5276,7 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
     int           x_pos;
     int           y_pos;
 
-    mach_log("BPP=%d.\n", dev->accel_bpp);
+    mach_log("BPP=%d, displine=%d.\n", dev->accel_bpp, displine);
     switch (dev->accel_bpp) {
         default:
         case 8:
@@ -5888,7 +5870,7 @@ mach8_init(const device_t *info)
             else
                 mach->config1 |= 0x0c;
             mach->config1 |= 0x0400;
-            svga->clock_gen = device_add(&ati18811_0_device);
+            svga->clock_gen = device_add(&ati18811_1_device);
         } else if (mach->mca_bus) {
             video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_mca);
             if (is286 && !is386)
@@ -5905,11 +5887,11 @@ mach8_init(const device_t *info)
             else
                 mach->config1 |= 0x0a00;
             mach->config2 |= 0x2000;
-            svga->clock_gen = device_add(&ati18811_0_device);
+            svga->clock_gen = device_add(&ati18811_1_device);
         } else {
             video_inform(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa);
             mach->config1 |= 0x0400;
-            svga->clock_gen = device_add(&ati18811_0_device);
+            svga->clock_gen = device_add(&ati18811_1_device);
         }
         mem_mapping_add(&mach->mmio_linear_mapping, 0, 0, mach32_ap_readb, mach32_ap_readw, mach32_ap_readl, mach32_ap_writeb, mach32_ap_writew, mach32_ap_writel, NULL, MEM_MAPPING_EXTERNAL, mach);
         mem_mapping_disable(&mach->mmio_linear_mapping);
@@ -5926,7 +5908,7 @@ mach8_init(const device_t *info)
         video_inform(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa);
         mach->config1 = 0x01 | 0x02 | 0x20 | 0x08 | 0x80;
         mach->config2 = 0x02;
-        svga->clock_gen = device_add(&ati18810_device);
+        svga->clock_gen = device_add(&ati18811_0_device);
     }
     dev->bpp            = 0;
     svga->getclock      = ics2494_getclock;
