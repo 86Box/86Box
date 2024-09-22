@@ -1020,7 +1020,7 @@ pas16_nsc_mixer_reset(nsc_mixer_t *mixer)
     mixer->lmc1982_regs[LMC1982_REG_ISELECT] = 0x01;
     mixer->lmc1982_regs[LMC1982_REG_LES]     = 0x00;
     mixer->lmc1982_regs[LMC1982_REG_BASS]    = mixer->lmc1982_regs[LMC1982_REG_TREBLE]  = 0x06;
-    mixer->lmc1982_regs[LMC1982_REG_VOL_L]   = mixer->lmc1982_regs[LMC1982_REG_VOL_R]   = 0x28;
+    mixer->lmc1982_regs[LMC1982_REG_VOL_L]   = mixer->lmc1982_regs[LMC1982_REG_VOL_R]   = 0x00; /*0x28*/ /*Note by TC1995: otherwise the volume gets lowered too much*/
     mixer->lmc1982_regs[LMC1982_REG_MODE]    = 0x05;
 
     lmc1982_recalc(mixer);
