@@ -3111,7 +3111,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x05:
             return s->pci_conf[addr & 0xFF] & 1;
         case 0x08:
-            return 0x20;
+            return 0x10;
         case 0x09:
             return 0x0;
         case 0x0a:
