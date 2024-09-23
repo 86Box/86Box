@@ -170,20 +170,20 @@ umc_8886_irq_recalc(umc_8886_t *dev)
     int irq_routing;
     uint8_t *conf = dev->pci_conf_sb[0];
 
-    irq_routing = (conf[0x46] & 0x01) ? (conf[0x43] >> 8) : PCI_IRQ_DISABLED;
+    irq_routing = (conf[0x46] & 0x01) ? (conf[0x43] >> 4) : PCI_IRQ_DISABLED;
     pci_set_irq_routing(PCI_INTA, irq_routing);
     irq_routing = (conf[0x46] & 0x02) ? (conf[0x43] & 0x0f) : PCI_IRQ_DISABLED;
     pci_set_irq_routing(PCI_INTB, irq_routing);
 
-    irq_routing = (conf[0x46] & 0x04) ? (conf[0x44] >> 8) : PCI_IRQ_DISABLED;
+    irq_routing = (conf[0x46] & 0x04) ? (conf[0x44] >> 4) : PCI_IRQ_DISABLED;
     pci_set_irq_routing(PCI_INTC, irq_routing);
     irq_routing = (conf[0x46] & 0x08) ? (conf[0x44] & 0x0f) : PCI_IRQ_DISABLED;
     pci_set_irq_routing(PCI_INTD, irq_routing);
 
-    pci_set_irq_level(PCI_INTA, !!(conf[0x47] & 0x01));
-    pci_set_irq_level(PCI_INTB, !!(conf[0x47] & 0x02));
-    pci_set_irq_level(PCI_INTC, !!(conf[0x47] & 0x04));
-    pci_set_irq_level(PCI_INTD, !!(conf[0x47] & 0x08));
+    pci_set_irq_level(PCI_INTA, (conf[0x47] & 0x01));
+    pci_set_irq_level(PCI_INTB, (conf[0x47] & 0x02));
+    pci_set_irq_level(PCI_INTC, (conf[0x47] & 0x04));
+    pci_set_irq_level(PCI_INTD, (conf[0x47] & 0x08));
 }
 
 static void
