@@ -168,12 +168,14 @@ xga_updatemapping(svga_t *svga)
             xga_log("XGA: Extended Graphics mode.\n");
             switch (xga->aperture_cntl) {
                 case 0:
-                    xga_log("XGA: No 64KB aperture.\n");
-                    if (xga->base_addr_1mb)
+                    xga_log("XGA: No 64KB aperture: 1MB=%x, 4MB=%x.\n", xga->base_addr_1mb, xga->linear_base);
+                    if (xga->base_addr_1mb) {
                         mem_mapping_set_addr(&xga->linear_mapping, xga->base_addr_1mb, 0x100000);
-                    else if (xga->linear_base)
+                        mem_mapping_enable(&xga->linear_mapping);
+                    } else if (xga->linear_base) {
                         mem_mapping_set_addr(&xga->linear_mapping, xga->linear_base, 0x400000);
-                    else
+                        mem_mapping_enable(&xga->linear_mapping);
+                    } else
                         mem_mapping_disable(&xga->linear_mapping);
 
                     mem_mapping_disable(&xga->video_mapping);
@@ -912,13 +914,8 @@ xga_accel_read_pattern_map_pixel(svga_t *svga, int x, int y, int map, uint32_t b
     uint8_t      px;
     int          skip = 0;
 
-    if (xga->base_addr_1mb) {
-        if (addr < xga->base_addr_1mb || (addr > (xga->base_addr_1mb + 0xfffff)))
-            skip = 1;
-    } else {
-        if (addr < xga->linear_base || (addr > (xga->linear_base + 0xfffff)))
-            skip = 1;
-    }
+    if (addr < xga->linear_base || (addr > (xga->linear_base + 0xfffff)))
+        skip = 1;
 
     addr += (y * (width >> 3));
     addr += (x >> 3);
@@ -956,13 +953,8 @@ xga_accel_read_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int
     uint8_t  px;
     int      skip = 0;
 
-    if (xga->base_addr_1mb) {
-        if (addr < xga->base_addr_1mb || (addr > (xga->base_addr_1mb + 0xfffff)))
-            skip = 1;
-    } else {
-        if (addr < xga->linear_base || (addr > (xga->linear_base + 0xfffff)))
-            skip = 1;
-    }
+    if (addr < xga->linear_base || (addr > (xga->linear_base + 0xfffff)))
+        skip = 1;
 
     switch (xga->accel.px_map_format[map] & 7) {
         case 0: /*1-bit*/
@@ -1033,13 +1025,8 @@ xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, ui
     uint8_t  mask;
     int      skip = 0;
 
-    if (xga->base_addr_1mb) {
-        if (addr < xga->base_addr_1mb || (addr > (xga->base_addr_1mb + 0xfffff)))
-            skip = 1;
-    } else {
-        if (addr < xga->linear_base || (addr > (xga->linear_base + 0xfffff)))
-            skip = 1;
-    }
+    if (addr < xga->linear_base || (addr > (xga->linear_base + 0xfffff)))
+        skip = 1;
 
     switch (xga->accel.px_map_format[map] & 7) {
         case 0: /*1-bit*/
@@ -1476,7 +1463,8 @@ xga_bitblt(svga_t *svga)
     if (xga->accel.dst_map_x >= 0x1800)
         dx |= ~0x17ff;
     if (xga->accel.dst_map_y >= 0x1800)
-        dy |= ~0x17ff;
+        dy -= 0x1800;
+
     xga_log("D(%d,%d), SWH(%d,%d), BLT(%d,%d), dstwidth=%d.\n", dx, dy, xga->accel.x, xga->accel.y, srcwidth, srcheight, dstwidth);
 
     xga->accel.pattern = 0;
@@ -2776,8 +2764,10 @@ xga_write_linear(uint32_t addr, uint8_t val, void *priv)
 
     addr &= svga->decode_mask;
 
-    if (addr >= xga->vram_size)
+    if (addr >= xga->vram_size) {
+        xga_log("Write Linear Over!.\n");
         return;
+    }
 
     cycles -= svga->monitor->mon_video_timing_write_b;
 
@@ -2839,8 +2829,10 @@ xga_read_linear(uint32_t addr, void *priv)
 
     addr &= svga->decode_mask;
 
-    if (addr >= xga->vram_size)
+    if (addr >= xga->vram_size) {
+        xga_log("Read Linear Over!.\n");
         return ret;
+    }
 
     cycles -= svga->monitor->mon_video_timing_read_b;
 
@@ -3369,9 +3361,9 @@ xga_init(const device_t *info)
         free(rom);
     }
 
-    xga->base_addr_1mb = 0;
     if (info->flags & DEVICE_MCA) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_xga_mca);
+        xga->base_addr_1mb = 0;
         xga->linear_base = 0;
         xga->instance    = 0;
         xga->rom_addr    = 0;
@@ -3384,7 +3376,19 @@ xga_init(const device_t *info)
 
         xga->pos_regs[2] = 1 | (xga->instance_isa << 1) | xga->ext_mem_addr;
         xga->instance    = (xga->pos_regs[2] & 0x0e) >> 1;
-        xga->pos_regs[4] = 1 | 2;
+        xga->pos_regs[4] = 2;
+        if (mem_size >= 16384) {
+            xga->pos_regs[4] |= 1;
+            xga->pos_regs[5] = 0;
+        } else {
+            xga->pos_regs[5] = ((mem_size * 64) >> 0x10) + 1;
+            if (xga->pos_regs[5] == 0x10) {
+                xga->pos_regs[5] = 0;
+                xga->pos_regs[4] |= 1;
+            }
+        }
+
+        xga->base_addr_1mb = (xga->pos_regs[5] & 0x0f) << 20;
         xga->linear_base = ((xga->pos_regs[4] & 0xfe) * 0x1000000) + (xga->instance << 22);
         xga->rom_addr    = 0xc0000 + (((xga->pos_regs[2] & 0xf0) >> 4) * 0x2000);
     }
