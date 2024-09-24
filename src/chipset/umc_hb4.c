@@ -179,7 +179,6 @@ hb4_shadow_bios_low(hb4_t *dev)
     int state;
 
     /* Erratum in Vogons' datasheet: Register 55h bit 7 in fact controls E0000-FFFFF. */
-    // state = shadow_bios[dev->pci_conf[0x55] >> 6];
     state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[dev->pci_conf[0x54] & 0x01] :
                                             MEM_READ_EXTANY;
     state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
