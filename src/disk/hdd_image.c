@@ -577,6 +577,7 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
         }
 
         num_write          = fwrite(buffer, 512, count, hdd_images[id].file);
+        fflush(hdd_images[id].file);
         hdd_images[id].pos = sector + num_write;
     }
 }
@@ -618,6 +619,8 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
             hdd_images[id].pos = sector + i;
             fwrite(empty_sector, 512, 1, hdd_images[id].file);
         }
+
+        fflush(hdd_images[id].file);
     }
 }
 

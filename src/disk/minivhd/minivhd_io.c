@@ -89,6 +89,8 @@ mvhd_write_empty_sectors(FILE *f, int sector_count)
 
     for (int i = 0; i < sector_count; i++)
         fwrite(zero_bytes, sizeof zero_bytes, 1, f);
+
+    fflush(f);
 }
 
 /**
@@ -141,6 +143,7 @@ write_bat_entry(MVHDMeta *vhdm, int blk)
 
     mvhd_fseeko64(vhdm->f, table_offset, SEEK_SET);
     fwrite(&offset, sizeof offset, 1, vhdm->f);
+    fflush(vhdm->f);
 }
 
 /**
@@ -197,6 +200,8 @@ create_block(MVHDMeta *vhdm, int blk)
     /* We no longer have a sparse block. Update that BAT! */
     vhdm->block_offset[blk] = sect_offset;
     write_bat_entry(vhdm, blk);
+
+    fflush(vhdm->f);
 }
 
 int
@@ -317,6 +322,7 @@ mvhd_fixed_write(MVHDMeta *vhdm, uint32_t offset, int num_sectors, void *in_buff
     addr = (int64_t)offset * MVHD_SECTOR_SIZE;
     mvhd_fseeko64(vhdm->f, addr, SEEK_SET);
     fwrite(in_buff, transfer_sectors * MVHD_SECTOR_SIZE, 1, vhdm->f);
+    fflush(vhdm->f);
 
     return truncated_sectors;
 }
@@ -375,6 +381,8 @@ mvhd_sparse_diff_write(MVHDMeta *vhdm, uint32_t offset, int num_sectors, void *i
 
     /* And write the sector bitmap for the last block we visited to disk */
     write_curr_sect_bitmap(vhdm);
+
+    fflush(vhdm->f);
 
     return truncated_sectors;
 }
