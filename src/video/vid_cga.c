@@ -131,7 +131,17 @@ cga_in(uint16_t addr, void *priv)
             ret = cga->crtcreg;
             break;
         case 0x3D5:
-            ret = cga->crtc[cga->crtcreg];
+            switch (cga->crtcreg) {
+                default:
+                    ret = cga->crtc[cga->crtcreg];
+                    break;
+                case 0x10:
+                    ret = 0x0f;
+                    break;
+                case 0x11:
+                    ret = 0x78;
+                    break;
+            }
             break;
         case 0x3DA:
             ret = cga->cgastat;

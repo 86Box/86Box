@@ -864,7 +864,23 @@ vid_in(uint16_t addr, void *priv)
             break;
 
         case 0x03d5:
-            ret = vid->crtc[vid->crtcreg];
+            switch (vid->crtcreg) {
+                default:
+                    ret = vid->crtc[vid->crtcreg];
+                    break;
+                case 0x10:
+                    if (dev->is_sl2)
+                        ret = vid->crtc[vid->crtcreg];
+                    else
+                        ret = 0x0f;
+                    break;
+                case 0x11:
+                    if (dev->is_sl2)
+                        ret = vid->crtc[vid->crtcreg];
+                    else
+                        ret = 0x78;
+                    break;
+            }
             break;
 
         case 0x03da:
