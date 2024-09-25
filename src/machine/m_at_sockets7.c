@@ -263,7 +263,7 @@ machine_at_mvp3_init(const machine_t *model)
     device_add(&via_mvp3_device);
     device_add(&via_vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_device);
+    device_add(&w83877tf_acorp_device);
     device_add(&sst_flash_39sf010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
