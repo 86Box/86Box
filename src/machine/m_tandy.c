@@ -827,12 +827,12 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x3db:
-            if (dev->is_sl2 && (vid->lp_strobe == 1))
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
                 vid->lp_strobe = 0;
             break;
 
         case 0x3dc:
-            if (dev->is_sl2 && (vid->lp_strobe == 0)) {
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
                 vid->lp_strobe = 1;
                 vid_update_latch(vid);
             }
@@ -894,12 +894,12 @@ vid_in(uint16_t addr, void *priv)
             break;
 
         case 0x3db:
-            if (dev->is_sl2 && (vid->lp_strobe == 1))
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
                 vid->lp_strobe = 0;
             break;
 
         case 0x3dc:
-            if (dev->is_sl2 && (vid->lp_strobe == 0)) {
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
                 vid->lp_strobe = 1;
                 vid_update_latch(vid);
             }
