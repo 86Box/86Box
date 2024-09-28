@@ -10131,7 +10131,8 @@ static int vram_sizes[] = {
 static void
 s3_disable_handlers(s3_t *s3)
 {
-    s3_io_remove(s3);
+    if (s3->pci)
+        s3_io_remove(s3);
 
     mem_mapping_disable(&s3->linear_mapping);
     mem_mapping_disable(&s3->mmio_mapping);
