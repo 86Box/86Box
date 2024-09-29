@@ -147,6 +147,10 @@ else()
     option(CPPTHREADS "C++11 threads" ON)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-z,wxneeded")
+endif()
+
 # Development branch features
 #
 #                      Option         Description                                Def.  Condition     Otherwise
