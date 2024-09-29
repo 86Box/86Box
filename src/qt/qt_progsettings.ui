@@ -88,7 +88,7 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="0" colspan="2">
+   <item row="7" column="0" colspan="3">
     <widget class="QSlider" name="horizontalSlider">
      <property name="minimum">
       <number>10</number>
