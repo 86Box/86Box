@@ -1076,10 +1076,11 @@ rtl8139_reset(void *priv)
     s->cplus_enabled = 0;
 
 #if 0
-    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
     s->BasicModeCtrl = 0x2100; // 100Mbps, full duplex
-#endif
+    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
     s->BasicModeCtrl = 0x1000; // autonegotiation
+#endif
+    s->BasicModeCtrl = 0x1100; // full duplex, autonegotiation
 
     rtl8139_reset_phy(s);
 
