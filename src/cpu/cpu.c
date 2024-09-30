@@ -3300,26 +3300,17 @@ pentium_invalid_rdmsr:
                     break;
                 /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_rdmsr;
-
                     EAX &= 0xffff0000;
                     EAX |= msr.sysenter_cs;
                     EDX = 0x00000000;
                     break;
                 /* SYSENTER_ESP - SYSENTER target ESP */
                 case 0x175:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_rdmsr;
-
                     EAX = msr.sysenter_esp;
                     EDX = 0x00000000;
                     break;
                 /* SYSENTER_EIP - SYSENTER target EIP */
                 case 0x176:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_rdmsr;
-
                     EAX = msr.sysenter_eip;
                     EDX = 0x00000000;
                     break;
@@ -4069,23 +4060,14 @@ pentium_invalid_wrmsr:
                     break;
                 /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_wrmsr;
-
                     msr.sysenter_cs = EAX & 0xFFFF;
                     break;
                 /* SYSENTER_ESP - SYSENTER target ESP */
                 case 0x175:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_wrmsr;
-
                     msr.sysenter_esp = EAX;
                     break;
                 /* SYSENTER_EIP - SYSENTER target EIP */
                 case 0x176:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_wrmsr;
-
                     msr.sysenter_eip = EAX;
                     break;
                 /* MCG_CAP - Machine Check Global Capability */
