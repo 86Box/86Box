@@ -3705,7 +3705,7 @@ cpu_WRMSR(void)
                 /* Extended Feature Enable Register */
                 case 0xc0000080:
                     temp = EAX | ((uint64_t) EDX << 32);
-                    if (temp & ~1ULL)
+                    if (temp & ~0x1fULL)
                         x86gpf(NULL, 0);
                     else
                         msr.amd_efer = temp;
