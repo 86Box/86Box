@@ -951,6 +951,8 @@ mo_blocks(mo_t *dev, int32_t *len, UNUSED(int first_batch), int out)
         if (out) {
             if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size)
                 fatal("mo_blocks(): Error writing data\n");
+
+            fflush(dev->drv->fp);
         } else {
             if (fread(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size)
                 fatal("mo_blocks(): Error reading data\n");
@@ -1068,6 +1070,8 @@ mo_erase(mo_t *dev)
 
         fwrite(dev->buffer, 1, dev->drv->sector_size, dev->drv->fp);
     }
+
+    fflush(dev->drv->fp);
 
     mo_log("MO %i: Erased %i bytes of blocks...\n", dev->id, i * dev->drv->sector_size);
 

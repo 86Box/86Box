@@ -549,6 +549,8 @@ imd_writeback(int drive)
             }
         }
     }
+
+    fflush(dev->fp);
 }
 
 static uint8_t
