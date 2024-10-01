@@ -1854,6 +1854,7 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
     if (type == 0) {
         /* Byte write. */
         encoded_byte = d86f_encode_byte(drive, 0, dbyte, dpbyte);
+        dev->preceding_bit[side] = encoded_byte & 1;
         if (!d86f_reverse_bytes(drive)) {
             mask_data = encoded_byte >> 8;
             encoded_byte &= 0xFF;
@@ -1863,6 +1864,7 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
     } else {
         /* Word write. */
         encoded_byte = byte;
+        dev->preceding_bit[side] = (encoded_byte >> 8) & 1;
         if (d86f_reverse_bytes(drive)) {
             mask_data = encoded_byte >> 8;
             encoded_byte &= 0xFF;
@@ -1870,8 +1872,6 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
             encoded_byte |= mask_data;
         }
     }
-
-    dev->preceding_bit[side] = encoded_byte & 1;
 
     if (d86f_has_surface_desc(drive)) {
         /* Inverted track data, clear bits are now set. */
