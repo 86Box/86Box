@@ -31,10 +31,12 @@ typedef struct xga_hwcursor_t {
 } xga_hwcursor_t;
 
 typedef struct xga_t {
+    mem_mapping_t  membios_mapping;
     mem_mapping_t  memio_mapping;
     mem_mapping_t  linear_mapping;
     mem_mapping_t  video_mapping;
     rom_t          bios_rom;
+    rom_t          membios_rom;
     rom_t          vga_bios_rom;
     xga_hwcursor_t hwcursor;
     xga_hwcursor_t hwcursor_latch;
@@ -47,8 +49,8 @@ typedef struct xga_t {
 
     uint8_t  pos_regs[8];
     uint8_t  disp_addr;
-    uint8_t   dac_mask;
-    uint8_t   dac_status;
+    uint8_t  dac_mask;
+    uint8_t  dac_status;
     uint8_t  cfg_reg;
     uint8_t  instance;
     uint8_t  op_mode;
@@ -87,6 +89,8 @@ typedef struct xga_t {
     uint8_t  instance_isa;
     uint8_t  instance_num;
     uint8_t  ext_mem_addr;
+    uint8_t  vga_post;
+    uint8_t  addr_test;
     uint8_t *vram;
     uint8_t *changedvram;
 
@@ -167,6 +171,9 @@ typedef struct xga_t {
     uint32_t write_bank;
     uint32_t px_map_base;
     uint32_t pallook[512];
+    uint32_t bios_diag;
+
+    PALETTE xgapal;
 
     uint64_t dispontime;
     uint64_t dispofftime;

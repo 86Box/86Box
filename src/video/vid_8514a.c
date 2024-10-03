@@ -44,8 +44,6 @@
 
 #ifdef ATI_8514_ULTRA
 #define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140.BIN"
-
-static video_timings_t timing_8514ultra_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
 #endif
 
 static void     ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv);
@@ -2407,9 +2405,9 @@ rect_fill_pix:
                                         dev->accel.sx += (dev->accel.cur_x & 3);
                                 }
 
-                                if (dev->accel.cmd & 0x20) {
+                                if (dev->accel.cmd & 0x20)
                                     dev->accel.cx -= (dev->accel.sx) + 1;
-                                } else
+                                else
                                     dev->accel.cx += (dev->accel.sx) + 1;
 
                                 if (dev->accel.cmd & 2) {
@@ -3006,9 +3004,7 @@ rect_fill:
                 else
                     dev->accel.oldcy = dev->accel.cy - 1;
 
-                dev->accel.oldcx = 0;
-
-                ibm8514_log("Polygon Boundary activated=%04x, len=%d, cur(%d,%d), frgdmix=%02x, err=%d, clipping: l=%d, r=%d, t=%d, b=%d, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.sy, dev->accel.cur_x_nolimit, dev->accel.cy, dev->accel.frgd_mix & 0x1f, dev->accel.err_term, dev->accel.clip_left, clip_r, dev->accel.clip_top, clip_b, compare_mode, dev->accel.multifunc[0x0a]);
+                ibm8514_log("Polygon Boundary activated=%04x, len=%d, cur(%d,%d), frgdmix=%02x, err=%d, clipping: l=%d, r=%d, t=%d, b=%d, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.sy, dev->accel.cx, dev->accel.cy, dev->accel.frgd_mix & 0x1f, dev->accel.err_term, dev->accel.multifunc[2], dev->accel.multifunc[4], dev->accel.clip_top, clip_b, dev->accel.multifunc[0x0a]);
 
                 if (ibm8514_cpu_src(svga)) {
                     dev->data_available  = 0;
@@ -3122,10 +3118,8 @@ rect_fill:
                 }
             } else {
                 while (count-- && (dev->accel.sy >= 0)) {
-                    if (dev->accel.cx < 0)
-                        dev->accel.cx = 0;
-                    if (dev->accel.cy < 0)
-                        dev->accel.cy = 0;
+                    if (dev->accel.cx < dev->accel.clip_left)
+                        dev->accel.cx = dev->accel.clip_left;
 
                     if (dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r && dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
@@ -3155,12 +3149,8 @@ rect_fill:
 
                             if ((dev->accel.cmd & 0x14) == 0x14) {
                                 if (dev->accel.sy) {
-                                    if (dev->accel.cmd & 0x40) {
+                                    if (dev->accel.oldcy != dev->accel.cy) {
                                         WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
-                                    } else {
-                                        if (dev->accel.oldcy != dev->accel.cy) {
-                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
-                                        }
                                     }
                                 }
                             }
@@ -3178,6 +3168,7 @@ rect_fill:
                         break;
 
                     if (dev->accel.cmd & 0x40) {
+                        dev->accel.oldcy = dev->accel.cy;
                         if (dev->accel.cmd & 0x80)
                             dev->accel.cy++;
                         else
@@ -4159,12 +4150,12 @@ ibm8514_poll(void *priv)
     if (dev->on[0] || dev->on[1]) {
         ibm8514_log("ON!\n");
         if (!dev->linepos) {
-            if ((dev->displine == dev->hwcursor_latch.y) && dev->hwcursor_latch.ena) {
+            if ((dev->displine == ((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y)) && dev->hwcursor_latch.ena) {
                 dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - dev->hwcursor_latch.yoff;
                 dev->hwcursor_oddeven = 0;
             }
 
-            if ((dev->displine == (dev->hwcursor_latch.y + 1)) && dev->hwcursor_latch.ena && dev->interlace) {
+            if ((dev->displine == (((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y) + 1)) && dev->hwcursor_latch.ena && dev->interlace) {
                 dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - (dev->hwcursor_latch.yoff + 1);
                 dev->hwcursor_oddeven = 1;
             }
@@ -4195,7 +4186,7 @@ ibm8514_poll(void *priv)
 
                 if (dev->hwcursor_on) {
                     if (svga->hwcursor_draw)
-                        svga->hwcursor_draw(svga, dev->displine + svga->y_add);
+                        svga->hwcursor_draw(svga, (dev->displine + svga->y_add + ((dev->hwcursor_latch.y >= 0) ? 0 : dev->hwcursor_latch.y)) & 2047);
                     dev->hwcursor_on--;
                     if (dev->hwcursor_on && dev->interlace)
                         dev->hwcursor_on--;
@@ -4333,14 +4324,14 @@ ibm8514_recalctimings(svga_t *svga)
             else
                 svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
 
-            if (dev->interlace)
-                dev->dispend >>= 1;
-
             if (dev->dispend == 766)
                 dev->dispend += 2;
 
             if (dev->dispend == 478)
                 dev->dispend += 2;
+
+            if (dev->interlace)
+                dev->dispend >>= 1;
 
             dev->pitch = 1024;
             dev->rowoffset = 0x80;
@@ -4405,6 +4396,10 @@ ibm8514_mca_reset(void *priv)
 static void *
 ibm8514_init(const device_t *info)
 {
+#ifdef ATI_8514_ULTRA
+    uint32_t bios_addr = 0;
+#endif
+
     if (svga_get_pri() == NULL)
         return NULL;
 
@@ -4426,6 +4421,7 @@ ibm8514_init(const device_t *info)
 
 #ifdef ATI_8514_ULTRA
     dev->extensions = device_get_config_int("extensions");
+    bios_addr = device_get_config_hex20("bios_addr");
 
     switch (dev->extensions) {
         case 1:
@@ -4446,10 +4442,14 @@ ibm8514_init(const device_t *info)
                 } else {
                     rom_init(&dev->bios_rom,
                              BIOS_MACH8_ROM_PATH,
-                             0xd0000, 0x2000, 0x1fff,
+                             bios_addr, 0x1000, 0xfff,
                              0, MEM_MAPPING_EXTERNAL);
+                    rom_init(&dev->bios_rom2,
+                             BIOS_MACH8_ROM_PATH,
+                             bios_addr + 0x1000, 0x800, 0x7ff,
+                             0x1000, MEM_MAPPING_EXTERNAL);
                     ati_eeprom_load(&mach->eeprom, "ati8514.nvr", 0);
-                    dev->bios_addr = dev->bios_rom.mapping.base;
+                    mach->accel.scratch0 = (((bios_addr >> 7) - 0x1000) >> 4);
                 }
                 ati8514_init(svga, svga->ext8514, svga->dev8514);
                 break;
@@ -4537,6 +4537,30 @@ static const device_config_t ext8514_config[] = {
                 .description = ""
             }
         }
+    },
+    {
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C800h", .value = 0xc8000 },
+            { .description = "CA00h", .value = 0xca000 },
+            { .description = "CC00h", .value = 0xcc000 },
+            { .description = "CE00h", .value = 0xce000 },
+            { .description = "D000h", .value = 0xd0000 },
+            { .description = "D200h", .value = 0xd2000 },
+            { .description = "D400h", .value = 0xd4000 },
+            { .description = "D600h", .value = 0xd6000 },
+            { .description = "D800h", .value = 0xd8000 },
+            { .description = "DA00h", .value = 0xda000 },
+            { .description = "DC00h", .value = 0xdc000 },
+            { .description = "DE00h", .value = 0xde000 },
+            { .description = ""                      }
+        },
     },
     {
         .type = CONFIG_END
