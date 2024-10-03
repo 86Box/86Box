@@ -28,9 +28,7 @@ typedef struct vga_t {
     rom_t bios_rom;
 } vga_t;
 
-static video_timings_t timing_vga = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
-
-void    vga_out(uint16_t addr, uint8_t val, void *priv);
-uint8_t vga_in(uint16_t addr, void *priv);
+extern void vga_out(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t vga_in(uint16_t addr, void *priv);
 
 #endif /*VIDEO_VGA_H*/
