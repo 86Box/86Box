@@ -171,6 +171,14 @@ xga_updatemapping(svga_t *svga)
             break;
         case 3:
             xga_log("XGA: 132-Column mode address decode enabled.\n");
+            if (xga->base_addr_1mb) {
+                mem_mapping_set_addr(&xga->linear_mapping, xga->base_addr_1mb, 0x100000);
+                mem_mapping_enable(&xga->linear_mapping);
+            } else if (xga->linear_base) {
+                mem_mapping_set_addr(&xga->linear_mapping, xga->linear_base, 0x400000);
+                mem_mapping_enable(&xga->linear_mapping);
+            } else
+                mem_mapping_disable(&xga->linear_mapping);
             break;
         default:
             xga_log("XGA: Extended Graphics mode.\n");
@@ -505,10 +513,6 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
         case 1:
             xga->aperture_cntl = val & 3;
             xga_updatemapping(svga);
-            break;
-        case 4:
-            if ((xga->disp_cntl_2 & 7) == 4)
-                xga->aperture_cntl = 0;
             break;
         case 8:
             xga->ap_idx = val;
@@ -1718,12 +1722,24 @@ xga_bitblt(svga_t *svga)
 static void
 xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
 {
-    uint32_t min_addr = (0x1c00 + (xga->instance << 7));
-    uint32_t max_addr = (0x1c00 + (xga->instance << 7)) + 0x7f;
+    uint32_t min_addr;
+    uint32_t max_addr;
+    int mmio_addr_enable = 0;
 
-    addr &= 0x1fff;
+    if (xga_standalone_enabled) {
+        addr &= 0x1fff;
+        min_addr = (0x1c00 + (xga->instance << 7));
+        max_addr = (0x1c00 + (xga->instance << 7)) + 0x7f;
+    } else {
+        addr &= 0x7fff;
+        min_addr = (0x7c00 + (xga->instance << 7));
+        max_addr = (0x7c00 + (xga->instance << 7)) + 0x7f;
+    }
 
-    if ((addr >= min_addr) && (addr <= max_addr)) {
+    if ((addr >= min_addr) && (addr <= max_addr))
+        mmio_addr_enable = 1;
+
+    if (mmio_addr_enable) {
         switch (addr & 0x7f) {
             case 0x11:
                 xga->accel.control = val;
@@ -2166,7 +2182,6 @@ exec_command:
                                 xga->accel.px_map_format[xga->accel.src_map] & 0x0f,
                                 xga->accel.plane_mask);
 #endif
-
                     switch ((xga->accel.command >> 24) & 0x0f) {
                         case 2: /*Short Stroke Vectors Read */
                             xga_log("Short Stroke Vectors Read.\n");
@@ -2261,19 +2276,34 @@ xga_memio_writel(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 xga_mem_read(uint32_t addr, xga_t *xga, UNUSED(svga_t *svga))
 {
-    uint32_t min_addr = (0x1c00 + (xga->instance << 7));
-    uint32_t max_addr = (0x1c00 + (xga->instance << 7)) + 0x7f;
+    uint32_t min_addr;
+    uint32_t max_addr;
     uint8_t temp = 0;
+    int mmio_addr_enable = 0;
 
-    addr &= 0x1fff;
-    if (addr < 0x1c00) {
-        if (xga_standalone_enabled)
+    if (xga_standalone_enabled) {
+        addr &= 0x1fff;
+        min_addr = (0x1c00 + (xga->instance << 7));
+        max_addr = (0x1c00 + (xga->instance << 7)) + 0x7f;
+        if (addr < 0x1c00)
             temp = xga->bios_rom.rom[addr];
-        else
-            temp = xga->vga_bios_rom.rom[addr];
-    } else if ((addr >= 0x1c00) && (addr <= 0x1c7f) && xga->instance) {
-        temp = 0xff;
-    } else if ((addr >= min_addr) && (addr <= max_addr)) {
+        else if ((addr >= 0x1c00) && (addr <= 0x1c7f) && xga->instance)
+            temp = 0xff;
+        else if ((addr >= min_addr) && (addr <= max_addr))
+            mmio_addr_enable = 1;
+    } else {
+        addr &= 0x7fff;
+        min_addr = (0x7c00 + (xga->instance << 7));
+        max_addr = (0x7c00 + (xga->instance << 7)) + 0x7f;
+        if (addr < 0x7c00)
+            temp = xga->bios_rom.rom[addr];
+        else if ((addr >= 0x7c00) && (addr <= 0x7c7f) && xga->instance)
+            temp = 0xff;
+        else if ((addr >= min_addr) && (addr <= max_addr))
+            mmio_addr_enable = 1;
+    }
+
+    if (mmio_addr_enable) {
         switch (addr & 0x7f) {
             case 0x11:
                 temp = xga->accel.control;
@@ -2341,6 +2371,7 @@ xga_mem_read(uint32_t addr, xga_t *xga, UNUSED(svga_t *svga))
             default:
                 break;
         }
+        xga_log("MMIO Addr=%02x, ret=%02x.\n", addr & 0x7f, temp);
     }
     return temp;
 }
@@ -2740,8 +2771,10 @@ xga_read(uint32_t addr, void *priv)
     addr &= xga->banked_mask;
     addr += xga->read_bank;
 
-    if (addr >= xga->vram_size)
+    if (addr >= xga->vram_size) {
+        xga_log("Over Read ADDR=%x.\n", addr);
         return ret;
+    }
 
     cycles -= svga->monitor->mon_video_timing_read_b;
 
@@ -2792,7 +2825,7 @@ xga_write_linear(uint32_t addr, uint8_t val, void *priv)
         return;
     }
 
-    addr &= svga->decode_mask;
+    addr &= (xga->vram_size - 1);
 
     if (addr >= xga->vram_size) {
         xga_log("Write Linear Over!.\n");
@@ -2857,10 +2890,10 @@ xga_read_linear(uint32_t addr, void *priv)
     if (!xga->on)
         return svga_read_linear(addr, svga);
 
-    addr &= svga->decode_mask;
+    addr &= (xga->vram_size - 1);
 
     if (addr >= xga->vram_size) {
-        xga_log("Read Linear Over!.\n");
+        xga_log("Read Linear Over ADDR=%x!.\n", addr);
         return ret;
     }
 
@@ -3168,11 +3201,10 @@ xga_reset(void *priv)
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = (xga_t *) svga->xga;
 
-    if (!(xga->bus & DEVICE_MCA) && !xga_standalone_enabled)
-        mem_mapping_disable(&xga->bios_rom.mapping);
-
     xga_log("Normal Reset.\n");
-    mem_mapping_disable(&xga->memio_mapping);
+    if (xga_standalone_enabled)
+        mem_mapping_disable(&xga->memio_mapping);
+
     xga->on                    = 0;
     vga_on                     = 1;
     xga->linear_endian_reverse = 0;
@@ -3198,7 +3230,7 @@ xga_pos_in(uint16_t addr, void *priv)
                 xga_log("%03xRead=%02x.\n", addr, ret);
                 break;
             case 0x0102:
-                ret = xga->pos_regs[2];
+                ret = xga->pos_regs[2] | 0x30;
                 break;
             case 0x0105:
                 ret = xga->pos_regs[5];
@@ -3271,8 +3303,8 @@ xga_pos_in(uint16_t addr, void *priv)
             default:
                 break;
         }
-        xga_log("XGA Standalone ISA Read Port=%04x, Ret=%02x.\n", addr, ret);
     }
+    xga_log("[%04X:%08X]: XGA POS IN addr=%04x, ret=%02x.\n", CS, cpu_state.pc, addr, ret);
     return ret;
 }
 
@@ -3282,30 +3314,28 @@ xga_pos_out(uint16_t addr, uint8_t val, void *priv)
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = (xga_t *) svga->xga;
 
+    xga_log("[%04X:%08X]: XGA POS OUT addr=%04x, val=%02x.\n", CS, cpu_state.pc, addr, val);
     if (!xga_standalone_enabled) {
         switch (addr) {
             case 0x0096:
-                xga->vga_post = val;
+                xga->instance_num = val & 0x07;
+                xga->isa_pos_enable = val & 0x08;
                 xga_log("096Write=%02x.\n", val);
                 break;
             case 0x0102:
-                xga->pos_regs[2] = (val & 0x01);
-                xga->pos_regs[2] |= ((xga->instance_isa << 1) | xga->ext_mem_addr);
+                xga_log("[%04X:%08X]: 102Write=%02x.\n", CS, cpu_state.pc, val);
+                xga->pos_regs[2] = val | 0x02; /*Instance 0 is not recommended on AT bus/ISA bus systems, so force it to use instance 1.*/
                 io_removehandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
                 mem_mapping_disable(&xga->memio_mapping);
                 if (xga->pos_regs[2] & 0x01) {
-                    xga->rom_addr    = 0xc0000 + (((xga->pos_regs[2] & 0xf0) >> 4) * 0x2000);
+                    xga->rom_addr    = 0xc0000 + (((xga->pos_regs[2] & 0xc0) >> 6) * 0x8000);
                     xga->instance    = (xga->pos_regs[2] & 0x0e) >> 1;
                     xga->linear_base = ((xga->pos_regs[4] & 0xfe) * 0x1000000) + (xga->instance << 22);
                     xga->base_addr_1mb = (xga->pos_regs[5] & 0x0f) << 20;
                     io_sethandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
                     xga_log("XGA ISA ROM address=%05x, instance=%d.\n", xga->rom_addr, xga->instance);
-                    if (xga->rom_addr >= 0xc8000)
-                        mem_mapping_set_addr(&xga->memio_mapping, xga->rom_addr, 0x2000);
-                    else
-                        mem_mapping_disable(&xga->memio_mapping);
+                    mem_mapping_set_addr(&xga->memio_mapping, xga->rom_addr, 0x8000);
                 }
-                xga_log("102Write=%02x.\n", val);
                 break;
             case 0x0103:
                 if ((xga->pos_idx & 3) == 0)
@@ -3375,7 +3405,6 @@ xga_init(const device_t *info)
     xga->on                    = 0;
     xga->hwcursor.cur_xsize    = 64;
     xga->hwcursor.cur_ysize    = 64;
-    xga->bios_rom.sz           = 0x2000;
     xga->linear_endian_reverse = 0;
     xga->a5_test               = 0;
 
@@ -3387,10 +3416,16 @@ xga_init(const device_t *info)
         xga->rom_addr    = 0;
         rom_init(&xga->bios_rom, xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, 0xc0000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&xga->bios_rom.mapping);
+        mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
+                        xga_memio_writeb, xga_memio_writew, xga_memio_writel,
+                        xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
     } else {
         xga->pos_regs[4] = 0x02;
         if (!xga_standalone_enabled) {
-            rom_init(&xga->vga_bios_rom, INMOS_XGA_BIOS_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            rom_init(&xga->bios_rom, INMOS_XGA_BIOS_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL); /*VGA BIOS only*/
+            mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
+                            xga_memio_writeb, xga_memio_writew, xga_memio_writel,
+                            xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
         } else {
             xga->pos_regs[2] = (xga->instance_isa << 1) | xga->ext_mem_addr;
             xga->rom_addr    = 0xc0000 + (((xga->pos_regs[2] & 0xf0) >> 4) * 0x2000);
@@ -3409,6 +3444,9 @@ xga_init(const device_t *info)
             xga->base_addr_1mb = (xga->pos_regs[5] & 0x0f) << 20;
             xga->linear_base = ((xga->pos_regs[4] & 0xfe) * 0x1000000) + (xga->instance << 22);
             rom_init(&xga->bios_rom, xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, xga->rom_addr, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+            mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
+                            xga_memio_writeb, xga_memio_writew, xga_memio_writel,
+                            xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
         }
     }
 
@@ -3418,14 +3456,6 @@ xga_init(const device_t *info)
     mem_mapping_add(&xga->linear_mapping, 0, 0, xga_read_linear, xga_readw_linear, xga_readl_linear,
                     xga_write_linear, xga_writew_linear, xga_writel_linear,
                     NULL, MEM_MAPPING_EXTERNAL, svga);
-    if (xga_standalone_enabled)
-        mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
-                    xga_memio_writeb, xga_memio_writew, xga_memio_writel,
-                    xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
-    else
-        mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
-                    xga_memio_writeb, xga_memio_writew, xga_memio_writel,
-                    xga->vga_bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
 
     mem_mapping_disable(&xga->linear_mapping);
     mem_mapping_disable(&xga->memio_mapping);
@@ -3642,42 +3672,6 @@ static const device_config_t xga_inmos_isa_configuration[] = {
             },
             { .description = "" }
         }
-    },
-    {
-        .name = "instance",
-        .description = "Instance",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "0 (2100h-210Fh)", .value = 0 },
-            { .description = "1 (2110h-211Fh)", .value = 1 },
-            { .description = "2 (2120h-212Fh)", .value = 2 },
-            { .description = "3 (2130h-213Fh)", .value = 3 },
-            { .description = "4 (2140h-214Fh)", .value = 4 },
-            { .description = "5 (2150h-215Fh)", .value = 5 },
-            { .description = "6 (2160h-216Fh)", .value = 6 },
-            { .description = "7 (2170h-217Fh)", .value = 7 },
-            { .description = ""                      }
-        },
-    },
-    {
-        .name = "ext_mem_addr",
-        .description = "MMIO address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0040,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "C800h", .value = 0x0040 },
-            { .description = "CA00h", .value = 0x0050 },
-            { .description = "CC00h", .value = 0x0060 },
-            { .description = "CE00h", .value = 0x0070 },
-            { .description = ""                      }
-        },
     },
     {
         .name = "dma",
