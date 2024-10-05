@@ -60,12 +60,13 @@ const char* mtouch_identity[] = {
 };
 
 typedef struct mouse_microtouch_t {
-    double       baud_rate, abs_x, abs_x_old, abs_y, abs_y_old;
+    double       abs_x, abs_x_old, abs_y, abs_y_old;
+    double       scale_x, scale_y, off_x, off_y;
     int          but, but_old;
     char         cmd[256];
-    int          cmd_pos;
+    int          baud_rate, cmd_pos;
     uint8_t      format, mode;
-    bool         mode_status;
+    bool         mode_status, cal_ex;
     uint8_t      id, cal_cntr, pen_mode;
     bool         soh;
     bool         in_reset, reset;
@@ -92,10 +93,37 @@ microtouch_calibrate_timer(void *priv)
 {
     mouse_microtouch_t *mtouch = (mouse_microtouch_t *) priv;
     
-    if (!fifo8_num_used(&mtouch->resp)) {
-        mtouch->cal_cntr--;
-        fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x31\x0D", 3); /* <SOH>1<CR>  */
+    if ((mtouch->cal_cntr == 2 && (mtouch->abs_x > 0.25 || mtouch->abs_y < 0.75)) || \
+        (mtouch->cal_cntr == 1 && (mtouch->abs_x < 0.75 || mtouch->abs_y > 0.25))) {
+        return;
     }
+    
+    mtouch->cal_cntr--;    
+    fifo8_push_all(&mtouch->resp, (uint8_t *) "\x01\x31\x0D", 3); /* <SOH>1<CR>  */
+    
+    if (mtouch->cal_ex) {
+        if (!mtouch->cal_cntr) {
+            double x1_ref = 0.125;
+            double y1_ref = 0.875;
+            double x2_ref = 0.875;
+            double y2_ref = 0.125;
+            double x1 = mtouch->abs_x_old;
+            double y1 = mtouch->abs_y_old;
+            double x2 = mtouch->abs_x;
+            double y2 = mtouch->abs_y;
+            
+            mtouch->scale_x = (x2_ref - x1_ref) / (x2 - x1);
+            mtouch->off_x   = x1_ref - mtouch->scale_x * x1;
+            mtouch->scale_y = (y2_ref - y1_ref) / (y2 - y1);
+            mtouch->off_y   = y1_ref - mtouch->scale_y * y1;
+            mtouch->cal_ex = false;
+                
+            pclog("CAL: x1=%f, y1=%f, x2=%f, y2=%f\n", x1, y1, x2, y2);
+            pclog("CAL: scale_x=%f, scale_y=%f, off_x=%f, off_y=%f\n", mtouch->scale_x, mtouch->scale_y, mtouch->off_x, mtouch->off_y);
+        }
+        mtouch->abs_x_old = mtouch->abs_x;
+        mtouch->abs_y_old = mtouch->abs_y;
+    }    
 }
 
 void
@@ -104,7 +132,15 @@ microtouch_process_commands(mouse_microtouch_t *mtouch)
     mtouch->cmd[strcspn(mtouch->cmd, "\r")] = '\0';
     pclog("MT Command: %s\n", mtouch->cmd);
     
-    if (mtouch->cmd[0] == 'C' && (mtouch->cmd[1] == 'N' || mtouch->cmd[1] == 'X')) { /* Calibrate New/Extended */
+    if (mtouch->cmd[0] == 'C' && mtouch->cmd[1] == 'N') {      /* Calibrate New */
+        mtouch->cal_cntr = 2;
+    }
+    else if (mtouch->cmd[0] == 'C' && mtouch->cmd[1] == 'X') { /* Calibrate Extended */
+        mtouch->scale_x = 1;
+        mtouch->scale_y = 1;
+        mtouch->off_x   = 0;
+        mtouch->off_y   = 0;
+        mtouch->cal_ex = true;
         mtouch->cal_cntr = 2;
     }
     else if (mtouch->cmd[0] == 'F' && mtouch->cmd[1] == 'D') { /* Format Decimal */
@@ -376,6 +412,9 @@ mtouch_poll(void *priv)
         dev->abs_y = dev->abs_y / (double) monitors[index].mon_ysize;
     }
     
+    dev->abs_x = dev->scale_x * dev->abs_x + dev->off_x;
+    dev->abs_y = dev->scale_y * dev->abs_y + dev->off_y;
+    
     if (dev->abs_x >= 1.0) dev->abs_x = 1.0;
     if (dev->abs_y >= 1.0) dev->abs_y = 1.0;
     if (dev->abs_x <= 0.0) dev->abs_x = 0.0;
@@ -408,6 +447,10 @@ mtouch_init(const device_t *info)
     dev->id          = device_get_config_int("identity");
     dev->pen_mode    = 3;
     dev->mode        = MODE_STREAM;
+    dev->scale_x = 1;
+    dev->scale_y = 1;
+    dev->off_x   = 0;
+    dev->off_y   = 0;
     
     if (dev->id < 2) { /* legacy controllers */
         dev->format = FORMAT_DEC;
