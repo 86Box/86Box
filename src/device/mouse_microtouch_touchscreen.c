@@ -106,8 +106,6 @@ mtouch_writenvr(void *priv, float scale_x, float scale_y, float off_x, float off
     memcpy(&dev->nvr[4], &scale_y, 4);
     memcpy(&dev->nvr[8], &off_x, 4);
     memcpy(&dev->nvr[12], &off_y, 4);
-    
-    pclog("NVR WRITE: %f, %f, %f, %f\n", scale_x, scale_y, off_x, off_y);
 }
 
 static void
@@ -119,7 +117,7 @@ mtouch_readnvr(void *priv)
     memcpy(&dev->off_x, &dev->nvr[8], 4);
     memcpy(&dev->off_y, &dev->nvr[12], 4);
     
-    pclog("NVR READ: %f, %f, %f, %f\n", dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
+    pclog("MT NVR CAL: scale_x=%f, scale_y=%f, off_x=%f, off_y=%f\n", dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
 }
 
 static void
@@ -181,9 +179,8 @@ mtouch_calibrate_timer(void *priv)
             dev->scale_y = (y2_ref - y1_ref) / (y2 - y1);
             dev->off_y   = y1_ref - dev->scale_y * y1;
             dev->cal_ex = false;
-                
-            pclog("CAL: x1=%f, y1=%f, x2=%f, y2=%f\n", x1, y1, x2, y2);
-            pclog("CAL: scale_x=%f, scale_y=%f, off_x=%f, off_y=%f\n", dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
+            
+            pclog("MT NEW CAL: scale_x=%f, scale_y=%f, off_x=%f, off_y=%f\n", dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
             mtouch_writenvr(dev, dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
             mtouch_savenvr(dev);
         }
@@ -515,10 +512,6 @@ mtouch_init(const device_t *info)
     dev->id          = device_get_config_int("identity");
     dev->pen_mode    = 3;
     dev->mode        = MODE_STREAM;
-    dev->scale_x = 1;
-    dev->scale_y = 1;
-    dev->off_x   = 0;
-    dev->off_y   = 0;
     
     sprintf(dev->nvr_path, "mtouch_%s.nvr", mtouch_identity[dev->id]);
     mtouch_initnvr(dev);
