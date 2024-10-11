@@ -336,17 +336,16 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
             continue;
         }
 
-        char *p = checked_path.toUtf8().data();
         char temp[MAX_IMAGE_PATH_LEN -1] = { 0 };
 
-        if (path_abs(p)) {
-            if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
-                fatal("removeMissingImages(): strlen(p) > 2047\n");
+        if (path_abs(checked_path.toUtf8().data())) {
+            if (checked_path.length() > (MAX_IMAGE_PATH_LEN - 1))
+                fatal("removeMissingImages(): checked_path.length() > 2047\n");
             else
-                snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", checked_path.toUtf8().constData());
         } else
             snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
-                     path_get_slash(usr_path), p);
+                     path_get_slash(usr_path), checked_path.toUtf8().constData());
         path_normalize(temp);
 
         QString qstr = QString::fromUtf8(temp);
