@@ -36,7 +36,10 @@
 #include <86box/plat.h>
 #include <86box/fifo8.h>
 #include <86box/fifo.h>
-#include <86box/video.h> /* Needed to account for overscan. */
+#include <86box/video.h>
+#include <86box/nvr.h>
+
+#define NVR_SIZE    16
 
 enum mtouch_formats {
     FORMAT_DEC    = 1,
@@ -60,16 +63,17 @@ const char* mtouch_identity[] = {
 };
 
 typedef struct mouse_microtouch_t {
-    double       abs_x, abs_x_old, abs_y, abs_y_old;
-    double       scale_x, scale_y, off_x, off_y;
-    int          but, but_old;
     char         cmd[256];
+    double       abs_x, abs_x_old, abs_y, abs_y_old;
+    float        scale_x, scale_y, off_x, off_y;
+    int          but, but_old;
     int          baud_rate, cmd_pos;
     uint8_t      format, mode;
-    bool         mode_status, cal_ex;
     uint8_t      id, cal_cntr, pen_mode;
-    bool         soh;
+    bool         mode_status, cal_ex, soh;   
     bool         in_reset, reset;
+    uint8_t     *nvr;
+    char         nvr_path[64];    
     serial_t    *serial;
     Fifo8        resp;
     pc_timer_t   host_to_serial_timer;
@@ -78,8 +82,68 @@ typedef struct mouse_microtouch_t {
 
 static mouse_microtouch_t *mtouch_inst = NULL;
 
-void
-microtouch_reset_complete(void *priv)
+static void
+mtouch_savenvr(void *priv)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+    
+    FILE *fp;
+
+    fp = nvr_fopen(dev->nvr_path, "wb");
+    if (fp) {
+        fwrite(dev->nvr, 1, NVR_SIZE, fp);
+        fclose(fp);
+        fp = NULL;
+    }
+}
+
+static void
+mtouch_writenvr(void *priv, float scale_x, float scale_y, float off_x, float off_y)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+    
+    memcpy(&dev->nvr[0], &scale_x, 4);
+    memcpy(&dev->nvr[4], &scale_y, 4);
+    memcpy(&dev->nvr[8], &off_x, 4);
+    memcpy(&dev->nvr[12], &off_y, 4);
+    
+    pclog("NVR WRITE: %f, %f, %f, %f\n", scale_x, scale_y, off_x, off_y);
+}
+
+static void
+mtouch_readnvr(void *priv)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+    memcpy(&dev->scale_x, &dev->nvr[0], 4);
+    memcpy(&dev->scale_y, &dev->nvr[4], 4);
+    memcpy(&dev->off_x, &dev->nvr[8], 4);
+    memcpy(&dev->off_y, &dev->nvr[12], 4);
+    
+    pclog("NVR READ: %f, %f, %f, %f\n", dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
+}
+
+static void
+mtouch_initnvr(void *priv)
+{
+    mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
+    FILE *fp;
+
+    /* Allocate and initialize the EEPROM. */
+    dev->nvr = (uint8_t *) malloc(NVR_SIZE);
+    memset(dev->nvr, 0x00, NVR_SIZE);
+
+    fp = nvr_fopen(dev->nvr_path, "rb");
+    if (fp) {
+        if (fread(dev->nvr, 1, NVR_SIZE, fp) != NVR_SIZE)
+            fatal("mtouch_initnvr(): Error reading data\n");
+        fclose(fp);
+        fp = NULL;
+    } else
+        mtouch_writenvr(dev, 1, 1, 0, 0);
+}
+
+static void
+mtouch_reset_complete(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
@@ -88,8 +152,8 @@ microtouch_reset_complete(void *priv)
     fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
 }
 
-void
-microtouch_calibrate_timer(void *priv)
+static void
+mtouch_calibrate_timer(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
@@ -120,14 +184,16 @@ microtouch_calibrate_timer(void *priv)
                 
             pclog("CAL: x1=%f, y1=%f, x2=%f, y2=%f\n", x1, y1, x2, y2);
             pclog("CAL: scale_x=%f, scale_y=%f, off_x=%f, off_y=%f\n", dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
+            mtouch_writenvr(dev, dev->scale_x, dev->scale_y, dev->off_x, dev->off_y);
+            mtouch_savenvr(dev);
         }
         dev->abs_x_old = dev->abs_x;
         dev->abs_y_old = dev->abs_y;
     }    
 }
 
-void
-microtouch_process_commands(mouse_microtouch_t *dev)
+static void
+mtouch_process_commands(mouse_microtouch_t *dev)
 {
     dev->cmd[strcspn(dev->cmd, "\r")] = '\0';
     pclog("MT Command: %s\n", dev->cmd);
@@ -249,7 +315,7 @@ microtouch_process_commands(mouse_microtouch_t *dev)
     fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
 }
 
-void
+static void
 mtouch_write(serial_t *serial, void *priv, uint8_t data)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
@@ -269,7 +335,7 @@ mtouch_write(serial_t *serial, void *priv, uint8_t data)
             
             dev->cmd[dev->cmd_pos++] = data;
             dev->cmd_pos = 0;
-            microtouch_process_commands(dev);
+            mtouch_process_commands(dev);
         }
     }
 }
@@ -290,7 +356,7 @@ mtouch_prepare_transmit(void *priv)
     
     if (dev->cal_cntr || (!dev->but && !dev->but_old)) { /* Calibration or no buttonpress */
         if (!dev->but && dev->but_old) {
-            microtouch_calibrate_timer(dev);
+            mtouch_calibrate_timer(dev);
         }
         dev->but_old = but; /* Save buttonpress */
         return 0;
@@ -355,7 +421,7 @@ mtouch_prepare_transmit(void *priv)
     return 0;
 }
 
-void
+static void
 mtouch_write_to_host(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
@@ -444,7 +510,7 @@ mtouch_init(const device_t *info)
     
     fifo8_create(&dev->resp, 256);
     timer_add(&dev->host_to_serial_timer, mtouch_write_to_host, dev, 0);
-    timer_add(&dev->reset_timer, microtouch_reset_complete, dev, 0);
+    timer_add(&dev->reset_timer, mtouch_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
     dev->id          = device_get_config_int("identity");
     dev->pen_mode    = 3;
@@ -453,6 +519,10 @@ mtouch_init(const device_t *info)
     dev->scale_y = 1;
     dev->off_x   = 0;
     dev->off_y   = 0;
+    
+    sprintf(dev->nvr_path, "mtouch_%s.nvr", mtouch_identity[dev->id]);
+    mtouch_initnvr(dev);
+    mtouch_readnvr(dev);
     
     if (dev->id < 2) { /* legacy controllers */
         dev->format = FORMAT_DEC;
