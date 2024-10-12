@@ -171,9 +171,11 @@ typedef struct svga_t {
 
     pc_timer_t timer;
     pc_timer_t timer8514;
+    pc_timer_t timer_xga;
 
     double clock;
     double clock8514;
+    double clock_xga;
 
     double multiplier;
 
@@ -319,8 +321,12 @@ extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
 extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
 #endif
 
-extern void xga_poll(void *priv, svga_t *svga);
+extern void xga_write_test(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t xga_read_test(uint32_t addr, void *priv);
+extern void xga_poll(void *priv);
 extern void xga_recalctimings(svga_t *svga);
+
+extern uint32_t svga_decode_addr(svga_t *svga, uint32_t addr, int write);
 
 extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                       void (*recalctimings_ex)(struct svga_t *svga),

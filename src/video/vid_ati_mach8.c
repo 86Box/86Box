@@ -37,6 +37,7 @@
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/vid_8514a.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_ati_eeprom.h>
@@ -2478,11 +2479,13 @@ ati8514_recalctimings(svga_t *svga)
             dev->dispend = dev->vdisp;
         }
 
-        if (dev->accel.advfunc_cntl & 0x04) {
+        if (dev->accel.advfunc_cntl & 0x04)
             svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
-        } else {
+        else
             svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
-        }
+
+        if (dev->interlace)
+            dev->dispend >>= 1;
 
         if (dev->dispend == 766)
             dev->dispend += 2;
@@ -3456,7 +3459,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 static void
 mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8514_t *dev)
 {
-    if (port != 0x7aee && port != 0x7aef && port != 0x42e8 && port != 0x42e9 && port != 0x46e8 && port != 0x46e9)
+    if (port != 0x7aee && port != 0x7aef && port != 0x42e8 && port != 0x42e9)
         mach_log("[%04X:%08X]: Port CALL OUT=%04x, val=%02x.\n", CS, cpu_state.pc, port, val);
 
     switch (port) {
@@ -4290,26 +4293,6 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         case 0x52ee:
         case 0x52ef:
             READ8(port, mach->accel.scratch0);
-#ifdef ATI_8514_ULTRA
-            if (mach->mca_bus) {
-                if (!(port & 1)) {
-                    if (svga->ext8514 != NULL)
-                        temp = dev->pos_regs[4];
-                } else {
-                    if (svga->ext8514 != NULL)
-                        temp = dev->pos_regs[5];
-                }
-            } else {
-                if (svga->ext8514 != NULL) {
-                    temp = ((dev->bios_addr >> 7) - 0x1000) >> 4;
-                    if (port & 1) {
-                        temp &= ~0x80;
-                        temp |= 0x01;
-                    }
-                } else
-                    temp = 0x00;
-            }
-#endif
             break;
 
         case 0x56ee:
@@ -4368,7 +4351,7 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         default:
             break;
     }
-    if (port != 0x62ee && port != 0x62ef && port != 0x42e8 && port != 0x42e9)
+    if (port != 0x62ee && port != 0x62ef && port != 0x42e8 && port != 0x42e9 && port != 0x02e8 && port != 0x02e9)
         mach_log("[%04X:%08X]: Port NORMAL IN=%04x, temp=%04x.\n", CS, cpu_state.pc, port, temp);
 
     return temp;
@@ -4641,6 +4624,7 @@ mach32_write_common(uint32_t addr, uint8_t val, int linear, mach_t *mach, svga_t
         dev->vram[addr]              = val;
         return;
     } else {
+        xga_write_test(addr, val, svga);
         addr = mach32_decode_addr(svga, addr, 1);
         if (addr == 0xffffffff)
             return;
@@ -4858,6 +4842,7 @@ mach32_read_common(uint32_t addr, int linear, mach_t *mach, svga_t *svga)
     if (linear) {
         return dev->vram[addr & dev->vram_mask];
     } else {
+        (void) xga_read_test(addr, svga);
         addr = mach32_decode_addr(svga, addr, 0);
         if (addr == 0xffffffff)
             return 0xff;
