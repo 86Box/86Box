@@ -36,7 +36,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 4.3
+    VERSION 4.2.2
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -145,6 +145,10 @@ if(WIN32)
 else()
     option(QT "Qt GUI" ON)
     option(CPPTHREADS "C++11 threads" ON)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-z,wxneeded")
 endif()
 
 # Development branch features

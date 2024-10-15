@@ -431,6 +431,8 @@ write_back(int drive)
         if (fwrite(dev->track_data[side], 1, size, dev->fp) != size)
             fatal("IMG write_back(): Error writing data\n");
     }
+
+    fflush(dev->fp);
 }
 
 static uint16_t

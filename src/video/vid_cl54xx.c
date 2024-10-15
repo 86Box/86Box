@@ -37,6 +37,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/plat_fallthrough.h>
@@ -2195,6 +2196,8 @@ gd54xx_write(uint32_t addr, uint8_t val, void *priv)
         return;
     }
 
+    xga_write_test(addr, val, svga);
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
     svga_write_linear(addr, val, svga);
@@ -2211,6 +2214,9 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *priv)
         gd54xx_write(addr + 1, val >> 8, gd54xx);
         return;
     }
+
+    xga_write_test(addr, val, svga);
+    xga_write_test(addr + 1, val >> 8, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
@@ -2236,6 +2242,11 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *priv)
         gd54xx_write(addr + 3, val >> 24, gd54xx);
         return;
     }
+
+    xga_write_test(addr, val, svga);
+    xga_write_test(addr + 1, val >> 8, svga);
+    xga_write_test(addr + 2, val >> 16, svga);
+    xga_write_test(addr + 3, val >> 24, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
@@ -2762,6 +2773,8 @@ gd54xx_read(uint32_t addr, void *priv)
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
         return gd54xx_mem_sys_dest_read(gd54xx, 0);
 
+    (void) xga_read_test(addr, svga);
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
     return svga_read_linear(addr, svga);
@@ -2779,6 +2792,9 @@ gd54xx_readw(uint32_t addr, void *priv)
         ret |= gd54xx_read(addr + 1, priv) << 8;
         return ret;
     }
+
+    (void) xga_read_test(addr, svga);
+    (void) xga_read_test(addr + 1, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
@@ -2799,6 +2815,11 @@ gd54xx_readl(uint32_t addr, void *priv)
         ret |= gd54xx_read(addr + 3, priv) << 24;
         return ret;
     }
+
+    (void) xga_read_test(addr, svga);
+    (void) xga_read_test(addr + 1, svga);
+    (void) xga_read_test(addr + 2, svga);
+    (void) xga_read_test(addr + 3, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
@@ -3824,6 +3845,16 @@ cl_pci_read(UNUSED(int func), int addr, void *priv)
                 break;
             case 0x17:
                 ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? ((gd54xx->vgablt_base >> 24) & 0xff) : 0x00;
+                break;
+
+            case 0x2c:
+                ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? gd54xx->bios_rom.rom[0x7ffc] : 0x00;
+                break;
+            case 0x2d:
+                ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? gd54xx->bios_rom.rom[0x7ffd] : 0x00;
+                break;
+            case 0x2e:
+                ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? gd54xx->bios_rom.rom[0x7ffe] : 0x00;
                 break;
 
             case 0x30:

@@ -125,15 +125,6 @@ et4000_in(uint16_t addr, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
-        case 0x3c2:
-            if (dev->type == ET4000_TYPE_MCA) {
-                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-                    return 0;
-                else
-                    return 0x10;
-            }
-            break;
-
         case 0x3c5:
             if ((svga->seqaddr & 0xf) == 7)
                 return svga->seqregs[svga->seqaddr & 0xf] | 4;
@@ -770,12 +761,16 @@ et4000_mca_write(int port, uint8_t val, void *priv)
 
     /* Save the MCA register value. */
     et4000->pos_regs[port & 7] = val;
+    mem_mapping_disable(&et4000->bios_rom.mapping);
+    if (et4000->pos_regs[2] & 1)
+        mem_mapping_enable(&et4000->bios_rom.mapping);
 }
 
 static uint8_t
 et4000_mca_feedb(UNUSED(void *priv))
 {
-    return 1;
+    et4000_t *et4000 = (et4000_t *) priv;
+    return et4000->pos_regs[2] & 1;
 }
 
 static void *
@@ -889,7 +884,10 @@ et4000_init(const device_t *info)
     dev->vram_mask = dev->vram_size - 1;
 
     rom_init(&dev->bios_rom, fn,
-             0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    if (dev->type == ET4000_TYPE_MCA)
+        mem_mapping_disable(&dev->bios_rom.mapping);
 
     dev->svga.translate_address = get_et4000_addr;
 
