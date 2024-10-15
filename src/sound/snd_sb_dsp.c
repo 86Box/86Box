@@ -446,10 +446,46 @@ sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
         mpu401_irq_attach(mpu, sb_dsp_irq_update, sb_dsp_irq_pending, dsp);
 }
 
+static void
+sb_stop_dma(const sb_dsp_t *dsp)
+{
+    dma_set_drq(dsp->sb_8_dmanum, 0);
+
+    if (dsp->sb_16_dmanum != 0xff) {
+        if (dsp->sb_16_dmanum == 4)
+            dma_set_drq(dsp->sb_8_dmanum, 0);
+        else
+            dma_set_drq(dsp->sb_16_dmanum, 0);
+    }
+
+    if (dsp->sb_16_8_dmanum != 0xff)
+        dma_set_drq(dsp->sb_16_8_dmanum, 0);
+}
+
+static void
+sb_finish_dma(sb_dsp_t *dsp)
+{
+    if (dsp->ess_playback_mode) {
+        ESSreg(0xB8) &= ~0x01;
+        dma_set_drq(dsp->sb_8_dmanum, 0);
+    } else
+        sb_stop_dma(dsp);
+}
+
 void
 sb_dsp_reset(sb_dsp_t *dsp)
 {
     midi_clear_buffer();
+
+    if (dsp->sb_8_enable) {
+        dsp->sb_8_enable = 0;
+        sb_finish_dma(dsp);
+    }
+
+    if (dsp->sb_16_enable) {
+        dsp->sb_16_enable = 0;
+        sb_finish_dma(dsp);
+    }
 
     timer_disable(&dsp->output_timer);
     timer_disable(&dsp->input_timer);
@@ -563,22 +599,6 @@ sb_resume_dma(const sb_dsp_t *dsp, const int is_8)
         if (dsp->sb_16_8_dmanum != 0xff)
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
-}
-
-static void
-sb_stop_dma(const sb_dsp_t *dsp)
-{
-    dma_set_drq(dsp->sb_8_dmanum, 0);
-
-    if (dsp->sb_16_dmanum != 0xff) {
-        if (dsp->sb_16_dmanum == 4)
-            dma_set_drq(dsp->sb_8_dmanum, 0);
-        else
-            dma_set_drq(dsp->sb_16_dmanum, 0);
-    }
-
-    if (dsp->sb_16_8_dmanum != 0xff)
-        dma_set_drq(dsp->sb_16_8_dmanum, 0);
 }
 
 void
@@ -2204,16 +2224,6 @@ sb_dsp_dma_attach(sb_dsp_t *dsp,
     dsp->dma_writeb = dma_writeb;
     dsp->dma_writew = dma_writew;
     dsp->dma_priv   = priv;
-}
-
-static void
-sb_finish_dma(sb_dsp_t *dsp)
-{
-    if (dsp->ess_playback_mode) {
-        ESSreg(0xB8) &= ~0x01;
-        dma_set_drq(dsp->sb_8_dmanum, 0);
-    } else
-        sb_stop_dma(dsp);
 }
 
 void

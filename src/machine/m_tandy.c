@@ -84,6 +84,7 @@ typedef struct t1kvid_t {
     uint32_t b8000_mask;
     uint32_t b8000_limit;
     uint8_t  planar_ctrl;
+    uint8_t  lp_strobe;
 
     int      linepos;
     int      displine;
@@ -771,6 +772,15 @@ recalc_address_sl(tandy_t *dev)
 }
 
 static void
+vid_update_latch(t1kvid_t *vid)
+{
+    uint32_t lp_latch = vid->displine * vid->crtc[1];
+
+    vid->crtc[0x10] = (lp_latch >> 8) & 0x3f;
+    vid->crtc[0x11] = lp_latch & 0xff;
+}
+
+static void
 vid_out(uint16_t addr, uint8_t val, void *priv)
 {
     tandy_t  *dev = (tandy_t *) priv;
@@ -816,6 +826,18 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             vid->array_index = val & 0x1f;
             break;
 
+        case 0x3db:
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
+                vid->lp_strobe = 0;
+            break;
+
+        case 0x3dc:
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
+                vid->lp_strobe = 1;
+                vid_update_latch(vid);
+            }
+            break;
+
         case 0x03de:
             if (vid->array_index & 16)
                 val &= 0xf;
@@ -852,7 +874,7 @@ static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
     const tandy_t  *dev = (tandy_t *) priv;
-    const t1kvid_t *vid = dev->vid;
+    t1kvid_t       *vid = dev->vid;
     uint8_t         ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
@@ -869,6 +891,18 @@ vid_in(uint16_t addr, void *priv)
 
         case 0x03da:
             ret = vid->stat;
+            break;
+
+        case 0x3db:
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
+                vid->lp_strobe = 0;
+            break;
+
+        case 0x3dc:
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
+                vid->lp_strobe = 1;
+                vid_update_latch(vid);
+            }
             break;
 
         default:

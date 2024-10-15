@@ -70,6 +70,15 @@ static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w 
 
 void cga_recalctimings(cga_t *cga);
 
+static void
+cga_update_latch(cga_t *cga)
+{
+    uint32_t lp_latch = cga->displine * cga->crtc[1];
+
+    cga->crtc[0x10] = (lp_latch >> 8) & 0x3f;
+    cga->crtc[0x11] = lp_latch & 0xff;
+}
+
 void
 cga_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -87,7 +96,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
             old                     = cga->crtc[cga->crtcreg];
             cga->crtc[cga->crtcreg] = val & crtcmask[cga->crtcreg];
             if (old != val) {
-                if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x10)) {
+                if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
                     cga->fullchange = changeframecount;
                     cga_recalctimings(cga);
                 }
@@ -111,6 +120,17 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 cga_recalctimings(cga);
             return;
 
+        case 0x3DB:
+            if (cga->lp_strobe == 1)
+                cga->lp_strobe = 0;
+            return;
+        case 0x3DC:
+            if (cga->lp_strobe == 0) {
+                cga->lp_strobe = 1;
+                cga_update_latch(cga);
+            }
+            return;
+
         default:
             break;
     }
@@ -119,8 +139,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 cga_in(uint16_t addr, void *priv)
 {
-    const cga_t *cga = (cga_t *) priv;
-
+    cga_t  *cga = (cga_t *) priv;
     uint8_t ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
@@ -135,6 +154,17 @@ cga_in(uint16_t addr, void *priv)
             break;
         case 0x3DA:
             ret = cga->cgastat;
+            break;
+
+        case 0x3DB:
+            if (cga->lp_strobe == 1)
+                cga->lp_strobe = 0;
+            break;
+        case 0x3DC:
+            if (cga->lp_strobe == 0) {
+                cga->lp_strobe = 1;
+                cga_update_latch(cga);
+            }
             break;
 
         default:

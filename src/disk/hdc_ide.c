@@ -1252,7 +1252,10 @@ ide_write_data(ide_t *ide, const uint16_t val)
                 const double xfer_time = ide_get_xfer_time(ide, 512);
                 const double wait_time = seek_time + xfer_time;
                 if (ide->command == WIN_WRITE_MULTIPLE) {
-                    if ((ide->blockcount + 1) >= ide->blocksize || ide->tf->secount == 1) {
+                    if (hdd[ide->hdd_num].speed_preset == 0) {
+                        ide->pending_delay = 0;
+                        ide_callback(ide);
+                    } else if ((ide->blockcount + 1) >= ide->blocksize || ide->tf->secount == 1) {
                         ide_set_callback(ide, seek_time + xfer_time + ide->pending_delay);
                         ide->pending_delay = 0;
                     } else {
@@ -1607,9 +1610,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->sc->callback = 100.0 * IDE_TIME;
                         ide_set_callback(ide, 100.0 * IDE_TIME);
                     } else {
-                        double seek_time = hdd_seek_get_time(&hdd[ide->hdd_num], (val & 0x60) ?
-                                                             ide_get_sector(ide) : 0, HDD_OP_SEEK, 0, 0.0);
-                        ide_set_callback(ide, seek_time);
+                        if (hdd[ide->hdd_num].speed_preset == 0)
+                            ide_set_callback(ide, 100.0 * IDE_TIME);
+                        else {
+                            double seek_time = hdd_seek_get_time(&hdd[ide->hdd_num], (val & 0x60) ?
+                                                                 ide_get_sector(ide) : 0, HDD_OP_SEEK, 0, 0.0);
+                            ide_set_callback(ide, seek_time);
+                        }
                     }
                     break;
 
@@ -1652,6 +1659,10 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                                                                ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time > xfer_time ? seek_time : xfer_time;
+                        } else if ((val == WIN_READ_MULTIPLE) && (hdd[ide->hdd_num].speed_preset == 0)) {
+                           ide_set_callback(ide, 200.0 * IDE_TIME);
+                           ide->do_initial_read = 1;
+                           break;
                         } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize > 0)) {
                             sec_count = ide->tf->secount ? ide->tf->secount : 256;
                             if (sec_count > ide->blocksize)
@@ -1848,7 +1859,9 @@ ide_read_data(ide_t *ide)
                     ide_next_sector(ide);
                     ide->tf->atastat = BSY_STAT | READY_STAT | DSC_STAT;
                     if (ide->command == WIN_READ_MULTIPLE) {
-                        if (!ide->blockcount) {
+                        if (hdd[ide->hdd_num].speed_preset == 0)
+                            ide_callback(ide);
+                        else if (!ide->blockcount) {
                             uint32_t cnt = ide->tf->secount ?
                                            ide->tf->secount : 256;
                             if (cnt > ide->blocksize)
@@ -1888,8 +1901,7 @@ ide_status(ide_t *ide, ide_t *ide_other, int ch)
         /* On real hardware, a slave with a present master always
            returns a status of 0x00.
            Confirmed by the ATA-3 and ATA-4 specifications. */
-        // ret = 0x00;
-        ret = 0x01;
+        ret = 0x00;
     } else {
         ret = ide->tf->atastat;
         if (ide->type == IDE_ATAPI)

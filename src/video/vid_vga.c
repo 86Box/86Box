@@ -31,6 +31,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_vga.h>
 
+static video_timings_t timing_vga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 static video_timings_t timing_ps1_svga_isa = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 static video_timings_t timing_ps1_svga_mca = { .type = VIDEO_MCA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 
@@ -207,7 +208,7 @@ const device_t ps1vga_device = {
     .init          = ps1vga_init,
     .close         = vga_close,
     .reset         = NULL,
-    { .available = vga_available },
+    { .available = NULL },
     .speed_changed = vga_speed_changed,
     .force_redraw  = vga_force_redraw,
     .config        = NULL
@@ -221,7 +222,7 @@ const device_t ps1vga_mca_device = {
     .init          = ps1vga_init,
     .close         = vga_close,
     .reset         = NULL,
-    { .available = vga_available },
+    { .available = NULL },
     .speed_changed = vga_speed_changed,
     .force_redraw  = vga_force_redraw,
     .config        = NULL

@@ -31,6 +31,8 @@ typedef struct cga_t {
     uint8_t cgamode;
     uint8_t cgacol;
 
+    uint8_t lp_strobe;
+
     int      fontbase;
     int      linepos;
     int      displine;
