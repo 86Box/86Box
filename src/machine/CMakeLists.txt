@@ -34,6 +34,7 @@ add_library(mch OBJECT
     m_v86p.c
     m_at.c
     m_at_commodore.c
+    m_at_grid.c
     m_at_t3100e.c
     m_at_t3100e_vid.c
     m_ps1.c
