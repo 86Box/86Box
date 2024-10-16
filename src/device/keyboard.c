@@ -31,23 +31,13 @@
 
 int keyboard_scan;
 
-#ifdef _WIN32
-/* Windows: F8+F12 */
+/* F8+F12 */
 uint16_t key_prefix_1_1 = 0x042;     /* F8 */
 uint16_t key_prefix_1_2 = 0x000;     /* Invalid */
 uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
 uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
 uint16_t key_uncapture_1 = 0x058;    /* F12 */
 uint16_t key_uncapture_2 = 0x000;    /* Invalid */
-#else
-/* WxWidgets cannot do two regular keys.. CTRL+END */
-uint16_t key_prefix_1_1 = 0x01d;     /* Left Ctrl */
-uint16_t key_prefix_1_2 = 0x11d;     /* Right Ctrl */
-uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
-uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
-uint16_t key_uncapture_1 = 0x04f;    /* Numpad End */
-uint16_t key_uncapture_2 = 0x14f;    /* End */
-#endif
 
 void (*keyboard_send)(uint16_t val);
 
