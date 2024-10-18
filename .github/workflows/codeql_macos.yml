@@ -25,11 +25,11 @@ on:
 
 jobs:
 
-  analyze-macos12:
+  analyze-macos13:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
-    runs-on: macos-12
+    runs-on: macos-13
 
     permissions:
       actions: read
