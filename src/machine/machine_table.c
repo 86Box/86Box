@@ -13953,7 +13953,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
         .ram = {
             .min = 1024,
-            .max = 1572864,
+            .max = 393216,
             .step = 8192
         },
         .nvrmask = 255,
@@ -13995,7 +13995,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram = {
             .min = 8192,
-            .max = 1048576,
+            .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
@@ -14036,7 +14036,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram = {
             .min = 8192,
-            .max = 786432,
+            .max = 393216,
             .step = 8192
         },
         .nvrmask = 127,
@@ -14069,7 +14069,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_SLOT1,
             .block = CPU_BLOCK_NONE,
             .min_bus = 60000000,
-            .max_bus = 100000000,
+            .max_bus = 83333333,
             .min_voltage = 1500,
             .max_voltage = 3500,
             .min_multi = 2.0,
@@ -14161,7 +14161,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
             .min = 8192,
-            .max = 786432,
+            .max = 393216,
             .step = 8192
         },
         .nvrmask = 255,
@@ -14448,11 +14448,11 @@ const machine_t machines[] = {
             .min_multi = 1.5,
             .max_multi = 8.0
         },
-        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: Matrox MGA-G200 and sound: Crystal CS4820 */
         .ram = {
             .min = 8192,
-            .max = 1048576,
+            .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
@@ -14533,7 +14533,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1371 */
         .ram = {
             .min = 8192,
-            .max = 1048576,
+            .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
@@ -14648,7 +14648,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_SLOT1,
             .block = CPU_BLOCK_NONE,
             .min_bus = 66666667,
-            .max_bus = 66666667,
+            .max_bus = 100000000,
             .min_voltage = 1800,
             .max_voltage = 3500,
             .min_multi = 1.5,
@@ -14867,7 +14867,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1373 */
         .ram = {
             .min = 8192,
-            .max = 3145728,
+            .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
@@ -14909,7 +14909,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1373 */
         .ram = {
             .min = 8192,
-            .max = 1572864,
+            .max = 786432,
             .step = 1024
         },
         .nvrmask = 255,
@@ -14949,7 +14949,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
-            .max = 1572864,
+            .max = 393216,
             .step = 1024
         },
         .nvrmask = 255,
