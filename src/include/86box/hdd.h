@@ -90,6 +90,7 @@ enum {
 typedef struct hdd_preset_t {
     const char *name;
     const char *internal_name;
+    const char *model;
     uint32_t    zones;
     uint32_t    avg_spt;
     uint32_t    heads;
@@ -165,6 +166,7 @@ typedef struct hard_disk_t {
     uint32_t spt;
     uint32_t hpc; /* Physical geometry parameters */
     uint32_t tracks;
+    const char *model;
 
     hdd_zone_t  zones[HDD_MAX_ZONES];
     uint32_t    num_zones;
