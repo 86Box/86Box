@@ -426,6 +426,12 @@ msgstr "Ativar (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Alto impacto no desempenho"
+
 msgid "Video:"
 msgstr "Vídeo:"
 
