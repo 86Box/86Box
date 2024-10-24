@@ -118,13 +118,13 @@ msgid "Fullscreen &stretch mode"
 msgstr "Modo de &redimensionamento da tela cheia"
 
 msgid "&Full screen stretch"
-msgstr "&Tela cheia esticada"
+msgstr "&Tela cheia redimensionada"
 
 msgid "&4:3"
 msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "Pixel&s quadrados (manter proporção)"
+msgstr "Píxeis &quadrados (manter proporção)"
 
 msgid "&Integer scale"
 msgstr "&Redimensionamento com valores inteiros"
@@ -202,7 +202,7 @@ msgid "Begin trace\tCtrl+T"
 msgstr "Inicio do rastreamento\tCtrl+T"
 
 msgid "End trace\tCtrl+T"
-msgstr "Fim do rastreamento\tCtrl+T"
+msgstr "Finalizar rastreamento\tCtrl+T"
 
 msgid "&Help"
 msgstr "&Ajuda"
@@ -220,7 +220,7 @@ msgid "&Existing image..."
 msgstr "&Imagem existente..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Imagem existente (&protegida contra escrita)..."
+msgstr "Imagem existente (&protegida contra gravação)..."
 
 msgid "&Record"
 msgstr "&Gravar"
@@ -229,7 +229,7 @@ msgid "&Play"
 msgstr "&Reproduzir"
 
 msgid "&Rewind to the beginning"
-msgstr "&Rebobinar até o começo"
+msgstr "Re&troceder até o começo"
 
 msgid "&Fast forward to the end"
 msgstr "&Avançar até o fim"
@@ -244,7 +244,7 @@ msgid "E&xport to 86F..."
 msgstr "E&xportar para 86F..."
 
 msgid "&Mute"
-msgstr "&Sem som"
+msgstr "&Silenciar"
 
 msgid "E&mpty"
 msgstr "&Vazio"
@@ -256,7 +256,7 @@ msgid "&Folder..."
 msgstr "&Pasta..."
 
 msgid "Target &framerate"
-msgstr "&Taxa de quadro pretendida"
+msgstr "&Taxa de quadros pretendida"
 
 msgid "&Sync with video"
 msgstr "&Sincronizar com vídeo"
@@ -307,7 +307,7 @@ msgid "Cancel"
 msgstr "Cancelar"
 
 msgid "Save these settings as &global defaults"
-msgstr "Usar estas configurações como &padrões globais"
+msgstr "Salvar estas configurações como &padrões globais"
 
 msgid "&Default"
 msgstr "&Padrão"
@@ -316,7 +316,7 @@ msgid "Language:"
 msgstr "Idioma:"
 
 msgid "Icon set:"
-msgstr "Pacote de ícones:"
+msgstr "Conjunto de ícones:"
 
 msgid "Gain"
 msgstr "Ganho"
@@ -373,7 +373,7 @@ msgid "Memory:"
 msgstr "Memória:"
 
 msgid "Time synchronization"
-msgstr "Sincronização da hora"
+msgstr "Sincronização de hora"
 
 msgid "Disabled"
 msgstr "Desativar"
@@ -673,7 +673,7 @@ msgid "All images"
 msgstr "Todas as imagens"
 
 msgid "Basic sector images"
-msgstr "Imagens de setor básico"
+msgstr "Imagens de setores básicos"
 
 msgid "Surface images"
 msgstr "Imagens de superfície"
@@ -787,7 +787,7 @@ msgid "None"
 msgstr "Nada"
 
 msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgstr "%u MB (CCS: %i, %i, %i)"
 
 msgid "Floppy %i (%s): %ls"
 msgstr "Disquete %i (%s): %ls"
@@ -805,7 +805,7 @@ msgid "Are you sure you want to exit 86Box?"
 msgstr "Tem certeza de que deseja sair do 86Box?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Não é possível inicializar o Ghostscript"
+msgstr "Não foi possível inicializar o Ghostscript"
 
 msgid "MO %i (%ls): %ls"
 msgstr "Magneto-óptico %i (%ls): %ls"
@@ -823,7 +823,7 @@ msgid "Exit"
 msgstr "Sair"
 
 msgid "No ROMs found"
-msgstr "Nenhum ROM encontrada"
+msgstr "Nenhuma ROM encontrada"
 
 msgid "Do you want to save the settings?"
 msgstr "Você deseja salvar as configurações?"
@@ -841,7 +841,7 @@ msgid "86Box v"
 msgstr "86Box versão"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
 
 msgid "Hardware not available"
 msgstr "Hardware não disponível"
@@ -889,7 +889,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Você está carregando uma configuração não suportada"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "A filtragem do tipo CPU baseada na máquina selecionada é desativada para esta máquina emulada.\n\nIsto torna possível escolher uma CPU que de outra forma seria incompatível com a máquina selecionada. Entretanto, você pode encontrar incompatibilidades com a BIOS da máquina ou outro software.\n\nA ativação desta configuração não é oficialmente suportada e qualquer relatório de erro arquivado pode ser fechado como inválido."
+msgstr "A filtragem do tipo de CPU baseada na máquina selecionada está desativada para esta máquina emulada.\n\nIsto torna possível escolher uma CPU que, de outra forma, seria incompatível com a máquina selecionada. No entanto, você pode encontrar incompatibilidades com a BIOS da máquina ou outro software.\n\nA ativação desta configuração não é oficialmente suportada, e qualquer relatório de erro arquivado pode ser fechado como inválido."
 
 msgid "Continue"
 msgstr "Continuar"
@@ -1030,13 +1030,13 @@ msgid "Select the parent VHD"
 msgstr "Selecione o VHD pai"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Isto pode significar que a imagem de origem foi modificada após a criação da imagem diferencial.\n\nTambém pode acontecer caso os arquivos de imagem tenham sido movidos ou copiados, ou por um erro no programa que criou este disco.\n\nVocê quer consertar os marcadores de tempo?"
+msgstr "Isto pode significar que a imagem original foi modificada após a criação da imagem diferencial.\n\nIsso também pode ocorrer se os arquivos de imagem tiverem sido movidos ou copiados, ou por um erro no programa que criou este disco.\n\nVocê deseja corrigir os marcadores de tempo?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "A data/hora dos arquivos de pais e filhos não correspondem"
+msgstr "Os marcadores de tempo do disco pai e do disco filho não coincidem"
 
 msgid "Could not fix VHD timestamp."
-msgstr "Não foi possível consertar o carimbo de data/hora da VHD."
+msgstr "Não foi possível corrigir o marcador de tempo do VHD."
 
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
@@ -1126,16 +1126,16 @@ msgid "5.25\" 1.3 GB"
 msgstr "5.25\" 1.3 GB"
 
 msgid "Perfect RPM"
-msgstr "RPM perfeita"
+msgstr "Rotação ideal"
 
 msgid "1% below perfect RPM"
-msgstr "1% abaixo das RPM perfeita"
+msgstr "1% abaixo da rotação ideal"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% abaixo das RPM perfeita"
+msgstr "1.5% abaixo da rotação ideal"
 
 msgid "2% below perfect RPM"
-msgstr "2% abaixo das RPM perfeita"
+msgstr "2% abaixo da rotação ideal"
 
 msgid "(System Default)"
 msgstr "(Padrão do sistema)"
@@ -1147,7 +1147,7 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "A configuração de rede será alterada para o driver nulo"
 
 msgid "Mouse sensitivity:"
-msgstr "Sensibilidade do rato:"
+msgstr "Sensibilidade do mouse:"
 
 msgid "Select media images from program working directory"
 msgstr "Selecione imagens de mídia do diretório de trabalho do programa"
@@ -1171,4 +1171,4 @@ msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "O desenvolvimento do gerenciador WinBox foi interrompido em 2022 devido à falta de mantenedores. Conforme direcionamos nossos esforços para tornar o 86Box ainda melhor, tomamos a decisão de não oferecer mais suporte ao WinBox como gerenciador.\n\nAtualizações não serão mais fornecidas através do WinBox, e você poderá encontrar comportamentos incorretos caso continue a usá-lo com versões mais recentes do 86Box. Quaisquer relatórios de bugs relacionados ao comportamento do WinBox serão fechados como inválidos.\n\nAcesse 86box.net para obter uma lista de outros gerenciadores que você pode usar."
+msgstr "O desenvolvimento do gerenciador WinBox foi interrompido em 2022 devido à falta de mantenedores. À medida que direcionamos nossos esforços para tornar o 86Box ainda melhor, tomamos a decisão de não oferecer mais suporte ao WinBox como gerenciador.\n\nNão serão mais fornecidas atualizações através do WinBox, e você poderá encontrar comportamentos incorretos caso continue a usá-lo com versões mais recentes do 86Box. Quaisquer relatórios de bugs relacionados ao comportamento do WinBox serão fechados como inválidos.\n\nAcesse 86box.net para obter uma lista de outros gerenciadores que você pode usar."
