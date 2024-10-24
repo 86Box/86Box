@@ -430,7 +430,7 @@ msgid "Video:"
 msgstr "Vídeo:"
 
 msgid "Video #2:"
-msgstr "Vídeo #2:"
+msgstr "Vídeo 2:"
 
 msgid "Voodoo Graphics"
 msgstr "3DFX Voodoo"
@@ -505,16 +505,16 @@ msgid "Network adapter:"
 msgstr "Adaptador de rede:"
 
 msgid "Network Card #1"
-msgstr "Placa de rede #1:"
+msgstr "Placa de rede 1:"
 
 msgid "Network Card #2"
-msgstr "Placa de rede #2:"
+msgstr "Placa de rede 2:"
 
 msgid "Network Card #3"
-msgstr "Placa de rede #3:"
+msgstr "Placa de rede 3:"
 
 msgid "Network Card #4"
-msgstr "Placa de rede #4:"
+msgstr "Placa de rede 4:"
 
 msgid "Mode"
 msgstr "Modo:"
