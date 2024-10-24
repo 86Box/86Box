@@ -39,6 +39,9 @@ msgstr "&Ocultar barra de status"
 msgid "Hide &toolbar"
 msgstr "Ocultar &barra de ferramenta"
 
+msgid "Show non-primary monitors"
+msgstr "Mostrar monitores não primários"
+
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
 
@@ -59,6 +62,30 @@ msgstr "Open&GL (Núcleo 3.0)"
 
 msgid "&VNC"
 msgstr "&VNC"
+
+msgid "Renderer options..."
+msgstr "Opções de renderização..."
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "Opções de renderização OpenGL 3.0"
+
+msgid "Render behavior"
+msgstr "Comportamento de renderização"
+
+msgid "Synchronize with video"
+msgstr "Sincronizar com vídeo"
+
+msgid "Use target framerate:"
+msgstr "Usar taxa de quadros alvo:"
+
+msgid "VSync"
+msgstr "VSync (sincronização virtual)"
+
+msgid "Shaders"
+msgstr "Shaders"
+
+msgid "No shader selected"
+msgstr "Nenhum shader selecionado"
 
 msgid "Specify dimensions..."
 msgstr "Especificar as dimensões..."
@@ -132,6 +159,9 @@ msgstr "&Redimensionamento com valores inteiros"
 msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Configurações E&GA/(S)VGA"
 
@@ -198,6 +228,9 @@ msgstr "Ativar integração com o &Discord"
 msgid "Sound &gain..."
 msgstr "&Ganho de som..."
 
+msgid "Open screenshots folder..."
+msgstr "Abrir pasta de capturas de tela..."
+
 msgid "Begin trace\tCtrl+T"
 msgstr "Inicio do rastreamento\tCtrl+T"
 
@@ -237,6 +270,9 @@ msgstr "&Avançar até o fim"
 msgid "E&ject"
 msgstr "E&jetar"
 
+msgid "Eject %s"
+msgstr "Ejetar %s"
+
 msgid "&Image..."
 msgstr "&Imagem..."
 
@@ -245,6 +281,9 @@ msgstr "E&xportar para 86F..."
 
 msgid "&Mute"
 msgstr "&Silenciar"
+
+msgid "&Unmute"
+msgstr "&Reativar som"
 
 msgid "E&mpty"
 msgstr "&Vazio"
@@ -390,6 +429,9 @@ msgstr "Recompilador dinâmico"
 msgid "Video:"
 msgstr "Vídeo:"
 
+msgid "Video #2:"
+msgstr "Vídeo #2:"
+
 msgid "Voodoo Graphics"
 msgstr "3DFX Voodoo"
 
@@ -459,6 +501,30 @@ msgstr "Dispositivo PCap:"
 msgid "Network adapter:"
 msgstr "Adaptador de rede:"
 
+msgid "Network Card #1"
+msgstr "Placa de rede #1:"
+
+msgid "Network Card #2"
+msgstr "Placa de rede #2:"
+
+msgid "Network Card #3"
+msgstr "Placa de rede #3:"
+
+msgid "Network Card #4"
+msgstr "Placa de rede #4:"
+
+msgid "Mode"
+msgstr "Modo:"
+
+msgid "Interface"
+msgstr "Interface:"
+
+msgid "Adapter"
+msgstr "Adaptador:"
+
+msgid "VDE Socket"
+msgstr "Socket VDE:"
+
 msgid "COM1 Device:"
 msgstr "Dispositivo COM1:"
 
@@ -494,6 +560,18 @@ msgstr "Porta serial 3"
 
 msgid "Serial port 4"
 msgstr "Porta serial 4"
+
+msgid "Serial port passthrough 1"
+msgstr "Passagem de porta serial 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Passagem de porta serial 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Passagem de porta serial 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Passagem de porta serial 4"
 
 msgid "Parallel port 1"
 msgstr "Porta paralela 1"
@@ -546,8 +624,14 @@ msgstr "&Novo..."
 msgid "&Existing..."
 msgstr "&Existente..."
 
+msgid "Browse..."
+msgstr "Procurar..."
+
 msgid "&Remove"
 msgstr "&Remover"
+
+msgid "Remove"
+msgstr "Remover"
 
 msgid "Bus:"
 msgstr "Barramento:"
@@ -627,6 +711,9 @@ msgstr "Dispositivo ISABugger"
 msgid "POST card"
 msgstr "Placa de diagnóstico"
 
+msgid "86Box Unit Tester"
+msgstr "Testador de unidade 86Box"
+
 msgid "86Box"
 msgstr "86Box"
 
@@ -656,6 +743,9 @@ msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nP
 
 msgid "(empty)"
 msgstr "(vazio)"
+
+msgid "Clear image history"
+msgstr "Limpar histórico de imagens"
 
 msgid "All files"
 msgstr "Todos os arquivos"
@@ -740,6 +830,9 @@ msgstr "CA"
 
 msgid "S"
 msgstr "SE"
+
+msgid "MiB"
+msgstr "MiB"
 
 msgid "KB"
 msgstr "KB"
