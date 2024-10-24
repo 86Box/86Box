@@ -481,7 +481,7 @@ msgid "MIDI In Device:"
 msgstr "Disp. de entrada MIDI:"
 
 msgid "Standalone MPU-401"
-msgstr "MPU-401 autônomo"
+msgstr "MPU-401 independente"
 
 msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
