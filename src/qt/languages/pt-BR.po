@@ -624,6 +624,9 @@ msgstr "Controlador 4:"
 msgid "Cassette"
 msgstr "Cassete"
 
+msgid "Vision Systems LBA Enhancer"
+msgstr "Aprimorador de Sistema Vision para LBA"
+
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
 
@@ -722,6 +725,9 @@ msgstr "Placa de diagnóstico"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Cartão de Autenticação Novell NetWare 2.x"
 
 msgid "86Box"
 msgstr "86Box"
