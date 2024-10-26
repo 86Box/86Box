@@ -625,7 +625,7 @@ msgid "Cassette"
 msgstr "Cassete"
 
 msgid "Vision Systems LBA Enhancer"
-msgstr "Aprimorador de Sistema Vision para LBA"
+msgstr "Aprimorador LBA Vision Sistems"
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
@@ -977,6 +977,12 @@ msgstr "Reiniciar"
 
 msgid "Don't reset"
 msgstr "Não reiniciar"
+
+msgid "CD-ROM images"
+msgstr "Imagens de CD-ROM"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Unidade de CD/DVD do anfitrião (%1)"
 
 msgid "CD-ROM images"
 msgstr "Imagens de CD-ROM"
