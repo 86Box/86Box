@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
