@@ -1377,7 +1377,6 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, int msf, int type, int flags, int32_t *l
             scsi_cdrom_illegal_mode(dev);
             return 0;
         } else if (ret < 0) {
-            pclog("we have a circ\n");
             scsi_cdrom_circ_error(dev);
             return -1;
         }
