@@ -152,7 +152,7 @@ typedef struct mach64_t {
     uint32_t gui_traj_cntl;
 
     uint32_t host_cntl;
-
+    uint32_t bus_cntl;
     uint32_t mem_cntl;
 
     uint32_t ovr_clr;
@@ -592,7 +592,8 @@ mach64_recalctimings(svga_t *svga)
 void
 mach64_updatemapping(mach64_t *mach64)
 {
-    svga_t *svga = &mach64->svga;
+    svga_t  *svga = &mach64->svga;
+    uint32_t mmio_linear_size;
 
     if (mach64->pci && !(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mach64_log("Update mapping - PCI disabled\n");
@@ -636,23 +637,29 @@ mach64_updatemapping(mach64_t *mach64)
             break;
     }
 
+    if (mach64->bus_cntl & 0x8000000) {
+        mmio_linear_size = 0x4000;
+    } else {
+        mmio_linear_size = 0x400;
+    }
+
     if (mach64->linear_base) {
         if (mach64->type == MACH64_GX) {
             if ((mach64->config_cntl & 3) == 2) {
                 /*8 MB aperture*/
-                mach64_log("Mach64 linear aperture=%08x, cfgcntl=%x, mapping=%x, VGAAP=%x.\n", mach64->linear_base + ((8 << 20) - 0x4000), mach64->config_cntl & 3, svga->gdcreg[6] & 0xc, mach64->config_cntl & 4);
-                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
-                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
+                mach64_log("Mach64 linear aperture=%08x, cfgcntl=%x, mapping=%x, VGAAP=%x, EXTREG=%X.\n", mach64->linear_base + ((8 << 20) - mmio_linear_size), mach64->config_cntl & 3, svga->gdcreg[6] & 0xc, mach64->config_cntl & 4, mach64->bus_cntl & 0x8000000);
+                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - mmio_linear_size);
+                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - mmio_linear_size), mmio_linear_size);
             } else {
                 /*4 MB aperture*/
-                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - 0x4000);
-                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - 0x4000), 0x4000);
+                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - mmio_linear_size);
+                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - mmio_linear_size), mmio_linear_size);
             }
         } else {
             /*2*8 MB aperture*/
-            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
+            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - mmio_linear_size);
+            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - mmio_linear_size), mmio_linear_size);
+            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - mmio_linear_size), mmio_linear_size);
         }
     } else {
         mem_mapping_disable(&mach64->linear_mapping);
@@ -2450,6 +2457,13 @@ mach64_blk0_readb(uint32_t addr, void *priv)
             READ8(addr, mach64->clock_cntl);
             break;
 
+        case 0xa0:
+        case 0xa1:
+        case 0xa2:
+        case 0xa3:
+            READ8(addr, mach64->bus_cntl);
+            break;
+
         case 0xb0:
         case 0xb1:
         case 0xb2:
@@ -3041,6 +3055,14 @@ mach64_blk0_writeb(uint32_t addr, uint8_t val, void *priv)
                 svga_recalctimings(&mach64->svga);
                 break;
 
+            case 0xa0:
+            case 0xa1:
+            case 0xa2:
+            case 0xa3:
+                WRITE8(addr, mach64->bus_cntl, val);
+                mach64_updatemapping(mach64);
+                break;
+
             case 0xb0:
             case 0xb1:
             case 0xb2:
@@ -3372,7 +3394,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     uint8_t   ret;
 
-    if (!(addr & 0x400)) {
+    if (!(addr & 0x400) && (mach64->bus_cntl & 0x8000000)) {
         ret = mach64_blk1_readb(addr, priv);
     } else {
         ret = mach64_blk0_readb(addr, priv);
@@ -3387,9 +3409,9 @@ mach64_ext_readw(uint32_t addr, void *priv)
     const mach64_t *mach64 = (mach64_t *) priv;
     uint16_t        ret;
 
-    if (!(addr & 0x400)) {
+    if (!(addr & 0x400) && (mach64->bus_cntl & 0x8000000)) {
         mach64_log("mach64_ext_readw: addr=%04x\n", addr);
-        ret = 0xffff;
+        ret = mach64_blk1_readw(addr, priv);
     } else
         switch (addr & 0x3ff) {
             case 0xb4:
@@ -3415,9 +3437,9 @@ mach64_ext_readl(uint32_t addr, void *priv)
     const mach64_t *mach64 = (mach64_t *) priv;
     uint32_t        ret;
 
-    if (!(addr & 0x400)) {
+    if (!(addr & 0x400) && (mach64->bus_cntl & 0x8000000)) {
         mach64_log("nmach64_ext_readl: addr=%04x\n", addr);
-        ret = 0xffffffff;
+        ret = mach64_blk1_readl(addr, priv);
     } else
         switch (addr & 0x3ff) {
             case 0x18:
@@ -3445,8 +3467,10 @@ mach64_ext_readl(uint32_t addr, void *priv)
 void
 mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 {
+    mach64_t *mach64 = (mach64_t *) priv;
+
     mach64_log("mach64_ext_writeb: addr %08X val %02X\n", addr, val);
-    if (!(addr & 0x400)) {
+    if (!(addr & 0x400) && (mach64->bus_cntl & 0x8000000)) {
         mach64_blk1_writeb(addr, val, priv);
     } else {
         mach64_blk0_writeb(addr, val, priv);
@@ -3455,8 +3479,10 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 void
 mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
 {
+    mach64_t *mach64 = (mach64_t *) priv;
+
     mach64_log("mach64_ext_writew: addr %08X val %04X\n", addr, val);
-    if (!(addr & 0x400)) {
+    if (!(addr & 0x400) && (mach64->bus_cntl & 0x8000000)) {
         mach64_blk1_writew(addr, val, priv);
     } else {
         mach64_blk0_writew(addr, val, priv);
@@ -3465,9 +3491,11 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
 void
 mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
 {
+    mach64_t *mach64 = (mach64_t *) priv;
+
     if ((addr & 0x3c0) != 0x200)
         mach64_log("mach64_ext_writel: addr %08X val %08X\n", addr, val);
-    if (!(addr & 0x400)) {
+    if (!(addr & 0x400) && (mach64->bus_cntl & 0x8000000)) {
         mach64_blk1_writel(addr, val, priv);
     } else {
         mach64_blk0_writel(addr, val, priv);
