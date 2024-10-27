@@ -342,7 +342,7 @@ plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
 int
 plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
 {
-    BOOL status;
+    int  status;
     long size   = 0;
     int  buflen = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
 
@@ -370,7 +370,7 @@ plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
     plat_cdrom_close();
     win_cdrom_ioctl_log("ReadSector status=%d, sector=%d, size=%" PRId64 ".\n", status, sector, (long long) size);
 
-    return (size == buflen) && (status > 0);
+    return (status > 0) ? (size == buflen) : -1;
 }
 
 void

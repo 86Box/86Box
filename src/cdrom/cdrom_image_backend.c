@@ -181,13 +181,13 @@ bin_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
     if (fseeko64(tf->fp, seek, SEEK_SET) == -1) {
         cdrom_image_backend_log("CDROM: binary_read failed during seek!\n");
 
-        return 0;
+        return -1;
     }
 
     if (fread(buffer, count, 1, tf->fp) != 1) {
         cdrom_image_backend_log("CDROM: binary_read failed during read!\n");
 
-        return 0;
+        return -1;
     }
 
     if (UNLIKELY(tf->motorola)) {
@@ -502,8 +502,8 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
     if (raw && !track_is_raw) {
         memset(buffer, 0x00, 2448);
         const int ret = trk->file->read(trk->file, buffer + offset, seek, length);
-        if (!ret)
-            return 0;
+        if (ret <= 0)
+            return ret;
         /* Construct the rest of the raw sector. */
         memset(buffer + 1, 0xff, 10);
         buffer += 12;
@@ -534,7 +534,7 @@ cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint3
 
     for (uint32_t i = 0; i < num; i++) {
         success = cdi_read_sector(cdi, &buf[i * sector_size], raw, sector + i);
-        if (!success)
+        if (success <= 0)
             break;
         /* Based on the DOSBox patch, but check all 8 bytes and makes sure it's not an
            audio track. */
