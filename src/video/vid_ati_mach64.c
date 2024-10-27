@@ -84,6 +84,7 @@ typedef struct mach64_t {
     mem_mapping_t mmio_mapping;
     mem_mapping_t mmio_linear_mapping;
     mem_mapping_t mmio_linear_mapping_2;
+    mem_mapping_t aux_mapping;
 
     ati_eeprom_t eeprom;
     svga_t       svga;
@@ -183,6 +184,7 @@ typedef struct mach64_t {
 
     uint32_t linear_base;
     uint32_t io_base;
+    uint32_t aux_base;
 
     struct {
         int op;
@@ -395,6 +397,13 @@ uint32_t mach64_ext_readl(uint32_t addr, void *priv);
 void     mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv);
 void     mach64_ext_writew(uint32_t addr, uint16_t val, void *priv);
 void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
+
+uint8_t  mach64_aux_readb(uint32_t addr, void *priv);
+uint16_t mach64_aux_readw(uint32_t addr, void *priv);
+uint32_t mach64_aux_readl(uint32_t addr, void *priv);
+void     mach64_aux_writeb(uint32_t addr, uint8_t val, void *priv);
+void     mach64_aux_writew(uint32_t addr, uint16_t val, void *priv);
+void     mach64_aux_writel(uint32_t addr, uint32_t val, void *priv);
 
 #ifdef ENABLE_MACH64_LOG
 int mach64_do_log = ENABLE_MACH64_LOG;
@@ -639,7 +648,9 @@ mach64_updatemapping(mach64_t *mach64)
             break;
     }
 
-    if (mach64->bus_cntl & 0x8000000) {
+    if ((mach64->type >= RAGE_XL) && (mach64->bus_cntl & 0x10)) {
+        mmio_linear_size = 0;
+    } else if (mach64->bus_cntl & 0x8000000) {
         mmio_linear_size = 0x4000;
     } else {
         mmio_linear_size = 0x400;
@@ -667,6 +678,14 @@ mach64_updatemapping(mach64_t *mach64)
         mem_mapping_disable(&mach64->linear_mapping);
         mem_mapping_disable(&mach64->mmio_linear_mapping);
         mem_mapping_disable(&mach64->mmio_linear_mapping_2);
+    }
+
+    if (mach64->type >= RAGE_XL) {
+        if (mach64->aux_base) {
+            mem_mapping_set_addr(&mach64->aux_mapping, mach64->aux_base, 0x1000);
+        } else {
+            mem_mapping_disable(&mach64->aux_mapping);
+        }
     }
 }
 
@@ -3505,6 +3524,91 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
 }
 
 uint8_t
+mach64_aux_readb(uint32_t addr, void *priv)
+{
+    if (addr & 0x400) {
+        return mach64_blk1_readb(addr, priv);
+    } else {
+        return mach64_blk0_readb(addr, priv);
+    }
+}
+uint16_t
+mach64_aux_readw(uint32_t addr, void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+
+    switch (addr & 0x3ff) {
+        case 0xb4:
+        case 0xb6:
+            return (mach64->bank_w[(addr & 2) >> 1] >> 15);
+            break;
+        case 0xb8:
+        case 0xba:
+            return (mach64->bank_r[(addr & 2) >> 1] >> 15);
+            break;
+
+        default:
+            return mach64_blk0_readw(addr, priv);
+            break;
+    }
+}
+uint32_t
+mach64_aux_readl(uint32_t addr, void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+    uint32_t        ret;
+
+    switch (addr & 0x3ff) {
+        case 0x18:
+            ret = mach64->crtc_int_cntl & ~1;
+            if (mach64->svga.cgastat & 8)
+                ret |= 1;
+            break;
+
+        case 0xb4:
+            ret = (mach64->bank_w[0] >> 15) | ((mach64->bank_w[1] >> 15) << 16);
+            break;
+        case 0xb8:
+            ret = (mach64->bank_r[0] >> 15) | ((mach64->bank_r[1] >> 15) << 16);
+            break;
+
+        default:
+            ret = mach64_blk0_readl(addr, priv);
+            break;
+    }
+    return ret;
+}
+
+void
+mach64_aux_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    if (addr & 0x400) {
+        mach64_blk1_writeb(addr, val, priv);
+    } else {
+        mach64_blk0_writeb(addr, val, priv);
+    }
+}
+void
+mach64_aux_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    if (addr & 0x400) {
+        mach64_blk1_writew(addr, val, priv);
+    } else {
+        mach64_blk0_writew(addr, val, priv);
+    }
+}
+void
+mach64_aux_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    if (addr & 0x400) {
+        mach64_blk1_writel(addr, val, priv);
+    } else {
+        mach64_blk0_writel(addr, val, priv);
+    }
+}
+
+
+uint8_t
 mach64_ext_inb(uint16_t port, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
@@ -4565,6 +4669,21 @@ mach64_pci_read(UNUSED(int func), int addr, void *priv)
                 return mach64->block_decoded_io >> 24;
             return 0x00;
 
+        case 0x18:
+            return 0x00; /*Auxiliary aperture address*/
+        case 0x19:
+            if (mach64->type >= RAGE_XL)
+                return mach64->aux_base >> 8;
+            return 0x00;
+        case 0x1a:
+            if (mach64->type >= RAGE_XL)
+                return mach64->aux_base >> 16;
+            return 0x00;
+        case 0x1b:
+            if (mach64->type >= RAGE_XL)
+                return mach64->aux_base >> 24;
+            return 0x00;
+
         case 0x30:
             return mach64->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
         case 0x31:
@@ -4642,6 +4761,25 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             }
             break;
 
+        case 0x19:
+            if (mach64->type >= RAGE_XL) {
+                mach64->aux_base = (mach64->aux_base & 0xffff0000) | ((val & 0xf0) << 8);
+                mach64_updatemapping(mach64);
+            }
+            break;
+        case 0x1a:
+            if (mach64->type >= RAGE_XL) {
+                mach64->aux_base = (mach64->aux_base & 0xff00f000) | (val << 16);
+                mach64_updatemapping(mach64);
+            }
+            break;
+        case 0x1b:
+            if (mach64->type >= RAGE_XL) {
+                mach64->aux_base = (mach64->aux_base & 0x00fff000) | (val << 24);
+                mach64_updatemapping(mach64);
+            }
+            break;
+
         case 0x30:
         case 0x32:
         case 0x33:
@@ -4699,6 +4837,7 @@ mach64_common_init(const device_t *info)
     mem_mapping_add(&mach64->mmio_linear_mapping_2, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_add(&mach64->mmio_mapping, 0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->mmio_mapping);
+    mem_mapping_add(&mach64->aux_mapping, 0, 0, mach64_aux_readb, mach64_aux_readw, mach64_aux_readl, mach64_aux_writeb, mach64_aux_writew, mach64_aux_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
 
     mach64_io_set(mach64);
 
