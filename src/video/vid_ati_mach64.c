@@ -4511,7 +4511,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (mach64->pci_regs[0x30] & 0x01) {
                 uint32_t biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
                 mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
-                mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, 0x8000);
+                mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, mach64->bios_rom.mapping.size);
             } else {
                 mach64_log("Mach64 bios_rom disabled\n");
                 mem_mapping_disable(&mach64->bios_rom.mapping);
