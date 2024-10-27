@@ -984,9 +984,6 @@ msgstr "Imagens de CD-ROM"
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unidade de CD/DVD do anfitrião (%1)"
 
-msgid "CD-ROM images"
-msgstr "Imagens de CD-ROM"
-
 msgid "%1 Device Configuration"
 msgstr "Configuração do dispositivo %1"
 
