@@ -197,7 +197,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
     cdrom_stop(&cdrom);
     ret = cdrom_readsector_raw(&cdrom, dev->buf, cdrom.seek_pos, 0, 2, 0x10, (int *) &dev->readcount, 0);
-    if (!ret)
+    if (ret <= 0)
         return 0;
     if (dev->mode & 0x40) {
         dev->buf[12] = CD_BCD((dev->readmsf >> 16) & 0xff);

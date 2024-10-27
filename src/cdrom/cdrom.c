@@ -1520,13 +1520,13 @@ track_type_is_valid(UNUSED(uint8_t id), int type, int flags, int audio, int mode
     return 1;
 }
 
-static void
+static int
 read_sector_to_buffer(cdrom_t *dev, uint8_t *rbuf, uint32_t msf, uint32_t lba, int mode2, int len)
 {
     uint8_t *bb = rbuf;
     const int offset = (!!(mode2 & 0x03)) ? 24 : 16;
 
-    dev->ops->read_sector(dev, CD_READ_DATA, rbuf + offset, lba);
+    int ret = dev->ops->read_sector(dev, CD_READ_DATA, rbuf + offset, lba);
 
     /* Sync bytes */
     bb[0] = 0;
@@ -1546,25 +1546,30 @@ read_sector_to_buffer(cdrom_t *dev, uint8_t *rbuf, uint32_t msf, uint32_t lba, i
         memset(bb, 0, 280);
     else if (!mode2)
         memset(bb, 0, 288);
+
+    return ret;
 }
 
-static void
+static int
 read_audio(cdrom_t *dev, uint32_t lba, uint8_t *b)
 {
-    dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
+    int ret = dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
 
     memcpy(b, raw_buffer, 2352);
 
     cdrom_sector_size = 2352;
+
+    return ret;
 }
 
-static void
+static int
 read_mode1(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t msf, int mode2, uint8_t *b)
 {
+    int ret;
     if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->ops->sector_size(dev, lba) == 2048))
-        read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2048);
+        ret = read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2048);
     else
-        dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
+        ret = dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
 
     cdrom_sector_size = 0;
 
@@ -1610,15 +1615,18 @@ read_mode1(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t msf, int
         cdrom_sector_size += 288;
         b += 288;
     }
+
+    return ret;
 }
 
-static void
+static int
 read_mode2_non_xa(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t msf, int mode2, uint8_t *b)
 {
+    int ret;
     if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->ops->sector_size(dev, lba) == 2336))
-        read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2336);
+        ret = read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2336);
     else
-        dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
+        ret = dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
 
     cdrom_sector_size = 0;
 
@@ -1654,15 +1662,18 @@ read_mode2_non_xa(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t m
         cdrom_sector_size += 2336;
         b += 2336;
     }
+
+    return ret;
 }
 
-static void
+static int
 read_mode2_xa_form1(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t msf, int mode2, uint8_t *b)
 {
+    int ret;
     if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->ops->sector_size(dev, lba) == 2048))
-        read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2048);
+        ret = read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2048);
     else
-        dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
+        ret = dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
 
     cdrom_sector_size = 0;
 
@@ -1705,15 +1716,18 @@ read_mode2_xa_form1(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t
         cdrom_sector_size += 280;
         b += 280;
     }
+
+    return ret;
 }
 
-static void
+static int
 read_mode2_xa_form2(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t msf, int mode2, uint8_t *b)
 {
+    int ret;
     if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->ops->sector_size(dev, lba) == 2324))
-        read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2324);
+        ret = read_sector_to_buffer(dev, raw_buffer, msf, lba, mode2, 2324);
     else
-        dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
+        ret = dev->ops->read_sector(dev, CD_READ_RAW, raw_buffer, lba);
 
     cdrom_sector_size = 0;
 
@@ -1748,6 +1762,8 @@ read_mode2_xa_form2(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t
         cdrom_sector_size += 2328;
         b += 2328;
     }
+
+    return ret;
 }
 
 int
@@ -1763,6 +1779,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
     int      m;
     int      s;
     int      f;
+    int      ret = 0;
 
     if (dev->cd_status == CD_STATUS_EMPTY)
         return 0;
@@ -1827,21 +1844,21 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
             return 0;
         }
 
-        read_audio(dev, lba, temp_b);
+        ret = read_audio(dev, lba, temp_b);
     } else if (cdrom_sector_type == 2) {
         if (audio || mode2) {
             cdrom_log("CD-ROM %i: [Mode 1] Attempting to read a sector of another type\n", dev->id);
             return 0;
         }
 
-        read_mode1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+        ret = read_mode1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
     } else if (cdrom_sector_type == 3) {
         if (audio || !mode2 || (mode2 & 0x03)) {
             cdrom_log("CD-ROM %i: [Mode 2 Formless] Attempting to read a sector of another type\n", dev->id);
             return 0;
         }
 
-        read_mode2_non_xa(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+        ret = read_mode2_non_xa(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
     } else if (cdrom_sector_type == 4) {
         if (audio || !mode2 || ((mode2 & 0x03) != 1)) {
             cdrom_log("CD-ROM %i: [XA Mode 2 Form 1] Attempting to read a sector of another type\n", dev->id);
@@ -1855,7 +1872,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
             return 0;
         }
 
-        read_mode2_xa_form2(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+        ret = read_mode2_xa_form2(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
     } else if (cdrom_sector_type == 8) {
         if (audio) {
             cdrom_log("CD-ROM %i: [Any Data] Attempting to read a data sector from an audio track\n", dev->id);
@@ -1863,9 +1880,9 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
         }
 
         if (mode2 && ((mode2 & 0x03) == 1))
-            read_mode2_xa_form1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+            ret = read_mode2_xa_form1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
         else if (!mode2)
-            read_mode1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+            ret = read_mode1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
         else {
             cdrom_log("CD-ROM %i: [Any Data] Attempting to read a data sector whose cooked size is not 2048 bytes\n", dev->id);
             return 0;
@@ -1873,16 +1890,16 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
     } else {
         if (mode2) {
             if ((mode2 & 0x03) == 0x01)
-                read_mode2_xa_form1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+                ret = read_mode2_xa_form1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
             else if ((mode2 & 0x03) == 0x02)
-                read_mode2_xa_form2(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+                ret = read_mode2_xa_form2(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
             else
-                read_mode2_non_xa(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+                ret = read_mode2_non_xa(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
         } else {
             if (audio)
-                read_audio(dev, lba, temp_b);
+                ret = read_audio(dev, lba, temp_b);
             else
-                read_mode1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
+                ret = read_mode1(dev, cdrom_sector_flags, lba, msf, mode2, temp_b);
         }
     }
 
@@ -1914,7 +1931,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
 
     *len = cdrom_sector_size;
 
-    return 1;
+    return ret;
 }
 
 /* Peform a master init on the entire module. */

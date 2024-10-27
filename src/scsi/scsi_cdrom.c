@@ -1245,6 +1245,15 @@ scsi_cdrom_not_ready(scsi_cdrom_t *dev)
 }
 
 static void
+scsi_cdrom_circ_error(scsi_cdrom_t *dev)
+{
+    scsi_cdrom_sense_key = SENSE_MEDIUM_ERROR;
+    scsi_cdrom_asc       = ASC_UNRECOVERED_READ_ERROR;
+    scsi_cdrom_ascq      = ASCQ_CIRC_UNRECOVERED_ERROR;
+    scsi_cdrom_cmd_error(dev);
+}
+
+static void
 scsi_cdrom_invalid_lun(scsi_cdrom_t *dev)
 {
     scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -1367,6 +1376,9 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, int msf, int type, int flags, int32_t *l
         if (!ret) {
             scsi_cdrom_illegal_mode(dev);
             return 0;
+        } else if (ret < 0) {
+            scsi_cdrom_circ_error(dev);
+            return -1;
         }
     }
 

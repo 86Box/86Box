@@ -189,6 +189,7 @@
 /* SCSI Sense Keys */
 #define SENSE_NONE            0
 #define SENSE_NOT_READY       2
+#define SENSE_MEDIUM_ERROR    3
 #define SENSE_ILLEGAL_REQUEST 5
 #define SENSE_UNIT_ATTENTION  6
 
@@ -196,6 +197,7 @@
 #define ASC_NONE                               0x00
 #define ASC_AUDIO_PLAY_OPERATION               0x00
 #define ASC_NOT_READY                          0x04
+#define ASC_UNRECOVERED_READ_ERROR             0x11
 #define ASC_ILLEGAL_OPCODE                     0x20
 #define ASC_LBA_OUT_OF_RANGE                   0x21
 #define ASC_INV_FIELD_IN_CMD_PACKET            0x24
@@ -212,6 +214,7 @@
 #define ASCQ_NONE                              0x00
 #define ASCQ_UNIT_IN_PROCESS_OF_BECOMING_READY 0x01
 #define ASCQ_INITIALIZING_COMMAND_REQUIRED     0x02
+#define ASCQ_CIRC_UNRECOVERED_ERROR            0x06
 #define ASCQ_CAPACITY_DATA_CHANGED             0x09
 #define ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS  0x11
 #define ASCQ_AUDIO_PLAY_OPERATION_PAUSED       0x12

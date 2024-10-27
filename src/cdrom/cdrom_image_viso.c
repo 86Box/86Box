@@ -716,8 +716,11 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
                 }
 
                 /* Read data. */
-                if (entry->file && (fseeko64(entry->file, seek - entry->data_offset, SEEK_SET) != -1))
-                    read = fread(buffer, 1, sector_remain, entry->file);
+                if (!entry->file || (fseeko64(entry->file, seek - entry->data_offset, SEEK_SET) == -1))
+                    return -1;
+                read = fread(buffer, 1, sector_remain, entry->file);
+                if (sector_remain && !read)
+                    return -1;
             }
 
             /* Fill remainder with 00 bytes if needed. */

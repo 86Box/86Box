@@ -303,7 +303,7 @@ paradise_remap(paradise_t *paradise)
 void
 paradise_recalctimings(svga_t *svga)
 {
-    const paradise_t *paradise = (paradise_t *) svga->priv;
+    paradise_t *paradise = (paradise_t *) svga->priv;
 
     svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
@@ -337,15 +337,11 @@ paradise_recalctimings(svga_t *svga)
                     svga->hdisp >>= 1;
                     if (svga->hdisp == 788)
                         svga->hdisp += 12;
-                    if (svga->hdisp == 800)
-                        svga->ma_latch -= 3;
                 } else if (svga->bpp == 15) {
                     svga->render = svga_render_15bpp_highres;
                     svga->hdisp >>= 1;
                     if (svga->hdisp == 788)
                         svga->hdisp += 12;
-                    if (svga->hdisp == 800)
-                        svga->ma_latch -= 3;
                 } else
                     svga->render = svga_render_8bpp_highres;
 
@@ -365,6 +361,11 @@ paradise_write(uint32_t addr, uint8_t val, void *priv)
     svga_t     *svga     = &paradise->svga;
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
+
+    if (!(svga->attrregs[0x10] & 0x40)) {
+        svga_write(addr, val, svga);
+        return;
+    }
 
     addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
@@ -399,6 +400,11 @@ paradise_writew(uint32_t addr, uint16_t val, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
+    if (!(svga->attrregs[0x10] & 0x40)) {
+        svga_writew(addr, val, svga);
+        return;
+    }
+
     addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
@@ -432,6 +438,9 @@ paradise_read(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
+    if (!(svga->attrregs[0x10] & 0x40))
+        return svga_read(addr, svga);
+
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 
     /*Could be done in a better way but it works.*/
@@ -464,6 +473,9 @@ paradise_readw(uint32_t addr, void *priv)
     svga_t     *svga     = &paradise->svga;
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
+
+    if (!(svga->attrregs[0x10] & 0x40))
+        return svga_readw(addr, svga);
 
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 
