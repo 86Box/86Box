@@ -79,7 +79,7 @@ msgid "Use target framerate:"
 msgstr "Usar taxa de quadros alvo:"
 
 msgid "VSync"
-msgstr "VSync (sincronização virtual)"
+msgstr "VSync (sincronização vertical)"
 
 msgid "Shaders"
 msgstr "Shaders"
@@ -625,7 +625,7 @@ msgid "Cassette"
 msgstr "Cassete"
 
 msgid "Vision Systems LBA Enhancer"
-msgstr "Aprimorador LBA Vision Sistems"
+msgstr "Aprimorador LBA Vision Systems"
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
