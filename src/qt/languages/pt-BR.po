@@ -625,7 +625,7 @@ msgid "Cassette"
 msgstr "Cassete"
 
 msgid "Vision Systems LBA Enhancer"
-msgstr "Aprimorador LBA Vision Systems"
+msgstr "Vision Systems LBA Enhancer"
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
