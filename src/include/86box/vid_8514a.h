@@ -198,13 +198,16 @@ typedef struct ibm8514_t {
     int     hsync_width;
     int     htotal;
     int     hdisp;
+    int     hdisp2;
     int     hdisped;
     int     sc;
     int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;
     int     v_disp;
+    int     v_disp2;
     int     vdisp;
+    int     vdisp2;
     int     disp_cntl;
     int     interlace;
     uint8_t subsys_cntl;

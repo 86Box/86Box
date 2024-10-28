@@ -925,8 +925,10 @@ xga_accel_read_pattern_map_pixel(svga_t *svga, int x, int y, uint32_t base, int 
     bits = 7 - (x & 7);
 
     if (!(xga->accel.px_map_format[xga->accel.src_map] & 0x08) && !(xga->accel.px_map_format[xga->accel.dst_map] & 0x08)) {
-        if (((xga->accel.px_map_format[xga->accel.src_map] & 0x07) >= 0x02) && ((xga->accel.px_map_format[xga->accel.dst_map] & 0x07) >= 0x02))
+        if (((xga->accel.px_map_format[xga->accel.src_map] & 0x07) >= 0x02) && ((xga->accel.px_map_format[xga->accel.dst_map] & 0x07) >= 0x02) && (xga->accel.pat_src <= 2)) {
+            xga_log("Reverse, access mode=%02x, dstmap=%x, srcmap=%x, pat=%x.\n", xga->access_mode & 0x08, xga->accel.px_map_format[xga->accel.dst_map], xga->accel.px_map_format[xga->accel.src_map], xga->accel.pat_src);
             bits ^= 7;
+        }
     }
 
     px = (byte >> bits) & 1;
