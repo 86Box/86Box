@@ -35,6 +35,7 @@
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_8514a.h>
+#include <86box/vid_8514a_device.h>
 #include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
