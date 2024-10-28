@@ -48,6 +48,7 @@
 #define BIOS_ISA_ROM_PATH "roms/video/mach64/M64-1994.VBI"
 #define BIOS_VLB_ROM_PATH "roms/video/mach64/mach64_vlb_vram.bin"
 #define BIOS_ROMVT2_PATH  "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_RAGEXL_PATH  "roms/video/mach64/XL_5219.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -74,7 +75,8 @@ typedef struct fifo_entry_t {
 
 enum {
     MACH64_GX = 0,
-    MACH64_VT2
+    MACH64_VT2,
+    RAGE_XL
 };
 
 typedef struct mach64_t {
@@ -2488,7 +2490,7 @@ mach64_blk0_readb(uint32_t addr, void *priv)
 
         case 0xc7:
             READ8(addr, mach64->dac_cntl);
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 ret &= 0xf9;
                 if (i2c_gpio_get_scl(mach64->i2c))
                     ret |= 0x04;
@@ -2993,7 +2995,7 @@ mach64_blk0_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0x62:
             case 0x63:
                 WRITE8(addr, mach64->cur_clr0, val);
-                if (mach64->type == MACH64_VT2)
+                if (mach64->type >= MACH64_VT2)
                     ati68860_ramdac_set_pallook(mach64->svga.ramdac, 0, makecol32((mach64->cur_clr0 >> 24) & 0xff, (mach64->cur_clr0 >> 16) & 0xff, (mach64->cur_clr0 >> 8) & 0xff));
                 break;
             case 0x64:
@@ -3001,7 +3003,7 @@ mach64_blk0_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0x66:
             case 0x67:
                 WRITE8(addr, mach64->cur_clr1, val);
-                if (mach64->type == MACH64_VT2)
+                if (mach64->type >= MACH64_VT2)
                     ati68860_ramdac_set_pallook(mach64->svga.ramdac, 1, makecol32((mach64->cur_clr1 >> 24) & 0xff, (mach64->cur_clr1 >> 16) & 0xff, (mach64->cur_clr1 >> 8) & 0xff));
                 break;
             case 0x68:
@@ -4547,19 +4549,19 @@ mach64_pci_read(UNUSED(int func), int addr, void *priv)
             return mach64->linear_base >> 24;
 
         case 0x14:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return 0x01; /*Block decoded IO address*/
             return 0x00;
         case 0x15:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return mach64->block_decoded_io >> 8;
             return 0x00;
         case 0x16:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return mach64->block_decoded_io >> 16;
             return 0x00;
         case 0x17:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return mach64->block_decoded_io >> 24;
             return 0x00;
 
@@ -4602,7 +4604,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x12:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 val = 0;
             mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0x80) << 16);
             mach64_updatemapping(mach64);
@@ -4613,7 +4615,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x15:
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xfc) << 8);
@@ -4622,7 +4624,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             }
             break;
         case 0x16:
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00fc00) | (val << 16);
@@ -4631,7 +4633,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             }
             break;
         case 0x17:
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0x00fffc00) | (val << 24);
@@ -4662,7 +4664,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_remove(mach64);
             mach64->io_base = val & 0x03;
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 mach64->use_block_decoded_io = val & 0x04;
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_set(mach64);
@@ -4787,6 +4789,32 @@ mach64vt2_init(const device_t *info)
 
     return mach64;
 }
+static void *
+ragexl_init(const device_t *info)
+{
+    mach64_t *mach64 = mach64_common_init(info);
+    svga_t   *svga   = &mach64->svga;
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+
+    mach64->type                 = RAGE_XL;
+    mach64->pci                  = 1;
+    mach64->pci_id               = 0x4752;
+    mach64->config_chip_id       = 0x7c004752;
+    mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
+    mach64->config_stat0         = 4;
+    mach64->use_block_decoded_io = 4;
+
+    ati_eeprom_load(&mach64->eeprom, "ragexl.nvr", 1);
+
+    rom_init(&mach64->bios_rom, BIOS_RAGEXL_PATH, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+
+    mem_mapping_disable(&mach64->bios_rom.mapping);
+
+    svga->vblank_start = mach64_vblank_start;
+
+    return mach64;
+}
 
 int
 mach64gx_available(void)
@@ -4807,6 +4835,11 @@ int
 mach64vt2_available(void)
 {
     return rom_present(BIOS_ROMVT2_PATH);
+}
+int
+ragexl_available(void)
+{
+    return rom_present(BIOS_RAGEXL_PATH);
 }
 
 void
@@ -4898,6 +4931,31 @@ static const device_config_t mach64vt2_config[] = {
         .type = CONFIG_END
     }
 };
+
+static const device_config_t ragexl_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = "8 MB",
+                .value = 8
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+};
 // clang-format on
 
 const device_t mach64gx_isa_device = {
@@ -4954,4 +5012,18 @@ const device_t mach64vt2_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64vt2_config
+};
+
+const device_t ragexl_device = {
+    .name          = "ATI Rage XL",
+    .internal_name = "ragexl",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = ragexl_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    { .available = ragexl_available },
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = ragexl_config
 };
