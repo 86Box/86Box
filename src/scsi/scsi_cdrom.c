@@ -1416,7 +1416,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, int first_batch, int ven
     scsi_cdrom_log("Read %i bytes of blocks...\n", *len);
 
     if (ret == -1)
-        return 0;
+        return ret;
     else if (!ret || (!first_batch && (dev->old_len != *len))) {
         if (!first_batch && (dev->old_len != *len))
             scsi_cdrom_illegal_mode(dev);
@@ -2219,7 +2219,7 @@ begin:
 
             if (ret <= 0) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                dev->packet_status = PHASE_COMPLETE;
+                dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
                 dev->callback      = 20.0 * CDROM_TIME;
                 scsi_cdrom_set_callback(dev);
                 scsi_cdrom_buf_free(dev);
