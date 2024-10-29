@@ -3218,7 +3218,7 @@ s3_decode_addr(svga_t *svga, uint32_t addr, int write)
 {
     int memory_map_mode = (svga->gdcreg[6] >> 2) & 3;
 
-    s3_log("CRTC31 bit 3=%x, map=%x, write=%x, wrtbank=%x, chain4=%x.\n", svga->crtc[0x31] & 0x08, memory_map_mode, write, svga->write_bank, svga->chain4);
+    s3_log("CRTC31 bit 3=%x, map=%x, write=%x, wrtbank=%x, chain4=%x, vrammask=%08x.\n", svga->crtc[0x31] & 0x08, memory_map_mode, write, svga->write_bank, svga->chain4, svga->vram_display_mask);
 
     if (svga->crtc[0x31] & 0x08)
         memory_map_mode = 1;
@@ -4295,36 +4295,20 @@ s3_recalctimings(svga_t *svga)
         }
         svga->vram_display_mask = s3->vram_mask;
     } else {
-        if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
-            if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-                if (svga->crtc[0x31] & 0x08) {
-                    if (svga->bpp == 8) {
-                        if (!(svga->crtc[0x5e] & 0x04))
-                            svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
+        if (svga->crtc[0x31] & 0x08) {
+            if (!(svga->crtc[0x5e] & 0x04))
+                svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
 
-                        /*Enhanced 4bpp mode, just like the 8bpp mode per the spec. */
-                        svga->render = svga_render_8bpp_highres;
-                        svga->rowoffset <<= 1;
-                        svga->vram_display_mask = s3->vram_mask;
-                    } else {
-                        svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
-                        svga->write_bank = 0;
-                        svga->read_bank = svga->write_bank;
-                    }
-                } else {
-                    svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
-                    svga->write_bank = 0;
-                    svga->read_bank = svga->write_bank;
-                }
-            } else {
-                svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
-                svga->write_bank = 0;
-                svga->read_bank = svga->write_bank;
-            }
+            /*Enhanced 4bpp mode, just like the 8bpp mode per the spec. */
+            svga->render = svga_render_8bpp_highres;
+            svga->rowoffset <<= 1;
+            svga->vram_display_mask = s3->vram_mask;
         } else {
             svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
-            svga->write_bank = 0;
-            svga->read_bank = svga->write_bank;
+            if (!(svga->crtc[0x31] & 0x01)) { /*Bank Enable bit*/
+                svga->write_bank = 0;
+                svga->read_bank = 0;
+            }
         }
     }
 
@@ -4466,8 +4450,10 @@ s3_trio64v_recalctimings(svga_t *svga)
             svga->vram_display_mask = s3->vram_mask;
         } else {
             svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
-            svga->write_bank = 0;
-            svga->read_bank = svga->write_bank;
+            if (!(svga->crtc[0x31] & 0x01)) { /*Bank Enable bit*/
+                svga->write_bank = 0;
+                svga->read_bank = 0;
+            }
         }
     } else /*Streams mode*/
     {
