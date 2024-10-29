@@ -393,7 +393,8 @@ retry_vhd:
         } else {
             /* Failed for another reason */
             hdd_image_log("Failed for another reason\n");
-            hdd_images[id].type = HDD_IMAGE_RAW;
+            hdd_images[id].type        = HDD_IMAGE_RAW;
+            hdd_images[id].last_sector = (uint32_t) (((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks)) - 1;
             return 1;
         }
     } else {
