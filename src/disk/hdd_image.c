@@ -538,9 +538,9 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
         }
 
         num_read           = fread(buffer, 512, count, hdd_images[id].file);
-        if (count && !num_read)
-            return -1;
         hdd_images[id].pos = sector + num_read;
+        if (num_read < count)
+            return -1;
     }
 
     return 0;
@@ -591,10 +591,10 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
         }
 
         num_write          = fwrite(buffer, 512, count, hdd_images[id].file);
-        if (count && !num_write)
-            return -1;
-        fflush(hdd_images[id].file);
         hdd_images[id].pos = sector + num_write;
+        fflush(hdd_images[id].file);
+        if (num_write < count)
+            return -1;
     }
 
     return 0;
