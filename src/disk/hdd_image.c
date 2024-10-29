@@ -529,8 +529,11 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     size_t num_read;
 
     if (hdd_images[id].type == HDD_IMAGE_VHD) {
-        non_transferred_sectors = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
-        hdd_images[id].pos      = sector + count - non_transferred_sectors - 1;
+        hdd_images[id].vhd->error = 0;
+        non_transferred_sectors   = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
+        hdd_images[id].pos        = sector + count - non_transferred_sectors - 1;
+        if (hdd_images[id].vhd->error)
+            return -1;
     } else {
         if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
             hdd_image_log("Hard disk image %i: Read error during seek\n", id);
@@ -582,8 +585,11 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     size_t num_write;
 
     if (hdd_images[id].type == HDD_IMAGE_VHD) {
-        non_transferred_sectors = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
-        hdd_images[id].pos      = sector + count - non_transferred_sectors - 1;
+        hdd_images[id].vhd->error = 0;
+        non_transferred_sectors   = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
+        hdd_images[id].pos        = sector + count - non_transferred_sectors - 1;
+        if (hdd_images[id].vhd->error)
+            return -1;
     } else {
         if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
             hdd_image_log("Hard disk image %i: Write error during seek\n", id);
@@ -621,8 +627,11 @@ int
 hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 {
     if (hdd_images[id].type == HDD_IMAGE_VHD) {
+        hdd_images[id].vhd->error   = 0;
         int non_transferred_sectors = mvhd_format_sectors(hdd_images[id].vhd, sector, count);
         hdd_images[id].pos          = sector + count - non_transferred_sectors - 1;
+        if (hdd_images[id].vhd->error)
+            return -1;
     } else {
         memset(empty_sector, 0, 512);
 
