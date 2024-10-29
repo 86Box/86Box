@@ -875,6 +875,24 @@ mo_write_protected(mo_t *dev)
 }
 
 static void
+mo_write_error(mo_t *dev)
+{
+    mo_sense_key = SENSE_MEDIUM_ERROR;
+    mo_asc       = ASC_WRITE_ERROR;
+    mo_ascq      = 0;
+    mo_cmd_error(dev);
+}
+
+static void
+mo_read_error(mo_t *dev)
+{
+    mo_sense_key = SENSE_MEDIUM_ERROR;
+    mo_asc       = ASC_UNRECOVERED_READ_ERROR;
+    mo_ascq      = 0;
+    mo_cmd_error(dev);
+}
+
+static void
 mo_invalid_lun(mo_t *dev)
 {
     mo_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -928,7 +946,7 @@ mo_blocks(mo_t *dev, int32_t *len, UNUSED(int first_batch), int out)
 
     if (!dev->sector_len) {
         mo_command_complete(dev);
-        return -1;
+        return 0;
     }
 
     mo_log("%sing %i blocks starting from %i...\n", out ? "Writ" : "Read", dev->requested_blocks, dev->sector_pos);
@@ -942,20 +960,31 @@ mo_blocks(mo_t *dev, int32_t *len, UNUSED(int first_batch), int out)
     *len = dev->requested_blocks * dev->drv->sector_size;
 
     for (int i = 0; i < dev->requested_blocks; i++) {
-        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size) + (i * dev->drv->sector_size), SEEK_SET) == 1)
-            break;
+        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size) + (i * dev->drv->sector_size), SEEK_SET) == -1) {
+            if (out)
+                mo_write_error(dev);
+            else
+                mo_read_error(dev);
+            return -1;
+        }
 
         if (feof(dev->drv->fp))
             break;
 
         if (out) {
-            if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size)
-                fatal("mo_blocks(): Error writing data\n");
+            if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
+                mo_log("mo_blocks(): Error writing data\n");
+                mo_write_error(dev);
+                return -1;
+            }
 
             fflush(dev->drv->fp);
         } else {
-            if (fread(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size)
-                fatal("mo_blocks(): Error reading data\n");
+            if (fread(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
+                mo_log("mo_blocks(): Error reading data\n");
+                mo_read_error(dev);
+                return -1;
+            }
         }
     }
 
@@ -1433,7 +1462,7 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
             ret = mo_blocks(dev, &alloc_length, 1, 0);
             if (ret <= 0) {
                 mo_set_phase(dev, SCSI_PHASE_STATUS);
-                dev->packet_status = PHASE_COMPLETE;
+                dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
                 dev->callback      = 20.0 * MO_TIME;
                 mo_set_callback(dev);
                 mo_buf_free(dev);
