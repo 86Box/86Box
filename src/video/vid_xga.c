@@ -3487,15 +3487,13 @@ xga_init(const device_t *info)
             xga->rom_addr    = 0xc0000 + (((xga->pos_regs[2] & 0xf0) >> 4) * 0x2000);
             xga->instance    = (xga->pos_regs[2] & 0x0e) >> 1;
             xga->pos_regs[2] |= 0x01;
-            if (mem_size >= 15360) {
-                xga->pos_regs[4] |= 0x01;
+            xga->pos_regs[4] |= 0x01;
+            if (mem_size >= 15360)
                 xga->pos_regs[5] = 0;
-            } else {
+            else {
                 xga->pos_regs[5] = ((mem_size * 64) >> 0x10) + 1;
-                if (xga->pos_regs[5] == 0x10) {
+                if (xga->pos_regs[5] == 0x10)
                     xga->pos_regs[5] = 0x00;
-                    xga->pos_regs[4] |= 0x01;
-                }
             }
             xga->base_addr_1mb = (xga->pos_regs[5] & 0x0f) << 20;
             xga->linear_base = ((xga->pos_regs[4] & 0xfe) * 0x1000000) + (xga->instance << 22);
