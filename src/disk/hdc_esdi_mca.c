@@ -328,6 +328,27 @@ rba_out_of_range(esdi_t *dev)
 }
 
 static void
+defective_block(esdi_t *dev)
+{
+    dev->status_len     = 9;
+    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
+    dev->status_data[2] = 0x0009; /*Defective block*/
+    dev->status_data[3] = 0;
+    dev->status_data[4] = 0;
+    dev->status_data[5] = 0;
+    dev->status_data[6] = 0;
+    dev->status_data[7] = 0;
+    dev->status_data[8] = 0;
+
+    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+    dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
 complete_command_status(esdi_t *dev)
 {
     dev->status_len = 7;
@@ -423,7 +444,10 @@ esdi_callback(void *priv)
                         if (!dev->data_pos) {
                             if (dev->rba >= drive->sectors)
                                 fatal("Read past end of drive\n");
-                            hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data);
+                            if (hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data) < 0) {
+                                defective_block(dev);
+                                return;
+                            }
                             cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
                             cmd_time += esdi_mca_get_xfer_time(dev, 1);
                         }
@@ -512,7 +536,10 @@ esdi_callback(void *priv)
 
                         if (dev->rba >= drive->sectors)
                             fatal("Write past end of drive\n");
-                        hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data);
+                        if (hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data) < 0) {
+                            defective_block(dev);
+                            return;
+                        }
                         cmd_time += hdd_timing_write(&hdd[drive->hdd_num], dev->rba, 1);
                         cmd_time += esdi_mca_get_xfer_time(dev, 1);
                         dev->rba++;
