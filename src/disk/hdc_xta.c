@@ -408,8 +408,9 @@ do_fmt:
                         break;
 
                     /* Write the block to the image. */
-                    hdd_image_write(drive->hdd_num, addr, 1,
-                                    (uint8_t *) dev->sector_buf);
+                    if (hdd_image_write(drive->hdd_num, addr, 1,
+                                        (uint8_t *) dev->sector_buf) < 0)
+                        dev->sense = ERR_BADTRK;
                 }
             }
 
@@ -522,6 +523,7 @@ hdc_callback(void *priv)
 do_send:
                     /* Get address of sector to load. */
                     if (get_sector(dev, drive, &addr)) {
+read_error:
                         /* De-activate the status icon. */
                         ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
                         dev->comp |= COMP_ERR;
@@ -530,8 +532,11 @@ do_send:
                     }
 
                     /* Read the block from the image. */
-                    hdd_image_read(drive->hdd_num, addr, 1,
-                                   (uint8_t *) dev->sector_buf);
+                    if (hdd_image_read(drive->hdd_num, addr, 1,
+                                       (uint8_t *) dev->sector_buf) < 0) {
+                        dev->sense = ERR_BADTRK;
+                        goto read_error;
+                    }
 
                     /* Ready to transfer the data out. */
                     dev->state   = STATE_SDATA;
@@ -673,6 +678,7 @@ do_recv:
 
                     /* Get address of sector to write. */
                     if (get_sector(dev, drive, &addr)) {
+write_error:
                         /* De-activate the status icon. */
                         ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
@@ -682,8 +688,11 @@ do_recv:
                     }
 
                     /* Write the block to the image. */
-                    hdd_image_write(drive->hdd_num, addr, 1,
-                                    (uint8_t *) dev->sector_buf);
+                    if (hdd_image_write(drive->hdd_num, addr, 1,
+                                        (uint8_t *) dev->sector_buf) < 0) {
+                        dev->sense = ERR_BADTRK;
+                        goto write_error;
+                    }
 
                     dev->buf_idx = 0;
                     if (--dev->count == 0) {

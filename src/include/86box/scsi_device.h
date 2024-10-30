@@ -197,6 +197,7 @@
 #define ASC_NONE                               0x00
 #define ASC_AUDIO_PLAY_OPERATION               0x00
 #define ASC_NOT_READY                          0x04
+#define ASC_WRITE_ERROR                        0x0c
 #define ASC_UNRECOVERED_READ_ERROR             0x11
 #define ASC_ILLEGAL_OPCODE                     0x20
 #define ASC_LBA_OUT_OF_RANGE                   0x21
