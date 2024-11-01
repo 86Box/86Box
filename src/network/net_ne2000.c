@@ -911,8 +911,10 @@ static void *
 nic_init(const device_t *info)
 {
     uint32_t mac;
+    uint32_t mac_oui;
     char    *rom;
     nic_t   *dev;
+    int      set_oui = 0;
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
@@ -957,8 +959,8 @@ nic_init(const device_t *info)
         dev->maclocal[4] = random_generate();
         dev->maclocal[5] = random_generate();
         mac              = (((int) dev->maclocal[3]) << 16);
-        mac |= (((int) dev->maclocal[4]) << 8);
-        mac |= ((int) dev->maclocal[5]);
+        mac             |= (((int) dev->maclocal[4]) << 8);
+        mac             |= ((int) dev->maclocal[5]);
         device_set_config_mac("mac", mac);
     } else {
         dev->maclocal[3] = (mac >> 16) & 0xff;
@@ -987,6 +989,7 @@ nic_init(const device_t *info)
             dev->maclocal[2] = 0xB0;
             dev->is_8bit     = 1;
             rom              = NULL;
+            set_oui          = 1;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
             break;
@@ -1005,6 +1008,7 @@ nic_init(const device_t *info)
             dev->maclocal[1] = 0x86;
             dev->maclocal[2] = 0xB0;
             rom              = ROM_PATH_NE2000;
+            set_oui          = 1;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
             break;
@@ -1015,6 +1019,7 @@ nic_init(const device_t *info)
             dev->maclocal[2] = 0xB0;
             dev->is_8bit     = 1;
             rom              = ROM_PATH_NE2000;
+            set_oui          = 1;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
             break;
@@ -1057,6 +1062,24 @@ nic_init(const device_t *info)
 
         default:
             break;
+    }
+
+    
+    if (set_oui) {
+        /* See if we have a local MAC address configured. */
+        mac_oui = device_get_config_mac("mac_oui", -1);
+
+        /* Set up our BIA. */
+        if (mac_oui & 0xff000000) {
+            mac_oui          = (((int) dev->maclocal[0]) << 16);
+            mac_oui         |= (((int) dev->maclocal[1]) << 8);
+            mac_oui         |= ((int) dev->maclocal[2]);
+            device_set_config_mac("mac", mac);
+        } else {
+            dev->maclocal[0] = (mac_oui >> 16) & 0xff;
+            dev->maclocal[1] = (mac_oui >> 8) & 0xff;
+            dev->maclocal[2] = (mac_oui & 0xff);
+        }
     }
 
     memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
@@ -1314,6 +1337,13 @@ static const device_config_t ne1000_compat_config[] = {
         .default_string = "",
         .default_int = -1
     },
+    {
+        .name = "mac_oui",
+        .description = "MAC Address OUI",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -1441,6 +1471,13 @@ static const device_config_t ne2000_compat_config[] = {
         .default_int = -1
     },
     {
+        .name = "mac_oui",
+        .description = "MAC Address OUI",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    {
         .name = "bios_addr",
         .description = "BIOS address",
         .type = CONFIG_HEX20,
@@ -1510,6 +1547,13 @@ static const device_config_t ne2000_compat_8bit_config[] = {
     {
         .name = "mac",
         .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    {
+        .name = "mac_oui",
+        .description = "MAC Address OUI",
         .type = CONFIG_MAC,
         .default_string = "",
         .default_int = -1
