@@ -1076,9 +1076,9 @@ nic_init(const device_t *info)
             mac_oui         |= ((int) dev->maclocal[2]);
             device_set_config_mac("mac", mac);
         } else {
-            dev->maclocal[1] = (mac_oui >> 16) & 0xff;
-            dev->maclocal[2] = (mac_oui >> 8) & 0xff;
-            dev->maclocal[3] = (mac_oui & 0xff);
+            dev->maclocal[0] = (mac_oui >> 16) & 0xff;
+            dev->maclocal[1] = (mac_oui >> 8) & 0xff;
+            dev->maclocal[2] = (mac_oui & 0xff);
         }
     }
 
