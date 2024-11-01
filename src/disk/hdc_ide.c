@@ -2214,8 +2214,10 @@ ide_callback(void *priv)
                 if (ide->do_initial_read) {
                     ide->do_initial_read = 0;
                     ide->sector_pos      = 0;
-                    hdd_image_read(ide->hdd_num, ide_get_sector(ide),
-                                   ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
+                    ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
+                                         ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
+                } else {
+                    ret = 0;
                 }
 
                 memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos * 512], 512);
@@ -2224,6 +2226,10 @@ ide_callback(void *priv)
 
                 ide->tf->pos = 0;
                 ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
+                if (ret < 0) {
+                    ide_log("IDE %i: Read aborted (image read error)\n", ide->channel);
+                    err = UNC_ERR;
+                }
 
                 ide_irq_raise(ide);
 
@@ -2245,11 +2251,13 @@ ide_callback(void *priv)
                     ide->sector_pos = ide->tf->secount;
                 else
                     ide->sector_pos = 256;
-                hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer);
 
                 ide->tf->pos = 0;
 
-                if (!ide_boards[ide->board]->force_ata3 && bm->dma) {
+                if (hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer) < 0) {
+                    ide_log("IDE %i: DMA read aborted (image read error)\n", ide->channel);
+                    err = UNC_ERR;
+                } else if (!ide_boards[ide->board]->force_ata3 && bm->dma) {
                     /* We should not abort - we should simply wait for the host to start DMA. */
                     ret = bm->dma(ide->sector_buffer, ide->sector_pos * 512, 0, bm->priv);
                     if (ret == 2) {
@@ -2292,8 +2300,10 @@ ide_callback(void *priv)
                 if (ide->do_initial_read) {
                     ide->do_initial_read = 0;
                     ide->sector_pos      = 0;
-                    hdd_image_read(ide->hdd_num, ide_get_sector(ide),
-                                   ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
+                    ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
+                                         ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
+                } else {
+                    ret = 0;
                 }
 
                 memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos * 512], 512);
@@ -2302,6 +2312,10 @@ ide_callback(void *priv)
                 ide->tf->pos     = 0;
 
                 ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
+                if (ret < 0) {
+                    ide_log("IDE %i: Read aborted (image read error)\n", ide->channel);
+                    err = UNC_ERR;
+                }
                 if (!ide->blockcount)
                     ide_irq_raise(ide);
                 ide->blockcount++;
@@ -2320,7 +2334,7 @@ ide_callback(void *priv)
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
                 err = IDNF_ERR;
             else {
-                hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+                ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
                 ide_irq_raise(ide);
                 ide->tf->secount--;
                 if (ide->tf->secount) {
@@ -2332,6 +2346,8 @@ ide_callback(void *priv)
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
                 }
+                if (ret < 0)
+                    err = UNC_ERR;
             }
             ide_log("Write: %02X, %i, %08X, %" PRIi64 "\n", err, ide->hdd_num, ide->lba_addr, sector);
             break;
@@ -2360,12 +2376,14 @@ ide_callback(void *priv)
                         return;
                     } else if (ret == 1) {
                         /* DMA successful */
-                        ide_log("IDE %i: DMA write successful\n", ide->channel);
+                        ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide),
+                                              ide->sector_pos, ide->sector_buffer);
 
-                        hdd_image_write(ide->hdd_num, ide_get_sector(ide),
-                                        ide->sector_pos, ide->sector_buffer);
+                        ide_log("IDE %i: DMA write %ssuccessful\n", ide->channel, (ret < 0) ? "un" : "");
 
                         ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                        if (ret < 0)
+                            err = UNC_ERR;
 
                         ide_irq_raise(ide);
                         ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
@@ -2393,7 +2411,7 @@ ide_callback(void *priv)
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
                 err = IDNF_ERR;
             else {
-                hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
+                ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
                 ide->blockcount++;
                 if (ide->blockcount >= ide->blocksize || ide->tf->secount == 1) {
                     ide->blockcount = 0;
@@ -2408,6 +2426,8 @@ ide_callback(void *priv)
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
                 }
+                if (ret < 0)
+                    err = UNC_ERR;
             }
             break;
 
@@ -2431,9 +2451,11 @@ ide_callback(void *priv)
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
                 err = IDNF_ERR;
             else {
-                hdd_image_zero(ide->hdd_num, ide_get_sector_format(ide), ide->tf->secount);
+                ret = hdd_image_zero(ide->hdd_num, ide_get_sector_format(ide), ide->tf->secount);
 
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                if (ret < 0)
+                    err = UNC_ERR;
                 ide_irq_raise(ide);
 
                 ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);

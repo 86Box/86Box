@@ -585,12 +585,16 @@ do_callback(void *priv)
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
+read_error:
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
 
-            hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer);
+            if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer) < 0) {
+                mfm->error = ERR_BAD_BLOCK;
+                goto read_error;
+            }
 
             mfm->pos    = 0;
             mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
@@ -604,12 +608,16 @@ do_callback(void *priv)
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
+write_error:
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
 
-            hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer);
+            if (hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer) < 0) {
+                mfm->error = ERR_BAD_BLOCK;
+                goto write_error;
+            }
             irq_raise(mfm);
             mfm->secount = (mfm->secount - 1) & 0xff;
 

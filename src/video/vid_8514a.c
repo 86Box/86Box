@@ -35,6 +35,7 @@
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_8514a.h>
+#include <86box/vid_8514a_device.h>
 #include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -498,6 +499,24 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                 dev->accel.multifunc_cntl                             = val;
                 dev->accel.multifunc[dev->accel.multifunc_cntl >> 12] = dev->accel.multifunc_cntl & 0xfff;
                 dev->accel.cmd_back = !!(port == 0xfee8);
+
+                if ((dev->accel.multifunc_cntl >> 12) == 1) {
+                    dev->accel.clip_top = dev->accel.multifunc[1] & 0x3ff;
+                    if (dev->accel.multifunc[1] & 0x400)
+                        dev->accel.clip_top |= ~0x3ff;
+                }
+
+                if ((dev->accel.multifunc_cntl >> 12) == 2) {
+                    dev->accel.clip_left = dev->accel.multifunc[2] & 0x3ff;
+                    if (dev->accel.multifunc[2] & 0x400)
+                        dev->accel.clip_left |= ~0x3ff;
+                }
+                if ((dev->accel.multifunc_cntl >> 12) == 3)
+                    dev->accel.clip_bottom = dev->accel.multifunc[3] & 0x7ff;
+
+                if ((dev->accel.multifunc_cntl >> 12) == 4)
+                    dev->accel.clip_right = dev->accel.multifunc[4] & 0x7ff;
+
             }
             break;
 
@@ -914,10 +933,10 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     uint16_t   old_dest_dat;
     int        frgd_mix;
     int        bkgd_mix;
-    int16_t    clip_t          = dev->accel.multifunc[1] & 0x7ff;
-    int16_t    clip_l          = dev->accel.multifunc[2] & 0x7ff;
-    uint16_t   clip_b          = dev->accel.multifunc[3] & 0x7ff;
-    uint16_t   clip_r          = dev->accel.multifunc[4] & 0x7ff;
+    int16_t    clip_t          = dev->accel.clip_top;
+    int16_t    clip_l          = dev->accel.clip_left;
+    uint16_t   clip_b          = dev->accel.clip_bottom;
+    uint16_t   clip_r          = dev->accel.clip_right;
     int        pixcntl         = (dev->accel.multifunc[0x0a] >> 6) & 3;
     uint16_t   mix_mask        = dev->bpp ? 0x8000 : 0x80;
     uint16_t   compare         = dev->accel.color_cmp;

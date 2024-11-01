@@ -1049,6 +1049,24 @@ zip_write_protected(zip_t *dev)
 }
 
 static void
+zip_write_error(zip_t *dev)
+{
+    zip_sense_key = SENSE_MEDIUM_ERROR;
+    zip_asc       = ASC_WRITE_ERROR;
+    zip_ascq      = 0;
+    zip_cmd_error(dev);
+}
+
+static void
+zip_read_error(zip_t *dev)
+{
+    zip_sense_key = SENSE_MEDIUM_ERROR;
+    zip_asc       = ASC_UNRECOVERED_READ_ERROR;
+    zip_ascq      = 0;
+    zip_cmd_error(dev);
+}
+
+static void
 zip_invalid_lun(zip_t *dev)
 {
     zip_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -1111,7 +1129,7 @@ zip_blocks(zip_t *dev, int32_t *len, UNUSED(int first_batch), int out)
 
     if (!dev->sector_len) {
         zip_command_complete(dev);
-        return -1;
+        return 0;
     }
 
     zip_log("%sing %i blocks starting from %i...\n", out ? "Writ" : "Read", dev->requested_blocks, dev->sector_pos);
@@ -1125,20 +1143,31 @@ zip_blocks(zip_t *dev, int32_t *len, UNUSED(int first_batch), int out)
     *len = dev->requested_blocks << 9;
 
     for (int i = 0; i < dev->requested_blocks; i++) {
-        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
-            break;
+        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == -1) {
+            if (out)
+                zip_write_error(dev);
+            else
+                zip_read_error(dev);
+            return -1;
+        }
 
         if (feof(dev->drv->fp))
             break;
 
         if (out) {
-            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512)
-                fatal("zip_blocks(): Error writing data\n");
+            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512) {
+                zip_log("zip_blocks(): Error writing data\n");
+                zip_write_error(dev);
+                return -1;
+            }
 
             fflush(dev->drv->fp);
         } else {
-            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512)
-                fatal("zip_blocks(): Error reading data\n");
+            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512) {
+                zip_log("zip_blocks(): Error reading data\n");
+                zip_read_error(dev);
+                return -1;
+            }
         }
     }
 
@@ -1551,7 +1580,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
             ret = zip_blocks(dev, &alloc_length, 1, 0);
             if (ret <= 0) {
                 zip_set_phase(dev, SCSI_PHASE_STATUS);
-                dev->packet_status = PHASE_COMPLETE;
+                dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
                 dev->callback      = 20.0 * ZIP_TIME;
                 zip_set_callback(dev);
                 zip_buf_free(dev);
