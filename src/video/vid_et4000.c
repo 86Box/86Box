@@ -69,7 +69,7 @@
 #define TC6058AF_BIOS_ROM_PATH "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
 #define V1_21_BIOS_ROM_PATH    "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.21.bin"
 #define DIAMOND_BIOS_ROM_PATH  "roms/video/et4000/Diamond SpeedStar PLUS.ROM"
-#define 2THEMAX_BIOS_ROM_PATH  "roms/video/et4000/MAXcolor 4000.bin"
+#define MAXCOLOR_BIOS_ROM_PATH "roms/video/et4000/MAXcolor 4000.bin"
 #define ORCHID_BIOS_ROM_PATH   "roms/video/et4000/Orchid ProDesigner IIs.bin"
 #define KOREAN_BIOS_ROM_PATH   "roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH   "roms/video/et4000/tg_ksc5601.rom"
@@ -986,7 +986,7 @@ static const device_config_t et4000_tc6058af_config[] = {
             { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { V1_21_BIOS_ROM_PATH, "" } },
             { .name = "Version 3.12 (2theMax MAXcolor 4000)", .internal_name = "v3_12", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { 2THEMAX_BIOS_ROM_PATH, "" } },
+              .files_no = 1, .local = 0, .size = 32768, .files = { MAXCOLOR_BIOS_ROM_PATH, "" } },
             { .name = "Version 4.24 (Diamond SpeedStar+)", .internal_name = "v4_24", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { DIAMOND_BIOS_ROM_PATH, "" } },
             { .name = "Version 5.1 (Orchid ProDesigner IIs)", .internal_name = "v5_1", .bios_type = BIOS_NORMAL,
