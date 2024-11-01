@@ -531,6 +531,8 @@ extern const device_t s3_virge_325_pci_device;
 extern const device_t s3_virge_325_onboard_pci_device;
 extern const device_t s3_diamond_stealth_2000_pci_device;
 extern const device_t s3_mirocrystal_3d_pci_device;
+extern const device_t s3_miromedia_3dse_pci_device;
+extern const device_t s3_hercules_terminator3d_pci_device;
 extern const device_t s3_diamond_stealth_3000_pci_device;
 extern const device_t s3_stb_velocity_3d_pci_device;
 extern const device_t s3_virge_375_pci_device;
