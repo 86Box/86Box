@@ -63,7 +63,6 @@ static int dither[4][4] = {
 #define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.bin"
 #define ROM_MIROCRYSTAL_3D            "roms/video/s3virge/miro Crystal 3D 1.02.bin"
 #define ROM_MIROMEDIA_3DSE            "roms/video/s3virge/miroMEDIA 3DSE.bin"
-#define ROM_HERCULES_TERMINATOR3D     "roms/video/s3virge/Hercules TERMINATOR 3D.bin"
 #define ROM_DIAMOND_STEALTH3D_3000    "roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_STB_VELOCITY_3D           "roms/video/s3virge/stb_velocity3d_110.BIN"
 #define ROM_VIRGE_DX                  "roms/video/s3virge/86c375_1.bin"
@@ -96,7 +95,6 @@ enum {
     S3_DIAMOND_STEALTH3D_2000,
     S3_MIROCRYSTAL_3D,
     S3_MIROMEDIA_3DSE,
-    S3_HERCULES_TERMINATOR3D,
     S3_DIAMOND_STEALTH3D_3000,
     S3_STB_VELOCITY_3D,
     S3_VIRGE_DX,
@@ -4360,9 +4358,6 @@ s3_virge_init(const device_t *info)
         case S3_MIROMEDIA_3DSE:
             bios_fn = ROM_MIROMEDIA_3DSE;
             break;
-        case S3_HERCULES_TERMINATOR3D:
-            bios_fn = ROM_HERCULES_TERMINATOR3D;
-            break;
         case S3_DIAMOND_STEALTH3D_3000:
             bios_fn = ROM_DIAMOND_STEALTH3D_3000;
             break;
@@ -4459,7 +4454,6 @@ s3_virge_init(const device_t *info)
         case S3_DIAMOND_STEALTH3D_2000:
         case S3_MIROCRYSTAL_3D:
         case S3_MIROMEDIA_3DSE:
-        case S3_HERCULES_TERMINATOR3D:
             virge->fifo_slots_num = 8;
             virge->svga.decode_mask = (4 << 20) - 1;
             virge->virge_id_high    = 0x56;
@@ -4647,12 +4641,6 @@ static int
 s3_miromedia_3dse_available(void)
 {
     return rom_present(ROM_MIROMEDIA_3DSE);
-}
-
-static int
-s3_hercules_terminator3d_available(void)
-{
-    return rom_present(ROM_HERCULES_TERMINATOR3D);
 }
 
 static int
@@ -4925,20 +4913,6 @@ const device_t s3_miromedia_3dse_pci_device = {
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
     { .available = s3_miromedia_3dse_available },
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
-};
-
-const device_t s3_hercules_terminator3d_pci_device = {
-    .name          = "S3 ViRGE (Hercules TERMINATOR 3D) PCI",
-    .internal_name = "hercules_terminator3d_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_HERCULES_TERMINATOR3D,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    { .available = s3_hercules_terminator3d_available },
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config

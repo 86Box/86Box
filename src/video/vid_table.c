@@ -175,7 +175,6 @@ video_cards[] = {
     { &s3_trio64v2_dx_pci_device                       },
     { &s3_virge_325_pci_device                         },
     { &s3_diamond_stealth_2000_pci_device              },
-    { &s3_hercules_terminator3d_pci_device             },
     { &s3_mirocrystal_3d_pci_device                    },
     { &s3_miromedia_3dse_pci_device                    },
     { &s3_diamond_stealth_3000_pci_device              },
