@@ -65,6 +65,7 @@
 #define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
 #define V8_00_BIOS_ROM_PATH    "roms/video/et4000/ET4000 V8_00.bin"
 #define V8_06_BIOS_ROM_PATH    "roms/video/et4000/ET4000_V8_06.BIN"
+#define V1_00_BIOS_ROM_PATH    "roms/video/et4000/BOCA Super VGA (V1.00).bin"
 #define TC6058AF_BIOS_ROM_PATH "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
 #define V1_21_BIOS_ROM_PATH    "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.21.bin"
 #define DIAMOND_BIOS_ROM_PATH  "roms/video/et4000/Diamond SpeedStar PLUS.ROM"
@@ -978,6 +979,8 @@ static const device_config_t et4000_tc6058af_config[] = {
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
+            { .name = "Version 1.00", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { V1_00_BIOS_ROM_PATH, "" } },
             { .name = "Version 1.10", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
             { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
