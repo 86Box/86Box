@@ -985,7 +985,7 @@ static const device_config_t et4000_tc6058af_config[] = {
               .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
             { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { V1_21_BIOS_ROM_PATH, "" } },
-            { .name = "Version 3.12 (2theMax MAXcolor 4000)", .internal_name = "v3_12", .bios_type = BIOS_NORMAL,
+            { .name = "Version 3.13 (2theMax MAXcolor 4000)", .internal_name = "v3_13", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { MAXCOLOR_BIOS_ROM_PATH, "" } },
             { .name = "Version 4.24 (Diamond SpeedStar+)", .internal_name = "v4_24", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { DIAMOND_BIOS_ROM_PATH, "" } },
