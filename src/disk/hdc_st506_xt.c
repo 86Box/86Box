@@ -715,6 +715,7 @@ st506_callback(void *priv)
                                  dev->head, dev->sector, dev->count);
 
                     if (!get_sector(dev, drive, &addr)) {
+read_error_start:
                         st506_error(dev, dev->error);
                         st506_complete(dev);
                         return;
@@ -722,8 +723,11 @@ st506_callback(void *priv)
                     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
 
                     /* Read data from the image. */
-                    hdd_image_read(drive->hdd_num, addr, 1,
-                                   (uint8_t *) dev->buff);
+                    if (hdd_image_read(drive->hdd_num, addr, 1,
+                                       (uint8_t *) dev->buff) < 0) {
+                        dev->error = ERR_UNC_ERR;
+                        goto read_error_start;
+                    }
 
                     /* Set up the data transfer. */
                     dev->buff_pos = 0;
@@ -765,6 +769,7 @@ st506_callback(void *priv)
                     next_sector(dev, drive);
 
                     if (!get_sector(dev, drive, &addr)) {
+read_error_sent:
                         ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
                         st506_error(dev, dev->error);
                         st506_complete(dev);
@@ -772,8 +777,11 @@ st506_callback(void *priv)
                     }
 
                     /* Read data from the image. */
-                    hdd_image_read(drive->hdd_num, addr, 1,
-                                   (uint8_t *) dev->buff);
+                    if (hdd_image_read(drive->hdd_num, addr, 1,
+                                       (uint8_t *) dev->buff) < 0) {
+                        dev->error = ERR_UNC_ERR;
+                        goto read_error_sent;
+                    }
 
                     /* Set up the data transfer. */
                     dev->buff_pos = 0;
@@ -856,6 +864,7 @@ st506_callback(void *priv)
 
                 case STATE_RECEIVED_DATA:
                     if (!get_sector(dev, drive, &addr)) {
+write_error:
                         ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
                         st506_error(dev, dev->error);
                         st506_complete(dev);
@@ -863,8 +872,11 @@ st506_callback(void *priv)
                     }
 
                     /* Write data to image. */
-                    hdd_image_write(drive->hdd_num, addr, 1,
-                                    (uint8_t *) dev->buff);
+                    if (hdd_image_write(drive->hdd_num, addr, 1,
+                                        (uint8_t *) dev->buff) < 0) {
+                        dev->error = ERR_UNC_ERR;
+                        goto write_error;
+                    }
 
                     if (--dev->count == 0) {
                         ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
@@ -1156,8 +1168,12 @@ st506_callback(void *priv)
                 ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
 
                 /* Write data to image. */
-                hdd_image_write(drive->hdd_num, addr, 1,
-                                (uint8_t *) dev->buff);
+                if (hdd_image_write(drive->hdd_num, addr, 1,
+                                    (uint8_t *) dev->buff) < 0) {
+                    st506_error(dev, ERR_UNC_ERR);
+                    st506_complete(dev);
+                    return;
+                }
 
                 if (--dev->count == 0) {
                     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);

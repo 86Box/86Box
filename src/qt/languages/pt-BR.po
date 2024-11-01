@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Teclado requer captura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "CTRL &direito é o ALT esquerdo"
+msgstr "&CTRL direito é o ALT esquerdo"
 
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
@@ -79,7 +79,7 @@ msgid "Use target framerate:"
 msgstr "Usar taxa de quadros alvo:"
 
 msgid "VSync"
-msgstr "VSync (sincronização virtual)"
+msgstr "VSync (sincronização vertical)"
 
 msgid "Shaders"
 msgstr "Shaders"
@@ -163,7 +163,7 @@ msgid "Apply fullscreen stretch mode when maximized"
 msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "Configurações E&GA/(S)VGA"
+msgstr "Configurações de E&GA/(S)VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Monitor VGA &invertido"
@@ -172,7 +172,7 @@ msgid "VGA screen &type"
 msgstr "&Tipo de tela VGA"
 
 msgid "RGB &Color"
-msgstr "&Cores RGB"
+msgstr "&Cor RGB"
 
 msgid "&RGB Grayscale"
 msgstr "Tons de cinza &RGB"
@@ -337,7 +337,7 @@ msgid "Settings"
 msgstr "Configurações"
 
 msgid "Specify Main Window Dimensions"
-msgstr "Especifique as dimensões da janela principal"
+msgstr "Especificar dimensões da janela principal"
 
 msgid "OK"
 msgstr "OK"
@@ -625,7 +625,7 @@ msgid "Cassette"
 msgstr "Cassete"
 
 msgid "Vision Systems LBA Enhancer"
-msgstr "Aprimorador de Sistema Vision para LBA"
+msgstr "Vision Systems LBA Enhancer"
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
@@ -981,6 +981,9 @@ msgstr "Não reiniciar"
 msgid "CD-ROM images"
 msgstr "Imagens de CD-ROM"
 
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Unidade de CD/DVD do anfitrião (%1)"
+
 msgid "%1 Device Configuration"
 msgstr "Configuração do dispositivo %1"
 
@@ -1279,4 +1282,4 @@ msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "O desenvolvimento do gerenciador WinBox foi interrompido em 2022 devido à falta de mantenedores. À medida que direcionamos nossos esforços para tornar o 86Box ainda melhor, tomamos a decisão de não oferecer mais suporte ao WinBox como gerenciador.\n\nNão serão mais fornecidas atualizações através do WinBox, e você poderá encontrar comportamentos incorretos caso continue a usá-lo com versões mais recentes do 86Box. Quaisquer relatórios de bugs relacionados ao comportamento do WinBox serão fechados como inválidos.\n\nAcesse 86box.net para obter uma lista de outros gerenciadores que você pode usar."
+msgstr "O desenvolvimento do gerenciador WinBox foi interrompido em 2022 devido à falta de mantenedores. À medida que direcionamos nossos esforços para tornar o 86Box ainda melhor, tomamos a decisão de não oferecer mais suporte ao WinBox como gerenciador.\n\nNão serão mais fornecidas atualizações através do WinBox, e você poderá encontrar comportamentos incorretos caso continue a usá-lo com versões mais recentes do 86Box. Quaisquer relatórios de erros relacionados ao comportamento do WinBox serão fechados como inválidos.\n\nAcesse 86box.net para obter uma lista de outros gerenciadores que você pode usar."

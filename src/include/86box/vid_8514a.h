@@ -52,7 +52,7 @@ typedef struct ibm8514_t {
     int type;
     int local;
     int bpp;
-    int on[2];
+    int on;
     int accel_bpp;
 
     uint32_t vram_size;
@@ -102,6 +102,8 @@ typedef struct ibm8514_t {
         uint16_t frgd_mix;
         uint16_t multifunc_cntl;
         uint16_t multifunc[16];
+        uint16_t clip_right;
+        uint16_t clip_bottom;
         int16_t  clip_left;
         int16_t  clip_top;
         uint8_t  pix_trans[2];
@@ -112,8 +114,6 @@ typedef struct ibm8514_t {
         int      x3;
         int      y1;
         int      y2;
-        int      sys_cnt;
-        int      sys_cnt2;
         int      temp_cnt;
         int16_t  cx;
         int16_t  cx_back;
@@ -127,20 +127,14 @@ typedef struct ibm8514_t {
         int16_t  err;
         uint32_t src;
         uint32_t dest;
-        uint32_t newsrc_blt;
-        uint32_t newdest_blt;
-        uint32_t newdest_in;
-        uint32_t newdest_out;
-        uint8_t *writemono;
-        uint8_t *nibbleset;
         int      x_count;
         int      xx_count;
         int      y_count;
         int      input;
+        int      input2;
         int      output;
+        int      output2;
 
-        uint16_t cur_x_bit12;
-        uint16_t cur_y_bit12;
         int      ssv_len;
         uint8_t  ssv_dir;
         uint8_t  ssv_draw;
@@ -156,7 +150,6 @@ typedef struct ibm8514_t {
     } accel;
 
     uint16_t test;
-    int      vendor_mode[2];
     int      h_blankstart;
     int      h_blank_end_val;
     int      hblankstart;
@@ -205,13 +198,16 @@ typedef struct ibm8514_t {
     int     hsync_width;
     int     htotal;
     int     hdisp;
+    int     hdisp2;
     int     hdisped;
     int     sc;
     int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;
     int     v_disp;
+    int     v_disp2;
     int     vdisp;
+    int     vdisp2;
     int     disp_cntl;
     int     interlace;
     uint8_t subsys_cntl;
@@ -227,6 +223,11 @@ typedef struct ibm8514_t {
     int      ext_pitch;
     int      ext_crt_pitch;
     int      extensions;
+    int      linear;
+    int      _4bpp;
+    uint32_t vram_amount;
+    int      vram_512k_8514;
+    PALETTE  _8514pal;
 
     latch8514_t latch;
 } ibm8514_t;

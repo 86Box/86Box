@@ -606,12 +606,16 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+read_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     break;
                 }
 
-                hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer);
+                if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto read_error;
+                }
                 esdi->pos    = 0;
                 esdi->status = STAT_DRQ | STAT_READY | STAT_DSC;
                 irq_raise(esdi);
@@ -628,13 +632,17 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+write_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
                 }
 
-                hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer);
+                if (hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto write_error;
+                }
                 irq_raise(esdi);
                 esdi->secount = (esdi->secount - 1) & 0xff;
                 if (esdi->secount) {
@@ -659,13 +667,17 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+verify_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
                 }
 
-                hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer);
+                if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto verify_error;
+                }
                 ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                 next_sector(esdi);
                 esdi->secount = (esdi->secount - 1) & 0xff;
@@ -692,12 +704,16 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector_format(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+format_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     break;
                 }
 
-                hdd_image_zero(drive->hdd_num, addr, esdi->secount);
+                if (hdd_image_zero(drive->hdd_num, addr, esdi->secount) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto format_error;
+                }
                 esdi->status = STAT_READY | STAT_DSC;
                 irq_raise(esdi);
             }
