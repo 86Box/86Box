@@ -879,7 +879,7 @@ load_storage_controllers(void)
         path_normalize(cassette_fname);
     }
 
-    p = ini_section_get_string(cat, "cassette_mode", "");
+    p = ini_section_get_string(cat, "cassette_mode", "load");
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
@@ -2384,6 +2384,7 @@ save_storage_controllers(void)
     ini_section_t cat = ini_find_or_create_section(config, "Storage controllers");
     char          temp[512];
     int           c;
+    char          *def_hdc;
 
     ini_section_delete_var(cat, "scsicard");
 
@@ -2403,8 +2404,16 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "fdc",
                                fdc_card_get_internal_name(fdc_current[0]));
 
-    ini_section_set_string(cat, "hdc",
-                           hdc_get_internal_name(hdc_current[0]));
+    if (machine_has_flags(machine, MACHINE_HDC))
+        def_hdc = "internal";
+    else
+        def_hdc = "none";
+
+    if (!strcmp(hdc_get_internal_name(hdc_current[0]), def_hdc))
+        ini_section_delete_var(cat, "hdc");
+    else
+        ini_section_set_string(cat, "hdc",
+                               hdc_get_internal_name(hdc_current[0]));
 
     if (cdrom_interface_current == 0)
         ini_section_delete_var(cat, "cdrom_interface");
@@ -2439,7 +2448,7 @@ save_storage_controllers(void)
             ini_section_set_string(cat, "cassette_file", cassette_fname);
     }
 
-    if (strlen(cassette_mode) == 0)
+    if (!strcmp(cassette_mode, "load"))
         ini_section_delete_var(cat, "cassette_mode");
     else
         ini_section_set_string(cat, "cassette_mode", cassette_mode);

@@ -199,10 +199,7 @@ delete_section_if_empty(list_t *head, section_t *section)
                     int      j_nlen = strlen(j_ent->name);
                     entry_t* j_next = (entry_t *) j_ent->list.next;
                     if (j_nlen > 0) {
-                        pclog("Comparing \"%s\" with \"%s\"...\n", j_ent->name, i_ent->name);
                         if ((j != i) && (strcmp(j_ent->name, i_ent->name) > 0)) {
-                            pclog("Swapping \"%s\" with \"%s\"...\n", j_ent->name, i_ent->name);
-
                             entry_t t_ent = { 0 };
                             memcpy(&t_ent, j_ent, sizeof(entry_t));
                             /* J: Contents of I, list of J */
