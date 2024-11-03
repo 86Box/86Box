@@ -384,9 +384,6 @@ softresetx86(void)
     if (soft_reset_mask)
         return;
 
-    if (ibm8514_active || xga_active)
-        vga_on = 1;
-
     reset_common(0);
 }
 

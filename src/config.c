@@ -118,7 +118,8 @@ load_general(void)
     memset(temp, '\0', sizeof(temp));
     p       = ini_section_get_string(cat, "vid_renderer", "default");
     vid_api = plat_vidapi(p);
-    ini_section_delete_var(cat, "vid_api");
+    if (!strcmp(p, "default"))
+        ini_section_delete_var(cat, "vid_api");
 
     video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 1);
 
@@ -202,12 +203,12 @@ load_general(void)
     if (window_remember) {
         p = ini_section_get_string(cat, "window_coordinates", NULL);
         if (p == NULL)
-            p = "0, 0, 0, 0";
+            p = "640, 480, 0, 0";
         sscanf(p, "%i, %i, %i, %i", &cw, &ch, &cx, &cy);
-    } else
+    } else {
         cw = ch = cx = cy = 0;
-
-    ini_section_delete_var(cat, "window_coordinates");
+        ini_section_delete_var(cat, "window_coordinates");
+    }
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
 
@@ -404,7 +405,7 @@ load_machine(void)
         else
             time_sync = TIME_SYNC_ENABLED;
     } else
-        time_sync = !!ini_section_get_int(cat, "enable_sync", 1);
+        time_sync = TIME_SYNC_ENABLED;
 
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 }
@@ -878,7 +879,7 @@ load_storage_controllers(void)
         path_normalize(cassette_fname);
     }
 
-    p = ini_section_get_string(cat, "cassette_mode", "");
+    p = ini_section_get_string(cat, "cassette_mode", "load");
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
@@ -902,10 +903,34 @@ load_storage_controllers(void)
         }
     }
     cassette_pos          = ini_section_get_int(cat, "cassette_position", 0);
+    if (!cassette_pos)
+        ini_section_delete_var(cat, "cassette_position");
     cassette_srate        = ini_section_get_int(cat, "cassette_srate", 44100);
+    if (cassette_srate == 44100)
+        ini_section_delete_var(cat, "cassette_srate");
     cassette_append       = !!ini_section_get_int(cat, "cassette_append", 0);
+    if (!cassette_append)
+        ini_section_delete_var(cat, "cassette_append");
     cassette_pcm          = ini_section_get_int(cat, "cassette_pcm", 0);
+    if (!cassette_pcm)
+        ini_section_delete_var(cat, "cassette_pcm");
     cassette_ui_writeprot = !!ini_section_get_int(cat, "cassette_writeprot", 0);
+    if (!cassette_ui_writeprot)
+        ini_section_delete_var(cat, "cassette_writeprot");
+
+    if (!cassette_enable) {
+        ini_section_delete_var(cat, "cassette_file");
+        ini_section_delete_var(cat, "cassette_mode");
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "cassette_image_history_%02i", i + 1);
+            ini_section_delete_var(cat, temp);
+        }
+        ini_section_delete_var(cat, "cassette_position");
+        ini_section_delete_var(cat, "cassette_srate");
+        ini_section_delete_var(cat, "cassette_append");
+        ini_section_delete_var(cat, "cassette_pcm");
+        ini_section_delete_var(cat, "cassette_ui_writeprot");
+    }
 
     for (c = 0; c < 2; c++) {
         sprintf(temp, "cartridge_%02i_fn", c + 1);
@@ -945,6 +970,9 @@ load_storage_controllers(void)
     }
 
     lba_enhancer_enabled = !!ini_section_get_int(cat, "lba_enhancer_enabled", 0);
+
+    if (!lba_enhancer_enabled)
+        ini_section_delete_var(cat, "lba_enhancer_enabled");
 }
 
 /* Load "Hard Disks" section. */
@@ -1063,9 +1091,8 @@ load_hard_disks(void)
 
             if (hdd[c].ide_channel > 7)
                 hdd[c].ide_channel = 7;
-        } else {
+        } else
             ini_section_delete_var(cat, temp);
-        }
 
         /* SCSI */
         if (hdd[c].bus == HDD_BUS_SCSI) {
@@ -1128,24 +1155,24 @@ load_hard_disks(void)
             sprintf(temp, "hdd_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "hdd_%02i_preide_channels", c + 1);
+            sprintf(temp, "hdd_%02i_mfm_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "hdd_%02i_ide_channels", c + 1);
+            sprintf(temp, "hdd_%02i_xta_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "hdd_%02i_scsi_id", c + 1);
+            sprintf(temp, "hdd_%02i_esdi_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_scsi_location", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_fn", c + 1);
             ini_section_delete_var(cat, temp);
         }
-
-        sprintf(temp, "hdd_%02i_mfm_channel", c + 1);
-        ini_section_delete_var(cat, temp);
-
-        sprintf(temp, "hdd_%02i_ide_channel", c + 1);
-        ini_section_delete_var(cat, temp);
     }
 }
 
@@ -1157,6 +1184,7 @@ load_floppy_and_cdrom_drives(void)
     char          temp[512];
     char          tmp2[512];
     char         *p;
+    char         *def_type;
     char          s[512];
     unsigned int  board = 0;
     unsigned int  dev = 0;
@@ -1261,11 +1289,13 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
-        p = ini_section_get_string(cat, temp, (c == 1) ? "86BOX_CD-ROM_1.00" : "none");
+        def_type = (c == 1) ? "86BOX_CD-ROM_1.00" : "none";
+        p = ini_section_get_string(cat, temp, def_type);
         cdrom_set_type(c, cdrom_get_from_internal_name(p));
         if (cdrom_get_type(c) > KNOWN_CDROM_DRIVE_TYPES)
             cdrom_set_type(c, KNOWN_CDROM_DRIVE_TYPES);
-        ini_section_delete_var(cat, temp);
+        if (!strcmp(p, def_type))
+            ini_section_delete_var(cat, temp);
 
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
@@ -1356,7 +1386,7 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "cdrom_%02i_ide_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
+            sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "cdrom_%02i_image_path", c + 1);
@@ -1486,7 +1516,7 @@ load_other_removable_devices(void)
             sprintf(temp, "zip_%02i_ide_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "zip_%02i_scsi_id", c + 1);
+            sprintf(temp, "zip_%02i_scsi_location", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "zip_%02i_image_path", c + 1);
@@ -1599,7 +1629,7 @@ load_other_removable_devices(void)
             sprintf(temp, "mo_%02i_ide_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "mo_%02i_scsi_id", c + 1);
+            sprintf(temp, "mo_%02i_scsi_location", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "mo_%02i_image_path", c + 1);
@@ -1626,15 +1656,33 @@ load_other_peripherals(void)
     unittester_enabled     = !!ini_section_get_int(cat, "unittester_enabled", 0);
     novell_keycard_enabled = !!ini_section_get_int(cat, "novell_keycard_enabled", 0);
 
+    if (!bugger_enabled)
+        ini_section_delete_var(cat, "bugger_enabled");
+
+    if (!postcard_enabled)
+        ini_section_delete_var(cat, "postcard_enabled");
+
+    if (!unittester_enabled)
+        ini_section_delete_var(cat, "unittester_enabled");
+
+    if (!novell_keycard_enabled)
+        ini_section_delete_var(cat, "novell_keycard_enabled");
+
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
         isamem_type[c] = isamem_get_from_internal_name(p);
+
+        if (!strcmp(p, "none"))
+            ini_section_delete_var(cat, temp);
     }
 
     p           = ini_section_get_string(cat, "isartc_type", "none");
     isartc_type = isartc_get_from_internal_name(p);
+
+    if (!strcmp(p, "none"))
+        ini_section_delete_var(cat, temp);
 }
 
 /* Load the specified or a default configuration file. */
@@ -2015,17 +2063,20 @@ save_machine(void)
 
     /* Write the mem_size explicitly to the setttings in order to help managers
        to display it without having the actual machine table. */
-    ini_section_delete_var(cat, "mem_size");
     ini_section_set_int(cat, "mem_size", mem_size);
 
     ini_section_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
-    ini_section_set_int(cat, "fpu_softfloat", fpu_softfloat);
+
+    if (fpu_softfloat == 0)
+        ini_section_delete_var(cat, "fpu_softfloat");
+    else
+        ini_section_set_int(cat, "fpu_softfloat", fpu_softfloat);
 
     if (time_sync & TIME_SYNC_ENABLED)
         if (time_sync & TIME_SYNC_UTC)
             ini_section_set_string(cat, "time_sync", "utc");
         else
-            ini_section_set_string(cat, "time_sync", "local");
+            ini_section_delete_var(cat, "time_sync");
     else
         ini_section_set_string(cat, "time_sync", "disabled");
 
@@ -2215,7 +2266,10 @@ save_sound(void)
     else
         ini_section_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
 
-    ini_section_set_string(cat, "fm_driver", (fm_driver == FM_DRV_NUKED) ? "nuked" : "ymfm");
+    if (fm_driver == FM_DRV_NUKED)
+        ini_section_delete_var(cat, "fm_driver");
+    else
+        ini_section_set_string(cat, "fm_driver", "ymfm");
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -2298,11 +2352,10 @@ save_ports(void)
             ini_section_set_int(cat, temp, com_ports[c].enabled);
 
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
-        if (serial_passthrough_enabled[c]) {
+        if (serial_passthrough_enabled[c])
             ini_section_set_int(cat, temp, 1);
-        } else {
+        else
             ini_section_delete_var(cat, temp);
-        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2331,6 +2384,7 @@ save_storage_controllers(void)
     ini_section_t cat = ini_find_or_create_section(config, "Storage controllers");
     char          temp[512];
     int           c;
+    char          *def_hdc;
 
     ini_section_delete_var(cat, "scsicard");
 
@@ -2350,8 +2404,16 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "fdc",
                                fdc_card_get_internal_name(fdc_current[0]));
 
-    ini_section_set_string(cat, "hdc",
-                           hdc_get_internal_name(hdc_current[0]));
+    if (machine_has_flags(machine, MACHINE_HDC))
+        def_hdc = "internal";
+    else
+        def_hdc = "none";
+
+    if (!strcmp(hdc_get_internal_name(hdc_current[0]), def_hdc))
+        ini_section_delete_var(cat, "hdc");
+    else
+        ini_section_set_string(cat, "hdc",
+                               hdc_get_internal_name(hdc_current[0]));
 
     if (cdrom_interface_current == 0)
         ini_section_delete_var(cat, "cdrom_interface");
@@ -2386,7 +2448,7 @@ save_storage_controllers(void)
             ini_section_set_string(cat, "cassette_file", cassette_fname);
     }
 
-    if (strlen(cassette_mode) == 0)
+    if (!strcmp(cassette_mode, "load"))
         ini_section_delete_var(cat, "cassette_mode");
     else
         ini_section_set_string(cat, "cassette_mode", cassette_mode);
@@ -2524,9 +2586,8 @@ save_hard_disks(void)
             sprintf(tmp2, "%u, %u, %u, %i, %s",
                     hdd[c].spt, hdd[c].hpc, hdd[c].tracks, hdd[c].wp, p);
             ini_section_set_string(cat, temp, tmp2);
-        } else {
+        } else
             ini_section_delete_var(cat, temp);
-        }
 
         sprintf(temp, "hdd_%02i_mfm_channel", c + 1);
         if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_MFM))

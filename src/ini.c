@@ -181,7 +181,45 @@ delete_section_if_empty(list_t *head, section_t *section)
     if (section == NULL)
         return;
 
-    if (entries_num(section) == 0) {
+    int     n = entries_num(section);
+
+    if (n > 0) {
+        int      i      = 0;
+        entry_t *i_ent = (entry_t *) section->entry_head.next;
+
+        while (i_ent != NULL) {
+            int      i_nlen = strlen(i_ent->name);
+            entry_t* i_next = (entry_t *) i_ent->list.next;
+
+            if (i_nlen > 0) {
+                int      j      = 0;
+                entry_t *j_ent = (entry_t *) section->entry_head.next;
+
+                while (j_ent != NULL) {
+                    int      j_nlen = strlen(j_ent->name);
+                    entry_t* j_next = (entry_t *) j_ent->list.next;
+                    if (j_nlen > 0) {
+                        if ((j != i) && (strcmp(j_ent->name, i_ent->name) > 0)) {
+                            entry_t t_ent = { 0 };
+                            memcpy(&t_ent, j_ent, sizeof(entry_t));
+                            /* J: Contents of I, list of J */
+                            memcpy(j_ent->name, i_ent->name, sizeof(entry_t) - sizeof(i_ent->list));
+                            /* I: Contents of J, list of I */
+                            memcpy(i_ent->name, t_ent.name, sizeof(entry_t) - sizeof(i_ent->list));
+                        }
+
+                        j++;
+                    }
+
+                    j_ent = (entry_t *) j_next;
+                }
+
+                i++;
+            }
+
+            i_ent = (entry_t *) i_next;
+        }
+    } else {
         list_delete(&section->list, head);
         free(section);
     }
