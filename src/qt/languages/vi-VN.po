@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "Bàn phím &hoạt động cần capture chuột"
 
 msgid "&Right CTRL is left ALT"
-msgstr "Gắn CTRL trá vào ALT ph&ải"
+msgstr "Gắn CTRL trái vào ALT ph&ải"
 
 msgid "&Hard Reset..."
 msgstr "Buộc khởi độn&g lại"
