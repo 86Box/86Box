@@ -79,6 +79,7 @@ typedef struct svga_t {
     uint8_t fcr;
     uint8_t hblank_overscan;
     uint8_t vidsys_ena;
+    uint8_t sleep;
 
     int dac_addr;
     int dac_pos;
@@ -297,8 +298,6 @@ typedef struct svga_t {
     void *  xga;
 } svga_t;
 
-extern int      vga_on;
-
 extern void     ibm8514_poll(void *priv);
 extern void     ibm8514_recalctimings(svga_t *svga);
 extern uint8_t  ibm8514_ramdac_in(uint16_t port, void *priv);
@@ -314,6 +313,8 @@ extern void     ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mi
 extern void     ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
 #ifdef ATI_8514_ULTRA
+extern void     ati8514_out(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t  ati8514_in(uint16_t addr, void *priv);
 extern void     ati8514_recalctimings(svga_t *svga);
 extern uint8_t  ati8514_mca_read(int port, void *priv);
 extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
