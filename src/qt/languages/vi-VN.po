@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "Bàn phím &hoạt động cần capture chuột"
 
 msgid "&Right CTRL is left ALT"
-msgstr "Gắn CTRL p&hải vào ALT trái"
+msgstr "Gắn ALT trái vào CTRL ph&ải"
 
 msgid "&Hard Reset..."
 msgstr "Buộc khởi độn&g lại"
@@ -38,6 +38,9 @@ msgstr "Ẩn tha&nh trạng thái"
 
 msgid "Hide &toolbar"
 msgstr "Ẩn thanh &công cụ"
+
+msgid "Show non-primary monitors"
+msgstr "Hiển thị các màn hình phụ"
 
 msgid "&Resizeable window"
 msgstr "Tùy chỉnh cỡ cử&a sổ"
@@ -65,6 +68,9 @@ msgstr "Tự nhập độ &phân giải..."
 
 msgid "F&orce 4:3 display ratio"
 msgstr "Giữ n&guyên khung hình 4:3"
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Co giãn toàn màn hình khi cực đại hóa cửa sổ"
 
 msgid "&Window scale factor"
 msgstr "Đổi &tỷ lệ cửa sổ"
@@ -197,6 +203,9 @@ msgstr "Bật trình trạng thái cho Discord"
 
 msgid "Sound &gain..."
 msgstr "Bộ &tăng âm..."
+
+msgid "Open screenshots folder..."
+msgstr "Mở thư mục ảnh chụp màn hình..."
 
 msgid "Begin trace\tCtrl+T"
 msgstr "Bắt đầu dò\tCtrl+T"
@@ -657,6 +666,9 @@ msgstr "86Box không tìm được bản ROM nào.\n\nVui lòng <a href=\"https:
 msgid "(empty)"
 msgstr "(trống trơn)"
 
+msgid "Clear image history"
+msgstr "Xóa lịch sử ảnh đĩa"
+
 msgid "All files"
 msgstr "Tất cả file"
 
@@ -718,7 +730,7 @@ msgid "Other peripherals"
 msgstr "Thiết bị ngoại vi khác"
 
 msgid "Click to capture mouse"
-msgstr "Bấm để capture ('nhốt') chuột vào"
+msgstr "Nhấp vào khung hình để 'nhốt' chuột vào"
 
 msgid "Press %1 to release mouse"
 msgstr "Nhấn %1 để thả chuột"
