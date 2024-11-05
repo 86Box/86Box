@@ -542,7 +542,7 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 
         num_read           = fread(buffer, 512, count, hdd_images[id].file);
         hdd_images[id].pos = sector + num_read;
-        if (num_read < count)
+        if ((num_read < count) && !feof(hdd_images[id].file))
             return -1;
     }
 
