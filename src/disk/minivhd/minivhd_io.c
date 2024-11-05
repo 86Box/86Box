@@ -230,7 +230,7 @@ mvhd_fixed_read(MVHDMeta *vhdm, uint32_t offset, int num_sectors, void *out_buff
     addr = ((int64_t) offset) * MVHD_SECTOR_SIZE;
     if (mvhd_fseeko64(vhdm->f, addr, SEEK_SET) == -1)
         vhdm->error = 1;
-    if (!fread(out_buff, transfer_sectors * MVHD_SECTOR_SIZE, 1, vhdm->f))
+    if (!fread(out_buff, transfer_sectors * MVHD_SECTOR_SIZE, 1, vhdm->f) && !feof(vhdm->f))
         vhdm->error = 1;
 
     return truncated_sectors;
@@ -272,7 +272,7 @@ mvhd_sparse_read(MVHDMeta *vhdm, uint32_t offset, int num_sectors, void *out_buf
         }
 
         if (VHD_TESTBIT(vhdm->bitmap.curr_bitmap, sib)) {
-            if (!fread(buff, MVHD_SECTOR_SIZE, 1, vhdm->f))
+            if (!fread(buff, MVHD_SECTOR_SIZE, 1, vhdm->f) && !feof(vhdm->f))
                 vhdm->error = 1;
         } else {
             memset(buff, 0, MVHD_SECTOR_SIZE);
