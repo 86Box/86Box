@@ -295,7 +295,7 @@ hdd_image_load(int id)
     if (fn[0] == '.') {
         hdd_image_log("File name starts with .\n");
         memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-        return 0;
+        goto fail_raw;
     }
     hdd_images[id].file = plat_fopen(fn, "rb+");
     if (hdd_images[id].file == NULL) {
@@ -306,14 +306,14 @@ hdd_image_load(int id)
             if (hdd[id].wp) {
                 hdd_image_log("A write-protected image must exist\n");
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             }
 
             hdd_images[id].file = plat_fopen(fn, "wb+");
             if (hdd_images[id].file == NULL) {
                 hdd_image_log("Unable to open image\n");
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             } else {
                 if (image_is_hdi(fn)) {
                     full_size           = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
@@ -389,10 +389,13 @@ retry_vhd:
             s = full_size = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
 
             ret = prepare_new_hard_disk(id, full_size);
+            if (ret <= 0)
+                goto fail_raw;
             return ret;
         } else {
             /* Failed for another reason */
             hdd_image_log("Failed for another reason\n");
+fail_raw:
             hdd_images[id].type        = HDD_IMAGE_RAW;
             hdd_images[id].last_sector = (uint32_t) (((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks)) - 1;
             return 1;
@@ -418,7 +421,7 @@ retry_vhd:
                 fclose(hdd_images[id].file);
                 hdd_images[id].file = NULL;
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             }
             if (fread(&spt, 1, 4, hdd_images[id].file) != 4)
                 fatal("hdd_image_load(): HDI: Error reading sectors per track\n");
@@ -446,7 +449,7 @@ retry_vhd:
                 fclose(hdd_images[id].file);
                 hdd_images[id].file = NULL;
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             }
             if (fread(&spt, 1, 4, hdd_images[id].file) != 4)
                 fatal("hdd_image_load(): HDI: Error reading sectors per track\n");
