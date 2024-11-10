@@ -1256,7 +1256,7 @@ static const device_config_t adgold_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1

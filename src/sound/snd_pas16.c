@@ -2404,18 +2404,18 @@ static const device_config_t pas16_config[] = {
         .default_int = 0
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
-    },
-    {
         .name = "receive_input",
-        .description = "Receive input (PAS MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
+    },
+    {
+        .name = "receive_input401",
+        .description = "Receive MIDI input (MPU-401)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
