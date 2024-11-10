@@ -233,7 +233,7 @@ static const device_config_t xtide_config[] = {
     // clang-format off
     {
         .name = "bios",
-        .description = "BIOS",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "xt",
         .default_int = 0,
@@ -255,7 +255,7 @@ static const device_config_t xtide_at_config[] = {
     // clang-format off
     {
         .name = "bios",
-        .description = "BIOS",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "at",
         .default_int = 0,
