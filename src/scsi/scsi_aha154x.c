@@ -1397,7 +1397,7 @@ static const device_config_t aha_154xcf_config[] = {
     },
     {
         .name = "fdc_addr",
-        .description = "FDC address",
+        .description = "FDC Address",
         .type = CONFIG_HEX16,
         .default_string = "",
         .default_int = 0,
