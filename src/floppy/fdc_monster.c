@@ -209,7 +209,7 @@ static const device_config_t monster_fdc_config[] = {
     },
     {
         .name = "sec_dma",
-        .description = "Secondary Controller DMA Address",
+        .description = "Secondary Controller DMA channel",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 2,
