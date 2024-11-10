@@ -4599,7 +4599,7 @@ static const device_config_t gd5426_config[] = {
 static const device_config_t gd5428_onboard_config[] = {
     {
         .name = "memory",
-        .description = "Onboard memory size",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .selection = {
             {
@@ -4653,7 +4653,7 @@ static const device_config_t gd5429_config[] = {
 static const device_config_t gd5440_onboard_config[] = {
     {
         .name = "memory",
-        .description = "Onboard memory size",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .selection = {
             {
@@ -4707,7 +4707,7 @@ static const device_config_t gd5434_config[] = {
 static const device_config_t gd5434_onboard_config[] = {
     {
         .name = "memory",
-        .description = "Onboard memory size",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .selection = {
             {
