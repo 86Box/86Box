@@ -77,7 +77,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         mouseModel->insertRow(row);
         auto idx = mouseModel->index(row, 0);
 
-        mouseModel->setData(idx, name, Qt::DisplayRole);
+        mouseModel->setData(idx, tr(name.toUtf8().data()), Qt::DisplayRole);
         mouseModel->setData(idx, i, Qt::UserRole);
 
         if (i == mouse_type) {

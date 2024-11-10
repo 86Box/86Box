@@ -209,7 +209,7 @@ static const device_config_t monster_fdc_config[] = {
     },
     {
         .name = "sec_dma",
-        .description = "Secondary Controller DMA",
+        .description = "Secondary Controller DMA Address",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 2,
@@ -234,7 +234,7 @@ static const device_config_t monster_fdc_config[] = {
 #endif
     {
         .name = "bios_addr",
-        .description = "BIOS Address:",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,
