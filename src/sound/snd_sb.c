@@ -4657,7 +4657,7 @@ static const device_config_t sb_16_pnp_config[] = {
 static const device_config_t sb_32_pnp_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
