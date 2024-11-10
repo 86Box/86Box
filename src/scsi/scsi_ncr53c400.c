@@ -836,7 +836,7 @@ static const device_config_t rt1000b_config[] = {
     },
     {
         .name = "bios_ver",
-        .description = "BIOS Version",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "v8_10r",
         .default_int = 0,

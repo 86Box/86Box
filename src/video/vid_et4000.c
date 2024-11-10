@@ -967,7 +967,7 @@ static const device_config_t et4000_tc6058af_config[] = {
     },
     {
         .name = "bios_ver",
-        .description = "BIOS Version",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "v1_10",
         .default_int = 0,
@@ -1014,7 +1014,7 @@ static const device_config_t et4000_bios_config[] = {
     },
     {
         .name = "bios_ver",
-        .description = "BIOS Version",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "v8_01",
         .default_int = 0,
