@@ -3649,7 +3649,7 @@ static const device_config_t xga_isa_configuration[] = {
     },
     {
         .name = "ext_mem_addr",
-        .description = "MMIO address",
+        .description = "MMIO Address",
         .type = CONFIG_HEX16,
         .default_string = "",
         .default_int = 0x00f0,
