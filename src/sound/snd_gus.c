@@ -1491,7 +1491,7 @@ static const device_config_t gus_config[] = {
     },
     {
         .name = "gus_ram",
-        "Onboard RAM",
+        "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,

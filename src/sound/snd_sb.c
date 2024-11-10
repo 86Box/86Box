@@ -4870,7 +4870,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 512,
@@ -4934,7 +4934,7 @@ static const device_config_t sb_awe32_config[] = {
 static const device_config_t sb_awe32_pnp_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 512,
@@ -4991,7 +4991,7 @@ static const device_config_t sb_awe32_pnp_config[] = {
 static const device_config_t sb_awe64_value_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 512,
@@ -5068,7 +5068,7 @@ static const device_config_t sb_awe64_value_config[] = {
 static const device_config_t sb_awe64_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1024,
@@ -5141,7 +5141,7 @@ static const device_config_t sb_awe64_config[] = {
 static const device_config_t sb_awe64_gold_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 4096,
