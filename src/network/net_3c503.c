@@ -693,7 +693,7 @@ static const device_config_t threec503_config[] = {
     },
     {
         .name = "dma",
-        .description = "DMA",
+        .description = "DMA channel",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 3,

@@ -1044,7 +1044,7 @@ static const device_config_t ltsermouse_config[] = {
     },
     {
         .name = "rts_toggle",
-        .description = "Microsoft-compatible RTS toggle",
+        .description = "RTS toggle",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
