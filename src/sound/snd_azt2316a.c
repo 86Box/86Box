@@ -1443,7 +1443,7 @@ static const device_config_t azt1605_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -1564,7 +1564,7 @@ static const device_config_t azt2316a_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1

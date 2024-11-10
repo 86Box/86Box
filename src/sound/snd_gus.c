@@ -1515,7 +1515,7 @@ static const device_config_t gus_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
