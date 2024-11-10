@@ -4552,7 +4552,7 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name = "dma",
-        .description = "Low DMA channel",
+        .description = "Low DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,
@@ -4576,7 +4576,7 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name = "dma16",
-        .description = "High DMA channel",
+        .description = "High DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 5,
@@ -4822,7 +4822,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "dma",
-        .description = "Low DMA channel",
+        .description = "Low DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,
@@ -4846,7 +4846,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "dma16",
-        .description = "High DMA channel",
+        .description = "High DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 5,

@@ -1818,7 +1818,7 @@ static const device_config_t BT_ISA_Config[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 6,

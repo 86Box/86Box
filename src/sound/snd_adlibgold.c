@@ -1222,7 +1222,7 @@ static const device_config_t adgold_config[] = {
     },
     {
         .name = "dma",
-        .description = "Low DMA channel",
+        .description = "Low DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,

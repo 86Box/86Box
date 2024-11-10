@@ -3673,7 +3673,7 @@ static const device_config_t xga_isa_configuration[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 7,
@@ -3714,7 +3714,7 @@ static const device_config_t xga_inmos_isa_configuration[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 7,
