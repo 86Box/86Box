@@ -122,37 +122,37 @@ static const device_config_t xi8088_config[] = {
     },
     {
         .name = "umb_c0000h_c7fff",
-        .description = "Map 0xc0000-0xc7fff as UMB",
+        .description = "Map C0000-C7FFF as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_c8000h_cffff",
-        .description = "Map 0xc8000-0xcffff as UMB",
+        .description = "Map C8000-CFFFF as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_d0000h_d7fff",
-        .description = "Map 0xd0000-0xd7fff as UMB",
+        .description = "Map D0000-D7FFF as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_d8000h_dffff",
-        .description = "Map 0xd8000-0xdffff as UMB",
+        .description = "Map D8000-DFFFF as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_e0000h_e7fff",
-        .description = "Map 0xe0000-0xe7fff as UMB",
+        .description = "Map E0000-E7FFF as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_e8000h_effff",
-        .description = "Map 0xe8000-0xeffff as UMB",
+        .description = "Map E8000-EFFFF as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
