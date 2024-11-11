@@ -125,7 +125,10 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 
     while (config->type != -1) {
         const int   config_type = config->type & CONFIG_TYPE_MASK;
-        const char *tdesc       = tr(config->description).toUtf8().data();
+        const char *temp        = tr(config->description).toUtf8().data();
+        char        tdesc[512]  = { 0 };
+
+        strcpy(tdesc, temp);
 
         /* Ignore options of the wrong class. */
         if (!!(config->type & CONFIG_DEP) != is_dep)
@@ -222,15 +225,17 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 cbox->setMaxVisibleItems(30);
                 auto *model        = cbox->model();
                 int   currentIndex = -1;
-                this->ui->formLayout->addRow(tdesc, cbox);
                 for (auto *sel = config->selection; (sel != nullptr) && (sel->description != nullptr) &&
                                                     (strlen(sel->description) > 0); ++sel) {
-                    const char *sdesc = tr(sel->description).toUtf8().data();
-                    int         row   = Models::AddEntry(model, sdesc, sel->value);
+                    const char *temp2      = tr(sel->description).toUtf8().data();
+                    char        sdesc[512] = { 0 };
+                    strcpy(sdesc, temp2);
+                    int         row        = Models::AddEntry(model, sdesc, sel->value);
 
                     if (sel->value == value)
                         currentIndex = row;
                 }
+                this->ui->formLayout->addRow(tdesc, cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -249,7 +254,9 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     for (int d = 0; d < bios->files_no; d++)
                         p += !!rom_present(const_cast<char *>(bios->files[d]));
                     if (p == bios->files_no) {
-                        const char *bname = tr(bios->name).toUtf8().data();
+                        const char *temp2      = tr(bios->name).toUtf8().data();
+                        char        bname[512] = { 0 };
+                        strcpy(bname, temp2);
                         const int   row   = Models::AddEntry(model, bname, q);
                         if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                             currentIndex = row;
