@@ -124,7 +124,8 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
         return;
 
     while (config->type != -1) {
-        const int config_type       = config->type & CONFIG_TYPE_MASK;
+        const int   config_type = config->type & CONFIG_TYPE_MASK;
+        const char *tdesc       = tr(config->description).toUtf8().data();
 
         /* Ignore options of the wrong class. */
         if (!!(config->type & CONFIG_DEP) != is_dep)
@@ -168,7 +169,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 auto *cbox  = new QCheckBox();
                 cbox->setObjectName(config->name);
                 cbox->setChecked(value > 0);
-                this->ui->formLayout->addRow(config->description, cbox);
+                this->ui->formLayout->addRow(tdesc, cbox);
                 break;
             }
 #ifdef USE_RTMIDI
@@ -183,11 +184,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     char midiName[512] = { 0 };
                     rtmidi_out_get_dev_name(i, midiName);
 
-                    Models::AddEntry(model, midiName, i);
+                    Models::AddEntry(model, tr(midiName), i);
                     if (i == value)
                         currentIndex = i;
                 }
-                this->ui->formLayout->addRow(config->description, cbox);
+                this->ui->formLayout->addRow(tdesc, cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -202,11 +203,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     char midiName[512] = { 0 };
                     rtmidi_in_get_dev_name(i, midiName);
 
-                    Models::AddEntry(model, midiName, i);
+                    Models::AddEntry(model, tr(midiName), i);
                     if (i == value)
                         currentIndex = i;
                 }
-                this->ui->formLayout->addRow(config->description, cbox);
+                this->ui->formLayout->addRow(tdesc, cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -221,15 +222,15 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 cbox->setMaxVisibleItems(30);
                 auto *model        = cbox->model();
                 int   currentIndex = -1;
-
+                this->ui->formLayout->addRow(tdesc, cbox);
                 for (auto *sel = config->selection; (sel != nullptr) && (sel->description != nullptr) &&
                                                     (strlen(sel->description) > 0); ++sel) {
-                    int row = Models::AddEntry(model, sel->description, sel->value);
+                    const char *sdesc = tr(sel->description).toUtf8().data();
+                    int         row   = Models::AddEntry(model, sdesc, sel->value);
 
                     if (sel->value == value)
                         currentIndex = row;
                 }
-                this->ui->formLayout->addRow(config->description, cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -248,13 +249,14 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     for (int d = 0; d < bios->files_no; d++)
                         p += !!rom_present(const_cast<char *>(bios->files[d]));
                     if (p == bios->files_no) {
-                        const int row = Models::AddEntry(model, bios->name, q);
+                        const char *bname = tr(bios->name).toUtf8().data();
+                        const int   row   = Models::AddEntry(model, bname, q);
                         if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                             currentIndex = row;
                     }
                     q++;
                 }
-                this->ui->formLayout->addRow(config->description, cbox);
+                this->ui->formLayout->addRow(tdesc, cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -267,7 +269,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 if (config->spinner.step > 0)
                     spinBox->setSingleStep(config->spinner.step);
                 spinBox->setValue(value);
-                this->ui->formLayout->addRow(config->description, spinBox);
+                this->ui->formLayout->addRow(tdesc, spinBox);
                 break;
             }
             case CONFIG_FNAME:
@@ -277,7 +279,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 fileField->setFileName(selected);
                 fileField->setFilter(QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter,
                                                                                                 "|"))));
-                this->ui->formLayout->addRow(config->description, fileField);
+                this->ui->formLayout->addRow(tdesc, fileField);
                 break;
             }
             case CONFIG_STRING:
@@ -286,7 +288,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 lineEdit->setObjectName(config->name);
                 lineEdit->setCursor(Qt::IBeamCursor);
                 lineEdit->setText(selected);
-                this->ui->formLayout->addRow(config->description, lineEdit);
+                this->ui->formLayout->addRow(tdesc, lineEdit);
                 break;
             }
             case CONFIG_SERPORT:
@@ -305,7 +307,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         currentIndex = row;
                 }
 
-                this->ui->formLayout->addRow(config->description, cbox);
+                this->ui->formLayout->addRow(tdesc, cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -337,7 +339,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 });
                 hboxLayout->addWidget(lineEdit);
                 hboxLayout->addWidget(generateButton);
-                this->ui->formLayout->addRow(config->description, hboxLayout);
+                this->ui->formLayout->addRow(tdesc, hboxLayout);
                 break;
             }
         }
@@ -349,7 +351,7 @@ void
 DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *settings)
 {
     DeviceConfig dc(settings);
-    dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
+    dc.setWindowTitle(QString(tr("%1 Device Configuration")).arg(device->name));
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
