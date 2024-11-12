@@ -110,11 +110,11 @@ static const device_config_t xi8088_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "64KB starting from 0xF0000",
+                .description = "64 kB starting from F0000",
                 .value = 0
             },
             {
-                .description = "128KB starting from 0xE0000 (address MSB inverted, last 64KB first)",
+                .description = "128 kB starting from E0000 (address MSB inverted, last 64KB first)",
                 .value = 1
             }
         },
