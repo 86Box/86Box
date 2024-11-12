@@ -3937,7 +3937,7 @@ static const device_config_t ext8514_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -4006,7 +4006,7 @@ static const device_config_t ext8514_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {

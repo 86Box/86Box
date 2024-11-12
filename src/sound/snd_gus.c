@@ -1503,7 +1503,7 @@ static const device_config_t gus_config[] = {
                 .value = 0
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 1
             },
             {
