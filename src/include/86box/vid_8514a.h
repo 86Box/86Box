@@ -42,6 +42,9 @@ typedef union {
 typedef struct ibm8514_t {
     rom_t bios_rom;
     rom_t bios_rom2;
+    mem_mapping_t bios_mapping;
+    uint8_t *rom1;
+    uint8_t *rom2;
     hwcursor8514_t hwcursor;
     hwcursor8514_t hwcursor_latch;
     uint8_t        pos_regs[8];
@@ -212,6 +215,8 @@ typedef struct ibm8514_t {
     uint8_t subsys_cntl;
     uint8_t subsys_stat;
 
+    atomic_int fifo_idx;
+    atomic_int ext_fifo_idx;
     atomic_int force_busy;
     atomic_int force_busy2;
 
@@ -223,11 +228,10 @@ typedef struct ibm8514_t {
     int      ext_crt_pitch;
     int      extensions;
     int      linear;
-    int      _4bpp;
     uint32_t vram_amount;
     int      vram_512k_8514;
-    PALETTE  _8514pal;
     int      vendor_mode;
+    PALETTE  _8514pal;
 
     latch8514_t latch;
 } ibm8514_t;
