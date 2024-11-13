@@ -458,11 +458,16 @@ svga_in(uint16_t addr, void *priv)
                 ret = 0x10;
             break;
         case 0x3c3:
-            ret = 0x00;
-            if (xga_active && xga)
-                ret |= !xga->on;
-            if (ibm8514_active && dev)
-                ret |= !dev->on;
+            ret = 0x01;
+            if (xga_active && xga) {
+                if (xga->on)
+                    ret = 0x00;
+            }
+            if (ibm8514_active && dev) {
+                if (dev->on)
+                    ret = 0x00;
+            }
+            svga_log("VGA read: (0x%04x) ret=%02x.\n", addr, ret);
             break;
         case 0x3c4:
             ret = svga->seqaddr;
@@ -560,6 +565,8 @@ svga_in(uint16_t addr, void *priv)
 
     if ((addr >= 0x3c6) && (addr <= 0x3c9))
         svga_log("VGA IN addr=%03x, temp=%02x.\n", addr, ret);
+    else if ((addr >= 0x2ea) && (addr <= 0x2ed))
+        svga_log("8514/A IN addr=%03x, temp=%02x.\n", addr, ret);
 
     return ret;
 }
