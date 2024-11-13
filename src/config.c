@@ -2431,8 +2431,6 @@ save_storage_controllers(void)
     else
         ini_section_set_int(cat, "ide_qua", ide_qua_enabled);
 
-    ini_delete_section_if_empty(config, cat);
-
     if (cassette_enable == 0)
         ini_section_delete_var(cat, "cassette_enabled");
     else
@@ -2522,6 +2520,8 @@ save_storage_controllers(void)
         ini_section_delete_var(cat, "lba_enhancer_enabled");
     else
         ini_section_set_int(cat, "lba_enhancer_enabled", 1);
+
+    ini_delete_section_if_empty(config, cat);
 }
 
 /* Save "Other Peripherals" section. */
