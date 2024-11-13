@@ -720,7 +720,7 @@ static const device_config_t threec503_config[] = {
     },
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xCC000,

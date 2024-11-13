@@ -841,7 +841,7 @@ static const device_config_t wd8003_config[] = {
     },
     {
         .name = "ram_addr",
-        .description = "RAM address",
+        .description = "RAM Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xD0000,
@@ -908,7 +908,7 @@ static const device_config_t wd8003eb_config[] = {
     },
     {
         .name = "ram_addr",
-        .description = "RAM address",
+        .description = "RAM Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xD0000,
@@ -997,7 +997,7 @@ static const device_config_t wd8013_config[] = {
     },
     {
         .name = "ram_addr",
-        .description = "RAM address",
+        .description = "RAM Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xD0000,

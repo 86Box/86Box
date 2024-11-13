@@ -2311,7 +2311,7 @@ static const device_config_t es1371_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -2345,7 +2345,7 @@ static const device_config_t es1373_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -2375,7 +2375,7 @@ static const device_config_t ct5880_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -2388,7 +2388,7 @@ static const device_config_t es1371_onboard_config[] = {
   // clang-format off
     {
         .name = "receive_input",
-        .description = "Receive input (MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1

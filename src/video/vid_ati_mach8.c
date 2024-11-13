@@ -6173,7 +6173,7 @@ static const device_config_t mach8_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -6199,7 +6199,7 @@ static const device_config_t mach32_config[] = {
         .default_int = 2048,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -6252,7 +6252,7 @@ static const device_config_t mach32_pci_config[] = {
         .default_int = 2048,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {

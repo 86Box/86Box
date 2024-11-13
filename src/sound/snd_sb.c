@@ -4055,7 +4055,7 @@ static const device_config_t sb_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4165,7 +4165,7 @@ static const device_config_t sb15_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4294,7 +4294,7 @@ static const device_config_t sb2_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4360,7 +4360,7 @@ static const device_config_t sb_mcv_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4450,7 +4450,7 @@ static const device_config_t sb_pro_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4461,7 +4461,7 @@ static const device_config_t sb_pro_config[] = {
 static const device_config_t sb_pro_mcv_config[] = {
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4552,7 +4552,7 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name = "dma",
-        .description = "Low DMA channel",
+        .description = "Low DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,
@@ -4576,7 +4576,7 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name = "dma16",
-        .description = "High DMA channel",
+        .description = "High DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 5,
@@ -4614,14 +4614,14 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -4639,14 +4639,14 @@ static const device_config_t sb_16_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -4657,7 +4657,7 @@ static const device_config_t sb_16_pnp_config[] = {
 static const device_config_t sb_32_pnp_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
@@ -4669,7 +4669,7 @@ static const device_config_t sb_32_pnp_config[] = {
                 .value = 0
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -4696,14 +4696,14 @@ static const device_config_t sb_32_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -4822,7 +4822,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "dma",
-        .description = "Low DMA channel",
+        .description = "Low DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,
@@ -4846,7 +4846,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "dma16",
-        .description = "High DMA channel",
+        .description = "High DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 5,
@@ -4870,7 +4870,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 512,
@@ -4882,7 +4882,7 @@ static const device_config_t sb_awe32_config[] = {
                 .value = 0
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -4916,14 +4916,14 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -4934,7 +4934,7 @@ static const device_config_t sb_awe32_config[] = {
 static const device_config_t sb_awe32_pnp_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 512,
@@ -4946,7 +4946,7 @@ static const device_config_t sb_awe32_pnp_config[] = {
                 .value = 0
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -4973,14 +4973,14 @@ static const device_config_t sb_awe32_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -4991,7 +4991,7 @@ static const device_config_t sb_awe32_pnp_config[] = {
 static const device_config_t sb_awe64_value_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 512,
@@ -4999,7 +4999,7 @@ static const device_config_t sb_awe64_value_config[] = {
         .spinner = { 0 },
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -5050,14 +5050,14 @@ static const device_config_t sb_awe64_value_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -5068,7 +5068,7 @@ static const device_config_t sb_awe64_value_config[] = {
 static const device_config_t sb_awe64_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1024,
@@ -5123,14 +5123,14 @@ static const device_config_t sb_awe64_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -5141,7 +5141,7 @@ static const device_config_t sb_awe64_config[] = {
 static const device_config_t sb_awe64_gold_config[] = {
     {
         .name = "onboard_ram",
-        .description = "Onboard RAM",
+        .description = "Memory size",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 4096,
@@ -5188,14 +5188,14 @@ static const device_config_t sb_awe64_gold_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -5318,7 +5318,7 @@ static const device_config_t ess_688_config[] = {
     },
     {
         .name           = "receive_input",
-        .description    = "Receive input (DSP MIDI)",
+        .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
         .default_string = "",
         .default_int    = 1
@@ -5449,14 +5449,14 @@ static const device_config_t ess_1688_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -5468,7 +5468,7 @@ static const device_config_t ess_1688_config[] = {
 static const device_config_t ess_688_pnp_config[] = {
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -5487,14 +5487,14 @@ static const device_config_t ess_1688_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -5950,5 +5950,3 @@ const device_t ess_chipchat_16_mca_device = {
     .force_redraw  = NULL,
     .config        = ess_1688_pnp_config
 };
-
-

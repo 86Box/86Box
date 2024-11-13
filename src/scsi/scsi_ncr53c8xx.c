@@ -2667,7 +2667,7 @@ static const device_config_t ncr53c8xx_pci_config[] = {
   // clang-format off
     {
         .name = "bios",
-        .description = "BIOS",
+        .description = "BIOS Revision",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,

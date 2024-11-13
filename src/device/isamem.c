@@ -857,7 +857,7 @@ static const device_config_t ibmxt_32k_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 32,
@@ -905,7 +905,7 @@ static const device_config_t ibmxt_64k_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 64,
@@ -953,7 +953,7 @@ static const device_config_t ibmxt_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 128,
@@ -1001,7 +1001,7 @@ static const device_config_t genericxt_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 16,
@@ -1049,7 +1049,7 @@ static const device_config_t msramcard_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 64,
@@ -1097,7 +1097,7 @@ static const device_config_t mssystemcard_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 64,
@@ -1159,7 +1159,7 @@ static const device_config_t ibmat_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 512,
@@ -1207,7 +1207,7 @@ static const device_config_t genericat_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 512,
@@ -1255,7 +1255,7 @@ static const device_config_t p5pak_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 128,
@@ -1303,7 +1303,7 @@ static const device_config_t a6pak_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 64,
@@ -1351,7 +1351,7 @@ static const device_config_t ems5150_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 256,
@@ -1402,7 +1402,7 @@ static const device_config_t ev159_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 512,
@@ -1544,7 +1544,7 @@ static const device_config_t ev165a_config[] = {
   // clang-format off
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 512,
@@ -1669,7 +1669,7 @@ static const device_config_t brxt_config[] = {
     },
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 512,
@@ -1762,7 +1762,7 @@ static const device_config_t brat_config[] = {
     },
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 512,
@@ -1841,7 +1841,7 @@ static const device_config_t lotech_config[] = {
     },
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 2048,
@@ -1897,7 +1897,7 @@ static const device_config_t rampage_config[] = {
     },
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 256, /* Technically 128k, but banks 2-7 must be 256, headaches elsewise */
@@ -2009,7 +2009,7 @@ static const device_config_t iab_config[] = {
     },
     {
         .name = "size",
-        .description = "Memory Size",
+        .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
         .default_int = 128,

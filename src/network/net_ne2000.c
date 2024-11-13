@@ -1392,7 +1392,7 @@ static const device_config_t ne2000_config[] = {
     },
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0,
@@ -1479,7 +1479,7 @@ static const device_config_t ne2000_compat_config[] = {
     },
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0,
@@ -1560,7 +1560,7 @@ static const device_config_t ne2000_compat_8bit_config[] = {
     },
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0,
