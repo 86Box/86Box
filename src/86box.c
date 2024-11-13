@@ -452,8 +452,6 @@ delete_nvr_file(uint8_t flash)
     fn = NULL;
 }
 
-extern void  device_find_all_descs(void);
-
 /*
  * Perform initial startup of the PC.
  *
@@ -638,7 +636,6 @@ usage:
             dump_missing = 1;
         } else if (!strcasecmp(argv[c], "--donothing") || !strcasecmp(argv[c], "-Y")) {
             do_nothing = 1;
-            device_find_all_descs();
         } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
             if ((c + 1) == argc)
                 goto usage;
