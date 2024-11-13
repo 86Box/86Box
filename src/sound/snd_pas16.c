@@ -1020,7 +1020,7 @@ pas16_nsc_mixer_reset(nsc_mixer_t *mixer)
     mixer->lmc1982_regs[LMC1982_REG_ISELECT] = 0x01;
     mixer->lmc1982_regs[LMC1982_REG_LES]     = 0x00;
     mixer->lmc1982_regs[LMC1982_REG_BASS]    = mixer->lmc1982_regs[LMC1982_REG_TREBLE]  = 0x06;
-    mixer->lmc1982_regs[LMC1982_REG_VOL_L]   = mixer->lmc1982_regs[LMC1982_REG_VOL_R]   = 0x28;
+    mixer->lmc1982_regs[LMC1982_REG_VOL_L]   = mixer->lmc1982_regs[LMC1982_REG_VOL_R]   = 0x00; /*0x28*/ /*Note by TC1995: otherwise the volume gets lowered too much*/
     mixer->lmc1982_regs[LMC1982_REG_MODE]    = 0x05;
 
     lmc1982_recalc(mixer);
@@ -2404,18 +2404,18 @@ static const device_config_t pas16_config[] = {
         .default_int = 0
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
-    },
-    {
         .name = "receive_input",
-        .description = "Receive input (PAS MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
+    },
+    {
+        .name = "receive_input401",
+        .description = "Receive MIDI input (MPU-401)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

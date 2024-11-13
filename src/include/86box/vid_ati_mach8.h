@@ -41,8 +41,6 @@ typedef struct mach_t {
     int ramdac_type;
     int old_mode;
 
-    uint32_t memory;
-
     uint16_t config1;
     uint16_t config2;
 
@@ -73,9 +71,7 @@ typedef struct mach_t {
     uint8_t  bank_r;
     uint16_t shadow_set;
     uint16_t shadow_cntl;
-    int ext_on[2];
-    int extended_mode;
-    int compat_mode;
+    int override_resolution;
 
     struct {
         uint8_t  line_idx;
@@ -84,6 +80,12 @@ typedef struct mach_t {
         uint8_t  patt_len;
         uint8_t  pix_trans[2];
         uint8_t  eeprom_control;
+        uint8_t  alu_bg_fn;
+        uint8_t  alu_fg_fn;
+        uint16_t clip_left;
+        uint16_t clip_right;
+        uint16_t clip_top;
+        uint16_t clip_bottom;
         uint16_t dest_x_end;
         uint16_t dest_x_start;
         uint16_t dest_y_end;
@@ -102,14 +104,14 @@ typedef struct mach_t {
         uint16_t ge_offset_hi;
         uint16_t linedraw_opt;
         uint16_t max_waitstates;
-        uint8_t  patt_data_idx;
-        uint8_t  patt_data[0x18];
         uint16_t scan_to_x;
         uint16_t scratch0;
         uint16_t scratch1;
         uint16_t test;
         uint16_t pattern;
         uint16_t test2;
+        int      patt_data_idx_reg;
+        int      patt_data_idx;
         int      src_y_dir;
         int      cmd_type;
         int      block_write_mono_pattern_enable;
@@ -144,9 +146,8 @@ typedef struct mach_t {
         int      stepx;
         int      stepy;
         int      src_stepx;
-        uint8_t  color_pattern[16];
-        uint8_t  color_pattern_full[32];
-        uint16_t color_pattern_word[8];
+        uint8_t  mono_pattern_normal[16];
+        uint8_t  color_pattern[32];
         int      mono_pattern[8][8];
         uint32_t ge_offset;
         uint32_t crt_offset;

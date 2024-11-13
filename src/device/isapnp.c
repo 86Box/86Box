@@ -110,6 +110,7 @@ typedef struct _isapnp_card_ {
 } isapnp_card_t;
 
 typedef struct {
+    uint8_t  in_isolation;
     uint8_t  reg;
     uint8_t  key_pos : 5;
     uint16_t read_data_addr;
@@ -313,6 +314,8 @@ isapnp_read_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uint
 
         case 0x05: /* Status */
             ret = 0x00;
+            if (dev->in_isolation)
+                ret = 0x01;
             CHECK_CURRENT_CARD();
 
             isapnp_log("ISAPnP: Query status for CSN %02X\n", card->csn);
@@ -485,15 +488,16 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
         case 0x03: /* Wake[CSN] */
             isapnp_log("ISAPnP: Wake[%02X]\n", val);
             card = dev->first_card;
+            if (val == 0)
+                dev->in_isolation |= 1;
             while (card) {
                 if (card->csn == val) {
                     card->rom_pos     = 0;
                     card->id_checksum = isapnp_init_key[0];
                     if (card->state == PNP_STATE_SLEEP)
                         card->state = (val == 0) ? PNP_STATE_ISOLATION : PNP_STATE_CONFIG;
-                } else {
+                } else
                     card->state = PNP_STATE_SLEEP;
-                }
 
                 card = card->next;
             }
@@ -505,6 +509,7 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                 isapnp_set_csn(dev->isolated_card, val);
                 dev->isolated_card->state = PNP_STATE_CONFIG;
                 dev->isolated_card        = NULL;
+                dev->in_isolation         = 0;
             } else {
                 isapnp_log("ISAPnP: Set CSN %02X but no card is isolated\n", val);
             }

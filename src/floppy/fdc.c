@@ -612,9 +612,11 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
 
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
     fdc->stat = out ? 0x10 : 0x50;
-    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
+    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
         fdc->stat |= 0x20;
-    else
+        if (out)
+            fdc->stat |= 0x80;
+    } else
         dma_set_drq(fdc->dma_ch, 1);
 }
 

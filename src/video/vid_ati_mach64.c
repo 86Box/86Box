@@ -333,7 +333,8 @@ enum {
 enum {
     SRC_PATT_EN     = 1,
     SRC_PATT_ROT_EN = 2,
-    SRC_LINEAR_EN   = 4
+    SRC_LINEAR_EN   = 4,
+    SRC_BYTE_ALIGN  = 8
 };
 
 enum {
@@ -538,7 +539,7 @@ mach64_recalctimings(svga_t *svga)
                 break;
             case BPP_8:
                 if (mach64->type != MACH64_GX)
-                    svga->render = svga_render_8bpp_highres;
+                    svga->render = svga_render_8bpp_clone_highres;
                 svga->hdisp <<= 3;
                 svga->rowoffset >>= 1;
                 break;
@@ -1280,6 +1281,14 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 void
 mach64_start_fill(mach64_t *mach64)
 {
+    mach64->accel.dst_pix_width  = mach64->dp_pix_width & 7;
+    mach64->accel.src_pix_width  = (mach64->dp_pix_width >> 8) & 7;
+    mach64->accel.host_pix_width = (mach64->dp_pix_width >> 16) & 7;
+
+    mach64->accel.dst_size  = mach64_width[mach64->accel.dst_pix_width];
+    mach64->accel.src_size  = mach64_width[mach64->accel.src_pix_width];
+    mach64->accel.host_size = mach64_width[mach64->accel.host_pix_width];
+
     mach64->accel.dst_x = 0;
     mach64->accel.dst_y = 0;
 
@@ -1293,7 +1302,8 @@ mach64_start_fill(mach64_t *mach64)
     mach64->accel.dst_width  = (mach64->dst_height_width >> 16) & 0x1fff;
     mach64->accel.dst_height = mach64->dst_height_width & 0x1fff;
 
-    if (((mach64->dp_src >> 16) & 7) == MONO_SRC_BLITSRC) {
+    if ((((mach64->dp_src >> 16) & 7) == MONO_SRC_BLITSRC) &&
+        ((mach64->src_cntl & (SRC_LINEAR_EN | SRC_BYTE_ALIGN)) == (SRC_LINEAR_EN | SRC_BYTE_ALIGN))) {
         if (mach64->accel.dst_width & 7)
             mach64->accel.dst_width = (mach64->accel.dst_width & ~7) + 8;
     }
@@ -1344,14 +1354,6 @@ mach64_start_fill(mach64_t *mach64)
     mach64->accel.source_bg  = mach64->dp_src & 7;
     mach64->accel.source_fg  = (mach64->dp_src >> 8) & 7;
     mach64->accel.source_mix = (mach64->dp_src >> 16) & 7;
-
-    mach64->accel.dst_pix_width  = mach64->dp_pix_width & 7;
-    mach64->accel.src_pix_width  = (mach64->dp_pix_width >> 8) & 7;
-    mach64->accel.host_pix_width = (mach64->dp_pix_width >> 16) & 7;
-
-    mach64->accel.dst_size  = mach64_width[mach64->accel.dst_pix_width];
-    mach64->accel.src_size  = mach64_width[mach64->accel.src_pix_width];
-    mach64->accel.host_size = mach64_width[mach64->accel.host_pix_width];
 
     if (mach64->accel.src_size == WIDTH_1BIT)
         mach64->accel.src_offset <<= 3;
@@ -1861,6 +1863,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                                 cpu_dat >>= (count & 7);
                             else
                                 cpu_dat <<= (count & 7);
+
                             count &= ~7;
                         }
                     }

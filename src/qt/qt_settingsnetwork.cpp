@@ -127,7 +127,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             }
 
             if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machineId)) {
-                int row = Models::AddEntry(model, name, c);
+                int row = Models::AddEntry(model, tr(name.toUtf8().data()), c);
                 if (c == net_cards_conf[i].device_num) {
                     selectedRow = row - removeRows;
                 }

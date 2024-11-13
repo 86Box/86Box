@@ -25,10 +25,10 @@ on:
 
 jobs:
 
-  macos12:
+  macos13-x86_64:
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
-    runs-on: macos-12
+    runs-on: macos-13
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
@@ -80,6 +80,7 @@ jobs:
           rtmidi
           openal-soft
           fluidsynth
+          libslirp
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

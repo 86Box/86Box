@@ -33,6 +33,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/plat_fallthrough.h>
@@ -1217,6 +1218,8 @@ ht216_write(uint32_t addr, uint8_t val, void *priv)
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
 
+    xga_write_test(addr, val, svga);
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
 
@@ -1237,6 +1240,9 @@ ht216_writew(uint32_t addr, uint16_t val, void *priv)
     ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
+
+    xga_write_test(addr, val, svga);
+    xga_write_test(addr + 1, val >> 8, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
@@ -1260,6 +1266,11 @@ ht216_writel(uint32_t addr, uint32_t val, void *priv)
     ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
+
+    xga_write_test(addr, val, svga);
+    xga_write_test(addr + 1, val >> 8, svga);
+    xga_write_test(addr + 2, val >> 16, svga);
+    xga_write_test(addr + 3, val >> 24, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
@@ -1422,8 +1433,10 @@ static uint8_t
 ht216_read(uint32_t addr, void *priv)
 {
     ht216_t      *ht216     = (ht216_t *) priv;
-    const svga_t *svga      = &ht216->svga;
+    svga_t       *svga      = &ht216->svga;
     uint32_t      prev_addr = addr;
+
+    (void) xga_read_test(addr, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->read_banks[(addr >> 15) & 1];

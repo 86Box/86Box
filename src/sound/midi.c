@@ -83,12 +83,12 @@ static const MIDI_OUT_DEVICE devices[] = {
     { &cm32l_device         },
     { &cm32ln_device        },
 #endif /*USE_MUNT */
-#ifdef USE_RTMIDI
-    { &rtmidi_output_device },
-#endif /* USE_RTMIDI */
 #ifdef USE_OPL4ML
     { &opl4_midi_device     },
 #endif /* USE_OPL4ML */
+#ifdef USE_RTMIDI
+    { &rtmidi_output_device },
+#endif /* USE_RTMIDI */
     { NULL                  }
     // clang-format on
 };

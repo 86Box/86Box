@@ -1201,7 +1201,7 @@ static const device_config_t spock_rom_config[] = {
   // clang-format off
     {
         .name = "bios_ver",
-        .description = "BIOS Version",
+        .description = "BIOS Revision",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 1,

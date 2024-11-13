@@ -2611,7 +2611,9 @@ cpu_ven_reset(void)
 void
 cpu_RDMSR(void)
 {
-    switch (cpu_s->cpu_type) {
+    if (CPL)
+        x86gpf(NULL, 0);
+    else  switch (cpu_s->cpu_type) {
         case CPU_IBM386SLC:
         case CPU_IBM486SLC:
         case CPU_IBM486BL:
@@ -3300,26 +3302,17 @@ pentium_invalid_rdmsr:
                     break;
                 /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_rdmsr;
-
                     EAX &= 0xffff0000;
                     EAX |= msr.sysenter_cs;
                     EDX = 0x00000000;
                     break;
                 /* SYSENTER_ESP - SYSENTER target ESP */
                 case 0x175:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_rdmsr;
-
                     EAX = msr.sysenter_esp;
                     EDX = 0x00000000;
                     break;
                 /* SYSENTER_EIP - SYSENTER target EIP */
                 case 0x176:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_rdmsr;
-
                     EAX = msr.sysenter_eip;
                     EDX = 0x00000000;
                     break;
@@ -3475,7 +3468,9 @@ cpu_WRMSR(void)
 
     cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
 
-    switch (cpu_s->cpu_type) {
+    if (CPL)
+        x86gpf(NULL, 0);
+    else  switch (cpu_s->cpu_type) {
         case CPU_IBM386SLC:
         case CPU_IBM486SLC:
         case CPU_IBM486BL:
@@ -3714,7 +3709,7 @@ cpu_WRMSR(void)
                 /* Extended Feature Enable Register */
                 case 0xc0000080:
                     temp = EAX | ((uint64_t) EDX << 32);
-                    if (temp & ~1ULL)
+                    if (temp & ~0x1fULL)
                         x86gpf(NULL, 0);
                     else
                         msr.amd_efer = temp;
@@ -4069,23 +4064,14 @@ pentium_invalid_wrmsr:
                     break;
                 /* SYSENTER_CS - SYSENTER target CS */
                 case 0x174:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_wrmsr;
-
                     msr.sysenter_cs = EAX & 0xFFFF;
                     break;
                 /* SYSENTER_ESP - SYSENTER target ESP */
                 case 0x175:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_wrmsr;
-
                     msr.sysenter_esp = EAX;
                     break;
                 /* SYSENTER_EIP - SYSENTER target EIP */
                 case 0x176:
-                    if (cpu_s->cpu_type == CPU_PENTIUMPRO)
-                        goto i686_invalid_wrmsr;
-
                     msr.sysenter_eip = EAX;
                     break;
                 /* MCG_CAP - Machine Check Global Capability */

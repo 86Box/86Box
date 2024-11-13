@@ -119,7 +119,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
         }
 
         if (midi_out_device_available(c)) {
-            int row = Models::AddEntry(model, name, c);
+            int row = Models::AddEntry(model, tr(name.toUtf8().data()), c);
             if (c == midi_output_device_current) {
                 selectedRow = row - removeRows;
             }
@@ -142,7 +142,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
         }
 
         if (midi_in_device_available(c)) {
-            int row = Models::AddEntry(model, name, c);
+            int row = Models::AddEntry(model, tr(name.toUtf8().data()), c);
             if (c == midi_input_device_current) {
                 selectedRow = row - removeRows;
             }

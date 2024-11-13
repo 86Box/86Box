@@ -136,6 +136,9 @@ hb4_log(const char *fmt, ...)
 #endif
 
 typedef struct hb4_t {
+    uint8_t idx;
+    uint8_t access_data;
+
     uint8_t  pci_slot;
 
     uint8_t  pci_conf[256]; /* PCI Registers */
@@ -176,7 +179,9 @@ hb4_shadow_bios_low(hb4_t *dev)
     int state;
 
     /* Erratum in Vogons' datasheet: Register 55h bit 7 in fact controls E0000-FFFFF. */
-    state = shadow_bios[dev->pci_conf[0x55] >> 6];
+    state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[dev->pci_conf[0x54] & 0x01] :
+                                            MEM_READ_EXTANY;
+    state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
     if (state != dev->mem_state[7]) {
         mem_set_mem_state_both(0xe0000, 0x10000, state);
@@ -194,8 +199,9 @@ hb4_shadow_main(hb4_t *dev)
     int n = 0;
 
     for (uint8_t i = 0; i < 6; i++) {
-        state = shadow_read[(dev->pci_conf[0x54] >> (i + 2)) & 0x01] |
-                shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
+        state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[(dev->pci_conf[0x54] >> (i + 2)) & 0x01] :
+                                                MEM_READ_EXTANY;
+        state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
         if (state != dev->mem_state[i + 1]) {
             n++;
@@ -212,8 +218,9 @@ hb4_shadow_video(hb4_t *dev)
 {
     int state;
 
-    state = shadow_read[(dev->pci_conf[0x54] >> 1) & 0x01] |
-            shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
+    state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[(dev->pci_conf[0x54] >> 1) & 0x01] :
+                                            MEM_READ_EXTANY;
+    state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
     if (state != dev->mem_state[0]) {
         mem_set_mem_state_both(0xc0000, 0x8000, state);
@@ -302,7 +309,7 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             hb4_shadow(dev);
             break;
 
-        case 0x56 ... 0x5b:
+        case 0x56 ... 0x5a:
         case 0x5e ... 0x5f:
             dev->pci_conf[addr] = val;
             break;
@@ -313,8 +320,12 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             hb4_smram(dev);
             break;
 
-        case 0x61 ... 0x62:
+        case 0x61:
             dev->pci_conf[addr] = val;
+            break;
+
+        case 0x62:
+            dev->pci_conf[addr] = val & 0x03;
             break;
 
         default:
@@ -354,14 +365,16 @@ hb4_reset(void *priv)
     dev->pci_conf[0x52] = 0x01;
     dev->pci_conf[0x53] = 0x00;
     dev->pci_conf[0x54] = 0x00;
-    dev->pci_conf[0x55] = 0x00;
-    dev->pci_conf[0x56] = 0x00;
-    dev->pci_conf[0x57] = 0x00;
-    dev->pci_conf[0x58] = 0x00;
-    dev->pci_conf[0x59] = 0x00;
-    dev->pci_conf[0x5a] = 0x04;
+    dev->pci_conf[0x55] = 0x40;
+    dev->pci_conf[0x56] = 0xff;
+    dev->pci_conf[0x57] = 0x0f;
+    dev->pci_conf[0x58] = 0xff;
+    dev->pci_conf[0x59] = 0x0f;
+    dev->pci_conf[0x5a] = 0x00;
+    dev->pci_conf[0x5b] = 0x2c;
     dev->pci_conf[0x5c] = 0x00;
-    dev->pci_conf[0x5d] = 0x20;
+    dev->pci_conf[0x5d] = 0x0f;
+    dev->pci_conf[0x5e] = 0x00;
     dev->pci_conf[0x5f] = 0xff;
     dev->pci_conf[0x60] = 0x00;
     dev->pci_conf[0x61] = 0x00;
@@ -385,6 +398,55 @@ hb4_close(void *priv)
     free(dev);
 }
 
+static void
+ims8848_write(uint16_t addr, uint8_t val, void *priv)
+{
+    hb4_t     *dev = (hb4_t *) priv;
+
+    switch (addr) {
+        case 0x22:
+            dev->idx = val;
+            break;
+        case 0x23:
+            if (((val & 0x0f) == ((dev->idx >> 4) & 0x0f)) && ((val & 0xf0) == ((dev->idx << 4) & 0xf0)))
+                dev->access_data = 1;
+            break;
+        case 0x24:
+            if (dev->access_data)
+                dev->access_data = 0;
+            break;
+
+            default:
+                break;
+    }
+}
+
+static uint8_t
+ims8848_read(uint16_t addr, void *priv)
+{
+    uint8_t    ret = 0xff;
+    hb4_t     *dev = (hb4_t *) priv;
+
+    switch (addr) {
+        case 0x22:
+            ret = dev->idx;
+            break;
+        case 0x23:
+            ret = (dev->idx >> 4) | (dev->idx << 4);
+            break;
+        case 0x24:
+            if (dev->access_data) {
+                ret              = dev->pci_conf[dev->idx];
+                dev->access_data = 0;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 static void *
 hb4_init(UNUSED(const device_t *info))
 {
@@ -401,6 +463,8 @@ hb4_init(UNUSED(const device_t *info))
 
     dev->smram_base = 0x000a0000;
     hb4_reset(dev);
+
+    io_sethandler(0x0022, 0x0003, ims8848_read, NULL, NULL, ims8848_write, NULL, NULL, dev);
 
     return dev;
 }

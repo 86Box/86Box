@@ -296,7 +296,7 @@ machine_at_award_common_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_at_ami_device);
     device_add(&sio_zb_device);
     device_add(&intel_flash_bxt_device);
 }
