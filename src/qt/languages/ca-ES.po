@@ -1774,7 +1774,7 @@ msgid "Bilinear filtering"
 msgstr "Filtratge bilineal"
 
 msgid "Dithering"
-msgstr "Endurir"
+msgstr "Dithering"
 
 msgid "Enable NMI for CGA emulation"
 msgstr "Activar NMI per a emulació CGA"
@@ -1789,7 +1789,7 @@ msgid "Texture memory size"
 msgstr "Grandària de memòria de textura"
 
 msgid "Dither subtraction"
-msgstr "Resta"
+msgstr "Sibtracció de dither"
 
 msgid "Screen Filter"
 msgstr "Filtre de pantalla"
@@ -1831,19 +1831,19 @@ msgid "Always at selected speed"
 msgstr "Sempre a la velocitat seleccionada"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "Configuració de la BIOS + Hotkeys (desactivat durant la publicació)"
+msgstr "Configuració de la BIOS + Hotkeys (desactivat durant el POST)"
 
 msgid "64 kB starting from F0000"
 msgstr "64 kB a partir de F0000"
 
 msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (MSG de adreça invertit, els darrers 64KB primer)"
+msgstr "128 kB a partir de E0000 (MSB de adreça invertit, els darrers 64KB primer)"
 
 msgid "Sine"
-msgstr "Cintra"
+msgstr "Sinusoidal"
 
 msgid "Triangle"
-msgstr "Triangle"
+msgstr "Triangular"
 
 msgid "Linear"
 msgstr "Lineal"
