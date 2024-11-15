@@ -125,7 +125,6 @@ vnc_clientgone(UNUSED(rfbClientPtr cl))
 #if 0
         plat_mouse_capture(0);
 #endif
-        mouse_set_poll_ex(NULL);
 
         plat_pause(1);
     }
@@ -152,7 +151,6 @@ vnc_newclient(rfbClientPtr cl)
 #if 0
         plat_mouse_capture(1);
 #endif
-        mouse_set_poll_ex(vnc_mouse_poll);
 
         plat_pause(0);
     }

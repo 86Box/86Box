@@ -3649,7 +3649,7 @@ static const device_config_t xga_isa_configuration[] = {
     },
     {
         .name = "ext_mem_addr",
-        .description = "MMIO address",
+        .description = "MMIO Address",
         .type = CONFIG_HEX16,
         .default_string = "",
         .default_int = 0x00f0,
@@ -3673,7 +3673,7 @@ static const device_config_t xga_isa_configuration[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 7,
@@ -3714,7 +3714,7 @@ static const device_config_t xga_inmos_isa_configuration[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 7,

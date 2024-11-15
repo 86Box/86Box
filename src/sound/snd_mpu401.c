@@ -1901,7 +1901,7 @@ static const device_config_t mpu401_standalone_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_int = 1
     },
@@ -1949,7 +1949,7 @@ static const device_config_t mpu401_standalone_mca_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_int = 1
     },

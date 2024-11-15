@@ -643,11 +643,11 @@ const device_config_t nga_config[] = {
         .default_int = 64,
         .selection = {
             {
-                .description = "32 KB",
+                .description = "32 kB",
                 .value = 32
             },
             {
-                .description = "64 KB",
+                .description = "64 kB",
                 .value = 64
             },
             {

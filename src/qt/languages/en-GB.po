@@ -26,3 +26,48 @@ msgstr "OpenGL (3.0 Core) renderer could not be initialised. Use another rendere
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behaviour will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Apply fullscreen stretch mode when maximised"
+
+msgid "Render behavior"
+msgstr "Render behaviour"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilise frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "Synchronise with video"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialogue will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Color (generic)"
+msgstr "Colour (generic)"
+
+msgid "Gray Monochrome"
+msgstr "Grey Monochrome"
+
+msgid "Color (no brown)"
+msgstr "Colour (no brown)"
+
+msgid "Color (IBM 5153)"
+msgstr "Colour (IBM 5153)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "Colour 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "Colour 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "Enhanced Colour - Normal Mode (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "Enhanced Colour - Enhanced Mode (5154/ECD)"
+
+msgid "Gray"
+msgstr "Grey"
+
+msgid "Color"
+msgstr "Colour"
