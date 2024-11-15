@@ -234,7 +234,7 @@ static const device_config_t system_midi_config[] = {
   // clang-format off
     {
         .name = "midi",
-        .description = "MIDI out device",
+        .description = "MIDI Output Device",
         .type = CONFIG_MIDI_OUT,
         .default_string = "",
         .default_int = 0
@@ -247,7 +247,7 @@ static const device_config_t midi_input_config[] = {
   // clang-format off
     {
         .name = "midi_input",
-        .description = "MIDI in device",
+        .description = "MIDI Input Device",
         .type = CONFIG_MIDI_IN,
         .default_string = "",
         .default_int = 0

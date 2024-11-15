@@ -396,7 +396,7 @@ main(int argc, char *argv[])
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 5)
+        if (vid_api == 5)
             plat_pause(1);
         else
 #endif

@@ -442,7 +442,6 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             xga_log("Reg51 write = %02x.\n", val);
             xga->disp_cntl_2 = val;
             xga->on          = ((val & 7) >= 2);
-            vga_on           = !xga->on;
             svga_recalctimings(svga);
             break;
 
@@ -2661,22 +2660,18 @@ xga_write_test(uint32_t addr, uint8_t val, void *priv)
                     xga->a5_test = 2;
 
                 xga->on = 0;
-                vga_on = 1;
                 xga_log("XGA test1 addr=%05x, test=%02x.\n", addr, xga->a5_test);
             } else if (val == 0x5a) {
                 xga->test = val;
                 xga->on = 0;
-                vga_on = 1;
                 xga_log("XGA test2 addr = %05x.\n", addr);
             } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
                 addr += xga->write_bank;
                 xga->vram[addr & xga->vram_mask] = val;
                 xga_log("XGA Linear endian reverse write, val = %02x, addr = %05x, banked mask = %04x, a5test=%d.\n", val, addr, svga->banked_mask, xga->a5_test);
             }
-        } else if (xga->aperture_cntl) {
+        } else if (xga->aperture_cntl)
             xga->on = 0;
-            vga_on = 1;
-        }
     }
 }
 
@@ -2763,7 +2758,6 @@ xga_read_test(uint32_t addr, void *priv)
                 if (addr == 0xa0001) {
                     ret = xga->test;
                     xga->on = 1;
-                    vga_on = 0;
                 } else if ((addr == 0xa0000) && (xga->a5_test == 1)) { /*This is required by XGAKIT to pass the memory test*/
                     xga_log("A5 test bank = %x.\n", addr);
                     addr += xga->read_bank;
@@ -2771,14 +2765,12 @@ xga_read_test(uint32_t addr, void *priv)
                 } else {
                     ret = xga->test;
                     xga->on = 1;
-                    vga_on = 0;
                 }
                 xga_log("A5 read: XGA ON = %d, addr = %05x, ret = %02x, test1 = %x.\n", xga->on, addr, ret, xga->a5_test);
                 return ret;
             } else if (xga->test == 0x5a) {
                 ret = xga->test;
                 xga->on = 1;
-                vga_on = 0;
                 xga_log("5A read: XGA ON = %d.\n", xga->on);
                 return ret;
             } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
@@ -2787,7 +2779,6 @@ xga_read_test(uint32_t addr, void *priv)
             }
         } else if (xga->aperture_cntl) {
             xga->on = 0;
-            vga_on = 1;
         }
     }
     return ret;
@@ -3041,7 +3032,6 @@ xga_poll(void *priv)
             if (xga->hwcursor_on)
                 xga->changedvram[xga->ma >> 12] = xga->changedvram[(xga->ma >> 12) + 1] = xga->interlace ? 3 : 2;
 
-            xga_log("DISPCNTL = %d, vga = %d.\n", xga->disp_cntl_2 & 7, vga_on);
             switch (xga->disp_cntl_2 & 7) {
                 case 2:
                     xga_render_4bpp(svga);
@@ -3202,7 +3192,6 @@ xga_mca_write(int port, uint8_t val, void *priv)
     io_removehandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
     mem_mapping_disable(&xga->memio_mapping);
     xga->on                    = 0;
-    vga_on                     = 1;
     xga->a5_test               = 0;
 
     /* Save the MCA register value. */
@@ -3260,7 +3249,6 @@ xga_reset(void *priv)
         mem_mapping_disable(&xga->memio_mapping);
 
     xga->on                    = 0;
-    vga_on                     = 1;
     xga->a5_test               = 0;
     mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
 }
@@ -3661,7 +3649,7 @@ static const device_config_t xga_isa_configuration[] = {
     },
     {
         .name = "ext_mem_addr",
-        .description = "MMIO address",
+        .description = "MMIO Address",
         .type = CONFIG_HEX16,
         .default_string = "",
         .default_int = 0x00f0,
@@ -3685,7 +3673,7 @@ static const device_config_t xga_isa_configuration[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 7,
@@ -3726,7 +3714,7 @@ static const device_config_t xga_inmos_isa_configuration[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 7,

@@ -389,7 +389,7 @@ static const device_config_t ps2_config[] = {
 };
 
 const device_t mouse_ps2_device = {
-    .name          = "Standard PS/2 Mouse",
+    .name          = "PS/2 Mouse",
     .internal_name = "ps2",
     .flags         = DEVICE_PS2,
     .local         = MOUSE_TYPE_PS2,
