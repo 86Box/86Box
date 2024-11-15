@@ -3220,7 +3220,7 @@ static const device_config_t banshee_sgram_config[] = {
 #ifndef NO_CODEGEN
     {
         .name = "recompiler",
-        .description = "Recompiler",
+        .description = "Dynamic Recompiler",
         .type = CONFIG_BINARY,
         .default_int = 1
     },
@@ -3275,7 +3275,7 @@ static const device_config_t banshee_sgram_16mbonly_config[] = {
 #ifndef NO_CODEGEN
     {
         .name = "recompiler",
-        .description = "Recompiler",
+        .description = "Dynamic Recompiler",
         .type = CONFIG_BINARY,
         .default_int = 1
     },
@@ -3330,7 +3330,7 @@ static const device_config_t banshee_sdram_config[] = {
 #ifndef NO_CODEGEN
     {
         .name = "recompiler",
-        .description = "Recompiler",
+        .description = "Dynamic Recompiler",
         .type = CONFIG_BINARY,
         .default_int = 1
     },

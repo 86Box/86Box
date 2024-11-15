@@ -954,11 +954,11 @@ static const device_config_t et4000_tc6058af_config[] = {
         .default_int = 512,
         .selection = {
             {
-                .description = "256 KB",
+                .description = "256 kB",
                 .value = 256
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -972,7 +972,7 @@ static const device_config_t et4000_tc6058af_config[] = {
     },
     {
         .name = "bios_ver",
-        .description = "BIOS Version",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "v1_10",
         .default_int = 0,
@@ -1009,11 +1009,11 @@ static const device_config_t et4000_bios_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "256 KB",
+                .description = "256 kB",
                 .value = 256
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -1027,7 +1027,7 @@ static const device_config_t et4000_bios_config[] = {
     },
     {
         .name = "bios_ver",
-        .description = "BIOS Version",
+        .description = "BIOS Revision",
         .type = CONFIG_BIOS,
         .default_string = "v8_01",
         .default_int = 0,
@@ -1058,11 +1058,11 @@ static const device_config_t et4000_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "256 KB",
+                .description = "256 kB",
                 .value = 256
             },
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {

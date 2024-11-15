@@ -1916,7 +1916,7 @@ victor_v86p_available(void)
 static const device_config_t dtc_config[] = {
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,
@@ -1967,7 +1967,7 @@ static const device_config_t st11_config[] = {
     },
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,
@@ -1984,15 +1984,15 @@ static const device_config_t st11_config[] = {
     },
     {
         .name = "revision",
-        .description = "Board Revision",
+        .description = "BIOS Revision",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 19,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Rev. 05 (v1.7)", .value =  5 },
-            { .description = "Rev. 19 (v2.0)", .value = 19 },
+            { .description = "v1.7", .value =  5 },
+            { .description = "v2.0", .value = 19 },
             { .description = ""                            }
         }
     },
@@ -2002,7 +2002,7 @@ static const device_config_t st11_config[] = {
 static const device_config_t wd_config[] = {
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,
@@ -2080,7 +2080,7 @@ static const device_config_t wd_nobios_config[] = {
 static const device_config_t wd_rll_config[] = {
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,
@@ -2140,7 +2140,7 @@ static const device_config_t wd_rll_config[] = {
 static const device_config_t wd1004a_config[] = {
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,
@@ -2186,7 +2186,7 @@ static const device_config_t wd1004a_config[] = {
 static const device_config_t wd1004_rll_config[] = {
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xc8000,

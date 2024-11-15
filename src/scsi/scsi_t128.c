@@ -573,7 +573,7 @@ static const device_config_t t128_config[] = {
     },
     {
         .name = "boot",
-        .description = "Enable Boot ROM",
+        .description = "Enable BIOS",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1

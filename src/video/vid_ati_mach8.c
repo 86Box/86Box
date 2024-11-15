@@ -56,19 +56,17 @@ static video_timings_t timing_mach32_pci   = { .type = VIDEO_PCI, .write_b = 2, 
 
 static void     mach_accel_outb(uint16_t port, uint8_t val, void *priv);
 static void     mach_accel_outw(uint16_t port, uint16_t val, void *priv);
+static void     mach_accel_outl(uint16_t port, uint32_t val, void *priv);
 static uint8_t  mach_accel_inb(uint16_t port, void *priv);
 static uint16_t mach_accel_inw(uint16_t port, void *priv);
-static uint8_t  mach_in(uint16_t addr, void *priv);
+static uint32_t mach_accel_inl(uint16_t port, void *priv);
 
-#ifdef ATI_8514_ULTRA
 static void     ati8514_accel_outb(uint16_t port, uint8_t val, void *priv);
 static void     ati8514_accel_outw(uint16_t port, uint16_t val, void *priv);
 static void     ati8514_accel_outl(uint16_t port, uint32_t val, void *priv);
 static uint8_t  ati8514_accel_inb(uint16_t port, void *priv);
 static uint16_t ati8514_accel_inw(uint16_t port, void *priv);
 static uint32_t ati8514_accel_inl(uint16_t port, void *priv);
-#endif
-
 
 static void mach32_updatemapping(mach_t *mach, svga_t *svga);
 
@@ -1254,10 +1252,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 
                 if ((mono_src == 2) || (bkgd_sel == 2) || (frgd_sel == 2) || mach_pixel_read(mach)) {
                     if (mach_pixel_write(mach)) {
+                        mach_log("Write PIXTRANS.\n");
                         dev->data_available  = 0;
                         dev->data_available2 = 0;
                         return;
                     } else if (mach_pixel_read(mach)) {
+                        mach_log("Read PIXTRANS.\n");
                         dev->data_available  = 1;
                         dev->data_available2 = 1;
                         return;
@@ -2484,14 +2484,9 @@ mach_in(uint16_t addr, void *priv)
     return temp;
 }
 
-
-#ifdef ATI_8514_ULTRA
 void
 ati8514_out(uint16_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *)priv;
-    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
-
     mach_log("[%04X:%08X]: ADDON OUT addr=%03x, val=%02x.\n", CS, cpu_state.pc, addr, val);
 
     svga_out(addr, val, priv);
@@ -2500,8 +2495,6 @@ ati8514_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 ati8514_in(uint16_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *)priv;
-    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
     uint8_t temp = 0xff;
 
     temp = svga_in(addr, priv);
@@ -2526,15 +2519,20 @@ ati8514_recalctimings(svga_t *svga)
         dev->accel.ge_offset            = (mach->accel.ge_offset_lo | (mach->accel.ge_offset_hi << 16));
         mach->accel.ge_offset           = dev->accel.ge_offset;
 
-        mach_log("HDISP=%d, VDISP=%d, shadowset=%x, 8514/A mode=%x, clocksel=%02x.\n", dev->hdisp, dev->vdisp, mach->shadow_set & 0x03, dev->accel.advfunc_cntl & 0x04, mach->accel.clock_sel & 0xfe);
+        mach_log("HDISP=%d, VDISP=%d, shadowset=%x, 8514/A mode=%x, clocksel=%02x.\n", dev->hdisp, dev->vdisp, mach->shadow_set & 0x03, dev->accel.advfunc_cntl & 0x05, mach->accel.clock_sel & 0x01);
 
         if (mach->accel.clock_sel & 0x01) {
             dev->h_disp = dev->hdisp;
             dev->dispend = dev->vdisp;
         } else {
             if (dev->accel.advfunc_cntl & 0x04) {
-                dev->h_disp = dev->hdisp;
-                dev->dispend = dev->vdisp;
+                if (dev->hdisp == 640) {
+                    dev->h_disp = 1024;
+                    dev->dispend = 768;
+                } else {
+                    dev->h_disp = dev->hdisp;
+                    dev->dispend = dev->vdisp;
+                }
             } else {
                 dev->h_disp = 640;
                 dev->dispend = 480;
@@ -2563,7 +2561,6 @@ ati8514_recalctimings(svga_t *svga)
         svga->render8514 = ibm8514_render_8bpp;
     }
 }
-#endif
 
 static void
 mach_recalctimings(svga_t *svga)
@@ -2803,14 +2800,18 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x86e8:
         case 0xc2e8:
         case 0xc6e8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             break;
         case 0xf6ee:
-            ibm8514_accel_out_fifo(svga, 0x82e8, val, len);
+            dev->ext_fifo_idx++;
+            if (len == 2)
+                dev->accel.cur_y = val & 0x7ff;
             break;
 
         case 0x8ae8:
         case 0xcae8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             if (len == 2) {
                 mach_log("SRCY=%d.\n", val & 0x07ff);
@@ -2820,6 +2821,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0x8ee8:
         case 0xcee8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             if (len == 2) {
                 mach_log("SRCX=%d.\n", val & 0x07ff);
@@ -2829,11 +2831,13 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0x92e8:
         case 0xd2e8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             break;
 
         case 0x96e8:
         case 0xd6e8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             if (len == 2)
                 mach->accel.test = val & 0x1fff;
@@ -2841,17 +2845,21 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0x9ae8:
         case 0xdae8:
+            dev->ext_fifo_idx++;
             mach->accel.cmd_type = -1;
             ibm8514_accel_out_fifo(svga, port, val, len);
             break;
 
         case 0x9ee8:
         case 0xdee8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             break;
 
         case 0xa2e8:
         case 0xe2e8:
+            dev->ext_fifo_idx++;
+            dev->fifo_idx++;
             if (port == 0xe2e8) {
                 if (len == 2) {
                     if (dev->accel.cmd_back) {
@@ -2883,6 +2891,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0xa6e8:
         case 0xe6e8:
+            dev->ext_fifo_idx++;
+            dev->fifo_idx++;
             if (port == 0xe6e8) {
                 if (len == 2) {
                     if (dev->accel.cmd_back)
@@ -2913,6 +2923,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0xe2e9:
         case 0xe6e9:
+            dev->ext_fifo_idx++;
+            dev->fifo_idx++;
             mach_log("Write PORT=%04x, 8514/A=%x, val=%04x, len=%d.\n", port, dev->accel.cmd_back, val, len);
             if (len == 1) {
                 if (mach->accel.cmd_type >= 0) {
@@ -2964,11 +2976,13 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0xf2e8:
         case 0xf6e8:
         case 0xfae8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             break;
 
         case 0xbee8:
         case 0xfee8:
+            dev->ext_fifo_idx++;
             ibm8514_accel_out_fifo(svga, port, val, len);
             if (len == 2) {
                 if ((dev->accel.multifunc_cntl >> 12) == 5) {
@@ -2980,6 +2994,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
             /*ATI Mach8/32 specific registers*/
         case 0x82ee:
+            dev->ext_fifo_idx++;
             mach->accel.patt_data_idx_reg = val & 0x1f;
             mach->accel.patt_data_idx = mach->accel.patt_data_idx_reg;
 
@@ -2992,6 +3007,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0x8eee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 if (mach->accel.patt_data_idx_reg < 0x10) {
                     mach->accel.color_pattern[mach->accel.patt_data_idx] = val & 0xff;
@@ -3007,6 +3023,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0x96ee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 mach->accel.bres_count = val & 0x7ff;
                 mach_log("BresenhamDraw=%04x.\n", mach->accel.dp_config);
@@ -3026,10 +3043,12 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0x9aee:
+            dev->ext_fifo_idx++;
             mach->accel.line_idx = val & 0x07;
             break;
 
         case 0xa2ee:
+            dev->ext_fifo_idx++;
             mach_log("Line OPT=%04x.\n", val);
             if (len == 2) {
                 mach->accel.linedraw_opt = val;
@@ -3047,16 +3066,19 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xa6ee:
+            dev->ext_fifo_idx++;
             if (len == 2)
                 mach->accel.dest_x_start = val & 0x7ff;
             break;
 
         case 0xaaee:
+            dev->ext_fifo_idx++;
             if (len == 2)
                 mach->accel.dest_x_end = val & 0x7ff;
             break;
 
         case 0xaeee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 mach->accel.dest_y_end = val & 0x7ff;
                 if ((val + 1) == 0x10000) {
@@ -3082,28 +3104,34 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xb2ee:
+            dev->ext_fifo_idx++;
             if (len == 2)
                 mach->accel.src_x_start = val & 0x7ff;
             break;
 
         case 0xb6ee:
-            ibm8514_accel_out_fifo(svga, 0xb6e8, val, len);
+            dev->ext_fifo_idx++;
+            dev->accel.bkgd_mix = val & 0xff;
             break;
 
         case 0xbaee:
-            ibm8514_accel_out_fifo(svga, 0xbae8, val, len);
+            dev->ext_fifo_idx++;
+            dev->accel.frgd_mix = val & 0xff;
             break;
 
         case 0xbeee:
+            dev->ext_fifo_idx++;
             if (len == 2)
                 mach->accel.src_x_end = val & 0x7ff;
             break;
 
         case 0xc2ee:
+            dev->ext_fifo_idx++;
             mach->accel.src_y_dir = val & 1;
             break;
 
         case 0xc6ee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 mach->accel.cmd_type = 0;
                 mach_log("TODO: Short Stroke.\n");
@@ -3118,6 +3146,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xcaee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 mach->accel.scan_to_x = (val & 0x7ff);
                 if ((val + 1) == 0x10000) {
@@ -3143,6 +3172,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xceee:
+            dev->ext_fifo_idx++;
             mach_log("CEEE write val = %04x.\n", val);
             if (len == 2) {
                 dev->data_available  = 0;
@@ -3152,6 +3182,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xd2ee:
+            dev->ext_fifo_idx++;
             mach->accel.patt_len = val & 0x1f;
             mach_log("Write Port d2ee: Pattern Length=%d, val=%04x.\n", val & 0x1f, val);
             mach->accel.mono_pattern_enable = !!(val & 0x80);
@@ -3162,11 +3193,13 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xd6ee:
+            dev->ext_fifo_idx++;
             mach->accel.patt_idx = val & 0x1f;
             mach_log("Write Port d6ee: Pattern Index=%d.\n", val & 0x1f);
             break;
 
         case 0xdaee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 dev->accel.multifunc[2] = val & 0x7ff;
                 dev->accel.clip_left = dev->accel.multifunc[2];
@@ -3177,6 +3210,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xdeee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 dev->accel.multifunc[1] = val & 0x7ff;
                 dev->accel.clip_top = dev->accel.multifunc[1];
@@ -3188,6 +3222,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xe2ee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 dev->accel.multifunc[4] = val & 0x7ff;
                 dev->accel.clip_right = dev->accel.multifunc[4];
@@ -3198,6 +3233,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xe6ee:
+            dev->ext_fifo_idx++;
             if (len == 2) {
                 dev->accel.multifunc[3] = val & 0x7ff;
                 dev->accel.clip_bottom = dev->accel.multifunc[3];
@@ -3208,17 +3244,20 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xeeee:
+            dev->ext_fifo_idx++;
             if (len == 2)
                 mach->accel.dest_cmp_fn = val;
             break;
 
         case 0xf2ee:
+            dev->ext_fifo_idx++;
             mach_log("F2EE.\n");
             if (len == 2)
                 mach->accel.dst_clr_cmp_mask = val;
             break;
 
         case 0xfeee:
+            dev->ext_fifo_idx++;
             mach_log("LineDraw=%04x.\n", mach->accel.dp_config);
             if (len == 2) {
                 mach->accel.line_array[mach->accel.line_idx] = val;
@@ -3263,8 +3302,14 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
         case 0x1ee8:
         case 0x1ee9:
         case 0x42e8:
+            ibm8514_accel_out(port, val, svga, 2);
+            break;
         case 0x42e9:
             ibm8514_accel_out(port, val, svga, 2);
+            if ((val & 0xc0) == 0xc0) {
+                dev->ext_fifo_idx = 0;
+                mach->force_busy = 0;
+            }
             break;
 
         case 0x6e8:
@@ -3443,11 +3488,13 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                 else
                     dev->ext_crt_pitch <<= 1;
             }
-            dev->on |= 0x01;
-            dev->vendor_mode = 1;
+            if ((dev->local & 0xff) >= 0x02) {
+                dev->on |= 0x01;
+                dev->vendor_mode = 1;
+            }
             svga_recalctimings(svga);
             mach32_updatemapping(mach, svga);
-            mach_log("ATI 8514/A: (0x%04x) val=0x%02x.\n", port, val);
+            mach_log("ATI 8514/A: (0x%04x) val=0x%02x, extended 8514/A mode=%02x.\n", port, val, mach->regs[0xb0] & 0x20);
             break;
 
         case 0x32ee:
@@ -3459,8 +3506,10 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
         case 0x36ee:
         case 0x36ef:
             mach_log("ATI 8514/A: (0x%04x) val = %04x.\n", port, val);
-            WRITE8(port, mach->misc, val);
-            mach->misc &= 0xfff0;
+            if ((dev->local & 0xff) >= 0x02) {
+                WRITE8(port, mach->misc, val);
+                mach->misc &= 0xfff0;
+            }
             break;
 
         case 0x3aee:
@@ -3599,17 +3648,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                 svga_set_ramdac_type(svga, !!(mach->accel.ext_ge_config & 0x4000));
                 mach_log("ATI 8514/A: (0x%04x) val=%02x.\n", port, val);
                 svga_recalctimings(svga);
-            } else {
-                mach_log("ATI 8514/A: (0x%04x) val=%02x.\n", port, val & 0x30);
+            } else
                 ati_eeprom_write(&mach->eeprom, !!(mach->accel.ext_ge_config & 0x4000), !!(mach->accel.ext_ge_config & 0x2000), !!(mach->accel.ext_ge_config & 0x1000));
-            }
-            break;
-
-        case 0x7eee:
-        case 0x7eef:
-            WRITE8(port, mach->accel.eeprom_control, val);
-            ati_eeprom_write(&mach->eeprom, !!(mach->accel.eeprom_control & 8), !!(mach->accel.eeprom_control & 2), !!(mach->accel.eeprom_control & 1));
-            mach_log("ATI 8514/A: (0x%04x) val=%02x.\n", port, val);
             break;
 
         default:
@@ -3631,7 +3671,7 @@ static uint16_t
 mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, int len)
 {
     const uint16_t *vram_w = (uint16_t *) dev->vram;
-    uint16_t        temp = 0;
+    uint16_t        temp = 0x0000;
     int             cmd;
     int             frgd_sel;
     int             bkgd_sel;
@@ -3649,6 +3689,11 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
 
         case 0x9ae8:
         case 0xdae8:
+            if ((dev->fifo_idx >= 1) && (dev->fifo_idx <= 8)) {
+                temp |= (1 << (dev->fifo_idx - 1));
+                dev->fifo_idx = 0;
+            }
+
             if (len == 2) {
                 if (dev->force_busy)
                     temp |= 0x200; /*Hardware busy*/
@@ -3672,8 +3717,19 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                                 break;
                         }
                     } else {
-                        if (dev->accel.sy < 0)
-                            dev->data_available = 0;
+                        switch (dev->accel.cmd >> 13) {
+                            case 2:
+                            case 3:
+                            case 4:
+                            case 6:
+                                if (dev->accel.sy < 0)
+                                    dev->data_available = 0;
+                                break;
+                            default:
+                                if (!dev->accel.sy)
+                                    dev->data_available = 0;
+                                break;
+                        }
                     }
                 }
             }
@@ -3846,6 +3902,15 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                 temp = mach->accel.test >> 8;
             break;
 
+        case 0x9aee:
+            if (len == 2) {
+                if ((dev->ext_fifo_idx >= 1) && (dev->ext_fifo_idx <= 16)) {
+                    temp |= (1 << (dev->ext_fifo_idx - 1));
+                    dev->ext_fifo_idx = 0;
+                }
+            }
+            break;
+
         case 0xa2ee:
             if (len == 1)
                 temp = mach->accel.linedraw_opt & 0xff;
@@ -3991,8 +4056,7 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
             break;
     }
 
-    if (port != 0x9aee && port != 0x62ee)
-        mach_log("[%04X:%08X]: Port FIFO IN=%04x, temp=%04x, len=%d.\n", CS, cpu_state.pc, port, temp, len);
+    mach_log("[%04X:%08X]: Port FIFO IN=%04x, temp=%04x, len=%d.\n", CS, cpu_state.pc, port, temp, len);
 
     return temp;
 }
@@ -4023,7 +4087,7 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         case 0x42e8:
         case 0x42e9:
             if (dev->vc == dev->v_syncstart)
-                dev->subsys_stat |= 0x01;
+                temp |= 0x01;
 
             if (mach->accel.cmd_type == -1) {
                 if (cmd == 6) {
@@ -4031,13 +4095,13 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
                         (dev->accel.dx <= clip_r_ibm) &&
                         (dev->accel.dy >= clip_t) &&
                         (dev->accel.dy <= clip_b_ibm))
-                        dev->subsys_stat |= 0x02;
+                        temp |= 0x02;
                 } else {
                     if ((dev->accel.cx >= clip_l) &&
                         (dev->accel.cx <= clip_r_ibm) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b_ibm))
-                        dev->subsys_stat |= 0x02;
+                        temp |= 0x02;
                 }
             } else {
                 switch (mach->accel.cmd_type) {
@@ -4048,25 +4112,29 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
                             (dev->accel.dx <= clip_r) &&
                             (dev->accel.dy >= clip_t) &&
                             (dev->accel.dy <= clip_b))
-                            dev->subsys_stat |= 0x02;
+                            temp |= 0x02;
                         break;
                     case 3:
                     case 4:
-                    if ((dev->accel.cx >= clip_l) &&
-                        (dev->accel.cx <= clip_r) &&
-                        (dev->accel.cy >= clip_t) &&
-                        (dev->accel.cy <= clip_b))
-                            dev->subsys_stat |= 0x02;
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b))
+                            temp |= 0x02;
                         break;
                     default:
                         break;
                 }
             }
 
+            if ((!dev->fifo_idx || !dev->ext_fifo_idx)) {
+                if ((!dev->force_busy && !dev->force_busy2) || !mach->force_busy)
+                    temp |= 0x08;
+            }
             if (port & 1)
                 temp = dev->vram_512k_8514 ? 0x00 : 0x80;
             else {
-                temp |= (dev->subsys_stat | 0x80);
+                temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
                 if (mach->accel.ext_ge_config & 0x08)
                     temp |= ((mach->accel.ext_ge_config & 0x07) << 4);
                 else
@@ -4103,23 +4171,25 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
 
         case 0x36ee:
         case 0x36ef:
-            READ8(port, mach->misc);
+            if ((dev->local & 0xff) >= 0x02) {
+                READ8(port, mach->misc);
 
-            if (!(port & 1)) {
-                temp &= ~0x0c;
-                switch (dev->vram_amount) {
-                    case 1024:
-                        temp |= 0x04;
-                        break;
-                    case 2048:
-                        temp |= 0x08;
-                        break;
-                    case 4096:
-                        temp |= 0x0c;
-                        break;
+                if (!(port & 1)) {
+                    temp &= ~0x0c;
+                    switch (dev->vram_amount) {
+                        case 1024:
+                            temp |= 0x04;
+                            break;
+                        case 2048:
+                            temp |= 0x08;
+                            break;
+                        case 4096:
+                            temp |= 0x0c;
+                            break;
 
-                    default:
-                        break;
+                        default:
+                            break;
+                    }
                 }
             }
             break;
@@ -4142,16 +4212,13 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         case 0x52ee:
         case 0x52ef:
             READ8(port, mach->accel.scratch0);
-#ifdef ATI_8514_ULTRA
-            if (dev->extensions && ((dev->local & 0xff) == 0x00)) {
-                if (mach->mca_bus) {
+            if (mach->mca_bus) {
+                if (svga->ext8514 != NULL) {
+                    temp = (((dev->bios_rom.mapping.base >> 7) - 0x1000) >> 4);
                     if (port & 1)
-                        temp = dev->pos_regs[5];
-                    else
-                        temp = dev->pos_regs[4];
+                        temp |= 0x01;
                 }
             }
-#endif
             break;
 
         case 0x56ee:
@@ -4210,13 +4277,11 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         default:
             break;
     }
-    if (port != 0x42e8 && port != 0x42e9 && port != 0x62ee && port != 0x62ef && port != 0x02e8 && port != 0x02e9)
-        mach_log("[%04X:%08X]: Port NORMAL IN=%04x, temp=%04x.\n", CS, cpu_state.pc, port, temp);
+    mach_log("[%04X:%08X]: Port NORMAL IN=%04x, temp=%04x.\n", CS, cpu_state.pc, port, temp);
 
     return temp;
 }
 
-#ifdef ATI_8514_ULTRA
 static void
 ati8514_accel_out(uint16_t port, uint8_t val, svga_t *svga)
 {
@@ -4267,7 +4332,6 @@ ati8514_accel_outl(uint16_t port, uint32_t val, void *priv)
         ati8514_accel_out(port + 3, (val >> 24), svga);
     }
 }
-#endif
 
 static void
 mach_accel_outb(uint16_t port, uint8_t val, void *priv)
@@ -4312,7 +4376,6 @@ mach_accel_outl(uint16_t port, uint32_t val, void *priv)
     }
 }
 
-#ifdef ATI_8514_ULTRA
 static uint8_t
 ati8514_accel_in(uint16_t port, svga_t *svga)
 {
@@ -4368,7 +4431,6 @@ ati8514_accel_inl(uint16_t port, void *priv)
     }
     return temp;
 }
-#endif
 
 static uint8_t
 mach_accel_in(uint16_t port, mach_t *mach)
@@ -5316,10 +5378,10 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
         dev->hwcursor_latch.addr += 16;
 }
 
-#ifdef ATI_8514_ULTRA
 static void
 ati8514_io_set(svga_t *svga)
 {
+    io_sethandler(0x2e8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0x6e8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0xae8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0xee8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
@@ -5430,7 +5492,6 @@ ati8514_io_set(svga_t *svga)
     io_sethandler(0xf6ee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0xfeee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
 }
-#endif
 
 static void
 mach_io_remove(mach_t *mach)
@@ -5447,7 +5508,6 @@ mach_io_remove(mach_t *mach)
     io_removehandler(0x26e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_removehandler(0x2ee8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_removehandler(0x42e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
-    io_removehandler(0x46e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_removehandler(0x4ae8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_removehandler(0x52e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_removehandler(0x56e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
@@ -5564,7 +5624,6 @@ mach_io_set(mach_t *mach)
     io_sethandler(0x26e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x2ee8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x42e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
-    io_sethandler(0x46e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x4ae8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x52e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x56e8, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
@@ -5715,7 +5774,6 @@ mach_mca_reset(void *priv)
     timer_set_callback(&svga->timer, svga_poll);
 }
 
-#ifdef ATI_8514_ULTRA
 uint8_t
 ati8514_mca_read(int port, void *priv)
 {
@@ -5747,7 +5805,6 @@ ati8514_pos_write(uint16_t port, uint8_t val, void *priv)
 {
     ati8514_mca_write(port, val, priv);
 }
-#endif
 
 static uint8_t
 mach32_pci_read(UNUSED(int func), int addr, void *priv)
@@ -6031,10 +6088,10 @@ mach8_init(const device_t *info)
     io_sethandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
     io_sethandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
     mach_io_set(mach);
+    mach->accel.cmd_type = -2;
 
     if ((dev->local & 0xff) >= 0x02) {
         svga->decode_mask     = (4 << 20) - 1;
-        mach->accel.cmd_type  = -1;
         mach->cursor_col_1    = 0xff;
         mach->ext_cur_col_1_r = 0xff;
         mach->ext_cur_col_1_g = 0xff;
@@ -6055,19 +6112,18 @@ mach8_init(const device_t *info)
             } else
                 pci_add_card(PCI_ADD_VIDEO, mach32_pci_read, mach32_pci_write, mach, &mach->pci_slot);
 
-            mach->pci_regs[PCI_REG_COMMAND] = 0x83;
+            mach->pci_regs[PCI_REG_COMMAND] = 0x87;
             mach->pci_regs[0x30]            = 0x00;
             mach->pci_regs[0x32]            = 0x0c;
             mach->pci_regs[0x33]            = 0x00;
         } else
             ati_eeprom_load(&mach->eeprom, "mach32.nvr", 1);
     } else
-        ati_eeprom_load_mach8(&mach->eeprom, "mach8.nvr");
+        ati_eeprom_load_mach8_vga(&mach->eeprom, "mach8.nvr");
 
     return mach;
 }
 
-#ifdef ATI_8514_ULTRA
 void
 ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
 {
@@ -6086,7 +6142,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     ati8514_io_set(svga);
     mach->mca_bus = !!(dev->type & DEVICE_MCA);
 
-    mach->config1 = 0x01 | 0x02 | 0x08 | 0x80;
+    mach->config1 = 0x02 | 0x08 | 0x80;
 
     if (mach->mca_bus)
         mach->config1 |= 0x04;
@@ -6096,7 +6152,6 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
 
     mach->config2 = 0x02;
 }
-#endif
 
 static int
 mach8_vga_available(void)
@@ -6173,7 +6228,7 @@ static const device_config_t mach8_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -6199,7 +6254,7 @@ static const device_config_t mach32_config[] = {
         .default_int = 2048,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {
@@ -6252,7 +6307,7 @@ static const device_config_t mach32_pci_config[] = {
         .default_int = 2048,
         .selection = {
             {
-                .description = "512 KB",
+                .description = "512 kB",
                 .value = 512
             },
             {

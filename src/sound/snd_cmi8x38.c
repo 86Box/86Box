@@ -1510,7 +1510,7 @@ static const device_config_t cmi8x38_config[] = {
   // clang-format off
     {
         .name = "receive_input",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -1530,7 +1530,7 @@ static const device_config_t cmi8738_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1

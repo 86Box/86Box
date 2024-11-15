@@ -312,7 +312,6 @@ extern void     ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint32_t
 extern void     ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
 extern void     ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
-#ifdef ATI_8514_ULTRA
 extern void     ati8514_out(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t  ati8514_in(uint16_t addr, void *priv);
 extern void     ati8514_recalctimings(svga_t *svga);
@@ -320,7 +319,6 @@ extern uint8_t  ati8514_mca_read(int port, void *priv);
 extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
 extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
 extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
-#endif
 
 extern void xga_write_test(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t xga_read_test(uint32_t addr, void *priv);
