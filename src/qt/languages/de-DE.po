@@ -1189,7 +1189,7 @@ msgid "Failed to initialize network driver"
 msgstr "Netzwerktreiber konnte nicht initialisiert werden"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "Die Netzwerkkonfiguration wird auf den Nulltreiber (Packete werden vom Host gelöscht) umgestellt"
+msgstr "Die Netzwerkkonfiguration wird auf den Nulltreiber umgestellt"
 
 msgid "Mouse sensitivity:"
 msgstr "Empfindlichkeit der Maus:"
@@ -1237,10 +1237,10 @@ msgid "MCA devices"
 msgstr "MCA-Geräte"
 
 msgid "List of MCA devices:"
-msgstr "Leiste die MCA-Geräte:"
+msgstr "Liste die MCA-Geräte:"
 
 msgid "Tablet tool"
-msgstr "Nástroj pro tablety"
+msgstr "Tablet-Werkzeug"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
@@ -1288,7 +1288,7 @@ msgid "Unknown Bus"
 msgstr "Unbekannter Bus"
 
 msgid "Null Driver"
-msgstr "Nulltreiber (Packete werden vom Host gelöscht)"
+msgstr "Nulltreiber"
 
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
@@ -1321,7 +1321,7 @@ msgid "VSync"
 msgstr "VSync"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Rendern Sie jedes Bild sofort, synchron mit der emulierten Monitor.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Dies ist die empfohlene Option, wenn die verwendeten Shader die Bildzeit für animierte Effekte nicht nutzen.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Jedes Bild sofort rendern, synchron mit der emulierten Monitor.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Dies ist die empfohlene Option, wenn die verwendeten Shader die Bildzeit für animierte Effekte nicht nutzen.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "Synchronize with video"
 msgstr "Mit Videoausgabe synchronisieren"
@@ -1366,19 +1366,19 @@ msgid "Falling back to software rendering.\n"
 msgstr "Rückgriff auf Software-Rendering.\n"
 
 msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Die Zuweisung von Speicher für den Entpackungspuffer ist fehlgeschlagen.\n"
+msgstr "Nicht genug Speicher zum Entpacken.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bei der Auswahl von Medien-Images (CD-ROM, Diskette usw.) wird der Öffnungsdialog im selben Verzeichnis wie die 86Box-Konfigurationsdatei gestartet. Diese Einstellung macht wahrscheinlich nur unter macOS einen Unterschied.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "This machine might have been moved or copied."
-msgstr "Dieses Gerät wurde möglicherweise verschoben oder kopiert."
+msgstr "Dieses System wurde möglicherweise verschoben oder kopiert."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Um eine ordnungsgemäße Netzwerkfunktionalität zu gewährleisten, muss 86Box wissen, ob dieses Gerät verschoben oder kopiert wurde. \n\nWählen Sie \"Ich habe es kopiert\", wenn Sie sich nicht sicher sind."
+msgstr "Um eine ordnungsgemäße Netzwerkfunktionalität zu gewährleisten, muss 86Box wissen, ob dieses System verschoben oder kopiert wurde. \n\nWählen Sie \"Ich habe es kopiert\", wenn Sie sich nicht sicher sind."
 
 msgid "I Moved It"
-msgstr "Ich habe es bewegt"
+msgstr "Ich habe es verschoben"
 
 msgid "I Copied It"
 msgstr "Ich habe es kopiert"
@@ -1414,7 +1414,7 @@ msgid "Adapter"
 msgstr "Adapter"
 
 msgid "VDE Socket"
-msgstr "VDE-Steckdose"
+msgstr "VDE Port"
 
 msgid "86Box Unit Tester"
 msgstr "86Box-Gerätetester"
@@ -1423,16 +1423,16 @@ msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Schlüsselkarte"
 
 msgid "Serial port passthrough 1"
-msgstr "Passthrough der Serielle Schnittstelle 1"
+msgstr "Durchreichen der Serielle Schnittstelle 1"
 
 msgid "Serial port passthrough 2"
-msgstr "Passthrough der Serielle Schnittstelle 2"
+msgstr "Durchreichen der Serielle Schnittstelle 2"
 
 msgid "Serial port passthrough 3"
-msgstr "Passthrough der Serielle Schnittstelle 3"
+msgstr "Durchreichen der Serielle Schnittstelle 3"
 
 msgid "Serial port passthrough 4"
-msgstr "Passthrough der Serielle Schnittstelle 4"
+msgstr "Durchreichen der Serielle Schnittstelle 4"
 
 msgid "Vision Systems LBA Enhancer"
 msgstr "Vision Systems LBA Enhancer"
@@ -1459,7 +1459,7 @@ msgid "PS/2 Mouse"
 msgstr "PS/2-Maus"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (Serielle)"
+msgstr "3M MicroTouch (Seriell)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Standard Hayes-kompatibles Modem"
@@ -1489,7 +1489,7 @@ msgid "BIOS Address"
 msgstr "BIOS-Adresse"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "BIOS-Erweiterung ROM-Schreiben einschalten"
+msgstr "Schreiben in BIOS Erweiterungs ROMs zulassen"
 
 msgid "Address"
 msgstr "Adresse"
@@ -1711,7 +1711,7 @@ msgid "Enable CMS"
 msgstr "CMS einschalten"
 
 msgid "Mixer"
-msgstr "Mischanlage"
+msgstr "Mixer"
 
 msgid "High DMA"
 msgstr "Hohe DMA"
@@ -1876,10 +1876,10 @@ msgid "Five + Wheel"
 msgstr "Fünf + Rad"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 Serielle / SMT3(R)V"
+msgstr "A3 - SMT2 Seriell / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) Serielle"
+msgstr "Q1 - SMT3(R) Seriell"
 
 msgid "8 kB"
 msgstr "8 kB"
@@ -2020,13 +2020,13 @@ msgid "Bochs latest"
 msgstr "Bochs neueste"
 
 msgid "Mono Non-Interlaced"
-msgstr "Monochrom nicht verschachtelt"
+msgstr "Monochrom nicht interlacet"
 
 msgid "Color Interlaced"
-msgstr "Farbe verschachtelt"
+msgstr "Farbe interlacet"
 
 msgid "Color Non-Interlaced"
-msgstr "Farbe nicht verschachtelt"
+msgstr "Farbe nicht interlacet"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodoo Grafik"
@@ -2074,7 +2074,7 @@ msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "Schutz-Dongle für Savage Quest"
+msgstr "Kopierschutz-Dongle für Savage Quest"
 
 msgid "Serial Passthrough Device"
 msgstr "Gerät des Passthroughs der Serielle Schnittstelle"
@@ -2086,7 +2086,7 @@ msgid "Host Serial Device"
 msgstr "Host Serielles Gerät"
 
 msgid "Name of pipe"
-msgstr "Name der Leitung"
+msgstr "Name der Pipe"
 
 msgid "Data bits"
 msgstr "Datenbits"
@@ -2098,7 +2098,7 @@ msgid "Baud Rate of Passthrough"
 msgstr "Baudrate des Passthroughs"
 
 msgid "Named Pipe (Server)"
-msgstr "Benannte Leitung (Server)"
+msgstr "Benanntes Pipe (Server)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passthrough der seriellen Schnittstelle des Hosts"
