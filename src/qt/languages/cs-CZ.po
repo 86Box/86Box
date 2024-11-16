@@ -2099,3 +2099,15 @@ msgstr "Pojmenované potrubí (server)"
 
 msgid "Host Serial Passthrough"
 msgstr "Průchod sériového portu hostitele"
+
+msgid "Eject %s"
+msgstr "Vysunout %s"
+
+msgid "&Unmute"
+msgstr "&Roztišit"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Vysoký dopad na výkon"

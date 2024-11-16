@@ -2098,3 +2098,15 @@ msgstr "Tubería con nombre (servidor)"
 
 msgid "Host Serial Passthrough"
 msgstr "Paso del puerto serie del host"
+
+msgid "Eject %s"
+msgstr "Expulsar %s"
+
+msgid "&Unmute"
+msgstr "&Reactivar sonido"
+
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Alto impact en el rendimiento"

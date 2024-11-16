@@ -2099,3 +2099,15 @@ msgstr "名前付きパイプ（サーバー）"
 
 msgid "Host Serial Passthrough"
 msgstr "ホストシリアルポートのパススルー"
+
+msgid "Eject %s"
+msgstr "%sを取り出す"
+
+msgid "&Unmute"
+msgstr "ミュート解除(&U)"
+
+msgid "Softfloat FPU"
+msgstr "소프트플로트 FPU"
+
+msgid "High performance impact"
+msgstr "パフォーマンスへの影響が大きい"

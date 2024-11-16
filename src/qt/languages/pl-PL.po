@@ -2099,3 +2099,15 @@ msgstr "Nazwana rura (serwer)"
 
 msgid "Host Serial Passthrough"
 msgstr "Przejście przez port szeregowy hosta"
+
+msgid "Eject %s"
+msgstr "Wysuń %s"
+
+msgid "&Unmute"
+msgstr "&Wycisz"
+
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Wysoki wpływ na wydajność"

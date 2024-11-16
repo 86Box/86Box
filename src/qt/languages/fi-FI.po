@@ -2099,3 +2099,15 @@ msgstr "Nimetty putki (palvelin)"
 
 msgid "Host Serial Passthrough"
 msgstr "Isännän sarjaportin läpivienti"
+
+msgid "Eject %s"
+msgstr "Pudota %s:n"
+
+msgid "&Unmute"
+msgstr "&Poista mykistys"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Suuri vaikutus suorituskykyyn"

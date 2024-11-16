@@ -2099,3 +2099,15 @@ msgstr "Tuyau nommé (serveur)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passage du port série de l'hôte"
+
+msgid "Eject %s"
+msgstr "Éjecter %s"
+
+msgid "&Unmute"
+msgstr "&Réactiver son"
+
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Impact important sur la performance"

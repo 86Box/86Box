@@ -2099,3 +2099,15 @@ msgstr "Imenovani vod (server)"
 
 msgid "Host Serial Passthrough"
 msgstr "Prolaz serijskih vrata nositelja"
+
+msgid "Eject %s"
+msgstr "Izbaci %s"
+
+msgid "&Unmute"
+msgstr "&Uključi zvuk"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Visoki učinak na brzinu izvršavanja"

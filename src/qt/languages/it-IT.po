@@ -2096,3 +2096,15 @@ msgstr "Tubo denominato (Server)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passaggio della porta seriale host"
+
+msgid "Eject %s"
+msgstr "Espelli %s"
+
+msgid "&Unmute"
+msgstr "&Riattiva l'audio"
+
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Impatto elevato sulla prestazione"

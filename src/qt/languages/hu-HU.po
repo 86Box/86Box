@@ -2099,3 +2099,15 @@ msgstr "Megnevezett cső (kiszolgáló)"
 
 msgid "Host Serial Passthrough"
 msgstr "Az állomás soros portjának áthaladása"
+
+msgid "Eject %s"
+msgstr "Dobj ki %s"
+
+msgid "&Unmute"
+msgstr "&Hang újra bekapcsolása"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Nagy hatással van a teljesítményre"

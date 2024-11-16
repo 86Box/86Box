@@ -1381,7 +1381,7 @@ msgid "I Copied It"
 msgstr "복사했습니다"
 
 msgid "86Box Monitor #"
-msgstr "86Box 모니터 #"
+msgstr "86Box 모니터 "
 
 msgid "No MCA devices."
 msgstr "MCA 장치가 없습니다."
@@ -1441,7 +1441,7 @@ msgid "Logitech/Microsoft Bus Mouse"
 msgstr "로지텍/마이크로소프트 버스 마우스"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "마이크로소프트 버스 마우스 (인포트)"
+msgstr "마이크로소프트 버스 마우스(인포트)"
 
 msgid "Mouse Systems Serial Mouse"
 msgstr "마우스 시스템 시리얼 마우스"
@@ -1456,7 +1456,7 @@ msgid "PS/2 Mouse"
 msgstr "PS/2 마우스"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M 마이크로터치 (직렬)"
+msgstr "3M 마이크로터치(직렬)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 표준 헤이즈 호환 모뎀"
@@ -1465,7 +1465,7 @@ msgid "Roland MT-32 Emulation"
 msgstr "롤랜드 MT-32 에뮬레이션"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "롤랜드 MT-32 (신규) 에뮬레이션"
+msgstr "롤랜드 MT-32(신규) 에뮬레이션"
 
 msgid "Roland CM-32L Emulation"
 msgstr "롤랜드 CM-32L 에뮬레이션"
@@ -2099,3 +2099,15 @@ msgstr "네임드 파이프(서버)"
 
 msgid "Host Serial Passthrough"
 msgstr "호스트 직렬 포트 패스스루"
+
+msgid "Eject %s"
+msgstr "%s 꺼내기"
+
+msgid "&Unmute"
+msgstr "음소거 해제(&U)"
+
+msgid "Softfloat FPU"
+msgstr "소프트플로트 FPU"
+
+msgid "High performance impact"
+msgstr "성능에 미치는 영향"

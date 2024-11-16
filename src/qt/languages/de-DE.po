@@ -1411,7 +1411,7 @@ msgid "Interface"
 msgstr "Schnittstelle"
 
 msgid "Adapter"
-msgstr "Adaptér"
+msgstr "Adapter"
 
 msgid "VDE Socket"
 msgstr "VDE-Steckdose"
@@ -2102,3 +2102,15 @@ msgstr "Benannte Leitung (Server)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passthrough der seriellen Schnittstelle des Hosts"
+
+msgid "Eject %s"
+msgstr "%s auswerfen"
+
+msgid "&Unmute"
+msgstr "&Ton einschalten"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat-FPU"
+
+msgid "High performance impact"
+msgstr "Hohe Auswirkung auf die Leistung"

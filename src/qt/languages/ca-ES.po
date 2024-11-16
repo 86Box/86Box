@@ -2099,3 +2099,15 @@ msgstr "Pipe anomenat (servidor)"
 
 msgid "Host Serial Passthrough"
 msgstr "Pas del port sèrie amfitrió"
+
+msgid "Eject %s"
+msgstr "Explulsar %s"
+
+msgid "&Unmute"
+msgstr "&Saver"
+
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Alt impact en el rendiment"
