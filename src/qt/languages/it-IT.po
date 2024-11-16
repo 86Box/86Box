@@ -1816,7 +1816,7 @@ msgid "Address for > 2 MB"
 msgstr "Indirizzo per > 2 MB"
 
 msgid "Frame Address"
-msgstr "Indirizzo del telaio"
+msgstr "Indirizzo del frame"
 
 msgid "USA"
 msgstr "Stati Uniti"
@@ -1837,19 +1837,19 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB a partire da E0000 (indirizzo MSB invertito, prima gli ultimi 64KB)"
 
 msgid "Sine"
-msgstr "Sinusoide"
+msgstr "Sinusoidale"
 
 msgid "Triangle"
-msgstr "Triangolo"
+msgstr "Triangolare"
 
 msgid "Linear"
 msgstr "Lineare"
 
 msgid "4th Order"
-msgstr "4° Ordine"
+msgstr "Del 4° ordine"
 
 msgid "7th Order"
-msgstr "7° Ordine"
+msgstr "Del 7° ordine"
 
 msgid "Non-timed (original)"
 msgstr "Senza timer (originale)"

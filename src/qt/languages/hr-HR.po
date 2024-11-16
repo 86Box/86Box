@@ -1846,13 +1846,13 @@ msgid "Triangle"
 msgstr "Trokutni"
 
 msgid "Linear"
-msgstr "Linearni"
+msgstr "Linearna"
 
 msgid "4th Order"
-msgstr "4. red"
+msgstr "4. reda"
 
 msgid "7th Order"
-msgstr "7. red"
+msgstr "7. reda"
 
 msgid "Non-timed (original)"
 msgstr "Bez tajmera (originalni)"

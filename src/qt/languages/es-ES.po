@@ -1845,13 +1845,13 @@ msgid "Triangle"
 msgstr "Triangular"
 
 msgid "Linear"
-msgstr "Linear"
+msgstr "Lineal"
 
 msgid "4th Order"
-msgstr "4ª Orden"
+msgstr "De 4º orden"
 
 msgid "7th Order"
-msgstr "7ª Orden"
+msgstr "De 7º orden"
 
 msgid "Non-timed (original)"
 msgstr "No cronometrado (original)"
@@ -2100,7 +2100,7 @@ msgid "Host Serial Passthrough"
 msgstr "Paso del puerto serie del host"
 
 msgid "Eject %s"
-msgstr "Expulsar %s"
+msgstr "Extraer %s"
 
 msgid "&Unmute"
 msgstr "&Reactivar sonido"

@@ -1849,13 +1849,13 @@ msgid "Triangle"
 msgstr "Dreieck"
 
 msgid "Linear"
-msgstr "Linear"
+msgstr "Lineare"
 
 msgid "4th Order"
-msgstr "4. Bestellung"
+msgstr "4. Ordnung"
 
 msgid "7th Order"
-msgstr "7. Bestellung"
+msgstr "7. Ordnung"
 
 msgid "Non-timed (original)"
 msgstr "Nicht zeitgesteuert (Original)"

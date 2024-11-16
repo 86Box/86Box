@@ -1840,19 +1840,19 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB od E0000 (invertovaný MSB adresy, nejprve posledních 64 kB)"
 
 msgid "Sine"
-msgstr "Sinusoví"
+msgstr "Sinusový"
 
 msgid "Triangle"
-msgstr "Trojúhelní"
+msgstr "Trojúhelníkový"
 
 msgid "Linear"
 msgstr "Lineární"
 
 msgid "4th Order"
-msgstr "4. řád"
+msgstr "4. řádu"
 
 msgid "7th Order"
-msgstr "7. řád"
+msgstr "7. řádu"
 
 msgid "Non-timed (original)"
 msgstr "Bez časování (originální)"
@@ -2101,7 +2101,7 @@ msgid "Host Serial Passthrough"
 msgstr "Průchod sériového portu hostitele"
 
 msgid "Eject %s"
-msgstr "Vysunout %s"
+msgstr "Vyjmout %s"
 
 msgid "&Unmute"
 msgstr "&Roztišit"

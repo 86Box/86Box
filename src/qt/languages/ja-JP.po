@@ -1537,7 +1537,7 @@ msgid "MIDI Output Device"
 msgstr "MIDI出力デバイス"
 
 msgid "MIDI Real time"
-msgstr "MIDI リアルタイム"
+msgstr "リアルタイムMIDI"
 
 msgid "MIDI Thru"
 msgstr "MIDI入力のパススルー"
@@ -1840,19 +1840,19 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "E0000から始まる128キロバイト（アドレスMSBが反転、最後の64キロバイトが最初）"
 
 msgid "Sine"
-msgstr "正弦波"
+msgstr "正弦"
 
 msgid "Triangle"
-msgstr "三角波"
+msgstr "三角"
 
 msgid "Linear"
 msgstr "線形"
 
 msgid "4th Order"
-msgstr "4位"
+msgstr "4次"
 
 msgid "7th Order"
-msgstr "7位"
+msgstr "7次"
 
 msgid "Non-timed (original)"
 msgstr "タイマーなし（オリジナル）"

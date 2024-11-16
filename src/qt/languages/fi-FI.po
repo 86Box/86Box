@@ -1840,7 +1840,7 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB alkaen E0000:sta (osoitteen käänteinen MSB, viimeiset 64 kB ensin)"
 
 msgid "Sine"
-msgstr "Sinus"
+msgstr "Sini"
 
 msgid "Triangle"
 msgstr "Kolmio"
@@ -1849,10 +1849,10 @@ msgid "Linear"
 msgstr "Lineaarinen"
 
 msgid "4th Order"
-msgstr "4. tilaus"
+msgstr "4. kertaluvun"
 
 msgid "7th Order"
-msgstr "7. tilaus"
+msgstr "7. kertaluvun"
 
 msgid "Non-timed (original)"
 msgstr "Ajastamaton (alkuperäinen)"
@@ -2101,7 +2101,7 @@ msgid "Host Serial Passthrough"
 msgstr "Isännän sarjaportin läpivienti"
 
 msgid "Eject %s"
-msgstr "Pudota %s:n"
+msgstr "Poista kasettipesästä %s"
 
 msgid "&Unmute"
 msgstr "&Poista mykistys"

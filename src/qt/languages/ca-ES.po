@@ -1849,10 +1849,10 @@ msgid "Linear"
 msgstr "Lineal"
 
 msgid "4th Order"
-msgstr "4t ordre"
+msgstr "Del 4t ordre"
 
 msgid "7th Order"
-msgstr "7è ordre"
+msgstr "Del 7è ordre"
 
 msgid "Non-timed (original)"
 msgstr "No cronometrat (original)"
@@ -2101,7 +2101,7 @@ msgid "Host Serial Passthrough"
 msgstr "Pas del port sèrie amfitrió"
 
 msgid "Eject %s"
-msgstr "Explulsar %s"
+msgstr "Extreure %s"
 
 msgid "&Unmute"
 msgstr "&Saver"

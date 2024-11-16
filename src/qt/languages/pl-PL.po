@@ -1840,19 +1840,19 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB począwszy od E0000 (adres MSB odwrócony, najpierw ostatnie 64KB)"
 
 msgid "Sine"
-msgstr "Sinus"
+msgstr "Sinusoidalny"
 
 msgid "Triangle"
-msgstr "Trójkąt"
+msgstr "Trójkątny"
 
 msgid "Linear"
-msgstr "Liniowy"
+msgstr "Liniowa"
 
 msgid "4th Order"
-msgstr "4. kolejność"
+msgstr "4. rzędu"
 
 msgid "7th Order"
-msgstr "7. kolejność"
+msgstr "7. rzędu"
 
 msgid "Non-timed (original)"
 msgstr "Bez timera (oryginał)"
@@ -2101,7 +2101,7 @@ msgid "Host Serial Passthrough"
 msgstr "Przejście przez port szeregowy hosta"
 
 msgid "Eject %s"
-msgstr "Wysuń %s"
+msgstr "Wyjmij %s"
 
 msgid "&Unmute"
 msgstr "&Wycisz"

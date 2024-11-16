@@ -1537,7 +1537,7 @@ msgid "MIDI Output Device"
 msgstr "MIDI kimeneti eszköz"
 
 msgid "MIDI Real time"
-msgstr "MIDI Valós idő"
+msgstr "MIDI valós időben"
 
 msgid "MIDI Thru"
 msgstr "A MIDI bemenet átmenete"
@@ -1840,7 +1840,7 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB E0000-től kezdődően (cím MSB invertálva, először az utolsó 64KB)"
 
 msgid "Sine"
-msgstr "Sine"
+msgstr "Szinuszos"
 
 msgid "Triangle"
 msgstr "Háromszög"
@@ -1849,10 +1849,10 @@ msgid "Linear"
 msgstr "Lineáris"
 
 msgid "4th Order"
-msgstr "4. rend"
+msgstr "4. rendű"
 
 msgid "7th Order"
-msgstr "7. rend"
+msgstr "7. rendű"
 
 msgid "Non-timed (original)"
 msgstr "Időzítő nélkül (eredeti)"
@@ -2101,7 +2101,7 @@ msgid "Host Serial Passthrough"
 msgstr "Az állomás soros portjának áthaladása"
 
 msgid "Eject %s"
-msgstr "Dobj ki %s"
+msgstr "%s kiadás"
 
 msgid "&Unmute"
 msgstr "&Hang újra bekapcsolása"

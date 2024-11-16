@@ -1537,7 +1537,7 @@ msgid "MIDI Output Device"
 msgstr "미디 출력 장치"
 
 msgid "MIDI Real time"
-msgstr "MIDI 실시간"
+msgstr "실시간 MIDI"
 
 msgid "MIDI Thru"
 msgstr "미디 입력 패스스루"
@@ -1843,13 +1843,13 @@ msgid "Sine"
 msgstr "사인"
 
 msgid "Triangle"
-msgstr "트라이앵글"
+msgstr "삼각형"
 
 msgid "Linear"
-msgstr "리니어"
+msgstr "선형"
 
 msgid "4th Order"
-msgstr "4번째 주문"
+msgstr "4차 주문"
 
 msgid "7th Order"
 msgstr "7차 주문"

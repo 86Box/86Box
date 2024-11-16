@@ -1849,10 +1849,10 @@ msgid "Linear"
 msgstr "Linéaire"
 
 msgid "4th Order"
-msgstr "4ème ordre"
+msgstr "Du 4e ordre"
 
 msgid "7th Order"
-msgstr "7ème ordre"
+msgstr "Du 7e ordre"
 
 msgid "Non-timed (original)"
 msgstr "Non temporisé (original)"

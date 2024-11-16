@@ -1537,7 +1537,7 @@ msgid "MIDI Output Device"
 msgstr "Dispositivo de saída MIDI"
 
 msgid "MIDI Real time"
-msgstr "MIDI Tempo real"
+msgstr "MIDI em tempo real"
 
 msgid "MIDI Thru"
 msgstr "Passagem da entrada MIDI"
@@ -1840,19 +1840,19 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB a partir de E0000 (endereço MSB invertido, os últimos 64 kB primeiro)"
 
 msgid "Sine"
-msgstr "Sine"
+msgstr "Senoidal"
 
 msgid "Triangle"
-msgstr "Triângulo"
+msgstr "Triangular"
 
 msgid "Linear"
 msgstr "Linear"
 
 msgid "4th Order"
-msgstr "4ª ordem"
+msgstr "De 4ª ordem"
 
 msgid "7th Order"
-msgstr "7º Pedido"
+msgstr "De 7º order"
 
 msgid "Non-timed (original)"
 msgstr "Sem cronômetro (original)"
