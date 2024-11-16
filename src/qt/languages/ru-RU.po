@@ -1738,10 +1738,10 @@ msgid "Display type"
 msgstr "Тип дисплея"
 
 msgid "Composite type"
-msgstr "Композитный тип"
+msgstr "Тип композитного видео"
 
 msgid "RGB type"
-msgstr "Тип RGB"
+msgstr "Тип видео RGB"
 
 msgid "Line doubling type"
 msgstr "Тип удвоения линии"
@@ -1792,7 +1792,7 @@ msgid "Dither subtraction"
 msgstr "Вычитание с вычитанием"
 
 msgid "Screen Filter"
-msgstr "Сетчатый фильтр"
+msgstr "Фильтр экрана"
 
 msgid "Render threads"
 msgstr "Потоки рендеринга"
@@ -1858,7 +1858,7 @@ msgid "Non-timed (original)"
 msgstr "Без таймера (оригинал)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Гц (без перемычки на JMP2)"
+msgstr "45 Гц (без джампера на JMP2)"
 
 msgid "Two"
 msgstr "Два"
@@ -1927,13 +1927,13 @@ msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (стерео)"
 
 msgid "Classic"
-msgstr "Классика"
+msgstr "Классический"
 
 msgid "256 kB"
 msgstr "256 кБ"
 
 msgid "Composite"
-msgstr "Композит"
+msgstr "Композитное видео"
 
 msgid "Old"
 msgstr "Старый"
@@ -2014,7 +2014,7 @@ msgid "Other languages"
 msgstr "Другие языки"
 
 msgid "Bochs latest"
-msgstr "Бохс последний"
+msgstr "Bochs последний"
 
 msgid "Mono Non-Interlaced"
 msgstr "Моно без чересстрочной развертки"
@@ -2032,7 +2032,7 @@ msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
 
 msgid "8-bit"
-msgstr "8-битный"
+msgstr "8-бит"
 
 msgid "16-bit"
 msgstr "16-бит"
@@ -2056,19 +2056,19 @@ msgid "Stereo LPT DAC"
 msgstr "Стереофонический ЦАП LPT"
 
 msgid "Generic Text Printer"
-msgstr "Текстовый принтер общего назначения"
+msgstr "Стандартный текстовый принтер"
 
 msgid "Generic ESC/P Dot-Matrix"
-msgstr "Стандартный матричный ESC/P"
+msgstr "Стандартный матричный принтер ESC/P"
 
 msgid "Generic PostScript Printer"
-msgstr "Стандартный PostScript Printer"
+msgstr "Стандартный принтер PostScript"
 
 msgid "Generic PCL5e Printer"
 msgstr "Стандартный принтер PCL5e"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "Интернет-протокол для параллельной линии"
+msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Защитный донгл для Savage Quest"
@@ -2083,7 +2083,7 @@ msgid "Host Serial Device"
 msgstr "Последовательное устройство хоста"
 
 msgid "Name of pipe"
-msgstr "Название трубы"
+msgstr "Название пайпа"
 
 msgid "Data bits"
 msgstr "Биты данных"
@@ -2095,7 +2095,7 @@ msgid "Baud Rate of Passthrough"
 msgstr "Скорость передачи данных через канал"
 
 msgid "Named Pipe (Server)"
-msgstr "Именованный трубопровод (сервер)"
+msgstr "Именованный пайп (Сервер)"
 
 msgid "Host Serial Passthrough"
 msgstr "Последовательный порт хоста"
