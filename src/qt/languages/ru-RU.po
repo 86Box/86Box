@@ -1942,22 +1942,22 @@ msgid "New"
 msgstr "Новый"
 
 msgid "Color (generic)"
-msgstr "Цвет (общий)"
+msgstr "Цветной (стандартный)"
 
 msgid "Green Monochrome"
-msgstr "Зеленый монохром"
+msgstr "Зеленый монохромный"
 
 msgid "Amber Monochrome"
-msgstr "Янтарный монохром"
+msgstr "Янтарный монохромный"
 
 msgid "Gray Monochrome"
-msgstr "Серый монохром"
+msgstr "Серый монохромный"
 
 msgid "Color (no brown)"
-msgstr "Цвет (без коричневого)"
+msgstr "Цветной (без коричневого)"
 
 msgid "Color (IBM 5153)"
-msgstr "Цвет (IBM 5153)"
+msgstr "Цветной (IBM 5153)"
 
 msgid "Simple doubling"
 msgstr "Простое удвоение"
@@ -1978,7 +1978,7 @@ msgid "Monochrome (5151/MDA) (green)"
 msgstr "Монохромный (5151/MDA) (зеленый)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "Монохром (5151/MDA) (янтарный)"
+msgstr "Монохромный (5151/MDA) (янтарный)"
 
 msgid "Color 40x25 (5153/CGA)"
 msgstr "Цветной 40x25 (5153/CGA)"
@@ -2017,13 +2017,13 @@ msgid "Bochs latest"
 msgstr "Bochs последний"
 
 msgid "Mono Non-Interlaced"
-msgstr "Моно без чересстрочной развертки"
+msgstr "Монохромный без чересстрочной развертки"
 
 msgid "Color Interlaced"
-msgstr "Цветная чересстрочная развертка"
+msgstr "Цветной с чересстрочной разверткой"
 
 msgid "Color Non-Interlaced"
-msgstr "Цвет без вкраплений"
+msgstr "Цветной без чересстрочной развертки"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Ускоритель 3Dfx Voodoo"
