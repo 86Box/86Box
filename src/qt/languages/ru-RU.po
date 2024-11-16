@@ -1444,19 +1444,19 @@ msgid "Microsoft Bus Mouse (InPort)"
 msgstr "Мышь Microsoft Bus Mouse (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Последовательнная мышь Mouse Systems"
+msgstr "Последовательная мышь Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Последовательнная мышь мышь Microsoft"
+msgstr "Последовательная мышь мышь Microsoft"
 
 msgid "Logitech Serial Mouse"
-msgstr "Последовательнная мышь мышь Logitech"
+msgstr "Последовательная мышь мышь Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (последовательнная)"
+msgstr "3M MicroTouch (последовательная)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -1873,10 +1873,10 @@ msgid "Five + Wheel"
 msgstr "Пять + колесо"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 последовательнная / SMT3(R)V"
+msgstr "A3 - SMT2 последовательная / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) последовательнная"
+msgstr "Q1 - SMT3(R) последовательная"
 
 msgid "8 kB"
 msgstr "8 кБ"
