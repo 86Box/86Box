@@ -1222,7 +1222,7 @@ msgid "Joystick configuration"
 msgstr "ジョイスティックの構成"
 
 msgid "Device"
-msgstr "装置"
+msgstr "デバイス"
 
 msgid "%1 (X axis)"
 msgstr "1（X軸）"
@@ -1231,10 +1231,10 @@ msgid "%1 (Y axis)"
 msgstr "1（Y軸）"
 
 msgid "MCA devices"
-msgstr "MCA装置"
+msgstr "MCAデバイス"
 
 msgid "List of MCA devices:"
-msgstr "MCA装置のリスト："
+msgstr "MCAデバイスのリスト："
 
 msgid "Tablet tool"
 msgstr "タブレットツール"
@@ -1384,10 +1384,10 @@ msgid "86Box Monitor #"
 msgstr "86Box モニター"
 
 msgid "No MCA devices."
-msgstr "MCA装置はない。"
+msgstr "MCAデバイスはない。"
 
 msgid "MiB"
-msgstr "MB"
+msgstr "MiB"
 
 msgid "Network Card #1"
 msgstr "ネットワークカード 1"
@@ -1489,7 +1489,7 @@ msgid "Enable BIOS extension ROM Writes"
 msgstr "BIOS拡張ROM書き込みを有効にする"
 
 msgid "Address"
-msgstr "住所"
+msgstr "アドレス"
 
 msgid "IRQ"
 msgstr "割り込み要求"
@@ -1780,7 +1780,7 @@ msgid "Enable NMI for CGA emulation"
 msgstr "CGAエミュレーションのNMIを有効にする"
 
 msgid "Voodoo type"
-msgstr "ブードゥー教タイプ"
+msgstr "Voodooタイプ"
 
 msgid "Framebuffer memory size"
 msgstr "フレームバッファのメモリサイズ"
@@ -2014,7 +2014,7 @@ msgid "Other languages"
 msgstr "その他の言語"
 
 msgid "Bochs latest"
-msgstr "ボッフス最新作"
+msgstr "Bochs latest"
 
 msgid "Mono Non-Interlaced"
 msgstr "モノラル・ノンインターレース"
@@ -2023,7 +2023,7 @@ msgid "Color Interlaced"
 msgstr "カラー・インターレース"
 
 msgid "Color Non-Interlaced"
-msgstr "カラーノンインターレース"
+msgstr "カラー・ノンインターレース"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodooグラフィック"
@@ -2086,7 +2086,7 @@ msgid "Name of pipe"
 msgstr "パイプ名"
 
 msgid "Data bits"
-msgstr "データ・ビット"
+msgstr "データビット"
 
 msgid "Stop bits"
 msgstr "ストップビット"
@@ -2107,7 +2107,7 @@ msgid "&Unmute"
 msgstr "ミュート解除(&U)"
 
 msgid "Softfloat FPU"
-msgstr "소프트플로트 FPU"
+msgstr "Softfloat FPU"
 
 msgid "High performance impact"
 msgstr "パフォーマンスへの影響が大きい"
