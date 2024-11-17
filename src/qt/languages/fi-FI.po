@@ -2111,3 +2111,12 @@ msgstr "Softfloat FPU"
 
 msgid "High performance impact"
 msgstr "Suuri vaikutus suorituskykyyn"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM-levy (maksiminopeus)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A-klooni (ISA)"
+
+msgid "Vendor"
+msgstr "Valmistaja"

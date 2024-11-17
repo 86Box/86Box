@@ -2111,3 +2111,12 @@ msgstr "소프트플로트 FPU"
 
 msgid "High performance impact"
 msgstr "성능에 미치는 영향"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM 디스크(최대 속도)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A 클론(ISA)"
+
+msgid "Vendor"
+msgstr "제조사"

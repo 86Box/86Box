@@ -2117,3 +2117,12 @@ msgstr "30 Гц (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
 msgstr "60 Гц (JMP2 = 2)"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM-диск (макс. скорость)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "Клон IBM 8514/A (ISA)"
+
+msgid "Vendor"
+msgstr "Производитель"
