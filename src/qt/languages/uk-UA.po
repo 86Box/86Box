@@ -1098,23 +1098,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 кБ"
+msgid "160 KB"
+msgstr "160 КБ"
 
-msgid "180 kB"
-msgstr "180 кБ"
+msgid "180 KB"
+msgstr "180 КБ"
 
-msgid "320 kB"
-msgstr "320 кБ"
+msgid "320 KB"
+msgstr "320 КБ"
 
-msgid "360 kB"
-msgstr "360 кБ"
+msgid "360 KB"
+msgstr "360 КБ"
 
-msgid "640 kB"
-msgstr "640 кБ"
+msgid "640 KB"
+msgstr "640 КБ"
 
-msgid "720 kB"
-msgstr "720 кБ"
+msgid "720 KB"
+msgstr "720 КБ"
 
 msgid "1.2 MB"
 msgstr "1.2 МБ"
@@ -1878,23 +1878,23 @@ msgstr "A3 - SMT2 послідовна / SMT3(R)V"
 msgid "Q1 - SMT3(R) Serial"
 msgstr "Q1 - SMT3(R) послідовна"
 
-msgid "8 kB"
-msgstr "8 kБ"
+msgid "8 KB"
+msgstr "8 КБ"
 
-msgid "32 kB"
-msgstr "32 kБ"
+msgid "32 KB"
+msgstr "32 КБ"
 
-msgid "16 kB"
-msgstr "16 kБ"
+msgid "16 KB"
+msgstr "16 КБ"
 
-msgid "64 kB"
-msgstr "64 kБ"
+msgid "64 KB"
+msgstr "64 КБ"
 
 msgid "Disable BIOS"
 msgstr "Вимкнення BIOS"
 
-msgid "512 kB"
-msgstr "512 kБ"
+msgid "512 KB"
+msgstr "512 КБ"
 
 msgid "2 MB"
 msgstr "2 МБ"
@@ -1929,8 +1929,8 @@ msgstr "SigmaTel STAC9721T (стерео)"
 msgid "Classic"
 msgstr "Класичний"
 
-msgid "256 kB"
-msgstr "256 kБ"
+msgid "256 KB"
+msgstr "256 КБ"
 
 msgid "Composite"
 msgstr "Композитний"
@@ -1968,8 +1968,8 @@ msgstr "sRGB інтерполяція"
 msgid "Linear interpolation"
 msgstr "Лінійна інтерполяція"
 
-msgid "128 kB"
-msgstr "128 kB"
+msgid "128 KB"
+msgstr "128 КБ"
 
 msgid "Monochrome (5151/MDA) (white)"
 msgstr "Монохромний (5151/MDA) (білий)"

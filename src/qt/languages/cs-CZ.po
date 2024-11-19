@@ -1098,23 +1098,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1.2 MB"
@@ -1878,23 +1878,23 @@ msgstr "A3 - SMT2 sériová / SMT3(R)V"
 msgid "Q1 - SMT3(R) Serial"
 msgstr "Q1 - SMT3(R) sériová"
 
-msgid "8 kB"
-msgstr "8 kB"
+msgid "8 KB"
+msgstr "8 KB"
 
-msgid "32 kB"
-msgstr "32 kB"
+msgid "32 KB"
+msgstr "32 KB"
 
-msgid "16 kB"
-msgstr "16 kB"
+msgid "16 KB"
+msgstr "16 KB"
 
-msgid "64 kB"
-msgstr "64 kB"
+msgid "64 KB"
+msgstr "64 KB"
 
 msgid "Disable BIOS"
 msgstr "Zakázat BIOS"
 
-msgid "512 kB"
-msgstr "512 kB"
+msgid "512 KB"
+msgstr "512 KB"
 
 msgid "2 MB"
 msgstr "2 MB"
@@ -1929,8 +1929,8 @@ msgstr "SigmaTel STAC9721T (stereo)"
 msgid "Classic"
 msgstr "Klasické"
 
-msgid "256 kB"
-msgstr "256 kB"
+msgid "256 KB"
+msgstr "256 KB"
 
 msgid "Composite"
 msgstr "Kompozitný"
@@ -1968,8 +1968,8 @@ msgstr "Interpolace sRGB"
 msgid "Linear interpolation"
 msgstr "Lineární interpolace"
 
-msgid "128 kB"
-msgstr "128 kB"
+msgid "128 KB"
+msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
 msgstr "Monochromatický (5151/MDA) (bílý)"
