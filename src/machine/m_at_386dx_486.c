@@ -837,7 +837,7 @@ machine_at_vli486sv2g_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
