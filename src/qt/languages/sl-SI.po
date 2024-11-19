@@ -834,8 +834,8 @@ msgstr "Slike MO"
 msgid "Welcome to 86Box!"
 msgstr "Dobrodošli v 86Box!"
 
-msgid "Internal controller"
-msgstr "Notranji krmilnik"
+msgid "Internal device"
+msgstr "Vgrajena naprava"
 
 msgid "Exit"
 msgstr "Izhod"
@@ -2058,8 +2058,8 @@ msgstr "Stereo DAC LPT"
 msgid "Generic Text Printer"
 msgstr "Generični besedilni tiskalnik"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Generični matrični ESC/P"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Generični matrični tiskalnik ESC/P"
 
 msgid "Generic PostScript Printer"
 msgstr "Generični tiskalnik PostScript"

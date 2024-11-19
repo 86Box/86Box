@@ -834,8 +834,8 @@ msgstr "Imatges MO"
 msgid "Welcome to 86Box!"
 msgstr "Benvingut a 86Box!"
 
-msgid "Internal controller"
-msgstr "Controlador intern"
+msgid "Internal device"
+msgstr "Dispositiu intern"
 
 msgid "Exit"
 msgstr "Sortir"
@@ -2058,8 +2058,8 @@ msgstr "DAC LPT estèreo"
 msgid "Generic Text Printer"
 msgstr "Impressora de text genèrica"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "De matriu de punts ESC/P genèrica"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Impressora de matriu de punts ESC/P genèrica"
 
 msgid "Generic PostScript Printer"
 msgstr "Impressora PostScript genèrica"

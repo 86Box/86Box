@@ -834,8 +834,8 @@ msgstr "MO-levykuvat"
 msgid "Welcome to 86Box!"
 msgstr "Tervetuloa 86Boxiin!"
 
-msgid "Internal controller"
-msgstr "Sisäinen ohjain"
+msgid "Internal device"
+msgstr "Sisäinen laite"
 
 msgid "Exit"
 msgstr "Poistu"
@@ -2058,8 +2058,8 @@ msgstr "Stereo-LPT-DAC"
 msgid "Generic Text Printer"
 msgstr "Yleinen tekstitulostin"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Yleinen ESC/P pistematriisi"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Yleinen ESC/P pistematriisitulostin"
 
 msgid "Generic PostScript Printer"
 msgstr "Yleinen PostScript-tulostin"

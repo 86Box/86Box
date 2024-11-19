@@ -834,8 +834,8 @@ msgstr "MO-képfájlok"
 msgid "Welcome to 86Box!"
 msgstr "Üdvözli önt az 86Box!"
 
-msgid "Internal controller"
-msgstr "Integrált vezérlő"
+msgid "Internal device"
+msgstr "Integrált eszköz"
 
 msgid "Exit"
 msgstr "Kilépés"
@@ -2058,8 +2058,8 @@ msgstr "Sztereó LPT DAC"
 msgid "Generic Text Printer"
 msgstr "Általános szövegnyomtató"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Általános ESC/P pontmátrix"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Általános ESC/P pontmátrixnyomtató"
 
 msgid "Generic PostScript Printer"
 msgstr "Általános PostScript nyomtató"

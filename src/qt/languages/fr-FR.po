@@ -834,8 +834,8 @@ msgstr "Images magnéto-optiques"
 msgid "Welcome to 86Box!"
 msgstr "Bienvenue dans 86Box !"
 
-msgid "Internal controller"
-msgstr "Côntrolleur interne"
+msgid "Internal device"
+msgstr "Dispositif interne"
 
 msgid "Exit"
 msgstr "Sortir"
@@ -2058,8 +2058,8 @@ msgstr "Convertisseur numérique stéréo LPT"
 msgid "Generic Text Printer"
 msgstr "Imprimante de texte générique"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Générique ESC/P à matrice à points"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Imprimant générique ESC/P à matrice à points"
 
 msgid "Generic PostScript Printer"
 msgstr "Imprimante PostScript générique"

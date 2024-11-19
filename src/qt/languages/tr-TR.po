@@ -834,8 +834,8 @@ msgstr "MO imajları"
 msgid "Welcome to 86Box!"
 msgstr "86Box'a hoşgeldiniz!"
 
-msgid "Internal controller"
-msgstr "Dahili kontrolcü"
+msgid "Internal device"
+msgstr "Dahili cihazı"
 
 msgid "Exit"
 msgstr "Çıkış"
@@ -2058,7 +2058,7 @@ msgstr "Stereo LPT DAC"
 msgid "Generic Text Printer"
 msgstr "Sıradan metin yazıcı"
 
-msgid "Generic ESC/P Dot-Matrix"
+msgid "Generic ESC/P Dot-Matrix Printer"
 msgstr "Sıradan ESC/P Dot Matrix yazıcı"
 
 msgid "Generic PostScript Printer"

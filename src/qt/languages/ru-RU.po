@@ -834,8 +834,8 @@ msgstr "Образы магнитооптических дисков"
 msgid "Welcome to 86Box!"
 msgstr "Добро пожаловать в 86Box!"
 
-msgid "Internal controller"
-msgstr "Встроенный контроллер"
+msgid "Internal device"
+msgstr "Встроенное устройство"
 
 msgid "Exit"
 msgstr "Выход"
@@ -2058,7 +2058,7 @@ msgstr "Стереофонический ЦАП LPT"
 msgid "Generic Text Printer"
 msgstr "Стандартный текстовый принтер"
 
-msgid "Generic ESC/P Dot-Matrix"
+msgid "Generic ESC/P Dot-Matrix Printer"
 msgstr "Стандартный матричный принтер ESC/P"
 
 msgid "Generic PostScript Printer"
@@ -2112,12 +2112,6 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Сильное влияние на производительность"
 
-msgid "30 Hz (JMP2 = 1)"
-msgstr "30 Гц (JMP2 = 1)"
-
-msgid "60 Hz (JMP2 = 2)"
-msgstr "60 Гц (JMP2 = 2)"
-
 msgid "RAM Disk (max. speed)"
 msgstr "RAM-диск (макс. скорость)"
 
@@ -2126,3 +2120,9 @@ msgstr "Клон IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Производитель"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Гц (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Гц (JMP2 = 2)"

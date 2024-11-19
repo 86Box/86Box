@@ -834,8 +834,8 @@ msgstr "Imagens magneto-ópticas"
 msgid "Welcome to 86Box!"
 msgstr "Bem-vindo ao 86Box!"
 
-msgid "Internal controller"
-msgstr "Controlador interno"
+msgid "Internal device"
+msgstr "Dispositivo interno"
 
 msgid "Exit"
 msgstr "Sair"
@@ -2058,7 +2058,7 @@ msgstr "DAC estéreo LPT"
 msgid "Generic Text Printer"
 msgstr "Impressora de texto genérica"
 
-msgid "Generic ESC/P Dot-Matrix"
+msgid "Generic ESC/P Dot-Matrix Printer"
 msgstr "Impressora matricial de pontos ESC/P genérica"
 
 msgid "Generic PostScript Printer"

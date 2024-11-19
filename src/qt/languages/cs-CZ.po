@@ -834,8 +834,8 @@ msgstr "Obrazy MO"
 msgid "Welcome to 86Box!"
 msgstr "Vítejte v programu 86Box!"
 
-msgid "Internal controller"
-msgstr "Vestavěný řadič"
+msgid "Internal device"
+msgstr "Vestavěné zařízení"
 
 msgid "Exit"
 msgstr "Ukončit"
@@ -2058,8 +2058,8 @@ msgstr "Stereofonní převodník LPT"
 msgid "Generic Text Printer"
 msgstr "Obecná textová tiskárna"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Generická jehličková ESC/P"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Obecná jehličková tiskárna ESC/P"
 
 msgid "Generic PostScript Printer"
 msgstr "Obecná tiskárna PostScript"

@@ -834,8 +834,8 @@ msgstr "光磁気イメージ"
 msgid "Welcome to 86Box!"
 msgstr "86Boxへようこそ！"
 
-msgid "Internal controller"
-msgstr "内蔵コントローラー"
+msgid "Internal device"
+msgstr "内蔵デバイス"
 
 msgid "Exit"
 msgstr "終了"
@@ -2058,7 +2058,7 @@ msgstr "ステレオLPT DAC"
 msgid "Generic Text Printer"
 msgstr "汎用テキスト・プリンタ"
 
-msgid "Generic ESC/P Dot-Matrix"
+msgid "Generic ESC/P Dot-Matrix Printer"
 msgstr "汎用ESC/Pドットマトリクスプリンタ"
 
 msgid "Generic PostScript Printer"

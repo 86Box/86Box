@@ -834,8 +834,8 @@ msgstr "광자기 이미지"
 msgid "Welcome to 86Box!"
 msgstr "86Box에 어서오세요!"
 
-msgid "Internal controller"
-msgstr "내부 컨트롤러"
+msgid "Internal device"
+msgstr "내부 장치"
 
 msgid "Exit"
 msgstr "끝내기"
@@ -2058,7 +2058,7 @@ msgstr "스테레오 LPT DAC"
 msgid "Generic Text Printer"
 msgstr "일반 텍스트 프린터"
 
-msgid "Generic ESC/P Dot-Matrix"
+msgid "Generic ESC/P Dot-Matrix Printer"
 msgstr "일반 ESC/P 도트 매트릭스 프린터"
 
 msgid "Generic PostScript Printer"
