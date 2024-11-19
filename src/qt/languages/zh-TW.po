@@ -256,7 +256,7 @@ msgid "&Folder..."
 msgstr "資料夾(&F)..."
 
 msgid "Target &framerate"
-msgstr "目標幀率(&F)"
+msgstr "目標影格速率(&F)"
 
 msgid "&Sync with video"
 msgstr "與視訊同步(&S)"
@@ -1195,7 +1195,7 @@ msgid "Select media images from program working directory"
 msgstr "從程式工作目錄中選擇介質映像"
 
 msgid "PIT mode:"
-msgstr "PIT模式:"
+msgstr "PIT 模式:"
 
 msgid "Auto"
 msgstr "自動"
@@ -1219,7 +1219,7 @@ msgid "Generate"
 msgstr "產生"
 
 msgid "Joystick configuration"
-msgstr "搖桿配置"
+msgstr "搖桿設定"
 
 msgid "Device"
 msgstr "裝置"
@@ -1270,13 +1270,13 @@ msgid "&Connected"
 msgstr "已連線"
 
 msgid "Clear image history"
-msgstr "清除影像記錄"
+msgstr "清除映像歷史記錄"
 
 msgid "Create..."
 msgstr "建立..."
 
 msgid "previous image"
-msgstr "上一個影像"
+msgstr "上一個映像"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "主機 CD/DVD 光碟機 (%1)"
@@ -1285,10 +1285,10 @@ msgid "Unknown Bus"
 msgstr "未知匯流排"
 
 msgid "Null Driver"
-msgstr "空 驅動程式"
+msgstr "空驅動程式"
 
 msgid "NIC %02i (%ls) %ls"
-msgstr "網卡 %02i (%ls) %ls"
+msgstr "網路卡 %02i (%ls) %ls"
 
 msgid "Error opening \"%1\": %2"
 msgstr "錯誤開啟 \"%1\": %2"
@@ -1309,7 +1309,7 @@ msgid "Render behavior"
 msgstr "渲染行為"
 
 msgid "Use target framerate:"
-msgstr "使用目標畫格速率："
+msgstr "使用目標影格速率："
 
 msgid " fps"
 msgstr "fps"
@@ -1318,7 +1318,7 @@ msgid "VSync"
 msgstr "VSync"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;立即渲染每個畫面，與模擬顯示同步。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;如果使用中的著色器不利用幀時間製作動畫效果，建議使用此選項。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;立即渲染每個畫面，與模擬顯示同步。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;如果使用中的著色器不利用影格時間製作動畫效果，建議使用此選項。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "Synchronize with video"
 msgstr "與視訊同步"
@@ -1330,7 +1330,7 @@ msgid "Remove"
 msgstr "移除"
 
 msgid "No shader selected"
-msgstr "未選擇陰影"
+msgstr "未選擇著色器"
 
 msgid "Browse..."
 msgstr "瀏覽..."
@@ -1366,7 +1366,7 @@ msgid "Allocating memory for unpack buffer failed.\n"
 msgstr "為解除封包緩衝區分配記憶體失敗。\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;當選擇媒體映像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
@@ -1408,7 +1408,7 @@ msgid "Interface"
 msgstr "介面"
 
 msgid "Adapter"
-msgstr "轉接器"
+msgstr "配接器"
 
 msgid "VDE Socket"
 msgstr "VDE 插座"
@@ -1444,19 +1444,19 @@ msgid "Microsoft Bus Mouse (InPort)"
 msgstr "Microsoft 匯流排滑鼠 (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Mouse Systems 序滑鼠"
+msgstr "Mouse Systems 序列滑鼠"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Microsoft 序滑鼠"
+msgstr "Microsoft 序列滑鼠"
 
 msgid "Logitech Serial Mouse"
-msgstr "Logitech 序滑鼠"
+msgstr "Logitech 序列滑鼠"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2 滑鼠"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (序)"
+msgstr "3M MicroTouch (序列)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 標準 Hayes 相容的數據機"
@@ -1546,43 +1546,43 @@ msgid "MIDI Clockout"
 msgstr "MIDI 時鐘輸出"
 
 msgid "SoundFont"
-msgstr "音色"
+msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "輸出增益"
 
 msgid "Chorus"
-msgstr "和聲"
+msgstr "合唱"
 
 msgid "Chorus Voices"
-msgstr "和聲聲音"
+msgstr "合唱聲部"
 
 msgid "Chorus Level"
-msgstr "和聲等級"
+msgstr "合唱音量"
 
 msgid "Chorus Speed"
-msgstr "和聲速度"
+msgstr "合唱速度"
 
 msgid "Chorus Depth"
-msgstr "和聲深度"
+msgstr "合唱深度"
 
 msgid "Chorus Waveform"
-msgstr "和聲波形"
+msgstr "合唱波形"
 
 msgid "Reverb"
-msgstr "迴響"
+msgstr "混響"
 
 msgid "Reverb Room Size"
-msgstr "迴響室尺寸"
+msgstr "混響室的大小"
 
 msgid "Reverb Damping"
-msgstr "迴響阻尼"
+msgstr "混響阻尼"
 
 msgid "Reverb Width"
-msgstr "迴響寬度"
+msgstr "混響寬度"
 
 msgid "Reverb Level"
-msgstr "迴響等級"
+msgstr "混響電平"
 
 msgid "Interpolation Method"
 msgstr "插值方法"
@@ -1630,7 +1630,7 @@ msgid "Enable BIOS"
 msgstr "啟用 BIOS"
 
 msgid "Baud Rate"
-msgstr "波特率"
+msgstr "鮑率"
 
 msgid "TCP/IP listening port"
 msgstr "TCP/IP 監聽埠"
@@ -1738,7 +1738,7 @@ msgid "Display type"
 msgstr "顯示類型"
 
 msgid "Composite type"
-msgstr "複合類型"
+msgstr "複合視訊類型"
 
 msgid "RGB type"
 msgstr "RGB 類型"
@@ -1750,7 +1750,7 @@ msgid "Snow emulation"
 msgstr "雪花模擬"
 
 msgid "Monitor type"
-msgstr "監視器類型"
+msgstr "顯示器類型"
 
 msgid "Character set"
 msgstr "字元集"
@@ -1783,7 +1783,7 @@ msgid "Voodoo type"
 msgstr "Voodoo 類型"
 
 msgid "Framebuffer memory size"
-msgstr "幀緩衝記憶體大小"
+msgstr "影格緩衝記憶體大小"
 
 msgid "Texture memory size"
 msgstr "材質記憶體大小"
@@ -1792,10 +1792,10 @@ msgid "Dither subtraction"
 msgstr "抖動減法"
 
 msgid "Screen Filter"
-msgstr "畫面濾鏡"
+msgstr "濾鏡"
 
 msgid "Render threads"
-msgstr "渲染線程"
+msgstr "渲染執行緒"
 
 msgid "SLI"
 msgstr "SLI"
@@ -1819,13 +1819,13 @@ msgid "Address for > 2 MB"
 msgstr "> 2 MB 的位址"
 
 msgid "Frame Address"
-msgstr "幀位址"
+msgstr "影格位址"
 
 msgid "USA"
 msgstr "美國"
 
 msgid "Danish"
-msgstr "丹麥"
+msgstr "丹麥語"
 
 msgid "Always at selected speed"
 msgstr "永遠以所選速度運作"
@@ -1861,22 +1861,22 @@ msgid "45 Hz (JMP2 not populated)"
 msgstr "45 Hz (JMP2 未填充)"
 
 msgid "Two"
-msgstr "二階"
+msgstr "二鍵"
 
 msgid "Three"
-msgstr "三階"
+msgstr "三鍵"
 
 msgid "Wheel"
 msgstr "滾輪"
 
 msgid "Five + Wheel"
-msgstr "五 + 滾輪"
+msgstr "五鍵 + 滾輪"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 序 / SMT3(R)V"
+msgstr "A3 - SMT2 序列 / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) 序"
+msgstr "Q1 - SMT3(R) 序列"
 
 msgid "8 KB"
 msgstr "8 KB"
@@ -1933,13 +1933,13 @@ msgid "256 KB"
 msgstr "256 KB"
 
 msgid "Composite"
-msgstr "複合式"
+msgstr "複合視訊"
 
 msgid "Old"
-msgstr "舊版"
+msgstr "舊"
 
 msgid "New"
-msgstr "新款"
+msgstr "新"
 
 msgid "Color (generic)"
 msgstr "彩色（通用）"
@@ -1987,10 +1987,10 @@ msgid "Color 80x25 (5153/CGA)"
 msgstr "彩色 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "增強色彩 - 一般模式 (5154/ECD)"
+msgstr "增強彩色 - 一般模式 (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "增強色彩 - 增強模式 (5154/ECD)"
+msgstr "增強彩色 - 增強模式 (5154/ECD)"
 
 msgid "Green"
 msgstr "綠色"
@@ -2092,7 +2092,7 @@ msgid "Stop bits"
 msgstr "停止位元"
 
 msgid "Baud Rate of Passthrough"
-msgstr "直通的波特率"
+msgstr "直通的鮑率"
 
 msgid "Named Pipe (Server)"
 msgstr "已命名管道 (伺服器)"
@@ -2104,7 +2104,7 @@ msgid "Eject %s"
 msgstr "退出 %s"
 
 msgid "&Unmute"
-msgstr "開啟聲音 (&U)"
+msgstr "解除靜音 (&U)"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"
