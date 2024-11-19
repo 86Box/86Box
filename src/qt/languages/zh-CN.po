@@ -1189,7 +1189,7 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "网络配置将切换为空驱动程序"
 
 msgid "Mouse sensitivity:"
-msgstr "鼠标敏感度:"
+msgstr "鼠标灵敏度:"
 
 msgid "Select media images from program working directory"
 msgstr "从程序工作目录中选择介质映像"
@@ -1249,7 +1249,7 @@ msgid "MCA devices..."
 msgstr "MCA 设备..."
 
 msgid "Show non-primary monitors"
-msgstr "显示非主要监控器"
+msgstr "显示非主要显示器"
 
 msgid "Open screenshots folder..."
 msgstr "打开屏幕截图文件夹..."
@@ -1270,7 +1270,7 @@ msgid "&Connected"
 msgstr "&Connected"
 
 msgid "Clear image history"
-msgstr "清除图像历史"
+msgstr "清除映像历史记录"
 
 msgid "Create..."
 msgstr "创建..."
@@ -1375,7 +1375,7 @@ msgid "In order to ensure proper networking functionality, 86Box needs to know i
 msgstr "为了确保网络功能正常，86Box需要知道这台机器是否被移动或复制。\n\n如果您不确定，请选择\"我复制了它\"。"
 
 msgid "I Moved It"
-msgstr "我搬走了它"
+msgstr "我移动了它"
 
 msgid "I Copied It"
 msgstr "我复制了它"
@@ -1387,7 +1387,7 @@ msgid "No MCA devices."
 msgstr "无 MCA 设备。"
 
 msgid "MiB"
-msgstr "米字节"
+msgstr "兆字节"
 
 msgid "Network Card #1"
 msgstr "网卡 1"
@@ -1411,7 +1411,7 @@ msgid "Adapter"
 msgstr "适配器"
 
 msgid "VDE Socket"
-msgstr "VDE 插座"
+msgstr "VDE 套接字"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 装置测试仪"
@@ -1432,7 +1432,7 @@ msgid "Serial port passthrough 4"
 msgstr "串行端口直通 4"
 
 msgid "Vision Systems LBA Enhancer"
-msgstr "视觉系统 LBA 增强器"
+msgstr "Vision Systems LBA 增强器"
 
 msgid "Renderer options..."
 msgstr "渲染器选项..."
@@ -1444,22 +1444,22 @@ msgid "Microsoft Bus Mouse (InPort)"
 msgstr "Microsoft 总线鼠标（InPort）"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Mouse Systems 串鼠标"
+msgstr "Mouse Systems 串行鼠标"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Microsoft 串鼠标"
+msgstr "Microsoft 串行鼠标"
 
 msgid "Logitech Serial Mouse"
-msgstr "Logitech 串鼠标"
+msgstr "Logitech 串行鼠标"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2 鼠标"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (串)"
+msgstr "3M MicroTouch (串行)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 标准海斯兼容调制解调器"
+msgstr "[COM] 标准 Hayes 兼容调制解调器"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 仿真"
@@ -1705,7 +1705,7 @@ msgid "6CH variant (6-channel)"
 msgstr "6 通道变体（6 通道）"
 
 msgid "Enable CMS"
-msgstr "启用内容管理系统"
+msgstr "启用 CMS"
 
 msgid "Mixer"
 msgstr "混合器"
@@ -1729,7 +1729,7 @@ msgid "Codec"
 msgstr "编解码器"
 
 msgid "GUS type"
-msgstr "GUS 型"
+msgstr "GUS 类型"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
 msgstr "启用命令 0x04 \"退出 86Box\""
@@ -1738,7 +1738,7 @@ msgid "Display type"
 msgstr "显示类型"
 
 msgid "Composite type"
-msgstr "复合型"
+msgstr "复合视频类型"
 
 msgid "RGB type"
 msgstr "RGB 类型"
@@ -1747,7 +1747,7 @@ msgid "Line doubling type"
 msgstr "线路倍增类型"
 
 msgid "Snow emulation"
-msgstr "雪地模拟"
+msgstr "雪花模拟"
 
 msgid "Monitor type"
 msgstr "显示器类型"
@@ -1792,7 +1792,7 @@ msgid "Dither subtraction"
 msgstr "抖动减法"
 
 msgid "Screen Filter"
-msgstr "滤网"
+msgstr "滤镜"
 
 msgid "Render threads"
 msgstr "渲染线程"
@@ -1804,7 +1804,7 @@ msgid "Start Address"
 msgstr "起始地址"
 
 msgid "Contiguous Size"
-msgstr "连续尺寸"
+msgstr "连续大小"
 
 msgid "I/O Width"
 msgstr "输入/输出宽度"
@@ -1813,7 +1813,7 @@ msgid "Transfer Speed"
 msgstr "传输速度"
 
 msgid "EMS mode"
-msgstr "紧急医疗服务模式"
+msgstr "EMS (扩展内存)模式"
 
 msgid "Address for > 2 MB"
 msgstr "地址 > 2 MB"
@@ -1861,22 +1861,22 @@ msgid "45 Hz (JMP2 not populated)"
 msgstr "45 Hz (JMP2 上无跳线)"
 
 msgid "Two"
-msgstr "两个"
+msgstr "两键"
 
 msgid "Three"
-msgstr "三个"
+msgstr "三键"
 
 msgid "Wheel"
-msgstr "车轮"
+msgstr "滚轮"
 
 msgid "Five + Wheel"
-msgstr "五+轮"
+msgstr "五键+滚轮"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 串 / SMT3（R）V"
+msgstr "A3 - SMT2 串行 / SMT3（R）V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3（R）串"
+msgstr "Q1 - SMT3（R）串行"
 
 msgid "8 KB"
 msgstr "8 KB"
@@ -1933,7 +1933,7 @@ msgid "256 KB"
 msgstr "256 KB"
 
 msgid "Composite"
-msgstr "复合材料"
+msgstr "复合视频"
 
 msgid "Old"
 msgstr "旧"
@@ -1942,7 +1942,7 @@ msgid "New"
 msgstr "新"
 
 msgid "Color (generic)"
-msgstr "颜色（通用）"
+msgstr "彩色（通用）"
 
 msgid "Green Monochrome"
 msgstr "单色绿色"
@@ -1954,7 +1954,7 @@ msgid "Gray Monochrome"
 msgstr "灰色单色"
 
 msgid "Color (no brown)"
-msgstr "颜色（无棕色）"
+msgstr "彩色（无棕色）"
 
 msgid "Color (IBM 5153)"
 msgstr "彩色（IBM 5153）"
@@ -2002,13 +2002,13 @@ msgid "Gray"
 msgstr "灰色"
 
 msgid "Color"
-msgstr "颜色"
+msgstr "彩色"
 
 msgid "U.S. English"
 msgstr "美国英语"
 
 msgid "Scandinavian"
-msgstr "斯堪的纳维亚"
+msgstr "斯堪的纳维亚语系"
 
 msgid "Other languages"
 msgstr "其他语言"
@@ -2104,19 +2104,19 @@ msgid "Eject %s"
 msgstr "弹出 %s"
 
 msgid "&Unmute"
-msgstr "打开声音(&U)"
+msgstr "解除静音(&U)"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"
 
 msgid "High performance impact"
-msgstr "对性能影响大"
+msgstr "重大性能影响"
 
 msgid "RAM Disk (max. speed)"
-msgstr "RAM磁盘 (最大速度)"
+msgstr "RAM 磁盘 (最大速度)"
 
 msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A克隆 (ISA)"
+msgstr "IBM 8514/A 克隆 (ISA)"
 
 msgid "Vendor"
 msgstr "制造商"
