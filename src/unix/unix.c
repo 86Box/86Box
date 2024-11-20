@@ -782,7 +782,7 @@ plat_init_rom_paths(void)
 
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
         path_slash(xdg_rom_path);
-        strncat(xdg_rom_path, "86Box/", 1024);
+        strncat(xdg_rom_path, "86Box/", 1023);
 
         if (!plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
@@ -1394,12 +1394,16 @@ plat_set_thread_name(void *thread, const char *name)
     if (thread) /* Apple pthread can only set self's name */
         return;
     char truncated[64];
+#elif defined(Q_OS_NETBSD)
+    char truncated[64];
 #else
     char truncated[16];
 #endif
     strncpy(truncated, name, sizeof(truncated) - 1);
 #ifdef __APPLE__
     pthread_setname_np(truncated);
+#elif defined(Q_OS_NETBSD)
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif

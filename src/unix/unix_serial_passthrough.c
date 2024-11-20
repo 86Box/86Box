@@ -24,6 +24,9 @@
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 #    define __BSD_VISIBLE 1
 #endif
+#ifdef __NetBSD__
+#    define _NETBSD_VISIBLE 1
+#endif
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
