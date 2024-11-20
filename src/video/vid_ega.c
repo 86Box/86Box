@@ -1596,19 +1596,19 @@ static const device_config_t ega_config[] = {
         .default_int = 256,
         .selection = {
             {
-                .description = "32 kB",
+                .description = "32 KB",
                 .value = 32
             },
             {
-                .description = "64 kB",
+                .description = "64 KB",
                 .value = 64
             },
             {
-                .description = "128 kB",
+                .description = "128 KB",
                 .value = 128
             },
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {

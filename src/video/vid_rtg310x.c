@@ -393,11 +393,11 @@ static const device_config_t rtg3105_config[] = {
         .default_int = 512,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -420,11 +420,11 @@ static const device_config_t rtg3106_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

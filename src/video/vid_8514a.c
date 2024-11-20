@@ -3921,7 +3921,7 @@ static const device_config_t isa_ext8514_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -3990,7 +3990,7 @@ static const device_config_t mca_ext8514_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

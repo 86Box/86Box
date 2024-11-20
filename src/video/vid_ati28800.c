@@ -750,11 +750,11 @@ static const device_config_t ati28800_config[] = {
         .default_int = 512,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -780,11 +780,11 @@ static const device_config_t ati28800_wonderxl_config[] = {
         .default_int = 512,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

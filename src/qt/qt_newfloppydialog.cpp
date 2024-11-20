@@ -96,12 +96,12 @@ static const QStringList rpmModes = {
 };
 
 static const QStringList floppyTypes = {
-    "160 kB",
-    "180 kB",
-    "320 kB",
-    "360 kB",
-    "640 kB",
-    "720 kB",
+    "160 KB",
+    "180 KB",
+    "320 KB",
+    "360 KB",
+    "640 KB",
+    "720 KB",
     "1.2 MB",
     "1.25 MB",
     "1.44 MB",
