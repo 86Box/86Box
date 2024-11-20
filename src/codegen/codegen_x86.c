@@ -1196,6 +1196,8 @@ codegen_init(void)
 {
 #    ifdef _WIN32
     codeblock = VirtualAlloc(NULL, (BLOCK_SIZE + 1) * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+#    elif defined(PROT_MPROTECT)
+    codeblock = mmap(NULL, (BLOCK_SIZE + 1) * sizeof(codeblock_t), PROT_MPROTECT(PROT_READ | PROT_WRITE | PROT_EXEC), MAP_ANON | MAP_PRIVATE, 0, 0);
 #    elif defined __unix__
     codeblock = mmap(NULL, (BLOCK_SIZE + 1) * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, 0, 0);
 #    else
