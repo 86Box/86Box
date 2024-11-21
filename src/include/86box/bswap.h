@@ -35,6 +35,8 @@
  *   USA.
  */
 
+#ifndef __NetBSD__
+
 #ifndef BSWAP_H
 #define BSWAP_H
 
@@ -239,3 +241,5 @@ cpu_to_be32wu(uint32_t *p, uint32_t v)
 #undef be_bswaps
 
 #endif /*BSWAP_H*/
+
+#endif

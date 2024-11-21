@@ -4549,7 +4549,7 @@ static const device_config_t gd542x_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -4574,7 +4574,7 @@ static const device_config_t gd5426_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -4603,7 +4603,7 @@ static const device_config_t gd5428_onboard_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

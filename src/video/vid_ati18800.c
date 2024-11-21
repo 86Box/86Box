@@ -335,11 +335,11 @@ static const device_config_t ati18800_wonder_config[] = {
         .default_int = 512,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

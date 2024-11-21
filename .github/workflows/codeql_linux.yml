@@ -69,6 +69,7 @@ jobs:
               qtbase5-dev
               qtbase5-private-dev
               qttools5-dev
+              qttranslations5-l10n
               libevdev-dev
               libxkbcommon-x11-dev
 
