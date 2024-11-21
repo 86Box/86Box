@@ -29,6 +29,9 @@
 #include <86box/device.h>
 #include <86box/chipset.h>
 #include <86box/keyboard.h>
+#include <86box/dma.h>
+#include <86box/pit.h>
+#include <86box/pic.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/fdd.h>
@@ -87,6 +90,24 @@ machine_at_tg286m_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/tg286m/ami.bin",
+                           0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    machine_at_headland_common_init(1);
+
+    return ret;
+}
+
+int
+machine_at_p3230_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/p3230/p3230.bin",
                            0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -179,12 +200,37 @@ machine_at_neat_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
+
     machine_at_init(model);
 
     device_add(&neat_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_friend386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/friend386sx/FTK_FRIEND_386SX_ENSX-1220-121589-K8_combined.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+
+    machine_at_common_init(model);
+	device_add(&keyboard_at_ami_device);
+    device_add(&neat_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+	
+	
 
     return ret;
 }
@@ -208,6 +254,58 @@ machine_at_neat_ami_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_auva286ct_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/auva286ct/286-VIPBAM-6-1 M215100-LO.BIN",
+								"roms/machines/auva286ct/286-VIPBAM-6-1 M215100-HI.BIN",
+								0x000f0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&neat_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_tc16_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tc16/phoenix-286-plus-310-tulip-tc16-665cae0d7bddc223032572.BIN",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+	
+    device_add(&neat_device);
+	device_add_inst(&ns16450_device, 1);
+    device_add_inst(&ns16450_device, 2);
+	
+	mem_remap_top(384);
+    
+	if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_nsc_device);
+	
+
+    device_add(&keyboard_at_olivetti_device);
 
     return ret;
 }
@@ -359,6 +457,25 @@ machine_at_senor_scat286_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/senor286/AMI-DSC2-1115-061390-K8.rom",
                            0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_scat_init(model, 0, 1);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_tekat1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tekat1/B700_241.BIN",
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
         return ret;
@@ -644,12 +761,7 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5402_onboard_device);
 
-    machine_at_common_ide_init(model);
-
-    device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
-    device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
-
-    device_add(&vlsi_scamp_device);
+    machine_at_scamp_common_init(model, 1);
 
     return ret;
 }
@@ -685,6 +797,23 @@ machine_at_spc6033p_init(const machine_t *model)
         device_add(&ati28800k_spc6033p_device);
 
     machine_at_scamp_common_init(model, 1);
+
+    return ret;
+}
+
+int
+machine_at_dell386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dell386sx/dell386sx.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_scamp_common_init(model, 1);
+	device_add(&pc87310_device);
 
     return ret;
 }
@@ -730,7 +859,6 @@ machine_at_acer100t_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);   
      
-    device_add(&ali5105_device);
     
     return ret;
 }
@@ -965,7 +1093,51 @@ machine_at_pc916sx_init(const machine_t *model)
     return ret;
 }
 
-#ifdef USE_OLIVETTI
+int
+machine_at_d508_init(const machine_t *model) /* Floppy issues */
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/d508/d508.bin",
+								0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+	device_add(&keyboard_at_siemens_device);
+	
+	if (fdc_current[0] == FDC_INTERNAL) 
+        device_add(&fdc_at_smc_device); 
+	
+	device_add(&intel_82335_device);
+
+    return ret;
+}
+
+int
+machine_at_d525_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/d525/BIOSDUMP.ROM",
+							0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+	device_add(&keyboard_at_device);
+	
+	if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+	
+	device_add(&intel_82335_device);
+
+    return ret;
+}
+
+#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 int
 machine_at_m290_init(const machine_t *model)
 {
@@ -988,4 +1160,4 @@ machine_at_m290_init(const machine_t *model)
 
     return ret;
 }
-#endif /* USE_OLIVETTI */
+#endif

@@ -194,6 +194,36 @@ machine_at_exp8551_init(const machine_t *model)
 }
 
 int
+machine_at_5td2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/5td2/5TA4S.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 01 */
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 02 */
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 03 */
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 04 */
+   
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add(&um8669f_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
 machine_at_gw2katx_init(const machine_t *model)
 {
     int ret;
@@ -584,6 +614,37 @@ machine_at_ap53_init(const machine_t *model)
 }
 
 int
+machine_at_d943_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/d943/d943.bin",
+                           0x000e0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+	device_add(&amstrad_megapc_nvr_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
+	spd_register(SPD_TYPE_EDO, 0x7, 256);
+
+    return ret;
+}
+
+int
 machine_at_8500tuc_init(const machine_t *model)
 {
     int ret;
@@ -669,6 +730,43 @@ machine_at_p5vxb_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_presario4760_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/presario4760/presario4760.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4); /* Onboard */
+    pci_register_slot(0x02, PCI_CARD_VIDEO,       2, 0, 0, 0); /* Onboard */
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 03 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      4, 1, 2, 3); /* Slot 02 */
+    
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c931apm_compaq_device);
+    device_add(&sst_flash_29ee010_device);
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
+	
+	if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&ess_1688_device);
+
+    return ret;
+}
+
 
 int
 machine_at_gw2kte_init(const machine_t *model)

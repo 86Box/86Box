@@ -143,6 +143,40 @@ machine_at_p55t2p4_init(const machine_t *model)
 }
 
 int
+machine_at_d969_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/d969/d969.bin",
+                           0x000e0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+	device_add(&amstrad_megapc_nvr_device);
+	
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* Onboard */
+	pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+	pci_register_slot(0x12, PCI_CARD_NORMAL,	  2, 3, 4, 1); /* Slot 02 */
+	pci_register_slot(0x13, PCI_CARD_NORMAL,	  3, 4, 1, 2); /* Slot 03 */
+	pci_register_slot(0x14, PCI_CARD_NORMAL,	  4, 1, 2, 3); /* Slot 04 */
+    device_add(&i430hx_device);
+	device_add(&piix3_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&pc97307_device);
+    device_add(&intel_flash_bxt_device);
+	spd_register(SPD_TYPE_EDO, 0x7, 256);
+	
+	 if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&sb_vibra16c_onboard_device);
+
+    return ret;
+}
+
+int
 machine_at_m7shi_init(const machine_t *model)
 {
     int ret;
@@ -443,8 +477,7 @@ machine_at_epc2102_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add_params(&at_nvr_device, (void *) 0x20);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -455,9 +488,9 @@ machine_at_epc2102_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_pci_device);
     device_add(&i82091aa_device);
-    device_add(&sst_flash_39sf010_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -796,6 +829,42 @@ machine_at_mb520n_init(const machine_t *model)
 }
 
 int
+machine_at_ergoprovx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ergoprovx/B58_c.ldb",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x06, PCI_CARD_NORMAL, 2, 3, 4, 1); 
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 3, 4, 1, 2);
+	pci_register_slot(0x08, PCI_CARD_NORMAL, 4, 1, 2, 3); 
+	pci_register_slot(0x0C, PCI_CARD_NORMAL, 0, 0, 0, 4); 
+	pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 0, 0, 0); 
+	pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 4, 0, 0); 
+	pci_register_slot(0x0F, PCI_CARD_NORMAL, 4, 0, 0, 0);
+	pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 0, 0, 0); 
+	pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 0, 0, 0); 
+	pci_register_slot(0x12, PCI_CARD_NORMAL, 4, 0, 0, 0); 
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 0, 0, 0); 
+
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87307_15c_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
 machine_at_i430vx_init(const machine_t *model)
 {
     int ret;
@@ -935,7 +1004,7 @@ machine_at_tx97_init(const machine_t *model)
     return ret;
 }
 
-#ifdef USE_AN430TX
+#if defined(DEV_BRANCH) && defined(USE_AN430TX)
 int
 machine_at_an430tx_init(const machine_t *model)
 {
@@ -979,7 +1048,7 @@ machine_at_an430tx_init(const machine_t *model)
 
     return ret;
 }
-#endif /* USE_AN430TX */
+#endif
 
 int
 machine_at_ym430tx_init(const machine_t *model)
@@ -1024,7 +1093,7 @@ machine_at_mb540n_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

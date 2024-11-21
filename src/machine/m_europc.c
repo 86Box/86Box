@@ -754,3 +754,41 @@ machine_europc_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_europcii_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/europcii/schneider-euro-pc-ii-50145-3.01.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_common_init(model);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    nmi_init();
+
+    /* Clear the machine state. */
+    memset(&europc, 0x00, sizeof(europc_t));
+    europc.jim = 0x0250;
+
+    /* This is machine specific. */
+    europc.nvr.size = model->nvrmask + 1;
+    europc.nvr.irq  = -1;
+
+    /* Set up any local handlers here. */
+    europc.nvr.reset = rtc_reset;
+    europc.nvr.start = rtc_start;
+    europc.nvr.tick  = europc_rtc_tick;
+
+    /* Initialize the actual NVR. */
+    nvr_init(&europc.nvr);
+
+    /* Enable and set up the mainboard device. */
+    device_add(&europc_device);
+
+    return ret;
+}

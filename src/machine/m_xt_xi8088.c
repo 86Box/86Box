@@ -110,11 +110,11 @@ static const device_config_t xi8088_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "64 kB starting from F0000",
+                .description = "64KB starting from 0xF0000",
                 .value = 0
             },
             {
-                .description = "128 kB starting from E0000 (address MSB inverted, last 64KB first)",
+                .description = "128KB starting from 0xE0000 (address MSB inverted, last 64KB first)",
                 .value = 1
             }
         },
@@ -122,37 +122,37 @@ static const device_config_t xi8088_config[] = {
     },
     {
         .name = "umb_c0000h_c7fff",
-        .description = "Map C0000-C7FFF as UMB",
+        .description = "Map 0xc0000-0xc7fff as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_c8000h_cffff",
-        .description = "Map C8000-CFFFF as UMB",
+        .description = "Map 0xc8000-0xcffff as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_d0000h_d7fff",
-        .description = "Map D0000-D7FFF as UMB",
+        .description = "Map 0xd0000-0xd7fff as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_d8000h_dffff",
-        .description = "Map D8000-DFFFF as UMB",
+        .description = "Map 0xd8000-0xdffff as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_e0000h_e7fff",
-        .description = "Map E0000-E7FFF as UMB",
+        .description = "Map 0xe0000-0xe7fff as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },
     {
         .name = "umb_e8000h_effff",
-        .description = "Map E8000-EFFFF as UMB",
+        .description = "Map 0xe8000-0xeffff as UMB",
         .type = CONFIG_BINARY,
         .default_int = 0
     },

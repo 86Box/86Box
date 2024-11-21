@@ -206,6 +206,29 @@ machine_at_opti560l_init(const machine_t *model)
 }
 
 int
+machine_at_d818_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined("roms/machines/d818/1008AU0_.BIO",
+                                    "roms/machines/d818/1008AU0_.BI1",
+                                    0x1c000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_premiere_common_init(model, 0);
+    device_add(&ide_pci_2ch_device);
+	
+    device_add(&i430lx_device);
+	
+	 if (gfxcard[0] == VID_INTERNAL)
+             device_add(&mach32_pci_device);
+
+    return ret;
+}
+
+int
 machine_at_ambradp60_init(const machine_t *model)
 {
     int ret;
@@ -296,7 +319,7 @@ machine_at_award_common_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sio_zb_device);
     device_add(&intel_flash_bxt_device);
 }

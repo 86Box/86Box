@@ -236,6 +236,72 @@ machine_at_ibmxt286_init(const machine_t *model)
 }
 
 int
+machine_at_pb286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/pb286/LB_V332P.bin",
+								"roms/machines/pb286/HB_V332P.bin",
+								0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
+
+  
+    return ret;
+}
+
+int
+machine_at_pcd2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/pcd2/TMS27PC256@DIP28_tandon_1985_ver18lo.bin",
+								"roms/machines/pcd2/TMS27PC256@DIP28_tandon_1985_ver18hi.bin",
+								0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_siemens_device);
+
+    mem_remap_top(384);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_pcd2m_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/pcd2m/tandon188782-032a_rev_5.23_low.bin",
+								"roms/machines/pcd2m/tandon188782-031a_rev_5.23_high.bin",
+								0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_siemens_device);
+
+    mem_remap_top(384);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_siemens_init(const machine_t *model)
 {
     int ret;
@@ -275,7 +341,49 @@ machine_at_wellamerastar_init(const machine_t *model)
     return ret;
 }
 
-#ifdef USE_OPEN_AT
+int
+machine_at_pwrmate2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pwrmate2/pwrmate2.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_siemens_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_dell286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dell286/final.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+#if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 int
 machine_at_openat_init(const machine_t *model)
 {
@@ -291,4 +399,4 @@ machine_at_openat_init(const machine_t *model)
 
     return ret;
 }
-#endif /* USE_OPEN_AT */
+#endif

@@ -2038,8 +2038,6 @@ m19_vid_init(m19_vid_t *vid)
         vid->ogc.mono_display = 0;
     else
         vid->ogc.mono_display = 1;
-
-    vid->ogc.ctrl_addr = 0x3db;
     /* OGC emulation part end */
 
     /* Plantronics emulation part begin*/

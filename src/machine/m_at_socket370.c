@@ -501,3 +501,256 @@ machine_at_6via90ap_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_ms6323_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ms6323/ms6323.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 01 */
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 02 */
+    pci_register_slot(0x0B, PCI_CARD_SOUND,       3, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&ct5880_onboard_device);
+
+    return ret;
+}
+
+int
+machine_at_m6vct_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/m6vct/VCT0911F.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* Onboard */
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4); /* Onboard */
+	pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+	pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 02 */
+	pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 03 */
+	pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3); /* Slot 04 */
+	pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 05 */
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    device_add(&sst_flash_39sf020_device);
+	spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+	
+	 if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&ad1881_device);
+	
+    
+
+    return ret;
+}
+
+int
+machine_at_euro850_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/euro850/euro850.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* Onboard */
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4); /* Onboard */
+	pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+	pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 02 */
+	pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 03 */
+	pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3); /* Slot 04 */
+	pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 05 */
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    return ret;
+}
+
+static void md2000_setup(void);
+
+int
+machine_at_md2000_init(const machine_t *model)
+
+{
+    int ret;
+    const char *fn;
+
+    if (!device_available(model->device)) {
+        return 0;
+    }
+
+    device_context(model->device);
+    fn = device_get_bios_file(model->device, device_get_config_bios("bios_versions"), 0);
+
+    if (!fn) {
+        fn = device_get_bios_file(model->device, "md2000_jul00", 0);
+    }
+
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    if (bios_only || !ret) {
+        return ret;
+    }
+	
+	machine_at_common_init_ex(model, 2);
+
+    md2000_setup();  
+
+    return ret;
+}
+
+static void md2000_setup(void)
+{
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* Onboard */
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4); /* Onboard */
+	pci_register_slot(0x0C, PCI_CARD_SOUND,       3, 4, 1, 2); /* Slot 04 */
+	pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+	pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 02 */
+	pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 03 */
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&ct5880_onboard_device);
+   
+}
+
+static const device_config_t md2000_config[] = {
+    // clang-format off
+    {
+        .name = "bios_versions",
+        .description = "BIOS Revisions",
+        .type = CONFIG_BIOS,
+        .default_string = "md2000_jul00",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Medion OEM BIOS (07/19/2000)", .internal_name = "md2000_jul00", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/md2000/md2000_jul00.bin", "" } },
+            { .name = "Medion OEM BIOS (09/28/2000)", .internal_name = "md2000_sep00", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/md2000/md2000_sep00.bin", "" } },
+			{ .name = "HP OEM BIOS (09/28/2000)", .internal_name = "hpmed_sep00", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/md2000/hpmed_sep00.bin", "" } },
+            { .name = "Medion OEM BIOS (06/13/2001)", .internal_name = "md2000_jun01", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/md2000/md2000_jun01.bin", "" } },
+			{ .name = "HP OEM BIOS (06/13/2001)", .internal_name = "hpmed_jun01", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/md2000/hpmed_jun01.bin", "" } },	  
+            
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+
+
+const device_t md2000_device = {
+    .name          = "Medion MD2000",
+    .internal_name = "md2000",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = &md2000_config[0]
+};
+
+
+
+int
+machine_at_md2001_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/md2001/md2001.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+	pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 4, 1, 2, 3); /* Onboard */
+	pci_register_slot(0x05, PCI_CARD_SOUND,       4, 0, 0, 0); /* Onboard */
+	pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3); /* Slot 03 */
+	pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 02 */
+	pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 01 */
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&ct5880_onboard_device);
+
+    return ret;
+}
