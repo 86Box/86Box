@@ -2126,3 +2126,9 @@ msgstr "30 Гц (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
 msgstr "60 Гц (JMP2 = 2)"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Стандартное расширение памяти PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Стандартное расширение памяти PC/AT"
