@@ -111,6 +111,14 @@ device_set_context(device_context_t *c, const device_t *dev, int inst)
         void *      old_sec    = config_find_section("Standard PS/2 Mouse");
         if ((sec == NULL) && (old_sec != NULL))
             config_rename_section(old_sec, c->name);
+    } else if (!strcmp(dev->name, "Microsoft RAMCard")) {
+        sprintf(c->name, "%s", dev->name);
+
+        /* Migrate the old "Standard PS/2 Mouse" section */
+        const void *sec        = config_find_section(c->name);
+        void *      old_sec    = config_find_section("Microsoft RAMCard for IBM PC");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, c->name);
     } else
         sprintf(c->name, "%s", dev->name);
 }
