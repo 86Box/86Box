@@ -27,6 +27,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/io.h>
+#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -52,6 +53,7 @@ enum {
 
 enum {
     TYPE_TANDY = 0,
+    TYPE_TANDY1000SX,
     TYPE_TANDY1000HX,
     TYPE_TANDY1000SL2
 };
@@ -82,6 +84,7 @@ typedef struct t1kvid_t {
     uint32_t b8000_mask;
     uint32_t b8000_limit;
     uint8_t  planar_ctrl;
+    uint8_t  lp_strobe;
 
     int      linepos;
     int      displine;
@@ -129,6 +132,7 @@ typedef struct tandy_t {
 
     uint32_t base;
     uint32_t mask;
+    int      is_hx;
     int      is_sl2;
 
     t1kvid_t *vid;
@@ -768,6 +772,15 @@ recalc_address_sl(tandy_t *dev)
 }
 
 static void
+vid_update_latch(t1kvid_t *vid)
+{
+    uint32_t lp_latch = vid->displine * vid->crtc[1];
+
+    vid->crtc[0x10] = (lp_latch >> 8) & 0x3f;
+    vid->crtc[0x11] = lp_latch & 0xff;
+}
+
+static void
 vid_out(uint16_t addr, uint8_t val, void *priv)
 {
     tandy_t  *dev = (tandy_t *) priv;
@@ -797,7 +810,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x03d8:
+            old = vid->mode;
             vid->mode = val;
+            if ((old ^ val) & 0x01)
+                recalc_timings(dev);
             if (!dev->is_sl2)
                 update_cga16_color(vid->mode);
             break;
@@ -808,6 +824,18 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x03da:
             vid->array_index = val & 0x1f;
+            break;
+
+        case 0x3db:
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
+                vid->lp_strobe = 0;
+            break;
+
+        case 0x3dc:
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
+                vid->lp_strobe = 1;
+                vid_update_latch(vid);
+            }
             break;
 
         case 0x03de:
@@ -846,7 +874,7 @@ static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
     const tandy_t  *dev = (tandy_t *) priv;
-    const t1kvid_t *vid = dev->vid;
+    t1kvid_t       *vid = dev->vid;
     uint8_t         ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
@@ -863,6 +891,18 @@ vid_in(uint16_t addr, void *priv)
 
         case 0x03da:
             ret = vid->stat;
+            break;
+
+        case 0x3db:
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
+                vid->lp_strobe = 0;
+            break;
+
+        case 0x3dc:
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
+                vid->lp_strobe = 1;
+                vid_update_latch(vid);
+            }
             break;
 
         default:
@@ -984,10 +1024,10 @@ vid_poll(void *priv)
                 for (x = 0; x < vid->crtc[1]; x++) {
                     dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
                     vid->ma++;
-                    buffer32->line[vid->displine << 1][(x << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8] = buffer32->line[vid->displine << 1][(x << 3) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 9] = vid->array[((dat >> 12) & vid->array[1]) + 16] + 16;
-                    buffer32->line[vid->displine << 1][(x << 3) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 10] = buffer32->line[vid->displine << 1][(x << 3) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 11] = vid->array[((dat >> 8) & vid->array[1]) + 16] + 16;
-                    buffer32->line[vid->displine << 1][(x << 3) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 12] = buffer32->line[vid->displine << 1][(x << 3) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 13] = vid->array[((dat >> 4) & vid->array[1]) + 16] + 16;
-                    buffer32->line[vid->displine << 1][(x << 3) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 14] = buffer32->line[vid->displine << 1][(x << 3) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 15] = vid->array[(dat & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8] = buffer32->line[vid->displine << 1][(x << 3) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 9] = vid->array[((dat >> 12) & vid->array[1] & 0x0f) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 10] = buffer32->line[vid->displine << 1][(x << 3) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 11] = vid->array[((dat >> 8) & vid->array[1] & 0x0f) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 12] = buffer32->line[vid->displine << 1][(x << 3) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 13] = vid->array[((dat >> 4) & vid->array[1] & 0x0f) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 14] = buffer32->line[vid->displine << 1][(x << 3) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 15] = vid->array[(dat & vid->array[1] & 0x0f) + 16] + 16;
                 }
             } else if (vid->array[3] & 0x10) { /*160x200x16*/
                 for (x = 0; x < vid->crtc[1]; x++) {
@@ -997,10 +1037,10 @@ vid_poll(void *priv)
                         dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
                     }
                     vid->ma++;
-                    buffer32->line[vid->displine << 1][(x << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 8] = buffer32->line[vid->displine << 1][(x << 4) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 9] = buffer32->line[vid->displine << 1][(x << 4) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 10] = buffer32->line[vid->displine << 1][(x << 4) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 11] = vid->array[((dat >> 12) & vid->array[1]) + 16] + 16;
-                    buffer32->line[vid->displine << 1][(x << 4) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 12] = buffer32->line[vid->displine << 1][(x << 4) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 13] = buffer32->line[vid->displine << 1][(x << 4) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 14] = buffer32->line[vid->displine << 1][(x << 4) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 15] = vid->array[((dat >> 8) & vid->array[1]) + 16] + 16;
-                    buffer32->line[vid->displine << 1][(x << 4) + 16] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 16] = buffer32->line[vid->displine << 1][(x << 4) + 17] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 17] = buffer32->line[vid->displine << 1][(x << 4) + 18] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 18] = buffer32->line[vid->displine << 1][(x << 4) + 19] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 19] = vid->array[((dat >> 4) & vid->array[1]) + 16] + 16;
-                    buffer32->line[vid->displine << 1][(x << 4) + 20] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 20] = buffer32->line[vid->displine << 1][(x << 4) + 21] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 21] = buffer32->line[vid->displine << 1][(x << 4) + 22] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 22] = buffer32->line[vid->displine << 1][(x << 4) + 23] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 23] = vid->array[(dat & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 8] = buffer32->line[vid->displine << 1][(x << 4) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 9] = buffer32->line[vid->displine << 1][(x << 4) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 10] = buffer32->line[vid->displine << 1][(x << 4) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 11] = vid->array[((dat >> 12) & vid->array[1] & 0x0f) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 12] = buffer32->line[vid->displine << 1][(x << 4) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 13] = buffer32->line[vid->displine << 1][(x << 4) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 14] = buffer32->line[vid->displine << 1][(x << 4) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 15] = vid->array[((dat >> 8) & vid->array[1] & 0x0f) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 16] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 16] = buffer32->line[vid->displine << 1][(x << 4) + 17] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 17] = buffer32->line[vid->displine << 1][(x << 4) + 18] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 18] = buffer32->line[vid->displine << 1][(x << 4) + 19] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 19] = vid->array[((dat >> 4) & vid->array[1] & 0x0f) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 20] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 20] = buffer32->line[vid->displine << 1][(x << 4) + 21] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 21] = buffer32->line[vid->displine << 1][(x << 4) + 22] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 22] = buffer32->line[vid->displine << 1][(x << 4) + 23] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 23] = vid->array[(dat & vid->array[1] & 0x0f) + 16] + 16;
                 }
             } else if (vid->array[3] & 0x08) { /*640x200x4 - this implementation is a complete guess!*/
                 for (x = 0; x < vid->crtc[1]; x++) {
@@ -1218,6 +1258,7 @@ vid_poll(void *priv)
                 vid->dispon    = 0;
                 vid->displine  = 0;
                 vid->vsynctime = 16;
+                picint(1 << 5);
                 if (vid->crtc[7]) {
                     if (vid->mode & 1)
                         x = (vid->crtc[1] << 3) + 16;
@@ -1321,11 +1362,10 @@ vid_init(tandy_t *dev)
     vid = malloc(sizeof(t1kvid_t));
     memset(vid, 0x00, sizeof(t1kvid_t));
     vid->memctrl = -1;
-    dev->vid     = vid;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
 
-    display_type   = machine_get_config_int("display_type");
+    display_type   = device_get_config_int("display_type");
     vid->composite = (display_type != TANDY_RGB);
 
     cga_comp_init(1);
@@ -1338,11 +1378,14 @@ vid_init(tandy_t *dev)
         io_sethandler(0x0065, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
     } else
         vid->b8000_mask = 0x3fff;
+
     timer_add(&vid->timer, vid_poll, dev, 1);
     mem_mapping_add(&vid->mapping, 0xb8000, 0x08000,
                     vid_read, NULL, NULL, vid_write, NULL, NULL, NULL, 0, dev);
     io_sethandler(0x03d0, 16,
                   vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+
+    dev->vid     = vid;
 }
 
 const device_config_t vid_config[] = {
@@ -1576,12 +1619,12 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x00a0:
-            if (val & 0x10) {
+            if (dev->is_hx && (val & 0x10)) {
                 dev->base = (mem_size - 256) * 1024;
                 dev->mask = 0x3ffff;
                 mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
                 mem_mapping_set_addr(&dev->ram_mapping,
-                                     ((val >> 1) & 7) * 128 * 1024, 0x40000);
+                                     (((val >> 1) & 7) - 1) * 128 * 1024, 0x40000);
             } else {
                 dev->base = (mem_size - 128) * 1024;
                 dev->mask = 0x1ffff;
@@ -1589,10 +1632,22 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
                 mem_mapping_set_addr(&dev->ram_mapping,
                                      ((val >> 1) & 7) * 128 * 1024, 0x20000);
             }
-            if (val & 0x01)
-                mem_mapping_set_addr(&dev->vid->mapping, 0xc0000, 0x10000);
-            else
-                mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+            if (dev->is_hx) {
+                io_removehandler(0x03d0, 16,
+                                 vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+                if (val & 0x01)
+                    mem_mapping_disable(&dev->vid->mapping);
+                else {
+                    io_sethandler(0x03d0, 16,
+                                  vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+                    mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+                }
+            } else {
+                if (val & 0x01)
+                    mem_mapping_set_addr(&dev->vid->mapping, 0xc0000, 0x10000);
+                else
+                    mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+            }
             dev->ram_bank = val;
             break;
 
@@ -1722,8 +1777,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 {
     tandy_t *dev;
 
-    dev = malloc(sizeof(tandy_t));
-    memset(dev, 0x00, sizeof(tandy_t));
+    dev = calloc(1, sizeof(tandy_t));
 
     machine_common_init(model);
 
@@ -1749,20 +1803,26 @@ machine_tandy1k_init(const machine_t *model, int type)
 
     switch (type) {
         case TYPE_TANDY:
+        case TYPE_TANDY1000SX:
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device);
             vid_init(dev);
+            device_context_restore();
             device_add_ex(&vid_device, dev);
-            device_add(&sn76489_device);
+            device_add((type == TYPE_TANDY1000SX) ? &ncr8496_device : &sn76489_device);
             break;
 
         case TYPE_TANDY1000HX:
+            dev->is_hx = 1;
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device_hx);
             vid_init(dev);
-            device_add_ex(&vid_device, dev);
+            device_context_restore();
+            device_add_ex(&vid_device_hx, dev);
             device_add(&ncr8496_device);
             device_add(&eep_1000hx_device);
             break;
@@ -1772,7 +1832,9 @@ machine_tandy1k_init(const machine_t *model, int type)
             init_rom(dev);
             io_sethandler(0xffe8, 8,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device_sl);
             vid_init(dev);
+            device_context_restore();
             device_add_ex(&vid_device_sl, dev);
             device_add(&pssj_device);
             device_add(&eep_1000sl2_device);
@@ -1794,7 +1856,7 @@ tandy1k_eeprom_read(void)
 }
 
 int
-machine_tandy_init(const machine_t *model)
+machine_tandy1000sx_init(const machine_t *model)
 {
     int ret;
 
@@ -1804,7 +1866,7 @@ machine_tandy_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_tandy1k_init(model, TYPE_TANDY);
+    machine_tandy1k_init(model, TYPE_TANDY1000SX);
 
     return ret;
 }

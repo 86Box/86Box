@@ -36,7 +36,6 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
-#include <86box/clock.h>
 #include <86box/sound.h>
 
 int
@@ -71,54 +70,5 @@ machine_at_vpc2007_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256); /* real VPC provides invalid SPD data */
 
-    return ret;
-}
-
-int
-machine_at_vmware_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/vmware/BIOS440.ROM",
-                           0x00080000, 524288, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-    is_vpc = 0;
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); /* Onboard */
-	pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 0, 0); /* Onboard */
-	pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* Onboard */
-	pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 01 */
-	pci_register_slot(0x10, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 02 */
-	pci_register_slot(0x11, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 03 */
-	pci_register_slot(0x12, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 04 */
-	pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 05 */
-	pci_register_slot(0x14, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 06 */
-	pci_register_slot(0x15, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 07 */
-	pci_register_slot(0x16, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 08 */
-	pci_register_slot(0x17, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 09 */
-	pci_register_slot(0x18, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 0A */
-	pci_register_slot(0x19, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 0B */
-	pci_register_slot(0x1A, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 0C */
-	pci_register_slot(0x1B, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 0D */
-	pci_register_slot(0x1C, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 0E */
-	pci_register_slot(0x1D, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 0F */
-	pci_register_slot(0x1E, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 10 */
-	pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 11 */
-
-    device_add(&i440bx_device);
-    device_add(&piix4e_device);
-    device_add(&pc87332_device);
-    device_add(&keyboard_ps2_device);
-    device_add(&winbond_flash_w29c040_device);
-	device_add(ics9xxx_get(ICS9250_08));
-    device_add(&as99127f_device);
-	hwm_values.voltages[4] = hwm_values.voltages[5];
-	spd_register(SPD_TYPE_SDRAM, 0x7, 256); /* real VPC provides invalid SPD data */
-    
     return ret;
 }

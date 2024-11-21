@@ -494,60 +494,6 @@ machine_xt_pc500_init(const machine_t *model)
 }
 
 int
-machine_xt_acer710iin_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/acer710iin/acer710iin.bin",
-                           0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_pc_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_spc3100_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/spc3100/2.51C",
-                           0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_pc_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_auvaxt_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/auvaxt/VIPTXM10_8_II.bin",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_pc_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
 machine_xt_vendex_init(const machine_t *model)
 {
     int ret;
