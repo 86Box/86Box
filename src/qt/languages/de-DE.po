@@ -1839,8 +1839,6 @@ msgstr "IBM PC/AT 128 KB Speichererweiterungsoption"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generische PC/AT Speichererweiterung"
 
-msgid "
-
 msgid "Address for > 2 MB"
 msgstr "Adresse für > 2 MB"
 
