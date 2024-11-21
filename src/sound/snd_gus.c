@@ -1499,11 +1499,11 @@ static const device_config_t gus_config[] = {
         .spinner = { 0 },
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 0
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 1
             },
             {

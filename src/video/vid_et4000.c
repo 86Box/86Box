@@ -954,11 +954,11 @@ static const device_config_t et4000_tc6058af_config[] = {
         .default_int = 512,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -1009,11 +1009,11 @@ static const device_config_t et4000_bios_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -1058,11 +1058,11 @@ static const device_config_t et4000_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

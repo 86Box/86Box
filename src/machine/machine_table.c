@@ -6855,7 +6855,7 @@ const machine_t machines[] = {
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
-        .name = "[SiS 471] ASUS VL/I-486SV2G (GX4)",
+        .name = "[SiS 471] ASUS VL/I-486SV2GX4",
         .internal_name = "vli486sv2g",
         .type = MACHINE_TYPE_486_S3,
         .chipset = MACHINE_CHIPSET_SIS_471,

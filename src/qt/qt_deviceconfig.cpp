@@ -457,7 +457,7 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     if (QStringLiteral("none") == internalName)
         return tr("None");
     else if (QStringLiteral("internal") == internalName)
-        return tr("Internal controller");
+        return tr("Internal device");
     else if (device == nullptr)
         return "";
     else {

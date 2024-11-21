@@ -200,10 +200,14 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
+    if (!mouse_capture) {
+        event->ignore();
+        return;
+    }
+
     double numSteps = (double) event->angleDelta().y() / 120.0;
 
     mouse_set_z((int) numSteps);
-
     event->accept();
 }
 

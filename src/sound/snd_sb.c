@@ -4669,7 +4669,7 @@ static const device_config_t sb_32_pnp_config[] = {
                 .value = 0
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -4882,7 +4882,7 @@ static const device_config_t sb_awe32_config[] = {
                 .value = 0
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -4946,7 +4946,7 @@ static const device_config_t sb_awe32_pnp_config[] = {
                 .value = 0
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
@@ -4999,7 +4999,7 @@ static const device_config_t sb_awe64_value_config[] = {
         .spinner = { 0 },
         .selection = {
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {

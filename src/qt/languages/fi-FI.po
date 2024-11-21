@@ -748,7 +748,7 @@ msgid "S"
 msgstr "S"
 
 msgid "KB"
-msgstr "kt"
+msgstr "Kt"
 
 msgid "Could not initialize the video renderer."
 msgstr "Videorenderöijän alustus epäonnistui"
@@ -834,8 +834,8 @@ msgstr "MO-levykuvat"
 msgid "Welcome to 86Box!"
 msgstr "Tervetuloa 86Boxiin!"
 
-msgid "Internal controller"
-msgstr "Sisäinen ohjain"
+msgid "Internal device"
+msgstr "Sisäinen laite"
 
 msgid "Exit"
 msgstr "Poistu"
@@ -859,7 +859,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nSarah Walkerin, leilein, JohnElliottin, greatpsychon ja muiden aiemmat keskeiset panokset.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
 
 msgid "Hardware not available"
 msgstr "Laitteisto ei ole saatavilla"
@@ -1098,23 +1098,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kt"
+msgid "160 KB"
+msgstr "160 Kt"
 
-msgid "180 kB"
-msgstr "180 kt"
+msgid "180 KB"
+msgstr "180 Kt"
 
-msgid "320 kB"
-msgstr "320 kt"
+msgid "320 KB"
+msgstr "320 Kt"
 
-msgid "360 kB"
-msgstr "360 kt"
+msgid "360 KB"
+msgstr "360 Kt"
 
-msgid "640 kB"
-msgstr "640 kt"
+msgid "640 KB"
+msgstr "640 Kt"
 
-msgid "720 kB"
-msgstr "720 kt"
+msgid "720 KB"
+msgstr "720 Kt"
 
 msgid "1.2 MB"
 msgstr "1.2 Mt"
@@ -1840,7 +1840,7 @@ msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
 msgstr "128 kB alkaen E0000:sta (osoitteen käänteinen MSB, viimeiset 64 kB ensin)"
 
 msgid "Sine"
-msgstr "Sinus"
+msgstr "Sini"
 
 msgid "Triangle"
 msgstr "Kolmio"
@@ -1849,10 +1849,10 @@ msgid "Linear"
 msgstr "Lineaarinen"
 
 msgid "4th Order"
-msgstr "4. tilaus"
+msgstr "4. kertaluvun"
 
 msgid "7th Order"
-msgstr "7. tilaus"
+msgstr "7. kertaluvun"
 
 msgid "Non-timed (original)"
 msgstr "Ajastamaton (alkuperäinen)"
@@ -1878,23 +1878,23 @@ msgstr "A3 - SMT2 sarja / SMT3(R)V"
 msgid "Q1 - SMT3(R) Serial"
 msgstr "Q1 - SMT3(R) sarja"
 
-msgid "8 kB"
-msgstr "8 kt"
+msgid "8 KB"
+msgstr "8 Kt"
 
-msgid "32 kB"
-msgstr "32 kt"
+msgid "32 KB"
+msgstr "32 Kt"
 
-msgid "16 kB"
-msgstr "16 kt"
+msgid "16 KB"
+msgstr "16 Kt"
 
-msgid "64 kB"
-msgstr "64 kt"
+msgid "64 KB"
+msgstr "64 Kt"
 
 msgid "Disable BIOS"
 msgstr "BIOS pois käytöstä"
 
-msgid "512 kB"
-msgstr "512 kt"
+msgid "512 KB"
+msgstr "512 Kt"
 
 msgid "2 MB"
 msgstr "2 Mt"
@@ -1929,8 +1929,8 @@ msgstr "SigmaTel STAC9721T (stereo)"
 msgid "Classic"
 msgstr "Klassinen"
 
-msgid "256 kB"
-msgstr "256 kt"
+msgid "256 KB"
+msgstr "256 Kt"
 
 msgid "Composite"
 msgstr "Komposiitti"
@@ -1968,8 +1968,8 @@ msgstr "sRGB-interpolointi"
 msgid "Linear interpolation"
 msgstr "Lineaarinen interpolointi"
 
-msgid "128 kB"
-msgstr "128 kt"
+msgid "128 KB"
+msgstr "128 Kt"
 
 msgid "Monochrome (5151/MDA) (white)"
 msgstr "Yksivärinen (5151/MDA) (valkoinen)"
@@ -2058,8 +2058,8 @@ msgstr "Stereo-LPT-DAC"
 msgid "Generic Text Printer"
 msgstr "Yleinen tekstitulostin"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Yleinen ESC/P pistematriisi"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Yleinen ESC/P pistematriisitulostin"
 
 msgid "Generic PostScript Printer"
 msgstr "Yleinen PostScript-tulostin"
@@ -2099,3 +2099,24 @@ msgstr "Nimetty putki (palvelin)"
 
 msgid "Host Serial Passthrough"
 msgstr "Isännän sarjaportin läpivienti"
+
+msgid "Eject %s"
+msgstr "Poista kasettipesästä %s"
+
+msgid "&Unmute"
+msgstr "&Poista mykistys"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Suuri vaikutus suorituskykyyn"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM-levy (maksiminopeus)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A-klooni (ISA)"
+
+msgid "Vendor"
+msgstr "Valmistaja"
