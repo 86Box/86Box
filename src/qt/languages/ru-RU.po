@@ -1282,10 +1282,10 @@ msgid "Host CD/DVD Drive (%1)"
 msgstr "Главный CD/DVD-привод (%1)"
 
 msgid "Unknown Bus"
-msgstr "Неизвестный автобус"
+msgstr "Неизвестная шина"
 
 msgid "Null Driver"
-msgstr "Нулевой водитель"
+msgstr "Нулевой драйвер"
 
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
