@@ -99,7 +99,7 @@ addRow(QAbstractItemModel *model, hard_disk_t *hd)
     model->setData(model->index(row, ColumnHeads), hd->hpc);
     model->setData(model->index(row, ColumnSectors), hd->spt);
     model->setData(model->index(row, ColumnSize), (hd->tracks * hd->hpc * hd->spt) >> 11);
-    model->setData(model->index(row, ColumnSpeed), hdd_preset_getname(hd->speed_preset));
+    model->setData(model->index(row, ColumnSpeed), QObject::tr(hdd_preset_getname(hd->speed_preset)));
     model->setData(model->index(row, ColumnSpeed), hd->speed_preset, Qt::UserRole);
 }
 
@@ -267,7 +267,7 @@ SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index)
         auto *model = ui->tableView->model();
         auto  col   = idx.siblingAtColumn(ColumnSpeed);
         model->setData(col, ui->comboBoxSpeed->currentData(Qt::UserRole), Qt::UserRole);
-        model->setData(col, hdd_preset_getname(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt()));
+        model->setData(col, QObject::tr(hdd_preset_getname(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt())));
     }
 }
 
