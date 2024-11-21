@@ -1830,8 +1830,8 @@ msgstr "IBM PC/XT 64/256K Speichererweiterungsoption"
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Generische PC/XT Speichererweiterung"
 
-msgid "Microsoft RAMCard for IBM PC"
-msgstr "Microsoft RAMCard für IBM PC"
+msgid "Microsoft RAMCard"
+msgstr "Microsoft RAMCard"
 
 msgid "IBM PC/AT 128 KB Memory Expansion Option"
 msgstr "IBM PC/AT 128 KB Speichererweiterungsoption"
