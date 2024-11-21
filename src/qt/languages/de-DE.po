@@ -742,10 +742,10 @@ msgid "File"
 msgstr "Datei"
 
 msgid "C"
-msgstr "C"
+msgstr "Z"
 
 msgid "H"
-msgstr "H"
+msgstr "K"
 
 msgid "S"
 msgstr "S"
@@ -1817,6 +1817,29 @@ msgstr "Übertragungsgeschwindigkeit"
 
 msgid "EMS mode"
 msgstr "EMS-Modus"
+
+msgid "IBM PC/XT 32K Memory Expansion Option"
+msgstr "IBM PC/XT 32K Speichererweiterungsoption"
+
+msgid "IBM PC/XT 64K Memory Expansion Option"
+msgstr "IBM PC/XT 64K Speichererweiterungsoption"
+
+msgid "IBM PC/XT 64/256K Memory Expansion Option"
+msgstr "IBM PC/XT 64/256K Speichererweiterungsoption"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generische PC/XT Speichererweiterung"
+
+msgid "Microsoft RAMCard for IBM PC"
+msgstr "Microsoft RAMCard für IBM PC"
+
+msgid "IBM PC/AT 128 KB Memory Expansion Option"
+msgstr "IBM PC/AT 128 KB Speichererweiterungsoption"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generische PC/AT Speichererweiterung"
+
+msgid "
 
 msgid "Address for > 2 MB"
 msgstr "Adresse für > 2 MB"
