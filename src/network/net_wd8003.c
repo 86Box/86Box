@@ -935,8 +935,8 @@ static const device_config_t wd8003eb_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "8 kB",  .value =  8192 },
-            { .description = "32 kB", .value = 32768 },
+            { .description = "8 KB",  .value =  8192 },
+            { .description = "32 KB", .value = 32768 },
             { .description = ""                      }
         },
     },
@@ -1024,8 +1024,8 @@ static const device_config_t wd8013_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "16 kB", .value = 16384 },
-            { .description = "64 kB", .value = 65536 },
+            { .description = "16 KB", .value = 16384 },
+            { .description = "64 KB", .value = 65536 },
             { .description = ""                      }
         },
     },
@@ -1049,8 +1049,8 @@ static const device_config_t wd8013epa_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "8 kB",  .value = 8192  },
-            { .description = "16 kB", .value = 16384 },
+            { .description = "8 KB",  .value = 8192  },
+            { .description = "16 KB", .value = 16384 },
             { .description = ""                      }
         },
     },

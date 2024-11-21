@@ -1188,12 +1188,14 @@ read_toc_raw(cdrom_t *dev, unsigned char *b)
         b[len++] = ti.attr;   /* Track ADR and Control */
         b[len++] = 0;         /* TNO (always 0) */
         b[len++] = ti.number; /* Point (for track points - track number) */
-        b[len++] = ti.m;      /* M */
-        b[len++] = ti.s;      /* S */
-        b[len++] = ti.f;      /* F */
+        /* Yes, this is correct - MSF followed by PMSF, the actual position is in PMSF. */
         b[len++] = 0;
         b[len++] = 0;
         b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = ti.m;      /* PM */
+        b[len++] = ti.s;      /* PS */
+        b[len++] = ti.f;      /* PF */
     }
 
     return len;

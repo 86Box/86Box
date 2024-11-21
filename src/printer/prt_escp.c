@@ -2058,7 +2058,7 @@ escp_close(void *priv)
 }
 
 const lpt_device_t lpt_prt_escp_device = {
-    .name          = "Generic ESC/P Dot-Matrix",
+    .name          = "Generic ESC/P Dot-Matrix Printer",
     .internal_name = "dot_matrix",
     .init          = escp_init,
     .close         = escp_close,

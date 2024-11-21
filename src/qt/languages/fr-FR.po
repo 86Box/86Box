@@ -834,8 +834,8 @@ msgstr "Images magnéto-optiques"
 msgid "Welcome to 86Box!"
 msgstr "Bienvenue dans 86Box !"
 
-msgid "Internal controller"
-msgstr "Côntrolleur interne"
+msgid "Internal device"
+msgstr "Dispositif interne"
 
 msgid "Exit"
 msgstr "Sortir"
@@ -859,7 +859,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Un émulateur de vieux ordinateurs\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nLibéré sous la licence GNU General Public License version 2 ou ultérieure. Pour plus d'informations, voir le fichier LICENSE."
+msgstr "Un émulateur de vieux ordinateurs\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nAvec les contributions de Sarah Walker, leilei, JohnElliott, greatpsycho et d'autres.\n\nLibéré sous la licence GNU General Public License version 2 ou ultérieure. Pour plus d'informations, voir le fichier LICENSE."
 
 msgid "Hardware not available"
 msgstr "Matériel non disponible"
@@ -1098,22 +1098,22 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
+msgid "160 KB"
 msgstr "160 Ko"
 
-msgid "180 kB"
+msgid "180 KB"
 msgstr "180 Ko"
 
-msgid "320 kB"
+msgid "320 KB"
 msgstr "320 Ko"
 
-msgid "360 kB"
+msgid "360 KB"
 msgstr "360 Ko"
 
-msgid "640 kB"
+msgid "640 KB"
 msgstr "640 Ko"
 
-msgid "720 kB"
+msgid "720 KB"
 msgstr "720 Ko"
 
 msgid "1.2 MB"
@@ -1849,10 +1849,10 @@ msgid "Linear"
 msgstr "Linéaire"
 
 msgid "4th Order"
-msgstr "4ème ordre"
+msgstr "Du 4e ordre"
 
 msgid "7th Order"
-msgstr "7ème ordre"
+msgstr "Du 7e ordre"
 
 msgid "Non-timed (original)"
 msgstr "Non temporisé (original)"
@@ -1878,23 +1878,23 @@ msgstr "A3 - SMT2 série / SMT3(R)V"
 msgid "Q1 - SMT3(R) Serial"
 msgstr "Q1 - SMT3(R) série"
 
-msgid "8 kB"
-msgstr "8 ko"
+msgid "8 KB"
+msgstr "8 Ko"
 
-msgid "32 kB"
-msgstr "32 ko"
+msgid "32 KB"
+msgstr "32 Ko"
 
-msgid "16 kB"
-msgstr "16 ko"
+msgid "16 KB"
+msgstr "16 Ko"
 
-msgid "64 kB"
-msgstr "64 ko"
+msgid "64 KB"
+msgstr "64 Ko"
 
 msgid "Disable BIOS"
 msgstr "Désactiver BIOS"
 
-msgid "512 kB"
-msgstr "512 ko"
+msgid "512 KB"
+msgstr "512 Ko"
 
 msgid "2 MB"
 msgstr "2 Mo"
@@ -1929,8 +1929,8 @@ msgstr "SigmaTel STAC9721T (stéréo)"
 msgid "Classic"
 msgstr "Classique"
 
-msgid "256 kB"
-msgstr "256 ko"
+msgid "256 KB"
+msgstr "256 Ko"
 
 msgid "Composite"
 msgstr "Composite"
@@ -1968,8 +1968,8 @@ msgstr "Interpolation sRVB"
 msgid "Linear interpolation"
 msgstr "Interpolation linéairee"
 
-msgid "128 kB"
-msgstr "128 ko"
+msgid "128 KB"
+msgstr "128 Ko"
 
 msgid "Monochrome (5151/MDA) (white)"
 msgstr "Monochrome (5151/MDA) (blanc)"
@@ -2058,8 +2058,8 @@ msgstr "Convertisseur numérique stéréo LPT"
 msgid "Generic Text Printer"
 msgstr "Imprimante de texte générique"
 
-msgid "Generic ESC/P Dot-Matrix"
-msgstr "Générique ESC/P à matrice à points"
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Imprimant générique ESC/P à matrice à points"
 
 msgid "Generic PostScript Printer"
 msgstr "Imprimante PostScript générique"
@@ -2099,3 +2099,24 @@ msgstr "Tuyau nommé (serveur)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passage du port série de l'hôte"
+
+msgid "Eject %s"
+msgstr "Éjecter %s"
+
+msgid "&Unmute"
+msgstr "&Réactiver son"
+
+msgid "Softfloat FPU"
+msgstr "FPU Softfloat"
+
+msgid "High performance impact"
+msgstr "Impact important sur la performance"
+
+msgid "RAM Disk (max. speed)"
+msgstr "Disque RAM (vitesse maximale)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "Clon IBM 8514/A (ISA)"
+
+msgid "Vendor"
+msgstr "Fabricant"

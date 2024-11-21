@@ -857,7 +857,7 @@ cdi_cue_get_flags(track_t *cur, char **line)
 }
 
 static int
-cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, uint64_t *total_pregap, uint64_t cur_pregap)
+cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, uint64_t cur_pregap)
 {
     /* Frames between index 0 (prestart) and 1 (current track start) must be skipped. */
     track_t *prev = NULL;
@@ -865,7 +865,8 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
     /* Skip *MUST* be calculated even if prestart is 0. */
     if (prestart > cur->start)
         return 0;
-    const uint64_t skip = cur->start - prestart;
+    /* If prestart is 0, there is no skip. */
+    uint64_t skip = (prestart == 0) ? 0 : (cur->start - prestart);
 
     if ((cdi->tracks != NULL) && (cdi->tracks_num != 0))
         prev = &cdi->tracks[cdi->tracks_num - 1];
@@ -883,7 +884,6 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
         if ((cur->sector_size != RAW_SECTOR_SIZE) && (cur->form > 0) && !cur->noskip)
             cur->skip += 8;
         cur->start += cur_pregap;
-        *total_pregap = cur_pregap;
         cdi_track_push_back(cdi, cur);
         return 1;
     }
@@ -891,23 +891,21 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
     /* Current track consumes data from the same file as the previous. */
     if (prev->file == cur->file) {
         cur->start += *shift;
-        prev->length = cur->start + *total_pregap - prev->start - skip;
+        prev->length = cur->start - prev->start - skip;
         cur->skip += prev->skip + (prev->length * prev->sector_size) + (skip * cur->sector_size);
-        *total_pregap += cur_pregap;
-        cur->start += *total_pregap;
+        cur->start += cur_pregap;
     } else {
         const uint64_t temp = prev->file->get_length(prev->file) - (prev->skip);
         prev->length        = temp / ((uint64_t) prev->sector_size);
         if ((temp % prev->sector_size) != 0)
+            /* Padding. */
             prev->length++;
-        /* Padding. */
 
         cur->start += prev->start + prev->length + cur_pregap;
         cur->skip = skip * cur->sector_size;
         if ((cur->sector_size != RAW_SECTOR_SIZE) && (cur->form > 0) && !cur->noskip)
             cur->skip += 8;
         *shift += prev->start + prev->length;
-        *total_pregap = cur_pregap;
     }
 
     /* Error checks. */
@@ -931,7 +929,6 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
     uint64_t shift        = 0ULL;
     uint64_t prestart     = 0ULL;
     uint64_t cur_pregap   = 0ULL;
-    uint64_t total_pregap = 0ULL;
     uint64_t frame        = 0ULL;
     uint64_t index;
     int      iso_file_used = 0;
@@ -984,7 +981,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
 
         if (!strcmp(command, "TRACK")) {
             if (can_add_track)
-                success = cdi_add_track(cdi, &trk, &shift, prestart, &total_pregap, cur_pregap);
+                success = cdi_add_track(cdi, &trk, &shift, prestart, cur_pregap);
             else
                 success = 1;
             if (!success)
@@ -1103,7 +1100,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
             char ansi[MAX_FILENAME_LENGTH];
 
             if (can_add_track)
-                success = cdi_add_track(cdi, &trk, &shift, prestart, &total_pregap, cur_pregap);
+                success = cdi_add_track(cdi, &trk, &shift, prestart, cur_pregap);
             else
                 success = 1;
             if (!success)
@@ -1186,7 +1183,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
         return 0;
 
     /* Add last track. */
-    if (!cdi_add_track(cdi, &trk, &shift, prestart, &total_pregap, cur_pregap))
+    if (!cdi_add_track(cdi, &trk, &shift, prestart, cur_pregap))
         return 0;
 
     /* Add lead out track. */
@@ -1196,7 +1193,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
     trk.start        = 0;
     trk.length       = 0;
     trk.file         = NULL;
-    if (!cdi_add_track(cdi, &trk, &shift, 0, &total_pregap, 0))
+    if (!cdi_add_track(cdi, &trk, &shift, 0, 0))
         return 0;
 
     return 1;

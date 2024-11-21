@@ -527,11 +527,11 @@ static const device_config_t tvga_config[] = {
         .default_int = 1024,
         .selection = {
             {
-                .description = "256 kB",
+                .description = "256 KB",
                 .value = 256
             },
             {
-                .description = "512 kB",
+                .description = "512 KB",
                 .value = 512
             },
             {
