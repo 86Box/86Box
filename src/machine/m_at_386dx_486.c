@@ -229,7 +229,7 @@ machine_at_spc6000a_init(const machine_t *model)
 
     ret = bios_load_interleaved("roms/machines/spc6000a/6000A.U27",
                                 "roms/machines/spc6000a/6000A.U26",
-                                0x000f8000, 65536, 0);
+                                0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
         return ret;
