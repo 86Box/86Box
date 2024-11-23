@@ -227,9 +227,9 @@ machine_at_spc6000a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/spc6000a/3c80.u27",
-                                "roms/machines/spc6000a/9f80.u26",
-                                0x000f8000, 32768, 0);
+    ret = bios_load_interleaved("roms/machines/spc6000a/6000A.U27",
+                                "roms/machines/spc6000a/6000A.U26",
+                                0x000f8000, 65536, 0);
 
     if (bios_only || !ret)
         return ret;
