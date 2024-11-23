@@ -5030,7 +5030,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name = "[C&T 386] Samsung SPC-6000A",
+        .name = "[C&T 386] Samsung S800",
         .internal_name = "spc6000a",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_CT_386,
