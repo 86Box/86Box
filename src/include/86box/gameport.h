@@ -45,6 +45,9 @@
 
 #define JOYSTICK_PRESENT(n) (joystick_state[n].plat_joystick_nr != 0)
 
+#define GAMEPORT_1ADDR      0x010000
+#define GAMEPORT_6ADDR      0x060000
+#define GAMEPORT_8ADDR      0x080000
 #define GAMEPORT_SIO        0x1000000
 
 typedef struct plat_joystick_t {
