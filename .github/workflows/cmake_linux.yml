@@ -84,6 +84,7 @@ jobs:
           libopenal-dev
           libslirp-dev
           libfluidsynth-dev
+          libvdeplug-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

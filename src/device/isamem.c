@@ -1080,7 +1080,7 @@ static const device_config_t msramcard_config[] = {
 };
 
 static const device_t msramcard_device = {
-    .name          = "Microsoft RAMCard for IBM PC",
+    .name          = "Microsoft RAMCard",
     .internal_name = "msramcard",
     .flags         = DEVICE_ISA,
     .local         = ISAMEM_RAMCARD_CARD,
