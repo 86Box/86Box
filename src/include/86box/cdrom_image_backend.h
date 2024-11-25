@@ -57,7 +57,31 @@ typedef struct track_file_t {
     int motorola;
 } track_file_t;
 
+#define BLOCK_EMPTY  0 /* Empty block. */
+#define BLOCK_ZERO   1 /* Block not in the file, return all 0x00's. */
+#define BLOCK_NORMAL 2 /* Block in the file. */
+
+#define BLOCK_NONE   ((uint64_t) -1LL)
+
+typedef struct track_block_t {
+    /* Is the current block in the file? If not, return all 0x00's. */
+    int           type;
+    /* The amount of bytes to skip at the beginning of each sector. */
+    int           skip;
+    /* Starting and ending sector LBA - negative in order to accomodate LBA -150 to -1
+       to read the pregap of track 1. */
+    int64_t       start_sector;
+    int64_t       end_sector;
+    /* Starting and ending offset in the file. */
+    uint64_t      start_offs;
+    uint64_t      end_offs;
+} track_block_t;
+
 typedef struct track_t {
+    int           pregap_len;   /* Pre-gap  - not in file. */
+    int           index0_len;   /* Pre-gap  - in file. */
+    int           postgap_len;  /* Post-gap - not in file. */
+    int           blocks_num;   /* Number of blocks. */
     int           number;
     int           track_number;
     int           attr;
@@ -65,10 +89,11 @@ typedef struct track_t {
     int           mode2;
     int           form;
     int           pre;
-    int           noskip; /* Do not skip by 8 bytes.*/
+    int           noskip;       /* Do not skip by 8 bytes.*/
     uint64_t      start;
     uint64_t      length;
     uint64_t      skip;
+    track_block_t blocks[256];
     track_file_t *file;
 } track_t;
 
