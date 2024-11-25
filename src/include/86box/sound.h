@@ -149,6 +149,7 @@ extern const device_t sb_vibra16xv_device;
 extern const device_t sb_vibra16c_onboard_device;
 extern const device_t sb_vibra16c_device;
 extern const device_t sb_16_pnp_device;
+extern const device_t sb_16_pnp_ide_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;
 extern const device_t sb_16_reply_mca_device;
