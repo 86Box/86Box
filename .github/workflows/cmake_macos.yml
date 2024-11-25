@@ -81,6 +81,7 @@ jobs:
           openal-soft
           fluidsynth
           libslirp
+          vde
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

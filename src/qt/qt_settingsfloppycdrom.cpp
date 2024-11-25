@@ -220,7 +220,7 @@ SettingsFloppyCDROM::save()
     for (int i = 0; i < CDROM_NUM; i++) {
         cdrom[i].priv = NULL;
         cdrom[i].ops = NULL;
-        cdrom[i].image = NULL;
+        cdrom[i].local = NULL;
         cdrom[i].insert = NULL;
         cdrom[i].close = NULL;
         cdrom[i].get_volume = NULL;

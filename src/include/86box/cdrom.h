@@ -195,10 +195,25 @@ typedef struct track_info_t {
     uint8_t f;
 } track_info_t;
 
+typedef struct raw_track_info_t {
+    uint8_t  session;
+    uint8_t  adr_ctl;
+    uint8_t  tno;
+    uint8_t  point;
+    uint8_t  m;
+    uint8_t  s;
+    uint8_t  f;
+    uint8_t  zero;
+    uint8_t  pm;
+    uint8_t  ps;
+    uint8_t  pf;
+} raw_track_info_t;
+
 /* Define the various CD-ROM drive operations (ops). */
 typedef struct cdrom_ops_t {
     void (*get_tracks)(struct cdrom *dev, int *first, int *last);
     void (*get_track_info)(struct cdrom *dev, uint32_t track, int end, track_info_t *ti);
+    void (*get_raw_track_info)(struct cdrom *dev, int *num, raw_track_info_t *rti);
     void (*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);
     int  (*is_track_pre)(struct cdrom *dev, uint32_t lba);
     int  (*sector_size)(struct cdrom *dev, uint32_t lba);
@@ -248,7 +263,7 @@ typedef struct cdrom {
 
     const cdrom_ops_t *ops;
 
-    void *image;
+    void *local;
 
     void (*insert)(void *priv);
     void (*close)(void *priv);

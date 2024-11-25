@@ -35,7 +35,9 @@
    of the audio while audio still plays. With an absolute conversion, the counter is fine. */
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
-static int toc_valid             = 0;
+typedef struct dummy_cdrom_ioctl_t {
+    int                     toc_valid;
+} dummy_cdrom_ioctl_t;
 
 #ifdef ENABLE_DUMMY_CDROM_IOCTL_LOG
 int dummy_cdrom_ioctl_do_log = ENABLE_DUMMY_CDROM_IOCTL_LOG;
@@ -56,30 +58,41 @@ dummy_cdrom_ioctl_log(const char *fmt, ...)
 #endif
 
 static int
-plat_cdrom_open(void)
+plat_cdrom_open(void *local)
 {
     return 0;
 }
 
 static int
-plat_cdrom_load(void)
+plat_cdrom_load(void *local)
 {
     return 0;
 }
 
 static void
-plat_cdrom_read_toc(void)
+plat_cdrom_read_toc(void *local)
 {
-    if (!toc_valid)
-        toc_valid = 1;
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    if (!ioctl->toc_valid)
+        ioctl->toc_valid = 1;
+}
+
+void
+plat_cdrom_get_raw_track_info(UNUSED(void *local), int *num, raw_track_info_t *rti)
+{
+    *num = 1;
+    memset(rti, 0x00, 11);
 }
 
 int
-plat_cdrom_is_track_audio(uint32_t sector)
+plat_cdrom_is_track_audio(void *local, uint32_t sector)
 {
-    plat_cdrom_read_toc();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
 
-    const int ret = 0;
+    plat_cdrom_read_toc(ioctl);
+
+    const int            ret   = 0;
 
     dummy_cdrom_ioctl_log("plat_cdrom_is_track_audio(%08X): %i\n", sector, ret);
 
@@ -87,9 +100,11 @@ plat_cdrom_is_track_audio(uint32_t sector)
 }
 
 int
-plat_cdrom_is_track_pre(uint32_t sector)
+plat_cdrom_is_track_pre(void *local, uint32_t sector)
 {
-    plat_cdrom_read_toc();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_read_toc(ioctl);
 
     const int ret = 0;
 
@@ -99,25 +114,30 @@ plat_cdrom_is_track_pre(uint32_t sector)
 }
 
 uint32_t
-plat_cdrom_get_track_start(uint32_t sector, uint8_t *attr, uint8_t *track)
+plat_cdrom_get_track_start(void *local, uint32_t sector, uint8_t *attr, uint8_t *track)
 {
-    plat_cdrom_read_toc();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_read_toc(ioctl);
 
     return 0x00000000;
 }
 
 uint32_t
-plat_cdrom_get_last_block(void)
+plat_cdrom_get_last_block(void *local)
 {
-    plat_cdrom_read_toc();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_read_toc(ioctl);
 
     return 0x00000000;
 }
 
 int
-plat_cdrom_ext_medium_changed(void)
+plat_cdrom_ext_medium_changed(void *local)
 {
-    int       ret  = 0;
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+    int                  ret   = 0;
 
     dummy_cdrom_ioctl_log("plat_cdrom_ext_medium_changed(): %i\n", ret);
 
@@ -125,9 +145,11 @@ plat_cdrom_ext_medium_changed(void)
 }
 
 void
-plat_cdrom_get_audio_tracks(int *st_track, int *end, TMSF *lead_out)
+plat_cdrom_get_audio_tracks(void *local, int *st_track, int *end, TMSF *lead_out)
 {
-    plat_cdrom_read_toc();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_read_toc(ioctl);
 
     *st_track       = 1;
     *end            = 1;
@@ -141,9 +163,11 @@ plat_cdrom_get_audio_tracks(int *st_track, int *end, TMSF *lead_out)
 
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
-plat_cdrom_get_audio_track_info(UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
+plat_cdrom_get_audio_track_info(void *local, UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
 {
-    plat_cdrom_read_toc();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_read_toc(ioctl);
 
     if ((track < 1) || (track == 0xaa)) {
         dummy_cdrom_ioctl_log("plat_cdrom_get_audio_track_info(%02i)\n", track);
@@ -165,7 +189,8 @@ plat_cdrom_get_audio_track_info(UNUSED(int end), int track, int *track_num, TMSF
 
 /* TODO: See if track start is adjusted by 150 or not. */
 int
-plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos)
+plat_cdrom_get_audio_sub(UNUSED(void *local), UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track, uint8_t *index,
+                         TMSF *rel_pos, TMSF *abs_pos)
 {
     *track = 1;
     *attr = 0x14;
@@ -185,7 +210,7 @@ plat_cdrom_get_audio_sub(UNUSED(uint32_t sector), uint8_t *attr, uint8_t *track,
 }
 
 int
-plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
+plat_cdrom_get_sector_size(UNUSED(void *local), UNUSED(uint32_t sector))
 {
     dummy_cdrom_ioctl_log("BytesPerSector=2048\n");
 
@@ -193,42 +218,56 @@ plat_cdrom_get_sector_size(UNUSED(uint32_t sector))
 }
 
 int
-plat_cdrom_read_sector(uint8_t *buffer, int raw, uint32_t sector)
+plat_cdrom_read_sector(void *local, uint8_t *buffer, int raw, uint32_t sector)
 {
-    plat_cdrom_open();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
 
-    if (raw) {
-        dummy_cdrom_ioctl_log("Raw\n");
+    plat_cdrom_open(ioctl);
+
+    if (raw)
         /* Raw */
-    } else {
-        dummy_cdrom_ioctl_log("Cooked\n");
+        dummy_cdrom_ioctl_log("Raw\n");
+    else
         /* Cooked */
-    }
-    plat_cdrom_close();
-    dummy_cdrom_ioctl_log("ReadSector status=%d, sector=%d, size=%" PRId64 ".\n", status, sector, (long long) size);
+        dummy_cdrom_ioctl_log("Cooked\n");
 
-    return -1;
+    plat_cdrom_close(ioctl);
+
+    dummy_cdrom_ioctl_log("ReadSector sector=%d.\n", sector);
+
+    return 0;
 }
 
 void
-plat_cdrom_eject(void)
+plat_cdrom_eject(void *local)
 {
-    plat_cdrom_open();
-    plat_cdrom_close();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_open(ioctl);
+    plat_cdrom_close(ioctl);
 }
 
 void
-plat_cdrom_close(void)
+plat_cdrom_close(UNUSED(void *local))
 {
 }
 
 int
-plat_cdrom_set_drive(const char *drv)
+plat_cdrom_set_drive(void *local, const char *drv)
 {
-    plat_cdrom_close();
+    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
 
-    toc_valid = 0;
+    plat_cdrom_close(ioctl);
 
-    plat_cdrom_load();
+    ioctl->toc_valid = 0;
+
+    plat_cdrom_load(ioctl);
+
     return 1;
+}
+
+int
+plat_cdrom_get_local_size(void)
+{
+    return sizeof(dummy_cdrom_ioctl_t);
 }

@@ -1167,27 +1167,81 @@ read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
 static int
 read_toc_raw(cdrom_t *dev, unsigned char *b)
 {
-    track_info_t ti;
-    int          len = 4;
-    int          first_track;
-    int          last_track;
-
-    cdrom_log("read_toc_raw(%08X, %08X)\n", dev, b);
-
-    dev->ops->get_tracks(dev, &first_track, &last_track);
+    track_info_t     ti;
+    raw_track_info_t rti[256]    = { 0 };
+    int              num         = 0;
+    int              len         = 4;
+    int              first_track;
+    int              last_track;
 
     /* Bytes 2 and 3 = Number of first and last sessions */
     b[2] = b[3] = 1;
 
-    for (int i = 0; i <= last_track; i++) {
-        dev->ops->get_track_info(dev, i + 1, 0, &ti);
+    if (dev->ops->get_raw_track_info != NULL) {
+        cdrom_log("read_toc_raw(%08X, %08X): Raw tracks\n", dev, b);
+        pclog("read_toc_raw(%016" PRIXPTR ", %016" PRIXPTR "): Raw tracks\n",
+              (uintptr_t) dev, (uintptr_t) b);
+
+        dev->ops->get_raw_track_info(dev, &num, (raw_track_info_t *) rti);
+
+        if (num != 0)  for (int i = 0; i < num; i++) {
+            b[len++] = rti[i].session;
+            b[len++] = rti[i].adr_ctl;
+            b[len++] = rti[i].tno;
+            b[len++] = rti[i].point;
+            b[len++] = rti[i].m;
+            b[len++] = rti[i].s;
+            b[len++] = rti[i].f;
+            b[len++] = rti[i].zero;
+            b[len++] = rti[i].pm;
+            b[len++] = rti[i].ps;
+            b[len++] = rti[i].pf;
+        }
+    } else {
+        cdrom_log("read_toc_raw(%08X, %08X): Cooked tracks\n", dev, b);
+        pclog("read_toc_raw(%016" PRIXPTR ", %016" PRIXPTR "): Cooked tracks\n",
+              (uintptr_t) dev, (uintptr_t) b);
+
+        dev->ops->get_tracks(dev, &first_track, &last_track);
+
+        dev->ops->get_track_info(dev, 1, 0, &ti);
+
+        b[len++] = 1;         /* Session number */
+        b[len++] = ti.attr;   /* Track ADR and Control */
+        b[len++] = 0;         /* TNO (always 0) */
+        b[len++] = 0xA0;      /* Point (for track points - track number) */
+        /* Yes, this is correct - MSF followed by PMSF, the actual position is in PMSF. */
+        b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = ti.number; /* First track number */
+        b[len++] = 0;
+        b[len++] = 0;
+
+        dev->ops->get_track_info(dev, last_track, 0, &ti);
+
+        b[len++] = 1;         /* Session number */
+        b[len++] = ti.attr;   /* Track ADR and Control */
+        b[len++] = 0;         /* TNO (always 0) */
+        b[len++] = 0xA1;      /* Point (for track points - track number) */
+        /* Yes, this is correct - MSF followed by PMSF, the actual position is in PMSF. */
+        b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = 0;
+        b[len++] = ti.number; /* First track number */
+        b[len++] = 0;
+        b[len++] = 0;
+
+        dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
 
         cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
 
         b[len++] = 1;         /* Session number */
         b[len++] = ti.attr;   /* Track ADR and Control */
         b[len++] = 0;         /* TNO (always 0) */
-        b[len++] = ti.number; /* Point (for track points - track number) */
+        b[len++] = 0xA2;      /* Point (for track points - track number) */
         /* Yes, this is correct - MSF followed by PMSF, the actual position is in PMSF. */
         b[len++] = 0;
         b[len++] = 0;
@@ -1196,6 +1250,25 @@ read_toc_raw(cdrom_t *dev, unsigned char *b)
         b[len++] = ti.m;      /* PM */
         b[len++] = ti.s;      /* PS */
         b[len++] = ti.f;      /* PF */
+
+        for (int i = 0; i < last_track; i++) {
+            dev->ops->get_track_info(dev, i + 1, 0, &ti);
+
+            cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
+
+            b[len++] = 1;         /* Session number */
+            b[len++] = ti.attr;   /* Track ADR and Control */
+            b[len++] = 0;         /* TNO (always 0) */
+            b[len++] = ti.number; /* Point (for track points - track number) */
+            /* Yes, this is correct - MSF followed by PMSF, the actual position is in PMSF. */
+            b[len++] = 0;
+            b[len++] = 0;
+            b[len++] = 0;
+            b[len++] = 0;
+            b[len++] = ti.m;      /* PM */
+            b[len++] = ti.s;      /* PS */
+            b[len++] = ti.f;      /* PF */
+        }
     }
 
     return len;
@@ -1954,6 +2027,22 @@ cdrom_drive_reset(cdrom_t *dev)
     dev->get_channel = NULL;
 }
 
+/* Will be removed later. */
+#ifdef ENABLE_CDROM_LOG
+static void
+cdrom_toc_dump(cdrom_t *dev)
+{
+    uint8_t     b[65536] = { 0 };
+    int         len      = cdrom_read_toc(dev, b, CD_TOC_RAW, 0, 0, 65536);
+    const char *fn2      = "d:\\86boxnew\\toc_cue.dmp";
+    FILE *      f        = fopen(fn2, "wb");
+    fwrite(b, 1, len, f);
+    fflush(f);
+    fclose(f);
+    pclog("Written TOC of %i bytes to %s\n", len, fn2);
+}
+#endif
+
 void
 cdrom_hard_reset(void)
 {
@@ -1994,6 +2083,10 @@ cdrom_hard_reset(void)
                     cdrom_ioctl_open(dev, dev->image_path);
                 else
                     cdrom_image_open(dev, dev->image_path);
+
+#ifdef ENABLE_CDROM_LOG
+                cdrom_toc_dump(dev);
+#endif
             }
         }
     }
@@ -2095,21 +2188,23 @@ cdrom_reload(uint8_t id)
             strcpy(dev->image_path, dev->prev_image_path);
 
 #ifdef _WIN32
-        if (strlen(dev->prev_image_path) > 0) {
-            if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
-                dev->image_path[strlen(dev->image_path) - 1] = '\\';
-        }
+        if ((strlen(dev->prev_image_path) > 0) && (strlen(dev->image_path) >= 1) &&
+            (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+            dev->image_path[strlen(dev->image_path) - 1] = '\\';
 #else
-        if (strlen(dev->prev_image_path) > 0) {
-             if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
-                dev->image_path[strlen(dev->image_path) - 1] = '/';
-        }
+        if ((strlen(dev->prev_image_path) > 0) && (strlen(dev->image_path) >= 1) &&
+            (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+            dev->image_path[strlen(dev->image_path) - 1] = '/';
 #endif
 
         if ((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path))
             cdrom_ioctl_open(dev, dev->image_path);
         else
             cdrom_image_open(dev, dev->image_path);
+
+#ifdef ENABLE_CDROM_LOG
+        cdrom_toc_dump(dev);
+#endif
 
         cdrom_insert(id);
     }
