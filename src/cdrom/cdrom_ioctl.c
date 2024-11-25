@@ -28,9 +28,9 @@
 #include <86box/config.h>
 #include <86box/path.h>
 #include <86box/plat.h>
-#include <86box/plat_cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
+#include <86box/plat_cdrom.h>
 
 #ifdef ENABLE_CDROM_IOCTL_LOG
 int cdrom_ioctl_do_log = ENABLE_CDROM_IOCTL_LOG;
@@ -56,19 +56,19 @@ cdrom_ioctl_log(const char *fmt, ...)
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 static void
-ioctl_get_tracks(UNUSED(cdrom_t *dev), int *first, int *last)
+ioctl_get_tracks(cdrom_t *dev, int *first, int *last)
 {
     TMSF        tmsf;
 
-    plat_cdrom_get_audio_tracks(first, last, &tmsf);
+    plat_cdrom_get_audio_tracks(dev->local, first, last, &tmsf);
 }
 
 static void
-ioctl_get_track_info(UNUSED(cdrom_t *dev), uint32_t track, int end, track_info_t *ti)
+ioctl_get_track_info(cdrom_t *dev, uint32_t track, int end, track_info_t *ti)
 {
     TMSF      tmsf;
 
-    plat_cdrom_get_audio_track_info(end, track, &ti->number, &tmsf, &ti->attr);
+    plat_cdrom_get_audio_track_info(dev->local, end, track, &ti->number, &tmsf, &ti->attr);
 
     ti->m = tmsf.min;
     ti->s = tmsf.sec;
@@ -76,13 +76,19 @@ ioctl_get_track_info(UNUSED(cdrom_t *dev), uint32_t track, int end, track_info_t
 }
 
 static void
-ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
+ioctl_get_raw_track_info(cdrom_t *dev, int *num, raw_track_info_t *rti)
+{
+    plat_cdrom_get_raw_track_info(dev->local, num, rti);
+}
+
+static void
+ioctl_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
 {
     TMSF      rel_pos;
     TMSF      abs_pos;
 
     if ((dev->cd_status == CD_STATUS_PLAYING) || (dev->cd_status == CD_STATUS_PAUSED)) {
-        const uint32_t trk = plat_cdrom_get_track_start(lba, &subc->attr, &subc->track);
+        const uint32_t trk = plat_cdrom_get_track_start(dev->local, lba, &subc->attr, &subc->track);
 
         FRAMES_TO_MSF(lba + 150, &abs_pos.min, &abs_pos.sec, &abs_pos.fr);
 
@@ -91,7 +97,7 @@ ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
 
         subc->index  = 1;
     } else
-        plat_cdrom_get_audio_sub(lba, &subc->attr, &subc->track, &subc->index,
+        plat_cdrom_get_audio_sub(dev->local, lba, &subc->attr, &subc->track, &subc->index,
                                  &rel_pos, &abs_pos);
 
     subc->abs_m = abs_pos.min;
@@ -107,11 +113,11 @@ ioctl_get_subchannel(UNUSED(cdrom_t *dev), uint32_t lba, subchannel_t *subc)
 }
 
 static int
-ioctl_get_capacity(UNUSED(cdrom_t *dev))
+ioctl_get_capacity(cdrom_t *dev)
 {
     int ret;
 
-    ret = plat_cdrom_get_last_block();
+    ret = plat_cdrom_get_last_block(dev->local);
     cdrom_ioctl_log("GetCapacity=%x.\n", ret);
     return ret;
 }
@@ -134,35 +140,35 @@ ioctl_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
     }
 
     /* GetTrack requires LBA. */
-    return plat_cdrom_is_track_audio(pos);
+    return plat_cdrom_is_track_audio(dev->local, pos);
 }
 
 static int
-ioctl_is_track_pre(UNUSED(cdrom_t *dev), uint32_t lba)
+ioctl_is_track_pre(cdrom_t *dev, uint32_t lba)
 {
-    return plat_cdrom_is_track_pre(lba);
+    return plat_cdrom_is_track_pre(dev->local, lba);
 }
 
 static int
-ioctl_sector_size(UNUSED(cdrom_t *dev), uint32_t lba)
+ioctl_sector_size(cdrom_t *dev, uint32_t lba)
 {
     cdrom_ioctl_log("LBA=%x.\n", lba);
-    return plat_cdrom_get_sector_size(lba);
+    return plat_cdrom_get_sector_size(dev->local, lba);
 }
 
 static int
-ioctl_read_sector(UNUSED(cdrom_t *dev), int type, uint8_t *b, uint32_t lba)
+ioctl_read_sector(cdrom_t *dev, int type, uint8_t *b, uint32_t lba)
 {
     switch (type) {
         case CD_READ_DATA:
             cdrom_ioctl_log("cdrom_ioctl_read_sector(): Data.\n");
-            return plat_cdrom_read_sector(b, 0, lba);
+            return plat_cdrom_read_sector(dev->local, b, 0, lba);
         case CD_READ_AUDIO:
             cdrom_ioctl_log("cdrom_ioctl_read_sector(): Audio.\n");
-            return plat_cdrom_read_sector(b, 1, lba);
+            return plat_cdrom_read_sector(dev->local, b, 1, lba);
         case CD_READ_RAW:
             cdrom_ioctl_log("cdrom_ioctl_read_sector(): Raw.\n");
-            return plat_cdrom_read_sector(b, 1, lba);
+            return plat_cdrom_read_sector(dev->local, b, 1, lba);
         default:
             cdrom_ioctl_log("cdrom_ioctl_read_sector(): Unknown CD read type.\n");
             break;
@@ -191,7 +197,7 @@ ioctl_ext_medium_changed(cdrom_t *dev)
     if ((dev->cd_status == CD_STATUS_PLAYING) || (dev->cd_status == CD_STATUS_PAUSED))
         ret = 0;
     else
-        ret = plat_cdrom_ext_medium_changed();
+        ret = plat_cdrom_ext_medium_changed(dev->local);
 
     if (ret == 1) {
         dev->cd_status      = CD_STATUS_STOPPED;
@@ -208,7 +214,8 @@ ioctl_exit(cdrom_t *dev)
     cdrom_ioctl_log("CDROM: ioctl_exit(%s)\n", dev->image_path);
     dev->cd_status = CD_STATUS_EMPTY;
 
-    plat_cdrom_close();
+    plat_cdrom_close(dev->local);
+    dev->local = NULL;
 
     dev->ops = NULL;
 }
@@ -216,6 +223,7 @@ ioctl_exit(cdrom_t *dev)
 static const cdrom_ops_t cdrom_ioctl_ops = {
     ioctl_get_tracks,
     ioctl_get_track_info,
+    ioctl_get_raw_track_info,
     ioctl_get_subchannel,
     ioctl_is_track_pre,
     ioctl_sector_size,
@@ -238,9 +246,10 @@ int
 cdrom_ioctl_open(cdrom_t *dev, const char *drv)
 {
     const char *actual_drv = &(drv[8]);
+    int         local_size = plat_cdrom_get_local_size();
 
     /* Make sure to not STRCPY if the two are pointing
-   at the same place. */
+       at the same place. */
     if (drv != dev->image_path)
         strcpy(dev->image_path, drv);
 
@@ -248,7 +257,9 @@ cdrom_ioctl_open(cdrom_t *dev, const char *drv)
     if (strstr(drv, "ioctl://") != drv)
         return cdrom_ioctl_open_abort(dev);
     cdrom_ioctl_log("actual_drv = %s\n", actual_drv);
-    int i = plat_cdrom_set_drive(actual_drv);
+    if (dev->local == NULL)
+        dev->local = calloc(1, local_size);
+    int i = plat_cdrom_set_drive(dev->local, actual_drv);
     if (!i)
         return cdrom_ioctl_open_abort(dev);
 

@@ -1189,7 +1189,6 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
     /* Add lead out track. */
     trk.number++;
     trk.track_number = 0xAA;
-    trk.attr         = 0x16; /* Was 0x00 but I believe 0x16 is appropriate. */
     trk.start        = 0;
     trk.length       = 0;
     trk.file         = NULL;
