@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2016 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004,2010 Dag Lem <resid@nimrod.no>
  *
@@ -22,8 +22,13 @@
 
 #include "Dac.h"
 
+#include "sidcxx11.h"
+
 namespace reSIDfp
 {
+
+constexpr double MOSFET_LEAKAGE_6581 = 0.0075;
+constexpr double MOSFET_LEAKAGE_8580 = 0.0035;
 
 Dac::Dac(unsigned int bits) :
     dac(new double[bits]),
@@ -41,10 +46,8 @@ double Dac::getOutput(unsigned int input) const
 
     for (unsigned int i = 0; i < dacLength; i++)
     {
-        if ((input & (1 << i)) != 0)
-        {
-            dacValue += dac[i];
-        }
+        const bool transistor_on = (input & (1 << i)) != 0;
+        dacValue += transistor_on ? dac[i] : dac[i] * leakage;
     }
 
     return dacValue;
@@ -52,13 +55,17 @@ double Dac::getOutput(unsigned int input) const
 
 void Dac::kinkedDac(ChipModel chipModel)
 {
-    const double R_INFINITY = 1e6;
+    constexpr double R_INFINITY = 1e6;
 
     // Non-linearity parameter, 8580 DACs are perfectly linear
     const double _2R_div_R = chipModel == MOS6581 ? 2.20 : 2.00;
 
     // 6581 DACs are not terminated by a 2R resistor
     const bool term = chipModel == MOS8580;
+
+    leakage = chipModel == MOS6581 ? MOSFET_LEAKAGE_6581 : MOSFET_LEAKAGE_8580;
+
+    double Vsum = 0.;
 
     // Calculate voltage contribution by each individual bit in the R-2R ladder.
     for (unsigned int set_bit = 0; set_bit < dacLength; set_bit++)
@@ -102,18 +109,10 @@ void Dac::kinkedDac(ChipModel chipModel)
         }
 
         dac[set_bit] = Vn;
+        Vsum += Vn;
     }
 
     // Normalize to integerish behavior
-    double Vsum = 0.;
-
-    for (unsigned int i = 0; i < dacLength; i++)
-    {
-        Vsum += dac[i];
-    }
-
-    Vsum /= 1 << dacLength;
-
     for (unsigned int i = 0; i < dacLength; i++)
     {
         dac[i] /= Vsum;

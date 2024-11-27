@@ -1,7 +1,9 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2014-2016 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2007-2010 Antti Lankila
+ * Copyright 2004, 2010 Dag Lem <resid@nimrod.no>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,36 +20,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "Integrator8580.h"
+#ifndef INTEGRATOR_H
+#define INTEGRATOR_H
 
 namespace reSIDfp
 {
 
-int Integrator8580::solve(int vi) const
+class Integrator
 {
-    // Make sure we're not in subthreshold mode
-    assert(vx < nVgt);
+protected:
+    mutable int vx;
+    mutable int vc;
 
-    // DAC voltages
-    const unsigned int Vgst = nVgt - vx;
-    const unsigned int Vgdt = (vi < nVgt) ? nVgt - vi : 0;  // triode/saturation mode
+    Integrator() :
+        vx(0),
+        vc(0) {}
 
-    const unsigned int Vgst_2 = Vgst * Vgst;
-    const unsigned int Vgdt_2 = Vgdt * Vgdt;
+public:
+    virtual int solve(int vi) const = 0;
 
-    // DAC current, scaled by (1/m)*2^13*m*2^16*m*2^16*2^-15 = m*2^30
-    const int n_I_dac = n_dac * (static_cast<int>(Vgst_2 - Vgdt_2) >> 15);
-
-    // Change in capacitor charge.
-    vc += n_I_dac;
-
-    // vx = g(vc)
-    const int tmp = (vc >> 15) + (1 << 15);
-    assert(tmp < (1 << 16));
-    vx = fmc.getOpampRev(tmp);
-
-    // Return vo.
-    return vx - (vc >> 14);
-}
+    virtual ~Integrator() = default;
+};
 
 } // namespace reSIDfp
+
+#endif
