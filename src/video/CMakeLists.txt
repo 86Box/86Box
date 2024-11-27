@@ -27,7 +27,21 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_tkd8001_ramdac.c vid_att20c49x_ramdac.c vid_s3.c vid_s3_virge.c
     vid_ibm_rgb528_ramdac.c vid_sdac_ramdac.c vid_ogc.c vid_mga.c vid_nga.c
     vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c vid_xga.c
-    vid_bochs_vbe.c)
+    vid_bochs_vbe.c
+    nv/nv_base.c 
+    nv/nv3/nv3_core.c nv/nv3/nv3_core_arbiter.c nv/nv3/nv3_interrupt.c
+    nv/nv3/subsystems/nv3_pramdac.c 
+    nv/nv3/subsystems/nv3_pfifo.c
+    nv/nv3/subsystems/nv3_pgraph.c 
+    nv/nv3/subsystems/nv3_pmc.c 
+    nv/nv3/subsystems/nv3_pme.c
+    nv/nv3/subsystems/nv3_pextdev.c
+    nv/nv3/subsystems/nv3_pfb.c
+    nv/nv3/subsystems/nv3_pbus.c nv/nv3/subsystems/nv3_pbus_dma.c
+    nv/nv3/subsystems/nv3_ptimer.c
+    nv/nv3/subsystems/nv3_pramin.c nv/nv3/subsystems/nv3_pramin_ramht.c nv/nv3/subsystems/nv3_pramin_ramfc.c nv/nv3/subsystems/nv3_pramin_ramro.c 
+    nv/nv3/subsystems/nv3_pvideo.c
+    )
 
 if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)

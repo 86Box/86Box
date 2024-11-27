@@ -138,6 +138,11 @@ option(GDBSTUB      "Enable GDB stub server for debugging"                      
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
+option(NV_LOG       "NVidia RIVA 128 debug logging"                              OFF)
+
+if (NV_LOG)
+    add_compile_definitions(ENABLE_NV_LOG)
+endif()
 
 if(WIN32)
     set(QT ON)
