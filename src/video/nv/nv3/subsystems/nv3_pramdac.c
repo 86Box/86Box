@@ -54,15 +54,15 @@ uint32_t nv3_pramdac_get_vram_clock_register()
     // M divisor            [7-0]
     // N divisor            [16-8]
     // P divisor            [18-16]
-    return (nv3->pramdac.memory_clock_m);
-    + (nv3->pramdac.memory_clock_n << 8);
+    return (nv3->pramdac.memory_clock_m)
+    + (nv3->pramdac.memory_clock_n << 8)
     + (nv3->pramdac.memory_clock_p << 16); // 0-3
 }
 
 uint32_t nv3_pramdac_get_pixel_clock_register()
 {
-    return (nv3->pramdac.pixel_clock_m);
-    + (nv3->pramdac.pixel_clock_n << 8);
+    return (nv3->pramdac.pixel_clock_m)
+    + (nv3->pramdac.pixel_clock_n << 8)
     + (nv3->pramdac.pixel_clock_p << 16); // 0-3
 }
 
