@@ -8,8 +8,6 @@
  *
  *          Definitions for the generic game port handlers.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
@@ -18,10 +16,12 @@
  *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2021 RichardG.
- *          Copyright 2021-2024 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_GAMEPORT_H
 #define EMU_GAMEPORT_H
+
+#define GAMEPORT_MAX 2
 
 #define MAX_PLAT_JOYSTICKS  8
 #define MAX_JOYSTICKS       4
@@ -110,9 +110,19 @@ typedef struct joystick_if_t {
     const char *pov_names[MAX_JOY_POVS];
 } joystick_if_t;
 
+extern device_t game_ports[GAMEPORT_MAX];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern int gameport_available(int port);
+#ifdef EMU_DEVICE_H
+extern const device_t *gameport_getdevice(int port);
+#endif
+extern int         gameport_has_config(int port);
+extern const char *gameport_get_internal_name(int port);
+extern int         gameport_get_from_internal_name(const char *str);
 
 #ifdef EMU_DEVICE_H
 extern const device_t gameport_device;
@@ -173,6 +183,15 @@ extern const joystick_if_t joystick_ch_flightstick_pro;
 extern const joystick_if_t joystick_sw_pad;
 
 extern const joystick_if_t joystick_tm_fcs;
+
+extern int             gameport_available(int);
+extern int             gameport_has_config(int);
+extern const char     *gameport_get_internal_name(int);
+extern int             gampeport_get_from_internal_name(char *);
+#ifdef EMU_DEVICE_H
+extern const device_t *gameport_getdevice(int);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
