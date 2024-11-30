@@ -8,20 +8,19 @@
  *
  *          Configuration file handler.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Overdoze,
  *          David Hrdlička, <hrdlickadavid@outlook.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 David Hrdlička.
  *          Copyright 2021      Andreas J. Reichel.
- *          Copyright 2021-2022 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  *
  * NOTE:    Forcing config files to be in Unicode encoding breaks
  *          it on Windows XP, and possibly also Vista. Use the
@@ -760,6 +759,28 @@ load_ports(void)
         p                   = ini_section_get_string(cat, temp, "none");
         lpt_ports[c].device = lpt_device_get_from_internal_name(p);
     }
+
+#if 0
+// TODO: Load
+    for (c = 0; c < GAMEPORT_MAX; c++) {
+        sprintf(temp, "gameport%d_enabled", c + 1);
+        game_ports[c].enabled = !!ini_section_get_int(cat, temp, (c == 0) ? 1 : 0);
+
+        sprintf(temp, "gameport%d_device", c + 1);
+        p                   = ini_section_get_string(cat, temp, "none");
+        game_ports[c].device = gameport_get_from_internal_name(p);
+    }
+
+    for (uint8_t c = 0; c < GAMEPORT_MAX; c++) {
+        sprintf(temp, "gameport%d_type", c);
+
+        p              = ini_section_get_string(cat, temp, "none");
+        gameport_type[c] = gameport_get_from_internal_name(p);
+
+        if (!strcmp(p, "none"))
+            ini_section_delete_var(cat, temp);
+    }
+#endif
 }
 
 /* Load "Storage Controllers" section. */
@@ -2376,6 +2397,34 @@ save_ports(void)
             ini_section_set_string(cat, temp,
                                    lpt_device_get_internal_name(lpt_ports[c].device));
     }
+
+#if 0
+// TODO: Save
+    for (c = 0; c < GAMEPORT_MAX; c++) {
+        sprintf(temp, "gameport%d_enabled", c + 1);
+        d = (c == 0) ? 1 : 0;
+        if (game_ports[c].enabled == d)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, game_ports[c].enabled);
+
+        sprintf(temp, "gameport%d_device", c + 1);
+        if (game_ports[c].device == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp,
+                                   gameport_get_internal_name(game_ports[c].device));
+    }
+
+    for (uint8_t c = 0; c < GAMEPORT_MAX; c++) {
+        sprintf(temp, "gameport%d_enabled", c);
+        if (gameport_type[c] == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp,
+                                   gameport_get_internal_name(gameport_type[c]));
+    }
+#endif
 
     ini_delete_section_if_empty(config, cat);
 }
