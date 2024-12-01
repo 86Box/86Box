@@ -47,38 +47,11 @@ static video_timings_t timing_default = { .type = VIDEO_ISA, .write_b = 8, .writ
 
 static int was_reset = 0;
 
-static const device_t vid_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-static const device_t vid_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const VIDEO_CARD
 video_cards[] = {
   // clang-format off
-    { &vid_none_device                                 },
-    { &vid_internal_device                             },
+    { &device_none                                     },
+    { &device_internal                                 },
     { &atiega800p_device                               },
     { &mach8_vga_isa_device,      VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,         VIDEO_FLAG_TYPE_8514 },
@@ -87,9 +60,10 @@ video_cards[] = {
     { &ati18800_vga88_device                           },
     { &ati28800_device                                 },
     { &compaq_ati28800_device                          },
-#if defined(DEV_BRANCH) && defined(USE_XL24)
+    { &ati28800_wonder1024d_xl_plus_device             },
+#ifdef USE_XL24
     { &ati28800_wonderxl24_device                      },
-#endif
+#endif /* USE_XL24 */
     { &ati18800_device                                 },
     { &ati18800_wonder_device                          },
     { &cga_device                                      },
@@ -201,6 +175,7 @@ video_cards[] = {
     { &s3_trio64v2_dx_pci_device                       },
     { &s3_virge_325_pci_device                         },
     { &s3_diamond_stealth_2000_pci_device              },
+    { &s3_mirocrystal_3d_pci_device                    },
     { &s3_diamond_stealth_3000_pci_device              },
     { &s3_stb_velocity_3d_pci_device                   },
     { &s3_virge_375_pci_device                         },
@@ -261,7 +236,9 @@ video_cards[] = {
     { &s3_virge_357_agp_device                         },
     { &s3_diamond_stealth_4000_agp_device              },
     { &s3_trio3d2x_agp_device                          },
+#ifdef USE_G100
     { &productiva_g100_device, VIDEO_FLAG_TYPE_SPECIAL },
+#endif /*USE_G100 */
     { &velocity_100_agp_device                         },
     { &velocity_200_agp_device                         },
     { &voodoo_3_1000_agp_device                        },
@@ -349,12 +326,14 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
-        (gfxcard[1] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
-        video_monitor_init(1);
-        monitor_index_global = 1;
-        device_add(video_cards[gfxcard[1]].device);
-        monitor_index_global = 0;
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
+            (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine)) {
+            video_monitor_init(i);
+            monitor_index_global = 1;
+            device_add(video_cards[gfxcard[i]].device);
+            monitor_index_global = 0;
+        }
     }
 
     /* Do not initialize internal cards here. */

@@ -59,7 +59,7 @@ w83769f_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (cmd640_do_log) {
+    if (w83769f_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);

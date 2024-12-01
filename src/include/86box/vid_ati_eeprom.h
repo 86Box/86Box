@@ -47,7 +47,8 @@ typedef struct ati_eeprom_t {
 } ati_eeprom_t;
 
 void ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type);
-void ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn);
+void ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn, int mca);
+void ati_eeprom_load_mach8_vga(ati_eeprom_t *eeprom, char *fn);
 void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat);
 int  ati_eeprom_read(ati_eeprom_t *eeprom);
 

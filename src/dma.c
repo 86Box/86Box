@@ -18,6 +18,7 @@
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -813,8 +814,6 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
         case 7: /*Count registers*/
             dma_wp[1] ^= 1;
             count = dma[channel].cc/* + 1*/;
-            // if (count > dma[channel].cb)
-                // count = 0x0000;
             if (dma_wp[1])
                 ret = count & 0xff;
             else

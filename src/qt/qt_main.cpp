@@ -138,16 +138,27 @@ main_thread_fn()
             }
         } else {
             /* Just so we dont overload the host OS. */
+
+            /* Trigger a hard reset if one is pending. */
+            if (hard_reset_pending) {
+                hard_reset_pending = 0;
+                pc_reset_hard_close();
+                pc_reset_hard_init();
+            }
+
             if (dopause)
                 ack_pause();
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
     is_quit = 1;
-    if (gfxcard[1]) {
-        ui_deinit_monitor(1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if (gfxcard[i]) {
+            ui_deinit_monitor(i);
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
     }
     QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }
@@ -240,13 +251,13 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
 #    if !defined(EMU_BUILD_NUM) || (EMU_BUILD_NUM != 5624)
-    HWND winbox = FindWindow("TWinBoxMain", NULL);
+    HWND winbox = FindWindowW(L"TWinBoxMain", NULL);
     if (winbox &&
-        FindWindowEx(winbox, NULL, "TToolBar", NULL) &&
-        FindWindowEx(winbox, NULL, "TListBox", NULL) &&
-        FindWindowEx(winbox, NULL, "TStatusBar", NULL) &&
-        (winbox = FindWindowEx(winbox, NULL, "TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
-        FindWindowEx(winbox, NULL, "TTabSheet", NULL))
+        FindWindowExW(winbox, NULL, L"TToolBar", NULL) &&
+        FindWindowExW(winbox, NULL, L"TListBox", NULL) &&
+        FindWindowExW(winbox, NULL, L"TStatusBar", NULL) &&
+        (winbox = FindWindowExW(winbox, NULL, L"TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
+        FindWindowExW(winbox, NULL, L"TTabSheet", NULL))
 #    endif
     {
         QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("WinBox is no longer supported"),
@@ -385,7 +396,7 @@ main(int argc, char *argv[])
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 5)
+        if (vid_api == 5)
             plat_pause(1);
         else
 #endif

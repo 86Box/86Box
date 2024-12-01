@@ -8,6 +8,11 @@
 #
 #          CMake build script.
 #
+# Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
+#
+#          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -41,8 +46,12 @@ endif()
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
 
 find_package(Threads REQUIRED)
-find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
+find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL Gui REQUIRED)
 find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+if(NOT USE_QT6)
+    # For <qpa/qplatformwindow.h>  in src/qt/qt_mainwindow.cpp
+    include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+endif ()
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
@@ -186,6 +195,10 @@ if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()
 
+if(WACOM)
+    target_compile_definitions(ui PRIVATE USE_WACOM)
+endif()
+
 if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC 86Box-qt.rc)
@@ -219,10 +232,20 @@ if(WIN32 AND NOT MINGW)
     target_sources(plat PRIVATE win_opendir.c)
 endif()
 
+if(WIN32 AND NOT CPPTHREADS)
+    target_sources(plat PRIVATE win_thread.c)
+endif()
+
 if(WIN32)
-    target_sources(plat PRIVATE win_serial_passthrough.c win_netsocket.c)
+    target_sources(plat PRIVATE
+        win_serial_passthrough.c
+        win_netsocket.c
+    )
 else()
-    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c ../unix/unix_netsocket.c)
+    target_sources(plat PRIVATE
+        ../unix/unix_serial_passthrough.c
+        ../unix/unix_netsocket.c
+    )
 endif()
 
 if(WIN32)
@@ -256,18 +279,14 @@ if (WIN32)
     )
 endif()
 
-target_link_libraries(
-    plat
-    PRIVATE
+target_link_libraries(plat PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::Network
     Threads::Threads
 )
 
-target_link_libraries(
-    ui
-    PRIVATE
+target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::OpenGL
@@ -400,7 +419,7 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
                 target_compile_definitions(ui PRIVATE XKBCOMMON_X11)
                 target_link_libraries(ui PRIVATE X11::xcb PUBLIC PkgConfig::XKBCOMMON_X11)
                 target_sources(ui PRIVATE xkbcommon_x11_keyboard.cpp)
-                set(QT5_PRIVATE_HEADERS ON)
+                set(QT_PRIVATE_HEADERS ON)
             endif()
         endif()
     endif()
@@ -422,23 +441,68 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
                     target_sources(ui PRIVATE xkbcommon_wl_keyboard.cpp)
                 endif()
                 target_compile_definitions(ui PRIVATE WAYLAND)
-                set(QT5_PRIVATE_HEADERS ON)
+                set(QT_PRIVATE_HEADERS ON)
             endif()
         endif()
     endif()
 
     # Add private headers for Qt5 if required.
-    if (NOT USE_QT6 AND DEFINED QT5_PRIVATE_HEADERS)
+    if (DEFINED QT_PRIVATE_HEADERS)
         find_package(Qt${QT_MAJOR}Gui)
         if (Qt${QT_MAJOR}Gui_FOUND)
             include_directories(${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})
         endif()
     endif()
 endif()
+
+option(EMBED_QTBASE_TRANSLATIONS "Embed the base Qt translations into the executable" ON)
+
+if (EMBED_QTBASE_TRANSLATIONS)
+    # Get the Qt translations directory
+    get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_MAJOR}::qmake IMPORTED_LOCATION)
+    execute_process(COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_TRANSLATIONS OUTPUT_VARIABLE QT_TRANSLATIONS_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+
 set(QM_FILES)
 file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
 foreach(po_file ${po_files})
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
+
+    if (EMBED_QTBASE_TRANSLATIONS)
+        # Get the language and country
+        string(REGEX MATCH "^[a-z]+" PO_LANGUAGE ${PO_FILE_NAME})
+        string(REGEX MATCH "[A-Z]+$" PO_COUNTRY ${PO_FILE_NAME})
+
+        # Find the base Qt translation for the language and country
+        set(qt_translation_file_dest "qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+        if (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+            set(qt_translation_file "qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+        # Fall back to just the language if country isn't found
+        elseif (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${PO_LANGUAGE}.qm")
+            set(qt_translation_file "qtbase_${PO_LANGUAGE}.qm")
+        # If the translation is still not found, try the legacy Qt one
+        elseif (EXISTS "${QT_TRANSLATIONS_DIR}/qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+            set(qt_translation_file "qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+        # Fall back to just the language again
+        elseif (EXISTS "${QT_TRANSLATIONS_DIR}/qt_${PO_LANGUAGE}.qm")
+            set(qt_translation_file "qt_${PO_LANGUAGE}.qm")
+        else()
+            unset(qt_translation_file)
+        endif()
+
+        # Copy the translation file to the build directory
+        if (qt_translation_file)
+            file(COPY "${QT_TRANSLATIONS_DIR}/${qt_translation_file}" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+            if (NOT (qt_translation_file STREQUAL qt_translation_file_dest))
+                # Rename the file for consistency
+                file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file}" "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
+            endif()
+            # Add the file to the translations list
+            string(APPEND QT_TRANSLATIONS_LIST "        <file>${qt_translation_file_dest}</file>\n")
+            list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
+        endif()
+    endif()
+
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
                        COMMAND "$<TARGET_FILE:Qt${QT_MAJOR}::lconvert>" -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -446,5 +510,6 @@ foreach(po_file ${po_files})
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")
     list(APPEND QM_FILES "${po_file}")
 endforeach()
-configure_file(qt_translations.qrc ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
+configure_file(qt_translations.qrc.in ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)
 target_sources(ui PRIVATE ${QM_FILES} ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)

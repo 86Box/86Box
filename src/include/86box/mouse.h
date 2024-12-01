@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 extern int    mouse_type;
-extern int    mouse_input_mode; /* 1 = Absolute, 0 = Relative */
+extern int    mouse_input_mode; /* 2 = Absolute (Visible Crosshair), 1 = Absolute, 0 = Relative */
 extern int    mouse_timed; /* 1 = Timed, 0 = Constant */
 extern int    mouse_tablet_in_proximity;
 extern double mouse_x_abs;
@@ -71,8 +71,10 @@ extern const device_t mouse_mssystems_device;
 extern const device_t mouse_msserial_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
+#    ifdef USE_WACOM
 extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
+#    endif
 extern const device_t mouse_mtouch_device;
 #endif
 

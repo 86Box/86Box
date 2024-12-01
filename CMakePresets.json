@@ -43,17 +43,15 @@
             "name": "development",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "DEV_BRANCH": "ON",
-                "NEW_DYNAREC": "OFF"
+                "DEV_BRANCH": "ON"
             },
             "inherits": "base"
         },
         {
-            "name": "experimental",
+            "name": "dev_debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "ON",
-                "NEW_DYNAREC": "ON"
+                "DEV_BRANCH": "ON"
             },
             "inherits": "base"
         },

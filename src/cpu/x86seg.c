@@ -48,12 +48,12 @@
 #define  seg_writememwl writememwl_2386
 #define  seg_writememll writememll_2386
 #else
-#define  seg_readmembl  readmembl_2386
-#define  seg_readmemwl  readmemwl_2386
-#define  seg_readmemll  readmemll_2386
-#define  seg_writemembl writemembl_2386
-#define  seg_writememwl writememwl_2386
-#define  seg_writememll writememll_2386
+#define  seg_readmembl  readmembl
+#define  seg_readmemwl  readmemwl
+#define  seg_readmemll  readmemll
+#define  seg_writemembl writemembl
+#define  seg_writememwl writememwl
+#define  seg_writememll writememll
 #endif
 
 #define DPL  ((segdat[2] >> 13) & 3)
@@ -798,6 +798,27 @@ PUSHL(uint32_t v)
     }
 }
 
+static void
+PUSHL_SEL(uint32_t v)
+{
+    if (cpu_16bitbus) {
+        PUSHW(v >> 16);
+        PUSHW(v & 0xffff);
+    } else {
+        if (stack32) {
+            writememw(ss, ESP - 4, v);
+            if (cpu_state.abrt)
+                return;
+            ESP -= 4;
+        } else {
+            writememw(ss, ((SP - 4) & 0xffff), v);
+            if (cpu_state.abrt)
+                return;
+            SP -= 4;
+        }
+    }
+}
+
 static uint16_t
 POPW(void)
 {
@@ -875,7 +896,7 @@ loadcscall(uint16_t seg)
     uint32_t      oldsp;
     uint32_t      newsp;
     uint32_t      oldsp2;
-    uint16_t      tempw;
+    uint32_t      oldss_limit_high = cpu_state.seg_ss.limit_high;
     const x86seg *dt;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
@@ -1092,7 +1113,7 @@ loadcscall(uint16_t seg)
 
                                 x86seg_log("Type %04X\n", type);
                                 if (type == 0x0c00) {
-                                    PUSHL(oldss);
+                                    PUSHL_SEL(oldss);
                                     PUSHL(oldsp2);
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
@@ -1104,7 +1125,31 @@ loadcscall(uint16_t seg)
                                     }
                                     if (count) {
                                         while (count--) {
-                                            PUSHL(readmeml(oldssbase, oldsp + (count << 2)));
+                                            uint32_t temp_val;
+                                            switch (oldss_limit_high - oldsp - (count << 2)) {
+                                                default:
+                                                case 3:
+                                                    /* We are at least an entire DWORD away from the limit,
+                                                       read long. */
+                                                    PUSHL(readmeml(oldssbase, oldsp + (count << 2)));
+                                                    break;
+                                                case 2:
+                                                    /* We are 3 bytes away from the limit,
+                                                       read word + byte. */
+                                                    temp_val = readmemw(oldssbase, oldsp + (count << 2));
+                                                    temp_val |= (readmemb(oldssbase, oldsp +
+                                                                          (count << 2) + 2) << 16);
+                                                    PUSHL(temp_val);
+                                                    break;
+                                                case 1:
+                                                    /* We are a WORD away from the limit, read word. */
+                                                    PUSHL(readmemw(oldssbase, oldsp + (count << 2)));
+                                                    break;
+                                                case 0:
+                                                    /* We are a BYTE away from the limit, read byte. */
+                                                    PUSHL(readmemb(oldssbase, oldsp + (count << 2)));
+                                                    break;
+                                            }
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
@@ -1131,9 +1176,20 @@ loadcscall(uint16_t seg)
                                     x86seg_log("Write SP to %04X:%04X\n", SS, SP);
                                     if (count) {
                                         while (count--) {
-                                            tempw = readmemw(oldssbase, (oldsp & 0xffff) + (count << 1));
-                                            x86seg_log("PUSH %04X\n", tempw);
-                                            PUSHW(tempw);
+                                            switch (oldss_limit_high - (oldsp & 0xffff) - (count << 1)) {
+                                                default:
+                                                case 1:
+                                                    /* We are at least an entire WORD away from the limit,
+                                                       read word. */
+                                                    PUSHW(readmemw(oldssbase, (oldsp & 0xffff) +
+                                                          (count << 1)));
+                                                    break;
+                                                case 0:
+                                                    /* We are a BYTE away from the limit, read byte. */
+                                                    PUSHW(readmemb(oldssbase, (oldsp & 0xffff) +
+                                                          (count << 1)));
+                                                    break;
+                                            }
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
@@ -1622,10 +1678,10 @@ pmodeint(int num, int soft)
                         cpl_override = 1;
                         if (type >= 0x0800) {
                             if (cpu_state.eflags & VM_FLAG) {
-                                PUSHL(GS);
-                                PUSHL(FS);
-                                PUSHL(DS);
-                                PUSHL(ES);
+                                PUSHL_SEL(GS);
+                                PUSHL_SEL(FS);
+                                PUSHL_SEL(DS);
+                                PUSHL_SEL(ES);
                                 if (cpu_state.abrt)
                                     return;
                                 op_loadseg(0, &cpu_state.seg_ds);
@@ -1633,10 +1689,10 @@ pmodeint(int num, int soft)
                                 op_loadseg(0, &cpu_state.seg_fs);
                                 op_loadseg(0, &cpu_state.seg_gs);
                             }
-                            PUSHL(oldss);
+                            PUSHL_SEL(oldss);
                             PUSHL(oldsp);
                             PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                            PUSHL(CS);
+                            PUSHL_SEL(CS);
                             PUSHL(cpu_state.pc);
                             if (cpu_state.abrt)
                                 return;
@@ -1672,7 +1728,7 @@ pmodeint(int num, int soft)
                     }
                     if (type > 0x0800) {
                         PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                        PUSHL(CS);
+                        PUSHL_SEL(CS);
                         PUSHL(cpu_state.pc);
                         if (cpu_state.abrt)
                             return;

@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+#define VIDEOCARD_MAX 2
+
 namespace Ui {
 class SettingsDisplay;
 }
@@ -27,16 +29,18 @@ private slots:
 
 private slots:
     void on_checkBoxVoodoo_stateChanged(int state);
+    void on_checkBox8514_stateChanged(int state);
     void on_checkBoxXga_stateChanged(int state);
     void on_comboBoxVideo_currentIndexChanged(int index);
     void on_pushButtonConfigureVoodoo_clicked();
+    void on_pushButtonConfigure8514_clicked();
     void on_pushButtonConfigureXga_clicked();
     void on_pushButtonConfigure_clicked();
 
 private:
     Ui::SettingsDisplay *ui;
     int                  machineId    = 0;
-    int                  videoCard[2] = { 0, 0 };
+    int                  videoCard[VIDEOCARD_MAX] = { 0, 0 };
 };
 
 #endif // QT_SETTINGSDISPLAY_HPP

@@ -222,9 +222,9 @@ extern const device_t keyboard_xt86_device;
 extern const device_t keyboard_xt_compaq_device;
 extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
-#    if defined(DEV_BRANCH) && defined(USE_LASERXT)
+#    ifdef USE_LASERXT
 extern const device_t keyboard_xt_lxt3_device;
-#    endif /*defined(DEV_BRANCH) && defined(USE_LASERXT) */
+#    endif /* USE_LASERXT */
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xt_hyundai_device;
@@ -272,12 +272,14 @@ extern uint8_t  keyboard_get_shift(void);
 extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int      keyboard_recv(uint16_t key);
+extern int      keyboard_recv_ui(uint16_t key);
 extern int      keyboard_isfsenter(void);
 extern int      keyboard_isfsenter_up(void);
 extern int      keyboard_isfsexit(void);
 extern int      keyboard_isfsexit_up(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
+extern void     kbc_at_set_ps2(void *priv, uint8_t ps2);
 
 extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
 extern void         kbc_at_handler(int set, void *priv);

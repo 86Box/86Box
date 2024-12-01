@@ -442,14 +442,50 @@ sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
 {
     dsp->mpu = mpu;
 
-    if (mpu != NULL)
+    if (IS_NOT_ESS(dsp) && (mpu != NULL))
         mpu401_irq_attach(mpu, sb_dsp_irq_update, sb_dsp_irq_pending, dsp);
+}
+
+static void
+sb_stop_dma(const sb_dsp_t *dsp)
+{
+    dma_set_drq(dsp->sb_8_dmanum, 0);
+
+    if (dsp->sb_16_dmanum != 0xff) {
+        if (dsp->sb_16_dmanum == 4)
+            dma_set_drq(dsp->sb_8_dmanum, 0);
+        else
+            dma_set_drq(dsp->sb_16_dmanum, 0);
+    }
+
+    if (dsp->sb_16_8_dmanum != 0xff)
+        dma_set_drq(dsp->sb_16_8_dmanum, 0);
+}
+
+static void
+sb_finish_dma(sb_dsp_t *dsp)
+{
+    if (dsp->ess_playback_mode) {
+        ESSreg(0xB8) &= ~0x01;
+        dma_set_drq(dsp->sb_8_dmanum, 0);
+    } else
+        sb_stop_dma(dsp);
 }
 
 void
 sb_dsp_reset(sb_dsp_t *dsp)
 {
     midi_clear_buffer();
+
+    if (dsp->sb_8_enable) {
+        dsp->sb_8_enable = 0;
+        sb_finish_dma(dsp);
+    }
+
+    if (dsp->sb_16_enable) {
+        dsp->sb_16_enable = 0;
+        sb_finish_dma(dsp);
+    }
 
     timer_disable(&dsp->output_timer);
     timer_disable(&dsp->input_timer);
@@ -553,24 +589,16 @@ sb_resume_dma(const sb_dsp_t *dsp, const int is_8)
     } else if (is_8)
         dma_set_drq(dsp->sb_8_dmanum, 1);
     else {
-        if (dsp->sb_16_dmanum != 0xff)
-            dma_set_drq(dsp->sb_16_dmanum, 1);
+        if (dsp->sb_16_dmanum != 0xff) {
+            if (dsp->sb_16_dmanum == 4)
+                dma_set_drq(dsp->sb_8_dmanum, 1);
+            else
+                dma_set_drq(dsp->sb_16_dmanum, 1);
+        }
 
         if (dsp->sb_16_8_dmanum != 0xff)
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
-}
-
-static void
-sb_stop_dma(const sb_dsp_t *dsp)
-{
-    dma_set_drq(dsp->sb_8_dmanum, 0);
-
-    if (dsp->sb_16_dmanum != 0xff)
-        dma_set_drq(dsp->sb_16_dmanum, 0);
-
-    if (dsp->sb_16_8_dmanum != 0xff)
-        dma_set_drq(dsp->sb_16_8_dmanum, 0);
 }
 
 void
@@ -609,9 +637,12 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->output_timer))
             timer_set_delay_u64(&dsp->output_timer, (uint64_t) dsp->sblatcho);
 
-        if (dsp->sb_16_dma_supported)
-            dma_set_drq(dsp->sb_16_dmanum, 1);
-        else
+        if (dsp->sb_16_dma_supported) {
+            if (dsp->sb_16_dmanum == 4)
+                dma_set_drq(dsp->sb_8_dmanum, 1);
+            else
+                dma_set_drq(dsp->sb_16_dmanum, 1);
+        } else
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
 
@@ -649,9 +680,12 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, (uint64_t) dsp->sblatchi);
 
-        if (dsp->sb_16_dma_supported)
-            dma_set_drq(dsp->sb_16_dmanum, 1);
-        else
+        if (dsp->sb_16_dma_supported) {
+            if (dsp->sb_16_dmanum == 4)
+                dma_set_drq(dsp->sb_8_dmanum, 1);
+            else
+                dma_set_drq(dsp->sb_16_dmanum, 1);
+        } else
             dma_set_drq(dsp->sb_16_8_dmanum, 1);
     }
 
@@ -712,6 +746,8 @@ sb_8_read_dma(void *priv)
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
     int ret;
 
+    dsp->activity &= 0xdf;
+
     if (dsp->sb_8_dmanum >= 4) {
        if (dsp->dma_ff) {
            uint32_t temp = (dsp->dma_data & 0xff00) >> 8;
@@ -736,7 +772,9 @@ sb_8_read_dma(void *priv)
 int
 sb_8_write_dma(void *priv, uint8_t val)
 {
-    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    dsp->activity &= 0xdf;
 
     return dma_channel_write(dsp->sb_8_dmanum, val) == DMA_NODATA;
 }
@@ -756,18 +794,23 @@ sb_8_write_dma(void *priv, uint8_t val)
 int
 sb_16_read_dma(void *priv)
 {
-    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     int ret;
     int dma_ch = dsp->sb_16_dmanum;
 
-    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+    dsp->activity &= 0xdf;
+
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch != 4))
         ret = dma_channel_read(dma_ch);
     else {
         if (dsp->sb_16_dma_enabled) {
             /* High DMA channel enabled, either translation is enabled or
                16-bit transfers are not supported. */
-            dma_ch = dsp->sb_16_8_dmanum;
+            if (dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch == 4))
+                dma_ch = dsp->sb_8_dmanum;
+            else
+                dma_ch = dsp->sb_16_8_dmanum;
         } else
             /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
@@ -791,17 +834,22 @@ sb_16_read_dma(void *priv)
 int
 sb_16_write_dma(void *priv, uint16_t val)
 {
-    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
     int dma_ch = dsp->sb_16_dmanum;
     int ret;
 
-    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+    dsp->activity &= 0xdf;
+
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch != 4))
         ret = dma_channel_write(dma_ch, val) == DMA_NODATA;
     else {
         if (dsp->sb_16_dma_enabled) {
             /* High DMA channel enabled, either translation is enabled or
                16-bit transfers are not supported. */
-            dma_ch = dsp->sb_16_8_dmanum;
+            if (dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate && (dma_ch == 4))
+                dma_ch = dsp->sb_8_dmanum;
+            else
+                dma_ch = dsp->sb_16_8_dmanum;
         } else
             /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
@@ -1702,19 +1750,15 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_add_data(dsp, dsp->sb_test);
             break;
         case 0xF2: /* Trigger 8-bit IRQ */
-            sb_dsp_log("Trigger IRQ\n");
-            if (IS_ESS(dsp)) {
-                if (!timer_is_enabled(&dsp->irq_timer)) {
-                    timer_set_delay_u64(&dsp->irq_timer, (100ULL * TIMER_USEC));
-                }
-            } else {
-                sb_irq(dsp, 1);
-                dsp->ess_irq_generic = true;
-            }
+            sb_dsp_log("Trigger 8-bit IRQ\n");
+            timer_set_delay_u64(&dsp->irq_timer, (10ULL * TIMER_USEC));
             break;
         case 0xF3: /* Trigger 16-bit IRQ */
-            sb_dsp_log("Trigger IRQ\n");
-            dsp->ess_irq_generic = true;
+            sb_dsp_log("Trigger 16-bit IRQ\n");
+            if (IS_ESS(dsp))
+                dsp->ess_irq_generic = true;
+            else
+                timer_set_delay_u64(&dsp->irq16_timer, (10ULL * TIMER_USEC));
             break;
         case 0xF8:
             if (dsp->sb_type < SB16)
@@ -1867,7 +1911,11 @@ sb_read(uint16_t a, void *priv)
 
     switch (a & 0xf) {
         case 0x6:
-            ret = IS_ESS(dsp) ? 0x00 : 0xff;
+            if (IS_ESS(dsp)) {
+                ret = (dsp->espcm_fifo_reset & 0x03) | 0x08 | (dsp->activity & 0xe0);
+                dsp->activity |= 0xe0;
+            } else
+                ret = 0xff;
             break;
         case 0xA: /* Read data */
             if (dsp->mpu && dsp->uart_midi)
@@ -1886,6 +1934,10 @@ sb_read(uint16_t a, void *priv)
                 dsp->state = DSP_S_NORMAL;
             break;
         case 0xC: /* Write data ready */
+            /* Advance the state just in case something reads from here
+               without reading the status first. */
+            if (dsp->state == DSP_S_RESET_WAIT)
+                dsp->state = DSP_S_NORMAL;
             if ((dsp->state == DSP_S_NORMAL) || IS_ESS(dsp)) {
                 if (dsp->sb_8_enable || dsp->sb_type >= SB16)
                     dsp->busy_count = (dsp->busy_count + 1) & 3;
@@ -1927,7 +1979,9 @@ sb_read(uint16_t a, void *priv)
                     else
                         ret = 0x7f;
                 }
-            } else
+            } else if (IS_AZTECH(dsp))
+                ret = 0x00;
+            else
                 ret = 0xff;
             break;
         case 0xE: /* Read data ready */
@@ -1949,10 +2003,8 @@ sb_read(uint16_t a, void *priv)
                 else
                     ret = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x7f : 0xff;
             }
-            if (dsp->state == DSP_S_RESET_WAIT) {
-                ret &= 0x7f;
+            if (dsp->state == DSP_S_RESET_WAIT)
                 dsp->state = DSP_S_NORMAL;
-            }
             break;
         case 0xF: /* 16-bit ack */
             if (IS_NOT_ESS(dsp)) {
@@ -2038,11 +2090,21 @@ sb_dsp_irq_poll(void *priv)
 }
 
 void
+sb_dsp_irq16_poll(void *priv)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    sb_irq(dsp, 0);
+    dsp->ess_irq_generic = true;
+}
+
+void
 sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
 {
     dsp->sb_type    = type;
     dsp->sb_subtype = subtype;
     dsp->parent     = parent;
+    dsp->activity   = 0xe0;
 
     /* Default values. Use sb_dsp_setxxx() methods to change. */
     dsp->sb_irqnum    = 7;
@@ -2071,15 +2133,18 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     timer_add(&dsp->input_timer, sb_poll_i, dsp, 0);
     timer_add(&dsp->wb_timer, NULL, dsp, 0);
     timer_add(&dsp->irq_timer, sb_dsp_irq_poll, dsp, 0);
+    timer_add(&dsp->irq16_timer, sb_dsp_irq16_poll, dsp, 0);
 
     if (IS_ESS(dsp))
         /* Initialize ESS filter to 8 kHz. This will be recalculated when a set frequency command is
            sent. */
         recalc_sb16_filter(0, 8000 * 2);
-    else
+    else {
+        timer_add(&dsp->irq16_timer, sb_dsp_irq16_poll, dsp, 0);
         /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
            a set frequency command is sent. */
         recalc_sb16_filter(0, 3200 * 2);
+    }
     if (IS_ESS(dsp) || (dsp->sb_type >= SBPRO2)) {
         /* OPL3 or dual OPL2 is stereo. */
         if (dsp->sb_has_real_opl)
@@ -2159,16 +2224,6 @@ sb_dsp_dma_attach(sb_dsp_t *dsp,
     dsp->dma_writeb = dma_writeb;
     dsp->dma_writew = dma_writew;
     dsp->dma_priv   = priv;
-}
-
-static void
-sb_finish_dma(sb_dsp_t *dsp)
-{
-    if (dsp->ess_playback_mode) {
-        ESSreg(0xB8) &= ~0x01;
-        dma_set_drq(dsp->sb_8_dmanum, 0);
-    } else
-        sb_stop_dma(dsp);
 }
 
 void

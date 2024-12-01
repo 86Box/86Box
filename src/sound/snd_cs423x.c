@@ -30,7 +30,9 @@
 #include <86box/isapnp.h>
 #include <86box/midi.h>
 #include <86box/timer.h>
+#include <86box/mem.h>
 #include <86box/nvr.h>
+#include <86box/rom.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/snd_ad1848.h>
@@ -38,6 +40,8 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+
+#define PNP_ROM_CS4236B      "roms/sound/crystal/PNPISA01.BIN"
 
 #define CRYSTAL_NOEEPROM 0x100
 
@@ -58,7 +62,7 @@ static const uint8_t slam_init_key[32] = { 0x96, 0x35, 0x9A, 0xCD, 0xE6, 0xF3, 0
                                            0x5E, 0xAF, 0x57, 0x2B, 0x15, 0x8A, 0xC5, 0xE2,
                                            0xF1, 0xF8, 0x7C, 0x3E, 0x9F, 0x4F, 0x27, 0x13,
                                            0x09, 0x84, 0x42, 0xA1, 0xD0, 0x68, 0x34, 0x1A };
-static const uint8_t cs4236b_eeprom[]  = {
+static const uint8_t cs4236b_eeprom[8224]  = {
     // clang-format off
     /* Chip configuration */
     0x55, 0xbb, /* magic */
@@ -74,59 +78,7 @@ static const uint8_t cs4236b_eeprom[]  = {
     0x10, 0x03, /* DMA routing */
 
     /* PnP resources */
-    0x0e, 0x63, 0x42, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, /* CSC4236, dummy checksum (filled in by isapnp_add_card) */
-    0x0a, 0x10, 0x01, /* PnP version 1.0, vendor version 0.1 */
-    0x82, 0x0e, 0x00, 'C', 'r', 'y', 's', 't', 'a', 'l', ' ', 'C', 'o', 'd', 'e' ,'c', 0x00, /* ANSI identifier */
-
-    0x15, 0x0e, 0x63, 0x00, 0x00, 0x00, /* logical device CSC0000 */
-    0x82, 0x07, 0x00, 'W', 'S', 'S', '/', 'S', 'B', 0x00, /* ANSI identifier */
-    0x31, 0x00, /* start dependent functions, preferred */
-        0x2a, 0x02, 0x28, /* DMA 1, type A, no count by word, count by byte, not bus master, 8-bit only */
-        0x2a, 0x09, 0x28, /* DMA 0/3, type A, no count by word, count by byte, not bus master, 8-bit only */
-        0x22, 0x20, 0x00, /* IRQ 5 */
-        0x47, 0x01, 0x34, 0x05, 0x34, 0x05, 0x04, 0x04, /* I/O 0x534, decodes 16-bit, 4-byte alignment, 4 addresses */
-        0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x08, 0x04, /* I/O 0x388, decodes 16-bit, 8-byte alignment, 4 addresses */
-        0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x20, 0x10, /* I/O 0x220, decodes 16-bit, 32-byte alignment, 16 addresses */
-    0x31, 0x01, /* start dependent functions, acceptable */
-        0x2a, 0x0a, 0x28, /* DMA 1/3, type A, no count by word, count by byte, not bus master, 8-bit only */
-        0x2a, 0x0b, 0x28, /* DMA 0/1/3, type A, no count by word, count by byte, not bus master, 8-bit only */
-        0x22, 0xa0, 0x9a, /* IRQ 5/7/9/11/12/15 */
-        0x47, 0x01, 0x34, 0x05, 0xfc, 0x0f, 0x04, 0x04, /* I/O 0x534-0xFFC, decodes 16-bit, 4-byte alignment, 4 addresses */
-        0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x08, 0x04, /* I/O 0x388, decodes 16-bit, 8-byte alignment, 4 addresses */
-        0x47, 0x01, 0x20, 0x02, 0x60, 0x02, 0x20, 0x10, /* I/O 0x220-0x260, decodes 16-bit, 32-byte alignment, 16 addresses */
-    0x31, 0x02, /* start dependent functions, sub-optimal */
-        0x2a, 0x0b, 0x28, /* DMA 0/1/3, type A, no count by word, count by byte, not bus master, 8-bit only */
-        0x22, 0xa0, 0x9a, /* IRQ 5/7/9/11/12/15 */
-        0x47, 0x01, 0x34, 0x05, 0xfc, 0x0f, 0x04, 0x04, /* I/O 0x534-0xFFC, decodes 16-bit, 4-byte alignment, 4 addresses */
-        0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x08, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 8-byte alignment, 4 addresses */
-        0x47, 0x01, 0x20, 0x02, 0x00, 0x03, 0x20, 0x10, /* I/O 0x220-0x300, decodes 16-bit, 32-byte alignment, 16 addresses */
-    0x38, /* end dependent functions */
-
-    0x15, 0x0e, 0x63, 0x00, 0x01, 0x00, /* logical device CSC0001 */
-    0x82, 0x05, 0x00, 'G', 'A', 'M', 'E', 0x00, /* ANSI identifier */
-    0x31, 0x00, /* start dependent functions, preferred */
-        0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x08, 0x08, /* I/O 0x200, decodes 16-bit, 8-byte alignment, 8 addresses */
-    0x31, 0x01, /* start dependent functions, acceptable */
-        0x47, 0x01, 0x08, 0x02, 0x08, 0x02, 0x08, 0x08, /* I/O 0x208, decodes 16-bit, 8-byte alignment, 8 addresses */
-    0x38, /* end dependent functions */
-
-    0x15, 0x0e, 0x63, 0x00, 0x10, 0x00, /* logical device CSC0010 */
-    0x82, 0x05, 0x00, 'C', 'T', 'R', 'L', 0x00, /* ANSI identifier */
-    0x47, 0x01, 0x20, 0x01, 0xf8, 0x0f, 0x08, 0x08, /* I/O 0x120-0xFF8, decodes 16-bit, 8-byte alignment, 8 addresses */
-
-    0x15, 0x0e, 0x63, 0x00, 0x03, 0x00, /* logical device CSC0003 */
-    0x82, 0x04, 0x00, 'M', 'P', 'U', 0x00, /* ANSI identifier */
-    0x31, 0x00, /* start dependent functions, preferred */
-        0x22, 0x00, 0x02, /* IRQ 9 */
-        0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x08, 0x02, /* I/O 0x330, decodes 16-bit, 8-byte alignment, 2 addresses */
-    0x31, 0x01, /* start dependent functions, acceptable */
-        0x22, 0x00, 0x9a, /* IRQ 9/11/12/15 */
-        0x47, 0x01, 0x30, 0x03, 0x60, 0x03, 0x08, 0x02, /* I/O 0x330-0x360, decodes 16-bit, 8-byte alignment, 2 addresses */
-    0x31, 0x02, /* start dependent functions, sub-optimal */
-        0x47, 0x01, 0x30, 0x03, 0xe0, 0x03, 0x08, 0x02, /* I/O 0x330-0x3E0, decodes 16-bit, 8-byte alignment, 2 addresses */
-    0x38, /* end dependent functions */
-
-    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+    0x00
     // clang-format on
 };
 
@@ -798,6 +750,12 @@ cs423x_init(const device_t *info)
                 /* Load EEPROM contents from template. */
                 memcpy(dev->eeprom_data, cs4236b_eeprom, sizeof(cs4236b_eeprom));
 
+                FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
+                if (fp) {
+                    (void) !fread(&(dev->eeprom_data[23]), 1, 8201, fp);
+                    fclose(fp);
+                }
+
                 /* Set content size. */
                 dev->eeprom_data[2] = sizeof(cs4236b_eeprom) >> 8;
                 dev->eeprom_data[3] = sizeof(cs4236b_eeprom) & 0xff;
@@ -808,6 +766,7 @@ cs423x_init(const device_t *info)
                         dev->eeprom_data[8]  = 0x05;
                         dev->eeprom_data[16] = 0x08;
                         dev->eeprom_data[26] = 0x25;
+                        dev->eeprom_data[44] = '5';
                         dev->nvr_path        = "cs4235.nvr";
                         break;
 
@@ -817,11 +776,13 @@ cs423x_init(const device_t *info)
 
                     case CRYSTAL_CS4237B:
                         dev->eeprom_data[26] = 0x37;
+                        dev->eeprom_data[44] = '7';
                         dev->nvr_path        = "cs4237b.nvr";
                         break;
 
                     case CRYSTAL_CS4238B:
                         dev->eeprom_data[26] = 0x38;
+                        dev->eeprom_data[44] = '8';
                         dev->nvr_path        = "cs4238b.nvr";
                         break;
 
@@ -886,6 +847,12 @@ cs423x_close(void *priv)
     free(dev);
 }
 
+static int
+cs423x_available(void)
+{
+    return rom_present(PNP_ROM_CS4236B);
+}
+
 static void
 cs423x_speed_changed(void *priv)
 {
@@ -902,7 +869,7 @@ const device_t cs4235_device = {
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
-    { .available = NULL },
+    { .available = cs423x_available },
     .speed_changed = cs423x_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -916,7 +883,7 @@ const device_t cs4235_onboard_device = {
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
-    { .available = NULL },
+    { .available = cs423x_available },
     .speed_changed = cs423x_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -930,7 +897,7 @@ const device_t cs4236b_device = {
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
-    { .available = NULL },
+    { .available = cs423x_available },
     .speed_changed = cs423x_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -944,7 +911,7 @@ const device_t cs4237b_device = {
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
-    { .available = NULL },
+    { .available = cs423x_available },
     .speed_changed = cs423x_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -958,7 +925,7 @@ const device_t cs4238b_device = {
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
-    { .available = NULL },
+    { .available = cs423x_available },
     .speed_changed = cs423x_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

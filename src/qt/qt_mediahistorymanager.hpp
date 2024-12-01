@@ -47,7 +47,8 @@ enum class MediaType {
     Optical,
     Zip,
     Mo,
-    Cassette
+    Cassette,
+    Cartridge
 };
 // This macro allows us to do a reverse lookup of the enum with `QMetaEnum`
 Q_ENUM_NS(MediaType)
@@ -61,6 +62,10 @@ typedef QHash<ui::MediaType, device_media_history_t> master_list_t;
 static const MediaType AllSupportedMediaHistoryTypes[] = {
     MediaType::Optical,
     MediaType::Floppy,
+    MediaType::Zip,
+    MediaType::Mo,
+    MediaType::Cassette,
+    MediaType::Cartridge
 };
 
 class MediaHistoryManager {

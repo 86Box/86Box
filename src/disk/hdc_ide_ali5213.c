@@ -83,7 +83,7 @@ ali5213_write(uint16_t addr, uint8_t val, void *priv)
 {
     ali5213_t *dev = (ali5213_t *) priv;
 
-    ali5213_log("[%04X:%08X] [W] %02X = %02X (%i)\n", CS, cpu_state.pc, port, val, dev->tries);
+    ali5213_log("[%04X:%08X] [W] %02X = %02X\n", CS, cpu_state.pc, addr, val);
 
     switch (addr) {
         case 0xf4: /* Usually it writes 30h here */
@@ -179,7 +179,7 @@ ali5213_read(uint16_t addr, void *priv)
             break;
     }
 
-    ali5213_log("[%04X:%08X] [R] %02X = %02X\n", CS, cpu_state.pc, port, ret);
+    ali5213_log("[%04X:%08X] [R] %02X = %02X\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }

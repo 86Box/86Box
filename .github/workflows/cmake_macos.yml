@@ -25,10 +25,10 @@ on:
 
 jobs:
 
-  macos12:
+  macos13-x86_64:
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
-    runs-on: macos-12
+    runs-on: macos-13
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
@@ -40,10 +40,10 @@ jobs:
 #          - name: Regular
 #            preset: regular
           - name: Debug
-            preset: debug
+            preset: dev_debug
             slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: development
             slug: -Dev
         dynarec:
           - name: ODR
@@ -80,6 +80,8 @@ jobs:
           rtmidi
           openal-soft
           fluidsynth
+          libslirp
+          vde
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -138,10 +140,10 @@ jobs:
 #          - name: Regular
 #            preset: regular
           - name: Debug
-            preset: debug
+            preset: dev_debug
             slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: development
             slug: -Dev
         dynarec:
 #          - name: ODR

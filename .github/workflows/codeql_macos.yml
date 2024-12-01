@@ -25,11 +25,11 @@ on:
 
 jobs:
 
-  analyze-macos12:
+  analyze-macos13-x86_64:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
-    runs-on: macos-12
+    runs-on: macos-13
 
     permissions:
       actions: read
@@ -47,7 +47,7 @@ jobs:
 #            preset: debug
 #            slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: dev_debug
             slug: -Dev
         dynarec:
           - name: ODR
@@ -74,6 +74,8 @@ jobs:
           rtmidi
           openal-soft
           fluidsynth
+          libslirp
+          vde
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

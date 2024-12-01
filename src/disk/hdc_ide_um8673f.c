@@ -79,7 +79,7 @@ um8673f_write(uint16_t addr, uint8_t val, void *priv)
 {
     um8673f_t *dev = (um8673f_t *) priv;
 
-    um8673f_log("[%04X:%08X] [W] %02X = %02X (%i)\n", CS, cpu_state.pc, port, val, dev->tries);
+    um8673f_log("[%04X:%08X] [W] %02X = %02X (%i)\n", CS, cpu_state.pc, addr, val, dev->tries);
 
     switch (addr) {
         case 0x108:
@@ -140,7 +140,7 @@ um8673f_read(uint16_t addr, void *priv)
             break;
     }
 
-    um8673f_log("[%04X:%08X] [R] %02X = %02X\n", CS, cpu_state.pc, port, ret);
+    um8673f_log("[%04X:%08X] [R] %02X = %02X\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }

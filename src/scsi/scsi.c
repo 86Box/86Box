@@ -47,27 +47,13 @@ double scsi_bus_speed[SCSI_BUS_MAX] = { 0.0, 0.0, 0.0, 0.0 };
 
 static uint8_t next_scsi_bus = 0;
 
-static const device_t scsi_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 typedef const struct {
     const device_t *device;
 } SCSI_CARD;
 
 static SCSI_CARD scsi_cards[] = {
   // clang-format off
-    { &scsi_none_device,         },
+    { &device_none,              },
     { &aha154xa_device,          },
     { &aha154xb_device,          },
     { &aha154xc_device,          },
@@ -96,6 +82,7 @@ static SCSI_CARD scsi_cards[] = {
     { &ncr53c825a_pci_device,    },
     { &ncr53c860_pci_device,     },
     { &ncr53c875_pci_device,     },
+    { &am53c974_pci_device,      },
     { &dc390_pci_device,         },
     { &buslogic_445s_device,     },
     { &buslogic_445c_device,     },

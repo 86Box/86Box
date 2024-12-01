@@ -232,6 +232,9 @@ enum {
     MACHINE_CHIPSET_INTEL_440GX,
     MACHINE_CHIPSET_OPTI_283,
     MACHINE_CHIPSET_OPTI_291,
+    MACHINE_CHIPSET_OPTI_381,
+    MACHINE_CHIPSET_OPTI_391,
+    MACHINE_CHIPSET_OPTI_481,
     MACHINE_CHIPSET_OPTI_493,
     MACHINE_CHIPSET_OPTI_495,
     MACHINE_CHIPSET_OPTI_499,
@@ -274,6 +277,7 @@ enum {
     MACHINE_CHIPSET_VLSI_VL82C481,
     MACHINE_CHIPSET_VLSI_VL82C486,
     MACHINE_CHIPSET_WD76C10,
+    MACHINE_CHIPSET_ZYMOS_POACH,
     MACHINE_CHIPSET_MAX
 };
 
@@ -432,9 +436,10 @@ extern int machine_at_ibmxt286_init(const machine_t *);
 
 extern int machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
-#if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
+extern int machine_at_wellamerastar_init(const machine_t *); // Wells American A*Star with custom award BIOS 
+#ifdef USE_OPEN_AT
 extern int machine_at_openat_init(const machine_t *);
-#endif
+#endif /* USE_OPEN_AT */
 
 /* m_at_286_386sx.c */
 extern int machine_at_tg286m_init(const machine_t *);
@@ -463,9 +468,9 @@ extern int machine_at_deskmaster286_init(const machine_t *);
 extern int machine_at_pc8_init(const machine_t *);
 extern int machine_at_3302_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+#ifdef USE_OLIVETTI
 extern int machine_at_m290_init(const machine_t *);
-#endif
+#endif /* USE_OLIVETTI */
 
 extern int machine_at_shuttle386sx_init(const machine_t *);
 extern int machine_at_adi386sx_init(const machine_t *);
@@ -488,6 +493,14 @@ extern int machine_at_awardsx_init(const machine_t *);
 extern int machine_at_pc916sx_init(const machine_t *);
 
 /* m_at_386dx_486.c */
+/* Note to jriwanek: When merging this into my branch, please make
+   sure this appear here (and in the .c file) in the order and position
+   in which they appear in the machine table. */
+extern int machine_at_dataexpert386wb_init(const machine_t *);
+extern int machine_at_genoa486_init(const machine_t *);
+extern int machine_at_ga486l_init(const machine_t *);
+extern int machine_at_cougar_init(const machine_t *);
+
 extern int machine_at_acc386_init(const machine_t *);
 extern int machine_at_asus386_init(const machine_t *);
 extern int machine_at_ecs386_init(const machine_t *);
@@ -713,9 +726,9 @@ extern int machine_at_i430vx_init(const machine_t *);
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_AN430TX)
+#ifdef USE_AN430TX
 extern int machine_at_an430tx_init(const machine_t *);
-#endif
+#endif /* USE_AN430TX */
 extern int machine_at_ym430tx_init(const machine_t *);
 extern int machine_at_thunderbolt_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
@@ -877,7 +890,7 @@ extern int machine_ps2_model_70_type4_init(const machine_t *);
 
 /* m_tandy.c */
 extern int tandy1k_eeprom_read(void);
-extern int machine_tandy_init(const machine_t *);
+extern int machine_tandy1000sx_init(const machine_t *);
 extern int machine_tandy1000hx_init(const machine_t *);
 extern int machine_tandy1000sl2_init(const machine_t *);
 
@@ -920,6 +933,7 @@ extern int machine_xt_v20xt_init(const machine_t *);
 
 extern int machine_xt_iskra3104_init(const machine_t *);
 extern int machine_xt_pravetz16_imko4_init(const machine_t *);
+extern int machine_xt_pravetz16s_cpu12p_init(const machine_t *);
 extern int machine_xt_micoms_xl7turbo_init(const machine_t *);
 
 /* m_xt_compaq.c */
@@ -927,10 +941,10 @@ extern int machine_xt_compaq_deskpro_init(const machine_t *);
 extern int machine_xt_compaq_portable_init(const machine_t *);
 
 /* m_xt_laserxt.c */
-#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+#ifdef USE_LASERXT
 extern int machine_xt_laserxt_init(const machine_t *);
 extern int machine_xt_lxt3_init(const machine_t *);
-#endif
+#endif /* USE_LASERXT */
 
 /* m_xt_philips.c */
 extern int machine_xt_p3105_init(const machine_t *);

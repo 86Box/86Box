@@ -24,7 +24,7 @@ opAAD(uint32_t fetchdat)
         base = 10;
     AL = (AH * base) + AL;
     AH = 0;
-    setznp16(AX);
+    setznp8(AL);
     CLOCK_CYCLES((is486) ? 14 : 19);
     PREFETCH_RUN(is486 ? 14 : 19, 2, -1, 0, 0, 0, 0, 0);
     return 0;
@@ -39,7 +39,7 @@ opAAM(uint32_t fetchdat)
         base = 10;
     AH = AL / base;
     AL %= base;
-    setznp16(AX);
+    setznp8(AL);
     CLOCK_CYCLES((is486) ? 15 : 17);
     PREFETCH_RUN(is486 ? 15 : 17, 2, -1, 0, 0, 0, 0, 0);
     return 0;

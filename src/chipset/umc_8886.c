@@ -126,19 +126,70 @@ umc_8886_ide_handler(umc_8886_t *dev)
     ide_sec_disable();
 
     if (dev->pci_conf_sb[1][0x04] & 0x01) {
-        if (dev->pci_conf_sb[1][0x40] & 0x80)
+        if (dev->pci_conf_sb[1][0x41] & 0x80)
             ide_pri_enable();
 
-        if (dev->pci_conf_sb[1][0x40] & 0x40)
+        if (dev->pci_conf_sb[1][0x41] & 0x40)
             ide_sec_enable();
     }
+}
+
+static void
+umc_8886_bus_recalc(umc_8886_t *dev)
+{
+    switch (dev->pci_conf_sb[0x00][0xa4] & 0x03) {
+        case 0x00:
+            cpu_set_pci_speed(cpu_busspeed / 2);
+            break;
+        case 0x01:
+            cpu_set_pci_speed(cpu_busspeed);
+            break;
+        case 0x02:
+            cpu_set_pci_speed((cpu_busspeed * 2) / 3);
+            break;
+    }
+
+    switch (dev->pci_conf_sb[0x00][0x56] & 0x03) {
+        default:
+            break;
+        case 0x00:
+            cpu_set_isa_pci_div(3);
+            break;
+        case 0x01:
+            cpu_set_isa_pci_div(4);
+            break;
+        case 0x02:
+            cpu_set_isa_pci_div(2);
+            break;
+    }
+}
+
+static void
+umc_8886_irq_recalc(umc_8886_t *dev)
+{
+    int irq_routing;
+    uint8_t *conf = dev->pci_conf_sb[0];
+
+    irq_routing = (conf[0x46] & 0x01) ? (conf[0x43] >> 4) : PCI_IRQ_DISABLED;
+    pci_set_irq_routing(PCI_INTA, irq_routing);
+    irq_routing = (conf[0x46] & 0x02) ? (conf[0x43] & 0x0f) : PCI_IRQ_DISABLED;
+    pci_set_irq_routing(PCI_INTB, irq_routing);
+
+    irq_routing = (conf[0x46] & 0x04) ? (conf[0x44] >> 4) : PCI_IRQ_DISABLED;
+    pci_set_irq_routing(PCI_INTC, irq_routing);
+    irq_routing = (conf[0x46] & 0x08) ? (conf[0x44] & 0x0f) : PCI_IRQ_DISABLED;
+    pci_set_irq_routing(PCI_INTD, irq_routing);
+
+    pci_set_irq_level(PCI_INTA, (conf[0x47] & 0x01));
+    pci_set_irq_level(PCI_INTB, (conf[0x47] & 0x02));
+    pci_set_irq_level(PCI_INTC, (conf[0x47] & 0x04));
+    pci_set_irq_level(PCI_INTD, (conf[0x47] & 0x08));
 }
 
 static void
 umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *) priv;
-    int irq_routing;
 
     if (func <= dev->max_func)
         switch (func) {
@@ -153,7 +204,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                     case 0x50 ... 0x55:
                     case 0x57:
                     case 0x70 ... 0x76:
-                    case 0x80 ... 0x82:
+                    case 0x80 ... 0x83:
                     case 0x90 ... 0x92:
                     case 0xa0 ... 0xa1:
                     case 0xa5 ... 0xa8:
@@ -165,46 +216,17 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                         break;
 
                     case 0x43:
-                        dev->pci_conf_sb[func][addr] = val;
-                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x01) ? (val >> 8) :
-                                      PCI_IRQ_DISABLED;
-                        pci_set_irq_routing(PCI_INTA, irq_routing);
-                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x02) ? (val & 0x0f) :
-                                      PCI_IRQ_DISABLED;
-                        pci_set_irq_routing(PCI_INTB, irq_routing);
-                        break;
                     case 0x44:
-                        dev->pci_conf_sb[func][addr] = val;
-                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x04) ? (val >> 8) :
-                                      PCI_IRQ_DISABLED;
-                        pci_set_irq_routing(PCI_INTC, irq_routing);
-                        irq_routing = (dev->pci_conf_sb[func][0x46] & 0x08) ? (val & 0x0f) :
-                                      PCI_IRQ_DISABLED;
-                        pci_set_irq_routing(PCI_INTD, irq_routing);
-                        break;
-
                     case 0x46:    /* Bits 3-0 = 0 = IRQ disabled, 1 = IRQ enabled. */
                     case 0x47:    /* Bits 3-0 = 0 = IRQ edge-triggered, 1 = IRQ level-triggered. */
                         /* Bit 6 seems to be the IRQ/SMI# toggle, 1 = IRQ, 0 = SMI#. */
                         dev->pci_conf_sb[func][addr] = val;
+                        umc_8886_irq_recalc(dev);
                         break;
 
                     case 0x56:
                         dev->pci_conf_sb[func][addr] = val;
-
-                        switch (val & 3) {
-                            case 0:
-                                cpu_set_isa_pci_div(3);
-                                break;
-                            case 1:
-                                cpu_set_isa_pci_div(4);
-                                break;
-                            case 2:
-                                cpu_set_isa_pci_div(2);
-                                break;
-                            default:
-                                break;
-                        }
+                        umc_8886_bus_recalc(dev);
                         break;
 
                     case 0xa2:
@@ -225,7 +247,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 
                     case 0xa4:
                         dev->pci_conf_sb[func][addr] = val;
-                        cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
+                        umc_8886_bus_recalc(dev);
                         break;
 
                     default:
@@ -248,13 +270,13 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                         break;
 
                     case 0x3c:
-                    case 0x41 ... 0x4b:
-                    case 0x54 ... 0x59:
+                    case 0x40:
+                    case 0x42 ... 0x59:
                         if (dev->ide_id == 0x673a)
                             dev->pci_conf_sb[func][addr] = val;
                         break;
 
-                    case 0x40:
+                    case 0x41:
                         if (dev->ide_id == 0x673a) {
                             dev->pci_conf_sb[func][addr] = val;
                             umc_8886_ide_handler(dev);
@@ -300,25 +322,17 @@ umc_8886_reset(void *priv)
     dev->pci_conf_sb[0][0x09] = 0x00;
     dev->pci_conf_sb[0][0x0a] = 0x01;
     dev->pci_conf_sb[0][0x0b] = 0x06;
+
     dev->pci_conf_sb[0][0x40] = 0x01;
-    dev->pci_conf_sb[0][0x41] = 0x06;
+    dev->pci_conf_sb[0][0x41] = 0x04;
     dev->pci_conf_sb[0][0x42] = 0x08;
-    dev->pci_conf_sb[0][0x43] = 0x00;
-    dev->pci_conf_sb[0][0x44] = 0x00;
-    dev->pci_conf_sb[0][0x45] = 0x04;
-    dev->pci_conf_sb[0][0x46] = 0x00;
-    dev->pci_conf_sb[0][0x47] = 0x40;
-    dev->pci_conf_sb[0][0x50] = 0x01;
-    dev->pci_conf_sb[0][0x51] = 0x03;
-    dev->pci_conf_sb[0][0x56] = dev->pci_conf_sb[0][0x57] = 0x00;
-    dev->pci_conf_sb[0][0x70] = dev->pci_conf_sb[0][0x71] = 0x00;
-    dev->pci_conf_sb[0][0x72] = dev->pci_conf_sb[0][0x73] = 0x00;
-    dev->pci_conf_sb[0][0x74] = dev->pci_conf_sb[0][0x76] = 0x00;
-    dev->pci_conf_sb[0][0x82] = 0x00;
-    dev->pci_conf_sb[0][0x90] = dev->pci_conf_sb[0][0x91] = 0x00;
-    dev->pci_conf_sb[0][0xa0] = dev->pci_conf_sb[0][0xa2] = 0x00;
-    dev->pci_conf_sb[0][0xa4] = 0x00;
-    dev->pci_conf_sb[0][0xa8] = 0x20;
+    dev->pci_conf_sb[0][0x43] = 0x9a;
+    dev->pci_conf_sb[0][0x44] = 0xbc;
+    dev->pci_conf_sb[0][0x45] = 0x00;
+    dev->pci_conf_sb[0][0x46] = 0x10;
+    dev->pci_conf_sb[0][0x47] = 0x30;
+
+    dev->pci_conf_sb[0][0x51] = 0x02;
 
     if (dev->has_ide) {
         dev->pci_conf_sb[1][0x00] = 0x60; /* UMC */
@@ -341,13 +355,15 @@ umc_8886_reset(void *priv)
         dev->pci_conf_sb[1][0x21] = 0x10;
 
         if (dev->ide_id == 0x673a) {
-            dev->pci_conf_sb[1][0x40] = 0xc0;
-            dev->pci_conf_sb[1][0x41] = 0x00;
+            dev->pci_conf_sb[1][0x40] = 0x00;
+            dev->pci_conf_sb[1][0x41] = 0xc0;
             dev->pci_conf_sb[1][0x42] = dev->pci_conf_sb[1][0x43] = 0x00;
             dev->pci_conf_sb[1][0x44] = dev->pci_conf_sb[1][0x45] = 0x00;
             dev->pci_conf_sb[1][0x46] = dev->pci_conf_sb[1][0x47] = 0x00;
-            dev->pci_conf_sb[1][0x48] = dev->pci_conf_sb[1][0x49] = 0x00;
-            dev->pci_conf_sb[1][0x4a] = dev->pci_conf_sb[1][0x4b] = 0x00;
+            dev->pci_conf_sb[1][0x48] = dev->pci_conf_sb[1][0x49] = 0x55;
+            dev->pci_conf_sb[1][0x4a] = dev->pci_conf_sb[1][0x4b] = 0x55;
+            dev->pci_conf_sb[1][0x4c] = dev->pci_conf_sb[1][0x4d] = 0x88;
+            dev->pci_conf_sb[1][0x4e] = dev->pci_conf_sb[1][0x4f] = 0xaa;
             dev->pci_conf_sb[1][0x54] = dev->pci_conf_sb[1][0x55] = 0x00;
             dev->pci_conf_sb[1][0x56] = dev->pci_conf_sb[1][0x57] = 0x00;
             dev->pci_conf_sb[1][0x58] = dev->pci_conf_sb[1][0x59] = 0x00;
@@ -362,8 +378,7 @@ umc_8886_reset(void *priv)
     for (uint8_t i = 1; i < 5; i++) /* Disable all IRQ interrupts */
         pci_set_irq_routing(i, PCI_IRQ_DISABLED);
 
-    cpu_set_isa_pci_div(3);
-    cpu_set_pci_speed(cpu_busspeed / 2);
+    umc_8886_bus_recalc(dev);
 }
 
 static void

@@ -61,6 +61,8 @@ extern uint64_t tsc;
 
 extern MainWindow *main_window;
 
+static bool sbar_initialized = false;
+
 namespace {
 struct PixmapSetActive {
     QPixmap normal;
@@ -294,7 +296,7 @@ MachineStatus::iterateFDD(const std::function<void(int)> &cb)
 void
 MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
 {
-    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     for (size_t i = 0; i < CDROM_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !hasIDE() &&
@@ -317,7 +319,7 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
 void
 MachineStatus::iterateZIP(const std::function<void(int)> &cb)
 {
-    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     for (size_t i = 0; i < ZIP_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && !hasIDE() &&
@@ -338,7 +340,7 @@ MachineStatus::iterateZIP(const std::function<void(int)> &cb)
 void
 MachineStatus::iterateMO(const std::function<void(int)> &cb)
 {
-    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     for (size_t i = 0; i < MO_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !hasIDE() &&
@@ -381,43 +383,63 @@ hdd_count(int bus)
 }
 
 void
+MachineStatus::refreshEmptyIcons()
+{
+    /* Check if icons are initialized. */
+    if (!sbar_initialized)
+        return;
+
+    for (size_t i = 0; i < FDD_NUM; ++i)
+        d->fdd[i].setEmpty(machine_status.fdd[i].empty);
+    for (size_t i = 0; i < CDROM_NUM; ++i)
+        d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
+    for (size_t i = 0; i < ZIP_NUM; i++)
+        d->zip[i].setEmpty(machine_status.zip[i].empty);
+    for (size_t i = 0; i < MO_NUM; i++)
+        d->mo[i].setEmpty(machine_status.mo[i].empty);
+
+    d->cassette.setEmpty(machine_status.cassette.empty);
+
+    for (size_t i = 0; i < NET_CARD_MAX; i++)
+        d->net[i].setEmpty(machine_status.net[i].empty);
+
+    for (int i = 0; i < 2; ++i)
+        d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
+}
+
+void
 MachineStatus::refreshIcons()
 {
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
 
-    for (size_t i = 0; i < FDD_NUM; ++i) {
+    for (size_t i = 0; i < FDD_NUM; ++i)
         d->fdd[i].setActive(machine_status.fdd[i].active);
-        d->fdd[i].setEmpty(machine_status.fdd[i].empty);
-    }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
-        d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
+        if (machine_status.cdrom[i].active)
+            ui_sb_update_icon(SB_CDROM | i, 0);
     }
     for (size_t i = 0; i < ZIP_NUM; i++) {
         d->zip[i].setActive(machine_status.zip[i].active);
-        d->zip[i].setEmpty(machine_status.zip[i].empty);
+        if (machine_status.zip[i].active)
+            ui_sb_update_icon(SB_ZIP | i, 0);
     }
     for (size_t i = 0; i < MO_NUM; i++) {
         d->mo[i].setActive(machine_status.mo[i].active);
-        d->mo[i].setEmpty(machine_status.mo[i].empty);
+        if (machine_status.mo[i].active)
+            ui_sb_update_icon(SB_MO | i, 0);
     }
-
-    d->cassette.setEmpty(machine_status.cassette.empty);
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
+        if (machine_status.hdd[i].active)
+            ui_sb_update_icon(SB_HDD | i, 0);
     }
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CARD_MAX; i++)
         d->net[i].setActive(machine_status.net[i].active);
-        d->net[i].setEmpty(machine_status.net[i].empty);
-    }
-
-    for (int i = 0; i < 2; ++i) {
-        d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
-    }
 }
 
 void
@@ -591,7 +613,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         sbar->addWidget(d->net[i].label.get());
     });
 
-    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     if ((has_mfm || (hdc_name.left(5) == QStringLiteral("st506"))) && (c_mfm > 0)) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_MFM].setActive(false);
@@ -653,6 +675,10 @@ MachineStatus::refresh(QStatusBar *sbar)
     sbar->addWidget(d->sound.get());
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());
+
+    sbar_initialized = true;
+
+    refreshEmptyIcons();
 }
 
 void
@@ -708,4 +734,6 @@ MachineStatus::updateTip(int tag)
         case SB_TEXT:
             break;
     }
+
+    refreshEmptyIcons();
 }

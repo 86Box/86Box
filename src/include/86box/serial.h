@@ -43,6 +43,18 @@
 #define COM3_IRQ  4
 #define COM4_ADDR 0x02e8
 #define COM4_IRQ  3
+// The following support being assingned IRQ 3, 4, 5, 9, 10, 11, 12 or 15
+// There doesn't appear to be any specific standard however
+// So defaults have been chosen arbitarily
+// TODO: Allow configuration of the IRQ in the UI
+//#define COM5_ADDR 0x03f0
+//#define COM5_IRQ  3
+#define COM5_ADDR 0x02f0
+#define COM5_IRQ  11
+#define COM6_ADDR 0x03e0
+#define COM6_IRQ  10
+#define COM7_ADDR 0x02e0
+#define COM7_IRQ  9
 
 struct serial_device_s;
 struct serial_s;

@@ -431,11 +431,12 @@ sf_FNSAVE_a16(uint32_t fetchdat)
     }
 
 #ifdef FPU_8087
-    fpu_state.swd = 0x3FF;
+    fpu_state.cwd = 0x3FF;
+    fpu_state.swd  &= 0x4700;
 #else
     fpu_state.cwd = 0x37F;
-#endif
     fpu_state.swd   = 0;
+#endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
@@ -467,7 +468,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     }
 
 #    ifdef FPU_8087
-    fpu_state.swd = 0x3FF;
+    fpu_state.cwd = 0x3FF;
 #    else
     fpu_state.cwd = 0x37F;
 #    endif
@@ -504,10 +505,11 @@ sf_FNINIT(uint32_t fetchdat)
     cpu_state.pc++;
 #ifdef FPU_8087
     fpu_state.cwd = 0x3FF;
+    fpu_state.swd  &= 0x4700;
 #else
     fpu_state.cwd = 0x37F;
-#endif
     fpu_state.swd   = 0;
+#endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     fpu_state.foo   = 0;
@@ -606,7 +608,6 @@ static int
 sf_FNOP(uint32_t fetchdat)
 {
     FP_ENTER();
-    pclog("FNOP.\n");
     FPU_check_pending_exceptions();
     cpu_state.pc++;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));

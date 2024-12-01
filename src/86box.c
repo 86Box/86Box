@@ -171,15 +171,15 @@ int      video_filter_method                    = 1;              /* (C) video *
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
 char     video_shader[512]                      = { '\0' };       /* (C) video */
-bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of
-                                                                         pass-through for serial ports */
+bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
+                                                                                  pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
-int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */
+int      gfxcard[GFXCARD_MAX]                   = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                         = 1;              /* (C) sound uses FP values */
 int      voodoo_enabled                         = 0;              /* (C) video option */
@@ -354,11 +354,13 @@ fatal(const char *fmt, ...)
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
 
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
     do_stop();
-
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 
@@ -396,11 +398,13 @@ fatal_ex(const char *fmt, va_list ap)
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
 
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
     do_stop();
-
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 }
@@ -1000,12 +1004,15 @@ pc_init_modules(void)
         }
     }
 
-    if (!video_card_available(gfxcard[1])) {
-        char tempc[512] = { 0 };
-        device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO2), tempc);
-        ui_msgbox_header(MBX_INFO, plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE), temp);
-        gfxcard[1] = 0;
+    // TODO
+    for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
+        if (!video_card_available(gfxcard[i])) {
+            char tempc[512] = { 0 };
+            device_get_name(video_card_getdevice(gfxcard[i]), 0, tempc);
+            swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO2), tempc);
+            ui_msgbox_header(MBX_INFO, plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE), temp);
+            gfxcard[i] = 0;
+        }
     }
 
     atfullspeed = 0;

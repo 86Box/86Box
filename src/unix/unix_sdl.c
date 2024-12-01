@@ -392,7 +392,7 @@ sdl_reload(void)
 }
 
 int
-plat_vidapi(char *api)
+plat_vidapi(UNUSED(const char *api))
 {
     return 0;
 }

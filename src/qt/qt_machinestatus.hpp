@@ -75,6 +75,7 @@ public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);
     void updateTip(int tag);
+    void refreshEmptyIcons();
     void refreshIcons();
 
 private:

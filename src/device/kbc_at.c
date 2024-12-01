@@ -277,9 +277,26 @@ kbc_translate(atkbc_t *dev, uint8_t val)
         return ret;
     }
 
+    kbc_at_log("ATkbc: translate is %s, ", translate ? "on" : "off");
+#ifdef ENABLE_KEYBOARD_AT_LOG
+    kbc_at_log("scan code: ");
+    if (translate) {
+        kbc_at_log("%02X (original: ", (nont_to_t[val] | dev->sc_or));
+        if (dev->sc_or == 0x80)
+            kbc_at_log("F0 ");
+        kbc_at_log("%02X)\n", val);
+    } else
+        kbc_at_log("%02X\n", val);
+#endif
+
+    ret = translate ? (nont_to_t[val] | dev->sc_or) : val;
+
+    if (dev->sc_or == 0x80)
+        dev->sc_or = 0;
+
     /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
     if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) &&
-        (keyboard_recv(0x138) || keyboard_recv(0x11d)))  switch (val) {
+        (keyboard_recv(0x138) || keyboard_recv(0x11d)))  switch (ret) {
         case 0x4f:
             t3100e_notify_set(0x01);
             break; /* End */
@@ -328,23 +345,6 @@ kbc_translate(atkbc_t *dev, uint8_t val)
         default:
             break;
     }
-
-    kbc_at_log("ATkbc: translate is %s, ", translate ? "on" : "off");
-#ifdef ENABLE_KEYBOARD_AT_LOG
-    kbc_at_log("scan code: ");
-    if (translate) {
-        kbc_at_log("%02X (original: ", (nont_to_t[val] | dev->sc_or));
-        if (dev->sc_or == 0x80)
-            kbc_at_log("F0 ");
-        kbc_at_log("%02X)\n", val);
-    } else
-        kbc_at_log("%02X\n", val);
-#endif
-
-    ret = translate ? (nont_to_t[val] | dev->sc_or) : val;
-
-    if (dev->sc_or == 0x80)
-        dev->sc_or = 0;
 
     return ret;
 }
@@ -422,6 +422,14 @@ kbc_delay_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
     dev->stat_hi = stat_hi;
     dev->pending = 1;
     dev->state = STATE_KBC_DELAY_OUT;
+
+    if (dev->is_asic && (channel == 0) && (dev->status & STAT_OFULL)) {
+        /* Expedite the sending to the output buffer to prevent the wrong
+           data from being accidentally read. */
+        kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+        dev->state = STATE_MAIN_IBF;
+        dev->pending = 0;
+    }
 }
 
 static void kbc_at_process_cmd(void *priv);
@@ -813,14 +821,14 @@ write_p2(atkbc_t *dev, uint8_t val)
                 softresetx86(); /* Pulse reset! */
                 cpu_set_edx();
                 flushmmucache();
-                if (kbc_ven == KBC_VEN_ALI)
+                if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
                     smbase = 0x00030000;
 
                 /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
                    and can find out what they actually did to make it boot from FFFFF0
                    correctly despite A20 being gated when the CPU is reset, this will
                    have to do. */
-                if (kbc_ven == KBC_VEN_SIEMENS)
+                if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
                     is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
             }
         }
@@ -1179,6 +1187,23 @@ write60_ami(void *priv, uint8_t val)
     }
 
     return 1;
+}
+
+void
+kbc_at_set_ps2(void *priv, const uint8_t ps2)
+{
+    atkbc_t *dev     = (atkbc_t *) priv;
+
+    dev->ami_flags = (dev->ami_flags & 0xfe) | (!!ps2);
+    dev->misc_flags &= ~FLAG_PS2;
+    if (ps2) {
+        dev->misc_flags |= FLAG_PS2;
+        kbc_at_do_poll = kbc_at_poll_ps2;
+    } else
+        kbc_at_do_poll = kbc_at_poll_at;
+
+    write_cmd(dev, ~dev->mem[0x20]);
+    write_cmd(dev, dev->mem[0x20]);
 }
 
 static uint8_t
@@ -2208,7 +2233,11 @@ static void
 kbc_at_close(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
+#ifdef OLD_CODE
     int max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
+#else
+    int max_ports = 2;
+#endif
 
     /* Stop timers. */
     timer_disable(&dev->kbc_dev_poll_timer);
@@ -2350,7 +2379,11 @@ kbc_at_init(const device_t *info)
             break;
     }
 
+#ifdef OLD_CODE
     max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
+#else
+    max_ports = 2;
+#endif
 
     for (int i = 0; i < max_ports; i++) {
         kbc_at_ports[i] = (kbc_at_port_t *) malloc(sizeof(kbc_at_port_t));

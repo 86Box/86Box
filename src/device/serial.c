@@ -223,7 +223,7 @@ serial_write_fifo(serial_t *dev, uint8_t dat)
                ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ?
                fifo_get_count(dev->rcvr_fifo) : 0);
 
-    if (!(dev->mctrl & 0x10))
+    if ((dev != NULL) && !(dev->mctrl & 0x10))
         write_fifo(dev, dat);
 }
 
@@ -597,7 +597,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 serial_reset_fifo(dev);
             if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
                 dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
-            dev->mctrl = val;
+            dev->mctrl = val & 0x1f;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
                 new_msr |= (val & 0x02) ? 0x10 : 0;
@@ -912,7 +912,13 @@ serial_init(const device_t *info)
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
-        if (next_inst == 3)
+        if (next_inst == 6)
+            serial_setup(dev, COM7_ADDR, COM7_IRQ);
+        else if (next_inst == 5)
+            serial_setup(dev, COM6_ADDR, COM6_IRQ);
+        else if (next_inst == 4)
+            serial_setup(dev, COM5_ADDR, COM5_IRQ);
+        else if (next_inst == 3)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);

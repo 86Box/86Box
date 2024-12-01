@@ -156,10 +156,12 @@ typedef struct chips_69000_t {
 
     rom_t bios_rom;
 
-    void* i2c_ddc, *ddc;
+    void *i2c, *ddc;
 
     uint8_t st01;
 } chips_69000_t;
+
+static chips_69000_t *reset_state = NULL;
 
 /* TODO: Probe timings on real hardware. */
 static video_timings_t timing_chips = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
@@ -777,7 +779,7 @@ chips_69000_recalctimings(svga_t *svga)
 
         if (!(chips->ext_regs[0x81] & 0x10))
             svga->htotal += 5;
-        
+
         svga->hblank_end_val = ((svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00)) | (svga->crtc[0x3c] & 0b11000000);
         svga->hblank_end_mask = 0xff;
 
@@ -980,7 +982,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                 if (!!(color_key == dest_pixel) == !!(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
                     return;
                 }
-                
+
                 break;
             }
         }
@@ -1018,7 +1020,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                 if (!!(color_key == dest_pixel) == !!(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
                     return;
                 }
-                
+
                 break;
             }
         }
@@ -1191,7 +1193,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                 chips->bitblt_running.mono_bytes_pitch = ((chips->bitblt_running.actual_destination_width + chips->bitblt_running.bitblt.monochrome_source_left_clip + 63) & ~63) / 8;
             }
         }
-        
+
         return;
     }
 
@@ -1273,7 +1275,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         do {
             uint32_t pixel = 0;
             uint32_t source_addr = chips->bitblt_running.bitblt.source_addr + (chips->bitblt_running.y * chips->bitblt.source_span) + (chips->bitblt_running.x * chips->bitblt_running.bytes_per_pixel);
-            
+
             switch (chips->bitblt_running.bytes_per_pixel) {
                 case 1: /* 8 bits-per-pixel. */
                     {
@@ -1423,7 +1425,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             source_pixel |= (chips->bitblt_running.bytes_port[1] << 8);
         if (chips->bitblt_running.bytes_per_pixel >= 3)
             source_pixel |= (chips->bitblt_running.bytes_port[2] << 16);
-        
+
         chips->bitblt_running.bytes_in_line_written += chips->bitblt_running.bytes_per_pixel;
 
         chips_69000_process_pixel(chips, source_pixel);
@@ -1446,7 +1448,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
 
             chips->bitblt_running.count_x = 0;
             chips->bitblt_running.x = 0;
-            
+
             if (chips->bitblt_running.count_y >= chips->bitblt_running.actual_destination_height) {
                 chips_69000_bitblt_interrupt(chips);
                 return;
@@ -1497,10 +1499,10 @@ chips_69000_read_ext_reg(chips_69000_t* chips)
             {
                 val = chips->ext_regs[index];
                 if (!(chips->ext_regs[0x62] & 0x8))
-                    val = (val & ~8) | (i2c_gpio_get_scl(chips->i2c_ddc) << 3);
-                
+                    val = (val & ~8) | (i2c_gpio_get_scl(chips->i2c) << 3);
+
                 if (!(chips->ext_regs[0x62] & 0x4))
-                    val = (val & ~4) | (i2c_gpio_get_sda(chips->i2c_ddc) << 2);
+                    val = (val & ~4) | (i2c_gpio_get_sda(chips->i2c) << 2);
 
                 break;
             }
@@ -1560,14 +1562,14 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
                 if (chips->ext_regs[0x62] & 0x8)
                     scl = !!(val & 8);
                 else
-                    scl = i2c_gpio_get_scl(chips->i2c_ddc);
-                
+                    scl = i2c_gpio_get_scl(chips->i2c);
+
                 if (chips->ext_regs[0x62] & 0x4)
                     sda = !!(val & 4);
                 else
-                    scl = i2c_gpio_get_sda(chips->i2c_ddc);
-                
-                i2c_gpio_set(chips->i2c_ddc, scl, sda);
+                    scl = i2c_gpio_get_sda(chips->i2c);
+
+                i2c_gpio_set(chips->i2c, scl, sda);
 
                 chips->ext_regs[chips->ext_index] = val & 0x9F;
                 break;
@@ -1742,7 +1744,7 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
         case 0x3B7:
         case 0x3D7:
             return chips_69000_write_ext_reg(chips, val);
-        
+
     }
     svga_out(addr, val, svga);
 }
@@ -1901,17 +1903,15 @@ chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
                     if (chips->pci_conf_status & PCI_COMMAND_MEM) {
                         mem_mapping_enable(&chips->svga.mapping);
                         if (chips->linear_mapping.base)
-                            mem_mapping_enable(&chips->linear_mapping);
+                            mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
                     }
                     break;
                 }
             case 0x13:
                 {
-                    if (!chips->linear_mapping.enable) {
-                        chips->linear_mapping.base = val << 24;
-                        break;
-                    }
-                    mem_mapping_set_addr(&chips->linear_mapping, val << 24, (1 << 24));
+                    chips->linear_mapping.base = val << 24;
+                    if (chips->linear_mapping.base)
+                        mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
                     break;
                 }
             case 0x3c:
@@ -2093,7 +2093,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
                     chips->mem_regs_b[addr & 0xF] = val;
                     break;
                 }
-                
+
             }
             chips->mem_regs_b[addr & 0xF] = val;
             break;
@@ -2213,7 +2213,7 @@ chips_69000_readw_linear(uint32_t addr, void *p)
     if (addr & 0x800000) {
         if (addr & 0x400000)
             return bswap16(chips_69000_readw_mmio(addr, chips));
-        
+
         return bswap16(svga_readw_linear(addr & 0x1FFFFF, p));
     }
 
@@ -2232,7 +2232,7 @@ chips_69000_readl_linear(uint32_t addr, void *p)
     if (addr & 0x800000) {
         if (addr & 0x400000)
             return bswap32(chips_69000_readl_mmio(addr, chips));
-        
+
         return bswap32(svga_readl_linear(addr & 0x1FFFFF, p));
     }
 
@@ -2290,7 +2290,7 @@ chips_69000_vblank_start(svga_t *svga)
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
     chips->mem_regs[1] |= 1 << 14;
     chips->svga.crtc[0x40] &= ~0x80;
-    
+
     chips_69000_interrupt(chips);
 }
 
@@ -2307,13 +2307,13 @@ chips_69000_hwcursor_draw_64x64(svga_t *svga, int displine)
     dat[1] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr]));
     dat[0] = bswap64(*(uint64_t *) (&svga->vram[svga->hwcursor_latch.addr + 8]));
     svga->hwcursor_latch.addr += 16;
-    
+
     for (uint8_t x = 0; x < 64; x++) {
         if (!(dat[1] & (1ULL << 63)))
             svga->monitor->target_buffer->line[displine][(offset + svga->x_add) & 2047] = (dat[0] & (1ULL << 63)) ? svga_lookup_lut_ram(svga, chips->cursor_pallook[5]) : svga_lookup_lut_ram(svga, chips->cursor_pallook[4]);
         else if (dat[0] & (1ULL << 63))
             svga->monitor->target_buffer->line[displine][(offset + svga->x_add) & 2047] ^= 0xffffff;
-            
+
         offset++;
         dat[0] <<= 1;
         dat[1] <<= 1;
@@ -2430,14 +2430,48 @@ chips_69000_line_compare(svga_t* svga)
     if (chips->ext_regs[0x81] & 0xF) {
         return 0;
     }
-    
+
     return 1;
+}
+
+static void
+chips_69000_disable_handlers(chips_69000_t *chips)
+{
+    io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+
+    mem_mapping_disable(&chips->linear_mapping);
+    mem_mapping_disable(&chips->svga.mapping);
+    if (!chips->on_board)
+        mem_mapping_disable(&chips->bios_rom.mapping);
+
+    /* Save all the mappings and the timers because they are part of linked lists. */
+    reset_state->linear_mapping   = chips->linear_mapping;
+    reset_state->svga.mapping     = chips->svga.mapping;
+    reset_state->bios_rom.mapping = chips->bios_rom.mapping;
+
+    reset_state->decrement_timer  = chips->decrement_timer;
+    reset_state->svga.timer       = chips->svga.timer;
+    reset_state->svga.timer8514   = chips->svga.timer8514;
+}
+
+static void
+chips_69000_reset(void *priv)
+{
+    chips_69000_t *chips = (chips_69000_t *) priv;
+
+    if (reset_state != NULL) {
+        chips_69000_disable_handlers(chips);
+        reset_state->slot = chips->slot;
+
+        *chips = *reset_state;
+    }
 }
 
 static void *
 chips_69000_init(const device_t *info)
 {
     chips_69000_t *chips = calloc(1, sizeof(chips_69000_t));
+    reset_state = calloc(1, sizeof(chips_69000_t));
 
     /* Appears to have an odd VBIOS size. */
     if (!info->local) {
@@ -2450,18 +2484,16 @@ chips_69000_init(const device_t *info)
     svga_init(info, &chips->svga, chips, 1 << 21, /*2048kb*/
               chips_69000_recalctimings,
               chips_69000_in, chips_69000_out,
-              NULL,
+              chips_69000_hwcursor_draw,
               NULL);
 
     io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
-    pci_add_card(PCI_ADD_VIDEO, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
+    pci_add_card(info->local ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
 
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
-    chips->svga.recalctimings_ex = chips_69000_recalctimings;
     chips->svga.vblank_start     = chips_69000_vblank_start;
-    chips->svga.hwcursor_draw    = chips_69000_hwcursor_draw;
     chips->svga.getclock         = chips_69000_getclock;
     chips->svga.conv_16to32      = chips_69000_conv_16to32;
     chips->svga.line_compare     = chips_69000_line_compare;
@@ -2471,16 +2503,18 @@ chips_69000_init(const device_t *info)
     chips->quit            = 0;
     chips->engine_active   = 0;
     chips->on_board        = !!(info->local);
-    
+
     chips->svga.packed_chain4 = 1;
 
     timer_add(&chips->decrement_timer, chips_69000_decrement_timer, chips, 0);
     timer_on_auto(&chips->decrement_timer, 1000000. / 2000.);
 
-    chips->i2c_ddc = i2c_gpio_init("c&t_69000_mga");
-    chips->ddc     = ddc_init(i2c_gpio_get_bus(chips->i2c_ddc));
-    
+    chips->i2c = i2c_gpio_init("ddc_chips_69000");
+    chips->ddc = ddc_init(i2c_gpio_get_bus(chips->i2c));
+
     chips->flat_panel_regs[0x01] = 1;
+
+    *reset_state = *chips;
 
     return chips;
 }
@@ -2500,8 +2534,11 @@ chips_69000_close(void *p)
 //    thread_set_event(chips->fifo_event);
  //   thread_wait(chips->accel_thread);
     ddc_close(chips->ddc);
-    i2c_gpio_close(chips->i2c_ddc);
+    i2c_gpio_close(chips->i2c);
     svga_close(&chips->svga);
+
+    free(reset_state);
+    reset_state = NULL;
 
     free(chips);
 }
@@ -2519,17 +2556,17 @@ chips_69000_force_redraw(void *p)
 {
     chips_69000_t *chips = (chips_69000_t *) p;
 
-    chips->svga.fullchange = changeframecount;
+    chips->svga.fullchange = chips->svga.monitor->mon_changeframecount;
 }
 
 const device_t chips_69000_device = {
     .name          = "Chips & Technologies B69000",
-    .internal_name = "c&t_69000",
+    .internal_name = "chips_69000",
     .flags         = DEVICE_PCI,
     .local         = 0,
     .init          = chips_69000_init,
     .close         = chips_69000_close,
-    .reset         = NULL,
+    .reset         = chips_69000_reset,
     { .available = chips_69000_available },
     .speed_changed = chips_69000_speed_changed,
     .force_redraw  = chips_69000_force_redraw,
@@ -2537,13 +2574,13 @@ const device_t chips_69000_device = {
 };
 
 const device_t chips_69000_onboard_device = {
-    .name          = "Chips & Technologies B69000 (onboard)",
-    .internal_name = "c&t_69000_onboard",
+    .name          = "Chips & Technologies B69000 On-Board",
+    .internal_name = "chips_69000_onboard",
     .flags         = DEVICE_PCI,
     .local         = 1,
     .init          = chips_69000_init,
     .close         = chips_69000_close,
-    .reset         = NULL,
+    .reset         = chips_69000_reset,
     { .available = chips_69000_available },
     .speed_changed = chips_69000_speed_changed,
     .force_redraw  = chips_69000_force_redraw,

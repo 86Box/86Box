@@ -266,6 +266,10 @@ plat_get_string(int i)
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_GHOSTSCRIPT_ERROR_TITLE:
             return L"Unable to initialize Ghostscript";
+        case STRING_GHOSTPCL_ERROR_TITLE:
+            return L"Unable to initialize GhostPCL";
+        case STRING_GHOSTPCL_ERROR_DESC:
+            return L"libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
         case STRING_HW_NOT_AVAILABLE_MACHINE:
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case STRING_HW_NOT_AVAILABLE_VIDEO:
@@ -405,6 +409,8 @@ plat_mmap(size_t size, uint8_t executable)
 {
 #if defined __APPLE__ && defined MAP_JIT
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
+#elif defined(PROT_MPROTECT)
+    void *ret = mmap(0, size, PROT_MPROTECT(PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0)), MAP_ANON | MAP_PRIVATE, -1, 0);
 #else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #endif
@@ -636,8 +642,12 @@ ui_msgbox_header(int flags, void *header, void *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-    if (!header)
-        header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
+    if (!header) {
+        if (flags & MBX_ANSI)
+            header = (void *) "86Box";
+        else
+            header = (void *) L"86Box";
+    }
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
@@ -774,7 +784,7 @@ plat_init_rom_paths(void)
 
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
         path_slash(xdg_rom_path);
-        strncat(xdg_rom_path, "86Box/", 1024);
+        strncat(xdg_rom_path, "86Box/", 1023);
 
         if (!plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
@@ -1164,7 +1174,7 @@ monitor_thread(void *param)
 #endif
 }
 
-extern int gfxcard[2];
+extern int gfxcard[GFXCARD_MAX];
 int
 main(int argc, char **argv)
 {
@@ -1182,7 +1192,8 @@ main(int argc, char **argv)
         return 6;
     }
 
-    gfxcard[1]  = 0;
+    for (uint8_t i = 1; i < GFXCARD_MAX; i++)
+        gfxcard[i]  = 0;
     eventthread = SDL_ThreadID();
     blitmtx     = SDL_CreateMutex();
     if (!blitmtx) {
@@ -1385,12 +1396,16 @@ plat_set_thread_name(void *thread, const char *name)
     if (thread) /* Apple pthread can only set self's name */
         return;
     char truncated[64];
+#elif defined(Q_OS_NETBSD)
+    char truncated[64];
 #else
     char truncated[16];
 #endif
     strncpy(truncated, name, sizeof(truncated) - 1);
 #ifdef __APPLE__
     pthread_setname_np(truncated);
+#elif defined(Q_OS_NETBSD)
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif

@@ -7,7 +7,6 @@
 #ifdef __unix__
 #    include <unistd.h>
 #endif
-#define FLUIDSYNTH_NOT_A_DLL
 #include <fluidsynth.h>
 
 #include <86box/86box.h>
@@ -322,7 +321,7 @@ static const device_config_t fluidsynth_config[] = {
   // clang-format off
     {
         .name = "sound_font",
-        .description = "Sound Font",
+        .description = "SoundFont",
         .type = CONFIG_FNAME,
         .default_string = "",
         .file_filter = "SF2 Sound Fonts (*.sf2)|*.sf2"

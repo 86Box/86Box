@@ -50,6 +50,7 @@ public:
     SettingsModel(QObject *parent)
         : QAbstractListModel(parent)
     {
+        fontHeight = QApplication::fontMetrics().height();
     }
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -82,6 +83,7 @@ private:
         "other_removable_devices",
         "other_peripherals",
     };
+    int fontHeight;
 };
 
 QVariant
@@ -94,6 +96,8 @@ SettingsModel::data(const QModelIndex &index, int role) const
             return tr(pages.at(index.row()).toUtf8().data());
         case Qt::DecorationRole:
             return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
+        case Qt::SizeHintRole:
+            return QSize(-1, fontHeight * 2);
         default:
             return {};
     }
@@ -181,9 +185,6 @@ Settings::Settings(QWidget *parent)
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
            [this](const QModelIndex &current, const QModelIndex &previous) {
                   ui->stackedWidget->setCurrentIndex(current.row()); });
-
-    ui->listView->resizeColumnsToContents();
-    ui->listView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
     ui->listView->setCurrentIndex(model->index(0, 0));
 

@@ -9,9 +9,16 @@
 #          CMake build script.
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 #
 
-add_library(game OBJECT gameport.c joystick_standard.c
-    joystick_ch_flightstick_pro.c joystick_sw_pad.c joystick_tm_fcs.c)
+add_library(game OBJECT
+    gameport.c
+    joystick_standard.c
+    joystick_ch_flightstick_pro.c
+    joystick_sw_pad.c
+    joystick_tm_fcs.c
+)

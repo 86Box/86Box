@@ -96,38 +96,10 @@ static void *filter_cd_audio_p                                          = NULL;
 void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
 void *filter_pc_speaker_p                                          = NULL;
 
-static const device_t sound_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const device_t sound_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const SOUND_CARD sound_cards[] = {
     // clang-format off
-    { &sound_none_device            },
-    { &sound_internal_device        },
+    { &device_none                  },
+    { &device_internal              },
     { &acermagic_s20_device         },
     { &mirosound_pcm10_device       },
     { &adlib_device                 },
@@ -137,6 +109,11 @@ static const SOUND_CARD sound_cards[] = {
     { &cms_device                   },
     { &cs4235_device                },
     { &cs4236b_device               },
+    { &ess_688_device               },
+    { &ess_ess0100_pnp_device       },
+    { &ess_1688_device              },
+    { &ess_ess0102_pnp_device       },
+    { &ess_ess0968_pnp_device       },
     { &gus_device                   },
     { &sb_1_device                  },
     { &sb_15_device                 },
@@ -250,14 +227,9 @@ sound_card_get_from_internal_name(const char *s)
 void
 sound_card_init(void)
 {
-    if ((sound_card_current[0] > SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
-        device_add_inst(sound_cards[sound_card_current[0]].device, 1);
-    if ((sound_card_current[1] > SOUND_INTERNAL) && (sound_cards[sound_card_current[1]].device))
-        device_add_inst(sound_cards[sound_card_current[1]].device, 2);
-    if ((sound_card_current[2] > SOUND_INTERNAL) && (sound_cards[sound_card_current[2]].device))
-        device_add_inst(sound_cards[sound_card_current[2]].device, 3);
-    if ((sound_card_current[3] > SOUND_INTERNAL) && (sound_cards[sound_card_current[3]].device))
-        device_add_inst(sound_cards[sound_card_current[3]].device, 4);
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; i++)
+        if ((sound_card_current[i] > SOUND_INTERNAL) && (sound_cards[sound_card_current[i]].device))
+            device_add_inst(sound_cards[sound_card_current[i]].device, i + 1);
 }
 
 void

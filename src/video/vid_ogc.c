@@ -97,11 +97,14 @@ ogc_out(uint16_t addr, uint8_t val, void *priv)
             cga_out(addr, val, &ogc->cga);
             break;
 
+        case 0x3db:
         case 0x3de:
-            /* set control register */
-            ogc->ctrl_3de = val;
-            /* select 1st or 2nd 16k vram block to be used */
-            ogc->base = (val & 0x08) ? 0x4000 : 0;
+            if (addr == ogc->ctrl_addr) {
+                /* set control register */
+                ogc->ctrl_3de = val;
+                /* select 1st or 2nd 16k vram block to be used */
+                ogc->base = (val & 0x08) ? 0x4000 : 0;
+            }
             break;
 
         default:
@@ -621,6 +624,8 @@ ogc_init(UNUSED(const device_t *info))
         ogc->mono_display = 0;
     else
         ogc->mono_display = 1;
+
+    ogc->ctrl_addr = 0x3de;
 
     return ogc;
 }

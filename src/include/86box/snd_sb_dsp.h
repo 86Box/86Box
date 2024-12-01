@@ -91,6 +91,8 @@ typedef struct sb_dsp_t {
     uint8_t sbref;
     int8_t  sbstep;
 
+    uint8_t activity;
+
     int sbdacpos;
 
     int sbleftright;
@@ -141,6 +143,7 @@ typedef struct sb_dsp_t {
     int        wb_full;
 
     pc_timer_t irq_timer;
+    pc_timer_t irq16_timer;
 
     int busy_count;
 

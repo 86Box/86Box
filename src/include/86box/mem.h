@@ -391,6 +391,11 @@ extern void mem_mapping_set_handler(mem_mapping_t *,
                                     void (*write_w)(uint32_t addr, uint16_t val, void *priv),
                                     void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
+extern void mem_mapping_set_write_handler(mem_mapping_t *,
+                                          void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                          void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                                          void (*write_l)(uint32_t addr, uint32_t val, void *priv));
+
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
@@ -441,6 +446,7 @@ extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
 extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
+extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
@@ -451,6 +457,7 @@ extern void mem_a20_recalc(void);
 extern void mem_init(void);
 extern void mem_close(void);
 extern void mem_reset(void);
+extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 
 extern void umc_smram_recalc(uint32_t start, int set);

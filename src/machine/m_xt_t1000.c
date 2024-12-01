@@ -969,7 +969,7 @@ machine_xt_t1200_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&t1200_video_device);
 
-    if (hdc_current <= 1)
+    if (hdc_current[0] <= HDC_INTERNAL)
         device_add(&st506_xt_toshiba_t1200_device);
 
     return ret;

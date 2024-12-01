@@ -71,62 +71,34 @@ typedef struct
     const device_t *device;
 } MIDI_OUT_DEVICE, MIDI_IN_DEVICE;
 
-static const device_t midi_out_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 static const MIDI_OUT_DEVICE devices[] = {
     // clang-format off
-    { &midi_out_none_device  },
+    { &device_none          },
 #ifdef USE_FLUIDSYNTH
-    { &fluidsynth_device     },
-#endif
+    { &fluidsynth_device    },
+#endif /* USE_FLUIDSYNTH */
 #ifdef USE_MUNT
-    { &mt32_old_device       },
-    { &mt32_new_device       },
-    { &cm32l_device          },
-    { &cm32ln_device         },
-#endif
+    { &mt32_old_device      },
+    { &mt32_new_device      },
+    { &cm32l_device         },
+    { &cm32ln_device        },
+#endif /*USE_MUNT */
+#ifdef USE_OPL4ML
+    { &opl4_midi_device     },
+#endif /* USE_OPL4ML */
 #ifdef USE_RTMIDI
-    { &rtmidi_output_device  },
-#endif
-#if defined(DEV_BRANCH) && defined(USE_OPL4ML)
-    { &opl4_midi_device      },
-#endif
-    { NULL                   }
+    { &rtmidi_output_device },
+#endif /* USE_RTMIDI */
+    { NULL                  }
     // clang-format on
-};
-
-static const device_t midi_in_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] = {
     // clang-format off
-    { &midi_in_none_device },
+    { &device_none         },
 #ifdef USE_RTMIDI
     { &rtmidi_input_device },
-#endif
+#endif /* USE_RTMIDI */
     { NULL                 }
     // clang-format on
 };
@@ -369,7 +341,7 @@ midi_raw_out_byte(uint8_t val)
                     else if ((midi_out->midi_sysex_data[5] == 0x10) && (midi_out->midi_sysex_data[6] == 0x00) && (midi_out->midi_sysex_data[7] == 0x01))
                         midi_out->midi_sysex_delay = 30; /* Dark Sun 1 */
                     else
-                        midi_out->midi_sysex_delay = (unsigned int) (((float) (midi_out->midi_pos) * 1.25f) * 1000.0f / 3125.0f) + 2;
+                        midi_out->midi_sysex_delay = (unsigned int) (((double) (midi_out->midi_pos) * 1.25) / 3.125) + 2;
 
                     midi_out->midi_sysex_start = plat_get_ticks();
                 }
@@ -611,4 +583,11 @@ midi_in_sysex(uint8_t *buffer, uint32_t len)
         else
             break;
     }
+}
+
+void
+midi_reset(void)
+{
+    if (midi_out && midi_out->m_out_device && midi_out->m_out_device->reset)
+        midi_out->m_out_device->reset();
 }

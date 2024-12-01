@@ -47,7 +47,7 @@ jobs:
 #            preset: debug
 #            slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: dev_debug
             slug: -Dev
         dynarec:
           - name: ODR
@@ -66,6 +66,7 @@ jobs:
               qtbase5-dev
               qtbase5-private-dev
               qttools5-dev
+              qttranslations5-l10n
               libevdev-dev
               libxkbcommon-x11-dev
 
@@ -83,6 +84,7 @@ jobs:
           libopenal-dev
           libslirp-dev
           libfluidsynth-dev
+          libvdeplug-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

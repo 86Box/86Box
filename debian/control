@@ -13,6 +13,7 @@ Build-Depends: cmake (>= 3.21),
                libsdl2-dev,
                libslirp-dev,
                libxkbcommon-x11-dev,
+               libsndfile-dev,
                ninja-build,
                qttools5-dev,
                qtbase5-private-dev

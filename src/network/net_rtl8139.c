@@ -22,13 +22,14 @@
  *          Copyright 2011-2023 Benjamin Poirier.
  *          Copyright 2023 Cacodemon345.
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/pci.h>
@@ -351,7 +352,8 @@ enum chip_flags {
 #define RTL8139_PCI_REVID_8139      0x10
 #define RTL8139_PCI_REVID_8139CPLUS 0x20
 
-#define RTL8139_PCI_REVID           RTL8139_PCI_REVID_8139CPLUS
+/* Return 0x10 - the RTL8139C+ datasheet and Windows 2000 driver both confirm this. */
+#define RTL8139_PCI_REVID           RTL8139_PCI_REVID_8139
 
 #pragma pack(push, 1)
 typedef struct RTL8139TallyCounters {
@@ -1074,10 +1076,11 @@ rtl8139_reset(void *priv)
     s->cplus_enabled = 0;
 
 #if 0
-    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
     s->BasicModeCtrl = 0x2100; // 100Mbps, full duplex
-#endif
+    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
     s->BasicModeCtrl = 0x1000; // autonegotiation
+#endif
+    s->BasicModeCtrl = 0x1100; // full duplex, autonegotiation
 
     rtl8139_reset_phy(s);
 
@@ -3110,7 +3113,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x05:
             return s->pci_conf[addr & 0xFF] & 1;
         case 0x08:
-            return 0x20;
+            return RTL8139_PCI_REVID;
         case 0x09:
             return 0x0;
         case 0x0a:

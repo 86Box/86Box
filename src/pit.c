@@ -526,7 +526,7 @@ pit_timer_over(void *priv)
 
     dev->clock ^= 1;
 
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
         pit_ctr_set_clock_common(&dev->counters[i], dev->clock, dev);
 
     timer_advance_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
@@ -874,7 +874,7 @@ pit_device_reset(pit_t *dev)
 {
     dev->clock = 0;
 
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
         ctr_reset(&dev->counters[i]);
 }
 
@@ -885,7 +885,7 @@ pit_reset(pit_t *dev)
 
     dev->clock = 0;
 
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
         ctr_reset(&dev->counters[i]);
 
     /* Disable speaker gate. */

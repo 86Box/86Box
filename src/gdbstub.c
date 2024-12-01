@@ -40,6 +40,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86seg.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "x87_ops_conv.h"
 #include <86box/io.h>
@@ -365,13 +366,7 @@ gdbstub_break(void)
 static void
 gdbstub_jump(uint32_t new_pc)
 {
-    /* Nasty hack; qemu always uses the full 32-bit EIP internally... */
-    if (cpu_state.op32 || ((new_pc >= cs) && (new_pc < (cs + 65536)))) {
-        cpu_state.pc = new_pc - cs;
-    } else {
-        loadseg((new_pc >> 4) & 0xf000, &cpu_state.seg_cs);
-        cpu_state.pc = new_pc & 0xffff;
-    }
+    cpu_state.pc = new_pc - cs;
     flushmmucache();
 }
 
@@ -1518,6 +1513,7 @@ gdbstub_client_thread(void *priv)
                 case '$': /* packet start */
                     /* Wait for any existing packets to be processed. */
                     thread_wait_event(client->processed_event, -1);
+                    thread_set_event(client->processed_event);
 
                     client->packet_pos = 0;
                     break;
@@ -1535,6 +1531,7 @@ gdbstub_client_thread(void *priv)
                 case 0x03: /* break */
                     /* Wait for any existing packets to be processed. */
                     thread_wait_event(client->processed_event, -1);
+                    thread_set_event(client->processed_event);
 
                     /* Break immediately. */
                     gdbstub_log("GDB Stub: Break requested\n");
@@ -1544,6 +1541,7 @@ gdbstub_client_thread(void *priv)
                 default:
                     /* Wait for any existing packets to be processed, just in case. */
                     thread_wait_event(client->processed_event, -1);
+                    thread_set_event(client->processed_event);
 
                     if (client->packet_pos < (sizeof(client->packet) - 1)) {
                         /* Append byte to the packet. */

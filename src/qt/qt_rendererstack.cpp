@@ -200,7 +200,15 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
-    mouse_set_z(event->pixelDelta().y());
+    if (!mouse_capture) {
+        event->ignore();
+        return;
+    }
+
+    double numSteps = (double) event->angleDelta().y() / 120.0;
+
+    mouse_set_z((int) numSteps);
+    event->accept();
 }
 
 void
@@ -251,6 +259,8 @@ RendererStack::enterEvent(QEvent *event)
     mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
 
     if (mouse_input_mode == 1)
+        QApplication::setOverrideCursor(Qt::BlankCursor);
+    else if (mouse_input_mode == 2)
         QApplication::setOverrideCursor(Qt::CrossCursor);
 }
 

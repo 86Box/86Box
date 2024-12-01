@@ -77,7 +77,7 @@ int         lastbyte = 0;
 int floppymodified[4];
 int floppyrate[4];
 
-int fdc_type = 0;
+int fdc_current[FDC_MAX] = { 0, 0 };
 
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
@@ -97,51 +97,21 @@ fdc_log(const char *fmt, ...)
 #    define fdc_log(fmt, ...)
 #endif
 
-#if 0
-const device_t fdc_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-#endif
-
-const device_t fdc_internal_device = {
-    .name          = "Internal",
-    .internal_name = "internal",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 typedef const struct {
     const device_t *device;
 } fdc_cards_t;
 
 static fdc_cards_t fdc_cards[] = {
     // clang-format off
-#if 0
-    { &fdc_none_device     },
-#endif
-    { &fdc_internal_device },
-    { &fdc_b215_device     },
-    { &fdc_pii151b_device  },
-    { &fdc_pii158b_device  },
-    { &fdc_monster_device  },
-    { NULL                 }
+    { &device_none        },
+    { &device_internal    },
+    { &fdc_xt_device      },
+    { &fdc_at_device      },
+    { &fdc_b215_device    },
+    { &fdc_pii151b_device },
+    { &fdc_pii158b_device },
+    { &fdc_monster_device },
+    { NULL                }
     // clang-format on
 };
 
@@ -192,8 +162,8 @@ fdc_card_get_from_internal_name(char *s)
 void
 fdc_card_init(void)
 {
-    if ((fdc_type > 0) && fdc_cards[fdc_type].device)
-        device_add(fdc_cards[fdc_type].device);
+    if ((fdc_current[0] > FDC_INTERNAL) && fdc_cards[fdc_current[0]].device)
+        device_add_inst(fdc_cards[fdc_current[0]].device, 0);
 }
 
 uint8_t
@@ -591,9 +561,6 @@ static void
 fdc_rate(fdc_t *fdc, int drive)
 {
     fdc_update_rate(fdc, drive);
-#if 0
-    fdc_log("FDD %c: Setting rate: %i, %i, %i (%i, %i)\n", 0x41 + drive, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive), fdc->rwc[drive], fdc->densel_force);
-#endif
     fdc_log("FDD %c: [%i] Setting rate: %i, %i, %i (%i, %i, %i)\n", 0x41 + drive, fdc->enh_mode, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive), fdc->rwc[drive], fdc->densel_force, fdc->densel_polarity);
     fdd_set_densel(fdc_get_densel(fdc, drive));
     fdc_log("FDD %c: [%i] Densel: %i\n", 0x41 + drive, fdc->enh_mode, fdc_get_densel(fdc, drive));
@@ -626,17 +593,6 @@ fdc_bad_command(fdc_t *fdc)
 static void
 fdc_io_command_phase1(fdc_t *fdc, int out)
 {
-#if 0
-    int i;
-
-    pclog_toggle_suppr();
-    pclog("%02X ", fdc->processed_cmd);
-    for (i = 0; i < fdc->pnum; i++)
-        pclog("%02X ", fdc->params[i]);
-    pclog("\n");
-    pclog_toggle_suppr();
-#endif
-
     fifo_reset(fdc->fifo_p);
     fdc_rate(fdc, fdc->drive);
     fdc->head = fdc->params[2];
@@ -656,9 +612,11 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
 
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
     fdc->stat = out ? 0x10 : 0x50;
-    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
+    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
         fdc->stat |= 0x20;
-    else
+        if (out)
+            fdc->stat |= 0x80;
+    } else
         dma_set_drq(fdc->dma_ch, 1);
 }
 
@@ -931,6 +889,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc->format_state = 0;
                         break;
                     case 0x0e: /*Dump registers*/
+                        if (fdc->flags & FDC_FLAG_NEC) {
+                            fdc_bad_command(fdc);
+                            break;
+                        }
                         fdc->lastdrive = fdc->drive;
                         fdc->interrupt = 0x0e;
                         fdc_callback(fdc);
@@ -949,6 +911,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x10: /*Get version*/
                     case 0x14: /*Unlock*/
                     case 0x94: /*Lock*/
+                        if (fdc->flags & FDC_FLAG_NEC) {
+                            fdc_bad_command(fdc);
+                            break;
+                        }
                         fdc->lastdrive = fdc->drive;
                         fdc->interrupt = fdc->command;
                         fdc_callback(fdc);
@@ -962,6 +928,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                         break;
                     case 0x13: /*Configure*/
+                        if (fdc->flags & FDC_FLAG_NEC) {
+                            fdc_bad_command(fdc);
+                            break;
+                        }
                         fdc->pnum = 0;
                         fdc->ptot = 3;
                         fdc->stat |= 0x90;
@@ -1143,9 +1113,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc->stat     = (1 << fdc->drive);
                             if (!(fdc->flags & FDC_FLAG_PCJR))
                                 fdc->stat |= 0x80;
-#if 0
-                            fdc->head = (fdc->params[0] & 4) ? 1 : 0;
-#endif
                             fdc->head = 0; /* TODO: See if this is correct. */
                             fdc->st0  = fdc->params[0] & 0x03;
                             fdc->st0 |= (fdc->params[0] & 4);
@@ -1436,7 +1403,6 @@ fdc_read(uint16_t addr, void *priv)
         default:
             ret = 0xFF;
     }
-    // fdc_log("Read FDC %04X %02X\n", addr, ret);
     fdc_log("[%04X:%08X] Read FDC %04X %02X [%i:%02X]\n", CS, cpu_state.pc, addr, ret, drive, fdc->dor & (0x10 << drive));
     return ret;
 }
@@ -1646,8 +1612,10 @@ fdc_callback(void *priv)
             if (fdc->sector == fdc->params[5]) {
                 /* Reached end of track, MT bit is clear */
                 if (!(fdc->command & 0x80)) {
-                    fdc->rw_track++;
-                    fdc->sector = 1;
+                    if (fdc->dma) {
+                        fdc->rw_track++;
+                        fdc->sector = 1;
+                    }
                     if (!(fdc->flags & FDC_FLAG_PCJR) && fdc->dma && (old_sector == 255))
                         fdc_no_dma_end(fdc, compare);
                     else
@@ -1656,10 +1624,12 @@ fdc_callback(void *priv)
                 }
                 /* Reached end of track, MT bit is set, head is 1 */
                 if (fdd_get_head(real_drive(fdc, fdc->drive)) == 1) {
-                    fdc->rw_track++;
-                    fdc->sector = 1;
-                    fdc->head &= 0xFE;
-                    fdd_set_head(real_drive(fdc, fdc->drive), 0);
+                    if (fdc->dma) {
+                        fdc->rw_track++;
+                        fdc->sector = 1;
+                        fdc->head &= 0xFE;
+                        fdd_set_head(real_drive(fdc, fdc->drive), 0);
+                    }
                     if (!(fdc->flags & FDC_FLAG_PCJR) && fdc->dma && (old_sector == 255))
                         fdc_no_dma_end(fdc, compare);
                     else
@@ -1676,6 +1646,8 @@ fdc_callback(void *priv)
                     }
                 }
             } else if (fdc->sector < fdc->params[5])
+                fdc->sector++;
+            else if (fdc->params[5] == 0)
                 fdc->sector++;
             ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
             switch (fdc->interrupt) {
@@ -1829,7 +1801,6 @@ void
 fdc_error(fdc_t *fdc, int st5, int st6)
 {
     dma_set_drq(fdc->dma_ch, 0);
-#if 1
     timer_disable(&fdc->timer);
 
     fdc_int(fdc, 1);
@@ -1841,6 +1812,10 @@ fdc_error(fdc_t *fdc, int st5, int st6)
         fdc->st0 |= 0x08;
     fdc->res[5] = st5;
     fdc->res[6] = st6;
+    if (fdc->wrong_am) {
+        fdc->res[6] |= 0x40;
+        fdc->wrong_am = 0;
+    }
     fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);
     switch (fdc->interrupt) {
         case 0x02:
@@ -1866,48 +1841,6 @@ fdc_error(fdc_t *fdc, int st5, int st6)
     }
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
     fdc->paramstogo = 7;
-#else
-    switch (fdc->interrupt) {
-        case 0x02:
-        case 0x05:
-        case 0x06:
-        case 0x09:
-        case 0x0C:
-        case 0x11:
-        case 0x16:
-        case 0x19:
-        case 0x1D:
-            fdc->error = 1;
-            fdc->st5   = st5;
-            fdc->st6   = st6;
-            fdc->tc    = 1;
-            fdc->stat  = 0x10;
-            fdc_callback(fdc);
-            break;
-        default:
-            timer_disable(&fdc->timer);
-
-            fdc_int(fdc, 1);
-            if (!(fdc->flags & FDC_FLAG_PS1))
-                fdc->fintr = 0;
-            fdc->stat = 0xD0;
-            fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
-            if (fdc->head && !fdd_is_double_sided(real_drive(fdc, fdc->drive)))
-                fdc->st0 |= 0x08;
-            fdc->res[5] = st5;
-            fdc->res[6] = st6;
-            fdc_log("FDC Error: %02X %02X %02X\n", fdc->res[4], fdc->res[5], fdc->res[6]);
-
-            fdc->res[7]  = 0;
-            fdc->res[8]  = 0;
-            fdc->res[9]  = 0;
-            fdc->res[10] = 0;
-
-            ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
-            fdc->paramstogo = 7;
-            break;
-    }
-#endif
 }
 
 void
@@ -2682,7 +2615,7 @@ const device_t fdc_dp8473_device = {
     .name          = "NS DP8473 Floppy Drive Controller",
     .internal_name = "fdc_dp8473",
     .flags         = 0,
-    .local         = FDC_FLAG_AT | FDC_FLAG_NSC,
+    .local         = FDC_FLAG_AT | FDC_FLAG_NEC | FDC_FLAG_NO_DSR_RESET,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

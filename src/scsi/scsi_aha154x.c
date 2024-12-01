@@ -921,7 +921,7 @@ aha_setnvr(x54x_t *dev)
     FILE *fp;
 
     /* Only if this device has an EEPROM. */
-    if (dev->nvr_path == NULL)
+    if (dev->nvr_path[0] == 0x00)
         return;
 
     /* Allocate and initialize the EEPROM. */
@@ -1043,7 +1043,7 @@ aha_init(const device_t *info)
         case AHA_154xC:
             strcpy(dev->name, "AHA-154xC");
             dev->bios_path       = "roms/scsi/adaptec/aha1542c102.bin";
-            dev->nvr_path        = "aha1542c.nvr";
+            sprintf(dev->nvr_path, "aha1542c_%i.nvr", device_get_instance());
             dev->fw_rev          = "D001";
             dev->rom_shram       = 0x3F80;          /* shadow RAM address base */
             dev->rom_shramsz     = 128;             /* size of shadow RAM */
@@ -1059,7 +1059,7 @@ aha_init(const device_t *info)
         case AHA_154xCF:
             strcpy(dev->name, "AHA-154xCF");
             dev->bios_path   = "roms/scsi/adaptec/aha1542cf211.bin";
-            dev->nvr_path    = "aha1542cf.nvr";
+            sprintf(dev->nvr_path, "aha1542cf_%i.nvr", device_get_instance());
             dev->fw_rev      = "E001";
             dev->rom_shram   = 0x3F80; /* shadow RAM address base */
             dev->rom_shramsz = 128;    /* size of shadow RAM */
@@ -1080,7 +1080,7 @@ aha_init(const device_t *info)
             bios_rev         = (char *) device_get_config_bios("bios_rev");
             dev->bios_path   = (char *) device_get_bios_file(info, bios_rev, 0);
             dev->mcode_path  = (char *) device_get_bios_file(info, bios_rev, 1);
-            dev->nvr_path    = "aha1542cp.nvr";
+            sprintf(dev->nvr_path, "aha1542cp_%i.nvr", device_get_instance());
             dev->fw_rev      = aha1542cp_rev;
             dev->rom_shram   = 0x3F80; /* shadow RAM address base */
             dev->rom_shramsz = 128;    /* size of shadow RAM */
@@ -1197,7 +1197,7 @@ static const device_config_t aha_154xb_config[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 6,
@@ -1290,7 +1290,7 @@ static const device_config_t aha_154x_config[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 6,
@@ -1363,7 +1363,7 @@ static const device_config_t aha_154xcf_config[] = {
     },
     {
         .name = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 6,
@@ -1397,7 +1397,7 @@ static const device_config_t aha_154xcf_config[] = {
     },
     {
         .name = "fdc_addr",
-        .description = "FDC address",
+        .description = "FDC Address",
         .type = CONFIG_HEX16,
         .default_string = "",
         .default_int = 0,

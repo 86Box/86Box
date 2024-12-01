@@ -452,7 +452,9 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
 static bool
 tulip_filter_address(TULIPState *s, const uint8_t *addr)
 {
+#ifdef BLOCK_BROADCAST
     static const char broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+#endif
     bool              ret         = false;
 
     for (uint8_t i = 0; i < 16 && ret == false; i++) {
@@ -461,9 +463,15 @@ tulip_filter_address(TULIPState *s, const uint8_t *addr)
         }
     }
 
+/*
+   Do not block broadcast packets - needed for connections to the guest
+   to succeed when using SLiRP.
+ */
+#ifdef BLOCK_BROADCAST
     if (!memcmp(addr, broadcast, ETH_ALEN)) {
         return true;
     }
+#endif
 
     if (s->csr[6] & (CSR6_PR | CSR6_RA)) {
         /* Promiscuous mode enabled */
@@ -488,7 +496,7 @@ tulip_receive(void *priv, uint8_t *buf, int size)
 {
     struct tulip_descriptor desc;
     TULIPState             *s = (TULIPState *) priv;
-
+    int                     first = 1;
 
     if (size < 14 || size > sizeof(s->rx_frame) - 4
         || s->rx_frame_len || tulip_rx_stopped(s))
@@ -506,7 +514,11 @@ tulip_receive(void *priv, uint8_t *buf, int size)
         if (!(desc.status & RDES0_OWN)) {
             s->csr[5] |= CSR5_RU;
             tulip_update_int(s);
-            return s->rx_frame_size - s->rx_frame_len;
+            if (first)
+                /* Stop at the very beginning, tell the host 0 bytes have been received. */
+                return 0;
+            else
+                return (s->rx_frame_size - s->rx_frame_len) % s->rx_frame_size;
         }
         desc.status = 0;
 
@@ -527,6 +539,7 @@ tulip_receive(void *priv, uint8_t *buf, int size)
         }
         tulip_desc_write(s, s->current_rx_desc, &desc);
         tulip_next_rx_descriptor(s, &desc);
+        first = 0;
     } while (s->rx_frame_len);
 
     return 1;
@@ -1625,7 +1638,7 @@ nic_init(const device_t *info)
     s->pci_conf[0x04]             = 7;
 
     /* Enable our BIOS space in PCI, if needed. */
-    if (s->bios_addr > 0) {
+    if (s->has_bios) {
         rom_init(&s->bios_rom, ROM_PATH_DEC21140, s->bios_addr, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         tulip_pci_bar[2].addr         = 0xffff0000;
     } else

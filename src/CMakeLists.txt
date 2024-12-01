@@ -12,16 +12,45 @@
 #          dob205
 #
 #          Copyright 2020-2022 David Hrdlička.
-#          Copyright 2021 dob205.
+#          Copyright 2021      dob205.
+#          Copyright 2024      Jasmine Iwanek.
 #
+
 if(APPLE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
 
-add_executable(86Box 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
-    dma.c ddma.c nmi.c pic.c pit.c pit_fast.c port_6x.c port_92.c ppi.c pci.c
-    mca.c usb.c fifo.c fifo8.c device.c nvr.c nvr_at.c nvr_ps2.c
-    machine_status.c ini.c cJSON.c)
+add_executable(86Box
+    86box.c
+    config.c
+    log.c
+    random.c
+    timer.c
+    io.c
+    acpi.c
+    apm.c
+    dma.c
+    ddma.c
+    nmi.c
+    pic.c
+    pit.c
+    pit_fast.c
+    port_6x.c
+    port_92.c
+    ppi.c
+    pci.c
+    mca.c
+    usb.c
+    fifo.c
+    fifo8.c
+    device.c
+    nvr.c
+    nvr_at.c
+    nvr_ps2.c
+    machine_status.c
+    ini.c
+    cJSON.c
+)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_compile_definitions(_FILE_OFFSET_BITS=64 _LARGEFILE_SOURCE=1 _LARGEFILE64_SOURCE=1)
@@ -48,10 +77,6 @@ if(DYNAREC)
     add_compile_definitions(USE_DYNAREC)
 endif()
 
-if(DEV_BRANCH)
-    add_compile_definitions(DEV_BRANCH)
-endif()
-
 if(DISCORD)
     add_compile_definitions(DISCORD)
     target_sources(86Box PRIVATE discord.c)
@@ -65,7 +90,10 @@ if(VNC)
     find_package(LibVNCServer)
     if(LibVNCServer_FOUND)
         add_compile_definitions(USE_VNC)
-        add_library(vnc OBJECT vnc.c vnc_keymap.c)
+        add_library(vnc OBJECT
+            vnc.c
+            vnc_keymap.c
+        )
         target_link_libraries(86Box vnc LibVNCServer::vncserver)
         if(WIN32)
             target_link_libraries(86Box ws2_32)
@@ -143,8 +171,10 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(include)
 if(NEW_DYNAREC)
     include_directories(cpu codegen_new)
-else()
+elseif(DYNAREC)
     include_directories(cpu codegen)
+else()
+    include_directories(cpu)
 endif()
 
 add_subdirectory(cdrom)
@@ -153,7 +183,7 @@ add_subdirectory(chipset)
 add_subdirectory(cpu)
 if(NEW_DYNAREC)
     add_subdirectory(codegen_new)
-else()
+elseif(DYNAREC)
     add_subdirectory(codegen)
 endif()
 

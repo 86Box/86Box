@@ -730,7 +730,7 @@ static const device_config_t lt_config[] = {
             { .description = "Non-timed (original)",       .value =  0 },
             { .description = "30 Hz (JMP2 = 1)",           .value = 30 },
             { .description = "45 Hz (JMP2 not populated)", .value = 45 },
-            { .description = "60 Hz (JMP 2 = 2)",          .value = 60 },
+            { .description = "60 Hz (JMP2 = 2)",           .value = 60 },
             { .description = ""                                        }
         }
     },

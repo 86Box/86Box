@@ -101,6 +101,7 @@ enum {
     DEVICE_COM       = 0x100000,   /* requires a serial port */
     DEVICE_LPT       = 0x200000,   /* requires a parallel port */
     DEVICE_KBC       = 0x400000,   /* is a keyboard controller */
+    DEVICE_SOFTRESET = 0x800000,   /* requires to be reset on soft reset */
 
     DEVICE_ONBOARD   = 0x40000000, /* is on-board */
     DEVICE_PIT       = 0x80000000, /* device is a PIT */
@@ -243,6 +244,9 @@ extern const char *device_get_internal_name(const device_t *dev);
 
 extern int   machine_get_config_int(char *s);
 extern char *machine_get_config_string(char *s);
+
+extern const device_t device_none;
+extern const device_t device_internal;
 
 #ifdef __cplusplus
 }

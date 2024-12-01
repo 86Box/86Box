@@ -815,7 +815,7 @@ machine_at_t3100e_init(const machine_t *model)
 
     device_add(&keyboard_at_toshiba_device);
 
-    if (fdc_type == FDC_INTERNAL) {
+    if (fdc_current[0] == FDC_INTERNAL) {
         device_add(&fdc_at_device);
     }
 
@@ -849,6 +849,9 @@ machine_at_t3100e_init(const machine_t *model)
                     upper_write_ram, upper_write_ramw, upper_write_raml,
                     NULL, MEM_MAPPING_INTERNAL, &t3100e_ems);
     mem_mapping_disable(&t3100e_ems.upper_mapping);
+
+    if (mem_size < (16384 - 448))
+        mem_set_mem_state_both(mem_size * 1024, 384 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 
     device_add(&t3100e_device);
 

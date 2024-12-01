@@ -461,7 +461,7 @@ scsi_disk_command_common(scsi_disk_t *dev)
                               (uint64_t) period);
                 dev->callback += period;
                 break;
-            default:    
+            default:
                 dev->callback = 0;
                 break;
         }
@@ -511,7 +511,6 @@ scsi_disk_command_common(scsi_disk_t *dev)
 static void
 scsi_disk_command_complete(scsi_disk_t *dev)
 {
-    ui_sb_update_icon(SB_HDD | dev->drv->bus, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_disk_command_common(dev);
 }
@@ -649,6 +648,24 @@ scsi_disk_bus_master_error(scsi_common_t *sc)
 }
 
 static void
+scsi_disk_write_error(scsi_disk_t *dev)
+{
+    scsi_disk_sense_key = SENSE_MEDIUM_ERROR;
+    scsi_disk_asc       = ASC_WRITE_ERROR;
+    scsi_disk_ascq      = 0;
+    scsi_disk_cmd_error(dev);
+}
+
+static void
+scsi_disk_read_error(scsi_disk_t *dev)
+{
+    scsi_disk_sense_key = SENSE_MEDIUM_ERROR;
+    scsi_disk_asc       = ASC_UNRECOVERED_READ_ERROR;
+    scsi_disk_ascq      = 0;
+    scsi_disk_cmd_error(dev);
+}
+
+static void
 scsi_disk_invalid_lun(scsi_disk_t *dev)
 {
     scsi_disk_sense_key = SENSE_ILLEGAL_REQUEST;
@@ -728,10 +745,17 @@ scsi_disk_blocks(scsi_disk_t *dev, int32_t *len, UNUSED(int first_batch), int ou
     *len = dev->requested_blocks << 9;
 
     for (int i = 0; i < dev->requested_blocks; i++) {
-        if (out)
-            hdd_image_write(dev->id, dev->sector_pos + i, 1, dev->temp_buffer + (i << 9));
-        else
-            hdd_image_read(dev->id, dev->sector_pos + i, 1, dev->temp_buffer + (i << 9));
+        if (out) {
+            if (hdd_image_write(dev->id, dev->sector_pos + i, 1, dev->temp_buffer + (i << 9)) < 0) {
+                scsi_disk_write_error(dev);
+                return -1;
+            }
+        } else {
+            if (hdd_image_read(dev->id, dev->sector_pos + i, 1, dev->temp_buffer + (i << 9)) < 0) {
+                scsi_disk_read_error(dev);
+                return -1;
+            }
+        }
     }
 
     scsi_disk_log("%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
@@ -1041,7 +1065,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
             ret = scsi_disk_blocks(dev, &alloc_length, 1, 0);
             if (ret <= 0) {
                 scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
-                dev->packet_status = PHASE_COMPLETE;
+                dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
                 dev->callback      = 20.0 * SCSI_TIME;
                 scsi_disk_set_callback(dev);
                 scsi_disk_buf_free(dev);
@@ -1502,7 +1526,8 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
                     dev->temp_buffer[6] = (s >> 8) & 0xff;
                     dev->temp_buffer[7] = s & 0xff;
                 }
-                hdd_image_write(dev->id, i, 1, dev->temp_buffer);
+                if (hdd_image_write(dev->id, i, 1, dev->temp_buffer) < 0)
+                    scsi_disk_write_error(dev);
             }
             break;
         case GPCMD_MODE_SELECT_6:
@@ -1647,7 +1672,7 @@ scsi_disk_identify(ide_t *ide, int ide_has_dma)
     scsi_disk_log("ATAPI Identify: %s\n", device_identify);
 
     /* ATAPI device, direct-access device, non-removable media, accelerated DRQ */
-    ide->buffer[0] = 0x8000 | (0 << 8) | 0x00 | (2 << 5); 
+    ide->buffer[0] = 0x8000 | (0 << 8) | 0x00 | (2 << 5);
     ide_padstr((char *) (ide->buffer + 10), "", 20);          /* Serial Number */
 
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);   /* Firmware */

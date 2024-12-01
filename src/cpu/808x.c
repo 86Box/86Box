@@ -130,10 +130,10 @@ typedef int (*OpFn)(uint32_t fetchdat);
 static int tempc_fpu = 0;
 
 #ifdef ENABLE_808X_LOG
+#if 0
 void dumpregs(int);
-
+#endif
 int x808x_do_log = ENABLE_808X_LOG;
-int indump       = 0;
 
 static void
 x808x_log(const char *fmt, ...)
@@ -3154,8 +3154,10 @@ execx86(int cycs)
 #else
                     cpu_src = pfq_fetchb();
 #endif
-                    if (x86_div(AL, 0))
-                        set_pzs(16);
+                    if (x86_div(AL, 0)) {
+                        cpu_data = AL;
+                        set_pzs(8);
+                    }
                     break;
                 case 0xD5: /*AAD*/
                     wait(1, 0);
@@ -3169,6 +3171,7 @@ execx86(int cycs)
                     add(8);
                     AL = cpu_data;
                     AH = 0x00;
+                    set_pzs(8);
                     break;
                 case 0xD6: /*SALC*/
                     wait(1, 0);
