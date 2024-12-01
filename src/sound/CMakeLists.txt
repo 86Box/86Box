@@ -124,13 +124,9 @@ if(OPL4ML)
     target_compile_definitions(snd PRIVATE USE_OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
-
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SERIALPORT REQUIRED libserialport)
     include_directories(${SERIALPORT_INCLUDE})
     target_link_libraries(86Box ${SERIALPORT_LIBRARIES})
-
-
-
 add_subdirectory(resid-fp)
 target_link_libraries(86Box resid-fp)
