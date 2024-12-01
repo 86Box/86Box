@@ -1,0 +1,29 @@
+NV_PFB_CONFIG_0
+
+Observed Valus:
+Drivers		0x1000
+BIOS		0x1114
+
+Bits
+5:0		Resolution
+9:8		Pixel depth
+12:12		Tiling
+13:13		Tiling Debug
+14:14		Tiling Debug Tile Size
+17:15		"Tetris" tiling
+19:18		"Tetris" tiling shift
+22:20		Bank Swap
+23		Unused
+
+NV_PFB_CONFIG_1
+2:0		CAS Latency
+3:3		NEC Mode (PC-98?)
+7:4		RAS Default / 9 Cycles
+10:8		RAS PCHG
+14:12		RAS Low
+18:16		MRS to RAS
+22:20		Write to Read
+26:24		RAS to CAS
+30:28		Read to Write
+31:31		Read to PCFg
+		

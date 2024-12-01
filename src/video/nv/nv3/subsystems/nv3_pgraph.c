@@ -28,18 +28,19 @@
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
-// Single unified write function...
+
+// Initialise the PGRAPH subsystem.
+void nv3_pgraph_init()
+{
+    nv_log("NV3: Initialising PGRAPH...");
+    // Set up the vblank interrupt
+    nv3->nvbase.svga.vblank_start = nv3_pgraph_vblank_start;
+    nv_log("Done!\n");    
+}
 
 //
 // ****** PGRAPH register list START ******
 //
-
-void nv3_pgraph_init()
-{
-    nv_log("NV3: Initialising PGRAPH...");
-
-    nv_log("Done!\n");    
-}
 
 nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_INTR_0, "PGRAPH Interrupt Status 0", NULL, NULL },
@@ -141,11 +142,27 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                 // and only bit0-16 is defined in intr_1 
                 case NV3_PGRAPH_INTR_EN_0:
                     nv3->pgraph.interrupt_enable_0 = value & 0x11111111; 
+                    nv3_pmc_handle_interrupts(true);
                     break;
                 case NV3_PGRAPH_INTR_EN_1:
                     nv3->pgraph.interrupt_enable_1 = value & 0x00011111; 
+                    nv3_pmc_handle_interrupts(true);
+
                     break;
             }
         }
     }
+}
+
+// Fire a VALID Pgraph interrupt: num is the bit# of the interrupt in the GPU subsystem INTR_EN register.
+void nv3_pgraph_interrupt_valid(uint32_t num)
+{
+    nv3->pgraph.interrupt_enable_0 |= (1 << num);
+    nv3_pmc_handle_interrupts(true);
+}
+
+// VBlank. Fired every single frame.
+void nv3_pgraph_vblank_start(svga_t* svga)
+{
+    nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_EN_0_VBLANK);
 }

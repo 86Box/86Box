@@ -158,6 +158,8 @@ typedef struct nv3_straps_s
 typedef struct nv3_pfb_s
 {
     uint32_t boot;
+    uint32_t config_0;
+    uint32_t config_1;
 } nv3_pfb_t;
 
 #define NV3_RMA_NUM_REGS        4
@@ -460,6 +462,7 @@ uint32_t    nv3_pmc_handle_interrupts(bool send_now);
 
 // NV3 PGRAPH
 void        nv3_pgraph_init();
+void        nv3_pgraph_vblank_start(svga_t* svga);
 
 // NV3 PFIFO
 void        nv3_pfifo_init();

@@ -28,8 +28,14 @@
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
+// Functions only used in this translation unit
+uint32_t nv3_pfb_config0_read();
+void nv3_pfb_config0_write(uint32_t val);
+
 nv_register_t pfb_registers[] = {
     { NV3_PFB_BOOT, "PFB Boot Config", NULL, NULL},
+    { NV3_PFB_CONFIG_0, "PFB Framebuffer Config 0", nv3_pfb_config0_read, nv3_pfb_config0_write },
+    { NV3_PFB_CONFIG_1, "PFB Framebuffer Config 1", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -78,7 +84,8 @@ uint32_t nv3_pfb_read(uint32_t address)
             {
                 case NV3_PFB_BOOT:
                     return nv3->pfb.boot;
-                    break;
+                case NV3_PFB_CONFIG_1:
+                    return nv3->pfb.config_1;
             }
         }
     }
@@ -90,7 +97,7 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pfb_registers, sizeof(pfb_registers)/sizeof(pfb_registers[0]));
 
-    nv_log("NV3: PFB Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("NV3: PFB Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
@@ -103,7 +110,40 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
         // on-read function
         if (reg->on_write)
             reg->on_write(value);   
-
+        else
+        {
+            switch (reg->address)
+            {
+                case NV3_PFB_CONFIG_1:              // Config Register 1
+                    nv3->pfb.config_1 = value;
+            }
+        }
     }
-    
+}
+
+uint32_t nv3_pfb_config0_read()
+{
+    return nv3->pfb.config_0;
+
+}
+
+void nv3_pfb_config0_write(uint32_t val)
+{
+    nv3->pfb.config_0 = val;
+
+    // i think the actual size and pixel depth are set in PRAMDAC
+    // so we don't update things here for now
+
+    uint32_t new_pfb_htotal = (nv3->pfb.config_0 & 0x3F) << 5;
+    uint32_t new_bit_depth = (nv3->pfb.config_0 >> 8) & 0x03;
+    nv_log("NV3: Framebuffer Config Change\n");
+    nv_log("NV3: Horizontal Size=%d pixels\n", new_pfb_htotal); 
+
+    if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_8BPP)
+        nv_log("NV3: Bit Depth=8bpp\n");
+    else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_16BPP)
+        nv_log("NV3: Bit Depth=16bpp\n");
+    else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_32BPP)
+        nv_log("NV3: Bit Depth=32bpp\n");
+        
 }

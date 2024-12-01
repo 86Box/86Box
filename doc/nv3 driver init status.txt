@@ -98,8 +98,10 @@ rmInitRm -> initGrPatchPool						Success
 rmInitRm -> initDmaListElementPool					Success
 rmInitRm -> initDisplayInfo						Success
 rmInitRm overall							Success
-NvFindAdapter								Failing (EAX=87)
+NvFindAdapter								Success 17:32 27/11/2024
 NvFindAdapter -> NvIsPresent						Success 16:19 24/11/2024
 NvFindAdapter -> NvMapMemoryRanges					Success 19:15 26/11/2024
 NvFindAdapter -> RmInitNvMapping					Success 19:18 26/11/2024
-NvFindAdapter -> RmPostNvDevice
+NvFindAdapter -> RmPostNvDevice						Success 17:32 27/11/2024
+NvFindAdapter -> NVGetNVInfo						Success 17:32 27/11/2024
+NvFindAdapter -> NVMapFrameBuffer					Success 17:32 27/11/2024

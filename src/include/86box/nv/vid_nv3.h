@@ -34,6 +34,8 @@ extern nv3_t* nv3;
 #define NV3_VBIOS_DIAMOND_V330_V162                     "roms/video/nvidia/nv3/diamond_v330_rev-e.vbi"  // Diamond Multimedia Systems, Inc. Viper V330 Version 1.62-CO
 #define NV3_VBIOS_ASUS_V3000_V151                       "roms/video/nvidia/nv3/riva128_asus.vbi"        // ASUS AGP/3DP-V3000 BIOS 1.51B
 #define NV3_VBIOS_STB_V128_V182                         "roms/video/nvidia/nv3/riva128_stb.vbi"         // STB Velocity 128 (RIVA 128) Ver.1.82
+#define NV3T_VBIOS_REFERENCE_CEK_V171                   "roms/video/nvidia/nv3/BIOS_49_Riva 128"        // Reference BIOS: RIVA 128 ZX BIOS - V1.71B-N (C) 1996-98 NVidia Corporation
+#define NV3T_VBIOS_DIAMOND_V330_V182B                   "roms/video/nvidia/nv3/nv3t182b.rom"            // Diamond Multimedia Viper V330 8M BIOS - Version 1.82B
 
 // Temporary, will be loaded from settings
 #define VRAM_SIZE_2MB                                   0x200000 // 2MB
@@ -113,6 +115,7 @@ extern nv3_t* nv3;
 #define NV3_PMC_START                                   0x0         // Chip Master Control Subsystem
 
 #define NV3_PMC_BOOT                                    0x0         // Boot Configuration
+
 #define NV3_PMC_INTERRUPT_STATUS                        0x100       // Interrupt Control
 #define NV3_PMC_INTERRUPT_PAUDIO                        0           // Unused, NV3A only
 #define NV3_PMC_INTERRUPT_PAUDIO_PENDING                0x1         // Unused, NV3A only
@@ -138,6 +141,23 @@ extern nv3_t* nv3;
 #define NV3_PMC_INTERRUPT_ENABLE_HARDWARE               0x1         // Determines if hardware interrupts are enabled
 #define NV3_PMC_INTERRUPT_ENABLE_SOFTWARE               0x2         // Determinse if software interrupts were enabled
 #define NV3_PMC_ENABLE                                  0x200       // Determines which gpu subsystems were enabled
+#define NV3_PMC_ENABLE_PAUDIO                           0           // UNUSED - PAudio removed in NV3 Stepping B0 
+#define NV3_PMC_ENABLE_PAUDIO_ENABLED                   0x1         // UNUSED - PAudio removed in NV3 Stepping B0
+#define NV3_PMC_ENABLE_PMEDIA                           4
+#define NV3_PMC_ENABLE_PMEDIA_ENABLED                   0x1
+#define NV3_PMC_ENABLE_PFIFO                            8
+#define NV3_PMC_ENABLE_PFIFO_ENABLED                    0x1
+#define NV3_PMC_ENABLE_PGRAPH                           12          // Determines if PGRAPH is enabled.
+#define NV3_PMC_ENABLE_PGRAPH_ENABLED                   0x1
+#define NV3_PMC_ENABLE_PPMI                             16
+#define NV3_PMC_ENABLE_PPMI_ENABLED                     0x1
+#define NV3_PMC_ENABLE_PFB                              20
+#define NV3_PMC_ENABLE_PFB_ENABLED                      0x1
+#define NV3_PMC_ENABLE_PCRTC                            24
+#define NV3_PMC_ENABLE_PCRTC_ENABLED                    0x1
+#define NV3_PMC_ENABLE_PVIDEO                           28
+#define NV3_PMC_ENABLE_PVIDEO_ENABLED                   0x1
+
 
 #define NV3_PMC_END                                     0xfff       // overlaps with CIO
 #define NV3_CIO_START                                   0x3b0       // Legacy SVGA Emulation Subsystem
@@ -189,6 +209,32 @@ extern nv3_t* nv3;
 #define NV3_PFB_BOOT_RAM_EXTENSION                      5
 #define NV3_PFB_BOOT_RAM_EXTENSION_NONE                 0x0
 #define NV3_PFB_BOOT_RAM_EXTENSION_8MB                  0x1
+#define NV3_PFB_CONFIG_0                                0x100200    // Framebuffer interface config register 0
+#define NV3_PFB_CONFIG_0_RESOLUTION                     0
+// 1=40 horiz. resolution
+// i assume it can be divided by some kind of divisor to produce the vertical resolution (e.g. 3/2 or multiply by 2/3) to get the final 
+// horiz is 32*value
+// theoretically it should support resolutions from 40-2560 horiz
+
+// WHAT ARE THE TIMINGS: ARE THEY IN THE VBIOS?
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_320           0xA
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_400           0xD
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_480           0xF
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_512           0x10
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_640           0x14
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_800           0x19
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_960           0x1E
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_1024          0x20
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_1152          0x24
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_1280          0x28
+#define NV3_PFB_CONFIG_0_HORIZ_RESOLUTION_1600          0x32
+
+#define NV3_PFB_CONFIG_0_PIXEL_DEPTH                    8
+#define NV3_PFB_CONFIG_0_DEPTH_8BPP                     0x1
+#define NV3_PFB_CONFIG_0_DEPTH_16BPP                    0x2
+#define NV3_PFB_CONFIG_0_DEPTH_32BPP                    0x3
+
+#define NV3_PFB_CONFIG_1                                0x100204    // Framebuffer interface config register 1
 #define NV3_PFB_END                                     0x100FFF
 #define NV3_PEXTDEV_START                               0x101000    // External Devices
 #define NV3_PSTRAPS                                     0x101000    // Straps Bits
@@ -238,6 +284,7 @@ extern nv3_t* nv3;
 #define NV3_PGRAPH_INTR_0                               0x400100
 #define NV3_PGRAPH_INTR_1                               0x400104
 #define NV3_PGRAPH_INTR_EN_0                            0x400140    // Interrupt Control for PGRAPH #1
+#define NV3_PGRAPH_INTR_EN_0_VBLANK                     8           // Fired every frame
 //todo: add what this does
 #define NV3_PGRAPH_INTR_EN_1                            0x400180    // Interrupt Control for PGRAPH #2 (it can receive two at onc)
 
@@ -384,26 +431,6 @@ extern nv3_t* nv3;
 
 // Master Control
 
-#define NV3_PMC_BOOT                                    0x0 
-#define NV3_PMC_INTERRUPT                               0x100
-#define NV3_PMC_INTERRUPT_ENABLE                        0x140
-#define NV3_PMC_ENABLE                                  0x200
-#define NV3_PMC_ENABLE_PAUDIO                           0               // UNUSED - PAudio removed in NV3 Stepping B0 
-#define NV3_PMC_ENABLE_PAUDIO_ENABLED                   0x1             // UNUSED - PAudio removed in NV3 Stepping B0
-#define NV3_PMC_ENABLE_PMEDIA                           4
-#define NV3_PMC_ENABLE_PMEDIA_ENABLED                   0x1
-#define NV3_PMC_ENABLE_PFIFO                            8
-#define NV3_PMC_ENABLE_PFIFO_ENABLED                    0x1
-#define NV3_PMC_ENABLE_PGRAPH                           12
-#define NV3_PMC_ENABLE_PGRAPH_ENABLED                   0x1
-#define NV3_PMC_ENABLE_PPMI                             16
-#define NV3_PMC_ENABLE_PPMI_ENABLED                     0x1
-#define NV3_PMC_ENABLE_PFB                              20
-#define NV3_PMC_ENABLE_PFB_ENABLED                      0x1
-#define NV3_PMC_ENABLE_PCRTC                            24
-#define NV3_PMC_ENABLE_PCRTC_ENABLED                    0x1
-#define NV3_PMC_ENABLE_PVIDEO                           28
-#define NV3_PMC_ENABLE_PVIDEO_ENABLED                   0x1
 
 // CRTC/CIO (0x3b0-0x3df)
 

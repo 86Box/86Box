@@ -67,6 +67,8 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
         ret = nv3_pci_read(0x00, address & 0xFF, NULL);
     else if (address >= NV3_PBUS_START && address <= NV3_PBUS_END)
         ret = nv3_pbus_read(address);
+    else if (address >= NV3_PFIFO_START && address <= NV3_PFIFO_END)
+        ret = nv3_pfifo_read(address);
     else if (address >= NV3_PFB_START && address <= NV3_PFB_END)
         ret = nv3_pfb_read(address);
     else if (address >= NV3_PRM_START && address <= NV3_PRM_END)

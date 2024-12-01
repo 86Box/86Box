@@ -35,6 +35,7 @@ void nv3_pmc_init()
     nv_log("NV3: Initialising PMC....\n");
 
     nv3->pmc.boot = NV3_BOOT_REG_DEFAULT;
+    nv3->pmc.interrupt_enable = NV3_PMC_INTERRUPT_ENABLE_HARDWARE | NV3_PMC_INTERRUPT_ENABLE_HARDWARE;
 
     nv_log("NV3: Initialising PMC: Done\n");
 }
@@ -113,11 +114,23 @@ uint32_t nv3_pmc_handle_interrupts(bool send_now)
     // If interrupts are disabled don't bother
 
     if (!nv3->pmc.interrupt_enable)
+    {
         nv3_pmc_clear_interrupts();
+        return nv3->pmc.interrupt_status;
+    }
+        
 
     // if we actually need to send the interrupt (i.e. this is a write) send it now
     if (send_now)
     {
+        // no interrupts to send
+        if (!(nv3->pmc.interrupt_status)
+         || !(nv3->pmc.interrupt_status - 0x80000000))
+        {
+            nv3_pmc_clear_interrupts();
+            return nv3->pmc.interrupt_status;
+        }
+            
         if (!(nv3->pmc.interrupt_status & 0x7FFFFFFF))
         {
             if (nv3->pmc.interrupt_enable & NV3_PMC_INTERRUPT_ENABLE_HARDWARE)
@@ -213,8 +226,8 @@ void nv3_pmc_write(uint32_t address, uint32_t value)
             switch (reg->address)
             {
                 case NV3_PMC_INTERRUPT_STATUS:
-                    // this 
-                    if (!(nv3->pmc.interrupt_status & (NV3_PMC_INTERRUPT_SOFTWARE - 1)))
+                    // This can only be done by software interrupts...
+                    if (!(nv3->pmc.interrupt_status & 0x7FFFFFFF))
                     {
                         nv_log("Huh? This is a hardware interrupt...Please use the INTR_EN registers of the GPU subsystem you want to trigger "
                         " an interrupt on, rather than writing to NV3_PMC_INTERRUPT_STATUS (Or this is a bug)...NV3_PMC_INTERRUPT_STATUS=0x%08x)\n", nv3->pmc.interrupt_enable);
@@ -225,7 +238,8 @@ void nv3_pmc_write(uint32_t address, uint32_t value)
                     nv3->pmc.interrupt_status = value;
                     break;
                 case NV3_PMC_INTERRUPT_ENABLE:
-                    nv3->pmc.interrupt_enable = value;
+                    nv3->pmc.interrupt_enable = value & 0x03;
+                    nv3_pmc_handle_interrupts(value != 0);
                     break;
                 case NV3_PMC_ENABLE:
                     nv3->pmc.enable = value;
