@@ -720,7 +720,9 @@ hdc_callback(void *priv)
     off64_t  addr;
     int      no_data = 0;
     int      val;
+#ifdef ENABLE_PS1_HDC_LOG
     uint8_t  cmd = ccb->cmd & 0x0f;
+#endif
 
     /* Clear the SSB error bits. */
     dev->ssb.track_0        = 0;
