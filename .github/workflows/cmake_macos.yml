@@ -82,6 +82,7 @@ jobs:
           fluidsynth
           libslirp
           vde
+          libserialport
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
