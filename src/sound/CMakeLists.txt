@@ -182,6 +182,9 @@ else()
     include_directories(${SERIALPORT_INCLUDE_DIRS})
     target_link_libraries(86Box ${SERIALPORT_LIBRARIES})
 endif()
-  
+if (WIN32)
+    target_compile_options(86Box PUBLIC ${SERIALPORT_CFLAGS_OTHER} --static )
+endif()
+
 add_subdirectory(resid-fp)
 target_link_libraries(86Box resid-fp)
