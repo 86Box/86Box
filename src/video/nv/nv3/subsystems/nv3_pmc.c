@@ -35,7 +35,7 @@ void nv3_pmc_init()
     nv_log("NV3: Initialising PMC....\n");
 
     nv3->pmc.boot = NV3_BOOT_REG_DEFAULT;
-    nv3->pmc.interrupt_enable = NV3_PMC_INTERRUPT_ENABLE_HARDWARE | NV3_PMC_INTERRUPT_ENABLE_HARDWARE;
+    nv3->pmc.interrupt_enable = NV3_PMC_INTERRUPT_ENABLE_HARDWARE | NV3_PMC_INTERRUPT_ENABLE_SOFTWARE;
 
     nv_log("NV3: Initialising PMC: Done\n");
 }

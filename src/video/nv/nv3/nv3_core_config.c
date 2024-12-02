@@ -29,6 +29,7 @@
 
 const device_config_t nv3_config[] =
 {
+    // VBIOS type configuration
     {
         .name = "VBIOS",
         .description = "VBIOS",
@@ -89,6 +90,30 @@ const device_config_t nv3_config[] =
                 .files = {NV3T_VBIOS_REFERENCE_CEK_V172, ""},
            },
         }
+    },
+    // Memory configuration
+    {
+        .name = "VRAM",
+        .description = "VRAM",
+        .type = CONFIG_SELECTION,
+        .selection = 
+        {
+            // This never existed officially but was planned. Same for 64-bit bus. Debug only
+            {
+                .description = "2 MB (Never officially sold)",
+                .value = VRAM_SIZE_2MB,
+            },
+
+            {
+                .description = "4 MB",
+                .value = VRAM_SIZE_4MB,
+            },
+            {
+                .description = "8 MB",
+                .value = VRAM_SIZE_8MB,
+            },
+        }
+
     },
     {
         .type = CONFIG_END
