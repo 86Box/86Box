@@ -1,3 +1,23 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Interface to the OPL2Board External audio device (USB)
+ *        
+ *
+ * Authors: Jose Phillips <jose@hddlive.net>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ * 
+ *          Copyright 2024 Jose Phillips.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2020 Miran Grca.
+ */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

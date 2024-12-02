@@ -32,6 +32,7 @@ add_library(snd OBJECT
     snd_adlib.c
     snd_adlibgold.c
     snd_opl2board.c
+    snd_opl_opl2board.cpp
     snd_ad1848.c
     snd_audiopci.c
     snd_azt2316a.c
