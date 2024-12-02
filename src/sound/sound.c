@@ -153,11 +153,6 @@ static const SOUND_CARD sound_cards[] = {
     { &ct5880_device                },
     { &ad1881_device                },
     { &cs4297a_device               },
-    { &ess_688_device               },
-    { &ess_ess0100_pnp_device       },
-    { &ess_1688_device              },
-    { &ess_ess0102_pnp_device       },
-    { &ess_ess0968_pnp_device       },
     { &opl2board_device             },
     { NULL                          }
     // clang-format on
