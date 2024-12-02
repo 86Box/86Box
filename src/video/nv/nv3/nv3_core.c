@@ -734,15 +734,22 @@ void* nv3_init(const device_t *info)
 {
     nv_log("NV3: initialising core\n");
 
-    // currently using ELSA VICTORY Erazor    Ver. 1.54.03    [WD/VBE30/DDC2B/DPMS] 
-    //                 ELSA VICTORY Erazor    Ver. 1.55.00    [WD/VBE30/DDC2B/DPMS] seems to be broken :(
-    
-    int32_t err = rom_init(&nv3->nvbase.vbios, NV3_VBIOS_ERAZOR_V15403, 0xC0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    // Figure out which vbios the user selected
+    const char* vbios_id = device_get_config_bios("VBIOS");
+    const char* vbios_file = "";
+
+    // depends on the bus we are using
+    if (nv3->nvbase.bus_generation == nv_bus_pci)
+        vbios_file = device_get_bios_file(&nv3_device_pci, vbios_id, 0);
+    else   
+        vbios_file = device_get_bios_file(&nv3_device_agp, vbios_id, 0);
+
+    int32_t err = rom_init(&nv3->nvbase.vbios, vbios_file, 0xC0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     
     if (err)
             nv_log("NV3: failed to load VBIOS err=%d\n", err);
     else    
-            nv_log("NV3: Successfully loaded VBIOS %s\n", NV3_VBIOS_ERAZOR_V15403);
+            nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
     // set up the bus and start setting up SVGA core
     if (nv3->nvbase.bus_generation == nv_bus_pci)
@@ -818,7 +825,8 @@ const device_t nv3_device_pci =
     .init = nv3_init_pci,
     .close = nv3_close,
     .speed_changed = nv3_speed_changed,
-    .force_redraw = nv3_force_redraw
+    .force_redraw = nv3_force_redraw,
+    .config = nv3_config,
 };
 
 // NV3 (RIVA 128)
@@ -833,5 +841,6 @@ const device_t nv3_device_agp =
     .init = nv3_init_agp,
     .close = nv3_close,
     .speed_changed = nv3_speed_changed,
-    .force_redraw = nv3_force_redraw
+    .force_redraw = nv3_force_redraw,
+    .config = nv3_config,
 };

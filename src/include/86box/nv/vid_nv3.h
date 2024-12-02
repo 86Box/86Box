@@ -16,10 +16,11 @@
  */
 
 // vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
-// Last updated     26 November 2024
+// Last updated     2 December 2024
 
 // The GPU base structure
 extern nv3_t* nv3;
+extern const device_config_t nv3_config[];
 
 #define NV3_MMIO_SIZE                                   0x1000000       // Max MMIO size
 
@@ -34,8 +35,13 @@ extern nv3_t* nv3;
 #define NV3_VBIOS_DIAMOND_V330_V162                     "roms/video/nvidia/nv3/diamond_v330_rev-e.vbi"  // Diamond Multimedia Systems, Inc. Viper V330 Version 1.62-CO
 #define NV3_VBIOS_ASUS_V3000_V151                       "roms/video/nvidia/nv3/riva128_asus.vbi"        // ASUS AGP/3DP-V3000 BIOS 1.51B
 #define NV3_VBIOS_STB_V128_V182                         "roms/video/nvidia/nv3/riva128_stb.vbi"         // STB Velocity 128 (RIVA 128) Ver.1.82
-#define NV3T_VBIOS_REFERENCE_CEK_V171                   "roms/video/nvidia/nv3/BIOS_49_Riva 128"        // Reference BIOS: RIVA 128 ZX BIOS - V1.71B-N (C) 1996-98 NVidia Corporation
 #define NV3T_VBIOS_DIAMOND_V330_V182B                   "roms/video/nvidia/nv3/nv3t182b.rom"            // Diamond Multimedia Viper V330 8M BIOS - Version 1.82B
+#define NV3T_VBIOS_ASUS_V170                            "roms/video/nvidia/nv3/A170D03T.rom"            // ASUS AGP-V3000 ZXTV BIOS - V1.70D.03 (C) 1996-98 Nvidia Corporation
+#define NV3T_VBIOS_REFERENCE_CEK_V171                   "roms/video/nvidia/nv3/BIOS_49_Riva 128"        // Reference BIOS: RIVA 128 ZX BIOS - V1.71B-N (C) 1996-98 NVidia Corporation
+#define NV3T_VBIOS_REFERENCE_CEK_V172                   "roms/video/nvidia/nv3/vgasgram.rom"            // Reference(?) BIOS: RIVA 128 ZX BIOS - V1.72B (C) 1996-98 NVidia Corporation
+
+// The default VBIOS to use
+#define NV3_VBIOS_DEFAULT                               NV3_VBIOS_ERAZOR_V15403
 
 // Temporary, will be loaded from settings
 #define VRAM_SIZE_2MB                                   0x200000 // 2MB
