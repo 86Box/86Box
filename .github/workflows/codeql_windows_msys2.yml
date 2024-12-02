@@ -122,7 +122,6 @@ jobs:
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
-          -D CMAKE_EXE_LINKER_FLAGS="$(pkg-config --libs libserialport --static )"
 
       - name: Build
         run: cmake --build build
