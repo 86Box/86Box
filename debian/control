@@ -16,7 +16,8 @@ Build-Depends: cmake (>= 3.21),
                libsndfile-dev,
                ninja-build,
                qttools5-dev,
-               qtbase5-private-dev
+               qtbase5-private-dev,
+               libserialport-dev
 Standards-Version: 4.6.0
 Homepage: https://86box.net/
 #Vcs-Browser: https://salsa.debian.org/debian/86box
