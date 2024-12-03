@@ -176,7 +176,7 @@ ps2_isa_setup(int model, int cpu_type)
 
     device_add(&ps_nvr_device);
 
-    device_add(&fdc_at_ps1_device);
+    device_add(&fdc_ps2_device);
 
     /* Enable the builtin HDC. */
     if (hdc_current[0] == HDC_INTERNAL) {
