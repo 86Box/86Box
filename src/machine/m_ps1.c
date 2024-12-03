@@ -323,6 +323,8 @@ ps1_setup(int model)
 
     device_add(&ps_nvr_device);
 
+    device_add(&fdc_ps2_device);
+
     if (model == 2011) {
         if (!strcmp("english_us", device_get_config_bios("bios_language"))) {
             /* US English */
@@ -350,8 +352,6 @@ ps1_setup(int model)
 
         device_add(&ps1snd_device);
 
-        device_add(&fdc_at_ps1_device);
-
         /* Enable the builtin HDC. */
         if (hdc_current[0] == HDC_INTERNAL) {
             priv = device_add(&ps1_hdc_device);
@@ -377,8 +377,6 @@ ps1_setup(int model)
         /* Initialize the video controller. */
         if (gfxcard[0] == VID_INTERNAL)
             device_add(&ibm_ps1_2121_device);
-
-        device_add(&fdc_at_ps1_2121_device);
 
         device_add(&ide_isa_device);
 
