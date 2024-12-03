@@ -1372,13 +1372,13 @@ msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "為了確保正常的網路功能，86Box 需要知道這台機器是否被移動或複製。\n\n如果您不確定，請選擇「我複製了它」。"
+msgstr "為了確保正常的網路功能，86Box 需要知道這台機器是否被移動或複製。\n\n如果您不確定，請選擇「我已複製這台機器」。"
 
 msgid "I Moved It"
-msgstr "我移動了它"
+msgstr "我已移動這台機器"
 
 msgid "I Copied It"
-msgstr "我複製了它"
+msgstr "我已複製這台機器"
 
 msgid "86Box Monitor #"
 msgstr "86Box Monitor "
