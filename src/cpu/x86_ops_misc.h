@@ -878,7 +878,7 @@ opINVD(uint32_t fetchdat)
 static int
 opWBINVD(uint32_t fetchdat)
 {
-    if (CPL) {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
