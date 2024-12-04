@@ -2611,7 +2611,7 @@ cpu_ven_reset(void)
 void
 cpu_RDMSR(void)
 {
-    if (CPL)
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))
         x86gpf(NULL, 0);
     else  switch (cpu_s->cpu_type) {
         case CPU_IBM386SLC:
@@ -3468,7 +3468,7 @@ cpu_WRMSR(void)
 
     cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
 
-    if (CPL)
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))
         x86gpf(NULL, 0);
     else  switch (cpu_s->cpu_type) {
         case CPU_IBM386SLC:

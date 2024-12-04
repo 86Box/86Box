@@ -1140,14 +1140,21 @@ scat_out(uint16_t port, uint8_t val, void *priv)
                 if (indx >= 24)
                     base_addr += 0x30000;
 
+                if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                    mem_set_mem_state(base_addr, 0x00004000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
                 if ((dev->regs[SCAT_EMS_CONTROL] & 0x80) && (dev->page[indx].regs_2x9 & 0x80)) {
                     virt_addr = get_addr(dev, base_addr, &dev->page[indx]);
                     if (virt_addr < ((uint32_t) mem_size << 10))
                         mem_mapping_set_exec(&dev->ems_mapping[indx], ram + virt_addr);
                     else
                         mem_mapping_set_exec(&dev->ems_mapping[indx], NULL);
-                    flushmmucache();
+
+                    if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                        mem_set_mem_state(base_addr, 0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 }
+
+                flushmmucache();
             }
             break;
 
@@ -1163,6 +1170,9 @@ scat_out(uint16_t port, uint8_t val, void *priv)
                 if (indx >= 24)
                     base_addr += 0x30000;
 
+                if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                    mem_set_mem_state(base_addr, 0x00004000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
                 if (dev->regs[SCAT_EMS_CONTROL] & 0x80) {
                     if (val & 0x80) {
                         virt_addr = get_addr(dev, base_addr, &dev->page[indx]);
@@ -1175,6 +1185,9 @@ scat_out(uint16_t port, uint8_t val, void *priv)
                         else
                             mem_mapping_set_exec(&dev->ems_mapping[indx], NULL);
                         mem_mapping_enable(&dev->ems_mapping[indx]);
+
+                        if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                            mem_set_mem_state(base_addr, 0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                     } else {
                         mem_mapping_set_exec(&dev->ems_mapping[indx], ram + base_addr);
                         mem_mapping_disable(&dev->ems_mapping[indx]);
@@ -1495,7 +1508,7 @@ scat_init(const device_t *info)
             mem_mapping_add(&dev->ems_mapping[i], (i + 28) << 14, 0x04000,
                             mem_read_scatb, mem_read_scatw, mem_read_scatl,
                             mem_write_scatb, mem_write_scatw, mem_write_scatl,
-                            ram + ((i + 28) << 14), 0, &dev->page[i]);
+                            ram + ((i + 28) << 14), MEM_MAPPING_INTERNAL, &dev->page[i]);
             mem_mapping_disable(&dev->ems_mapping[i]);
         }
     } else {
@@ -1508,7 +1521,7 @@ scat_init(const device_t *info)
                             mem_read_scatb, mem_read_scatw, mem_read_scatl,
                             mem_write_scatb, mem_write_scatw, mem_write_scatl,
                             ram + ((i + (i >= 24 ? 28 : 16)) << 14),
-                            0, &dev->page[i]);
+                            MEM_MAPPING_INTERNAL, &dev->page[i]);
         }
     }
 
