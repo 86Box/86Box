@@ -34,7 +34,13 @@ void nv3_pmc_init()
 {
     nv_log("NV3: Initialising PMC....\n");
 
-    nv3->pmc.boot = NV3_BOOT_REG_DEFAULT;
+    if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_A00)
+        nv3->pmc.boot = NV3_BOOT_REG_REV_A00;
+    else if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_B00)
+        nv3->pmc.boot = NV3_BOOT_REG_REV_B00;
+    else 
+        nv3->pmc.boot = NV3_BOOT_REG_REV_C00;
+
     nv3->pmc.interrupt_enable = NV3_PMC_INTERRUPT_ENABLE_HARDWARE | NV3_PMC_INTERRUPT_ENABLE_SOFTWARE;
 
     nv_log("NV3: Initialising PMC: Done\n");

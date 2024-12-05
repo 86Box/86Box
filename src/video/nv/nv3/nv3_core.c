@@ -158,7 +158,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             break;
         
         case NV3_PCI_CFG_REVISION:
-            ret = NV3_PCI_CFG_REVISION_B00; // Commercial release
+            ret = nv3->nvbase.gpu_revision; // Commercial release
             break;
        
         case PCI_REG_PROG_IF:
@@ -752,8 +752,10 @@ void* nv3_init(const device_t *info)
     else    
             nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
+    // set the vram amount and gpu revision
     uint32_t vram_amount = device_get_config_int("VRAM");
-
+    nv3->nvbase.gpu_revision = device_get_config_int("Chip Revision");
+    
     // set up the bus and start setting up SVGA core
     if (nv3->nvbase.bus_generation == nv_bus_pci)
     {

@@ -97,6 +97,7 @@ typedef struct nv_base_s
     uint32_t bar0_mmio_base;                    // PCI Base Address Register 0 - MMIO Base
     uint32_t bar1_lfb_base;                     // PCI Base Address Register 1 - Linear Framebuffer (NV_BASE)
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
+    uint32_t gpu_revision;                      // GPU Stepping
 } nv_base_t;
 
 #define NV_REG_LIST_END                 0xD15EA5E
@@ -120,7 +121,11 @@ typedef struct nv_register_s
 
 nv_register_t* nv_get_register(uint32_t address, nv_register_t* register_list, uint32_t num_regs);
 
-#define NV3_BOOT_REG_DEFAULT    0x00300111
+// Default value for the boot information register.
+// Depends on the chip
+#define NV3_BOOT_REG_REV_A00    0x00030100
+#define NV3_BOOT_REG_REV_B00    0x00030110
+#define NV3_BOOT_REG_REV_C00    0x00030120
 
 // Master Control
 typedef struct nv3_pmc_s

@@ -94,7 +94,7 @@ const device_config_t nv3_config[] =
     // Memory configuration
     {
         .name = "VRAM",
-        .description = "VRAM",
+        .description = "VRAM Size",
         .type = CONFIG_SELECTION,
         .default_int = VRAM_SIZE_4MB,
         .selection = 
@@ -115,6 +115,27 @@ const device_config_t nv3_config[] =
             },
         }
 
+    },
+    {
+        .name = "Chip Revision",
+        .description = "Chip Revision",
+        .type = CONFIG_SELECTION,
+        .default_int = NV3_PCI_CFG_REVISION_B00,
+        .selection = 
+        {
+            {
+               .description = "NV3/STG3000 Engineering Sample / Stepping A0 (January 1997)",
+               .value = NV3_PCI_CFG_REVISION_A00,
+            },
+            {
+               .description = "RIVA 128 (NV3) / Stepping B0 (August 1997)",
+               .value = NV3_PCI_CFG_REVISION_B00,
+            },
+            {
+               .description = "RIVA 128 ZX (NV3T) / Stepping C0 (March 1998)",
+               .value = NV3_PCI_CFG_REVISION_C00,
+            },
+        }
     },
     {
         .type = CONFIG_END
