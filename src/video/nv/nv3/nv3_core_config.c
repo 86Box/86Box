@@ -96,6 +96,7 @@ const device_config_t nv3_config[] =
         .name = "VRAM",
         .description = "VRAM",
         .type = CONFIG_SELECTION,
+        .default_int = VRAM_SIZE_4MB,
         .selection = 
         {
             // This never existed officially but was planned. Same for 64-bit bus. Debug only

@@ -696,9 +696,10 @@ void nv3_update_mappings()
     // LFB_BASE+VRAM_SIZE=RAMIN Mirror(?)                                                   0x1400000 (VERIFY PCBOX)
     // LFB_BASE+VRAM_SIZE*2=LFB Mirror(?)                                                   0x1800000            
     // LFB_BASE+VRAM_SIZE*3=Definitely RAMIN (then it ends, the total ram space is 16mb)    0x1C00000
-    mem_mapping_set_addr(&nv3->nvbase.ramin_mapping_mirror, nv3->nvbase.bar1_lfb_base + VRAM_SIZE_4MB, VRAM_SIZE_4MB);
-    mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping_mirror, nv3->nvbase.bar1_lfb_base + (VRAM_SIZE_4MB * 2), VRAM_SIZE_4MB);
-    mem_mapping_set_addr(&nv3->nvbase.ramin_mapping, nv3->nvbase.bar1_lfb_base + (VRAM_SIZE_4MB * 3), VRAM_SIZE_4MB);
+
+    mem_mapping_set_addr(&nv3->nvbase.ramin_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_MIRROR_START, NV3_LFB_MAPPING_SIZE);
+    mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_2NDHALF_START, NV3_LFB_MAPPING_SIZE);
+    mem_mapping_set_addr(&nv3->nvbase.ramin_mapping, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_START, NV3_LFB_MAPPING_SIZE);
             // TODO: RAMIN and its mirror
 
     // Did we change the banked SVGA mode?
@@ -751,6 +752,8 @@ void* nv3_init(const device_t *info)
     else    
             nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
+    uint32_t vram_amount = device_get_config_int("VRAM");
+
     // set up the bus and start setting up SVGA core
     if (nv3->nvbase.bus_generation == nv_bus_pci)
     {
@@ -758,7 +761,7 @@ void* nv3_init(const device_t *info)
 
         pci_add_card(PCI_ADD_NORMAL, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
-        svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, VRAM_SIZE_4MB, 
+        svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, vram_amount, 
         nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
     }
     else if (nv3->nvbase.bus_generation == nv_bus_agp_1x)
@@ -767,7 +770,7 @@ void* nv3_init(const device_t *info)
 
         pci_add_card(PCI_ADD_AGP, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
-        svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, VRAM_SIZE_4MB, 
+        svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, vram_amount, 
         nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
     }
 

@@ -24,6 +24,11 @@ extern const device_config_t nv3_config[];
 
 #define NV3_MMIO_SIZE                                   0x1000000       // Max MMIO size
 
+#define NV3_LFB_RAMIN_MIRROR_START                      0x400000        // Mirror of ramin (VERIFY ON HARDWARE)
+#define NV3_LFB_2NDHALF_START                           0x800000        // The second half of LFB(?)
+#define NV3_LFB_RAMIN_START                             0xC00000        // RAMIN mapping start
+#define NV3_LFB_MAPPING_SIZE                            0x400000        // Size of RAMIN
+
 // various vbioses for testing
 // Coming soon: MIROmagic Premium BIOS (when I get mine dumped)
 //todo: move to hash system
