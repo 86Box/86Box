@@ -3819,10 +3819,12 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
 
     /* Not on ES688. */
-    ess->mixer_ess.ess_id_str[0] = 0x16;
-    ess->mixer_ess.ess_id_str[1] = 0x88;
-    ess->mixer_ess.ess_id_str[2] = 0x00;
-    ess->mixer_ess.ess_id_str[3] = 0x00;
+    if (info->local) {
+        ess->mixer_ess.ess_id_str[0] = 0x16;
+        ess->mixer_ess.ess_id_str[1] = 0x88;
+        ess->mixer_ess.ess_id_str[2] = 0x00;
+        ess->mixer_ess.ess_id_str[3] = 0x00;
+    }
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
