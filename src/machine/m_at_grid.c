@@ -338,7 +338,7 @@ const device_t grid_device = {
 int machine_at_grid1520_init(const machine_t *model) {
     int ret = 0;
 
-    ret = bios_load_linear("roms/machines/grid/grid1520_891025.rom",
+    ret = bios_load_linear("roms/machines/grid1520/grid1520_891025.rom",
                            0x000f8000, 0x8000, 0);
     if (bios_only || !ret)
         return ret;
