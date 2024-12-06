@@ -415,7 +415,10 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[1997] 5400 RPM",       .internal_name = "1997_5400rpm", .zones = 16, .avg_spt = 185, .heads = 6, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2.5, .rcache_num_seg =  8, .rcache_seg_size =  64, .max_multiple = 32 },
     { .name = "[1998] 5400 RPM",       .internal_name = "1998_5400rpm", .zones = 16, .avg_spt = 300, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size = 128, .max_multiple = 32 },
     { .name = "[2000] 7200 RPM",       .internal_name = "2000_7200rpm", .zones = 16, .avg_spt = 350, .heads = 6, .rpm = 7200, .full_stroke_ms = 15, .track_seek_ms = 2,   .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
-  // clang-format on
+    { .name = "Conner CP3024",         .internal_name = "CP3024", .model = "Conner Peripherals 20MB - CP3024", .zones =  1,  .avg_spt = 33, .heads = 2, .rpm = 3500, .full_stroke_ms = 50, .track_seek_ms = 8,   .rcache_num_seg =  1, .rcache_seg_size =  8, .max_multiple =  8 },
+    { .name = "Conner CP3044",         .internal_name = "CP3044", .model = "Conner Peripherals 40MB - CP3044", .zones =  1,  .avg_spt = 40, .heads = 2, .rpm = 3500, .full_stroke_ms = 50, .track_seek_ms = 8,   .rcache_num_seg =  1, .rcache_seg_size =  8, .max_multiple =  8 },
+    { .name = "Conner CP3104",         .internal_name = "CP3104", .model = "Conner Peripherals 104MB - CP3104", .zones =  1,  .avg_spt = 33, .heads = 8, .rpm = 3500, .full_stroke_ms = 45, .track_seek_ms = 8,   .rcache_num_seg =  4, .rcache_seg_size =  8, .max_multiple =  8 },
+    // clang-format on
 };
 
 int
@@ -472,6 +475,8 @@ hdd_preset_apply(int hdd_id)
     hd->cache.num_segments = preset->rcache_num_seg;
     hd->cache.segment_size = preset->rcache_seg_size;
     hd->max_multiple_block = preset->max_multiple;
+    if (preset->model)
+        hd->model = preset->model;
 
     if (!hd->speed_preset)
         return;
