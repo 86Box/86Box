@@ -428,6 +428,8 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[ATA-4] Fujitsu MPD3043AT",                        .internal_name = "MPD3043AT", .model = "FUJITSU MPD3043AT", .zones =  5,  .avg_spt = 9, .heads = 2, .rpm = 5400, .full_stroke_ms = 29, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  16 },
     { .name = "[ATA-4] Fujitsu MPD3064AT",                        .internal_name = "MPD3064AT", .model = "FUJITSU MPD3064AT", .zones =  7,  .avg_spt = 9, .heads = 3, .rpm = 5400, .full_stroke_ms = 30, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  16 },
     { .name = "[ATA-4] Quantum Bigfoot TX (TX043A011)",           .internal_name = "TX043A011", .model = "QUANTUM BIGFOOT_TX043A011", .zones =  2,  .avg_spt = 12, .heads = 2, .rpm = 4000, .full_stroke_ms = 30, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size =  128, .max_multiple =  32 },
+    { .name = "[ATA-4] Quantum Fireball CR (CR43A013)",           .internal_name = "CR43A013", .model = "QUANTUM FIREBALL CR4.3A", .zones =  2,  .avg_spt = 11, .heads = 2, .rpm = 5400, .full_stroke_ms = 22, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
+    { .name = "[ATA-4] Samsung SpinPoint V6800 (SV0682D)",        .internal_name = "SV0682D", .model = "SAMSUNG SV0682D", .zones =  2,  .avg_spt = 9, .heads = 2, .rpm = 5400, .full_stroke_ms = 18, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
    // clang-format on
 };
 
