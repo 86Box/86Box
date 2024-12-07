@@ -1733,7 +1733,7 @@ ess_mixer_read(uint16_t addr, void *priv)
             break;
 
         default:
-            sb_log("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[miwinxer->index]);
+            sb_log("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
             break;
     }
 
