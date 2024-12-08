@@ -443,7 +443,7 @@ static hdd_preset_t hdd_speed_presets[] = {
 
 int
 hdd_preset_get_num(void)
-{4
+{
     return sizeof(hdd_speed_presets) / sizeof(hdd_preset_t);
 }
 
