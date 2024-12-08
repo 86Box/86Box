@@ -60,8 +60,10 @@ extern const device_t ymf289b_ymfm_device;
 extern const device_t ymf278b_ymfm_device;
 
 extern const device_t esfm_esfmu_device;
-
+#ifdef USE_LIBSERIALPORT
 extern const device_t ym_opl2board_device;
+#endif
+
 #endif
 
 #endif /*SOUND_OPL_H*/
