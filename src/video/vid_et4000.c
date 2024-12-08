@@ -63,9 +63,14 @@
 #define ET4000_TYPE_KASAN    5 /* Kasan ET4000 */
 
 #define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
+#define V8_00_BIOS_ROM_PATH    "roms/video/et4000/ET4000 V8_00.bin"
 #define V8_06_BIOS_ROM_PATH    "roms/video/et4000/ET4000_V8_06.BIN"
+#define V1_00_BIOS_ROM_PATH    "roms/video/et4000/BOCA Super VGA (V1.00).bin"
 #define TC6058AF_BIOS_ROM_PATH "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
 #define V1_21_BIOS_ROM_PATH    "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.21.bin"
+#define DIAMOND_BIOS_ROM_PATH  "roms/video/et4000/Diamond SpeedStar PLUS.ROM"
+#define MAXCOLOR_BIOS_ROM_PATH "roms/video/et4000/MAXcolor 4000.bin"
+#define ORCHID_BIOS_ROM_PATH   "roms/video/et4000/Orchid ProDesigner IIs.bin"
 #define KOREAN_BIOS_ROM_PATH   "roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH   "roms/video/et4000/tg_ksc5601.rom"
 #define KASAN_BIOS_ROM_PATH    "roms/video/et4000/et4000_kasan16.bin"
@@ -974,10 +979,18 @@ static const device_config_t et4000_tc6058af_config[] = {
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
+            { .name = "Version 1.00", .internal_name = "v1_00", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { V1_00_BIOS_ROM_PATH, "" } },
             { .name = "Version 1.10", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
             { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { V1_21_BIOS_ROM_PATH, "" } },
+            { .name = "Version 3.13 (2theMax MAXcolor 4000)", .internal_name = "v3_13", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { MAXCOLOR_BIOS_ROM_PATH, "" } },
+            { .name = "Version 4.24 (Diamond SpeedStar+)", .internal_name = "v4_24", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { DIAMOND_BIOS_ROM_PATH, "" } },
+            { .name = "Version 5.1 (Orchid ProDesigner IIs)", .internal_name = "v5_1", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { ORCHID_BIOS_ROM_PATH, "" } },
             { .files_no = 0 }
         },
     },
@@ -1021,6 +1034,8 @@ static const device_config_t et4000_bios_config[] = {
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
+            { .name = "Version 8.00", .internal_name = "v8_00", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 32768, .files = { V8_00_BIOS_ROM_PATH, "" } },
             { .name = "Version 8.01", .internal_name = "v8_01", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { BIOS_ROM_PATH, "" } },
             { .name = "Version 8.06", .internal_name = "v8_06", .bios_type = BIOS_NORMAL,
