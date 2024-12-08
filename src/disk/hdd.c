@@ -431,19 +431,19 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[ATA-2] Quantum Fireball CR4.3AT",                 .internal_name = "CR43A013", .model = "QUANTUM FIREBALL CR4.3A", .zones =  2,  .avg_spt = 11, .heads = 2, .rpm = 5400, .full_stroke_ms = 22, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
     { .name = "[ATA-2] Seagate Medalist (ST3780A)",               .internal_name = "ST3780A", .model = "ST3780A", .zones =  8,  .avg_spt = 12, .heads = 4, .rpm = 4500, .full_stroke_ms = 25, .track_seek_ms = 8,   .rcache_num_seg =  4, .rcache_seg_size =  256, .max_multiple =  8 },
     { .name = "[ATA-2] Seagate Medalist (ST31220A)",              .internal_name = "ST31220A", .model = "ST31220A", .zones =  8,  .avg_spt = 14, .heads = 6, .rpm = 4500, .full_stroke_ms = 27, .track_seek_ms = 8,   .rcache_num_seg =  4, .rcache_seg_size =  256, .max_multiple =  8 },
-    { .name = "[ATA-2] Seagate Medalist 275xe",                   .internal_name = "ST3295A", .model = "ST3295A", .zones =  8,  .avg_spt = 13, .heads = 2, .rpm = 4200, .full_stroke_ms = 30, .track_seek_ms = 5,   .rcache_num_seg =  3, .rcache_seg_size =  120, .max_multiple =  16 },
+    { .name = "[ATA-2] Seagate Medalist 275xe",                   .internal_name = "ST3295A", .model = "ST3295A", .zones =  8,  .avg_spt = 13, .heads = 2, .rpm = 3811, .full_stroke_ms = 30, .track_seek_ms = 5,   .rcache_num_seg =  3, .rcache_seg_size =  120, .max_multiple =  16 },
     { .name = "[ATA-4] Fujitsu MPD3043AT",                        .internal_name = "MPD3043AT", .model = "FUJITSU MPD3043AT", .zones =  5,  .avg_spt = 9, .heads = 2, .rpm = 5400, .full_stroke_ms = 29, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  16 },
     { .name = "[ATA-4] Fujitsu MPD3064AT",                        .internal_name = "MPD3064AT", .model = "FUJITSU MPD3064AT", .zones =  7,  .avg_spt = 9, .heads = 3, .rpm = 5400, .full_stroke_ms = 30, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  16 },
     { .name = "[ATA-4] Quantum Bigfoot TX4.3AT",                  .internal_name = "TX043A011", .model = "QUANTUM BIGFOOT TX4.3A", .zones =  2,  .avg_spt = 12, .heads = 2, .rpm = 4000, .full_stroke_ms = 30, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size =  128, .max_multiple =  32 },
-    { .name = "[ATA-4] Toshiba MK4006MAV",                        .internal_name = "MK4006MAV", .model = "TOSHIBA MK4006MAV", .zones =  16,  .avg_spt = 13, .heads = 6, .rpm = 3811, .full_stroke_ms = 25, .track_seek_ms = 5,   .rcache_num_seg =  3, .rcache_seg_size =  512, .max_multiple =  32 },
-    { .name = "[ATA-5] Samsung SpinPoint V6800",                  .internal_name = "SV0682D", .model = "SAMSUNG SV0682D", .zones =  2,  .avg_spt = 9, .heads = 2, .rpm = 5400, .full_stroke_ms = 18, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
-    { .name = "[ATA-5] Western Digital Caviar 102AA",             .internal_name = "WD102AA", .model = "WDC WD102AA-00ANA0", .zones =  8,  .avg_spt = 9, .heads = 8, .rpm = 5400, .full_stroke_ms = 12, .track_seek_ms = 1,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
+    { .name = "[ATA-4] Toshiba MK4006MAV",                        .internal_name = "MK4006MAV", .model = "TOSHIBA MK4006MAV", .zones =  8,  .avg_spt = 13, .heads = 6, .rpm = 4200, .full_stroke_ms = 25, .track_seek_ms = 3,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
+    { .name = "[ATA-5] Samsung SpinPoint V6800",                  .internal_name = "SV0682D", .model = "SAMSUNG SV0682D", .zones =  2,  .avg_spt = 9, .heads = 2, .rpm = 5400, .full_stroke_ms = 18, .track_seek_ms = 1,   .rcache_num_seg =  16, .rcache_seg_size =  512, .max_multiple =  32 },
+    { .name = "[ATA-5] Western Digital Caviar 102AA",             .internal_name = "WD102AA", .model = "WDC WD102AA-00ANA0", .zones =  8,  .avg_spt = 9, .heads = 8, .rpm = 5400, .full_stroke_ms = 12, .track_seek_ms = 1,   .rcache_num_seg =  16, .rcache_seg_size =  512, .max_multiple =  32 },
    // clang-format on
 };
 
 int
 hdd_preset_get_num(void)
-{
+{4
     return sizeof(hdd_speed_presets) / sizeof(hdd_preset_t);
 }
 
