@@ -72,6 +72,7 @@ AppDir:
     - libxkbcommon-x11-0 # if QT:BOOL=ON
     - qtwayland5 # if QT:BOOL=ON
     - zlib1g
+    - libserialport0
   files:
     exclude:
     - etc
