@@ -137,7 +137,7 @@ uint32_t nv3_pmc_handle_interrupts(bool send_now)
             return nv3->pmc.interrupt_status;
         }
             
-        if (!(nv3->pmc.interrupt_status & 0x7FFFFFFF))
+        if ((nv3->pmc.interrupt_status & 0x7FFFFFFF))
         {
             if (nv3->pmc.interrupt_enable & NV3_PMC_INTERRUPT_ENABLE_HARDWARE)
             {

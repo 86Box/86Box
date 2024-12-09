@@ -194,6 +194,11 @@ extern const device_config_t nv3_config[];
 #define NV3_PTIMER_START                                0x9000      // Programmable Interval Timer
 #define NV3_PTIMER_INTR                                 0x9100
 #define NV3_PTIMER_INTR_EN                              0x9140
+#define NV3_PTIMER_NUMERATOR                            0x9200
+#define NV3_PTIMER_DENOMINATOR                          0x9210
+#define NV3_PTIMER_TIME_0_NSEC                          0x9400      // nanoseconds [31:5]
+#define NV3_PTIMER_TIME_1_NSEC                          0x9410      // nanoseconds [28:0]
+#define NV3_PTIMER_ALARM_NSEC                           0x9420      // nanoseconds [31:5]
 #define NV3_PTIMER_END                                  0x9FFF
 #define NV3_VGA_VRAM_START                              0xA0000     // VGA Emulation VRAM
 #define NV3_VGA_VRAM_END                                0xBFFFF

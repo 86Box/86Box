@@ -290,8 +290,12 @@ typedef struct nv3_pextdev_s
 
 typedef struct nv3_ptimer_s
 {
-    uint32_t interrupt_status;          // Interrupt status
-    uint32_t interrupt_enable;          // Interrupt enable
+    uint32_t interrupt_status;          // PTIMER Interrupt status
+    uint32_t interrupt_enable;          // PTIMER Interrupt enable
+    uint32_t clock_numerator;           // PTIMER (tick?) numerator
+    uint32_t clock_denominator;         // PTIMER (tick?) denominator
+    uint64_t time;                      // time
+    uint32_t alarm;                     // The value of time when there should be an alarm
 } nv3_ptimer_t;
 
 // Graphics object hashtable

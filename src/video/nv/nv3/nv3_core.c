@@ -797,7 +797,7 @@ void* nv3_init(const device_t *info)
     nv3_pfifo_init();               // Initialise FIFO for graphics object submission
     nv3_pgraph_init();              // Initialise accelerated graphics engine
     nv3_ptimer_init();              // Initialise programmable interval timer
-    nv3_pvideo_init();              // Initialise video overlay engines
+    nv3_pvideo_init();              // Initialise video overlay engine
 
     return nv3;
 }
