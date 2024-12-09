@@ -18,5 +18,6 @@
 
 string(APPEND CMAKE_C_FLAGS_INIT    " -march=armv8.5-a+simd")
 string(APPEND CMAKE_CXX_FLAGS_INIT  " -march=armv8.5-a+simd")
+string(APPEND )
 
 include(${CMAKE_CURRENT_LIST_DIR}/flags-gcc.cmake)
