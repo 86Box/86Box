@@ -13,10 +13,12 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2021 RichardG.
+ *          Copyright 2021-2024 Jasmine Iwanek.
  */
 #ifndef EMU_GAMEPORT_H
 #define EMU_GAMEPORT_H
@@ -45,6 +47,9 @@
 
 #define JOYSTICK_PRESENT(n) (joystick_state[n].plat_joystick_nr != 0)
 
+#define GAMEPORT_1ADDR      0x010000
+#define GAMEPORT_6ADDR      0x060000
+#define GAMEPORT_8ADDR      0x080000
 #define GAMEPORT_SIO        0x1000000
 
 typedef struct plat_joystick_t {

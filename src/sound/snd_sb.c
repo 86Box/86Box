@@ -1452,9 +1452,6 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
     if (!(addr & 1)) {
         mixer->index      = val;
         mixer->regs[0x01] = val;
-        if (val == 0x40) {
-            mixer->ess_id_str_pos = 0;
-        }
     } else {
         if (mixer->index == 0) {
             /* Reset */
@@ -1472,6 +1469,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x3a]                     = 0x00;
             mixer->regs[0x3c]                     = 0x05;
             mixer->regs[0x3e]                     = 0x00;
+
+            mixer->regs[0x64]                     = 0x08;
 
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
@@ -1525,6 +1524,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x1C:
+                    mixer->regs[mixer->index] = val & 0x2f;
                     if ((mixer->regs[0x1C] & 0x07) == 0x07) {
                         mixer->input_selector = INPUT_MIXER_L | INPUT_MIXER_R;
                     } else if ((mixer->regs[0x1C] & 0x07) == 0x06) {
@@ -1556,12 +1556,12 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x64:
-                    mixer->regs[mixer->index] = (mixer->regs[mixer->index] & 0xf7) | 0x20;
-                    // mixer->regs[mixer->index] &= ~0x8;
+                    if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688)
+                        mixer->regs[mixer->index] = (mixer->regs[mixer->index] & 0xf7) | 0x20;
                     break;
 
                 case 0x40:
-                    {
+                    if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688) {
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
                         sb_log("mpu401_base_addr = %04X\n", mpu401_base_addr);
 
@@ -1572,7 +1572,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
-                        if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688) {
+                        if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688) {
                             /* Not on ES1688. */
                             io_removehandler(0x0388, 0x0004,
                                              ess->opl.read, NULL, NULL,
@@ -1585,6 +1585,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                               ess->opl.priv);
                             }
                         }
+
                         if (ess->mpu != NULL)  switch ((mixer->regs[0x40] >> 5) & 0x7) {
                             default:
                                 break;
@@ -1627,11 +1628,12 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                       ess_fm_midi_read, NULL, NULL,
                                       ess_fm_midi_write, NULL, NULL,
                                       ess);
-                        break;
                     }
+                    break;
 
                 default:
-                    sb_log("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    sb_log("ess: Unknown mixer register WRITE: %02X\t%02X\n",
+                           mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -1667,6 +1669,7 @@ ess_mixer_read(uint16_t addr, void *priv)
         case 0x0c:
         case 0x0e:
         case 0x14:
+        case 0x1a:
         case 0x02:
         case 0x06:
         case 0x30:
@@ -1685,20 +1688,48 @@ ess_mixer_read(uint16_t addr, void *priv)
             ret = mixer->regs[mixer->index] | 0x11;
             break;
 
-        case 0x40:
-            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688)
-                ret = mixer->regs[mixer->index];
-            else
-                ret = 0x0a;
+        /* Bit 1 always set, bits 7-6 always clear on both the real ES688 and ES1688. */
+        case 0x1c:
+            ret = mixer->regs[mixer->index] | 0x10;
             break;
 
-        case 0x48:
-            ret = mixer->regs[mixer->index];
-        break;
+        /*
+           Real ES688: Always 0x00;
+           Real ES1688: Bit 2 always clear.
+         */
+        case 0x40:
+            if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688)
+                ret = mixer->regs[mixer->index];
+            else if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688)
+                ret = mixer->regs[mixer->index] & 0xfb;
+            else
+                ret = 0x00;
+            break;
 
-        /* Return 0x00 so it has bit 3 clear, so NT 5.x drivers don't misdetect it as ES1788. */
+        /*
+           Real ES688: Always 0x00;
+           Real ES1688: All bits writable.
+         */
+        case 0x48:
+            if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688)
+                ret = mixer->regs[mixer->index];
+            else
+                ret = 0x00;
+            break;
+
+        /*
+           Return 0x00 so it has bit 3 clear, so NT 5.x drivers don't misdetect it as ES1788.
+           Bit 3 set and writable: ESSCFG detects the card as ES1788 if register 70h is read-only,
+           otherwise, as ES1887.
+           Bit 3 set and read-only: ESSCFG detects the card as ES1788 if register 70h is read-only,
+           otherwise, as ES1888.
+           Real ES688 and ES1688: Always 0x00.
+         */
         case 0x64:
-            ret = (mixer->regs[mixer->index] & 0xf7) | 0x20;
+            if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688)
+                ret = (mixer->regs[mixer->index] & 0xf7) | 0x20;
+            else
+                ret = 0x00;
             break;
 
         default:
@@ -1706,7 +1737,7 @@ ess_mixer_read(uint16_t addr, void *priv)
             break;
     }
 
-    sb_log("[%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, addr, ret);
+    sb_log("[%04X:%08X] [R] %04X = %02X (%02X)\n", CS, cpu_state.pc, addr, ret, mixer->index);
 
     return ret;
 }
@@ -2268,9 +2299,6 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                              ess_base_write, NULL, NULL,
                              ess);
 
-            ess->mixer_ess.ess_id_str[2] = 0x00;
-            ess->mixer_ess.ess_id_str[3] = 0x00;
-
             addr = ess->opl_pnp_addr;
             if (addr) {
                 ess->opl_pnp_addr = 0;
@@ -2337,9 +2365,6 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                                   ess_base_read, NULL, NULL,
                                   ess_base_write, NULL, NULL,
                                   ess);
-
-                    ess->mixer_ess.ess_id_str[2] = (addr >> 8) & 0xff;
-                    ess->mixer_ess.ess_id_str[3] = addr & 0xff;
                 }
 
                 addr = config->io[1].base;
@@ -3748,11 +3773,6 @@ ess_x688_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
 
     if (info->local) {
-        ess->mixer_ess.ess_id_str[0] = 0x16;
-        ess->mixer_ess.ess_id_str[1] = 0x88;
-        ess->mixer_ess.ess_id_str[2] = (addr >> 8) & 0xff;
-        ess->mixer_ess.ess_id_str[3] = addr & 0xff;
-
         ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
          * It will be later initialized by the guest OS's drivers. */
@@ -3817,12 +3837,6 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
-
-    /* Not on ES688. */
-    ess->mixer_ess.ess_id_str[0] = 0x16;
-    ess->mixer_ess.ess_id_str[1] = 0x88;
-    ess->mixer_ess.ess_id_str[2] = 0x00;
-    ess->mixer_ess.ess_id_str[3] = 0x00;
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
