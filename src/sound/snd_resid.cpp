@@ -25,7 +25,7 @@ sid_init(void)
 #if 0
     psid_t *psid;
 #endif
-    reSIDfp::SamplingMethod method         = reSIDfp::DECIMATE;
+    reSIDfp::SamplingMethod method         = reSIDfp::RESAMPLE;
     float                   cycles_per_sec = 14318180.0 / 16.0;
 
     psid = new psid_t;
@@ -34,8 +34,7 @@ sid_init(void)
 #endif
     psid->sid = new SID;
 
-    psid->sid->setChipModel(reSIDfp::MOS8580);
-    psid->sid->enableFilter(true);
+    psid->sid->setChipModel(reSIDfp::MOS6581);
 
     psid->sid->reset();
 
@@ -43,14 +42,13 @@ sid_init(void)
         psid->sid->write(c, 0);
 
     try {
-        psid->sid->setSamplingParameters(cycles_per_sec, method, (float) RESID_FREQ, 0.9 * (float) RESID_FREQ / 2.0);
+        psid->sid->setSamplingParameters(cycles_per_sec, method, (float) RESID_FREQ);
     } catch (reSIDfp::SIDError) {
 #if 0
         printf("reSID failed!\n");
 #endif
     }
 
-    psid->sid->setChipModel(reSIDfp::MOS6581);
     psid->sid->input(0);
 
     return (void *) psid;
