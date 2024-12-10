@@ -79,7 +79,7 @@ void EnvelopeGenerator::reset()
     exponential_counter_period = 1;
     new_exponential_counter_period = 0;
 
-    state = RELEASE;
+    state = State::RELEASE;
     counter_enabled = true;
     rate = adsrtable[release];
 }
@@ -98,7 +98,7 @@ void EnvelopeGenerator::writeCONTROL_REG(unsigned char control)
         if (gate_next)
         {
             // Gate bit on:  Start attack, decay, sustain.
-            next_state = ATTACK;
+            next_state = State::ATTACK;
             state_pipeline = 2;
 
             if (resetLfsr || (exponential_pipeline == 2))
@@ -113,7 +113,7 @@ void EnvelopeGenerator::writeCONTROL_REG(unsigned char control)
         else
         {
             // Gate bit off: Start release.
-            next_state = RELEASE;
+            next_state = State::RELEASE;
             state_pipeline = envelope_pipeline > 0 ? 3 : 2;
         }
     }
@@ -124,11 +124,11 @@ void EnvelopeGenerator::writeATTACK_DECAY(unsigned char attack_decay)
     attack = (attack_decay >> 4) & 0x0f;
     decay = attack_decay & 0x0f;
 
-    if (state == ATTACK)
+    if (state == State::ATTACK)
     {
         rate = adsrtable[attack];
     }
-    else if (state == DECAY_SUSTAIN)
+    else if (state == State::DECAY_SUSTAIN)
     {
         rate = adsrtable[decay];
     }
@@ -146,7 +146,7 @@ void EnvelopeGenerator::writeSUSTAIN_RELEASE(unsigned char sustain_release)
 
     release = sustain_release & 0x0f;
 
-    if (state == RELEASE)
+    if (state == State::RELEASE)
     {
         rate = adsrtable[release];
     }

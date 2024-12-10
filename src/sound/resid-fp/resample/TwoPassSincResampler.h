@@ -51,14 +51,25 @@ private:
 
 public:
     // Named constructor
-    static TwoPassSincResampler* create(double clockFrequency, double samplingFrequency, double highestAccurateFrequency)
+    static TwoPassSincResampler* create(double clockFrequency, double samplingFrequency)
     {
-        // Calculation according to Laurent Ganier. It evaluates to about 120 kHz at typical settings.
+        // Set the passband frequency slightly below half sampling frequency
+        //   pass_freq <= 0.9*sample_freq/2
+        //
+        // This constraint ensures that the FIR table is not overfilled.
+        // For higher sampling frequencies we're fine with 20KHz
+        const double halfFreq = (samplingFrequency > 44000.)
+            ? 20000. : samplingFrequency * 0.45;
+
+        // Calculation according to Laurent Ganier.
+        // It evaluates to about 120 kHz at typical settings.
         // Some testing around the chosen value seems to confirm that this does work.
-        double const intermediateFrequency = 2. * highestAccurateFrequency
-            + sqrt(2. * highestAccurateFrequency * clockFrequency
-                * (samplingFrequency - 2. * highestAccurateFrequency) / samplingFrequency);
-        return new TwoPassSincResampler(clockFrequency, samplingFrequency, highestAccurateFrequency, intermediateFrequency);
+        double const intermediateFrequency = 2. * halfFreq
+            + std::sqrt(2. * halfFreq * clockFrequency
+                * (samplingFrequency - 2. * halfFreq) / samplingFrequency);
+
+        return new TwoPassSincResampler(
+            clockFrequency, samplingFrequency, halfFreq, intermediateFrequency);
     }
 
     bool input(int sample) override

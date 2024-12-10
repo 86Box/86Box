@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2022 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2023 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004, 2010 Dag Lem <resid@nimrod.no>
  *
@@ -23,6 +23,7 @@
 #ifndef INTEGRATOR6581_H
 #define INTEGRATOR6581_H
 
+#include "Integrator.h"
 #include "FilterModelConfig6581.h"
 
 #include <stdint.h>
@@ -32,10 +33,6 @@
 // in the EKV model
 // actually produces worse results, needs investigation
 //#define SLOPE_FACTOR
-
-#ifdef SLOPE_FACTOR
-#  include <cmath>
-#endif
 
 #include "siddefs-fp.h"
 
@@ -164,12 +161,10 @@ namespace reSIDfp
  *
  *     Vg = nVddt - sqrt(((nVddt - vi)^2 + (nVddt - Vw)^2)/2)
  */
-class Integrator6581
+class Integrator6581 : public Integrator
 {
 private:
-    unsigned int nVddt_Vw_2;
-    mutable int vx;
-    mutable int vc;
+    const double wlSnake;
 
 #ifdef SLOPE_FACTOR
     // Slope factor n = 1/k
@@ -177,109 +172,32 @@ private:
     // k = Cox/(Cox+Cdep) ~ 0.7 (depends on gate voltage)
     mutable double n;
 #endif
+
+    unsigned int nVddt_Vw_2;
+
     const unsigned short nVddt;
     const unsigned short nVt;
     const unsigned short nVmin;
-    const unsigned short nSnake;
 
-    const FilterModelConfig6581* fmc;
+    FilterModelConfig6581& fmc;
 
 public:
-    Integrator6581(const FilterModelConfig6581* fmc,
-               double WL_snake) :
-        nVddt_Vw_2(0),
-        vx(0),
-        vc(0),
+    Integrator6581(FilterModelConfig6581& fmc) :
+        wlSnake(fmc.getWL_snake()),
 #ifdef SLOPE_FACTOR
         n(1.4),
 #endif
-        nVddt(fmc->getNormalizedValue(fmc->getVddt())),
-        nVt(fmc->getNormalizedValue(fmc->getVth())),
-        nVmin(fmc->getNVmin()),
-        nSnake(fmc->getNormalizedCurrentFactor(WL_snake)),
+        nVddt_Vw_2(0),
+        nVddt(fmc.getNormalizedValue(fmc.getVddt())),
+        nVt(fmc.getNormalizedValue(fmc.getVth())),
+        nVmin(fmc.getNVmin()),
         fmc(fmc) {}
 
     void setVw(unsigned short Vw) { nVddt_Vw_2 = ((nVddt - Vw) * (nVddt - Vw)) >> 1; }
 
-    int solve(int vi) const;
+    int solve(int vi) const override;
 };
 
 } // namespace reSIDfp
-
-#if RESID_INLINING || defined(INTEGRATOR_CPP)
-
-namespace reSIDfp
-{
-
-RESID_INLINE
-int Integrator6581::solve(int vi) const
-{
-    // Make sure Vgst>0 so we're not in subthreshold mode
-    assert(vx < nVddt);
-
-    // Check that transistor is actually in triode mode
-    // Vds < Vgs - Vth
-    assert(vi < nVddt);
-
-    // "Snake" voltages for triode mode calculation.
-    const unsigned int Vgst = nVddt - vx;
-    const unsigned int Vgdt = nVddt - vi;
-
-    const unsigned int Vgst_2 = Vgst * Vgst;
-    const unsigned int Vgdt_2 = Vgdt * Vgdt;
-
-    // "Snake" current, scaled by (1/m)*2^13*m*2^16*m*2^16*2^-15 = m*2^30
-    const int n_I_snake = nSnake * (static_cast<int>(Vgst_2 - Vgdt_2) >> 15);
-
-    // VCR gate voltage.       // Scaled by m*2^16
-    // Vg = Vddt - sqrt(((Vddt - Vw)^2 + Vgdt^2)/2)
-    const int nVg = static_cast<int>(fmc->getVcr_nVg((nVddt_Vw_2 + (Vgdt_2 >> 1)) >> 16));
-#ifdef SLOPE_FACTOR
-    const double nVp = static_cast<double>(nVg - nVt) / n; // Pinch-off voltage
-    const int kVgt = static_cast<int>(nVp + 0.5) - nVmin;
-#else
-    const int kVgt = (nVg - nVt) - nVmin;
-#endif
-
-    // VCR voltages for EKV model table lookup.
-    const int kVgt_Vs = (vx < kVgt) ? kVgt - vx : 0;
-    assert(kVgt_Vs < (1 << 16));
-    const int kVgt_Vd = (vi < kVgt) ? kVgt - vi : 0;
-    assert(kVgt_Vd < (1 << 16));
-
-    // VCR current, scaled by m*2^15*2^15 = m*2^30
-    const unsigned int If = static_cast<unsigned int>(fmc->getVcr_n_Ids_term(kVgt_Vs)) << 15;
-    const unsigned int Ir = static_cast<unsigned int>(fmc->getVcr_n_Ids_term(kVgt_Vd)) << 15;
-#ifdef SLOPE_FACTOR
-    const double iVcr = static_cast<double>(If - Ir);
-    const int n_I_vcr = static_cast<int>(iVcr * n);
-#else
-    const int n_I_vcr = If - Ir;
-#endif
-
-#ifdef SLOPE_FACTOR
-    // estimate new slope factor based on gate voltage
-    const double gamma = 1.0;   // body effect factor
-    const double phi = 0.8;     // bulk Fermi potential
-    const double Vp = nVp / fmc->getN16();
-    n = 1. + (gamma / (2. * sqrt(Vp + phi + 4. * fmc->getUt())));
-    assert((n > 1.2) && (n < 1.8));
-#endif
-
-    // Change in capacitor charge.
-    vc += n_I_snake + n_I_vcr;
-
-    // vx = g(vc)
-    const int tmp = (vc >> 15) + (1 << 15);
-    assert(tmp < (1 << 16));
-    vx = fmc->getOpampRev(tmp);
-
-    // Return vo.
-    return vx - (vc >> 14);
-}
-
-} // namespace reSIDfp
-
-#endif
 
 #endif

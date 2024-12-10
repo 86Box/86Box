@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2023 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004,2010 Dag Lem
  *
@@ -23,7 +23,6 @@
 #ifndef OPAMP_H
 #define OPAMP_H
 
-#include <memory>
 #include <vector>
 
 #include "Spline.h"
@@ -72,13 +71,13 @@ class OpAmp
 {
 private:
     /// Current root position (cached as guess to speed up next iteration)
-    mutable double x;
+    mutable double x = 0.;
 
     const double Vddt;
     const double vmin;
     const double vmax;
 
-    std::unique_ptr<Spline> const opamp;
+    Spline opamp;
 
 public:
     /**
@@ -89,14 +88,13 @@ public:
      * @param vmin
      * @param vmax
      */
-    OpAmp(const std::vector<Spline::Point> &opamp, double Vddt,
+    OpAmp(const std::vector<Spline::Point> &opamp_voltages, double Vddt,
             double vmin, double vmax
     ) :
-        x(0.),
         Vddt(Vddt),
         vmin(vmin),
         vmax(vmax),
-        opamp(new Spline(opamp)) {}
+        opamp(opamp_voltages) {}
 
     /**
      * Reset root position
