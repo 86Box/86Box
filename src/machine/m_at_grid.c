@@ -84,51 +84,54 @@ typedef struct {
 
 
 static uint32_t get_grid_ems_paddr(grid_t *dev, uint32_t addr) {
-    uint32_t slot = (addr >> GRID_EMS_PAGE_SHIFT) & 0x3;
+    uint32_t slot  = (addr >> GRID_EMS_PAGE_SHIFT) & 0x3;
     uint32_t paddr = addr;
-    if (dev->grid_ems_page[slot] & 0x80) {
+
+    if (dev->grid_ems_page[slot] & 0x80)
         paddr = GRID_EXTENDED_BASE + ((uint32_t)(dev->grid_ems_page[slot] & 0x7F) << GRID_EMS_PAGE_SHIFT) + (addr & GRID_EMS_PAGE_MASK);
-    }
 
     return paddr;
 }
 
 static void grid_ems_mem_write8(uint32_t addr, uint8_t val, void *priv) {
-    grid_t *dev = (grid_t *)priv;
+    grid_t *dev = (grid_t *) priv;
+
     addr = get_grid_ems_paddr(dev, addr);
-    if (addr < (mem_size << 10)) {
+
+    if (addr < (mem_size << 10))
         ram[addr] = val;                
-    }
 }
 
 static uint8_t grid_ems_mem_read8(uint32_t addr, void *priv) {
-    grid_t *dev = (grid_t *)priv;
+    grid_t *dev = (grid_t *) priv;
     uint8_t val = 0xFF;
 
     addr = get_grid_ems_paddr(dev, addr);
-    if (addr < (mem_size << 10)) {
+
+    if (addr < (mem_size << 10))
         val = ram[addr];                
-    }
 
     return val;
 }
 
 static void grid_ems_mem_write16(uint32_t addr, uint16_t val, void *priv) {
-    grid_t *dev = (grid_t *)priv;
+    grid_t *dev = (grid_t *) priv;
+
     addr = get_grid_ems_paddr(dev, addr);
-    if (addr < (mem_size << 10)) {
+
+    if (addr < (mem_size << 10))
         *(uint16_t *)&(ram[addr]) = val;                
-    }
 }
 
 static uint16_t grid_ems_mem_read16(uint32_t addr, void *priv) {
-    grid_t *dev = (grid_t *)priv;
+    grid_t  *dev = (grid_t *) priv;
     uint16_t val = 0xFFFF;
 
     addr = get_grid_ems_paddr(dev, addr);
-    if (addr < (mem_size << 10)) {
+
+    if (addr < (mem_size << 10))
         val = *(uint16_t *)&(ram[addr]);
-    }
+
     return val;
 }
 
@@ -145,9 +148,7 @@ static void grid_ems_update_mapping(grid_t *dev, uint32_t slot) {
 }
 
 static void grid_io_write(uint16_t port, uint8_t val, void *priv) {
-    grid_t *dev = (grid_t *)priv;
-    int i;
-    uint32_t paddr, vaddr;
+    grid_t *dev = (grid_t *) priv;
 
     switch (port) {
         case GRID_426:
@@ -174,11 +175,10 @@ static void grid_io_write(uint16_t port, uint8_t val, void *priv) {
         case GRID_TURBO:   
             if ((dev->grid_turbo ^ val) & 1) {
                 dev->grid_turbo = val;
-                if (dev->grid_turbo) {
+                if (dev->grid_turbo)
                     cpu_dynamic_switch(cpu);
-                } else {
+                else
                     cpu_dynamic_switch(0); /* 286/6 */        
-                }
             }
             break;
         case GRID_EMS_PAGE_0:
@@ -198,32 +198,28 @@ static void grid_io_write(uint16_t port, uint8_t val, void *priv) {
             break;
         }
         case GRID_HIGH_ENABLE: {
-            uint32_t i;
-
             if (((val ^ dev->grid_high_enable) & 0x1) == 0)
                 break; // no change
             dev->grid_high_enable = val;
             if (dev->grid_high_enable & 0x1) {
-                for (i = 0; i < 4; i++) {
+                for (uint8_t i = 0; i < 4; i++)
                     mem_mapping_disable(&dev->grid_ems_mapping[i]);
-                }
                 mem_mapping_enable(&ram_high_mapping);                
             } else {
                 mem_mapping_disable(&ram_high_mapping);
-                for (i = 0; i < 4; i++) {
+                for (uint8_t i = 0; i < 4; i++)
                     grid_ems_update_mapping(dev, i);
-                }
             }
             flushmmucache();
             break;
         }
         default:
-            ;
+            break;
     }
 }
 
 static uint8_t grid_io_read(uint16_t port, void *priv) {
-    grid_t *dev = (grid_t *)priv;
+    grid_t *dev = (grid_t *) priv;
 
     switch (port) {
         case GRID_426:
@@ -256,10 +252,11 @@ static uint8_t grid_io_read(uint16_t port, void *priv) {
         case GRID_EMS_PAGE_2:
         case GRID_EMS_PAGE_3: {
             uint32_t slot = (port >> 14) & 0x3;
+
             return dev->grid_ems_page[slot];
             }
         default:
-            ;
+            break;
     }
 
     return 0xff;
@@ -268,9 +265,8 @@ static uint8_t grid_io_read(uint16_t port, void *priv) {
 static void *
 grid_init(const device_t *info)
 {
-    uint32_t slot;
-
     grid_t *dev = calloc(1, sizeof(grid_t));
+
     io_sethandler(GRID_ROM_SUBSYSTEM, 0x0008, grid_io_read, NULL, NULL, grid_io_write, NULL, NULL, dev);
     io_sethandler(GRID_UNUSED_424, 0x0001, grid_io_read, NULL, NULL, grid_io_write, NULL, NULL, dev);
     io_sethandler(GRID_426, 0x0001, grid_io_read, NULL, NULL, grid_io_write, NULL, NULL, dev);
@@ -286,7 +282,7 @@ grid_init(const device_t *info)
     io_sethandler(GRID_EMS_PAGE_3, 0x0001, grid_io_read, NULL, NULL, grid_io_write, NULL, NULL, dev);
 
     dev->grid_high_enable = 1;
-    for (slot = 0; slot < 4; slot++) {
+    for (uint8_t slot = 0; slot < 4; slot++) {
         dev->grid_ems_page[slot] = 0;
         mem_mapping_add(&dev->grid_ems_mapping[slot], GRID_EMS_BASE + (slot << GRID_EMS_PAGE_SHIFT), GRID_EMS_PAGE_SIZE, grid_ems_mem_read8, grid_ems_mem_read16, NULL,
                         grid_ems_mem_write8, grid_ems_mem_write16, NULL, ram + GRID_EXTENDED_BASE + (slot << GRID_EMS_PAGE_SHIFT), MEM_MAPPING_EXTERNAL, dev);
@@ -297,18 +293,18 @@ grid_init(const device_t *info)
 }
 
 static void grid_close(void *priv) {
-    grid_t *dev = (grid_t *)priv;
+    grid_t *dev = (grid_t *) priv;
+
     free(dev);
 }
 
 static void grid_reset(void *priv) {
-    grid_t *dev = (grid_t *)priv;
-    uint32_t slot;
+    grid_t  *dev = (grid_t *) priv;
 
     dev->grid_high_enable = 1;
     mem_mapping_enable(&ram_high_mapping);
     dev->grid_turbo = 0x1;
-    for (slot = 0; slot < 4; slot++) {
+    for (uint8_t slot = 0; slot < 4; slot++) {
         dev->grid_ems_page[slot] = 0;
         mem_mapping_disable(&dev->grid_ems_mapping[slot]);
     }
@@ -334,7 +330,6 @@ const device_t grid_device = {
     .config        = NULL
 };
 
-
 int machine_at_grid1520_init(const machine_t *model) {
     int ret = 0;
 
@@ -357,9 +352,3 @@ int machine_at_grid1520_init(const machine_t *model) {
 
     return ret;
 }
-
-/*
- */
-
-
-
