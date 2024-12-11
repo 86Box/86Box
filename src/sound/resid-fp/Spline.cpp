@@ -92,11 +92,11 @@ Spline::Point Spline::evaluate(double x) const
 {
     if ((x < c->x1) || (x > c->x2))
     {
-        for (size_t i = 0; i < params.size(); i++)
+        for (const auto & param : params)
         {
-            if (x <= params[i].x2)
+            if (x <= param.x2)
             {
-                c = &params[i];
+                c = &param;
                 break;
             }
         }

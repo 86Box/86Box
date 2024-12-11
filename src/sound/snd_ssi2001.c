@@ -125,8 +125,7 @@ static const device_config_t ssi2001_config[] = {
 // clang-format off
 };
 
-const device_t ssi2001_device =
-{
+const device_t ssi2001_device = {
     .name = "Innovation SSI-2001",
     .internal_name = "ssi2001",
     .flags = DEVICE_ISA,

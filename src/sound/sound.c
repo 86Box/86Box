@@ -153,6 +153,9 @@ static const SOUND_CARD sound_cards[] = {
     { &ct5880_device                },
     { &ad1881_device                },
     { &cs4297a_device               },
+#ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
+    { &opl2board_device             },
+#endif     
     { NULL                          }
     // clang-format on
 };

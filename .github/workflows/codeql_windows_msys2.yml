@@ -105,6 +105,7 @@ jobs:
             rtmidi:p
             libslirp:p
             fluidsynth:p
+            libserialport:p
             ${{ matrix.ui.packages }}
 
       - name: Checkout repository
