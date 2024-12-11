@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2022 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004,2010 Dag Lem <resid@nimrod.no>
  *
@@ -22,10 +22,6 @@
 
 #ifndef FILTER8580_H
 #define FILTER8580_H
-
-#include "siddefs-fp.h"
-
-#include <memory>
 
 #include "Filter.h"
 #include "FilterModelConfig8580.h"
@@ -281,58 +277,32 @@ class Integrator8580;
 class Filter8580 final : public Filter
 {
 private:
-    unsigned short** mixer;
-    unsigned short** summer;
-    unsigned short** gain_res;
-    unsigned short** gain_vol;
-
-    const int voiceScaleS11;
-    const int voiceDC;
-
-    double cp;
-
     /// VCR + associated capacitor connected to highpass output.
-    std::unique_ptr<Integrator8580> const hpIntegrator;
+    Integrator8580 hpIntegrator;
 
     /// VCR + associated capacitor connected to bandpass output.
-    std::unique_ptr<Integrator8580> const bpIntegrator;
+    Integrator8580 bpIntegrator;
+
+    double cp;
 
 protected:
     /**
      * Set filter cutoff frequency.
      */
-    void updatedCenterFrequency() override;
-
-    /**
-     * Set filter resonance.
-	 *
-     * @param res the new resonance value
-     */
-    void updateResonance(unsigned char res) override { currentResonance = gain_res[res]; }
-
-    void updatedMixing() override;
+    void updateCenterFrequency() override;
 
 public:
     Filter8580() :
-        mixer(FilterModelConfig8580::getInstance()->getMixer()),
-        summer(FilterModelConfig8580::getInstance()->getSummer()),
-        gain_res(FilterModelConfig8580::getInstance()->getGainRes()),
-        gain_vol(FilterModelConfig8580::getInstance()->getGainVol()),
-        voiceScaleS11(FilterModelConfig8580::getInstance()->getVoiceScaleS11()),
-        voiceDC(FilterModelConfig8580::getInstance()->getNormalizedVoiceDC()),
-        cp(0.5),
-        hpIntegrator(FilterModelConfig8580::getInstance()->buildIntegrator()),
-        bpIntegrator(FilterModelConfig8580::getInstance()->buildIntegrator())
+        Filter(*FilterModelConfig8580::getInstance()),
+        hpIntegrator(*FilterModelConfig8580::getInstance()),
+        bpIntegrator(*FilterModelConfig8580::getInstance())
     {
-        setFilterCurve(cp);
-        input(0);
+        setFilterCurve(0.5);
     }
 
-    ~Filter8580();
+    ~Filter8580() override;
 
-    unsigned short clock(int voice1, int voice2, int voice3) override;
-
-    void input(int sample) override { ve = (sample * voiceScaleS11 * 3 >> 11) + mixer[0][0]; }
+    unsigned short clock(int v1, int v2, int v3) override;
 
     /**
      * Set filter curve type based on single parameter.
@@ -343,41 +313,5 @@ public:
 };
 
 } // namespace reSIDfp
-
-#if RESID_INLINING || defined(FILTER8580_CPP)
-
-namespace reSIDfp
-{
-
-RESID_INLINE
-unsigned short Filter8580::clock(int voice1, int voice2, int voice3)
-{
-    voice1 = (voice1 * voiceScaleS11 >> 15) + voiceDC;
-    voice2 = (voice2 * voiceScaleS11 >> 15) + voiceDC;
-    // Voice 3 is silenced by voice3off if it is not routed through the filter.
-    voice3 = (filt3 || !voice3off) ? (voice3 * voiceScaleS11 >> 15) + voiceDC : 0;
-
-    int Vi = 0;
-    int Vo = 0;
-
-    (filt1 ? Vi : Vo) += voice1;
-    (filt2 ? Vi : Vo) += voice2;
-    (filt3 ? Vi : Vo) += voice3;
-    (filtE ? Vi : Vo) += ve;
-
-    Vhp = currentSummer[currentResonance[Vbp] + Vlp + Vi];
-    Vbp = hpIntegrator->solve(Vhp);
-    Vlp = bpIntegrator->solve(Vbp);
-
-    if (lp) Vo += Vlp;
-    if (bp) Vo += Vbp;
-    if (hp) Vo += Vhp;
-
-    return currentGain[currentMixer[Vo]];
-}
-
-} // namespace reSIDfp
-
-#endif
 
 #endif

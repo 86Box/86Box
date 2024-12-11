@@ -13,6 +13,8 @@
 #          Copyright 2020-2021 David Hrdlička.
 #
 
+set(CMAKE_CXX_STANDARD 17)
+
 add_library(resid-fp STATIC Dac.cpp EnvelopeGenerator.cpp ExternalFilter.cpp
     Filter.cpp Filter6581.cpp Filter8580.cpp FilterModelConfig.cpp
     FilterModelConfig6581.cpp FilterModelConfig8580.cpp

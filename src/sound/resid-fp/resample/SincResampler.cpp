@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2020 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004 Dag Lem <resid@nimrod.no>
  *
@@ -22,11 +22,16 @@
 
 #include "SincResampler.h"
 
+#ifdef HAVE_CXX20
+#  include <numbers>
+#endif
+
+#include <algorithm>
+#include <iterator>
 #include <cassert>
 #include <cstring>
 #include <cmath>
-#include <iostream>
-#include <sstream>
+#include <cstdint>
 
 #include "../siddefs-fp.h"
 
@@ -34,10 +39,8 @@
 #  include "config.h"
 #endif
 
-#ifdef HAVE_EMMINTRIN_H
-#  include <emmintrin.h>
-#elif defined HAVE_MMINTRIN_H
-#  include <mmintrin.h>
+#ifdef HAVE_SMMINTRIN_H
+#  include <smmintrin.h>
 #elif defined(HAVE_ARM_NEON_H)
 #  include <arm_neon.h>
 #endif
@@ -45,15 +48,10 @@
 namespace reSIDfp
 {
 
-typedef std::map<std::string, matrix_t> fir_cache_t;
-
-/// Cache for the expensive FIR table computation results.
-fir_cache_t FIR_CACHE;
-
 /// Maximum error acceptable in I0 is 1e-6, or ~96 dB.
-const double I0E = 1e-6;
+constexpr double I0E = 1e-6;
 
-const int BITS = 16;
+constexpr int BITS = 16;
 
 /**
  * Compute the 0th order modified Bessel function of the first kind.
@@ -90,7 +88,7 @@ double I0(double x)
  * @param bLength length of the sinc buffer
  * @return convolved result
  */
-int convolve(const short* a, const short* b, int bLength)
+int convolve(const int* a, const short* b, int bLength)
 {
 #ifdef HAVE_EMMINTRIN_H
     int out = 0;
@@ -102,7 +100,7 @@ int convolve(const short* a, const short* b, int bLength)
     {
         if (offset)
         {
-            const int l = (0x10 - offset)/2;
+            const int l = (0x10 - offset) / 2;
 
             for (int i = 0; i < l; i++)
             {
@@ -208,9 +206,9 @@ int convolve(const short* a, const short* b, int bLength)
     bLength &= 3;
 #else
     int32x4_t acc = vdupq_n_s32(0);
-    
+
     const int n = bLength / 4;
-    
+
     for (int i = 0; i < n; i++)
     {
         const int16x4_t h_vec = vld1_s16(a);
@@ -219,12 +217,12 @@ int convolve(const short* a, const short* b, int bLength)
         a += 4;
         b += 4;
     }
-    
+
     int out = vgetq_lane_s32(acc, 0) +
               vgetq_lane_s32(acc, 1) +
               vgetq_lane_s32(acc, 2) +
               vgetq_lane_s32(acc, 3);
-    
+
     bLength &= 3;
 #endif
 #else
@@ -233,7 +231,7 @@ int convolve(const short* a, const short* b, int bLength)
 
     for (int i = 0; i < bLength; i++)
     {
-        out += *a++ * *b++;
+        out += a[i] * static_cast<int>(b[i]);
     }
 
     return (out + (1 << 14)) >> 15;
@@ -265,17 +263,27 @@ int SincResampler::fir(int subcycle)
     return v1 + (firTableOffset * (v2 - v1) >> 10);
 }
 
-SincResampler::SincResampler(double clockFrequency, double samplingFrequency, double highestAccurateFrequency) :
-    sampleIndex(0),
-    cyclesPerSample(static_cast<int>(clockFrequency / samplingFrequency * 1024.)),
-    sampleOffset(0),
-    outputValue(0)
+SincResampler::SincResampler(
+        double clockFrequency,
+        double samplingFrequency,
+        double highestAccurateFrequency) :
+    cyclesPerSample(static_cast<int>(clockFrequency / samplingFrequency * 1024.))
 {
+#if defined(HAVE_CXX20) && defined(__cpp_lib_constexpr_cmath)
+    constexpr double PI = std::numbers::pi;
+#else
+#  ifdef M_PI
+        constexpr double PI = M_PI;
+#else
+        constexpr double PI = 3.14159265358979323846;
+#  endif
+#endif
+
     // 16 bits -> -96dB stopband attenuation.
-    const double A = -20. * log10(1.0 / (1 << BITS));
+    const double A = -20. * std::log10(1.0 / (1 << BITS));
     // A fraction of the bandwidth is allocated to the transition band, which we double
     // because we design the filter to transition halfway at nyquist.
-    const double dw = (1. - 2.*highestAccurateFrequency / samplingFrequency) * M_PI * 2.;
+    const double dw = (1. - 2.*highestAccurateFrequency / samplingFrequency) * PI * 2.;
 
     // For calculation of beta and N see the reference for the kaiserord
     // function in the MATLAB Signal Processing Toolbox:
@@ -283,6 +291,7 @@ SincResampler::SincResampler(double clockFrequency, double samplingFrequency, do
     const double beta = 0.1102 * (A - 8.7);
     const double I0beta = I0(beta);
     const double cyclesPerSampleD = clockFrequency / samplingFrequency;
+    const double inv_cyclesPerSampleD = samplingFrequency / clockFrequency;
 
     {
         // The filter order will maximally be 124 with the current constraints.
@@ -302,40 +311,22 @@ SincResampler::SincResampler(double clockFrequency, double samplingFrequency, do
         assert(firN < RINGSIZE);
 
         // Error is bounded by err < 1.234 / L^2, so L = sqrt(1.234 / (2^-16)) = sqrt(1.234 * 2^16).
-        firRES = static_cast<int>(ceil(sqrt(1.234 * (1 << BITS)) / cyclesPerSampleD));
+        firRES = static_cast<int>(std::ceil(std::sqrt(1.234 * (1 << BITS)) * inv_cyclesPerSampleD));
 
         // firN*firRES represent the total resolution of the sinc sampling. JOS
         // recommends a length of 2^BITS, but we don't quite use that good a filter.
         // The filter test program indicates that the filter performs well, though.
     }
 
-    // Create the map key
-    std::ostringstream o;
-    o << firN << "," << firRES << "," << cyclesPerSampleD;
-    const std::string firKey = o.str();
-    fir_cache_t::iterator lb = FIR_CACHE.lower_bound(firKey);
-
-    // The FIR computation is expensive and we set sampling parameters often, but
-    // from a very small set of choices. Thus, caching is used to speed initialization.
-    if (lb != FIR_CACHE.end() && !(FIR_CACHE.key_comp()(firKey, lb->first)))
-    {
-        firTable = &(lb->second);
-    }
-    else
     {
         // Allocate memory for FIR tables.
-        matrix_t tempTable(firRES, firN);
-#ifdef HAVE_CXX11
-        firTable = &(FIR_CACHE.emplace_hint(lb, fir_cache_t::value_type(firKey, tempTable))->second);
-#else
-        firTable = &(FIR_CACHE.insert(lb, fir_cache_t::value_type(firKey, tempTable))->second);
-#endif
+        firTable = new matrix_t(firRES, firN);
 
         // The cutoff frequency is midway through the transition band, in effect the same as nyquist.
-        const double wc = M_PI;
+        const double wc = PI;
 
         // Calculate the sinc tables.
-        const double scale = 32768.0 * wc / cyclesPerSampleD / M_PI;
+        const double scale = 32768.0 * wc * inv_cyclesPerSampleD / PI;
 
         // we're not interested in the fractional part
         // so use int division before converting to double
@@ -351,10 +342,10 @@ SincResampler::SincResampler(double clockFrequency, double samplingFrequency, do
                 const double x = j - jPhase;
 
                 const double xt = x / firN_2;
-                const double kaiserXt = fabs(xt) < 1. ? I0(beta * sqrt(1. - xt * xt)) / I0beta : 0.;
+                const double kaiserXt = std::fabs(xt) < 1. ? I0(beta * std::sqrt(1. - xt * xt)) / I0beta : 0.;
 
-                const double wt = wc * x / cyclesPerSampleD;
-                const double sincWt = fabs(wt) >= 1e-8 ? sin(wt) / wt : 1.;
+                const double wt = wc * x * inv_cyclesPerSampleD;
+                const double sincWt = std::fabs(wt) >= 1e-8 ? std::sin(wt) / wt : 1.;
 
                 (*firTable)[i][j] = static_cast<short>(scale * sincWt * kaiserXt);
             }
@@ -362,18 +353,16 @@ SincResampler::SincResampler(double clockFrequency, double samplingFrequency, do
     }
 }
 
+SincResampler::~SincResampler()
+{
+    delete firTable;
+}
+
 bool SincResampler::input(int input)
 {
     bool ready = false;
 
-    /*
-     * Clip the input as it may overflow the 16 bit range.
-     *
-     * Approximate measured input ranges:
-     * 6581: [-24262,+25080]  (Kawasaki_Synthesizer_Demo)
-     * 8580: [-21514,+35232]  (64_Forever, Drum_Fool)
-     */
-    sample[sampleIndex] = sample[sampleIndex + RINGSIZE] = softClip(input);
+    sample[sampleIndex] = sample[sampleIndex + RINGSIZE] = input;
     sampleIndex = (sampleIndex + 1) & (RINGSIZE - 1);
 
     if (sampleOffset < 1024)
@@ -390,7 +379,7 @@ bool SincResampler::input(int input)
 
 void SincResampler::reset()
 {
-    memset(sample, 0, sizeof(sample));
+    std::fill(std::begin(sample), std::end(sample), 0);
     sampleOffset = 0;
 }
 

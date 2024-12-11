@@ -2911,6 +2911,7 @@ d86f_decompose_encoded_buffer(int drive, int side)
     uint16_t        temp2;
     uint32_t        len;
     const uint16_t *dst    = dev->track_encoded_data[side];
+    const uint16_t *dst_s  = dev->track_surface_data[side];
     uint16_t       *src1   = dev->thin_track_encoded_data[0][side];
     uint16_t       *src1_s = dev->thin_track_surface_data[0][side];
     uint16_t       *src2   = dev->thin_track_encoded_data[1][side];
@@ -2922,12 +2923,13 @@ d86f_decompose_encoded_buffer(int drive, int side)
         if (d86f_has_surface_desc(drive)) {
             /* Source image has surface description data, so we have some more handling to do.
                We need hole masks for both buffers. Holes have data bit clear and surface bit set. */
-            temp      = ~src1[i] & src1_s[i];
-            temp2     = ~src2[i] & src2_s[i];
-            src1[i]   = dst[i] & ~temp;
-            src1_s[i] = temp;
-            src2[i]   = dst[i] & ~temp2;
-            src2_s[i] = temp2;
+            src1_s[i] = src2_s[i] = dst_s[i]; /* Write the new holes and weak bits. */
+            temp      = ~src1[i] & src1_s[i]; /* Bits that are clear in data and set in surface are holes. */
+            temp2     = ~src2[i] & src2_s[i]; /* Bits that are clear in data and set in surface are holes. */
+            src1[i]   = dst[i] & ~temp;       /* Make sure the holes' bits are cleared in the decomposed buffer. */
+            src1_s[i] |= temp;                /* Make sure the holes' bits are set in the decomposed surface. */
+            src2[i]   = dst[i] & ~temp2;      /* Make sure the holes' bits are cleared in the decomposed buffer. */
+            src2_s[i] |= temp2;               /* Make sure the holes' bits are set in the decomposed surface. */
         } else
             src1[i] = src2[i] = dst[i];
     }
