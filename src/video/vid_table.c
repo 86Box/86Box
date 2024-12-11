@@ -67,6 +67,7 @@ video_cards[] = {
     { .device = &ati18800_device,                               .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &ati18800_wonder_device,                        .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &cga_device,                                    .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &quadcolor_device,                              .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &sega_device,                                   .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &jega_device,                                   .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &gd5401_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
