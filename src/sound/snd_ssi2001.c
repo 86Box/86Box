@@ -69,7 +69,7 @@ ssi2001_init(UNUSED(const device_t *info))
     ssi2001_t *ssi2001 = malloc(sizeof(ssi2001_t));
     memset(ssi2001, 0, sizeof(ssi2001_t));
 
-    ssi2001->psid = sid_init();
+    ssi2001->psid = sid_init(0);
     sid_reset(ssi2001->psid);
     uint16_t addr             = device_get_config_hex16("base");
     ssi2001->gameport_enabled = device_get_config_int("gameport");
