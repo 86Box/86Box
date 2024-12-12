@@ -653,12 +653,30 @@ fdc_sis(fdc_t *fdc)
 }
 
 static void
+fdc_soft_reset(fdc_t *fdc)
+{
+    if (fdc->power_down) {
+        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+        fdc->interrupt = -5;
+    } else {
+        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+        fdc->interrupt = -1;
+
+        fdc->perp &= 0xfc;
+
+        for (int i = 0; i < FDD_NUM; i++)
+             ui_sb_update_icon(SB_FLOPPY | i, 0);
+
+        fdc_ctrl_reset(fdc);
+   }
+}
+
+static void
 fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
     int drive;
-    int i;
     int drive_num;
 
     fdc_log("Write FDC %04X %02X\n", addr, val);
@@ -682,7 +700,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc->interrupt = -1;
                     ui_sb_update_icon(SB_FLOPPY | 0, 0);
                     fdc_ctrl_reset(fdc);
-                    fdd_changed[0] = 1;
                 }
                 if (!fdd_get_flags(0))
                     val &= 0xfe;
@@ -699,24 +716,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc->stat = 0x00;
                     fdc->pnum = fdc->ptot = 0;
                 }
-                if ((val & 4) && !(fdc->dor & 4)) {
-                    if (fdc->power_down) {
-                        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                        fdc->interrupt = -5;
-                    } else {
-                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                        fdc->interrupt = -1;
-
-                        fdc->perp &= 0xfc;
-
-                        for (i = 0; i < FDD_NUM; i++)
-                            ui_sb_update_icon(SB_FLOPPY | i, 0);
-
-                        fdc_ctrl_reset(fdc);
-                    }
-                }
+                if ((val & 4) && !(fdc->dor & 4))
+                    fdc_soft_reset(fdc);
                 /* We can now simplify this since each motor now spins separately. */
-                for (i = 0; i < FDD_NUM; i++) {
+                for (int i = 0; i < FDD_NUM; i++) {
                     drive_num = real_drive(fdc, i);
                     if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
                         val &= ~(0x10 << drive_num);
@@ -735,28 +738,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
             }
             return;
-        case 4:
+        case 4: /* DSR */
             if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
                 if (!(val & 0x80)) {
                     timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
                     fdc->interrupt = -6;
                 }
-                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
-                    if (fdc->power_down) {
-                        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                        fdc->interrupt = -5;
-                    } else {
-                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                        fdc->interrupt = -1;
-
-                        fdc->perp &= 0xfc;
-
-                        for (i = 0; i < FDD_NUM; i++)
-                            ui_sb_update_icon(SB_FLOPPY | i, 0);
-
-                        fdc_ctrl_reset(fdc);
-                    }
-                }
+                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80)))
+                    fdc_soft_reset(fdc);
             }
             fdc->dsr = val;
             return;

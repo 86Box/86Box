@@ -42,25 +42,30 @@ class FilterModelConfig8580 final : public FilterModelConfig
 private:
     static std::unique_ptr<FilterModelConfig8580> instance;
     // This allows access to the private constructor
-#ifdef HAVE_CXX11
     friend std::unique_ptr<FilterModelConfig8580>::deleter_type;
-#else
-    friend class std::auto_ptr<FilterModelConfig8580>;
-#endif
+
+private:
+    /**
+     * Reference voltage generated from Vcc by a voltage divider
+     */
+    static constexpr double Vref = 4.75;
+
+    /**
+     * Power bricks generate voltages slightly out of spec
+     */
+    static constexpr double VOLTAGE_SKEW = 1.01;
 
 private:
     FilterModelConfig8580();
-    ~FilterModelConfig8580() DEFAULT;
+    ~FilterModelConfig8580() = default;
+
+protected:
+    inline double getVoiceDC(unsigned int) const override { return getVref(); }
 
 public:
     static FilterModelConfig8580* getInstance();
 
-    /**
-     * Construct an integrator solver.
-     *
-     * @return the integrator
-     */
-    std::unique_ptr<Integrator8580> buildIntegrator();
+    inline constexpr double getVref() const { return Vref * VOLTAGE_SKEW; }
 };
 
 } // namespace reSIDfp

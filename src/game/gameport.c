@@ -13,10 +13,12 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2021 RichardG.
+ *          Copyright 2021-2024 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -468,7 +470,7 @@ const device_t gameport_device = {
     .name          = "Game port",
     .internal_name = "gameport",
     .flags         = 0,
-    .local         = 0x080200,
+    .local         = GAMEPORT_8ADDR | 0x0200,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -482,7 +484,7 @@ const device_t gameport_201_device = {
     .name          = "Game port (Port 201h only)",
     .internal_name = "gameport_201",
     .flags         = 0,
-    .local         = 0x010201,
+    .local         = GAMEPORT_1ADDR | 0x0201,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -496,7 +498,7 @@ const device_t gameport_203_device = {
     .name          = "Game port (Port 203h only)",
     .internal_name = "gameport_203",
     .flags         = 0,
-    .local         = 0x010203,
+    .local         = GAMEPORT_1ADDR | 0x0203,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -510,7 +512,7 @@ const device_t gameport_205_device = {
     .name          = "Game port (Port 205h only)",
     .internal_name = "gameport_205",
     .flags         = 0,
-    .local         = 0x010205,
+    .local         = GAMEPORT_1ADDR | 0x0205,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -524,7 +526,7 @@ const device_t gameport_207_device = {
     .name          = "Game port (Port 207h only)",
     .internal_name = "gameport_207",
     .flags         = 0,
-    .local         = 0x010207,
+    .local         = GAMEPORT_1ADDR | 0x0207,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -538,7 +540,7 @@ const device_t gameport_208_device = {
     .name          = "Game port (Port 208h-20fh)",
     .internal_name = "gameport_208",
     .flags         = 0,
-    .local         = 0x080208,
+    .local         = GAMEPORT_8ADDR | 0x0208,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -552,7 +554,7 @@ const device_t gameport_209_device = {
     .name          = "Game port (Port 209h only)",
     .internal_name = "gameport_209",
     .flags         = 0,
-    .local         = 0x010209,
+    .local         = GAMEPORT_1ADDR | 0x0209,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -566,7 +568,7 @@ const device_t gameport_20b_device = {
     .name          = "Game port (Port 20Bh only)",
     .internal_name = "gameport_20b",
     .flags         = 0,
-    .local         = 0x01020B,
+    .local         = GAMEPORT_1ADDR | 0x020B,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -580,7 +582,7 @@ const device_t gameport_20d_device = {
     .name          = "Game port (Port 20Dh only)",
     .internal_name = "gameport_20d",
     .flags         = 0,
-    .local         = 0x01020D,
+    .local         = GAMEPORT_1ADDR | 0x020D,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -594,7 +596,7 @@ const device_t gameport_20f_device = {
     .name          = "Game port (Port 20Fh only)",
     .internal_name = "gameport_20f",
     .flags         = 0,
-    .local         = 0x01020F,
+    .local         = GAMEPORT_1ADDR | 0x020F,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -662,7 +664,7 @@ const device_t gameport_pnp_device = {
     .name          = "Game port (Plug and Play only)",
     .internal_name = "gameport_pnp",
     .flags         = 0,
-    .local         = 0x080000,
+    .local         = GAMEPORT_8ADDR,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -676,7 +678,7 @@ const device_t gameport_pnp_6io_device = {
     .name          = "Game port (Plug and Play only, 6 I/O ports)",
     .internal_name = "gameport_pnp_6io",
     .flags         = 0,
-    .local         = 0x060000,
+    .local         = GAMEPORT_6ADDR,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -690,7 +692,7 @@ const device_t gameport_sio_device = {
     .name          = "Game port (Super I/O)",
     .internal_name = "gameport_sio",
     .flags         = 0,
-    .local         = 0x1080000,
+    .local         = GAMEPORT_SIO | GAMEPORT_8ADDR,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
@@ -704,7 +706,7 @@ const device_t gameport_sio_1io_device = {
     .name          = "Game port (Super I/O, 1 I/O port)",
     .internal_name = "gameport_sio",
     .flags         = 0,
-    .local         = 0x1010000,
+    .local         = GAMEPORT_SIO | GAMEPORT_1ADDR,
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,

@@ -22,10 +22,8 @@
 #ifndef WAVEFORMCALCULATOR_h
 #define WAVEFORMCALCULATOR_h
 
-#include <map>
-
 #include "array.h"
-#include "sidcxx11.h"
+
 #include "siddefs-fp.h"
 
 
@@ -33,35 +31,24 @@ namespace reSIDfp
 {
 
 /**
- * Combined waveform model parameters.
- */
-typedef struct
-{
-    float threshold;
-    float pulsestrength;
-    float distance1;
-    float distance2;
-} CombinedWaveformConfig;
-
-/**
  * Combined waveform calculator for WaveformGenerator.
  * By combining waveforms, the bits of each waveform are effectively short
- * circuited. A zero bit in one waveform will result in a zero output bit
- * (thus the infamous claim that the waveforms are AND'ed).
+ * circuited, a zero bit in one waveform will result in a zero output bit,
+ * thus the claim that the waveforms are AND'ed.
  * However, a zero bit in one waveform may also affect the neighboring bits
  * in the output.
  *
  * Example:
- * 
+ *
  *                 1 1
  *     Bit #       1 0 9 8 7 6 5 4 3 2 1 0
  *                 -----------------------
  *     Sawtooth    0 0 0 1 1 1 1 1 1 0 0 0
- *     
+ *
  *     Triangle    0 0 1 1 1 1 1 1 0 0 0 0
- *     
+ *
  *     AND         0 0 0 1 1 1 1 1 0 0 0 0
- *     
+ *
  *     Output      0 0 0 0 1 1 1 0 0 0 0 0
  *
  *
@@ -99,12 +86,7 @@ typedef struct
 class WaveformCalculator
 {
 private:
-    typedef std::map<const CombinedWaveformConfig*, matrix_t> cw_cache_t;
-
-private:
     matrix_t wftable;
-
-    cw_cache_t PULLDOWN_CACHE;
 
 private:
     WaveformCalculator();
@@ -126,9 +108,10 @@ public:
      * Build pulldown table for use by WaveformGenerator.
      *
      * @param model Chip model to use
+     * @param cws strength of combined waveforms
      * @return Pulldown table
      */
-    matrix_t* buildPulldownTable(ChipModel model);
+    matrix_t* buildPulldownTable(ChipModel model, CombinedWaveforms cws);
 };
 
 } // namespace reSIDfp
