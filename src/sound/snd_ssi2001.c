@@ -126,15 +126,15 @@ static const device_config_t ssi2001_config[] = {
 };
 
 const device_t ssi2001_device = {
-    .name = "Innovation SSI-2001",
+    .name          = "Innovation SSI-2001",
     .internal_name = "ssi2001",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = ssi2001_init,
-    .close = ssi2001_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = ssi2001_init,
+    .close         = ssi2001_close,
+    .reset         = NULL,
+    { .available   = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = ssi2001_config
+    .force_redraw  = NULL,
+    .config        = ssi2001_config
 };
