@@ -799,7 +799,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Sistema de Controle de Voo Thrustmaster"
 
 msgid "None"
-msgstr "Nada"
+msgstr "Nenhum"
 
 msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CCS: %i, %i, %i)"
