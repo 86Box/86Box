@@ -10933,11 +10933,11 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
-        .name = "[i430VX] Gateway 2000 Tigereye",
-        .internal_name = "gw2kte",
+        .name = "[i430VX] Gateway 2000 Mailman",
+        .internal_name = "gw2kma",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
-        .init = machine_at_gw2kte_init,
+        .init = machine_at_gw2kma_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
