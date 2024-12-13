@@ -26,10 +26,6 @@
 // Compiler specifics.
 #define HAVE_BUILTIN_EXPECT @HAVE_BUILTIN_EXPECT@
 
-#ifndef M_PI
-#  define M_PI    3.14159265358979323846
-#endif
-
 // Branch prediction macros, lifted off the Linux kernel.
 #if RESID_BRANCH_HINTS && HAVE_BUILTIN_EXPECT
 #  define likely(x)      __builtin_expect(!!(x), 1)
@@ -42,6 +38,8 @@
 namespace reSIDfp {
 
 typedef enum { MOS6581=1, MOS8580 } ChipModel;
+
+typedef enum { AVERAGE=1, WEAK, STRONG } CombinedWaveforms;
 
 typedef enum { DECIMATE=1, RESAMPLE } SamplingMethod;
 }

@@ -76,6 +76,7 @@ jobs:
           fluidsynth
           libslirp
           vde
+          libserialport
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -97,6 +98,7 @@ jobs:
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
+          -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
 
       - name: Build
         run: cmake --build build

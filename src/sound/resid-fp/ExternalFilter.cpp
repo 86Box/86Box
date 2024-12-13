@@ -38,9 +38,7 @@ inline double getRC(double res, double cap)
     return res * cap;
 }
 
-ExternalFilter::ExternalFilter() :
-    w0lp_1_s7(0),
-    w0hp_1_s17(0)
+ExternalFilter::ExternalFilter()
 {
     reset();
 }
