@@ -193,6 +193,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PRMIO_END                                   0x7FFF
 #define NV3_PTIMER_START                                0x9000      // Programmable Interval Timer
 #define NV3_PTIMER_INTR                                 0x9100
+#define NV3_PTIMER_INTR_ALARM                           0           // Alarm interrupt
 #define NV3_PTIMER_INTR_EN                              0x9140
 #define NV3_PTIMER_NUMERATOR                            0x9200
 #define NV3_PTIMER_DENOMINATOR                          0x9210
@@ -301,6 +302,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_INTR_1                               0x400104
 #define NV3_PGRAPH_INTR_EN_0                            0x400140    // Interrupt Control for PGRAPH #1
 #define NV3_PGRAPH_INTR_EN_0_VBLANK                     8           // Fired every frame
+#define NV3_PGRAPH_INTR_EN_0_VBLANK_ENABLED             0x1         // Is the vblank interrupt enabled?
 //todo: add what this does
 #define NV3_PGRAPH_INTR_EN_1                            0x400180    // Interrupt Control for PGRAPH #2 (it can receive two at onc)
 

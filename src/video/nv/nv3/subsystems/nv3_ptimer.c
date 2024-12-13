@@ -48,14 +48,28 @@ void nv3_ptimer_init()
     nv_log("Done!\n");    
 }
 
+// Handles the PTIMER alarm interrupt
+void nv3_ptimer_interrupt(uint32_t num)
+{
+    nv3->ptimer.interrupt_enable |= (1 << num);
+    nv3_pmc_handle_interrupts(true);
+}
+
+// Ticks the timer.
+void nv3_ptimer_tick()
+{
+    if (nv3->ptimer.time >= nv3->ptimer.alarm)
+    {
+        nv3_ptimer_interrupt(NV3_PTIMER_INTR_ALARM);
+    }
+}
+
 uint32_t nv3_ptimer_read(uint32_t address) 
 { 
-    // before doing anything, check the subsystem enablement
+    // always enabled
 
     nv_register_t* reg = nv_get_register(address, ptimer_registers, sizeof(ptimer_registers)/sizeof(ptimer_registers[0]));
 
-    // todo: friendly logging
-    
     nv_log("NV3: PTIMER Read from 0x%08x", address);
 
     // if the register actually exists
