@@ -1473,11 +1473,14 @@ void fm_engine_base<RegisterType>::assign_operators()
 template<class RegisterType>
 void fm_engine_base<RegisterType>::update_timer(uint32_t tnum, uint32_t enable, int32_t delta_clocks)
 {
+	uint32_t subtract = !!(tnum >> 15);
+	tnum &= 0x7fff;
+
 	// if the timer is live, but not currently enabled, set the timer
 	if (enable && !m_timer_running[tnum])
 	{
 		// period comes from the registers, and is different for each
-		uint32_t period = (tnum == 0) ? (1024 - m_regs.timer_a_value()) : 16 * (256 - m_regs.timer_b_value());
+		uint32_t period = (tnum == 0) ? (1024 - subtract - m_regs.timer_a_value()) : 16 * (256 - subtract - m_regs.timer_b_value());
 
 		// caller can also specify a delta to account for other effects
 		period += delta_clocks;
@@ -1504,8 +1507,6 @@ void fm_engine_base<RegisterType>::update_timer(uint32_t tnum, uint32_t enable, 
 template<class RegisterType>
 void fm_engine_base<RegisterType>::engine_timer_expired(uint32_t tnum)
 {
-	assert(tnum == 0 || tnum == 1);
-
 	// update status
 	if (tnum == 0 && m_regs.enable_timer_a())
 		set_reset_status(STATUS_TIMERA, 0);
@@ -1521,8 +1522,11 @@ void fm_engine_base<RegisterType>::engine_timer_expired(uint32_t tnum)
 				m_modified_channels |= 1 << chnum;
 			}
 
-	// reset
-	m_timer_running[tnum] = false;
+    // Make sure the array does not go out of bounds to keep gcc happy
+    if ((tnum < 2) || (sizeof(m_timer_running) > (2 * sizeof(uint8_t)))) {
+        // reset
+        m_timer_running[tnum] = false;
+    }
 	update_timer(tnum, 1, 0);
 }
 
