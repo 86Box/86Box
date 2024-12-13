@@ -42,16 +42,17 @@ class Integrator6581;
 class FilterModelConfig6581 final : public FilterModelConfig
 {
 private:
-    static const unsigned int DAC_BITS = 11;
-
-private:
     static std::unique_ptr<FilterModelConfig6581> instance;
     // This allows access to the private constructor
-#ifdef HAVE_CXX11
     friend std::unique_ptr<FilterModelConfig6581>::deleter_type;
-#else
-    friend class std::auto_ptr<FilterModelConfig6581>;
-#endif
+
+private:
+    static constexpr unsigned int DAC_BITS = 11;
+
+    /**
+     * Power bricks generate voltages slightly out of spec
+     */
+    static constexpr double VOLTAGE_SKEW = 1.015;
 
     /// Transistor parameters.
     //@{
@@ -68,20 +69,35 @@ private:
     /// DAC lookup table
     Dac dac;
 
-    /// VCR - 6581 only.
+    /// Voltage Controlled Resistors
     //@{
     unsigned short vcr_nVg[1 << 16];
-    unsigned short vcr_n_Ids_term[1 << 16];
+    double vcr_n_Ids_term[1 << 16];
     //@}
+
+    // Voice DC offset LUT
+    double voiceDC[256];
 
 private:
     double getDacZero(double adjustment) const { return dac_zero + (1. - adjustment); }
 
     FilterModelConfig6581();
-    ~FilterModelConfig6581() DEFAULT;
+    ~FilterModelConfig6581() = default;
+
+protected:
+    /**
+     * On 6581 the DC offset varies between ~5.0V and ~5.214V depending on
+     * the envelope value.
+     */
+    inline double getVoiceDC(unsigned int env) const override
+    {
+        return voiceDC[env];
+    }
 
 public:
     static FilterModelConfig6581* getInstance();
+
+    void setFilterRange(double adjustment);
 
     /**
      * Construct an 11 bit cutoff frequency DAC output voltage table.
@@ -93,17 +109,17 @@ public:
      */
     unsigned short* getDAC(double adjustment) const;
 
-    /**
-     * Construct an integrator solver.
-     *
-     * @return the integrator
-     */
-    std::unique_ptr<Integrator6581> buildIntegrator();
+    inline double getWL_snake() const { return WL_snake; }
 
     inline unsigned short getVcr_nVg(int i) const { return vcr_nVg[i]; }
-    inline unsigned short getVcr_n_Ids_term(int i) const { return vcr_n_Ids_term[i]; }
+    inline unsigned short getVcr_n_Ids_term(int i) const
+    {
+        const double tmp = vcr_n_Ids_term[i] * uCox;
+        assert(tmp > -0.5 && tmp < 65535.5);
+        return static_cast<unsigned short>(tmp + 0.5);
+    }
     // only used if SLOPE_FACTOR is defined
-    inline double getUt() const { return Ut; }
+    inline constexpr double getUt() const { return Ut; }
     inline double getN16() const { return N16; }
 };
 

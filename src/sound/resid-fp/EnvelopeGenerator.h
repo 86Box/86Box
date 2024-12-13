@@ -47,68 +47,68 @@ private:
      * The envelope state machine's distinct states. In addition to this,
      * envelope has a hold mode, which freezes envelope counter to zero.
      */
-    enum State
+    enum class State
     {
         ATTACK, DECAY_SUSTAIN, RELEASE
     };
 
 private:
     /// XOR shift register for ADSR prescaling.
-    unsigned int lfsr;
+    unsigned int lfsr = 0x7fff;
 
     /// Comparison value (period) of the rate counter before next event.
-    unsigned int rate;
+    unsigned int rate = 0;
 
     /**
      * During release mode, the SID approximates envelope decay via piecewise
      * linear decay rate.
      */
-    unsigned int exponential_counter;
+    unsigned int exponential_counter = 0;
 
     /**
      * Comparison value (period) of the exponential decay counter before next
      * decrement.
      */
-    unsigned int exponential_counter_period;
-    unsigned int new_exponential_counter_period;
+    unsigned int exponential_counter_period = 1;
+    unsigned int new_exponential_counter_period = 0;
 
-    unsigned int state_pipeline;
+    unsigned int state_pipeline = 0;
 
     ///
-    unsigned int envelope_pipeline;
+    unsigned int envelope_pipeline = 0;
 
-    unsigned int exponential_pipeline;
+    unsigned int exponential_pipeline = 0;
 
     /// Current envelope state
-    State state;
-    State next_state;
+    State state = State::RELEASE;
+    State next_state = State::RELEASE;
 
     /// Whether counter is enabled. Only switching to ATTACK can release envelope.
-    bool counter_enabled;
+    bool counter_enabled = true;
 
     /// Gate bit
-    bool gate;
+    bool gate = false;
 
     ///
-    bool resetLfsr;
+    bool resetLfsr = false;
 
     /// The current digital value of envelope output.
-    unsigned char envelope_counter;
+    unsigned char envelope_counter = 0xaa;
 
     /// Attack register
-    unsigned char attack;
+    unsigned char attack = 0;
 
     /// Decay register
-    unsigned char decay;
+    unsigned char decay = 0;
 
     /// Sustain register
-    unsigned char sustain;
+    unsigned char sustain = 0;
 
     /// Release register
-    unsigned char release;
+    unsigned char release = 0;
 
     /// The ENV3 value, sampled at the first phase of the clock
-    unsigned char env3;
+    unsigned char env3 = 0;
 
 private:
     static const unsigned int adsrtable[16];
@@ -128,31 +128,6 @@ public:
      * Get the Envelope Generator digital output.
      */
     unsigned int output() const { return envelope_counter; }
-
-    /**
-     * Constructor.
-     */
-    EnvelopeGenerator() :
-        lfsr(0x7fff),
-        rate(0),
-        exponential_counter(0),
-        exponential_counter_period(1),
-        new_exponential_counter_period(0),
-        state_pipeline(0),
-        envelope_pipeline(0),
-        exponential_pipeline(0),
-        state(RELEASE),
-        next_state(RELEASE),
-        counter_enabled(true),
-        gate(false),
-        resetLfsr(false),
-        envelope_counter(0xaa),
-        attack(0),
-        decay(0),
-        sustain(0),
-        release(0),
-        env3(0)
-    {}
 
     /**
      * SID reset.
@@ -218,15 +193,15 @@ void EnvelopeGenerator::clock()
     {
         if (likely(counter_enabled))
         {
-            if (state == ATTACK)
+            if (state == State::ATTACK)
             {
                 if (++envelope_counter==0xff)
                 {
-                    next_state = DECAY_SUSTAIN;
+                    next_state = State::DECAY_SUSTAIN;
                     state_pipeline = 3;
                 }
             }
-            else if ((state == DECAY_SUSTAIN) || (state == RELEASE))
+            else if ((state == State::DECAY_SUSTAIN) || (state == State::RELEASE))
             {
                 if (--envelope_counter==0x00)
                 {
@@ -241,8 +216,8 @@ void EnvelopeGenerator::clock()
     {
         exponential_counter = 0;
 
-        if (((state == DECAY_SUSTAIN) && (envelope_counter != sustain))
-            || (state == RELEASE))
+        if (((state == State::DECAY_SUSTAIN) && (envelope_counter != sustain))
+            || (state == State::RELEASE))
         {
             // The envelope counter can flip from 0x00 to 0xff by changing state to
             // attack, then to release. The envelope counter will then continue
@@ -257,7 +232,7 @@ void EnvelopeGenerator::clock()
         lfsr = 0x7fff;
         resetLfsr = false;
 
-        if (state == ATTACK)
+        if (state == State::ATTACK)
         {
             // The first envelope step in the attack state also resets the exponential
             // counter. This has been verified by sampling ENV3.
@@ -344,7 +319,7 @@ void EnvelopeGenerator::state_change()
 
     switch (next_state)
     {
-    case ATTACK:
+    case State::ATTACK:
         if (state_pipeline == 1)
         {
             // The decay rate is "accidentally" enabled during first cycle of attack phase
@@ -352,24 +327,24 @@ void EnvelopeGenerator::state_change()
         }
         else if (state_pipeline == 0)
         {
-            state = ATTACK;
+            state = State::ATTACK;
             // The attack rate is correctly enabled during second cycle of attack phase
             rate = adsrtable[attack];
             counter_enabled = true;
         }
         break;
-    case DECAY_SUSTAIN:
+    case State::DECAY_SUSTAIN:
         if (state_pipeline == 0)
         {
-            state = DECAY_SUSTAIN;
+            state = State::DECAY_SUSTAIN;
             rate = adsrtable[decay];
         }
         break;
-    case RELEASE:
-        if (((state == ATTACK) && (state_pipeline == 0))
-            || ((state == DECAY_SUSTAIN) && (state_pipeline == 1)))
+    case State::RELEASE:
+        if (((state == State::ATTACK) && (state_pipeline == 0))
+            || ((state == State::DECAY_SUSTAIN) && (state_pipeline == 1)))
         {
-            state = RELEASE;
+            state = State::RELEASE;
             rate = adsrtable[release];
         }
         break;

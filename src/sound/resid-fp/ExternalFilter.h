@@ -34,8 +34,6 @@ namespace reSIDfp
  * acts as a high-pass filter with a cutoff dependent on the attached audio
  * equipment impedance. Here we suppose an impedance of 10kOhm resulting
  * in a 3 dB attenuation at 1.6Hz.
- * To operate properly the 6581 audio output needs a pull-down resistor
- *(1KOhm recommended, not needed on 8580)
  *
  * ~~~
  *                                 9/12V
@@ -47,15 +45,18 @@ namespace reSIDfp
  *          |        |  pF    +-C----o-----C-----+ 10k
  *                             470   |           |
  *         GND      GND         pF   R 1K        | amp
- *          *                   *    |           +-----
+ *          *                   **   |           +-----
  *
  *                                  GND
  * ~~~
  *
  * The STC networks are connected with a [BJT] based [common collector]
  * used as a voltage follower (featuring a 2SC1815 NPN transistor).
- * * The C64c board additionally includes a [bootstrap] condenser to increase
- * the input impedance of the common collector.
+ *
+ * * To operate properly the 6581 audio output needs a pull-down resistor
+ *   (1KOhm recommended, not needed on 8580)
+ * ** The C64c board additionally includes a [bootstrap] condenser to increase
+ *    the input impedance of the common collector.
  *
  * [BJT]: https://en.wikipedia.org/wiki/Bipolar_junction_transistor
  * [common collector]: https://en.wikipedia.org/wiki/Common_collector
@@ -70,9 +71,9 @@ private:
     /// Highpass filter voltage
     int Vhp;
 
-    int w0lp_1_s7;
+    int w0lp_1_s7 = 0;
 
-    int w0hp_1_s17;
+    int w0hp_1_s17 = 0;
 
 public:
     /**
@@ -80,7 +81,7 @@ public:
      *
      * @param input
      */
-    int clock(unsigned short input);
+    int clock(int input);
 
     /**
      * Constructor.
@@ -108,9 +109,9 @@ namespace reSIDfp
 {
 
 RESID_INLINE
-int ExternalFilter::clock(unsigned short input)
+int ExternalFilter::clock(int input)
 {
-    const int Vi = (static_cast<unsigned int>(input)<<11) - (1 << (11+15));
+    const int Vi = (input<<11) - (1 << (11+15));
     const int dVlp = (w0lp_1_s7 * (Vi - Vlp) >> 7);
     const int dVhp = (w0hp_1_s17 * (Vlp - Vhp) >> 17);
     Vlp += dVlp;

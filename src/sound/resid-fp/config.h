@@ -1,1 +1,1 @@
-#define HAVE_CXX14
+#define HAVE_CXX17

@@ -558,7 +558,10 @@ ide_hd_identify(const ide_t *ide)
     /* Firmware */
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
     /* Model */
-    ide_padstr((char *) (ide->buffer + 27), device_identify, 40);
+    if (hdd[ide->hdd_num].model)
+        ide_padstr((char *) (ide->buffer + 27), hdd[ide->hdd_num].model, 40);
+    else
+        ide_padstr((char *) (ide->buffer + 27), device_identify, 40);
     /* Fixed drive */
     ide->buffer[0]  = (1 << 6);
     /* Buffer type */

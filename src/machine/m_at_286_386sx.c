@@ -770,7 +770,8 @@ machine_at_sbc350a_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&ali1217_device);
-    device_add(&fdc37c665_ide_device);
+    device_add(&ide_isa_device);
+    device_add(&fdc37c665_ide_pri_device);
     device_add(&keyboard_ps2_ami_device);
 
     return ret;
