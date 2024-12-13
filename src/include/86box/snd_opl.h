@@ -18,13 +18,13 @@
 #define SOUND_OPL_H
 
 enum fm_type {
-    FM_YM3812  = 0, /* OPL2 */
-    FM_YMF262  = 1, /* OPL3 */
-    FM_YMF289B = 2, /* OPL3-L */
-    FM_YMF278B = 3, /* OPL 4 */
-    FM_ESFM    = 4, /* ESFM */
-    FM_MAX     = 5,
-    FM_OPL2BOARD = 6 /* OPL2BOARD (External Device)*/
+    FM_YM3812    = 0, /* OPL2 */
+    FM_YMF262    = 1, /* OPL3 */
+    FM_YMF289B   = 2, /* OPL3-L */
+    FM_YMF278B   = 3, /* OPL 4 */
+    FM_ESFM      = 4, /* ESFM */
+    FM_OPL2BOARD = 5, /* OPL2BOARD (External Device)*/
+    FM_MAX       = 6
 };
 
 enum fm_driver {
