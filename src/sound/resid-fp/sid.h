@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2016 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004 Dag Lem <resid@nimrod.no>
  *
@@ -26,6 +26,9 @@
 #include <memory>
 
 #include "siddefs-fp.h"
+#include "ExternalFilter.h"
+#include "Potentiometer.h"
+#include "Voice.h"
 
 #include "sidcxx11.h"
 
@@ -35,9 +38,6 @@ namespace reSIDfp
 class Filter;
 class Filter6581;
 class Filter8580;
-class ExternalFilter;
-class Potentiometer;
-class Voice;
 class Resampler;
 
 /**
@@ -64,28 +64,31 @@ private:
     Filter* filter;
 
     /// Filter used, if model is set to 6581
-    std::unique_ptr<Filter6581> const filter6581;
+    Filter6581* const filter6581;
 
     /// Filter used, if model is set to 8580
-    std::unique_ptr<Filter8580> const filter8580;
+    Filter8580* const filter8580;
+
+    /// Resampler used by audio generation code.
+    std::unique_ptr<Resampler> resampler;
 
     /**
      * External filter that provides high-pass and low-pass filtering
      * to adjust sound tone slightly.
      */
-    std::unique_ptr<ExternalFilter> const externalFilter;
-
-    /// Resampler used by audio generation code.
-    std::unique_ptr<Resampler> resampler;
+    ExternalFilter externalFilter;
 
     /// Paddle X register support
-    std::unique_ptr<Potentiometer> const potX;
+    Potentiometer potX;
 
     /// Paddle Y register support
-    std::unique_ptr<Potentiometer> const potY;
+    Potentiometer potY;
 
     /// SID voices
-    std::unique_ptr<Voice> voice[3];
+    Voice voice[3];
+
+    /// Used to amplify the output by x/2 to get an adequate playback volume
+    int scaleFactor;
 
     /// Time to live for the last written value
     int busValueTtl;
@@ -99,11 +102,11 @@ private:
     /// Currently active chip model.
     ChipModel model;
 
+    /// Currently selected combined waveforms strength.
+    CombinedWaveforms cws;
+
     /// Last written value
     unsigned char busValue;
-
-    /// Flags for muted channels
-    bool muted[3];
 
     /**
      * Emulated nonlinearity of the envelope DAC.
@@ -132,7 +135,7 @@ private:
      *
      * @return the output sample
      */
-    int output() const;
+    int output();
 
     /**
      * Calculate the numebr of cycles according to current parameters
@@ -158,6 +161,14 @@ public:
      * Get currently emulated chip model.
      */
     ChipModel getChipModel() const { return model; }
+
+    /**
+     * Set combined waveforms strength.
+     *
+     * @param cws strength of combined waveforms
+     * @throw SIDError
+     */
+    void setCombinedWaveforms(CombinedWaveforms cws);
 
     /**
      * SID reset.
@@ -205,14 +216,6 @@ public:
     void write(int offset, unsigned char value);
 
     /**
-     * SID voice muting.
-     *
-     * @param channel channel to modify
-     * @param enable is muted?
-     */
-    void mute(int channel, bool enable) { muted[channel] = enable; }
-
-    /**
      * Setting of SID sampling parameters.
      *
      * Use a clock freqency of 985248Hz for PAL C64, 1022730Hz for NTSC C64.
@@ -237,7 +240,11 @@ public:
      * @param highestAccurateFrequency
      * @throw SIDError
      */
-    void setSamplingParameters(double clockFrequency, SamplingMethod method, double samplingFrequency, double highestAccurateFrequency);
+    void setSamplingParameters(
+        double clockFrequency,
+        SamplingMethod method,
+        double samplingFrequency
+    );
 
     /**
      * Clock SID forward using chosen output sampling algorithm.
@@ -266,6 +273,13 @@ public:
      * @see Filter6581::setFilterCurve(double)
      */
     void setFilter6581Curve(double filterCurve);
+
+    /**
+    * Set filter range parameter for 6581 model
+    *
+    * @see Filter6581::setFilterRange(double)
+    */
+    void setFilter6581Range ( double adjustment );
 
     /**
      * Set filter curve parameter for 8580 model.
@@ -312,13 +326,22 @@ void SID::ageBusValue(unsigned int n)
 }
 
 RESID_INLINE
-int SID::output() const
+int SID::output()
 {
-    const int v1 = voice[0]->output(voice[2]->wave());
-    const int v2 = voice[1]->output(voice[0]->wave());
-    const int v3 = voice[2]->output(voice[1]->wave());
+    const float o1 = voice[0].output(voice[2].wave());
+    const float o2 = voice[1].output(voice[0].wave());
+    const float o3 = voice[2].output(voice[1].wave());
 
-    return externalFilter->clock(filter->clock(v1, v2, v3));
+    const unsigned int env1 = voice[0].envelope()->output();
+    const unsigned int env2 = voice[1].envelope()->output();
+    const unsigned int env3 = voice[2].envelope()->output();
+
+    const int v1 = filter->getNormalizedVoice(o1, env1);
+    const int v2 = filter->getNormalizedVoice(o2, env2);
+    const int v3 = filter->getNormalizedVoice(o3, env3);
+
+    const int input = static_cast<int>(filter->clock(v1, v2, v3));
+    return externalFilter.clock(input);
 }
 
 
@@ -337,18 +360,18 @@ int SID::clock(unsigned int cycles, short* buf)
             for (unsigned int i = 0; i < delta_t; i++)
             {
                 // clock waveform generators
-                voice[0]->wave()->clock();
-                voice[1]->wave()->clock();
-                voice[2]->wave()->clock();
+                voice[0].wave()->clock();
+                voice[1].wave()->clock();
+                voice[2].wave()->clock();
 
                 // clock envelope generators
-                voice[0]->envelope()->clock();
-                voice[1]->envelope()->clock();
-                voice[2]->envelope()->clock();
+                voice[0].envelope()->clock();
+                voice[1].envelope()->clock();
+                voice[2].envelope()->clock();
 
                 if (unlikely(resampler->input(output())))
                 {
-                    buf[s++] = resampler->getOutput();
+                    buf[s++] = resampler->getOutput(scaleFactor);
                 }
             }
 

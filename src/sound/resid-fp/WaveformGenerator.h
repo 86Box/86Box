@@ -93,64 +93,64 @@ namespace reSIDfp
 class WaveformGenerator
 {
 private:
-    matrix_t* model_wave;
-    matrix_t* model_pulldown;
+    matrix_t* model_wave = nullptr;
+    matrix_t* model_pulldown = nullptr;
 
-    short* wave;
-    short* pulldown;
+    short* wave = nullptr;
+    short* pulldown = nullptr;
 
     // PWout = (PWn/40.95)%
-    unsigned int pw;
+    unsigned int pw = 0;
 
-    unsigned int shift_register;
+    unsigned int shift_register = 0;
 
     /// Shift register is latched when transitioning to shift phase 1.
-    unsigned int shift_latch;
+    unsigned int shift_latch = 0;
 
     /// Emulation of pipeline causing bit 19 to clock the shift register.
-    int shift_pipeline;
+    int shift_pipeline = 0;
 
-    unsigned int ring_msb_mask;
-    unsigned int no_noise;
-    unsigned int noise_output;
-    unsigned int no_noise_or_noise_output;
-    unsigned int no_pulse;
-    unsigned int pulse_output;
+    unsigned int ring_msb_mask = 0;
+    unsigned int no_noise = 0;
+    unsigned int noise_output = 0;
+    unsigned int no_noise_or_noise_output = 0;
+    unsigned int no_pulse = 0;
+    unsigned int pulse_output = 0;
 
     /// The control register right-shifted 4 bits; used for output function table lookup.
-    unsigned int waveform;
+    unsigned int waveform = 0;
 
-    unsigned int waveform_output;
+    unsigned int waveform_output = 0;
 
     /// Current accumulator value.
-    unsigned int accumulator;
+    unsigned int accumulator = 0x555555; // Accumulator's even bits are high on powerup
 
     // Fout = (Fn*Fclk/16777216)Hz
-    unsigned int freq;
+    unsigned int freq = 0;
 
     /// 8580 tri/saw pipeline
-    unsigned int tri_saw_pipeline;
+    unsigned int tri_saw_pipeline = 0x555;
 
     /// The OSC3 value
-    unsigned int osc3;
+    unsigned int osc3 = 0;
 
     /// Remaining time to fully reset shift register.
-    unsigned int shift_register_reset;
+    unsigned int shift_register_reset = 0;
 
     // The wave signal TTL when no waveform is selected.
-    unsigned int floating_output_ttl;
+    unsigned int floating_output_ttl = 0;
 
     /// The control register bits. Gate is handled by EnvelopeGenerator.
     //@{
-    bool test;
-    bool sync;
+    bool test = false;
+    bool sync = false;
     //@}
 
     /// Test bit is latched at phi2 for the noise XOR.
     bool test_or_reset;
 
     /// Tell whether the accumulator MSB was set high on this cycle.
-    bool msb_rising;
+    bool msb_rising = false;
 
     bool is6581; //-V730_NOINIT this is initialized in the SID constructor
 
@@ -160,7 +160,7 @@ private:
     void write_shift_register();
 
     void set_noise_output();
-    
+
     void set_no_noise_or_noise_output();
 
     void waveBitfade();
@@ -193,35 +193,6 @@ public:
      * @param syncSource The sync source oscillator
      */
     void synchronize(WaveformGenerator* syncDest, const WaveformGenerator* syncSource) const;
-
-    /**
-     * Constructor.
-     */
-    WaveformGenerator() :
-        model_wave(nullptr),
-        model_pulldown(nullptr),
-        wave(nullptr),
-        pulldown(nullptr),
-        pw(0),
-        shift_register(0),
-        shift_pipeline(0),
-        ring_msb_mask(0),
-        no_noise(0),
-        noise_output(0),
-        no_noise_or_noise_output(0),
-        no_pulse(0),
-        pulse_output(0),
-        waveform(0),
-        waveform_output(0),
-        accumulator(0x555555),          // Accumulator's even bits are high on powerup
-        freq(0),
-        tri_saw_pipeline(0x555),
-        osc3(0),
-        shift_register_reset(0),
-        floating_output_ttl(0),
-        test(false),
-        sync(false),
-        msb_rising(false) {}
 
     /**
      * Write FREQ LO register.
@@ -397,13 +368,13 @@ unsigned int WaveformGenerator::output(const WaveformGenerator* ringModulator)
         {
             osc3 = waveform_output;
         }
-
         // In the 6581 the top bit of the accumulator may be driven low by combined waveforms
         // when the sawtooth is selected
-        if (is6581
-                && (waveform & 0x2)
-                && ((waveform_output & 0x800) == 0))
+        if (is6581 && (waveform & 0x2) && ((waveform_output & 0x800) == 0))
+        {
+            msb_rising = 0;
             accumulator &= 0x7fffff;
+        }
 
         write_shift_register();
     }

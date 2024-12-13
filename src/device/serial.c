@@ -197,6 +197,8 @@ serial_receive_timer(void *priv)
             /* Raise Data Ready interrupt. */
             dev->lsr |= 0x01;
             dev->int_status |= SERIAL_INT_RECEIVE;
+            if (dev->lsr & 0x02)
+                dev->int_status |= SERIAL_INT_LSR;
 
             serial_update_ints(dev);
         }
@@ -266,10 +268,6 @@ serial_move_to_txsr(serial_t *dev)
         /* Update interrupts to signal THRE and that TXSR is no longer empty. */
         serial_update_ints(dev);
     }
-    if (dev->transmit_enabled & 2)
-        dev->baud_cycles++;
-    else
-        dev->baud_cycles = 0; /* If not moving while transmitting, reset BAUDOUT cycle count. */
     if (!dev->fifo_enabled || (fifo_get_count(dev->xmit_fifo) == 0x0))
         dev->transmit_enabled &= ~1; /* Stop moving. */
     dev->transmit_enabled |= 2;      /* Start transmitting. */
@@ -303,16 +301,26 @@ static void
 serial_transmit_timer(void *priv)
 {
     serial_t *dev   = (serial_t *) priv;
-    int       delay = 8; /* STOP to THRE delay is 8 BAUDOUT cycles. */
+    /*
+       Norton Diagnostics waits for up to 2 bit periods, this is
+       confirmed by the NS16550A timings graph, which shows operation
+       as follows after write: 1 bit of delay, then start bit, and at
+       the end of the start bit, move from THR to TXSR.
+     */
+    int       delay = 1;
 
     if (dev->transmit_enabled & 3) {
+        /*
+           If already transmitting, move from THR to TXSR at the end of
+           the last data bit.
+         */
         if ((dev->transmit_enabled & 1) && (dev->transmit_enabled & 2))
-            delay = dev->data_bits; /* Delay by less if already transmitting. */
+            delay = dev->data_bits + 1;
 
         dev->baud_cycles++;
 
-        /* We have processed (total bits) BAUDOUT cycles, transmit the byte. */
-        if ((dev->baud_cycles == dev->bits) && (dev->transmit_enabled & 2))
+        /* We have processed (delay + total bits) BAUDOUT cycles, transmit the byte. */
+        if ((dev->baud_cycles == (dev->bits + 1)) && (dev->transmit_enabled & 2))
             serial_process_txsr(dev);
 
         /* We have processed (data bits) BAUDOUT cycles. */
@@ -613,6 +621,11 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                     new_msr |= 0x04;
 
                 dev->msr = new_msr;
+
+                if (dev->msr & 0x0f) {
+                    dev->int_status |= SERIAL_INT_MSR;
+                    serial_update_ints(dev);
+                }
 
                 /* TODO: Why reset the FIFO's here?! */
                 fifo_reset(dev->xmit_fifo);

@@ -895,9 +895,9 @@ load_storage_controllers(void)
                     fatal("load_storage_controllers(): strlen(p) > 2047 "
                           "(cassette_image_history[%i])\n", i);
                 else
-                    snprintf(cassette_image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                    snprintf(cassette_image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
             } else
-                snprintf(cassette_image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                snprintf(cassette_image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                          path_get_slash(usr_path), p);
             path_normalize(cassette_image_history[i]);
         }
@@ -960,9 +960,9 @@ load_storage_controllers(void)
                         fatal("load_storage_controllers(): strlen(p) > 2047 "
                               "(cart_image_history[%i][%i])\n", c, i);
                     else
-                        snprintf(cart_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                        snprintf(cart_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s", p);
                 } else
-                    snprintf(cart_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                    snprintf(cart_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                              path_get_slash(usr_path), p);
                 path_normalize(cart_image_history[c][i]);
             }
@@ -1259,9 +1259,9 @@ load_floppy_and_cdrom_drives(void)
                         fatal("load_floppy_and_cdrom_drives(): strlen(p) > 2047 "
                               "(fdd_image_history[%i][%i])\n", c, i);
                     else
-                        snprintf(fdd_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                        snprintf(fdd_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s", p);
                 } else
-                    snprintf(fdd_image_history[c][i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                    snprintf(fdd_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                              path_get_slash(usr_path), p);
                 path_normalize(fdd_image_history[c][i]);
             }
@@ -1370,9 +1370,9 @@ load_floppy_and_cdrom_drives(void)
                         fatal("load_floppy_and_cdrom_drives(): strlen(p) > 2047 "
                               "(cdrom[%i].image_history[%i])\n", c, i);
                     else
-                        snprintf(cdrom[c].image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                        snprintf(cdrom[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
                 } else
-                    snprintf(cdrom[c].image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                    snprintf(cdrom[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                              path_get_slash(usr_path), p);
                 path_normalize(cdrom[c].image_history[i]);
             }
@@ -1500,9 +1500,9 @@ load_other_removable_devices(void)
                         fatal("load_other_removable_devices(): strlen(p) > 2047 "
                               "(zip_drives[%i].image_history[%i])\n", c, i);
                     else
-                        snprintf(zip_drives[c].image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                        snprintf(zip_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
                 } else
-                    snprintf(zip_drives[c].image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                    snprintf(zip_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                              path_get_slash(usr_path), p);
                 path_normalize(zip_drives[c].image_history[i]);
             }
@@ -1613,9 +1613,9 @@ load_other_removable_devices(void)
                         fatal("load_other_removable_devices(): strlen(p) > 2047 "
                               "(mo_drives[%i].image_history[%i])\n", c, i);
                     else
-                        snprintf(mo_drives[c].image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s", p);
+                        snprintf(mo_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
                 } else
-                    snprintf(mo_drives[c].image_history[i], (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                    snprintf(mo_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                              path_get_slash(usr_path), p);
                 path_normalize(mo_drives[c].image_history[i]);
             }

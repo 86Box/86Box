@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2017 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  * Copyright 2004 Dag Lem <resid@nimrod.no>
  *
@@ -23,6 +23,10 @@
 #ifndef FILTER_H
 #define FILTER_H
 
+#include "FilterModelConfig.h"
+
+#include "siddefs-fp.h"
+
 namespace reSIDfp
 {
 
@@ -31,93 +35,97 @@ namespace reSIDfp
  */
 class Filter
 {
+private:
+    unsigned short** mixer;
+    unsigned short** summer;
+    unsigned short** resonance;
+    unsigned short** volume;
+
 protected:
-    /// Current volume amplifier setting.
-    unsigned short* currentGain;
+    FilterModelConfig& fmc;
 
     /// Current filter/voice mixer setting.
-    unsigned short* currentMixer;
+    unsigned short* currentMixer = nullptr;
 
     /// Filter input summer setting.
-    unsigned short* currentSummer;
+    unsigned short* currentSummer = nullptr;
 
     /// Filter resonance value.
-    unsigned short* currentResonance;
+    unsigned short* currentResonance = nullptr;
+
+    /// Current volume amplifier setting.
+    unsigned short* currentVolume = nullptr;
 
     /// Filter highpass state.
-    int Vhp;
+    int Vhp = 0;
 
     /// Filter bandpass state.
-    int Vbp;
+    int Vbp = 0;
 
     /// Filter lowpass state.
-    int Vlp;
+    int Vlp = 0;
 
     /// Filter external input.
-    int ve;
+    int Ve = 0;
 
     /// Filter cutoff frequency.
-    unsigned int fc;
+    unsigned int fc = 0;
 
     /// Routing to filter or outside filter
-    bool filt1, filt2, filt3, filtE;
+    //@{
+    bool filt1 = false;
+    bool filt2 = false;
+    bool filt3 = false;
+    bool filtE = false;
+    //@}
 
     /// Switch voice 3 off.
-    bool voice3off;
+    bool voice3off = false;
 
     /// Highpass, bandpass, and lowpass filter modes.
-    bool hp, bp, lp;
-
-    /// Current volume.
-    unsigned char vol;
+    //@{
+    bool hp = false;
+    bool bp = false;
+    bool lp = false;
+    //@}
 
 private:
+    /// Current volume.
+    unsigned char vol = 0;
+
     /// Filter enabled.
-    bool enabled;
+    bool enabled = true;
 
     /// Selects which inputs to route through filter.
-    unsigned char filt;
+    unsigned char filt = 0;
 
 protected:
     /**
-     * Set filter cutoff frequency.
+     * Update filter cutoff frequency.
      */
-    virtual void updatedCenterFrequency() = 0;
+    virtual void updateCenterFrequency() = 0;
 
     /**
-     * Set filter resonance.
+     * Update filter resonance.
+     *
+     * @param res the new resonance value
      */
-    virtual void updateResonance(unsigned char res) = 0;
+    void updateResonance(unsigned char res) { currentResonance = resonance[res]; }
 
     /**
      * Mixing configuration modified (offsets change)
      */
-    virtual void updatedMixing() = 0;
+    void updateMixing();
+
+    /**
+     * Get the filter cutoff register value
+     */
+    unsigned int getFC() const { return fc; }
 
 public:
-    Filter() :
-        currentGain(nullptr),
-        currentMixer(nullptr),
-        currentSummer(nullptr),
-        currentResonance(nullptr),
-        Vhp(0),
-        Vbp(0),
-        Vlp(0),
-        ve(0),
-        fc(0),
-        filt1(false),
-        filt2(false),
-        filt3(false),
-        filtE(false),
-        voice3off(false),
-        hp(false),
-        bp(false),
-        lp(false),
-        vol(0),
-        enabled(true),
-        filt(0) {}
+    Filter(FilterModelConfig& fmc);
 
-    virtual ~Filter() {}
+    virtual ~Filter() = default;
 
     /**
      * SID clocking - 1 cycle
@@ -169,7 +177,14 @@ public:
      */
     void writeMODE_VOL(unsigned char mode_vol);
 
-    virtual void input(int input) = 0;
+    /**
+     * Apply a signal to EXT-IN
+     *
+     * @param input a signed 16 bit sample
+     */
+    void input(short input) { Ve = fmc.getNormalizedVoice(input/32768.f, 0); }
+
+    inline int getNormalizedVoice(float value, unsigned int env) const { return fmc.getNormalizedVoice(value, env); }
 };
 
 } // namespace reSIDfp

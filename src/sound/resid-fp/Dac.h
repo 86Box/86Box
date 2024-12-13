@@ -75,6 +75,15 @@ namespace reSIDfp
 class Dac
 {
 private:
+    /**
+     * DAC leakage
+     *
+     * "Even in standard transistors a small amount of current leaks even when they are technically switched off."
+     *
+     * https://en.wikipedia.org/wiki/Subthreshold_conduction
+     */
+    double leakage;
+
     /// analog values
     double * const dac;
 
