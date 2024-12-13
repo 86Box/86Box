@@ -97,15 +97,10 @@ opWAIT(uint32_t fetchdat)
         return 1;
     }
 
-#if 0
-    if (!cpu_use_dynarec && fpu_softfloat) {
-#endif
     if (fpu_softfloat) {
         if (fpu_state.swd & FPU_SW_Summary) {
-            if (cr0 & 0x20) {
-                x86_int(16);
-                return 1;
-            }
+            picint(1 << 13);
+            return 1;
         }
     }
     CLOCK_CYCLES(4);

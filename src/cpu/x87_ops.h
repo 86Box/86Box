@@ -99,7 +99,10 @@ typedef union {
                     dst = src1 / (double) src2;         \
                 else {                                  \
                     fpu_log("FPU : divide by zero\n");  \
-                    picint(1 << 13);                    \
+                    if (is486 && (cr0 & 0x20))          \
+                        x86_int(16);                    \
+                    else                                \
+                        picint(1 << 13);                \
                     return 1;                           \
                 }                                       \
             } else                                      \
