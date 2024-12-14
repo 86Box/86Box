@@ -355,7 +355,10 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
                 nmi = 1;
             }
 #else
-            picint(1 << 13);
+           if (is486 && (cr0 & 0x20))
+               x86_int(16);
+            else
+                picint(1 << 13);
 #endif // FPU_8087
         }
         return unmasked;
