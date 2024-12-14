@@ -192,6 +192,7 @@ extern const device_t ps1snd_device;
 
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;
+extern const device_t entertainer_device;
 
 /* Pro Audio Spectrum Plus, 16, and 16D */
 extern const device_t pasplus_device;

@@ -56,14 +56,8 @@ opl2board_device_log(const char *fmt, ...)
 
 typedef struct opl2board_device_t {
     fm_drv_t opl;
-
-    uint8_t pos_regs[8];
-    
-
+    uint8_t  pos_regs[8];
 } opl2board_device_t;
-
-
-
 
 static void
 opl2board_device_get_buffer(int32_t *buffer, int len, void *priv)
@@ -115,6 +109,7 @@ opl2board_device_mca_write(int port, uint8_t val, void *priv)
         default:
             break;
     }
+
     serial->pos_regs[port & 7] = val;
 }
 
@@ -131,8 +126,7 @@ opl2board_device_init(UNUSED(const device_t *info))
 {
     opl2board_device_t *serial = malloc(sizeof(opl2board_device_t));
     memset(serial, 0, sizeof(opl2board_device_t));
-    
-    
+
     opl2board_device_log("opl2board_device_init\n");
     fm_driver_get(FM_OPL2BOARD, &serial->opl);
     io_sethandler(0x0388, 0x0002,
@@ -141,9 +135,7 @@ opl2board_device_init(UNUSED(const device_t *info))
                   serial->opl.priv);
     music_add_handler(opl2board_device_get_buffer, serial);
 
-
     return serial;
-    
 }
 
 void *
@@ -175,19 +167,18 @@ opl2board_device_close(void *priv)
 
 
 static const device_config_t opl2board_config[] = {
-
-  {
-        .name = "host_serial_path",
-        .description = "Host Serial Device",
-        .type = CONFIG_SERPORT,
-        .default_string = "",
-        .file_filter = NULL,
-        .spinner = {},
-        .selection = {}
+{
+    .name = "host_serial_path",
+    .description = "Host Serial Device",
+    .type = CONFIG_SERPORT,
+    .default_string = "",
+    .file_filter = NULL,
+    .spinner = {},
+    .selection = {}
     },
-      { .name = "", .description = "", .type = CONFIG_END }
+    { .name = "", .description = "", .type = CONFIG_END }
+};
 
-    };
 const device_t opl2board_device = {
     .name          = "OPL2Board (External Device)",
     .internal_name = "opl2board_device",
