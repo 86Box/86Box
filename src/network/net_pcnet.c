@@ -2607,7 +2607,7 @@ pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             /* Then let's set the PCI regs. */
             pcnet_pci_bar[0].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            pcnet_pci_bar[0].addr &= 0xff00;
+            pcnet_pci_bar[0].addr &= 0xffe0;
             dev->PCIBase = pcnet_pci_bar[0].addr;
             /* Log the new base. */
             pcnet_log(4, "%s: New I/O base is %04X\n", dev->name, dev->PCIBase);
@@ -2685,7 +2685,7 @@ pcnet_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return 1; /*I/O space*/
+            return pcnet_pci_bar[0].addr_regs[0] | 1; /*I/O space*/
         case 0x11:
             return pcnet_pci_bar[0].addr_regs[1];
         case 0x12:
