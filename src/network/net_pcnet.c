@@ -2481,36 +2481,58 @@ pcnet_readl(uint16_t addr, void *priv)
 static void
 pcnet_mmio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 1);
 }
 
 static void
 pcnet_mmio_writew(uint32_t addr, uint16_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 1, val >> 8);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 2);
 }
 
 static void
 pcnet_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 1, val >> 8);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 2, val >> 16);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 3, val >> 24);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 4);
 }
 
 static uint8_t
 pcnet_mmio_readb(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr);
     return (pcnet_read((nic_t *) priv, addr, 1));
 }
 
 static uint16_t
 pcnet_mmio_readw(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr) | (pcnet_aprom_readb((nic_t *) priv, addr + 1) << 8);
     return (pcnet_read((nic_t *) priv, addr, 2));
 }
 
 static uint32_t
 pcnet_mmio_readl(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr) | (pcnet_aprom_readb((nic_t *) priv, addr + 1) << 8) | (pcnet_aprom_readb((nic_t *) priv, addr + 2) << 16) | (pcnet_aprom_readb((nic_t *) priv, addr + 3) << 24);
     return (pcnet_read((nic_t *) priv, addr, 4));
 }
 
