@@ -11953,16 +11953,14 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
-/* 430VX */
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name = "[i430VX] Gateway 2000 Hitman",
-        .internal_name = "hitman",
+        .internal_name = "gw2kte",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
-        .init = machine_at_hitman_init,
+        .init = machine_at_gw2kte_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -11996,8 +11994,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
-
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
