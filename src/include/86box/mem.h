@@ -179,6 +179,7 @@ typedef struct _mem_mapping_ {
     uint32_t base;
     uint32_t size;
 
+    uint32_t base_ignore;
     uint32_t mask;
 
     uint8_t (*read_b)(uint32_t addr, void *priv);
@@ -400,6 +401,7 @@ extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
                                  uint32_t base, uint32_t size);
+extern void mem_mapping_set_base_ignore(mem_mapping_t *, uint32_t base_ignore);
 extern void mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
 extern void mem_mapping_set_mask(mem_mapping_t *, uint32_t mask);
 extern void mem_mapping_disable(mem_mapping_t *);
