@@ -4306,6 +4306,9 @@ gd54xx_init(const device_t *info)
         mem_mapping_disable(&gd54xx->bios_rom.mapping);
     }
 
+    if ((svga->crtc[0x27] <= CIRRUS_ID_CLGD5429) || (!gd54xx->pci && !gd54xx->vlb))
+        mem_mapping_set_base_ignore(&gd54xx->linear_mapping, 0xff000000);
+
     mem_mapping_set_p(&svga->mapping, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);
     mem_mapping_disable(&gd54xx->linear_mapping);
