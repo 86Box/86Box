@@ -38,12 +38,9 @@ extern "C" {
 #        pragma clang diagnostic ignored "-Wc99-designator"
 #    endif
 #endif
-
 }
 
 #define RSM_FRAC 10
-
-#define OPL_FREQ FREQ_48000
 
 enum {
     FLAG_CYCLES = (1 << 0)
@@ -379,6 +376,7 @@ static void
 ymfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
+
     ymfm_log("YMFM write port %04x value = %02x\n", port, val);
     if ((port == 0x380) || (port == 0x381))
         port |= 4;
@@ -406,6 +404,7 @@ static void
 ymfm_drv_set_do_cycles(void *priv, int8_t do_cycles)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
+
     drv->set_do_cycles(do_cycles);
 }
 
@@ -413,6 +412,7 @@ static void
 ymfm_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
+
     // drv->generate_resampled(data, num_samples);
     drv->generate(data, num_samples);
 }
@@ -474,13 +474,13 @@ const device_t ymf278b_ymfm_device = {
 };
 
 const fm_drv_t ymfm_drv {
-    &ymfm_drv_read,
-    &ymfm_drv_write,
-    &ymfm_drv_update,
-    &ymfm_drv_reset_buffer,
-    &ymfm_drv_set_do_cycles,
-    NULL,
-    ymfm_drv_generate,
+    .read          = &ymfm_drv_read,
+    .write         = &ymfm_drv_write,
+    .update        = &ymfm_drv_update,
+    .reset_buffer  = &ymfm_drv_reset_buffer,
+    .set_do_cycles = &ymfm_drv_set_do_cycles,
+    .priv          = NULL,
+    .generate      = ymfm_drv_generate,
 };
 
 #ifdef __clang__

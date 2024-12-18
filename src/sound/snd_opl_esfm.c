@@ -242,6 +242,7 @@ esfm_drv_read(uint16_t port, void *priv)
             if (dev->status & STAT_TMR_OVER)
                 ret |= STAT_TMR_ANY;
             break;
+
         case 0x0001:
             ret = ESFM_read_port(&dev->opl, port & 3);
             switch (dev->opl.addr_latch & 0x5ff) {
@@ -256,6 +257,7 @@ esfm_drv_read(uint16_t port, void *priv)
                     break;
             }
             break;
+
         case 0x0002:
         case 0x0003:
             ret = 0xff;
@@ -338,18 +340,18 @@ const device_t esfm_esfmu_device = {
     .init          = esfm_drv_init,
     .close         = esfm_drv_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
 const fm_drv_t esfmu_opl_drv = {
-    &esfm_drv_read,
-    &esfm_drv_write,
-    &esfm_drv_update,
-    &esfm_drv_reset_buffer,
-    &esfm_drv_set_do_cycles,
-    NULL,
-    NULL,
+    .read          = &esfm_drv_read,
+    .write         = &esfm_drv_write,
+    .update        = &esfm_drv_update,
+    .reset_buffer  = &esfm_drv_reset_buffer,
+    .set_do_cycles = &esfm_drv_set_do_cycles,
+    .priv          = NULL,
+    .generate      = NULL,
 };
