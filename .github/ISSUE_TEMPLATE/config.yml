@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Machine Request
-    url:  https://github.com/86Box/86Box/issues/3577#issue-comment-box
-    about: Please submit machine addition requests under this tracking issue.
+    url:  https://github.com/86Box/86Box/discussions/4823#issue-comment-box
+    about: Please submit machine addition requests in this discussion thread.
   - name: Feature Request or Question
     url:  https://github.com/86Box/86Box/discussions
     about: Please submit feature requests and ask questions here.
