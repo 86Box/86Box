@@ -39,6 +39,11 @@ uint8_t
 fm_driver_get(int chip_id, fm_drv_t *drv)
 {
     switch (chip_id) {
+        case FM_YM2149: /* SSG */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2149_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
         case FM_YM3526: /* OPL */
             *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ym3526_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);

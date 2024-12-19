@@ -19,9 +19,13 @@
 #include <cstdlib>
 #include <cstring>
 #include "ymfm/ymfm_ssg.h"
+#include "ymfm/ymfm_misc.h"
 #include "ymfm/ymfm_opl.h"
 #include "ymfm/ymfm_opm.h"
 #include "ymfm/ymfm_opn.h"
+#include "ymfm/ymfm_opq.h"
+#include "ymfm/ymfm_opx.h"
+#include "ymfm/ymfm_opz.h"
 
 extern "C" {
 #define HAVE_STDARG_H
@@ -322,6 +326,11 @@ ymfm_drv_init(const device_t *info)
     YMFMChipBase *fm;
 
     switch (info->local) {
+        case FM_YM2149: /* OPL */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2149>(14318181, FM_YM2149, FREQ_49716);
+            break;
+
         case FM_YM3526: /* OPL */
             // TODO: Check rates and frequency
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3526>(14318181, FM_YM3526, FREQ_49716);
@@ -499,6 +508,20 @@ ymfm_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
     // drv->generate_resampled(data, num_samples);
     drv->generate(data, num_samples);
 }
+
+const device_t ym2149_ymfm_device = {
+    .name          = "Yamaha 2149 SSG (YMFM)",
+    .internal_name = "ym2149_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2149,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
 
 const device_t ym3526_ymfm_device = {
     .name          = "Yamaha YM3526 OPL (YMFM)",

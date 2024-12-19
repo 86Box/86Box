@@ -18,29 +18,30 @@
 #define SOUND_OPL_H
 
 enum fm_type {
-    FM_YM3526    =  0, /* OPL */
-    FM_Y8950     =  1, /* MSX-Audio (OPL with ADPCM) */
-    FM_YM3812    =  2, /* OPL2 */
-    FM_YMF262    =  3, /* OPL3 */
-    FM_YMF289B   =  4, /* OPL3-L */
-    FM_YMF278B   =  5, /* OPL4 */
-    FM_YM2413    =  6, /* OPLL */
-    FM_YM2423    =  7, /* OPLL-X */
-    FM_YMF281    =  8, /* OPLLP */
-    FM_DS1001    =  9, /* Konami VRC7 MMC */
-    FM_YM2151    = 10, /* OPM */
-    FM_YM2203    = 11, /* OPN */
-    FM_YM2608    = 12, /* OPNA */
-    FM_YMF288    = 13, /* OPN3L */
-    FM_YM2610    = 14, /* OPNB */
-    FM_YM2610B   = 15, /* OPNB2 */
-    FM_YM2612    = 16, /* OPN2 */
-    FM_YM3438    = 17, /* OPN2C */
-    FM_YMF276    = 18, /* OPN2L */
-    FM_YM2164    = 19, /* OPP */
-    FM_ESFM      = 20, /* ESFM */
-    FM_OPL2BOARD = 21, /* OPL2Board (External Device) */
-    FM_MAX       = 22
+    FM_YM2149    =  0, /* SSG */
+    FM_YM3526    =  1, /* OPL */
+    FM_Y8950     =  2, /* MSX-Audio (OPL with ADPCM) */
+    FM_YM3812    =  3, /* OPL2 */
+    FM_YMF262    =  4, /* OPL3 */
+    FM_YMF289B   =  5, /* OPL3-L */
+    FM_YMF278B   =  6, /* OPL4 */
+    FM_YM2413    =  7, /* OPLL */
+    FM_YM2423    =  8, /* OPLL-X */
+    FM_YMF281    =  9, /* OPLLP */
+    FM_DS1001    = 10, /* Konami VRC7 MMC */
+    FM_YM2151    = 11, /* OPM */
+    FM_YM2203    = 12, /* OPN */
+    FM_YM2608    = 13, /* OPNA */
+    FM_YMF288    = 14, /* OPN3L */
+    FM_YM2610    = 15, /* OPNB */
+    FM_YM2610B   = 16, /* OPNB2 */
+    FM_YM2612    = 17, /* OPN2 */
+    FM_YM3438    = 18, /* OPN2C */
+    FM_YMF276    = 19, /* OPN2L */
+    FM_YM2164    = 20, /* OPP */
+    FM_ESFM      = 21, /* ESFM */
+    FM_OPL2BOARD = 22, /* OPL2Board (External Device) */
+    FM_MAX       = 23
 };
 
 enum fm_driver {
@@ -69,6 +70,8 @@ extern const fm_drv_t ymfm_opl2board_drv;
 #ifdef EMU_DEVICE_H
 extern const device_t ym3812_nuked_device;
 extern const device_t ymf262_nuked_device;
+
+extern const device_t ym2149_ymfm_device;
 
 /* OPL Series */
 extern const device_t ym3526_ymfm_device;
