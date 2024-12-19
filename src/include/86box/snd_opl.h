@@ -21,9 +21,9 @@ enum fm_type {
     FM_YM3812    = 0, /* OPL2 */
     FM_YMF262    = 1, /* OPL3 */
     FM_YMF289B   = 2, /* OPL3-L */
-    FM_YMF278B   = 3, /* OPL 4 */
+    FM_YMF278B   = 3, /* OPL4 */
     FM_ESFM      = 4, /* ESFM */
-    FM_OPL2BOARD = 5, /* OPL2BOARD (External Device)*/
+    FM_OPL2BOARD = 5, /* OPL2Board (External Device) */
     FM_MAX       = 6
 };
 
@@ -48,7 +48,7 @@ extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
 extern const fm_drv_t nuked_opl_drv;
 extern const fm_drv_t ymfm_drv;
 extern const fm_drv_t esfmu_opl_drv;
-extern const fm_drv_t ymfm_opl2board_drv; 
+extern const fm_drv_t ymfm_opl2board_drv;
 
 #ifdef EMU_DEVICE_H
 extern const device_t ym3812_nuked_device;
@@ -60,6 +60,7 @@ extern const device_t ymf289b_ymfm_device;
 extern const device_t ymf278b_ymfm_device;
 
 extern const device_t esfm_esfmu_device;
+
 #ifdef USE_LIBSERIALPORT
 extern const device_t ym_opl2board_device;
 #endif

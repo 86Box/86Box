@@ -39,7 +39,7 @@ uint8_t
 fm_driver_get(int chip_id, fm_drv_t *drv)
 {
     switch (chip_id) {
-        case FM_YM3812:
+        case FM_YM3812: /* OPL2 */
             if (fm_driver == FM_DRV_NUKED) {
                 *drv      = nuked_opl_drv;
                 drv->priv = device_add_inst(&ym3812_nuked_device, fm_dev_inst[fm_driver][chip_id]++);
@@ -49,7 +49,7 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
             }
             break;
 
-        case FM_YMF262:
+        case FM_YMF262: /* OPL3 */
             if (fm_driver == FM_DRV_NUKED) {
                 *drv      = nuked_opl_drv;
                 drv->priv = device_add_inst(&ymf262_nuked_device, fm_dev_inst[fm_driver][chip_id]++);
@@ -58,18 +58,13 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
                 drv->priv = device_add_inst(&ymf262_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             }
             break;
-#ifdef USE_LIBSERIALPORT
-        case FM_OPL2BOARD:
-            *drv      = ymfm_opl2board_drv;
-            drv->priv = device_add_inst(&ym_opl2board_device, fm_dev_inst[fm_driver][chip_id]++);  
-            break;
-#endif
-        case FM_YMF289B:
+
+        case FM_YMF289B: /* OPL3-L */
             *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ymf289b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
 
-        case FM_YMF278B:
+        case FM_YMF278B: /* OPL4 */
             *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ymf278b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
@@ -78,6 +73,13 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
             *drv      = esfmu_opl_drv;
             drv->priv = device_add_inst(&esfm_esfmu_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
+
+#ifdef USE_LIBSERIALPORT
+        case FM_OPL2BOARD:
+            *drv      = ymfm_opl2board_drv;
+            drv->priv = device_add_inst(&ym_opl2board_device, fm_dev_inst[fm_driver][chip_id]++);  
+            break;
+#endif
 
         default:
             return 0;
