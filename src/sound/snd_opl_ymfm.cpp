@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "ymfm/ymfm_opl.h"
+#include "ymfm/ymfm_opm.h"
 
 extern "C" {
 #define HAVE_STDARG_H
@@ -320,23 +321,33 @@ ymfm_drv_init(const device_t *info)
 
     switch (info->local) {
         default:
-        case FM_YM3812:
+        case FM_YM3812: /* OPL2 */
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, FREQ_49716);
             break;
 
-        case FM_YMF262:
+        case FM_YMF262: /* OPL3 */
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, FREQ_49716);
             break;
 
-        case FM_YMF289B:
+        case FM_YMF289B: /* OPL3-L */
             /* According to the datasheet, we should be using 33868800, but YMFM appears
                to cheat and does it using the same values as the YMF262. */
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, FREQ_49716);
             break;
 
-        case FM_YMF278B:
+        case FM_YMF278B: /* OPL4 */
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, FREQ_44100);
             break;
+
+        case FM_YM2151: /* OPM */
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2151>(14318181, FM_YM2151, FREQ_49716);
+            break;
+
+#if 0
+        case FM_YM2164: /* OPP */
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2164>(14318181, FM_YM2164, FREQ_49716);
+            break;
+#endif
     }
 
     fm->set_do_cycles(1);
@@ -458,6 +469,36 @@ const device_t ymf289b_ymfm_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t ym2151_ymfm_device = {
+    .name          = "Yamaha YM2151 OPM (YMFM)",
+    .internal_name = "ym2151_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2151,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+#if 0
+const device_t ym2164_ymfm_device = {
+    .name          = "Yamaha YM2164 OPP (YMFM)",
+    .internal_name = "ym2164_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2164,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+#endif
 
 const device_t ymf278b_ymfm_device = {
     .name          = "Yamaha YMF278B OPL4 (YMFM)",
