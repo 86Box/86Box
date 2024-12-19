@@ -18,17 +18,31 @@
 #define SOUND_OPL_H
 
 enum fm_type {
-    FM_YM3812    = 0, /* OPL2 */
-    FM_YMF262    = 1, /* OPL3 */
-    FM_YMF289B   = 2, /* OPL3-L */
-    FM_YMF278B   = 3, /* OPL4 */
-    FM_YM2151    = 4, /* OPM */
+    FM_YM3526    =  0, /* OPL */
+    FM_Y8950     =  1, /* MSX-Audio (OPL with ADPCM) */
+    FM_YM3812    =  2, /* OPL2 */
+    FM_YMF262    =  3, /* OPL3 */
+    FM_YMF289B   =  4, /* OPL3-L */
+    FM_YMF278B   =  5, /* OPL4 */
+    FM_YM2413    =  6, /* OPLL */
+    FM_YM2423    =  7, /* OPLL-X */
+    FM_YMF281    =  8, /* OPLLP */
+    FM_DS1001    =  9, /* Konami VRC7 MMC */
+    FM_YM2151    = 10, /* OPM */
+    FM_YM2203    = 11, /* OPN */
+    FM_YM2608    = 12, /* OPNA */
+    FM_YMF288    = 13, /* OPN3L */
+    FM_YM2610    = 14, /* OPNB */
+    FM_YM2610B   = 15, /* OPNB2 */
+    FM_YM2612    = 16, /* OPN2 */
+    FM_YM3438    = 17, /* OPN2C */
+    FM_YMF276    = 18, /* OPN2L */
 #if 0
-    FM_YM2164    = 5, /* OPP */
+    FM_YM2164    = 19, /* OPP */
 #endif
-    FM_ESFM      = 6, /* ESFM */
-    FM_OPL2BOARD = 7, /* OPL2Board (External Device) */
-    FM_MAX       = 8
+    FM_ESFM      = 20, /* ESFM */
+    FM_OPL2BOARD = 21, /* OPL2Board (External Device) */
+    FM_MAX       = 22
 };
 
 enum fm_driver {
@@ -58,13 +72,33 @@ extern const fm_drv_t ymfm_opl2board_drv;
 extern const device_t ym3812_nuked_device;
 extern const device_t ymf262_nuked_device;
 
+/* OPL Series */
+extern const device_t ym3526_ymfm_device;
+extern const device_t y8950_ymfm_device;
 extern const device_t ym3812_ymfm_device;
 extern const device_t ymf262_ymfm_device;
 extern const device_t ymf289b_ymfm_device;
 extern const device_t ymf278b_ymfm_device;
+extern const device_t ym2413_ymfm_device;
+extern const device_t ym2423_ymfm_device;
+extern const device_t ymf281_ymfm_device;
+extern const device_t ds1001_ymfm_device;
 
+/* OPM Series */
 extern const device_t ym2151_ymfm_device;
+
+/* OPN Series */
+extern const device_t ym2203_ymfm_device;
+extern const device_t ym2608_ymfm_device;
+extern const device_t ymf288_ymfm_device;
+extern const device_t ym2610_ymfm_device;
+extern const device_t ym2610b_ymfm_device;
+extern const device_t ym2612_ymfm_device;
+extern const device_t ym3438_ymfm_device;
+extern const device_t ymf276_ymfm_device;
+
 #if 0
+/* OPP Series */
 extern const device_t ym2164_ymfm_device;
 #endif
 

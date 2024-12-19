@@ -39,6 +39,16 @@ uint8_t
 fm_driver_get(int chip_id, fm_drv_t *drv)
 {
     switch (chip_id) {
+        case FM_YM3526: /* OPL */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym3526_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_Y8950: /* MSX-Audio (OPL with ADPCM) */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&y8950_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
         case FM_YM3812: /* OPL2 */
             if (fm_driver == FM_DRV_NUKED) {
                 *drv      = nuked_opl_drv;
@@ -69,9 +79,69 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
             drv->priv = device_add_inst(&ymf278b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
 
+        case FM_YM2413: /* OPLL */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2413_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM2423: /* OPLL-X */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2423_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YMF281: /* OPLLP */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ymf281_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_DS1001: /* Konami VRC7 MMC */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ds1001_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
         case FM_YM2151: /* OPM */
             *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ym2151_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM2203: /* OPN */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2203_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM2608: /* OPNA */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2608_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YMF288: /* OPN3L */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ymf288_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM2610: /* OPNB */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2610_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM2610B: /* OPNB2 */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2610b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM2612: /* OPN2 */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2612_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YM3438: /* OPN2C */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym3438_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+        case FM_YMF276: /* OPN2L */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ymf276_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
 
 #if 0
