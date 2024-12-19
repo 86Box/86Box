@@ -37,9 +37,7 @@ enum fm_type {
     FM_YM2612    = 16, /* OPN2 */
     FM_YM3438    = 17, /* OPN2C */
     FM_YMF276    = 18, /* OPN2L */
-#if 0
     FM_YM2164    = 19, /* OPP */
-#endif
     FM_ESFM      = 20, /* ESFM */
     FM_OPL2BOARD = 21, /* OPL2Board (External Device) */
     FM_MAX       = 22
@@ -97,10 +95,8 @@ extern const device_t ym2612_ymfm_device;
 extern const device_t ym3438_ymfm_device;
 extern const device_t ymf276_ymfm_device;
 
-#if 0
 /* OPP Series */
 extern const device_t ym2164_ymfm_device;
-#endif
 
 extern const device_t esfm_esfmu_device;
 

@@ -416,12 +416,10 @@ ymfm_drv_init(const device_t *info)
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf276>(14318181, FM_YMF276, FREQ_49716);
             break;
 
-#if 0
         case FM_YM2164: /* OPP */
             // TODO: Check rates and frequency
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2164>(14318181, FM_YM2164, FREQ_49716);
             break;
-#endif
     }
 
     fm->set_do_cycles(1);
@@ -768,7 +766,6 @@ const device_t ymf276_ymfm_device = {
     .config        = NULL
 };
 
-#if 0
 const device_t ym2164_ymfm_device = {
     .name          = "Yamaha YM2164 OPP (YMFM)",
     .internal_name = "ym2164_ymfm",
@@ -782,7 +779,6 @@ const device_t ym2164_ymfm_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-#endif
 
 const fm_drv_t ymfm_drv {
     .read          = &ymfm_drv_read,
