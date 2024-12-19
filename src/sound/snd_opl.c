@@ -68,6 +68,18 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
             *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ymf278b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
+
+        case FM_YM2151: /* OPM */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2151_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
+#if 0
+        case FM_YM2164: /* OPP */
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ym2164_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+#endif
         
         case FM_ESFM:
             *drv      = esfmu_opl_drv;

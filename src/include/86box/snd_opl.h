@@ -22,9 +22,13 @@ enum fm_type {
     FM_YMF262    = 1, /* OPL3 */
     FM_YMF289B   = 2, /* OPL3-L */
     FM_YMF278B   = 3, /* OPL4 */
-    FM_ESFM      = 4, /* ESFM */
-    FM_OPL2BOARD = 5, /* OPL2Board (External Device) */
-    FM_MAX       = 6
+    FM_YM2151    = 4, /* OPM */
+#if 0
+    FM_YM2164    = 5, /* OPP */
+#endif
+    FM_ESFM      = 6, /* ESFM */
+    FM_OPL2BOARD = 7, /* OPL2Board (External Device) */
+    FM_MAX       = 8
 };
 
 enum fm_driver {
@@ -58,6 +62,11 @@ extern const device_t ym3812_ymfm_device;
 extern const device_t ymf262_ymfm_device;
 extern const device_t ymf289b_ymfm_device;
 extern const device_t ymf278b_ymfm_device;
+
+extern const device_t ym2151_ymfm_device;
+#if 0
+extern const device_t ym2164_ymfm_device;
+#endif
 
 extern const device_t esfm_esfmu_device;
 
