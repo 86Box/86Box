@@ -18,8 +18,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include "ymfm/ymfm_ssg.h"
+#include "ymfm/ymfm_misc.h"
 #include "ymfm/ymfm_opl.h"
 #include "ymfm/ymfm_opm.h"
+#include "ymfm/ymfm_opn.h"
+#include "ymfm/ymfm_opq.h"
+#if 0
+#include "ymfm/ymfm_opx.h"
+#endif
+#include "ymfm/ymfm_opz.h"
 
 extern "C" {
 #define HAVE_STDARG_H
@@ -320,6 +328,21 @@ ymfm_drv_init(const device_t *info)
     YMFMChipBase *fm;
 
     switch (info->local) {
+        case FM_YM2149: /* OPL */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2149>(14318181, FM_YM2149, FREQ_49716);
+            break;
+
+        case FM_YM3526: /* OPL */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3526>(14318181, FM_YM3526, FREQ_49716);
+            break;
+
+        case FM_Y8950: /* MSX-Audio (OPL with ADPCM) */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::y8950>(14318181, FM_Y8950, FREQ_49716);
+            break;
+
         default:
         case FM_YM3812: /* OPL2 */
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, FREQ_49716);
@@ -339,15 +362,92 @@ ymfm_drv_init(const device_t *info)
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, FREQ_44100);
             break;
 
+        case FM_YM2413: /* OPLL */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2413>(14318181, FM_YM2413, FREQ_49716);
+            break;
+
+        case FM_YM2423: /* OPLL-X */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2423>(14318181, FM_YM2423, FREQ_49716);
+            break;
+
+        case FM_YMF281: /* OPLLP */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf281>(14318181, FM_YMF281, FREQ_49716);
+            break;
+
+        case FM_DS1001: /* Konami VRC7 MMC */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ds1001>(14318181, FM_DS1001, FREQ_49716);
+            break;
+
         case FM_YM2151: /* OPM */
+            // TODO: Check rates and frequency
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2151>(14318181, FM_YM2151, FREQ_49716);
             break;
 
-#if 0
+        case FM_YM2203: /* OPN */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2203>(14318181, FM_YM2203, FREQ_49716);
+            break;
+
+        case FM_YM2608: /* OPNA */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2608>(14318181, FM_YM2608, FREQ_49716);
+            break;
+
+        case FM_YMF288: /* OPN3L */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf288>(14318181, FM_YMF288, FREQ_49716);
+            break;
+
+        case FM_YM2610: /* OPNB */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2610>(14318181, FM_YM2610, FREQ_49716);
+            break;
+
+        case FM_YM2610B: /* OPNB2 */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2610b>(14318181, FM_YM2610B, FREQ_49716);
+            break;
+
+        case FM_YM2612: /* OPN2 */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2612>(14318181, FM_YM2612, FREQ_49716);
+            break;
+
+        case FM_YM3438: /* OPN2C */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3438>(14318181, FM_YM3438, FREQ_49716);
+            break;
+
+        case FM_YMF276: /* OPN2L */
+            // TODO: Check function call, rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf276>(14318181, FM_YMF276, FREQ_49716);
+            break;
+
         case FM_YM2164: /* OPP */
+            // TODO: Check rates and frequency
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2164>(14318181, FM_YM2164, FREQ_49716);
             break;
+
+        case FM_YM3806: /* OPQ */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3806>(14318181, FM_YM3806, FREQ_49716);
+            break;
+
+#if 0
+        case FM_YMF271: /* OPX */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf271>(14318181, FM_YMF271, FREQ_49716);
+            break;
 #endif
+
+        case FM_YM2414: /* OPZ */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2414>(14318181, FM_YM2414, FREQ_49716);
+            break;
     }
 
     fm->set_do_cycles(1);
@@ -428,6 +528,48 @@ ymfm_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
     drv->generate(data, num_samples);
 }
 
+const device_t ym2149_ymfm_device = {
+    .name          = "Yamaha 2149 SSG (YMFM)",
+    .internal_name = "ym2149_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2149,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym3526_ymfm_device = {
+    .name          = "Yamaha YM3526 OPL (YMFM)",
+    .internal_name = "ym3526_ymfm",
+    .flags         = 0,
+    .local         = FM_YM3526,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t y8950_ymfm_device = {
+    .name          = "Yamaha Y8950 (YMFM)",
+    .internal_name = "y8950_ymfm",
+    .flags         = 0,
+    .local         = FM_Y8950,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ym3812_ymfm_device = {
     .name          = "Yamaha YM3812 OPL2 (YMFM)",
     .internal_name = "ym3812_ymfm",
@@ -470,6 +612,76 @@ const device_t ymf289b_ymfm_device = {
     .config        = NULL
 };
 
+const device_t ymf278b_ymfm_device = {
+    .name          = "Yamaha YMF278B OPL4 (YMFM)",
+    .internal_name = "ymf278b_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF278B,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym2413_ymfm_device = {
+    .name          = "Yamaha YM2413 OPLL (YMFM)",
+    .internal_name = "ym2413_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2413,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym2423_ymfm_device = {
+    .name          = "Yamaha YM2423 OPLL-X (YMFM)",
+    .internal_name = "ym2423_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2423,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ymf281_ymfm_device = {
+    .name          = "Yamaha YMF281 OPLLP (YMFM)",
+    .internal_name = "ymf281_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF281,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ds1001_ymfm_device = {
+    .name          = "Konami VRC7 MMC (YMFM)",
+    .internal_name = "ds1001_ymfm",
+    .flags         = 0,
+    .local         = FM_DS1001,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ym2151_ymfm_device = {
     .name          = "Yamaha YM2151 OPM (YMFM)",
     .internal_name = "ym2151_ymfm",
@@ -484,7 +696,118 @@ const device_t ym2151_ymfm_device = {
     .config        = NULL
 };
 
-#if 0
+const device_t ym2203_ymfm_device = {
+    .name          = "Yamaha YM2203 OPN (YMFM)",
+    .internal_name = "ym2203_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2203,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym2608_ymfm_device = {
+    .name          = "Yamaha YM2608 OPNA (YMFM)",
+    .internal_name = "ym2608_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2608,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ymf288_ymfm_device = {
+    .name          = "Yamaha YMF288 OPN3L (YMFM)",
+    .internal_name = "ymf288_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF288,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym2610_ymfm_device = {
+    .name          = "Yamaha YM2610 OPNB (YMFM)",
+    .internal_name = "ym2610_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2610,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym2610b_ymfm_device = {
+    .name          = "Yamaha YM2610b OPNB2 (YMFM)",
+    .internal_name = "ym2610b_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2610B,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym2612_ymfm_device = {
+    .name          = "Yamaha YM2612 OPN2 (YMFM)",
+    .internal_name = "ym2612_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2612,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ym3438_ymfm_device = {
+    .name          = "Yamaha YM3438 OPN2C (YMFM)",
+    .internal_name = "ym3438_ymfm",
+    .flags         = 0,
+    .local         = FM_YM3438,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ymf276_ymfm_device = {
+    .name          = "Yamaha YMF276 OPN2L (YMFM)",
+    .internal_name = "ymf276_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF276,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ym2164_ymfm_device = {
     .name          = "Yamaha YM2164 OPP (YMFM)",
     .internal_name = "ym2164_ymfm",
@@ -498,13 +821,12 @@ const device_t ym2164_ymfm_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-#endif
 
-const device_t ymf278b_ymfm_device = {
-    .name          = "Yamaha YMF278B OPL4 (YMFM)",
-    .internal_name = "ymf278b_ymfm",
+const device_t ym3806_ymfm_device = {
+    .name          = "Yamaha YM3806 OPQ (YMFM)",
+    .internal_name = "ym3806_ymfm",
     .flags         = 0,
-    .local         = FM_YMF278B,
+    .local         = FM_YM3806,
     .init          = ymfm_drv_init,
     .close         = ymfm_drv_close,
     .reset         = NULL,
@@ -513,6 +835,37 @@ const device_t ymf278b_ymfm_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+#if 0
+const device_t ymf271_ymfm_device = {
+    .name          = "Yamaha YMF271 OPX (YMFM)",
+    .internal_name = "ym271_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF271,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+#endif
+
+const device_t ym2414_ymfm_device = {
+    .name          = "Yamaha YM2414 OPZ (YMFM)",
+    .internal_name = "ym2414_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2414,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 
 const fm_drv_t ymfm_drv {
     .read          = &ymfm_drv_read,
