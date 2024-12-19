@@ -24,7 +24,9 @@
 #include "ymfm/ymfm_opm.h"
 #include "ymfm/ymfm_opn.h"
 #include "ymfm/ymfm_opq.h"
+#if 0
 #include "ymfm/ymfm_opx.h"
+#endif
 #include "ymfm/ymfm_opz.h"
 
 extern "C" {
@@ -429,6 +431,23 @@ ymfm_drv_init(const device_t *info)
             // TODO: Check rates and frequency
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2164>(14318181, FM_YM2164, FREQ_49716);
             break;
+
+        case FM_YM3806: /* OPQ */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3806>(14318181, FM_YM3806, FREQ_49716);
+            break;
+
+#if 0
+        case FM_YMF271: /* OPX */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf271>(14318181, FM_YMF271, FREQ_49716);
+            break;
+#endif
+
+        case FM_YM2414: /* OPZ */
+            // TODO: Check rates and frequency
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2414>(14318181, FM_YM2414, FREQ_49716);
+            break;
     }
 
     fm->set_do_cycles(1);
@@ -802,6 +821,51 @@ const device_t ym2164_ymfm_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t ym3806_ymfm_device = {
+    .name          = "Yamaha YM3806 OPQ (YMFM)",
+    .internal_name = "ym3806_ymfm",
+    .flags         = 0,
+    .local         = FM_YM3806,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+#if 0
+const device_t ymf271_ymfm_device = {
+    .name          = "Yamaha YMF271 OPX (YMFM)",
+    .internal_name = "ym271_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF271,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+#endif
+
+const device_t ym2414_ymfm_device = {
+    .name          = "Yamaha YM2414 OPZ (YMFM)",
+    .internal_name = "ym2414_ymfm",
+    .flags         = 0,
+    .local         = FM_YM2414,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 
 const fm_drv_t ymfm_drv {
     .read          = &ymfm_drv_read,
