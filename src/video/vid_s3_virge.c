@@ -60,12 +60,16 @@ static int dither[4][4] = {
 };
 
 #define ROM_VIRGE_325                 "roms/video/s3virge/86c325.bin"
+#define ROM_CANOPUS_3DV               "roms/video/s3virge/Canopus Power Window 3DV (ViRGE).bin"
 #define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.bin"
+#define ROM_ELSA_VICTORY_3D           "roms/video/s3virge/ELSA Victory 3D BIOS V3.05.00.VBI"
 #define ROM_MIROCRYSTAL_3D            "roms/video/s3virge/miro Crystal 3D 1.02.bin"
+#define ROM_MIROMEDIA_3DSE            "roms/video/s3virge/miroMEDIA 3DSE.bin"
 #define ROM_DIAMOND_STEALTH3D_3000    "roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_STB_VELOCITY_3D           "roms/video/s3virge/stb_velocity3d_110.BIN"
 #define ROM_VIRGE_DX                  "roms/video/s3virge/86c375_1.bin"
 #define ROM_DIAMOND_STEALTH3D_2000PRO "roms/video/s3virge/virgedxdiamond.vbi"
+#define ROM_ELSA_VICTORY_3DX4         "roms/video/s3virge/ELSA Victory 3DX-4 (ViRGE-DX).bin"
 #define ROM_VIRGE_GX                  "roms/video/s3virge/86c375_4.bin"
 #define ROM_VIRGE_GX2                 "roms/video/s3virge/flagpoint.VBI"
 #define ROM_DIAMOND_STEALTH3D_4000    "roms/video/s3virge/DS3D4K v1.03 Brightness bug fix.bin"
@@ -91,11 +95,15 @@ static int dither[4][4] = {
 
 enum {
     S3_VIRGE_325,
+    S3_CANOPUS_3DV,
     S3_DIAMOND_STEALTH3D_2000,
+    S3_ELSA_VICTORY_3D,
     S3_MIROCRYSTAL_3D,
+    S3_MIROMEDIA_3DSE,
     S3_DIAMOND_STEALTH3D_3000,
     S3_STB_VELOCITY_3D,
     S3_VIRGE_DX,
+    S3_ELSA_VICTORY_3DX4,
     S3_DIAMOND_STEALTH3D_2000PRO,
     S3_VIRGE_GX,
     S3_VIRGE_GX2,
@@ -4347,11 +4355,20 @@ s3_virge_init(const device_t *info)
         case S3_VIRGE_325:
             bios_fn = ROM_VIRGE_325;
             break;
+        case S3_CANOPUS_3DV:
+            bios_fn = ROM_CANOPUS_3DV;
+            break;
         case S3_DIAMOND_STEALTH3D_2000:
             bios_fn = ROM_DIAMOND_STEALTH3D_2000;
             break;
+        case S3_ELSA_VICTORY_3D:
+            bios_fn = ROM_ELSA_VICTORY_3D;
+            break;
         case S3_MIROCRYSTAL_3D:
             bios_fn = ROM_MIROCRYSTAL_3D;
+            break;
+        case S3_MIROMEDIA_3DSE:
+            bios_fn = ROM_MIROMEDIA_3DSE;
             break;
         case S3_DIAMOND_STEALTH3D_3000:
             bios_fn = ROM_DIAMOND_STEALTH3D_3000;
@@ -4361,6 +4378,9 @@ s3_virge_init(const device_t *info)
             break;
         case S3_VIRGE_DX:
             bios_fn = ROM_VIRGE_DX;
+            break;
+        case S3_ELSA_VICTORY_3DX4:
+            bios_fn = ROM_ELSA_VICTORY_3DX4;
             break;
         case S3_DIAMOND_STEALTH3D_2000PRO:
             bios_fn = ROM_DIAMOND_STEALTH3D_2000PRO;
@@ -4446,8 +4466,11 @@ s3_virge_init(const device_t *info)
 
     switch (info->local) {
         case S3_VIRGE_325:
+        case S3_CANOPUS_3DV:
         case S3_DIAMOND_STEALTH3D_2000:
+        case S3_ELSA_VICTORY_3D:
         case S3_MIROCRYSTAL_3D:
+        case S3_MIROMEDIA_3DSE:
             virge->fifo_slots_num = 8;
             virge->svga.decode_mask = (4 << 20) - 1;
             virge->virge_id_high    = 0x56;
@@ -4626,9 +4649,27 @@ s3_virge_325_available(void)
 }
 
 static int
+s3_canopus_3dv_available(void)
+{
+    return rom_present(ROM_CANOPUS_3DV);
+}
+
+static int
+s3_elsa_victory_3d_available(void)
+{
+    return rom_present(ROM_ELSA_VICTORY_3D);
+}
+
+static int
 s3_mirocrystal_3d_available(void)
 {
     return rom_present(ROM_MIROCRYSTAL_3D);
+}
+
+static int
+s3_miromedia_3dse_available(void)
+{
+    return rom_present(ROM_MIROMEDIA_3DSE);
 }
 
 static int
@@ -4653,6 +4694,12 @@ static int
 s3_virge_375_diamond_available(void)
 {
     return rom_present(ROM_DIAMOND_STEALTH3D_2000PRO);
+}
+
+static int
+s3_elsa_victory_3dx4_available(void)
+{
+    return rom_present(ROM_ELSA_VICTORY_3DX4);
 }
 
 static int
@@ -4864,6 +4911,20 @@ const device_t s3_virge_325_onboard_pci_device = {
     .config        = s3_virge_config
 };
 
+const device_t s3_canopus_3dv_pci_device = {
+    .name          = "S3 ViRGE (Canopus Power Window 3DV) PCI",
+    .internal_name = "canopus_3dv_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_CANOPUS_3DV,
+    .init          = s3_virge_init,
+    .close         = s3_virge_close,
+    .reset         = s3_virge_reset,
+    { .available = s3_canopus_3dv_available },
+    .speed_changed = s3_virge_speed_changed,
+    .force_redraw  = s3_virge_force_redraw,
+    .config        = s3_virge_config
+};
+
 const device_t s3_diamond_stealth_2000_pci_device = {
     .name          = "S3 ViRGE (Diamond Stealth 3D 2000) PCI",
     .internal_name = "stealth3d_2000_pci",
@@ -4878,6 +4939,20 @@ const device_t s3_diamond_stealth_2000_pci_device = {
     .config        = s3_virge_config
 };
 
+const device_t s3_elsa_victory_3d_pci_device = {
+    .name          = "S3 ViRGE (ELSA Victory 3D) PCI",
+    .internal_name = "elsa_victory_3d_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_ELSA_VICTORY_3D,
+    .init          = s3_virge_init,
+    .close         = s3_virge_close,
+    .reset         = s3_virge_reset,
+    { .available = s3_elsa_victory_3d_available },
+    .speed_changed = s3_virge_speed_changed,
+    .force_redraw  = s3_virge_force_redraw,
+    .config        = s3_virge_config
+};
+
 const device_t s3_mirocrystal_3d_pci_device = {
     .name          = "S3 ViRGE (miroCRYSTAL 3D) PCI",
     .internal_name = "mirocrystal_3d_pci",
@@ -4887,6 +4962,20 @@ const device_t s3_mirocrystal_3d_pci_device = {
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
     { .available = s3_mirocrystal_3d_available },
+    .speed_changed = s3_virge_speed_changed,
+    .force_redraw  = s3_virge_force_redraw,
+    .config        = s3_virge_config
+};
+
+const device_t s3_miromedia_3dse_pci_device = {
+    .name          = "S3 ViRGE (miroMEDIA 3D/SE) PCI",
+    .internal_name = "miromedia_3dse_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_MIROMEDIA_3DSE,
+    .init          = s3_virge_init,
+    .close         = s3_virge_close,
+    .reset         = s3_virge_reset,
+    { .available = s3_miromedia_3dse_available },
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4957,6 +5046,20 @@ const device_t s3_diamond_stealth_2000pro_pci_device = {
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
     { .available = s3_virge_375_diamond_available },
+    .speed_changed = s3_virge_speed_changed,
+    .force_redraw  = s3_virge_force_redraw,
+    .config        = s3_virge_config
+};
+
+const device_t s3_elsa_victory_3dx4_pci_device = {
+    .name          = "S3 ViRGE/DX (ELSA Victory 3DX-4) PCI",
+    .internal_name = "elsa_victory_3dx4_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_ELSA_VICTORY_3DX4,
+    .init          = s3_virge_init,
+    .close         = s3_virge_close,
+    .reset         = s3_virge_reset,
+    { .available = s3_elsa_victory_3dx4_available },
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
