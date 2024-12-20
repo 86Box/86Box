@@ -346,6 +346,7 @@ void nv3_close(void* priv)
 {
     svga_close(&nv3->nvbase.svga);
     free(nv3);
+    nv3 = NULL;
 }
 
 
