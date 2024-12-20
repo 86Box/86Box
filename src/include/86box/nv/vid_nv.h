@@ -98,7 +98,9 @@ typedef struct nv_base_s
     uint32_t bar1_lfb_base;                     // PCI Base Address Register 1 - Linear Framebuffer (NV_BASE)
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
     uint32_t gpu_revision;                      // GPU Stepping
+    double pixel_clock_period;                  // Period in seconds for pixel clock
     pc_timer_t pixel_clock_timer;               // Pixel Clock Timer
+    double memory_clock_period;                 // Period in seconds for pixel clock
     pc_timer_t memory_clock_timer;              // Memory Clock Timer
 } nv_base_t;
 
@@ -496,6 +498,8 @@ void        nv3_pbus_rma_write(uint16_t addr, uint8_t val);
 void        nv3_pramdac_init();
 void        nv3_pramdac_set_vram_clock();
 void        nv3_pramdac_set_pixel_clock();
+void        nv3_pramdac_pixel_clock_poll(void* priv);
+void        nv3_pramdac_memory_clock_poll(void* priv);
 
 // NV3 PTIMER
 void        nv3_ptimer_init();

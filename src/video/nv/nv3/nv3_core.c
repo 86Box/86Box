@@ -728,19 +728,7 @@ void nv3_update_mappings()
     }
 }
 
-// Polls the pixel clock.
-// This updates the 2D/3D engine PGRAPH
-void nv3_pixel_clock_poll(void* priv)
-{
 
-}
-
-// Polls the memory clock.
-void nv3_memory_clock_poll(void* poll)
-{
-    // Let's hope qeeg was right here.
-    nv3_ptimer_tick();
-}
 
 // 
 // Init code
@@ -813,12 +801,13 @@ void* nv3_init(const device_t *info)
     nv3_ptimer_init();              // Initialise programmable interval timer
     nv3_pvideo_init();              // Initialise video overlay engine
 
-    nv_log("NV3: Starting timers...");
+    nv_log("NV3: Initialising timers...\n");
 
-    // Add the 
-    timer_add(&nv3->nvbase.pixel_clock_timer, nv3_pixel_clock_poll, nv3, true);
-    timer_add(&nv3->nvbase.memory_clock_timer, nv3_memory_clock_poll, nv3, true);
-
+    // These only get turned on when the requisite registers are twiddled
+    timer_add(&nv3->nvbase.pixel_clock_timer, nv3_pramdac_pixel_clock_poll, nv3, false);
+    nv_log("NV3: Pixel clock OK. Will be started when the VBIOS tells us to start\n");
+    timer_add(&nv3->nvbase.memory_clock_timer, nv3_pramdac_memory_clock_poll, nv3, false);
+    nv_log("NV3: Memory clock OK. Will be started when the VBIOS tells us to start\n");
     return nv3;
 }
 

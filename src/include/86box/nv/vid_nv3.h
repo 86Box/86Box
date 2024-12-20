@@ -29,6 +29,9 @@ extern const device_config_t nv3_config[];
 #define NV3_LFB_RAMIN_START                             0xC00000        // RAMIN mapping start
 #define NV3_LFB_MAPPING_SIZE                            0x400000        // Size of RAMIN
 
+#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             100             // The amount by which we have to ration out the memory clock because it's not fast enough...
+                                                                        // Multiply by this value to get the real clock speed.
+
 // various vbioses for testing
 // Coming soon: MIROmagic Premium BIOS (when I get mine dumped)
 //todo: move to hash system

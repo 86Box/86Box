@@ -59,8 +59,15 @@ void nv3_ptimer_interrupt(uint32_t num)
 // Ticks the timer.
 void nv3_ptimer_tick()
 {
+    // do not divide by zero
+    if (nv3->ptimer.clock_numerator == 0
+    || nv3->ptimer.clock_denominator == 0)
+        return; 
+
     // get the current time
-    double current_time = ((double)nv3->ptimer.clock_numerator) / (double)nv3->ptimer.clock_denominator; // *10.0?
+    // Due to timer system limitations, the timer system is not capable of running at 100 megahertz. Therefore, we have to scale it down and then scale up the level of changes
+    // to the state. 
+    double current_time = ((double)nv3->ptimer.clock_numerator * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)nv3->ptimer.clock_denominator; // *10.0?
 
     // truncate it 
     nv3->ptimer.time += (uint64_t)current_time;
@@ -127,7 +134,7 @@ void nv3_ptimer_write(uint32_t address, uint32_t value)
     // before doing anything, check the subsystem enablement
     nv_register_t* reg = nv_get_register(address, ptimer_registers, sizeof(ptimer_registers)/sizeof(ptimer_registers[0]));
 
-    nv_log("NV3: PTIMER Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("NV3: PTIMER Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
@@ -156,7 +163,7 @@ void nv3_ptimer_write(uint32_t address, uint32_t value)
                 case NV3_PTIMER_INTR_EN:
                     nv3->ptimer.interrupt_enable = value & 0x1;
                     break;
-                // 
+                // nUMERATOR
                 case NV3_PTIMER_NUMERATOR:
                     nv3->ptimer.clock_numerator = value & 0xFFFF; // 15:0
                     break;

@@ -42,15 +42,34 @@ void nv3_pramdac_init()
     nv3->pramdac.memory_clock_n = nv3->pramdac.pixel_clock_n = 0xc8;
     nv3->pramdac.memory_clock_p = nv3->pramdac.pixel_clock_p = 0x0c;
 
+
     nv3_pramdac_set_pixel_clock();
     nv3_pramdac_set_vram_clock();
 
     nv_log("NV3: Initialising PRAMDAC: Done\n");
 }
 
+// Polls the pixel clock.
+// This updates the 2D/3D engine PGRAPH
+void nv3_pramdac_pixel_clock_poll(void* priv)
+{
+    timer_on_auto(&nv3->nvbase.pixel_clock_timer, nv3->nvbase.pixel_clock_period);
+
+}
+
+// Polls the memory clock.
+void nv3_pramdac_memory_clock_poll(void* poll)
+{
+    // Let's hope qeeg was right here.
+    nv3_ptimer_tick();
+
+    timer_on_auto(&nv3->nvbase.memory_clock_timer, nv3->nvbase.memory_clock_period);
+}
+
+// Gets the vram clock register.
 uint32_t nv3_pramdac_get_vram_clock_register()
 {
-    // pack into 19 bits
+    // the clock format is packed into 19 bits
     // M divisor            [7-0]
     // N divisor            [16-8]
     // P divisor            [18-16]
@@ -95,39 +114,51 @@ void nv3_pramdac_set_vram_clock()
     else
         frequency = (frequency * nv3->pramdac.memory_clock_n) / (nv3->pramdac.memory_clock_m << nv3->pramdac.memory_clock_p); 
 
+    double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
+
     nv_log("NV3: Memory clock = %.2f MHz\n", frequency / 1000000.0f);    
+
+    nv3->nvbase.memory_clock_period = time;
+    //Breaks everything?
+    //timer_set_delay_u64(&nv3->nvbase.memory_clock_timer, time * TIMER_USEC); // do we need to decrease
 }
 
 void nv3_pramdac_set_pixel_clock()
 {
-        // frequency divider algorithm from old varcem/86box/pcbox riva driver,
-        // verified by reversing NT drivers v1.50e CalcMNP [symbols] function
+    // frequency divider algorithm from old varcem/86box/pcbox riva driver,
+    // verified by reversing NT drivers v1.50e CalcMNP [symbols] function
 
-        // todo: actually implement it
+    // todo: actually implement it
 
-        // missing section
-        // not really needed.
-        // if (nv3->pfb.boot.clock_crystal == CLOCK_CRYSTAL_13500)
-        // {
-        //      freq = 13500000.0f;
-        // }
-        // else 
-        //
-        // {
-        //      freq = 14318000.0f;
-        // }
+    // missing section
+    // not really needed.
+    // if (nv3->pfb.boot.clock_crystal == CLOCK_CRYSTAL_13500)
+    // {
+    //      freq = 13500000.0f;
+    // }
+    // else 
+    //
+    // {
+    //      freq = 14318000.0f;
+    // }
 
-        float frequency = 13500000.0f;
+    float frequency = 13500000.0f;
 
-        // prevent division by 0
-        if (nv3->pramdac.pixel_clock_m == 0)
-            nv3->pramdac.pixel_clock_m == 1;
-        else
+    // prevent division by 0
+    if (nv3->pramdac.pixel_clock_m == 0)
+        nv3->pramdac.pixel_clock_m == 1;
+    else
         frequency = (frequency * nv3->pramdac.pixel_clock_n) / (nv3->pramdac.pixel_clock_m << nv3->pramdac.pixel_clock_p); 
 
-        nv3->nvbase.svga.clock = cpuclock / frequency;
+    nv3->nvbase.svga.clock = cpuclock / frequency;
 
-        nv_log("NV3: Pixel clock = %.2f MHz\n", frequency / 1000000.0f);
+    double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
+
+    nv_log("NV3: Pixel clock = %.2f MHz\n", frequency / 1000000.0f);
+
+    nv3->nvbase.pixel_clock_period = time;
+    //Breaks everything?
+    //timer_set_delay_u64(&nv3->nvbase.pixel_clock_timer, time * TIMER_USEC); // do we need to decrease
 }
 
 //
