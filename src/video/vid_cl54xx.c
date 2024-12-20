@@ -3541,6 +3541,10 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
             mask_shift = 31 - byte_pos;
             if (!(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
                 cpu_dat >>= byte_pos;
+            else {
+                if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)
+                    cpu_dat = ((cpu_dat & 0xff000000) >> 24) | ((cpu_dat & 0x00ff0000) >> 8) | ((cpu_dat & 0x0000ff00) << 8) | ((cpu_dat & 0x000000ff) << 24);
+            }
         } else
             mask_shift = 7;
 
