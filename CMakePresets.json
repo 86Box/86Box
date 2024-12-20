@@ -66,7 +66,7 @@
                 "NEW_DYNAREC": "ON",
                 "QT": "ON",
                 "USE_QT6": "OFF",
-                "Qt5_DIR": "/opt/homebrew/opt/qt@5/lSib/cmake/Qt5",
+                "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
                 "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
                 "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
                 "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
