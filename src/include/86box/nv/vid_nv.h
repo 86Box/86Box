@@ -82,7 +82,7 @@ typedef struct nv_base_s
 {
     rom_t vbios;                                // NVIDIA/OEm VBIOS
     // move to nv3_cio_t?
-    svga_t svga;                                // SVGA core (separate to nv3)
+    svga_t svga;                                // SVGA core (separate to nv3) - Weitek licensed
     // stuff that doesn't fit in the svga structure
     uint32_t cio_read_bank;                     // SVGA read bank
     uint32_t cio_write_bank;                    // SVGA write bank
@@ -98,6 +98,8 @@ typedef struct nv_base_s
     uint32_t bar1_lfb_base;                     // PCI Base Address Register 1 - Linear Framebuffer (NV_BASE)
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
     uint32_t gpu_revision;                      // GPU Stepping
+    pc_timer_t pixel_clock_timer;               // Pixel Clock Timer
+    pc_timer_t memory_clock_timer;              // Memory Clock Timer
 } nv_base_t;
 
 #define NV_REG_LIST_END                 0xD15EA5E
@@ -497,6 +499,7 @@ void        nv3_pramdac_set_pixel_clock();
 
 // NV3 PTIMER
 void        nv3_ptimer_init();
+void        nv3_ptimer_tick();
 
 // NV3 PVIDEO
 void        nv3_pvideo_init();

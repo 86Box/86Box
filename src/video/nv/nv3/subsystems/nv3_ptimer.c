@@ -51,13 +51,21 @@ void nv3_ptimer_init()
 // Handles the PTIMER alarm interrupt
 void nv3_ptimer_interrupt(uint32_t num)
 {
-    nv3->ptimer.interrupt_enable |= (1 << num);
+    nv3->ptimer.interrupt_status |= (1 << num);
+
     nv3_pmc_handle_interrupts(true);
 }
 
 // Ticks the timer.
 void nv3_ptimer_tick()
 {
+    // get the current time
+    double current_time = ((double)nv3->ptimer.clock_numerator) / (double)nv3->ptimer.clock_denominator; // *10.0?
+
+    // truncate it 
+    nv3->ptimer.time += (uint64_t)current_time;
+
+    // Check if the alarm has actually triggered...
     if (nv3->ptimer.time >= nv3->ptimer.alarm)
     {
         nv3_ptimer_interrupt(NV3_PTIMER_INTR_ALARM);
