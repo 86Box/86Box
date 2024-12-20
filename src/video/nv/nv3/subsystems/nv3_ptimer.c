@@ -103,23 +103,18 @@ uint32_t nv3_ptimer_read(uint32_t address)
                 case NV3_PTIMER_INTR_EN:
                     return nv3->ptimer.interrupt_enable;
                 case NV3_PTIMER_NUMERATOR:
-                    return nv3->ptimer.clock_denominator; // 15:0
-                    break;
+                    return nv3->ptimer.clock_numerator; // 15:0
                 case NV3_PTIMER_DENOMINATOR:
                     return nv3->ptimer.clock_denominator ; //15:0
-                    break;
                 // 64-bit value
                 // High part
                 case NV3_PTIMER_TIME_0_NSEC:
                     return nv3->ptimer.time & 0xFFFFFFFF; //28:0
-                    break;
                 // Low part
                 case NV3_PTIMER_TIME_1_NSEC:
                     return nv3->ptimer.time >> 32; // 31:5
-                    break;
                 case NV3_PTIMER_ALARM_NSEC: 
                     return nv3->ptimer.alarm; // 31:5
-                    break;
             }
         }
     }
@@ -156,11 +151,14 @@ void nv3_ptimer_write(uint32_t address, uint32_t value)
                     nv3->ptimer.interrupt_status &= ~value;
                     nv3_pmc_clear_interrupts();
                     break;
+
+                // Interrupt enablement state
                 case NV3_PTIMER_INTR_EN:
                     nv3->ptimer.interrupt_enable = value & 0x1;
                     break;
+                // 
                 case NV3_PTIMER_NUMERATOR:
-                    nv3->ptimer.clock_denominator = value & 0xFFFF; // 15:0
+                    nv3->ptimer.clock_numerator = value & 0xFFFF; // 15:0
                     break;
                 case NV3_PTIMER_DENOMINATOR:
                     // prevent Div0
@@ -172,11 +170,11 @@ void nv3_ptimer_write(uint32_t address, uint32_t value)
                 // 64-bit value
                 // High part
                 case NV3_PTIMER_TIME_0_NSEC:
-                    nv3->ptimer.time = (value >> 32) & 0xFFFFFFE0; //28:0
+                    nv3->ptimer.time |= (value) & 0xFFFFFFE0; //28:0
                     break;
                 // Low part
                 case NV3_PTIMER_TIME_1_NSEC:
-                    nv3->ptimer.time = ((value & 0xFFFFFFE0) << 32); // 31:5
+                    nv3->ptimer.time |= ((uint64_t)(value & 0xFFFFFFE0) << 32); // 31:5
                     break;
                 case NV3_PTIMER_ALARM_NSEC: 
                     nv3->ptimer.alarm = value & 0xFFFFFFE0; // 31:5
