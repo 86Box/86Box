@@ -825,15 +825,15 @@ machine_at_i430vx_init(const machine_t *model)
 }
 
 int
-machine_at_hitman_init(const machine_t *model)
+machine_at_gw2kte_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/hitman/1008CY1T.BIO",
-                                     "roms/machines/hitman/1008CY1T.BI1",
-                                     "roms/machines/hitman/1008CY1T.BI2",
-                                     "roms/machines/hitman/1008CY1T.BI3",
-                                     "roms/machines/hitman/1008CY1T.RCV",
+    ret = bios_load_linear_combined2("roms/machines/gw2kte/1008CY1T.BIO",
+                                     "roms/machines/gw2kte/1008CY1T.BI1",
+                                     "roms/machines/gw2kte/1008CY1T.BI2",
+                                     "roms/machines/gw2kte/1008CY1T.BI3",
+                                     "roms/machines/gw2kte/1008CY1T.RCV",
                                      0x3a000, 128);
 
     if (bios_only || !ret)
