@@ -2351,7 +2351,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         /* In range? */
         if (map->enable && (uint64_t) map->base < ((uint64_t) base + (uint64_t) size) &&
             ((uint64_t) map->base + (uint64_t) map->size) > (uint64_t) base) {
-            uint64_t i_a   = (~map->base_ignore) + 0x00000001ULL;
+            uint64_t i_a   = ((~map->base_ignore) & 0xffffffffULL) + 0x00000001ULL;
             uint64_t i_s   = 0x00000000ULL;
             uint64_t i_e   = map->base_ignore;
             uint64_t i_c   = 0x00000000ULL;
