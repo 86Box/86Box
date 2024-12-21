@@ -1240,7 +1240,7 @@ msgid "Tablet tool"
 msgstr "Ferramenta para tablet"
 
 msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL e ES)"
+msgstr "Qt (OpenGL &ES)"
 
 msgid "About Qt"
 msgstr "Sobre o Qt"
@@ -1303,7 +1303,7 @@ msgid "Error linking shader program in file \"%1\""
 msgstr "Erro ao vincular o programa de shader no arquivo \"%1\""
 
 msgid "OpenGL 3.0 renderer options"
-msgstr "Opções de renderização OpenGL 3.0"
+msgstr "Opções do renderizador OpenGL 3.0"
 
 msgid "Render behavior"
 msgstr "Comportamento de renderização"
@@ -1321,7 +1321,7 @@ msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediate
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderize cada quadro imediatamente, em sincronia com a tela emulada.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Essa é a opção recomendada se os shaders em uso não utilizarem o frametime para efeitos animados.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "Synchronize with video"
-msgstr "Sincronizar com vídeo"
+msgstr "Sincronizar com o vídeo"
 
 msgid "Shaders"
 msgstr "Shaders"
@@ -1411,7 +1411,7 @@ msgid "Adapter"
 msgstr "Adaptador"
 
 msgid "VDE Socket"
-msgstr "Socket VDE"
+msgstr "Soquete VDE"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"
@@ -1474,7 +1474,7 @@ msgid "Roland CM-32LN Emulation"
 msgstr "Emulação do Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Placa-mãe OPL4-ML"
+msgstr "Placa Filha OPL4-ML"
 
 msgid "System MIDI"
 msgstr "Sistema MIDI"
@@ -1558,16 +1558,16 @@ msgid "Chorus Voices"
 msgstr "Vozes do coro"
 
 msgid "Chorus Level"
-msgstr "Nível de coro"
+msgstr "Nível do coro"
 
 msgid "Chorus Speed"
-msgstr "Velocidade do chorus"
+msgstr "Velocidade do coro"
 
 msgid "Chorus Depth"
-msgstr "Profundidade do chorus"
+msgstr "Profundidade do coro"
 
 msgid "Chorus Waveform"
-msgstr "Forma de onda do chorus"
+msgstr "Forma de onda do coro"
 
 msgid "Reverb"
 msgstr "Reverberação"
@@ -1588,7 +1588,7 @@ msgid "Interpolation Method"
 msgstr "Método de interpolação"
 
 msgid "Reverb Output Gain"
-msgstr "Ganho da saída do reverb"
+msgstr "Ganho da saída da reverberação"
 
 msgid "Reversed stereo"
 msgstr "Estéreo invertido"
@@ -1624,7 +1624,7 @@ msgid "MAC Address"
 msgstr "Endereço MAC"
 
 msgid "MAC Address OUI"
-msgstr "Endereço MAC OUI"
+msgstr "OUI do Endereço MAC"
 
 msgid "Enable BIOS"
 msgstr "Habilitar BIOS"
@@ -1663,7 +1663,7 @@ msgid "MPU-401 Address"
 msgstr "Endereço da MPU-401"
 
 msgid "MPU-401 IRQ"
-msgstr "MPU-401 IRQ"
+msgstr "IRQ MPU-401"
 
 msgid "Receive MIDI input"
 msgstr "Receber entrada MIDI"
@@ -1699,7 +1699,7 @@ msgid "Receive MIDI input (MPU-401)"
 msgstr "Receber entrada MIDI (MPU-401)"
 
 msgid "SB low DMA"
-msgstr "SB low DMA"
+msgstr "DMA baixo SB"
 
 msgid "6CH variant (6-channel)"
 msgstr "Variante 6CH (6 canais)"
@@ -1714,7 +1714,7 @@ msgid "High DMA"
 msgstr "DMA alto"
 
 msgid "Control PC speaker"
-msgstr "Controle do alto-falante do PC"
+msgstr "Controlar alto-falante do PC"
 
 msgid "Memory size"
 msgstr "Tamanho da memória"
@@ -1729,7 +1729,7 @@ msgid "Codec"
 msgstr "Codec"
 
 msgid "GUS type"
-msgstr "Tipo GUS"
+msgstr "Tipo de GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
 msgstr "Ativar o comando 0x04 \"Sair do 86Box\""
@@ -1738,10 +1738,10 @@ msgid "Display type"
 msgstr "Tipo de tela"
 
 msgid "Composite type"
-msgstr "Tipo composto"
+msgstr "Tipo de composto"
 
 msgid "RGB type"
-msgstr "Tipo RGB"
+msgstr "Tipo de RGB"
 
 msgid "Line doubling type"
 msgstr "Tipo de duplicação de linha"
@@ -1756,7 +1756,7 @@ msgid "Character set"
 msgstr "Conjunto de caracteres"
 
 msgid "XGA type"
-msgstr "Tipo XGA"
+msgstr "Tipo de XGA"
 
 msgid "Instance"
 msgstr "Instância"
@@ -1774,13 +1774,13 @@ msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
 
 msgid "Dithering"
-msgstr "Dithering"
+msgstr "Pontilhamento"
 
 msgid "Enable NMI for CGA emulation"
 msgstr "Ativar NMI para emulação CGA"
 
 msgid "Voodoo type"
-msgstr "Tipo vodu"
+msgstr "Tipo de Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Tamanho da memória do framebuffer"
@@ -1789,13 +1789,13 @@ msgid "Texture memory size"
 msgstr "Tamanho da memória da textura"
 
 msgid "Dither subtraction"
-msgstr "Subtração de dither"
+msgstr "Subtração de pontilhado"
 
 msgid "Screen Filter"
 msgstr "Filtro de tela"
 
 msgid "Render threads"
-msgstr "Renderizar threads"
+msgstr "Threads de renderização"
 
 msgid "SLI"
 msgstr "SLI"
@@ -1942,7 +1942,7 @@ msgid "New"
 msgstr "Novo"
 
 msgid "Color (generic)"
-msgstr "Cor (genérico)"
+msgstr "Colorido (genérico)"
 
 msgid "Green Monochrome"
 msgstr "Monocromático verde"
@@ -1954,10 +1954,10 @@ msgid "Gray Monochrome"
 msgstr "Monocromático cinza"
 
 msgid "Color (no brown)"
-msgstr "Cor (sem marrom)"
+msgstr "Colorido (sem marrom)"
 
 msgid "Color (IBM 5153)"
-msgstr "Cor (IBM 5153)"
+msgstr "Colorido (IBM 5153)"
 
 msgid "Simple doubling"
 msgstr "Duplicação simples"
@@ -1984,13 +1984,13 @@ msgid "Color 40x25 (5153/CGA)"
 msgstr "Colorido 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr "Cor 80x25 (5153/CGA)"
+msgstr "Colorido 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "Cor aprimorada - Modo normal (5154/ECD)"
+msgstr "Colorido aprimorado - Modo normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "Cor aprimorada - Modo aprimorado (5154/ECD)"
+msgstr "Colorido aprimorado - Modo aprimorado (5154/ECD)"
 
 msgid "Green"
 msgstr "Verde"
@@ -2002,10 +2002,10 @@ msgid "Gray"
 msgstr "Cinza"
 
 msgid "Color"
-msgstr "Cor"
+msgstr "Colorido"
 
 msgid "U.S. English"
-msgstr "Inglês dos EUA"
+msgstr "Inglês Americano"
 
 msgid "Scandinavian"
 msgstr "Escandinavo"
@@ -2020,10 +2020,10 @@ msgid "Mono Non-Interlaced"
 msgstr "Monocromático não entrelaçado"
 
 msgid "Color Interlaced"
-msgstr "Cor entrelaçado"
+msgstr "Colorido entrelaçado"
 
 msgid "Color Non-Interlaced"
-msgstr "Cor não entrelaçado"
+msgstr "Colorido não entrelaçado"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Gráficos 3Dfx Voodoo"
@@ -2053,7 +2053,7 @@ msgid "High-Speed"
 msgstr "Alta velocidade"
 
 msgid "Stereo LPT DAC"
-msgstr "DAC estéreo LPT"
+msgstr "DAC LPT estéreo"
 
 msgid "Generic Text Printer"
 msgstr "Impressora de texto genérica"
@@ -2065,7 +2065,7 @@ msgid "Generic PostScript Printer"
 msgstr "Impressora PostScript genérica"
 
 msgid "Generic PCL5e Printer"
-msgstr "Impressora genérica PCL5e"
+msgstr "Impressora PCL5e genérica"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protocolo de Internet de linha paralela"
@@ -2120,3 +2120,15 @@ msgstr "Clone IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Fabricante"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Expansão de memória genérica PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Expansão de memória genérica PC/AT"
