@@ -660,6 +660,8 @@ load_network(void)
                 nc->net_type = NET_TYPE_SLIRP;
             else if (!strcmp(p, "vde") || !strcmp(p, "2"))
                 nc->net_type = NET_TYPE_VDE;
+            else if (!strcmp(p, "tap") || !strcmp(p, "3"))
+                nc->net_type = NET_TYPE_TAP;
             else
                 nc->net_type = NET_TYPE_NONE;
         } else
@@ -706,6 +708,8 @@ load_network(void)
                 nc->net_type = NET_TYPE_SLIRP;
             else if (!strcmp(p, "vde") || !strcmp(p, "2"))
                 nc->net_type = NET_TYPE_VDE;
+            else if (!strcmp(p, "tap") || !strcmp(p, "3"))
+                nc->net_type = NET_TYPE_TAP;
             else
                 nc->net_type = NET_TYPE_NONE;
         } else
@@ -2308,6 +2312,9 @@ save_network(void)
                 break;
             case NET_TYPE_VDE:
                 ini_section_set_string(cat, temp, "vde");
+                break;
+            case NET_TYPE_TAP:
+                ini_section_set_string(cat, temp, "tap");
                 break;
 
             default:
