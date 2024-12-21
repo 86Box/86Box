@@ -137,6 +137,7 @@ video_cards[] = {
     { &mach32_pci_device,         VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_pci_device                             },
     { &mach64vt2_device                                },
+    { &ragexl_device                                   },
     { &bochs_svga_device                               },
     { &chips_69000_device                              },
     { &gd5430_pci_device,                              },
