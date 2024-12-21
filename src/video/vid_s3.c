@@ -4312,7 +4312,7 @@ s3_recalctimings(svga_t *svga)
         }
     }
 
-    if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) || (s3->chip == S3_VISION864))
+    if ((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) || (s3->chip == S3_VISION864) || (s3->chip == S3_VISION868) || (s3->chip == S3_VISION968))
         svga->hoverride = 1;
     else
         svga->hoverride = 0;
@@ -8337,7 +8337,13 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     if (update) {
                         READ(s3->accel.dest + s3->accel.cx - s3->accel.minus, dest_dat);
 
-                        MIX
+                        if (s3_cpu_dest(s3)) {
+                            if (vram_mask) {
+                                MIX
+                            }
+                        } else {
+                            MIX
+                        }
 
                         if (s3->accel.cmd & 0x10) {
                             if (s3->accel.cmd == 0x41b3)

@@ -2481,36 +2481,58 @@ pcnet_readl(uint16_t addr, void *priv)
 static void
 pcnet_mmio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 1);
 }
 
 static void
 pcnet_mmio_writew(uint32_t addr, uint16_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 1, val >> 8);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 2);
 }
 
 static void
 pcnet_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 1, val >> 8);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 2, val >> 16);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 3, val >> 24);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 4);
 }
 
 static uint8_t
 pcnet_mmio_readb(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr);
     return (pcnet_read((nic_t *) priv, addr, 1));
 }
 
 static uint16_t
 pcnet_mmio_readw(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr) | (pcnet_aprom_readb((nic_t *) priv, addr + 1) << 8);
     return (pcnet_read((nic_t *) priv, addr, 2));
 }
 
 static uint32_t
 pcnet_mmio_readl(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr) | (pcnet_aprom_readb((nic_t *) priv, addr + 1) << 8) | (pcnet_aprom_readb((nic_t *) priv, addr + 2) << 16) | (pcnet_aprom_readb((nic_t *) priv, addr + 3) << 24);
     return (pcnet_read((nic_t *) priv, addr, 4));
 }
 
@@ -2607,7 +2629,7 @@ pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             /* Then let's set the PCI regs. */
             pcnet_pci_bar[0].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            pcnet_pci_bar[0].addr &= 0xff00;
+            pcnet_pci_bar[0].addr &= 0xffe0;
             dev->PCIBase = pcnet_pci_bar[0].addr;
             /* Log the new base. */
             pcnet_log(4, "%s: New I/O base is %04X\n", dev->name, dev->PCIBase);
@@ -2685,7 +2707,7 @@ pcnet_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return 1; /*I/O space*/
+            return pcnet_pci_bar[0].addr_regs[0] | 1; /*I/O space*/
         case 0x11:
             return pcnet_pci_bar[0].addr_regs[1];
         case 0x12:

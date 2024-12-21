@@ -531,6 +531,7 @@ extern int hasfpu;
 #define CPU_FEATURE_3DNOW   (1 << 6)
 #define CPU_FEATURE_SYSCALL (1 << 7)
 #define CPU_FEATURE_3DNOWE  (1 << 8)
+#define CPU_FEATURE_PSE36   (1 << 9)
 
 extern uint32_t cpu_features;
 
