@@ -301,13 +301,40 @@ extern const device_config_t nv3_config[];
 #define NV3_PME_INTR_EN                                 0x200140    // Mediaport: Interrupt Enable
 #define NV3_PME_END                                     0x200FFF
 #define NV3_PGRAPH_START                                0x400000    // Scene graph for 2d/3d rendering...the most important part
+// PGRAPH Core
+#define NV3_PGRAPH_DEBUG_0                              0x400080
+#define NV3_PGRAPH_DEBUG_1                              0x400084
+#define NV3_PGRAPH_DEBUG_2                              0x400088
+#define NV3_PGRAPH_DEBUG_3                              0x40008C
 #define NV3_PGRAPH_INTR_0                               0x400100
 #define NV3_PGRAPH_INTR_1                               0x400104
 #define NV3_PGRAPH_INTR_EN_0                            0x400140    // Interrupt Control for PGRAPH #1
 #define NV3_PGRAPH_INTR_EN_0_VBLANK                     8           // Fired every frame
 #define NV3_PGRAPH_INTR_EN_0_VBLANK_ENABLED             0x1         // Is the vblank interrupt enabled?
 //todo: add what this does
-#define NV3_PGRAPH_INTR_EN_1                            0x400180    // Interrupt Control for PGRAPH #2 (it can receive two at onc)
+#define NV3_PGRAPH_INTR_EN_1                            0x400144    // Interrupt Control for PGRAPH #2 (it can receive two at onc)
+#define NV3_PGRAPH_CONTEXT_SWITCH                       0x400180    // DMA context switcher
+#define NV3_PGRAPH_CONTEXT_CONTROL                      0x400190    // DMA context control
+#define NV3_PGRAPH_CONTEXT_USER                         0x400194    // Current DMA context state, may rename
+#define NV3_PGRAPH_CONTEXT_CACHE(i)                     0x4001A0+(i*4)  // Context Cache
+#define NV3_PGRAPH_CONTEXT_CACHE_SIZE                   8
+#define NV3_PGRAPH_SRC_CANVAS_MIN                       0x440550    // Minimum Source Canvas for Blit, X,Y position
+#define NV3_PGRAPH_SRC_CANVAS_MAX                       0x440554    // Maximum Source Canvas for Blit, X,Y position
+#define NV3_PGRAPH_DST_CANVAS_MIN                       0x440558    // Minimum Destination Canvas for Blit, X,Y position
+#define NV3_PGRAPH_DST_CANVAS_MAX                       0x44055C    // Maximum Destination Canvas for Blit, X,Y position
+#define NV3_PGRAPH_CLIP0_MIN                            0x440690    // Clip for Blitting 0 Min
+#define NV3_PGRAPH_CLIP0_MAX                            0x440694    // Clip for Blitting 0 Max
+#define NV3_PGRAPH_CLIP1_MIN                            0x440698    // Clip for Blitting 1 Min
+#define NV3_PGRAPH_CLIP1_MAX                            0x44069C    // Clip for Blitting 1 Max
+#define NV3_PGRAPH_FIFO_ACCESS                          0x4006A4    // Is PGRAPH enabled?
+#define NV3_PGRAPH_FIFO_ACCESS_DISABLED                 0x0
+#define NV3_PGRAPH_FIFO_ACCESS_ENABLED                  0x1
+#define NV3_PGRAPH_CLIP_MISC                            0x4006A0    // Miscellaneous clipping information
+#define NV3_PGRAPH_STATUS                               0x4006B0    // Current PGRAPH status
+#define NV3_PGRAPH_TRAPPED_ADDRESS                      0x4006B4
+#define NV3_PGRAPH_TRAPPED_DATA                         0x4006B8
+#define NV3_PGRAPH_TRAPPED_INSTANCE                     0x4006BC
+
 
 // not sure about the class ids
 // these are NOT what each class is, just uSed to manipulate it (there isn't a one to one class->reg mapping anyway)
