@@ -19,6 +19,7 @@
 #include <86box/machine.h>
 #include <86box/chipset.h>
 #include <86box/port_6x.h>
+#include <86box/video.h>
 
 extern const device_t vendex_xt_rtc_onboard_device;
 
@@ -324,6 +325,35 @@ machine_xt_iskra3104_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
+
+    machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_maz1016_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/maz1016/e1.bin",
+                                "roms/machines/maz1016/e4.bin",
+                                0x000fc000, 49152, 0);
+
+    if (ret) {
+        bios_load_aux_interleaved("roms/machines/maz1016/e2.bin",
+                                  "roms/machines/maz1016/e5.bin",
+                                  0x000f8000, 16384, 0);
+
+        bios_load_aux_interleaved("roms/machines/maz1016/e3.bin",
+                                  "roms/machines/maz1016/e6b.bin",
+                                  0x000f4000, 16384, 0);
+    }
+
+    if (bios_only || !ret)
+        return ret;
+
+    loadfont("roms/machines/maz1016/crt-8.bin", 0);
 
     machine_xt_clone_init(model, 0);
 
