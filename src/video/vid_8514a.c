@@ -285,7 +285,7 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
                             if ((cmd >= 2) && (dev->accel.cmd & 0x1000))
                                 val = (val >> 8) | (val << 8);
                         }
-                        if ((cmd <= 2) || (cmd == 4)) {
+                        if ((cmd <= 2) || (cmd == 4) || ((cmd == 6))) {
                             if ((dev->accel.cmd & 0x08) && (cmd >= 2))
                                 monoxfer = val;
                             else {
