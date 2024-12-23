@@ -240,13 +240,13 @@ cpu_io(int bits, int out, uint16_t port)
     int old_cycles = cycles;
 
     if (out) {
-        wait(4, 1);
+        wait(is_mazovia ? 5 : 4, 1);
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
                 old_cycles = cycles;
                 outw(port, AX);
             } else {
-                wait(4, 1);
+                wait(is_mazovia ? 5 : 4, 1);
                 old_cycles = cycles;
                 outb(port++, AL);
                 outb(port, AH);
@@ -256,13 +256,13 @@ cpu_io(int bits, int out, uint16_t port)
             outb(port, AL);
         }
     } else {
-        wait(4, 1);
+        wait(is_mazovia ? 5 : 4, 1);
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
                 old_cycles = cycles;
                 AX         = inw(port);
             } else {
-                wait(4, 1);
+                wait(is_mazovia ? 5 : 4, 1);
                 old_cycles = cycles;
                 AL         = inb(port++);
                 AH         = inb(port);
