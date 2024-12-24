@@ -149,7 +149,9 @@ main_thread_fn()
             if (dopause)
                 ack_pause();
 
+#ifdef Q_OS_WINDOWS
             timeBeginPeriod(1);
+#endif
             plat_delay_ms(1);
         }
     }
@@ -158,7 +160,9 @@ main_thread_fn()
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if (gfxcard[i]) {
             ui_deinit_monitor(i);
+#ifdef Q_OS_WINDOWS
             timeBeginPeriod(1);
+#endif
             plat_delay_ms(500);
         }
     }
