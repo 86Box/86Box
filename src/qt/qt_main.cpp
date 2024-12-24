@@ -149,7 +149,12 @@ main_thread_fn()
             if (dopause)
                 ack_pause();
 
+#ifdef USE_THREAD_SLEEP
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
+#else
+            timeBeginPeriod(1);
+            plat_delay_ms(1);
+#endif
         }
     }
 
