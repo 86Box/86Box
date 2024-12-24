@@ -56,6 +56,10 @@ extern "C" {
 #include <86box/network.h>
 #include <86box/machine_status.h>
 
+#ifdef Q_OS_WINDOWS
+#    include <86box/win.h>
+#endif
+
 void
 plat_delay_ms(uint32_t count)
 {
