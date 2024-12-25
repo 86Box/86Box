@@ -1938,6 +1938,14 @@ sb_read(uint16_t a, void *priv)
             } else
                 ret = 0xff;
             break;
+        case 0x7:
+        case 0xB:
+            /*
+               These two ports are tested for random noise by OS/2 Warp 4.0, so
+               return 0xff to get through said test.
+             */
+            ret = 0xff;
+            break;
         case 0xA: /* Read data */
             if (dsp->mpu && dsp->uart_midi)
                 ret = MPU401_ReadData(dsp->mpu);
