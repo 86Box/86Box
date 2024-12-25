@@ -100,6 +100,10 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
 
 uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+        
     uint8_t ret = 0x00;
 
     // figure out what size this gets read as first
@@ -249,10 +253,12 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
 void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
 {
 
-    // TOTAL IRRELEVANCY
+    // sanity check
+    if (!nv3)
+        return; 
 
     // some addresses are not writable so can't have any effect and can't be allowed to be modified using this code
-    // only the most significant byte of the PCI BARs can be modified
+    // as an example, only the most significant byte of the PCI BARs can be modified
     if (addr >= NV3_PCI_CFG_BAR0_L && addr <= NV3_PCI_CFG_BAR0_BYTE2
     && addr >= NV3_PCI_CFG_BAR1_L && addr <= NV3_PCI_CFG_BAR1_BYTE2)
         return;
@@ -354,7 +360,11 @@ void nv3_close(void* priv)
 // SVGA functions
 //
 void nv3_recalc_timings(svga_t* svga)
-{
+{    
+    // sanity check
+    if (!nv3)
+        return; 
+
     nv3_t* nv3 = (nv3_t*)svga->priv;
 
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
@@ -405,6 +415,10 @@ void nv3_recalc_timings(svga_t* svga)
 
 void nv3_speed_changed(void* priv)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+        
     nv3_recalc_timings(&nv3->nvbase.svga);
 }
 
@@ -412,12 +426,20 @@ void nv3_speed_changed(void* priv)
 // Reset etc.
 void nv3_force_redraw(void* priv)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+
     nv3->nvbase.svga.fullchange = changeframecount; 
 }
 
 // Read from SVGA core memory
 uint8_t nv3_svga_in(uint16_t addr, void* priv)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+
     nv3_t* nv3 = (nv3_t*)priv;
 
     uint8_t ret = 0x00;
@@ -466,6 +488,9 @@ uint8_t nv3_svga_in(uint16_t addr, void* priv)
 // Write to SVGA core memory
 void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
 {
+    // sanity check
+    if (!nv3)
+        return; 
 
     // If we need to RMA to GPU MMIO, go do that
     if (addr >= NV3_RMA_REGISTER_START
@@ -550,6 +575,12 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
 
 void nv3_draw_cursor(svga_t* svga, int32_t drawline)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+    
+    // this is a 2kb bitmap in vram...somewhere...
+
     nv_log("nv3_draw_cursor drawline=0x%04x", drawline);
 }
 
@@ -633,7 +664,10 @@ void nv3_init_mappings()
 // Updates the mappings after initialisation. 
 void nv3_update_mappings()
 {
-
+    // sanity check
+    if (!nv3)
+        return; 
+        
     // setting this to 0 doesn't seem to disable it, based on the datasheet
 
     nv_log("\nMemory Mapping Config Change:\n");

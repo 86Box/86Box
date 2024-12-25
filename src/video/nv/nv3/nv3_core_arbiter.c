@@ -52,6 +52,10 @@ nv_register_t* nv_get_register(uint32_t address, nv_register_t* register_list, u
 // Arbitrates an MMIO read
 uint32_t nv3_mmio_arbitrate_read(uint32_t address)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+
     uint32_t ret = 0x00;
     
     // note: some registers are byte aligned not dword aligned
@@ -113,6 +117,10 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
 
 void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
 {
+    // sanity check
+    if (!nv3)
+        return; 
+
     // note: some registers are byte aligned not dword aligned
     // only very few are though, so they can be handled specially, using the register list most likely
     address &= 0xFFFFFC;
