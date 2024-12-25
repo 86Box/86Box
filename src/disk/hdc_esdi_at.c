@@ -552,6 +552,29 @@ esdi_read(uint16_t port, void *priv)
     return temp;
 }
 
+/**
+ * Copy a string into a buffer, padding with spaces, and placing characters as
+ * if they were packed into 16-bit values, stored little-endian.
+ *
+ * @param str Destination buffer
+ * @param src Source string
+ * @param len Length of destination buffer to fill in. Strings shorter than
+ *            this length will be padded with spaces.
+ */
+static void
+esdi_padstr(char *str, const char *src, const int len)
+{
+    int v;
+
+    for (int i = 0; i < len; i++) {
+        if (*src != '\0')
+            v = *src++;
+        else
+            v = ' ';
+        str[i ^ 1] = v;
+    }
+}
+
 static void
 esdi_callback(void *priv)
 {
@@ -811,28 +834,36 @@ format_error:
                 irq_raise(esdi);
             } else {
                 memset(esdi->buffer, 0x00, 512);
-                esdi->buffer[0] = 0x44;                              /* general configuration */
-                esdi->buffer[1] = drive->real_tracks;                /* number of non-removable cylinders */
-                esdi->buffer[2] = 0;                                 /* number of removable cylinders */
-                esdi->buffer[3] = drive->real_hpc;                   /* number of heads */
-                esdi->buffer[4] = 600;                               /* number of unformatted bytes/sector */
-                esdi->buffer[5] = esdi->buffer[4] * drive->real_spt; /* number of unformatted bytes/track */
-                esdi->buffer[6] = drive->real_spt;                   /* number of sectors */
-                esdi->buffer[7] = 0;                                 /*minimum bytes in inter-sector gap*/
-                esdi->buffer[8] = 0;                                 /* minimum bytes in postamble */
-                esdi->buffer[9] = 0;                                 /* number of words of vendor status */
-                /* controller info */
-                esdi->buffer[20] = 2; /* controller type */
-                esdi->buffer[21] = 1; /* sector buffer size, in sectors */
-                esdi->buffer[22] = 0; /* ecc bytes appended */
-                esdi->buffer[27] = 'W' | ('D' << 8);
-                esdi->buffer[28] = '1' | ('0' << 8);
-                esdi->buffer[29] = '0' | ('7' << 8);
-                esdi->buffer[30] = 'V' | ('-' << 8);
-                esdi->buffer[31] = 'S' | ('E' << 8);
-                esdi->buffer[32] = '1';
-                esdi->buffer[47] = 0; /* sectors per interrupt */
-                esdi->buffer[48] = 0; /* can use double word read/write? */
+                esdi->buffer[0] = 0x3244;                            /*
+                                                                        Soft sectored (0x0004),
+                                                                        Fixed drive (0x0040),
+                                                                        Transfer rate > 5 Mbps but <= 10 Mbps (0x0200),
+                                                                        Data strobe offset option (0x1000),
+                                                                        Track offset option (0x2000).
+                                                                      */
+                if (drive->real_spt >= 26)
+                    esdi->buffer[0] |= 0x0008;                       /* Not MFM encoded. */
+                esdi->buffer[1] = drive->real_tracks;                /* Fixed cylinders - the BIOS lists 2 less. */
+                esdi->buffer[2] = 0;                                 /* Removable cylinders. */
+                esdi->buffer[3] = drive->real_hpc;                   /* Heads. */
+                esdi->buffer[5] = 600;                               /* Unformatted bytes per sector. */
+                esdi->buffer[4] = esdi->buffer[5] * drive->real_spt; /* Unformatted bytes per track. */
+                esdi->buffer[6] = drive->real_spt;                   /* Sectors per track - the BIOS lists 1 less. */
+                esdi->buffer[7] = 3088;                              /* Bytes in inter-sector gap. */
+                esdi->buffer[8] = 11;                                /* Byce in sync fileds. */
+                esdi->buffer[9] = 0xf;                               /* Number of vendor unique words. */
+                /* Serial Number */
+                esdi_padstr((char *) (esdi->buffer + 10), "00000000000000000000", 20);
+                /* Controller information. */
+                esdi->buffer[20] = 3;                                /* Buffer type. */
+                esdi->buffer[21] = 64;                               /* Buffer size in 512-byte increments. */
+                esdi->buffer[22] = 4;                                /* Bytes of ECC. */
+                /* Firmware */
+                esdi_padstr((char *) (esdi->buffer + 23), "REV. A5", 8);
+                /* Model */
+                esdi_padstr((char *) (esdi->buffer + 27), "WD1007V", 40);
+                esdi->buffer[47] = 1;                                /* Sectors per interrupt. */
+                esdi->buffer[48] = 0;                                /* Can use DWord read/write? */
                 esdi->pos        = 0;
                 esdi->status     = STAT_DRQ | STAT_READY | STAT_DSC;
                 irq_raise(esdi);
