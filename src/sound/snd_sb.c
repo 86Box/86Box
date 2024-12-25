@@ -1177,12 +1177,11 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     uint8_t                  ret = 0xff;
 
-    if (!(addr & 1))
-        ret = mixer->index;
-
     sb_log("sb_ct1745: received register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
-    if ((mixer->index >= 0x30) && (mixer->index <= 0x47))
+    if (!(addr & 1))
+        ret = 0xff /*mixer->index*/;
+    else if ((mixer->index >= 0x30) && (mixer->index <= 0x47))
         ret = mixer->regs[mixer->index];
     else {
         switch (mixer->index) {
