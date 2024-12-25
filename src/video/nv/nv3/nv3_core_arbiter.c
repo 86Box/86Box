@@ -54,7 +54,7 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
 {
     // sanity check
     if (!nv3)
-        return; 
+        return 0x00; 
 
     uint32_t ret = 0x00;
     

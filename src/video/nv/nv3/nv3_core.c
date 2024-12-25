@@ -100,11 +100,11 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
 
 uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
 {
+    uint8_t ret = 0x00;
+
     // sanity check
     if (!nv3)
-        return; 
-        
-    uint8_t ret = 0x00;
+        return ret; 
 
     // figure out what size this gets read as first
     // seems func does not matter at least here?
@@ -436,13 +436,14 @@ void nv3_force_redraw(void* priv)
 // Read from SVGA core memory
 uint8_t nv3_svga_in(uint16_t addr, void* priv)
 {
-    // sanity check
-    if (!nv3)
-        return; 
 
     nv3_t* nv3 = (nv3_t*)priv;
 
     uint8_t ret = 0x00;
+
+    // sanity check
+    if (!nv3)
+        return ret; 
 
     // If we need to RMA from GPU MMIO, go do that
     if (addr >= NV3_RMA_REGISTER_START
@@ -667,7 +668,7 @@ void nv3_update_mappings()
     // sanity check
     if (!nv3)
         return; 
-        
+
     // setting this to 0 doesn't seem to disable it, based on the datasheet
 
     nv_log("\nMemory Mapping Config Change:\n");
