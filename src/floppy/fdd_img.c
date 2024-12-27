@@ -1075,9 +1075,14 @@ jump_if_fdf:
             dev->sectors = 19;
             dev->tracks  = 80;
         } else if (size <= 1638400) { /*HD 1024 sector*/
+#ifdef SYNTH_FORMAT
             dev->sectors     = 10;
-            dev->tracks      = 80;
             dev->sector_size = 3;
+#else
+            /* Prefer 20 512-byte sectors per track, used by the OpenStep 4.0 boot disk. */
+            dev->sectors     = 20;
+#endif
+            dev->tracks      = 80;
         } else if (size <= 1720320) { /*DMF (Windows 95) */
             dev->sectors = 21;
             dev->tracks  = 80;
