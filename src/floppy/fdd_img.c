@@ -1120,7 +1120,7 @@ jump_if_fdf:
             dev->sectors = 42;
             dev->tracks  = 80;
 #if 0
-        } else if (size <= 3440640) { /*HD 1024 sector*/
+        } else if (size <= 3440640) { /*ED 1024 sector*/
             dev->sectors = 21;
             dev->tracks = 80;
             dev->sector_size = 3;
