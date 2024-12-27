@@ -1093,9 +1093,14 @@ jump_if_fdf:
             dev->sectors = 21;
             dev->tracks  = 82;
         } else if (size <= 1802240) { /*HD 1024 sector*/
-            dev->sectors     = 22;
-            dev->tracks      = 80;
+#ifdef SYNTH_FORMAT
+            dev->sectors     = 11;
             dev->sector_size = 3;
+#else
+            /* Prefer 22 512-byte sectors per track. */
+            dev->sectors     = 22;
+#endif
+            dev->tracks      = 80;
         } else if (size == 1884160) { /*XDF (OS/2 Warp)*/
             dev->sectors = 23;
             dev->tracks  = 80;
