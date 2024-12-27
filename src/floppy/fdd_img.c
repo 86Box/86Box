@@ -1079,7 +1079,7 @@ jump_if_fdf:
             dev->sectors     = 10;
             dev->sector_size = 3;
 #else
-            /* Prefer 20 512-byte sectors per track, used by the OpenStep 4.0 boot disk. */
+            /* Prefer 20 512-byte sectors per track, used by the OpenStep 4.0 Pre-Release 1 boot disk. */
             dev->sectors     = 20;
 #endif
             dev->tracks      = 80;
