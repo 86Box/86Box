@@ -86,8 +86,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
             {
                 case NV3_PFIFO_INTR:
                     ret = nv3->pfifo.interrupt_status;
+                    break;
                 case NV3_PFIFO_INTR_EN:
                     ret = nv3->pfifo.interrupt_enable;
+                    break;
             }
         }
 
@@ -98,7 +100,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
     }
     else
     {
-        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%08x), returning 0x00\n", address);
     }
 
     return ret; 

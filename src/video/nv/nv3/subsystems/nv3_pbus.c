@@ -75,13 +75,13 @@ uint32_t nv3_pbus_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = 0x%04x)\n", reg->friendly_name, ret);
+            nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
         else   
             nv_log("\n");
     }
     else
     {
-        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%08x), returning 0x00\n", address);
     }
 
     return ret; 

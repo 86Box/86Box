@@ -104,32 +104,40 @@ uint32_t nv3_ptimer_read(uint32_t address)
             {
                 case NV3_PTIMER_INTR:
                     ret = nv3->ptimer.interrupt_status;
+                    break;
                 case NV3_PTIMER_INTR_EN:
                     ret = nv3->ptimer.interrupt_enable;
+                    break;
                 case NV3_PTIMER_NUMERATOR:
                     ret = nv3->ptimer.clock_numerator; // 15:0
+                    break;
                 case NV3_PTIMER_DENOMINATOR:
                     ret = nv3->ptimer.clock_denominator ; //15:0
+                    break;
                 // 64-bit value
                 // High part
                 case NV3_PTIMER_TIME_0_NSEC:
                     ret = nv3->ptimer.time & 0xFFFFFFFF; //28:0
+                    break;
                 // Low part
                 case NV3_PTIMER_TIME_1_NSEC:
                     ret = nv3->ptimer.time >> 32; // 31:5
+                    break;
                 case NV3_PTIMER_ALARM_NSEC: 
                     ret = nv3->ptimer.alarm; // 31:5
+                    break;
             }
+
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = 0x%04x)\n", reg->friendly_name, ret);
+            nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
         else   
             nv_log("\n");
     }
     else
     {
-        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%08x), returning 0x00\n", address);
     }
 
     return ret;

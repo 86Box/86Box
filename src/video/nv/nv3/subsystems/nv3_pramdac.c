@@ -229,47 +229,63 @@ uint32_t nv3_pramdac_read(uint32_t address)
             {
                 case NV3_PRAMDAC_COEFF_SELECT:
                     ret = nv3->pramdac.coeff_select;
+                    break;
                 case NV3_PRAMDAC_GENERAL_CONTROL:
                     ret = nv3->pramdac.general_control;
+                    break;
                 case NV3_PRAMDAC_VSERR_WIDTH:
                     ret = nv3->pramdac.vserr_width;
+                    break;
                 case NV3_PRAMDAC_VBBLANK_END:
                     ret = nv3->pramdac.vbblank_end;
+                    break;
                 case NV3_PRAMDAC_VBLANK_END:
                     ret = nv3->pramdac.vblank_end;
+                    break;
                 case NV3_PRAMDAC_VBLANK_START:
                     ret = nv3->pramdac.vblank_start;
+                    break;
                 case NV3_PRAMDAC_VEQU_START:
                     ret = nv3->pramdac.vequ_start;
+                    break;
                 case NV3_PRAMDAC_VTOTAL:
                     ret = nv3->pramdac.vtotal;
+                    break;
                 case NV3_PRAMDAC_HSYNC_WIDTH:
                     ret = nv3->pramdac.hsync_width;
+                    break;
                 case NV3_PRAMDAC_HBURST_START:
                     ret = nv3->pramdac.hburst_start;
+                    break;
                 case NV3_PRAMDAC_HBURST_END:
                     ret = nv3->pramdac.hburst_end;
+                    break;
                 case NV3_PRAMDAC_HBLANK_START:
                     ret = nv3->pramdac.hblank_start;
+                    break;
                 case NV3_PRAMDAC_HBLANK_END:
                     ret =  nv3->pramdac.hblank_end;
+                    break;
                 case NV3_PRAMDAC_HTOTAL:
                     ret = nv3->pramdac.htotal;
+                    break;
                 case NV3_PRAMDAC_HEQU_WIDTH:
                     ret = nv3->pramdac.hequ_width;
+                    break;
                 case NV3_PRAMDAC_HSERR_WIDTH:
                     ret = nv3->pramdac.hserr_width;
+                    break;
             }
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = 0x%04x)\n", reg->friendly_name, ret);
+            nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
         else   
             nv_log("\n");
     }
     else
     {
-        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%08x), returning 0x00\n", address);
     }
 
     return ret; 
