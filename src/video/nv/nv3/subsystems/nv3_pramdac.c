@@ -210,6 +210,8 @@ uint32_t nv3_pramdac_read(uint32_t address)
 { 
     nv_register_t* reg = nv_get_register(address, pramdac_registers, sizeof(pramdac_registers)/sizeof(pramdac_registers[0]));
 
+    uint32_t ret = 0x00;
+    
     // todo: friendly logging
 
     nv_log("NV3: PRAMDAC Read from 0x%08x", address);
@@ -224,49 +226,58 @@ uint32_t nv3_pramdac_read(uint32_t address)
 
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {
             //s hould be pretty easy to understand
             switch (reg->address)
             {
                 case NV3_PRAMDAC_COEFF_SELECT:
-                    return nv3->pramdac.coeff_select;
+                    ret = nv3->pramdac.coeff_select;
                 case NV3_PRAMDAC_GENERAL_CONTROL:
-                    return nv3->pramdac.general_control;
+                    ret = nv3->pramdac.general_control;
                 case NV3_PRAMDAC_VSERR_WIDTH:
-                    return nv3->pramdac.vserr_width;
+                    ret = nv3->pramdac.vserr_width;
                 case NV3_PRAMDAC_VBBLANK_END:
-                    return nv3->pramdac.vbblank_end;
+                    ret = nv3->pramdac.vbblank_end;
                 case NV3_PRAMDAC_VBLANK_END:
-                    return nv3->pramdac.vblank_end;
+                    ret = nv3->pramdac.vblank_end;
                 case NV3_PRAMDAC_VBLANK_START:
-                    return nv3->pramdac.vblank_start;
+                    ret = nv3->pramdac.vblank_start;
                 case NV3_PRAMDAC_VEQU_START:
-                    return nv3->pramdac.vequ_start;
+                    ret = nv3->pramdac.vequ_start;
                 case NV3_PRAMDAC_VTOTAL:
-                    return nv3->pramdac.vtotal;
+                    ret = nv3->pramdac.vtotal;
                 case NV3_PRAMDAC_HSYNC_WIDTH:
-                    return nv3->pramdac.hsync_width;
+                    ret = nv3->pramdac.hsync_width;
                 case NV3_PRAMDAC_HBURST_START:
-                    return nv3->pramdac.hburst_start;
+                    ret = nv3->pramdac.hburst_start;
                 case NV3_PRAMDAC_HBURST_END:
-                    return nv3->pramdac.hburst_end;
+                    ret = nv3->pramdac.hburst_end;
                 case NV3_PRAMDAC_HBLANK_START:
-                    return nv3->pramdac.hblank_start;
+                    ret = nv3->pramdac.hblank_start;
                 case NV3_PRAMDAC_HBLANK_END:
-                    return nv3->pramdac.hblank_end;
+                    ret =  nv3->pramdac.hblank_end;
                 case NV3_PRAMDAC_HTOTAL:
-                    return nv3->pramdac.htotal;
+                    ret = nv3->pramdac.htotal;
                 case NV3_PRAMDAC_HEQU_WIDTH:
-                    return nv3->pramdac.hequ_width;
+                    ret = nv3->pramdac.hequ_width;
                 case NV3_PRAMDAC_HSERR_WIDTH:
-                    return nv3->pramdac.hserr_width;
+                    ret = nv3->pramdac.hserr_width;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+        else   
+            nv_log("\n");
+    }
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
     }
 
-    return 0x0; 
+    return ret; 
 }
 
 void nv3_pramdac_write(uint32_t address, uint32_t value) 

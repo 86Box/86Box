@@ -28,7 +28,7 @@
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
-// Single unified write function...
+
 
 void nv3_pmc_init()
 {
@@ -172,41 +172,47 @@ uint32_t nv3_pmc_read(uint32_t address)
 { 
     nv_register_t* reg = nv_get_register(address, pmc_registers, sizeof(pmc_registers)/sizeof(pmc_registers[0]));
 
+    uint32_t ret = 0x00;
+
     // todo: friendly logging
     nv_log("NV3: PMC Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
-
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {
             switch (reg->address)
             {
                 case NV3_PMC_BOOT:          
-                    return nv3->pmc.boot;
+                    ret = nv3->pmc.boot;
                 case NV3_PMC_INTERRUPT_STATUS:
                     nv3_pmc_clear_interrupts();
 
-                    return nv3_pmc_handle_interrupts(false);
+                    ret =  nv3_pmc_handle_interrupts(false);
                 case NV3_PMC_INTERRUPT_ENABLE:
                     //TODO: ACTUALLY CHANGE THE INTERRUPT STATE
-                    return nv3->pmc.interrupt_enable;
+                    ret =  nv3->pmc.interrupt_enable;
                 case NV3_PMC_ENABLE:
-                    return nv3->pmc.enable;
+                    ret =  nv3->pmc.enable;
 
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+        else   
+            nv_log("\n");
+    }
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
     }
 
-    return 0x0; 
+    return ret; 
 }
 
 void nv3_pmc_write(uint32_t address, uint32_t value) 

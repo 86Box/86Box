@@ -48,7 +48,8 @@ uint32_t nv3_pvideo_read(uint32_t address)
     // before doing anything, check the subsystem enablement
 
     nv_register_t* reg = nv_get_register(address, pvideo_registers, sizeof(pvideo_registers)/sizeof(pvideo_registers[0]));
-
+    uint32_t ret = 0x00;
+    
     // todo: friendly logging
     
     nv_log("NV3: PVIDEO Read from 0x%08x", address);
@@ -63,7 +64,7 @@ uint32_t nv3_pvideo_read(uint32_t address)
 
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {   
             // Interrupt state:
@@ -72,14 +73,23 @@ uint32_t nv3_pvideo_read(uint32_t address)
             switch (reg->address)
             {
                 case NV3_PVIDEO_INTR:
-                    return nv3->pvideo.interrupt_status;
+                    ret = nv3->pvideo.interrupt_status;
                 case NV3_PVIDEO_INTR_EN:
-                    return nv3->pvideo.interrupt_enable;
+                    ret = nv3->pvideo.interrupt_enable;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+        else   
+            nv_log("\n");
+    }
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
     }
 
-    return 0x0; 
+    return ret;
 }
 
 void nv3_pvideo_write(uint32_t address, uint32_t value) 

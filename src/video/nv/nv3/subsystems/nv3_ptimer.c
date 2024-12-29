@@ -87,6 +87,8 @@ uint32_t nv3_ptimer_read(uint32_t address)
 
     nv_log("NV3: PTIMER Read from 0x%08x", address);
 
+    uint32_t ret = 0x00;
+    
     // if the register actually exists
     if (reg)
     {
@@ -97,7 +99,7 @@ uint32_t nv3_ptimer_read(uint32_t address)
 
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {   
             // Interrupt state:
@@ -106,27 +108,36 @@ uint32_t nv3_ptimer_read(uint32_t address)
             switch (reg->address)
             {
                 case NV3_PTIMER_INTR:
-                    return nv3->ptimer.interrupt_status;
+                    ret = nv3->ptimer.interrupt_status;
                 case NV3_PTIMER_INTR_EN:
-                    return nv3->ptimer.interrupt_enable;
+                    ret = nv3->ptimer.interrupt_enable;
                 case NV3_PTIMER_NUMERATOR:
-                    return nv3->ptimer.clock_numerator; // 15:0
+                    ret = nv3->ptimer.clock_numerator; // 15:0
                 case NV3_PTIMER_DENOMINATOR:
-                    return nv3->ptimer.clock_denominator ; //15:0
+                    ret = nv3->ptimer.clock_denominator ; //15:0
                 // 64-bit value
                 // High part
                 case NV3_PTIMER_TIME_0_NSEC:
-                    return nv3->ptimer.time & 0xFFFFFFFF; //28:0
+                    ret = nv3->ptimer.time & 0xFFFFFFFF; //28:0
                 // Low part
                 case NV3_PTIMER_TIME_1_NSEC:
-                    return nv3->ptimer.time >> 32; // 31:5
+                    ret = nv3->ptimer.time >> 32; // 31:5
                 case NV3_PTIMER_ALARM_NSEC: 
-                    return nv3->ptimer.alarm; // 31:5
+                    ret = nv3->ptimer.alarm; // 31:5
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+        else   
+            nv_log("\n");
+    }
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
     }
 
-    return 0x00; 
+    return ret;
 }
 
 void nv3_ptimer_write(uint32_t address, uint32_t value) 

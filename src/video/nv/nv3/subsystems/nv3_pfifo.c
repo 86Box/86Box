@@ -28,7 +28,7 @@
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
-// Single unified write function...
+
 
 //
 // ****** pfifo register list START ******
@@ -59,6 +59,8 @@ uint32_t nv3_pfifo_read(uint32_t address)
         return 0x00;
     }
 
+    uint32_t ret = 0x00;
+
     nv_register_t* reg = nv_get_register(address, pfifo_registers, sizeof(pfifo_registers)/sizeof(pfifo_registers[0]));
 
     // todo: friendly logging
@@ -68,14 +70,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
 
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {   
             // Interrupt state:
@@ -87,13 +85,23 @@ uint32_t nv3_pfifo_read(uint32_t address)
             switch (reg->address)
             {
                 case NV3_PFIFO_INTR:
-                    return nv3->pfifo.interrupt_status;
+                    ret = nv3->pfifo.interrupt_status;
                 case NV3_PFIFO_INTR_EN:
-                    return nv3->pfifo.interrupt_enable;
+                    ret = nv3->pfifo.interrupt_enable;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s\n", reg->friendly_name);
+        else   
+            nv_log("\n");
     }
-    return 0x0; 
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
+    }
+
+    return ret; 
 }
 
 void nv3_pfifo_write(uint32_t address, uint32_t value) 

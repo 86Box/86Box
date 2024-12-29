@@ -84,7 +84,7 @@ uint32_t nv3_pextdev_read(uint32_t address)
 { 
     nv_register_t* reg = nv_get_register(address, pextdev_registers, sizeof(pextdev_registers)/sizeof(pextdev_registers[0]));
 
-    // todo: friendly logging
+    uint32_t ret = 0x00;
 
     // special consideration for straps
     if (address == NV3_PSTRAPS)
@@ -94,31 +94,34 @@ uint32_t nv3_pextdev_read(uint32_t address)
     else
     {
         nv_log("NV3: PEXTDEV Read from 0x%08x", address);
-
     }
     
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
-
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {
             switch (reg->address)
             {
                 case NV3_PSTRAPS:
-                    return nv3->pextdev.straps;
+                    ret = nv3->pextdev.straps;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+        else   
+            nv_log("\n");
+    }
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
     }
 
-    return 0x0; 
+    return ret; 
 }
 
 void nv3_pextdev_write(uint32_t address, uint32_t value) 

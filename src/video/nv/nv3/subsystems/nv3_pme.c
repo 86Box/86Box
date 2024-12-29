@@ -45,6 +45,8 @@ uint32_t nv3_pme_read(uint32_t address)
 { 
     nv_register_t* reg = nv_get_register(address, pme_registers, sizeof(pme_registers)/sizeof(pme_registers[0]));
 
+    uint32_t ret = 0x00;
+
     // todo: friendly logging
 
     nv_log("NV3: PME Read from 0x%08x", address);
@@ -59,7 +61,7 @@ uint32_t nv3_pme_read(uint32_t address)
 
         // on-read function
         if (reg->on_read)
-            return reg->on_read();
+            ret = reg->on_read();
         else
         {   
             // Interrupt state:
@@ -71,14 +73,23 @@ uint32_t nv3_pme_read(uint32_t address)
             switch (reg->address)
             {
                 case NV3_PME_INTR:
-                    return nv3->pme.interrupt_status;
+                    ret = nv3->pme.interrupt_status;
                 case NV3_PME_INTR_EN:
-                    return nv3->pme.interrupt_enable;
+                    ret = nv3->pme.interrupt_enable;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+        else   
+            nv_log("\n");
+    }
+    else
+    {
+        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
     }
 
-    return 0x0; 
+    return ret;
 }
 
 void nv3_pme_write(uint32_t address, uint32_t value) 
