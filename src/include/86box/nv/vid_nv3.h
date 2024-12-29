@@ -952,8 +952,8 @@ void        nv3_pbus_rma_write(uint16_t addr, uint8_t val);
 void        nv3_pramdac_init();
 void        nv3_pramdac_set_vram_clock();
 void        nv3_pramdac_set_pixel_clock();
-void        nv3_pramdac_pixel_clock_poll(/*void* priv*/);
-void        nv3_pramdac_memory_clock_poll(/*void* priv*/);
+void        nv3_pramdac_pixel_clock_poll();
+void        nv3_pramdac_memory_clock_poll();
 
 // NV3 PTIMER
 void        nv3_ptimer_init();

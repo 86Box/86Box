@@ -50,17 +50,13 @@ void nv3_pramdac_init()
 
 // Polls the pixel clock.
 // This updates the 2D/3D engine PGRAPH
-void nv3_pramdac_pixel_clock_poll(/*void* priv*/)
+void nv3_pramdac_pixel_clock_poll()
 {
-    /*
-    nv3_t* nv3_poll = (nv3_t*)priv;
-
-    timer_on_auto(&nv3_poll->nvbase.pixel_clock_timer, nv3_poll->nvbase.pixel_clock_period);
-    */
+    // TODO: UPDATE PGRAPH! 
 }
 
 // Polls the memory clock.
-void nv3_pramdac_memory_clock_poll(/*void* priv*/)
+void nv3_pramdac_memory_clock_poll()
 {
     //nv3_t* nv3_poll = (nv3_t*)priv;
 
@@ -138,8 +134,6 @@ void nv3_pramdac_set_vram_clock()
     }
 
     rivatimer_set_period(nv3->nvbase.memory_clock_timer, time);
-    //Breaks everything?
-    //timer_set_delay_u64(&nv3->nvbase.memory_clock_timer, time * TIMER_USEC); // do we need to decrease
 }
 
 void nv3_pramdac_set_pixel_clock()
@@ -188,11 +182,6 @@ void nv3_pramdac_set_pixel_clock()
     }
 
     rivatimer_set_period(nv3->nvbase.pixel_clock_timer, time);
-
-
-    //timer_on_auto(&nv3->nvbase.pixel_clock_timer, nv3->nvbase.pixel_clock_period);
-    //Breaks everything?
-    //timer_set_delay_u64(&nv3->nvbase.pixel_clock_timer, time * TIMER_USEC); // do we need to decrease
 }
 
 //
