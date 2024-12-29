@@ -318,14 +318,30 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_CONTEXT_USER                         0x400194    // Current DMA context state, may rename
 #define NV3_PGRAPH_CONTEXT_CACHE(i)                     0x4001A0+(i*4)  // Context Cache
 #define NV3_PGRAPH_CONTEXT_CACHE_SIZE                   8
-#define NV3_PGRAPH_SRC_CANVAS_MIN                       0x440550    // Minimum Source Canvas for Blit, X,Y position
-#define NV3_PGRAPH_SRC_CANVAS_MAX                       0x440554    // Maximum Source Canvas for Blit, X,Y position
-#define NV3_PGRAPH_DST_CANVAS_MIN                       0x440558    // Minimum Destination Canvas for Blit, X,Y position
-#define NV3_PGRAPH_DST_CANVAS_MAX                       0x44055C    // Maximum Destination Canvas for Blit, X,Y position
-#define NV3_PGRAPH_CLIP0_MIN                            0x440690    // Clip for Blitting 0 Min
-#define NV3_PGRAPH_CLIP0_MAX                            0x440694    // Clip for Blitting 0 Max
-#define NV3_PGRAPH_CLIP1_MIN                            0x440698    // Clip for Blitting 1 Min
-#define NV3_PGRAPH_CLIP1_MAX                            0x44069C    // Clip for Blitting 1 Max
+#define NV3_PGRAPH_ABS_UCLIP_XMIN                       0x40053C    // Clip X minimum
+#define NV3_PGRAPH_ABS_UCLIP_XMAX                       0x400540    // Clip X maximum
+#define NV3_PGRAPH_ABS_UCLIP_YMIN                       0x400544    // Clip Y minimum
+#define NV3_PGRAPH_ABS_UCLIP_YMAX                       0x400548    // Clip Y maximum
+#define NV3_PGRAPH_SRC_CANVAS_MIN                       0x400550    // Minimum Source Canvas for Blit, X,Y position
+#define NV3_PGRAPH_SRC_CANVAS_MAX                       0x400554    // Maximum Source Canvas for Blit, X,Y position
+#define NV3_PGRAPH_DST_CANVAS_MIN                       0x400558    // Minimum Destination Canvas for Blit, X,Y position
+#define NV3_PGRAPH_DST_CANVAS_MAX                       0x40055C    // Maximum Destination Canvas for Blit, X,Y position
+#define NV3_PGRAPH_PATTERN_COLOR_0_0                    0x400600    
+#define NV3_PGRAPH_PATTERN_COLOR_0_1                    0x400604
+#define NV3_PGRAPH_PATTERN_COLOR_1_0                    0x400608    
+#define NV3_PGRAPH_PATTERN_COLOR_1_1                    0x40060C    // pattern color 
+#define NV3_PGRAPH_PATTERN_BITMAP_HIGH                  0x400610    // pattern bitmap [31:0]
+#define NV3_PGRAPH_PATTERN_BITMAP_LOW                   0x400614    // pattern bitmap [63:32]
+#define NV3_PGRAPH_PATTERN_SHAPE                        0x400618
+#define NV3_PGRAPH_ROP3                                 0x400624    // ROP3      
+#define NV3_PGRAPH_PLANE_MASK                           0x400628
+#define NV3_PGRAPH_CHROMA_KEY                           0x40062C
+#define NV3_PGRAPH_BETA                                 0x400640    // Beta factor (30:23 fractional, 22:0 before fraction)
+#define NV3_PGRAPH_NOTIFY                               0x400684    // Notifier for PGRAPH      
+#define NV3_PGRAPH_CLIP0_MIN                            0x400690    // Clip for Blitting 0 Min
+#define NV3_PGRAPH_CLIP0_MAX                            0x400694    // Clip for Blitting 0 Max
+#define NV3_PGRAPH_CLIP1_MIN                            0x400698    // Clip for Blitting 1 Min
+#define NV3_PGRAPH_CLIP1_MAX                            0x40069C    // Clip for Blitting 1 Max
 #define NV3_PGRAPH_FIFO_ACCESS                          0x4006A4    // Is PGRAPH enabled?
 #define NV3_PGRAPH_FIFO_ACCESS_DISABLED                 0x0
 #define NV3_PGRAPH_FIFO_ACCESS_ENABLED                  0x1
@@ -335,6 +351,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_TRAPPED_DATA                         0x4006B8
 #define NV3_PGRAPH_TRAPPED_INSTANCE                     0x4006BC
 
+#define NV3_PGRAPH_DMA_INTR_0                           0x401000    // PGRAPH DMA Interrupt Status
+#define NV3_PGRAPH_DMA_INTR_EN_0                        0x401140    // PGRAPH DMA Interrupt Enable 0
 
 // not sure about the class ids
 // these are NOT what each class is, just uSed to manipulate it (there isn't a one to one class->reg mapping anyway)

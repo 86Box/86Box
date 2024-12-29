@@ -1,0 +1,24 @@
+RIVA fansites (?????):
+RIVA User's Group	http://tiger.tnstate.edu:8080/
+RIVA 128 Homepage	http://pages.prodigy.net/babblin5/Main.html -> Riva3D (riva3d.com)
+Zone 128		http://www.tc.umn.edu/~reda0003/zone128/
+RIVAZone		https://web.archive.org/web/19981212032348/http://www.rivazone.com/ (Launched January 2, 1998)
+Dimension 128		(early domain name that was never archived) -> d128.com (1999-2001)
+Riva3D			https://web.archive.org/web/20000525110305/http://riva3d.gxnetwork.com/s3.html
+nVNews			https://web.archive.org/web/20001205171202/http://www.nvnews.net/ (1999-2015)
+
+BluesNews has stuff https://www.bluesnews.com/archives/
+(July 1996-present!)
+
+https://www.bluesnews.com/archives/july97-3.html 	July 21, 1997 ("unreleased nvidia RIVA chipset is indeed faster than 3dfx" (carmack)
+
+"However, using the nvidia RIVA 128 chip it runs 1 f/s faster"
+
+https://web.archive.org/web/19980615024744/http://www.ogr.com/columns/techtalk/technology_talk_0611_2.shtml First mention of NV10 (June 1998)
+
+"RIVA 128 Turbo" early ZX name
+"Riva4" early TNT name
+
+https://web.archive.org/web/20001002193706/http://www.rivazone.com/files/rivalog.txt
+
+https://web.archive.org/web/20010422044820/http://www.rivazone.com/finger/finger.cgi?nick@finger.nvidia.com nvidia .plan files

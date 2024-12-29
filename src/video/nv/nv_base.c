@@ -12,7 +12,7 @@
  *
  * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
  *
- *          Copyright 2024 starfrost
+ *          Copyright 2024-2025 starfrost
  */
 
 // Common NV1/3/4... init

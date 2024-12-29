@@ -1,0 +1,63 @@
+GPU companies (the period they made gpus)
+
+DEC		19xx-1998
+HP 		19xx-2000+ (possibly until present)
+IBM		19xx-2002+ (possibly until present)
+E&S		1968-2006 
+Intergraph	1969-2000
+Apple		1976-present (some break)
+Motorola	1977-1994+ (???)
+TI		1979-1988+
+Matrox		1979-2014
+Hitachi		1981-1986
+SGI		1981-2009
+Intel		1983-present
+Number Nine	1983-2000
+Tseng Labs	1983-1997
+Cirrus Logic	1984-1998
+Video 7 	1985-1991
+C&T		1985-1999
+Imagination	1985-present
+NCR		1986-1993
+Paradise/WD	1986-1996
+Gemini		1987-1990
+Genoa Systems	1987-1991
+Trident		1987-2003
+Oak Technology	1988-1997
+Realtek		1988-1997
+Compaq		1989-1991
+Sun		1989-2002(+?) 
+S3 Graphics	1989-2010
+Macronix	1989-1998
+Winbond		1989-1996+
+Tamarack	198x-1991+
+UMC		198x-1993
+Sigma Designs	198x-1996
+Acer		198x-1998 (roughly)
+Fujitsu		198x-1998
+AMD		1991-present (really starting in 2006)
+HMC		1991-1994
+Avance Logic	1991-1995
+Weitek		<1991-1996
+Bitboys		1991-2006
+IIT		1992-1994
+Weitek		1992-1996(?)
+Rendition	1993-1998
+ARK Logic	1993-1999
+S-MOS/Stellar	1994-1999
+Nvidia		1993-present
+Alliance	1994-1997
+iGS		1994-1999
+3dfx		1994-2000
+3dlabs		1994-2006
+Silicon Motion	1995-200?
+SiS		1995-2007
+Dynamic Pictures1996-1997
+NeoMagic	1996-2000
+GigaPixel	1997-2000
+Philips		1997-199x
+Tatung		199x-199x
+ASPEED		2004-present
+Jingjia		2006-present
+
+

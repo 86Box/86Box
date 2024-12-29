@@ -103,6 +103,7 @@
 #include <86box/machine_status.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -1420,6 +1421,9 @@ pc_run(void)
         pc_reset_hard_close();
         pc_reset_hard_init();
     }
+
+    /* Update the guest-CPU independent timer for devices with independent clock speed */
+    rivatimer_update_all();
 
     /* Run a block of code. */
     startblit();

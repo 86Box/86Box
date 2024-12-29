@@ -1,0 +1,8 @@
+Name			Base Version	Notes				Date		API Support					Platform
+0.75_nt4		Version 0.75	No Resource Manager (miniport)	1997-08-15	GDI						NT4.0
+0.77_win9x		Version 0.77	Symbols (COFF/VXD)		1997-09-02	GDI, D3D5
+nv3quake.zip		Version 1.21	OpenGL Alpha 1			1997-11-14	GDI, D3D5, OpenGL 1.1 (alpha; Build 151)	Win9x
+quakea2f.zip		Version 1.21	OpenGL Alpha 2			1997-12-02	GDI, D3D5, OpenGL 1.1 (alpha; Build 258)	Win9x
+win95_131.zip		Version 1.31	OpenGL Beta 1			1998-02-04	GDI, D3D5, OpenGL 1.1 (beta; Build 661)		Win9x
+
+
