@@ -125,7 +125,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+            nv_log(": %s (value = 0x%04x)\n", reg->friendly_name, ret);
         else   
             nv_log("\n");
     }
@@ -142,7 +142,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
         }
         else /* Completely unknown */
         {
-            nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
+            nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
         }
     }
 

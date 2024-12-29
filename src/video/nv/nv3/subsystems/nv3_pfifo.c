@@ -98,7 +98,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
     }
     else
     {
-        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
     }
 
     return ret; 

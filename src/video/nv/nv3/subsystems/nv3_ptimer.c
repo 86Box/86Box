@@ -88,15 +88,10 @@ uint32_t nv3_ptimer_read(uint32_t address)
     nv_log("NV3: PTIMER Read from 0x%08x", address);
 
     uint32_t ret = 0x00;
-    
+
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
-
         // on-read function
         if (reg->on_read)
             ret = reg->on_read();
@@ -128,13 +123,13 @@ uint32_t nv3_ptimer_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+            nv_log(": %s (value = 0x%04x)\n", reg->friendly_name, ret);
         else   
             nv_log("\n");
     }
     else
     {
-        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
     }
 
     return ret;

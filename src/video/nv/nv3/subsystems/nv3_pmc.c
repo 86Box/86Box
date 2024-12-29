@@ -190,9 +190,10 @@ uint32_t nv3_pmc_read(uint32_t address)
                 case NV3_PMC_BOOT:          
                     ret = nv3->pmc.boot;
                 case NV3_PMC_INTERRUPT_STATUS:
+                    nv_log("\n"); // clear_interrupts logs
                     nv3_pmc_clear_interrupts();
 
-                    ret =  nv3_pmc_handle_interrupts(false);
+                    ret = nv3_pmc_handle_interrupts(false);
                 case NV3_PMC_INTERRUPT_ENABLE:
                     //TODO: ACTUALLY CHANGE THE INTERRUPT STATE
                     ret =  nv3->pmc.interrupt_enable;
@@ -203,13 +204,13 @@ uint32_t nv3_pmc_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = %04x)\n", reg->friendly_name, ret);
+            nv_log(": %s (value = 0x%04x)\n", reg->friendly_name, ret);
         else   
             nv_log("\n");
     }
     else
     {
-        nv_log(": Unknown register read (address=%04x), returning 0x00\n", address);
+        nv_log(": Unknown register read (address=0x%04x), returning 0x00\n", address);
     }
 
     return ret; 
