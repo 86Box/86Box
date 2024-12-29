@@ -47,6 +47,39 @@ nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_INTR_EN_0, "PGRAPH Interrupt Enable 0", NULL, NULL },
     { NV3_PGRAPH_INTR_1, "PGRAPH Interrupt Status 1", NULL, NULL },
     { NV3_PGRAPH_INTR_EN_1, "PGRAPH Interrupt Enable 1", NULL, NULL },
+    { NV3_PGRAPH_CONTEXT_SWITCH, "PGRAPH DMA Context Switch", NULL, NULL },
+    { NV3_PGRAPH_CONTEXT_CONTROL, "PGRAPH DMA Context Control", NULL, NULL },
+    { NV3_PGRAPH_CONTEXT_USER, "PGRAPH DMA Context User", NULL, NULL },
+    //{ NV3_PGRAPH_CONTEXT_CACHE(0), "PGRAPH DMA Context Cache", NULL, NULL },
+    { NV3_PGRAPH_ABS_UCLIP_XMIN, "PGRAPH Absolute Clip Minimum X [17:0]", NULL, NULL },
+    { NV3_PGRAPH_ABS_UCLIP_XMAX, "PGRAPH Absolute Clip Maximum X [17:0]", NULL, NULL },
+    { NV3_PGRAPH_ABS_UCLIP_YMIN, "PGRAPH Absolute Clip Minimum Y [17:0]", NULL, NULL },
+    { NV3_PGRAPH_ABS_UCLIP_YMAX, "PGRAPH Absolute Clip Maximum Y [17:0]", NULL, NULL },
+    { NV3_PGRAPH_SRC_CANVAS_MIN, "PGRAPH Source Canvas Minimum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_SRC_CANVAS_MAX, "PGRAPH Source Canvas Maximum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_DST_CANVAS_MIN, "PGRAPH Destination Canvas Minimum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_DST_CANVAS_MAX, "PGRAPH Destination Canvas Maximum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_PATTERN_COLOR_0_0, "PGRAPH Pattern Color 0_0 (Bits 29:20 = Red, Bits 19:10 = Green, Bits 9:0 = Blue)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_0_1, "PGRAPH Pattern Color 0_1 (Bits 7:0 = Alpha)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_1_0, "PGRAPH Pattern Color 1_0 (Bits 29:20 = Red, Bits 19:10 = Green, Bits 9:0 = Blue)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_1_1, "PGRAPH Pattern Color 1_1 (Bits 7:0 = Alpha)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_BITMAP_HIGH, "PGRAPH Pattern Bitmap (High 32bits)", NULL, NULL},
+    { NV3_PGRAPH_PATTERN_BITMAP_LOW, "PGRAPH Pattern Bitmap (Low 32bits)", NULL, NULL},
+    { NV3_PGRAPH_PATTERN_SHAPE, "PGRAPH Pattern Shape (1:0 - 0=8x8, 1=64x1, 2=1x64)", NULL, NULL},
+    { NV3_PGRAPH_ROP3, "PGRAPH Render Operation ROP3 (2^3 bits = 256 possible operations)", NULL, NULL},
+    { NV3_PGRAPH_PLANE_MASK, "PGRAPH Current Plane Mask (7:0)", NULL, NULL},
+    { NV3_PGRAPH_CHROMA_KEY, "PGRAPH Chroma Key (17:0) (Bit 30 = Alpha, 29:20 = Red, 19:10 = Green, 9:0 = Blue)", NULL, NULL},
+    { NV3_PGRAPH_NOTIFY, "PGRAPH Notifier (Wip...)", NULL, NULL},
+    { NV3_PGRAPH_CLIP0_MIN, "PGRAPH Clip0 Min (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_CLIP0_MAX, "PGRAPH Clip0 Max (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_CLIP1_MIN, "PGRAPH Clip1 Min (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_CLIP1_MAX, "PGRAPH Clip1 Max (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
+    { NV3_PGRAPH_FIFO_ACCESS, "PGRAPH - Can we access PFIFO?", NULL, NULL, },
+    { NV3_PGRAPH_STATUS, "PGRAPH Status", NULL, NULL },
+    { NV3_PGRAPH_TRAPPED_ADDRESS, "PGRAPH Trapped Address", NULL, NULL },
+    { NV3_PGRAPH_TRAPPED_DATA, "PGRAPH Trapped Data", NULL, NULL },
+    { NV3_PGRAPH_TRAPPED_INSTANCE, "PGRAPH Trapped Object Instance", NULL, NULL },
+
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -94,6 +127,18 @@ uint32_t nv3_pgraph_read(uint32_t address)
             }
         }
 
+    }
+    else
+    {
+        /* Special exception for memory areas */
+        if (address >= NV3_PGRAPH_CONTEXT_CACHE(0)
+        && address <= NV3_PGRAPH_CONTEXT_CACHE(NV3_PGRAPH_CONTEXT_CACHE_SIZE))
+        {
+            // Addresses should be aligned to 4 bytes.
+            uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
+
+            nv_log("NV3: PGRAPH Context Cache Read (Entry=%04x Value=%04x)\n", entry, nv3->pgraph.context_cache[entry]);
+        }
     }
 
     return 0x0; 
@@ -150,6 +195,19 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
 
                     break;
             }
+        }
+    }
+    else
+    {
+        /* Special exception for memory areas */
+        if (address >= NV3_PGRAPH_CONTEXT_CACHE(0)
+        && address <= NV3_PGRAPH_CONTEXT_CACHE(NV3_PGRAPH_CONTEXT_CACHE_SIZE))
+        {
+            // Addresses should be aligned to 4 bytes.
+            uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
+
+            nv_log("NV3: PGRAPH Context Cache Write (Entry=%04x Value=%04x)\n", entry, value);
+            nv3->pgraph.context_cache[entry] = value;
         }
     }
 }

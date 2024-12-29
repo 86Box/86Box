@@ -111,7 +111,6 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
         return 0x00;
     }
 
-    nv_log("NV3: MMIO read, 0x%08x <- 0x%08x\n", ret, address);
     return ret;
 }
 
@@ -171,8 +170,6 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
         nv_log("NV3: MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x\n", address);
         return;
     }
-
-    nv_log("NV3: MMIO write, 0x%08x -> 0x%08x\n", value, address);
 }
 
 
