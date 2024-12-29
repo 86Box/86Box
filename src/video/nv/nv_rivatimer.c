@@ -227,6 +227,7 @@ void rivatimer_stop(rivatimer_t* rivatimer_ptr)
         fatal("rivatimer_stop: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
 
     rivatimer_ptr->running = false;
+    rivatimer_ptr->time = 0;
 }
 
 // Get the current time value of a rivatimer
@@ -234,6 +235,8 @@ double rivatimer_get_time(rivatimer_t* rivatimer_ptr)
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
         fatal("rivatimer_get_time: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+
+    return rivatimer_ptr->time;
 }
 
 void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)())
