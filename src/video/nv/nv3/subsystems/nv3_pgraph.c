@@ -43,6 +43,10 @@ void nv3_pgraph_init()
 //
 
 nv_register_t pgraph_registers[] = {
+    { NV3_PGRAPH_DEBUG_0, "PGRAPH Debug 0", NULL, NULL },
+    { NV3_PGRAPH_DEBUG_1, "PGRAPH Debug 1", NULL, NULL },
+    { NV3_PGRAPH_DEBUG_2, "PGRAPH Debug 2", NULL, NULL },
+    { NV3_PGRAPH_DEBUG_3, "PGRAPH Debug 3", NULL, NULL },
     { NV3_PGRAPH_INTR_0, "PGRAPH Interrupt Status 0", NULL, NULL },
     { NV3_PGRAPH_INTR_EN_0, "PGRAPH Interrupt Enable 0", NULL, NULL },
     { NV3_PGRAPH_INTR_1, "PGRAPH Interrupt Status 1", NULL, NULL },
@@ -69,7 +73,10 @@ nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_ROP3, "PGRAPH Render Operation ROP3 (2^3 bits = 256 possible operations)", NULL, NULL},
     { NV3_PGRAPH_PLANE_MASK, "PGRAPH Current Plane Mask (7:0)", NULL, NULL},
     { NV3_PGRAPH_CHROMA_KEY, "PGRAPH Chroma Key (17:0) (Bit 30 = Alpha, 29:20 = Red, 19:10 = Green, 9:0 = Blue)", NULL, NULL},
-    { NV3_PGRAPH_NOTIFY, "PGRAPH Notifier (Wip...)", NULL, NULL},
+    { NV3_PGRAPH_BETA, "PGRAPH Beta factor", NULL, NULL },
+    { NV3_PGRAPH_DMA, "PGRAPH DMA", NULL, NULL },
+    { NV3_PGRAPH_CLIP_MISC, "PGRAPH Clipping Miscellaneous Settings", NULL, NULL },
+    { NV3_PGRAPH_NOTIFY, "PGRAPH Notifier (Wip...)", NULL, NULL },
     { NV3_PGRAPH_CLIP0_MIN, "PGRAPH Clip0 Min (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
     { NV3_PGRAPH_CLIP0_MAX, "PGRAPH Clip0 Max (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
     { NV3_PGRAPH_CLIP1_MIN, "PGRAPH Clip1 Min (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
@@ -164,7 +171,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
 
     nv_register_t* reg = nv_get_register(address, pgraph_registers, sizeof(pgraph_registers)/sizeof(pgraph_registers[0]));
 
-    nv_log("NV3: pgraph Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("NV3: PGRAPH Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)

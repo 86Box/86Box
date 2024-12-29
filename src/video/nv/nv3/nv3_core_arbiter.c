@@ -57,7 +57,7 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
         return 0x00; 
 
     uint32_t ret = 0x00;
-    
+
     // note: some registers are byte aligned not dword aligned
     // only very few are though, so they can be handled specially, using the register list most likely
     address &= 0xFFFFFC;
@@ -119,6 +119,9 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
     // sanity check
     if (!nv3)
         return; 
+
+    // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
+    address &= 0xFFFFFF;
 
     // note: some registers are byte aligned not dword aligned
     // only very few are though, so they can be handled specially, using the register list most likely

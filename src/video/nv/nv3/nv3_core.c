@@ -46,27 +46,92 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv);
 // Read 8-bit MMIO
 uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
 {
+    uint32_t ret = 0x00;
+
+    // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
+    addr &= 0xFFFFFF;
+
+    if (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END)
+    {
+        // svga writes are not logged anyway rn
+        uint32_t real_address = addr & 0x3FF;
+
+        ret = nv3_svga_in(real_address, nv3);
+        
+        return ret; 
+    }
+
     // see if unaligned reads are a problem
-    uint32_t ret = nv3_mmio_read32(addr, priv);
+    ret = nv3_mmio_read32(addr, priv);
     return (uint8_t)(ret >> ((addr & 3) << 3) & 0xFF);
 }
 
 // Read 16-bit MMIO
 uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
 {
-    uint32_t ret = nv3_mmio_read32(addr, priv);
+    uint32_t ret = 0x00;
+
+    // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
+    addr &= 0xFFFFFF;
+
+    if (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END)
+    {
+        // svga writes are not logged anyway rn
+        uint32_t real_address = addr & 0x3FF;
+
+        ret = nv3_svga_in(real_address, nv3)
+        | (nv3_svga_in(real_address + 1, nv3) << 8);
+        
+        return ret; 
+    }
+
+    ret = nv3_mmio_read32(addr, priv);
     return (uint8_t)(ret >> ((addr & 3) << 3) & 0xFFFF);
 }
 
 // Read 32-bit MMIO
 uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
 {
+    uint32_t ret = 0x00;
+
+    // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
+    addr &= 0xFFFFFF;
+
+    if (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END)
+    {
+        // svga writes are not logged anyway rn
+        uint32_t real_address = addr & 0x3FF;
+
+        ret = nv3_svga_in(real_address, nv3)
+        | (nv3_svga_in(real_address + 1, nv3) << 8)
+        | (nv3_svga_in(real_address + 2, nv3) << 16)
+        | (nv3_svga_in(real_address + 3, nv3) << 24);
+        
+        return ret; 
+    }
+
+
     return nv3_mmio_arbitrate_read(addr);
 }
 
 // Write 8-bit MMIO
 void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
 {
+    // This is weitek vga stuff
+    if (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END)
+    {
+        // svga writes are not logged anyway rn
+        uint32_t real_address = addr & 0x3FF;
+
+        nv3_svga_out(real_address, val & 0xFF, nv3);
+
+        return; 
+    }
+    
     // overwrite first 8bits of a 32 bit value
     uint32_t new_val = nv3_mmio_read32(addr, NULL);
 
@@ -79,6 +144,19 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
 // Write 16-bit MMIO
 void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
 {
+    // This is weitek vga stuff
+    if (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END)
+    {
+        // svga writes are not logged anyway rn
+        uint32_t real_address = addr & 0x3FF;
+
+        nv3_svga_out(real_address, val & 0xFF, nv3);
+        nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
+        
+        return; 
+    }
+
     // overwrite first 16bits of a 32 bit value
     uint32_t new_val = nv3_mmio_read32(addr, NULL);
 
@@ -91,6 +169,21 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
 // Write 32-bit MMIO
 void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
 {
+    // This is weitek vga stuff
+    if (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END)
+    {
+        // svga writes are not logged anyway rn
+        uint32_t real_address = addr & 0x3FF;
+
+        nv3_svga_out(real_address, val & 0xFF, nv3);
+        nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
+        nv3_svga_out(real_address + 2, (val >> 16) & 0xFF, nv3);
+        nv3_svga_out(real_address + 3, (val >> 24) & 0xFF, nv3);
+        
+        return; 
+    }
+
     nv3_mmio_arbitrate_write(addr, val);
 }
 

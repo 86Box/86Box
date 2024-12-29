@@ -212,8 +212,8 @@ extern const device_config_t nv3_config[];
 #define NV3_VGA_VRAM_END                                0xBFFFF
 #define NV3_VGA_START                                   0xC0000     // VGA Emulation Registers
 #define NV3_VGA_END                                     0xC7FFF
-#define NV3_PRMVIO_START                                NV3_VGA_START
-#define NV3_PRMVIO_END                                  NV3_VGA_END
+#define NV3_PRMVIO_START                                NV3_VGA_START // VGA stuff written from main GPU
+#define NV3_PRMVIO_END                                  0xC0400
 #define NV3_PFB_START                                   0x100000    // GPU Interface to VRAM
 #define NV3_PFB_BOOT                                    0x100000    // Boot registration 
 #define NV3_PFB_BOOT_RAM_AMOUNT                         0           // The amount of ram
@@ -342,11 +342,13 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_PLANE_MASK                           0x400628
 #define NV3_PGRAPH_CHROMA_KEY                           0x40062C
 #define NV3_PGRAPH_BETA                                 0x400640    // Beta factor (30:23 fractional, 22:0 before fraction)
+#define NV3_PGRAPH_DMA                                  0x400680
 #define NV3_PGRAPH_NOTIFY                               0x400684    // Notifier for PGRAPH      
 #define NV3_PGRAPH_CLIP0_MIN                            0x400690    // Clip for Blitting 0 Min
 #define NV3_PGRAPH_CLIP0_MAX                            0x400694    // Clip for Blitting 0 Max
 #define NV3_PGRAPH_CLIP1_MIN                            0x400698    // Clip for Blitting 1 Min
 #define NV3_PGRAPH_CLIP1_MAX                            0x40069C    // Clip for Blitting 1 Max
+#define NV3_PGRAPH_CLIP_MISC                            0x4006A0    // Regions/Render/Complex mode
 #define NV3_PGRAPH_FIFO_ACCESS                          0x4006A4    // Is PGRAPH enabled?
 #define NV3_PGRAPH_FIFO_ACCESS_DISABLED                 0x0
 #define NV3_PGRAPH_FIFO_ACCESS_ENABLED                  0x1
