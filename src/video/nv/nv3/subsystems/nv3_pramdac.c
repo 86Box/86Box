@@ -62,8 +62,6 @@ void nv3_pramdac_memory_clock_poll()
 
     // Let's hope qeeg was right here.
     nv3_ptimer_tick();
-
-    //timer_on_auto(&nv3_poll->nvbase.memory_clock_timer, nv3_poll->nvbase.memory_clock_period);
 }
 
 // Gets the vram clock register.
@@ -129,7 +127,7 @@ void nv3_pramdac_set_vram_clock()
     // Create and start if it it's not running.
     if (!nv3->nvbase.memory_clock_timer)
     {
-        nv3->nvbase.memory_clock_timer = rivatimer_create(time, nv3_pramdac_pixel_clock_poll);
+        nv3->nvbase.memory_clock_timer = rivatimer_create(time, nv3_pramdac_memory_clock_poll);
         rivatimer_start(nv3->nvbase.memory_clock_timer);
     }
 
