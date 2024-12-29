@@ -28,6 +28,7 @@
 #include <86box/timer.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 void nv_log(const char *fmt, ...);
 
@@ -99,10 +100,12 @@ typedef struct nv_base_s
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
     uint32_t gpu_revision;                      // GPU Stepping
     double pixel_clock_period;                  // Period in seconds for pixel clock
-    pc_timer_t pixel_clock_timer;               // Pixel Clock Timer
+    //pc_timer_t pixel_clock_timer;             // Pixel Clock Timer
+    rivatimer_t* pixel_clock_timer;
     bool pixel_clock_enabled;                   // Pixel Clock Enabled - stupid crap used to prevent us enabling the timer multiple times
     double memory_clock_period;                 // Period in seconds for pixel clock
-    pc_timer_t memory_clock_timer;              // Memory Clock Timer
+    //pc_timer_t memory_clock_timer;            // Memory Clock Timer
+    rivatimer_t* memory_clock_timer;
     bool memory_clock_enabled;                  // Memory Clock Enabled - stupid crap used to prevent us eanbling the timer multiple times
 } nv_base_t;
 

@@ -42,7 +42,6 @@ void nv3_pramdac_init()
     nv3->pramdac.memory_clock_n = nv3->pramdac.pixel_clock_n = 0xc8;
     nv3->pramdac.memory_clock_p = nv3->pramdac.pixel_clock_p = 0x0c;
 
-
     nv3_pramdac_set_pixel_clock();
     nv3_pramdac_set_vram_clock();
 
@@ -51,22 +50,24 @@ void nv3_pramdac_init()
 
 // Polls the pixel clock.
 // This updates the 2D/3D engine PGRAPH
-void nv3_pramdac_pixel_clock_poll(void* priv)
+void nv3_pramdac_pixel_clock_poll(/*void* priv*/)
 {
+    /*
     nv3_t* nv3_poll = (nv3_t*)priv;
 
     timer_on_auto(&nv3_poll->nvbase.pixel_clock_timer, nv3_poll->nvbase.pixel_clock_period);
+    */
 }
 
 // Polls the memory clock.
-void nv3_pramdac_memory_clock_poll(void* priv)
+void nv3_pramdac_memory_clock_poll(/*void* priv*/)
 {
-    nv3_t* nv3_poll = (nv3_t*)priv;
+    //nv3_t* nv3_poll = (nv3_t*)priv;
 
     // Let's hope qeeg was right here.
     nv3_ptimer_tick();
 
-    timer_on_auto(&nv3_poll->nvbase.memory_clock_timer, nv3_poll->nvbase.memory_clock_period);
+    //timer_on_auto(&nv3_poll->nvbase.memory_clock_timer, nv3_poll->nvbase.memory_clock_period);
 }
 
 // Gets the vram clock register.
@@ -118,6 +119,7 @@ void nv3_pramdac_set_vram_clock()
     if (nv3->pramdac.memory_clock_n == 0)
         nv3->pramdac.memory_clock_n = 1;
     
+    // Convert to microseconds
     frequency = (frequency * nv3->pramdac.memory_clock_n) / (nv3->pramdac.memory_clock_m << nv3->pramdac.memory_clock_p); 
 
     double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
@@ -126,8 +128,16 @@ void nv3_pramdac_set_vram_clock()
 
     nv3->nvbase.memory_clock_period = time;
     
-    timer_on_auto(&nv3->nvbase.memory_clock_timer, nv3->nvbase.memory_clock_period);
+    //timer_on_auto(&nv3->nvbase.memory_clock_timer, nv3->nvbase.memory_clock_period);
 
+    // Create and start if it it's not running.
+    if (!nv3->nvbase.memory_clock_timer)
+    {
+        nv3->nvbase.memory_clock_timer = rivatimer_create(time, nv3_pramdac_pixel_clock_poll);
+        rivatimer_start(nv3->nvbase.memory_clock_timer);
+    }
+
+    rivatimer_set_period(nv3->nvbase.memory_clock_timer, time);
     //Breaks everything?
     //timer_set_delay_u64(&nv3->nvbase.memory_clock_timer, time * TIMER_USEC); // do we need to decrease
 }
@@ -170,7 +180,17 @@ void nv3_pramdac_set_pixel_clock()
 
     nv3->nvbase.pixel_clock_period = time;
 
-    timer_on_auto(&nv3->nvbase.pixel_clock_timer, nv3->nvbase.pixel_clock_period);
+    // Create and start if it it's not running.
+    if (!nv3->nvbase.pixel_clock_timer)
+    {
+        nv3->nvbase.pixel_clock_timer = rivatimer_create(time, nv3_pramdac_pixel_clock_poll);
+        rivatimer_start(nv3->nvbase.pixel_clock_timer);
+    }
+
+    rivatimer_set_period(nv3->nvbase.pixel_clock_timer, time);
+
+
+    //timer_on_auto(&nv3->nvbase.pixel_clock_timer, nv3->nvbase.pixel_clock_period);
     //Breaks everything?
     //timer_set_delay_u64(&nv3->nvbase.pixel_clock_timer, time * TIMER_USEC); // do we need to decrease
 }

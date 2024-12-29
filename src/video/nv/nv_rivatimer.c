@@ -42,8 +42,15 @@ void rivatimer_init()
     if (!rivatimer_ptr)
         return;
 
-    while (rivatimer_ptr->next)
+    while (rivatimer_ptr)
+    {
+        // since we are destroing it
+        rivatimer_t* old_next = rivatimer_ptr->next;
         rivatimer_destroy(rivatimer_ptr);
+        
+        rivatimer_ptr = old_next;
+    }
+        
 
     #ifdef _WIN32
     // Query the performance frequency.
@@ -98,10 +105,12 @@ bool rivatimer_really_exists(rivatimer_t* rivatimer)
     if (!current)
         return false;
 
-    while (current->next != NULL)
+    while (current)
     {
         if (current == rivatimer)
             return true;
+
+        current = current->next;
     }
 
     return false;
@@ -160,10 +169,14 @@ void rivatimer_update_all()
     if (!rivatimer_ptr)
         return;
 
-    while (rivatimer_ptr->next)
+    while (rivatimer_ptr)
     {
+        // if it's not running skip it
         if (!rivatimer_ptr->running)
+        {
+            rivatimer_ptr = rivatimer_ptr->next;
             continue;
+        }
 
         #ifdef _WIN32
             LARGE_INTEGER current_time;
@@ -199,6 +212,8 @@ void rivatimer_update_all()
                     
             rivatimer_ptr->callback();
         }
+
+        rivatimer_ptr = rivatimer_ptr->next;
     }
 
 }
@@ -248,4 +263,12 @@ void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)())
         fatal("rivatimer_set_callback: No callback!");
 
     rivatimer_ptr->callback = callback;
+}
+
+void rivatimer_set_period(rivatimer_t* rivatimer_ptr, double period)
+{
+    if (!rivatimer_really_exists(rivatimer_ptr))
+       fatal("rivatimer_set_period: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+
+    rivatimer_ptr->period = period;
 }

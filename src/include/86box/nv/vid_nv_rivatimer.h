@@ -81,3 +81,4 @@ void rivatimer_start(rivatimer_t* rivatimer_ptr);
 void rivatimer_stop(rivatimer_t* rivatimer_ptr);
 double rivatimer_get_time(rivatimer_t* rivatimer_ptr);
 void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)());
+void rivatimer_set_period(rivatimer_t* rivatimer_ptr, double period);

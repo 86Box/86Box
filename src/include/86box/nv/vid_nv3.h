@@ -28,7 +28,7 @@ extern const device_config_t nv3_config[];
 #define NV3_LFB_RAMIN_START                             0xC00000        // RAMIN mapping start
 #define NV3_LFB_MAPPING_SIZE                            0x400000        // Size of RAMIN
 
-#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             1000            // The amount by which we have to ration out the memory clock because it's not fast enough...
+#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             10              // The amount by which we have to ration out the memory clock because it's not fast enough...
                                                                         // Multiply by this value to get the real clock speed.
 // Default value for the boot information register.
 // Depends on the chip
@@ -952,8 +952,8 @@ void        nv3_pbus_rma_write(uint16_t addr, uint8_t val);
 void        nv3_pramdac_init();
 void        nv3_pramdac_set_vram_clock();
 void        nv3_pramdac_set_pixel_clock();
-void        nv3_pramdac_pixel_clock_poll(void* priv);
-void        nv3_pramdac_memory_clock_poll(void* priv);
+void        nv3_pramdac_pixel_clock_poll(/*void* priv*/);
+void        nv3_pramdac_memory_clock_poll(/*void* priv*/);
 
 // NV3 PTIMER
 void        nv3_ptimer_init();
