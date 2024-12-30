@@ -48,6 +48,9 @@
 #define SB_16_PNP_NOIDE 0
 #define SB_16_PNP_IDE   1
 
+#define SB_VIBRA16XV 0
+#define SB_VIBRA16C  1
+
 #define SB_32_PNP      0
 #define SB_AWE32_PNP   1
 #define SB_AWE64_VALUE 2
@@ -3412,9 +3415,9 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, (info->local == 0) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
     /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
-    sb_dsp_setdma16_supported(&sb->dsp, info->local != 0);
+    sb_dsp_setdma16_supported(&sb->dsp, info->local != SB_VIBRA16XV);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -3433,15 +3436,24 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport = gameport_add(&gameport_pnp_device);
+    switch (info->local) {
+        case SB_VIBRA16XV: /* CTL7005 */
+            sb->gameport = gameport_add(&gameport_pnp_1io_device);
+            break;
+
+        case SB_VIBRA16C: /* CTL7001/CTL7002 */
+        default:
+            sb->gameport = gameport_add(&gameport_pnp_device);
+            break;
+    }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case 0:
+        case SB_VIBRA16XV:
             pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
             break;
 
-        case 1:
+        case SB_VIBRA16C:
             pnp_rom_file = PNP_ROM_SB_VIBRA16C;
             break;
 
@@ -3461,8 +3473,8 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     }
 
     switch (info->local) {
-        case 0:
-        case 1:
+        case SB_VIBRA16XV:
+        case SB_VIBRA16C:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
@@ -5743,7 +5755,7 @@ const device_t sb_vibra16xv_device = {
     .name          = "Sound Blaster ViBRA 16XV",
     .internal_name = "sb_vibra16xv",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = SB_VIBRA16XV,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -5757,7 +5769,7 @@ const device_t sb_vibra16c_onboard_device = {
     .name          = "Sound Blaster ViBRA 16C (On-Board)",
     .internal_name = "sb_vibra16c_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .local         = SB_VIBRA16C,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -5771,7 +5783,7 @@ const device_t sb_vibra16c_device = {
     .name          = "Sound Blaster ViBRA 16C",
     .internal_name = "sb_vibra16c",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .local         = SB_VIBRA16C,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,

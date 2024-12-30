@@ -674,6 +674,20 @@ const device_t gameport_pnp_device = {
     .config        = NULL
 };
 
+const device_t gameport_pnp_1io_device = {
+    .name          = "Game port (Plug and Play only, 1 I/O port)",
+    .internal_name = "gameport_pnp_1io",
+    .flags         = 0,
+    .local         = GAMEPORT_1ADDR,
+    .init          = gameport_init,
+    .close         = gameport_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t gameport_pnp_6io_device = {
     .name          = "Game port (Plug and Play only, 6 I/O ports)",
     .internal_name = "gameport_pnp_6io",
