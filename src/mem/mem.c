@@ -336,7 +336,10 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         mmu_perm = temp & 4;
         rammap(addr2) |= (rw ? 0x60 : 0x20);
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
@@ -491,7 +494,10 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
         if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
@@ -2351,41 +2357,47 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         /* In range? */
         if (map->enable && (uint64_t) map->base < ((uint64_t) base + (uint64_t) size) &&
             ((uint64_t) map->base + (uint64_t) map->size) > (uint64_t) base) {
+            uint64_t i_a   = ((~map->base_ignore) & 0xffffffffULL) + 0x00000001ULL;
+            uint64_t i_s   = 0x00000000ULL;
+            uint64_t i_e   = map->base_ignore;
+            uint64_t i_c   = 0x00000000ULL;
             uint64_t start = (map->base < base) ? map->base : base;
             uint64_t end   = (((uint64_t) map->base + (uint64_t) map->size) < (base + size)) ?
                              ((uint64_t) map->base + (uint64_t) map->size) : (base + size);
             if (start < map->base)
                 start = map->base;
 
-            for (c = start; c < end; c += MEM_GRANULARITY_SIZE) {
-                /* CPU */
-                n = !!in_smm;
-                wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
+            for (i_c = i_s; i_c <= i_e; i_c += i_a) {
+                for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
+                    /* CPU */
+                    n = !!in_smm;
+                    wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
-                if (map->exec && mem_mapping_access_allowed(map->flags,
-                                 _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
-                    _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
-                if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
-                    write_mapping[c >> MEM_GRANULARITY_BITS] = map;
-                if ((map->read_b || map->read_w || map->read_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
-                    read_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if (map->exec && mem_mapping_access_allowed(map->flags,
+                                                                _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
+                        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping[c >> MEM_GRANULARITY_BITS] = map;
 
-                /* Bus */
-                n |= STATE_BUS;
-                wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
+                    /* Bus */
+                    n |= STATE_BUS;
+                    wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
 
-                if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
-                    write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
-                if ((map->read_b || map->read_w || map->read_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
-                    read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                }
             }
         }
         map = map->next;
@@ -2593,6 +2605,20 @@ mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
     map->enable = 1;
     map->base   = base;
     map->size   = size;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+void
+mem_mapping_set_base_ignore(mem_mapping_t *map, uint32_t base_ignore)
+{
+    /* Remove old mapping. */
+    map->enable      = 0;
+    mem_mapping_recalc(map->base, map->size);
+
+    /* Set new mapping. */
+    map->enable      = 1;
+    map->base_ignore = base_ignore;
 
     mem_mapping_recalc(map->base, map->size);
 }
