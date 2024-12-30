@@ -127,6 +127,7 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_awe32_pnp_device          },
     { &sb_awe64_value_device        },
     { &sb_awe64_device              },
+    { &sb_awe64_ide_device          },
     { &sb_awe64_gold_device         },
     { &sb_vibra16c_device           },
     { &sb_vibra16s_device           },

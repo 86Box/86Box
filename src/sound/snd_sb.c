@@ -43,13 +43,21 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
+#define SB_32_PNP      0
+#define SB_AWE32_PNP   1
+#define SB_AWE64_VALUE 2
+#define SB_AWE64_NOIDE 3
+#define SB_AWE64_IDE   4
+#define SB_AWE64_GOLD  5
+
 #define PNP_ROM_SB_16_PNP      "roms/sound/creative/CTL0024A.BIN"
 #define PNP_ROM_SB_VIBRA16XV   "roms/sound/creative/CT4170 PnP.BIN"
 #define PNP_ROM_SB_VIBRA16C    "roms/sound/creative/CT4180 PnP.BIN"
 #define PNP_ROM_SB_32_PNP      "roms/sound/creative/CT3600 PnP.BIN"
 #define PNP_ROM_SB_AWE32_PNP   "roms/sound/creative/CT3980 PnP.BIN"
 #define PNP_ROM_SB_AWE64_VALUE "roms/sound/creative/CT4520 PnP.BIN"
-#define PNP_ROM_SB_AWE64       "roms/sound/creative/CTL009DA.BIN"
+#define PNP_ROM_SB_AWE64_NOIDE "roms/sound/creative/CT4380 PnP noIDE.BIN"
+#define PNP_ROM_SB_AWE64_IDE   "roms/sound/creative/CTL009DA.BIN"
 #define PNP_ROM_SB_AWE64_GOLD  "roms/sound/creative/CT4540 PnP.BIN"
 /* TODO: Find real ESS PnP ROM dumps. */
 #define PNP_ROM_ESS0100        "roms/sound/ess/ESS0100.BIN"
@@ -2219,7 +2227,7 @@ sb_awe32_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
 }
 
 static void
-sb_awe64_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+sb_awe64_pnp_ide_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
@@ -2240,7 +2248,7 @@ sb_awe64_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
 }
 
 static void
-sb_awe64_gold_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+sb_awe64_pnp_noide_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
@@ -3317,16 +3325,16 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     device_add(&ide_qua_pnp_device);
     other_ide_present++;
 
-    uint8_t *pnp_rom = NULL;
-
-    FILE *fp = rom_fopen(PNP_ROM_SB_16_PNP, "rb");
+    uint8_t *pnp_rom     = NULL;
+    FILE    *fp          = rom_fopen(PNP_ROM_SB_16_PNP, "rb");
+    uint16_t pnp_rom_len = 512;
     if (fp) {
-        if (fread(sb->pnp_rom, 1, 390, fp) == 390)
+        if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
             pnp_rom = sb->pnp_rom;
         fclose(fp);
     }
 
-    isapnp_add_card(pnp_rom, 390, sb_16_pnp_config_changed,
+    isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
                     NULL, NULL, NULL, sb);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
@@ -3407,9 +3415,10 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
@@ -3418,7 +3427,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     switch (info->local) {
         case 0:
         case 1:
-            isapnp_add_card(pnp_rom, 512, sb_vibra16_pnp_config_changed,
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
 
@@ -3495,9 +3504,15 @@ sb_awe64_value_available(void)
 }
 
 static int
-sb_awe64_available(void)
+sb_awe64_noide_available(void)
 {
-    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64);
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_NOIDE);
+}
+
+static int
+sb_awe64_ide_available(void)
+{
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_IDE);
 }
 
 static int
@@ -3592,7 +3607,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ?
+    sb_dsp_init(&sb->dsp, (info->local >= SB_AWE64_VALUE) ?
                 SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -3619,30 +3634,35 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    if ((info->local != 2) && (info->local != 4)) {
+    // Does it have IDE?
+    if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD)) {
         device_add(&ide_qua_pnp_device);
         other_ide_present++;
     }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case 0:
+        case SB_32_PNP:
             pnp_rom_file = PNP_ROM_SB_32_PNP;
             break;
 
-        case 1:
+        case SB_AWE32_PNP:
             pnp_rom_file = PNP_ROM_SB_AWE32_PNP;
             break;
 
-        case 2:
+        case SB_AWE64_VALUE:
             pnp_rom_file = PNP_ROM_SB_AWE64_VALUE;
             break;
 
-        case 3:
-            pnp_rom_file = PNP_ROM_SB_AWE64;
+        case SB_AWE64_NOIDE:
+            pnp_rom_file = PNP_ROM_SB_AWE64_NOIDE;
             break;
 
-        case 4:
+        case SB_AWE64_IDE:
+            pnp_rom_file = PNP_ROM_SB_AWE64_IDE;
+            break;
+
+        case SB_AWE64_GOLD:
             pnp_rom_file = PNP_ROM_SB_AWE64_GOLD;
             break;
 
@@ -3652,30 +3672,36 @@ sb_awe32_pnp_init(const device_t *info)
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
     }
 
     switch (info->local) {
-        case 0:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_32_PNP:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 1:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE32_PNP:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 3:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE64_IDE:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_ide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 2:
-        case 4:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE64_VALUE:
+        case SB_AWE64_NOIDE:
+        case SB_AWE64_GOLD:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_noide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         default:
@@ -3688,7 +3714,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    if ((info->local != 2) && (info->local != 4))
+    if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD))
         ide_remove_handlers(3);
 
     emu8k_change_addr(&sb->emu8k, 0);
@@ -3816,7 +3842,6 @@ static void *
 ess_x688_pnp_init(UNUSED(const device_t *info))
 {
     sb_t    *ess  = calloc(sizeof(sb_t), 1);
-    int      len  = 512;
 
     ess->pnp = 1 + (int) info->local;
 
@@ -3849,20 +3874,21 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     other_ide_present++;
 
     const char *pnp_rom_file = NULL;
+    uint16_t    pnp_rom_len  = 512;
     switch (info->local) {
         case 0:
             pnp_rom_file = PNP_ROM_ESS0100;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 1:
             pnp_rom_file = PNP_ROM_ESS0102;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 2:
             pnp_rom_file = PNP_ROM_ESS0968;
-            len          = 135;
+            pnp_rom_len  = 135;
             break;
 
         default:
@@ -3873,13 +3899,13 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     if (pnp_rom_file) {
         FILE *fp = rom_fopen(pnp_rom_file, "rb");
         if (fp) {
-            if (fread(ess->pnp_rom, 1, len, fp) == len)
+            if (fread(ess->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = ess->pnp_rom;
             fclose(fp);
         }
     }
 
-    isapnp_add_card(pnp_rom, len, ess_x688_pnp_config_changed,
+    isapnp_add_card(pnp_rom, sizeof(ess->pnp_rom), ess_x688_pnp_config_changed,
                     NULL, NULL, NULL, ess);
 
     sb_dsp_setaddr(&ess->dsp, 0);
@@ -5772,7 +5798,7 @@ const device_t sb_32_pnp_device = {
     .name          = "Sound Blaster 32 PnP",
     .internal_name = "sb32_pnp",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = SB_32_PNP,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
@@ -5800,7 +5826,7 @@ const device_t sb_awe32_pnp_device = {
     .name          = "Sound Blaster AWE32 PnP",
     .internal_name = "sbawe32_pnp",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .local         = SB_AWE32_PNP,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
@@ -5814,7 +5840,7 @@ const device_t sb_awe64_value_device = {
     .name          = "Sound Blaster AWE64 Value",
     .internal_name = "sbawe64_value",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 2,
+    .local         = SB_AWE64_VALUE,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
@@ -5828,11 +5854,25 @@ const device_t sb_awe64_device = {
     .name          = "Sound Blaster AWE64",
     .internal_name = "sbawe64",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 3,
+    .local         = SB_AWE64_NOIDE,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    .available     = sb_awe64_available,
+    { .available = sb_awe64_noide_available },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_awe64_config
+};
+
+const device_t sb_awe64_ide_device = {
+    .name          = "Sound Blaster AWE64 (IDE)",
+    .internal_name = "sbawe64_ide",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_AWE64_IDE,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
+    .available     = sb_awe64_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_config
@@ -5842,7 +5882,7 @@ const device_t sb_awe64_gold_device = {
     .name          = "Sound Blaster AWE64 Gold",
     .internal_name = "sbawe64_gold",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 4,
+    .local         = SB_AWE64_GOLD,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
