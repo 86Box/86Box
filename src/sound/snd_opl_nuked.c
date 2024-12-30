@@ -68,9 +68,6 @@
 
 #define RSM_FRAC    10
 
-// #define OPL_FREQ FREQ_48000
-#define OPL_FREQ FREQ_49716
-
 // Channel types
 enum {
     ch_2op  = 0,
@@ -1276,7 +1273,7 @@ OPL3_Reset(opl3_chip *chip, uint32_t samplerate)
     }
 
     chip->noise        = 1;
-    chip->rateratio    = (samplerate << RSM_FRAC) / 49716;
+    chip->rateratio    = (samplerate << RSM_FRAC) / FREQ_49716;
     chip->tremoloshift = 4;
     chip->vibshift     = 1;
 
@@ -1538,7 +1535,7 @@ nuked_drv_init(const device_t *info)
         dev->status = 0x06;
 
     /* Initialize the NukedOPL object. */
-    OPL3_Reset(&dev->opl, OPL_FREQ);
+    OPL3_Reset(&dev->opl, FREQ_49716);
 
     timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
     timer_add(&dev->timers[1], nuked_timer_2, dev, 0);
@@ -1659,7 +1656,7 @@ const device_t ym3812_nuked_device = {
     .init          = nuked_drv_init,
     .close         = nuked_drv_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL ,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1673,18 +1670,18 @@ const device_t ymf262_nuked_device = {
     .init          = nuked_drv_init,
     .close         = nuked_drv_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
 const fm_drv_t nuked_opl_drv = {
-    &nuked_drv_read,
-    &nuked_drv_write,
-    &nuked_drv_update,
-    &nuked_drv_reset_buffer,
-    &nuked_drv_set_do_cycles,
-    NULL,
-    NULL,
+    .read          = &nuked_drv_read,
+    .write         = &nuked_drv_write,
+    .update        = &nuked_drv_update,
+    .reset_buffer  = &nuked_drv_reset_buffer,
+    .set_do_cycles = &nuked_drv_set_do_cycles,
+    .priv          = NULL,
+    .generate      = NULL,
 };

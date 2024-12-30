@@ -167,14 +167,14 @@ opl2board_device_close(void *priv)
 
 
 static const device_config_t opl2board_config[] = {
-{
-    .name = "host_serial_path",
-    .description = "Host Serial Device",
-    .type = CONFIG_SERPORT,
-    .default_string = "",
-    .file_filter = NULL,
-    .spinner = {},
-    .selection = {}
+    {
+        .name = "host_serial_path",
+        .description = "Host Serial Device",
+        .type = CONFIG_SERPORT,
+        .default_string = "",
+        .file_filter = NULL,
+        .spinner = {},
+        .selection = {}
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -187,7 +187,7 @@ const device_t opl2board_device = {
     .init          = opl2board_device_init,
     .close         = opl2board_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = opl2board_config

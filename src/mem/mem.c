@@ -336,7 +336,10 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         mmu_perm = temp & 4;
         rammap(addr2) |= (rw ? 0x60 : 0x20);
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
@@ -491,7 +494,10 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
         if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
@@ -2351,7 +2357,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         /* In range? */
         if (map->enable && (uint64_t) map->base < ((uint64_t) base + (uint64_t) size) &&
             ((uint64_t) map->base + (uint64_t) map->size) > (uint64_t) base) {
-            uint64_t i_a   = (~map->base_ignore) + 0x00000001ULL;
+            uint64_t i_a   = ((~map->base_ignore) & 0xffffffffULL) + 0x00000001ULL;
             uint64_t i_s   = 0x00000000ULL;
             uint64_t i_e   = map->base_ignore;
             uint64_t i_c   = 0x00000000ULL;
