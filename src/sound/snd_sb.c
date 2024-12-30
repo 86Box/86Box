@@ -2181,7 +2181,8 @@ sb_16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void 
             break;
 
         case 1: /* IDE */
-            ide_pnp_config_changed(0, config, (void *) 3);
+            if (sb->has_ide)
+                ide_pnp_config_changed(0, config, (void *) 3);
             break;
 
         case 2: /* Reserved (16) / WaveTable (32+) */
@@ -3338,6 +3339,8 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     if (info->local != SB_16_PNP_NOIDE) {
         device_add(&ide_qua_pnp_device);
         other_ide_present++;
+
+        sb->has_ide = 1;
     }
 
     const char *pnp_rom_file = NULL;
@@ -3671,6 +3674,8 @@ sb_awe32_pnp_init(const device_t *info)
     if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD)) {
         device_add(&ide_qua_pnp_device);
         other_ide_present++;
+
+        sb->has_ide = 1;
     }
 
     const char *pnp_rom_file = NULL;
@@ -3849,6 +3854,8 @@ ess_x688_init(UNUSED(const device_t *info))
         ide_set_side(4, ide_side);
         ide_set_irq(4, ide_irq);
         other_ide_present++;
+
+        ess->has_ide = 1;
     }
 
     return ess;
@@ -3906,6 +3913,8 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
 
     device_add(&ide_qua_pnp_device);
     other_ide_present++;
+
+    ess->has_ide = 1;
 
     const char *pnp_rom_file = NULL;
     uint16_t    pnp_rom_len  = 512;
