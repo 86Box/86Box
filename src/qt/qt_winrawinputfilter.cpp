@@ -64,8 +64,10 @@ WindowsRawInputFilter::Register(MainWindow *window)
          .hwndTarget  = nullptr}
     };
 
-    if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
-        return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    if (raw_input && (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE))
+            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    else if (!raw_input && RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0])) == FALSE)
+            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
 
     std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
 
@@ -80,11 +82,6 @@ WindowsRawInputFilter::WindowsRawInputFilter(MainWindow *window)
         connect(menu, &QMenu::aboutToShow, this, [=]() { menus_open++; });
         connect(menu, &QMenu::aboutToHide, this, [=]() { menus_open--; });
     }
-
-    for (size_t i = 0; i < sizeof(scancode_map) / sizeof(scancode_map[0]); i++)
-        scancode_map[i] = i;
-
-    keyboard_getkeymap();
 }
 
 WindowsRawInputFilter::~WindowsRawInputFilter()
@@ -100,7 +97,10 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
          .hwndTarget  = NULL}
     };
 
-    RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+    if (raw_input)
+        RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+    else
+        RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0]));
 }
 
 bool
@@ -197,7 +197,7 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 
         /* Remap it according to the list from the Registry */
         if ((scancode < (sizeof(scancode_map) / sizeof(scancode_map[0]))) && (scancode != scancode_map[scancode])) {
-            pclog("Scan code remap: %03X -> %03X\n", scancode, scancode_map[scancode]);
+            // pclog("Scan code remap: %03X -> %03X\n", scancode, scancode_map[scancode]);
             scancode = scancode_map[scancode];
         }
 
@@ -218,77 +218,6 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
             keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
 
         window->checkFullscreenHotkey();
-    }
-}
-
-/* This is so we can disambiguate scan codes that would otherwise conflict and get
-   passed on incorrectly. */
-UINT16
-WindowsRawInputFilter::convert_scan_code(UINT16 scan_code)
-{
-    if ((scan_code & 0xff00) == 0xe000)
-        scan_code = (scan_code & 0xff) | 0x0100;
-
-    if (scan_code == 0xE11D)
-        scan_code = 0x0100;
-    /* E0 00 is sent by some USB keyboards for their special keys, as it is an
-       invalid scan code (it has no untranslated set 2 equivalent), we mark it
-       appropriately so it does not get passed through. */
-    else if ((scan_code > 0x01FF) || (scan_code == 0x0100))
-        scan_code = 0xFFFF;
-
-    return scan_code;
-}
-
-void
-WindowsRawInputFilter::keyboard_getkeymap()
-{
-    const LPCSTR  keyName   = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-    const LPCSTR  valueName = "Scancode Map";
-    unsigned char buf[32768];
-    DWORD         bufSize;
-    HKEY          hKey;
-    int           j;
-    UINT32       *bufEx2;
-    int           scMapCount;
-    UINT16       *bufEx;
-    int           scancode_unmapped;
-    int           scancode_mapped;
-
-    /* First, prepare the default scan code map list which is 1:1.
-     * Remappings will be inserted directly into it.
-     * 512 bytes so this takes less memory, bit 9 set means E0
-     * prefix.
-     */
-    for (j = 0; j < 512; j++)
-        scancode_map[j] = j;
-
-    /* Get the scan code remappings from:
-    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
-    bufSize = 32768;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
-            bufEx2     = (UINT32 *) buf;
-            scMapCount = bufEx2[2];
-            if ((bufSize != 0) && (scMapCount != 0)) {
-                bufEx = (UINT16 *) (buf + 12);
-                for (j = 0; j < scMapCount * 2; j += 2) {
-                    /* Each scan code is 32-bit: 16 bits of remapped scan code,
-                    and 16 bits of original scan code. */
-                    scancode_unmapped = bufEx[j + 1];
-                    scancode_mapped   = bufEx[j];
-
-                    scancode_unmapped = convert_scan_code(scancode_unmapped);
-                    scancode_mapped   = convert_scan_code(scancode_mapped);
-
-                    /* Ignore source scan codes with prefixes other than E1
-                   that are not E1 1D. */
-                    if (scancode_unmapped != 0xFFFF)
-                        scancode_map[scancode_unmapped] = scancode_mapped;
-                }
-            }
-        }
-        RegCloseKey(hKey);
     }
 }
 
