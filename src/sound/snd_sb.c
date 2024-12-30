@@ -3325,16 +3325,16 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     device_add(&ide_qua_pnp_device);
     other_ide_present++;
 
-    uint8_t *pnp_rom = NULL;
-
-    FILE *fp = rom_fopen(PNP_ROM_SB_16_PNP, "rb");
+    uint8_t *pnp_rom     = NULL;
+    FILE    *fp          = rom_fopen(PNP_ROM_SB_16_PNP, "rb");
+    uint16_t pnp_rom_len = 512;
     if (fp) {
-        if (fread(sb->pnp_rom, 1, 390, fp) == 390)
+        if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
             pnp_rom = sb->pnp_rom;
         fclose(fp);
     }
 
-    isapnp_add_card(pnp_rom, 390, sb_16_pnp_config_changed,
+    isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
                     NULL, NULL, NULL, sb);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
@@ -3415,9 +3415,10 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
@@ -3426,7 +3427,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     switch (info->local) {
         case 0:
         case 1:
-            isapnp_add_card(pnp_rom, 512, sb_vibra16_pnp_config_changed,
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
 
@@ -3671,9 +3672,10 @@ sb_awe32_pnp_init(const device_t *info)
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
@@ -3681,21 +3683,25 @@ sb_awe32_pnp_init(const device_t *info)
 
     switch (info->local) {
         case SB_32_PNP:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         case SB_AWE32_PNP:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         case SB_AWE64_IDE:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_ide_config_changed, NULL, NULL, NULL, sb);
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_ide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         case SB_AWE64_VALUE:
         case SB_AWE64_NOIDE:
         case SB_AWE64_GOLD:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_noide_config_changed, NULL, NULL, NULL, sb);
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_noide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         default:
@@ -3836,7 +3842,6 @@ static void *
 ess_x688_pnp_init(UNUSED(const device_t *info))
 {
     sb_t    *ess  = calloc(sizeof(sb_t), 1);
-    int      len  = 512;
 
     ess->pnp = 1 + (int) info->local;
 
@@ -3869,20 +3874,21 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     other_ide_present++;
 
     const char *pnp_rom_file = NULL;
+    uint16_t    pnp_rom_len  = 512;
     switch (info->local) {
         case 0:
             pnp_rom_file = PNP_ROM_ESS0100;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 1:
             pnp_rom_file = PNP_ROM_ESS0102;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 2:
             pnp_rom_file = PNP_ROM_ESS0968;
-            len          = 135;
+            pnp_rom_len  = 135;
             break;
 
         default:
@@ -3893,13 +3899,13 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     if (pnp_rom_file) {
         FILE *fp = rom_fopen(pnp_rom_file, "rb");
         if (fp) {
-            if (fread(ess->pnp_rom, 1, len, fp) == len)
+            if (fread(ess->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = ess->pnp_rom;
             fclose(fp);
         }
     }
 
-    isapnp_add_card(pnp_rom, len, ess_x688_pnp_config_changed,
+    isapnp_add_card(pnp_rom, sizeof(ess->pnp_rom), ess_x688_pnp_config_changed,
                     NULL, NULL, NULL, ess);
 
     sb_dsp_setaddr(&ess->dsp, 0);
