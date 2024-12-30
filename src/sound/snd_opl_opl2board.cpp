@@ -23,7 +23,6 @@
 #include "ymfm/ymfm_opl.h"
 #include <libserialport.h>
 
-
 extern "C" {
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -38,7 +37,6 @@ extern "C" {
 #include <86box/ini.h>
 #include <86box/device.h>
 
-
 // Disable c99-designator to avoid the warnings in *_ymfm_device
 #ifdef __clang__
 #    if __has_warning("-Wc99-designator")
@@ -46,20 +44,15 @@ extern "C" {
 #        pragma clang diagnostic ignored "-Wc99-designator"
 #    endif
 #endif
-
 }
 
-
 #define RSM_FRAC 10
-
-#define OPL_FREQ FREQ_48000
 
 enum {
     FLAG_CYCLES = (1 << 0)
 };
 
 uint8_t lastval = 0x00;
-
 
 class OPLBOARDChipBase {
 public:
@@ -89,7 +82,6 @@ public:
     virtual int32_t *update()                                                = 0;
     virtual uint8_t  read(uint16_t addr)                                     = 0;
     virtual void     set_clock(uint32_t clock)                               = 0;
-
 
 protected:
     int32_t  m_buffer[MUSICBUFLEN * 2];
@@ -244,7 +236,6 @@ public:
 
     virtual void write(uint16_t addr, uint8_t data) override
     {
-
         m_chip.write(addr, data);
     }
 
@@ -315,31 +306,27 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/ini.h>
 
-
-#ifdef ENABLE_OPL_LOG 
-int ymfm_do_log = ENABLE_OPL_LOG;
+#ifdef ENABLE_OPL_LOG
+int oplboard_do_log = ENABLE_OPL_LOG;
 
 static void
-ymfm_log(const char *fmt, ...)
+oplboard_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (ymfm_do_log) {
+    if (oplboard_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define ymfm_log(fmt, ...)
+#    define oplboard_log(fmt, ...)
 #endif
 
 struct sp_port *port;
 
-
-
 void opl2board_init() {
-
     device_add(&opl2board_device);
     const char* port_name = device_get_config_string("host_serial_path");
     device_context_restore();
@@ -348,13 +335,13 @@ void opl2board_init() {
 
     result = sp_get_port_by_name(port_name, &port);
     if (result != SP_OK) {
-        ymfm_log("Error: Cannot find port %s\n", port_name);
+        oplboard_log("Error: Cannot find port %s\n", port_name);
         return;
     }
 
     result = sp_open(port, SP_MODE_READ_WRITE);
     if (result != SP_OK) {
-        ymfm_log ("Error: Cannot open port %s\n", port_name);
+        oplboard_log ("Error: Cannot open port %s\n", port_name);
         return;
     }
 
@@ -364,33 +351,29 @@ void opl2board_init() {
     sp_set_parity(port, SP_PARITY_NONE);
     sp_set_stopbits(port, 1);
     sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
-    
 
-    ymfm_log("OPL2Board Serial port %s initialized at 115200 baud.\n", port_name);
-    
+    oplboard_log("OPL2Board Serial port %s initialized at 115200 baud.\n", port_name);
 }
-
 
 void opl2board_write(uint8_t data) {
     if (port == NULL) {
-        ymfm_log(stderr, "Error: OPL2Board Port not initialized.\n");
+        oplboard_log(stderr, "Error: OPL2Board Port not initialized.\n");
 
         return;    
     }
 
     enum sp_return result = sp_blocking_write(port, &data, sizeof(data), 1000);
     if (result < 0) {
-        ymfm_log(stderr, "Error: Failed to write to OPL2Board port.\n");
+        oplboard_log(stderr, "Error: Failed to write to OPL2Board port.\n");
     } else {
-        ymfm_log("OPL2Board: data sent: %02X\n", data);
+        oplboard_log("OPL2Board: data sent: %02X\n", data);
     }
 }
-
 
 void opl2board_reset() {
 
     // Reset all voices to 0 
-    ymfm_log("Performing OPL2Board reset\n");
+    oplboard_log("Performing OPL2Board reset\n");
     for (uint8_t i = 0x00; i < 0xFF; i++) {
 		if (i >= 0x40 && i <= 0x55) {
 			opl2board_write(i);
@@ -408,10 +391,9 @@ void opl2board_close() {
         sp_close(port);
         sp_free_port(port);
         port = NULL;
-        ymfm_log("OPL2Board port closed.\n");
+        oplboard_log("OPL2Board port closed.\n");
     }
 }
-
 
 static void *
 ymfm_opl2board_drv_init(const device_t *info)
@@ -433,6 +415,7 @@ static void
 ymfm_opl2board_drv_close(void *priv)
 {
     OPLBOARDChipBase *drv = (OPLBOARDChipBase *) priv;
+
     opl2board_close();
     if (drv != NULL)
         delete drv;
@@ -453,28 +436,26 @@ ymfm_opl2board_drv_read(uint16_t port, void *priv)
     uint8_t ret = drv->read(port);
     drv->update();
 
-    ymfm_log("YMFM read port %04x, status = %02x\n", port, ret);
+    oplboard_log("OPLBoard read port %04x, status = %02x\n", port, ret);
     return ret;
 }
 
 static void
 ymfm_opl2board_drv_write(uint16_t port, uint8_t val, void *priv)
 {
-    
     OPLBOARDChipBase *drv = (OPLBOARDChipBase *) priv;
  
-    ymfm_log("YMFM write port %04x value = %02x\n", port, val);
+    oplboard_log("OPLBoard write port %04x value = %02x\n", port, val);
     if ((port == 0x380) || (port == 0x381))
         port |= 4;
-   // Allow initialization of adlib
-   if ((val == 0x04 || val == 0x02) || (lastval == 0x04 || lastval == 0x02)) {
+    // Allow initialization of adlib
+    if ((val == 0x04 || val == 0x02) || (lastval == 0x04 || lastval == 0x02))
         drv->write(port, val);
-    }
+
     lastval = val;   
     opl2board_write(val);
     drv->update();
 }
-
 
 static int32_t *
 ymfm_opl2board_drv_update(void *priv)
@@ -500,21 +481,18 @@ static void
 ymfm_opl2board_drv_set_do_cycles(void *priv, int8_t do_cycles)
 {
     OPLBOARDChipBase *drv = (OPLBOARDChipBase *) priv;
+
     drv->set_do_cycles(do_cycles);
 }
 
 static void
 ymfm_opl2board_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
-{   
-
+{
     OPLBOARDChipBase *drv = (OPLBOARDChipBase *) priv;
+
     // drv->generate_resampled(data, num_samples);
     drv->generate(data, num_samples);
-    
 }
-
-
-
 
 const device_t ym_opl2board_device = {
     .name          = "YMOPL2Board (External Device)",
@@ -524,21 +502,20 @@ const device_t ym_opl2board_device = {
     .init          = ymfm_opl2board_drv_init,
     .close         = ymfm_opl2board_drv_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
 const fm_drv_t ymfm_opl2board_drv {
-    &ymfm_opl2board_drv_read,
-    &ymfm_opl2board_drv_write,
-    &ymfm_opl2board_drv_update,
-    &ymfm_opl2board_drv_reset_buffer,
-    &ymfm_opl2board_drv_set_do_cycles,
-    NULL,
-    ymfm_opl2board_drv_generate
-    
+    .read          = &ymfm_opl2board_drv_read,
+    .write         = &ymfm_opl2board_drv_write,
+    .update        = &ymfm_opl2board_drv_update,
+    .reset_buffer  = &ymfm_opl2board_drv_reset_buffer,
+    .set_do_cycles = &ymfm_opl2board_drv_set_do_cycles,
+    .priv          = NULL,
+    .generate      = ymfm_opl2board_drv_generate
 };
 
 #ifdef __clang__

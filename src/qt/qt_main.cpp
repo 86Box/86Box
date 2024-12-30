@@ -149,7 +149,7 @@ main_thread_fn()
             if (dopause)
                 ack_pause();
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            plat_delay_ms(1);
         }
     }
 
@@ -157,7 +157,7 @@ main_thread_fn()
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if (gfxcard[i]) {
             ui_deinit_monitor(i);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            plat_delay_ms(500);
         }
     }
     QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });

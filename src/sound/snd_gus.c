@@ -1525,15 +1525,15 @@ static const device_config_t gus_config[] = {
 };
 
 const device_t gus_device = {
-    .name = "Gravis UltraSound",
+    .name          = "Gravis UltraSound",
     .internal_name = "gus",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = gus_init,
-    .close = gus_close,
-    .reset = gus_reset,
-    { .available = NULL },
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
     .speed_changed = gus_speed_changed,
-    .force_redraw = NULL,
-    .config = gus_config
+    .force_redraw  = NULL,
+    .config        = gus_config
 };
