@@ -109,6 +109,7 @@ extern void givealbuffer_wt(const void *buf);
 extern void givealbuffer_cd(const void *buf);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16xv_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);
 
 #ifdef EMU_DEVICE_H
@@ -145,6 +146,7 @@ extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
 extern const device_t sb_vibra16s_onboard_device;
 extern const device_t sb_vibra16s_device;
+extern const device_t sb_vibra16xv_onboard_device;
 extern const device_t sb_vibra16xv_device;
 extern const device_t sb_vibra16c_onboard_device;
 extern const device_t sb_vibra16c_device;

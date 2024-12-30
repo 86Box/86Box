@@ -5751,6 +5751,20 @@ const device_t sb_vibra16s_device = {
     .config        = sb_16_config
 };
 
+const device_t sb_vibra16xv_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16XV (On-Board)",
+    .internal_name = "sb_vibra16xv_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16XV,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16xv_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
 const device_t sb_vibra16xv_device = {
     .name          = "Sound Blaster ViBRA 16XV",
     .internal_name = "sb_vibra16xv",
