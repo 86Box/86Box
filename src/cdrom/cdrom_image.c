@@ -81,6 +81,12 @@ image_get_track_info(cdrom_t *dev, uint32_t track, int end, track_info_t *ti)
 }
 
 static void
+image_get_raw_track_info(cdrom_t *dev, int *num, raw_track_info_t *rti)
+{
+    cdi_get_raw_track_info((cd_img_t *) dev->local, num, (uint8_t *) rti);
+}
+
+static void
 image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
 {
     cd_img_t *img = (cd_img_t *) dev->local;
@@ -99,7 +105,8 @@ image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
     subc->rel_f = rel_pos.fr;
 
     cdrom_image_log("image_get_subchannel(): %02X, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
-                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f);
+                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f,
+                    subc->rel_m, subc->rel_s, subc->rel_f);
 }
 
 static int
@@ -183,24 +190,14 @@ image_sector_size(struct cdrom *dev, uint32_t lba)
 }
 
 static int
-image_read_sector(struct cdrom *dev, int type, uint8_t *b, uint32_t lba)
+image_read_sector(struct cdrom *dev, uint8_t *b, uint32_t lba)
 {
     cd_img_t *img = (cd_img_t *) dev->local;
 
-    switch (type) {
-        case CD_READ_DATA:
-            return cdi_read_sector(img, b, 0, lba);
-        case CD_READ_AUDIO:
-            return cdi_read_sector(img, b, 1, lba);
-        case CD_READ_RAW:
-            if (cdi_get_sector_size(img, lba) == 2352)
-                return cdi_read_sector(img, b, 1, lba);
-            else
-                return cdi_read_sector_sub(img, b, lba);
-        default:
-            cdrom_image_log("CD-ROM %i: Unknown CD read type\n", dev->id);
-            return 0;
-    }
+    if (cdi_get_sector_size(img, lba) <= 2352)
+        return cdi_read_sector(img, b, 1, lba);
+    else
+        return cdi_read_sector_sub(img, b, lba);
 }
 
 static int
@@ -211,10 +208,8 @@ image_track_type(cdrom_t *dev, uint32_t lba)
     if (img) {
         if (image_is_track_audio(dev, lba, 0))
             return CD_TRACK_AUDIO;
-        else {
-            if (cdi_is_mode2(img, lba))
-                return CD_TRACK_MODE2 | cdi_get_mode2_form(img, lba);
-        }
+        else if (cdi_is_mode2(img, lba))
+            return CD_TRACK_MODE2 | cdi_get_mode2_form(img, lba);
     }
 
     return 0;
@@ -245,7 +240,7 @@ image_exit(cdrom_t *dev)
 static const cdrom_ops_t cdrom_image_ops = {
     image_get_tracks,
     image_get_track_info,
-    NULL,
+    image_get_raw_track_info,
     image_get_subchannel,
     image_is_track_pre,
     image_sector_size,
@@ -298,13 +293,16 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
     dev->cdrom_capacity = image_get_capacity(dev);
-    cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
+    cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity,
+                    ((uint64_t) dev->cdrom_capacity) << 11ULL);
+#ifdef ENABLE_CDROM_IMAGE_LOG
     int cm, cs, cf;
     cf = dev->cdrom_capacity % 75;
     cs = (dev->cdrom_capacity / 75) % 60;
     cm = (dev->cdrom_capacity / 75) / 60;
-    pclog("CD-ROM capacity: %i sectors (%" PRIi64 " bytes) (time: %02i:%02i:%02i)\n",
-          dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity - 150ULL) * 2352ULL, cm, cs, cf);
+    cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes) (time: %02i:%02i:%02i)\n",
+                    dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity - 150ULL) * 2352ULL, cm, cs, cf);
+#endif
 
     /* Attach this handler to the drive. */
     dev->ops = &cdrom_image_ops;

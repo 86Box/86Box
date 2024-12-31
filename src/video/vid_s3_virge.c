@@ -463,7 +463,8 @@ enum {
 #define SERIAL_PORT_SDR (1 << 3)
 
 static void
-s3_virge_update_irqs(virge_t *virge) {
+s3_virge_update_irqs(virge_t *virge)
+{
     if ((virge->svga.crtc[0x32] & 0x10) && (virge->subsys_stat & virge->subsys_cntl & INT_MASK))
         pci_set_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
     else
@@ -653,8 +654,8 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                             svga->bpp = (virge->chip == S3_VIRGEVX) ? 24 : 32;
                             break;
                         default:
-                             svga->bpp = 8;
-                             break;
+                            svga->bpp = 8;
+                            break;
                     }
                     break;
 
@@ -795,6 +796,8 @@ s3_virge_in(uint16_t addr, void *priv) {
 static void
 s3_virge_recalctimings(svga_t *svga)
 {
+    int n, r, m;
+    double freq;
     virge_t *virge = (virge_t *) svga->priv;
 
     svga->hdisp = svga->hdisp_old;
@@ -829,18 +832,17 @@ s3_virge_recalctimings(svga_t *svga)
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     if (((svga->miscout >> 2) & 3) == 3) {
-        int n = svga->seqregs[0x12] & 0x1f;
-        int r = (svga->seqregs[0x12] >> 5);
-
-        if ((virge->chip == S3_VIRGEVX) || (virge->chip == S3_VIRGEDX))
-            r &= 7;
-        else if (virge->chip >= S3_VIRGEGX2)
-            r &= 10;
+        n = svga->seqregs[0x12] & 0x1f;
+        if (virge->chip >= S3_VIRGEGX2) {
+            r = (svga->seqregs[0x12] >> 6) & 0x03;
+            r |= ((svga->seqregs[0x29] & 0x01) << 2);
+        } else if ((virge->chip == S3_VIRGEVX) || (virge->chip == S3_VIRGEDX))
+            r = (svga->seqregs[0x12] >> 5) & 0x07;
         else
-            r &= 3;
+            r = (svga->seqregs[0x12] >> 5) & 0x03;
 
-        int    m    = svga->seqregs[0x13] & 0x7f;
-        double freq = (((double) m + 2) / (((double) n + 2) * (double) (1 << r))) * 14318184.0;
+        m = svga->seqregs[0x13] & 0x7f;
+        freq = (((double) m + 2) / (((double) n + 2) * (double) (1 << r))) * 14318184.0;
 
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
     }
@@ -1789,9 +1791,9 @@ fifo_thread(void *param)
              virge_time += end_time - start_time;
          }
          virge->virge_busy = 0;
-         virge->subsys_stat |= INT_FIFO_EMP | INT_3DF_EMP;
+         virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
          if (virge->cmd_dma)
-            virge->subsys_stat |= INT_HOST_DONE | INT_CMD_DONE;
+            virge->subsys_stat |= (INT_HOST_DONE | INT_CMD_DONE);
 
          s3_virge_update_irqs(virge);
     }
@@ -1884,7 +1886,8 @@ s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
-s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv) {
+s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
+{
     virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
 
@@ -2209,7 +2212,8 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv) {
     } while (0)
 
 static void
-s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat) {
+s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
+{
     uint8_t  *vram  = virge->svga.vram;
     uint32_t  mono_pattern[64];
     int       count_mask;
@@ -3656,7 +3660,9 @@ queue_triangle(virge_t *virge)
         thread_set_event(virge->wake_render_thread); /*Wake up render thread if moving from idle*/
 }
 
-static void s3_virge_hwcursor_draw(svga_t *svga, int displine) {
+static void
+s3_virge_hwcursor_draw(svga_t *svga, int displine)
+{
     virge_t  *virge  = (virge_t *) svga->priv;
     int       x;
     uint16_t  dat[2] = { 0, 0 };

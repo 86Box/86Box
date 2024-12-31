@@ -109,6 +109,8 @@ extern void givealbuffer_wt(const void *buf);
 extern void givealbuffer_cd(const void *buf);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16xv_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);
 
 #ifdef EMU_DEVICE_H
@@ -143,12 +145,16 @@ extern const device_t sb_pro_v2_device;
 extern const device_t sb_pro_mcv_device;
 extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
-extern const device_t sb_vibra16s_onboard_device;
-extern const device_t sb_vibra16s_device;
-extern const device_t sb_vibra16xv_device;
 extern const device_t sb_vibra16c_onboard_device;
 extern const device_t sb_vibra16c_device;
+extern const device_t sb_vibra16cl_onboard_device;
+extern const device_t sb_vibra16cl_device;
+extern const device_t sb_vibra16s_onboard_device;
+extern const device_t sb_vibra16s_device;
+extern const device_t sb_vibra16xv_onboard_device;
+extern const device_t sb_vibra16xv_device;
 extern const device_t sb_16_pnp_device;
+extern const device_t sb_16_pnp_ide_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;
 extern const device_t sb_16_reply_mca_device;
@@ -157,6 +163,7 @@ extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
 extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
+extern const device_t sb_awe64_ide_device;
 extern const device_t sb_awe64_gold_device;
 
 /* Crystal CS423x */

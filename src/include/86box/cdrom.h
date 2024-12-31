@@ -28,6 +28,7 @@
 #define CD_STATUS_TRANSITION     0x40
 #define CD_STATUS_MEDIUM_CHANGED 0x80
 
+#define CD_TRACK_UNK_DATA        0x10
 #define CD_TRACK_AUDIO           0x08
 #define CD_TRACK_MODE2           0x04
 
@@ -85,6 +86,7 @@ enum
     CDROM_TYPE_TOSHIBA_5302TA_0305,
     CDROM_TYPE_TOSHIBA_5702B_TA70,
     CDROM_TYPE_CHINON_CDS431_H42,
+    CDROM_TYPE_CHINON_CDX435_M62,
     CDROM_TYPE_DEC_RRD45_0436,
     CDROM_TYPE_MATSHITA_501_10b,
     CDROM_TYPE_NEC_25_10a,
@@ -93,6 +95,7 @@ enum
     CDROM_TYPE_NEC_77_106,
     CDROM_TYPE_NEC_211_100,
     CDROM_TYPE_NEC_464_105,
+    CDROM_TYPE_ShinaKen_DM3x1S_104,
     CDROM_TYPE_SONY_CDU541_10i,
     CDROM_TYPE_SONY_CDU561_18k,
     CDROM_TYPE_SONY_CDU76S_100,
@@ -101,7 +104,8 @@ enum
     CDROM_TYPE_PLEXTOR_PX32TS_103,
     CDROM_TYPE_TEAC_CD50_100,
     CDROM_TYPE_TEAC_R55S_10R,
-    CDROM_TYPE_TEXEL_DMXX24_100,
+    CDROM_TYPE_TEXEL_DM3024_100,
+    CDROM_TYPE_TEXEL_DM3028_106,
     CDROM_TYPE_TOSHIBA_XM_3433,
     CDROM_TYPE_TOSHIBA_XM3201B_3232,
     CDROM_TYPE_TOSHIBA_XM3301TA_0272,
@@ -146,30 +150,33 @@ static const struct
     { "SONY",     "CD-ROM CDU311",      "3.0h", "SONY CD-ROM CDU311 3.0h",       "SONY_CD-ROM_CDU311_3.0h",       BUS_TYPE_IDE  },
     { "TOSHIBA",  "CD-ROM XM-5302TA",   "0305", "TOSHIBA CD-ROM XM-5302TA 0305", "TOSHIBA_CD-ROM_XM-5302TA_0305", BUS_TYPE_IDE  },
     { "TOSHIBA",  "CD-ROM XM-5702B",    "TA70", "TOSHIBA CD-ROM XM-5702B TA70",  "TOSHIBA_CD-ROM_XM-5702B_TA70",  BUS_TYPE_IDE  },
-    { "CHINON",   "CD-ROM CDS-431",     "H42 ", "CHINON CD-ROM CDS-431 H42",     "CHINON_CD-ROM_CDS-431_H42",     BUS_TYPE_SCSI },
-    { "DEC",      "RRD45   (C) DEC",    "0436", "DEC RRD45 0436",                "DEC_RRD45_0436",                BUS_TYPE_SCSI },
-    { "MATSHITA", "CD-ROM CR-501",      "1.0b", "MATSHITA CD-ROM CR-501 1.0b",   "MATSHITA_CD-ROM_CR-501_1.0b",   BUS_TYPE_SCSI },
-    { "NEC",      "CD-ROM DRIVE:25",    "1.0a", "NEC CD-ROM DRIVE:25 1.0a",      "NEC_CD-ROM_DRIVE25_1.0a",       BUS_TYPE_SCSI },
-    { "NEC",      "CD-ROM DRIVE:38",    "1.00", "NEC CD-ROM DRIVE:38 1.00",      "NEC_CD-ROM_DRIVE38_1.00",       BUS_TYPE_SCSI },
-    { "NEC",      "CD-ROM DRIVE:75",    "1.03", "NEC CD-ROM DRIVE:75 1.03",      "NEC_CD-ROM_DRIVE75_1.03",       BUS_TYPE_SCSI },
-    { "NEC",      "CD-ROM DRIVE:77",    "1.06", "NEC CD-ROM DRIVE:77 1.06",      "NEC_CD-ROM_DRIVE77_1.06",       BUS_TYPE_SCSI },
-    { "NEC",      "CD-ROM DRIVE:211",   "1.00", "NEC CD-ROM DRIVE:211 1.00",     "NEC_CD-ROM_DRIVE211_1.00",      BUS_TYPE_SCSI },
-    { "NEC",      "CD-ROM DRIVE:464",   "1.05", "NEC CD-ROM DRIVE:464 1.05",     "NEC_CD-ROM_DRIVE464_1.05",       BUS_TYPE_SCSI },
-    { "SONY",     "CD-ROM CDU-541",     "1.0i", "SONY CD-ROM CDU-541 1.0i",      "SONY_CD-ROM_CDU-541_1.0i",      BUS_TYPE_SCSI },
-    { "SONY",     "CD-ROM CDU-561",     "1.8k", "SONY CD-ROM CDU-561 1.8k",      "SONY_CD-ROM_CDU-561_1.8k",      BUS_TYPE_SCSI },
-    { "SONY",     "CD-ROM CDU-76S",     "1.00", "SONY CD-ROM CDU-76S 1.00",      "SONY_CD-ROM_CDU-76S_1.00",      BUS_TYPE_SCSI },
-    { "PHILIPS",  "CDD2600",            "1.07", "PHILIPS CDD2600 1.07",          "PHILIPS_CDD2600_1.07",          BUS_TYPE_SCSI },
-    { "PIONEER",  "CD-ROM DRM-604X",    "2403", "PIONEER CD-ROM DRM-604X 2403",  "PIONEER_CD-ROM_DRM-604X_2403",  BUS_TYPE_SCSI },
-    { "PLEXTOR",  "CD-ROM PX-32TS",     "1.03", "PLEXTOR CD-ROM PX-32TS 1.03",   "PLEXTOR_CD-ROM_PX-32TS_1.03",   BUS_TYPE_SCSI },
-    { "TEAC",     "CD 50",              "1.00", "TEAC CD 50 1.00",               "TEAC_CD_50_1.00",               BUS_TYPE_SCSI },
-    { "TEAC",     "CD-ROM R55S",        "1.0R", "TEAC CD-ROM R55S 1.0R",         "TEAC_CD-ROM_R55S_1.0R",         BUS_TYPE_SCSI },
-    { "TEXEL",    "CD-ROM DM-XX24",     "1.00", "TEXEL CD-ROM DM-XX24 1.00",     "TEXEL_CD-ROM_DM-XX24_1.00",     BUS_TYPE_SCSI },
-    { "TOSHIBA",  "CD-ROM DRIVE:XM",    "3433", "TOSHIBA CD-ROM DRIVE:XM 3433",  "TOSHIBA_CD-ROM_DRIVEXM_3433",   BUS_TYPE_SCSI },
-    { "TOSHIBA",  "CD-ROM XM-3201B",    "3232", "TOSHIBA CD-ROM XM-3201B 3232",  "TOSHIBA_CD-ROM_XM-3201B_3232",  BUS_TYPE_SCSI },
-    { "TOSHIBA",  "CD-ROM XM-3301TA",   "0272", "TOSHIBA CD-ROM XM-3301TA 0272", "TOSHIBA_CD-ROM_XM-3301TA_0272", BUS_TYPE_SCSI },
-    { "TOSHIBA",  "CD-ROM XM-5701TA",   "3136", "TOSHIBA CD-ROM XM-5701TA 3136", "TOSHIBA_CD-ROM_XM-5701TA_3136", BUS_TYPE_SCSI },
-    { "TOSHIBA",  "DVD-ROM SD-M1401",   "1008", "TOSHIBA DVD-ROM SD-M1401 1008", "TOSHIBA_DVD-ROM_SD-M1401_1008", BUS_TYPE_SCSI },
-    { "",         "",                   "",     "",                              "",                              BUS_TYPE_NONE },
+    { "CHINON",   "CD-ROM CDS-431",     "H42 ", "[SCSI-1] CHINON CD-ROM CDS-431 H42",       "CHINON_CD-ROM_CDS-431_H42",     BUS_TYPE_SCSI },
+    { "CHINON",   "CD-ROM CDX-435",     "M62 ", "[SCSI-1] CHINON CD-ROM CDX-435 M62",       "CHINON_CD-ROM_CDX-435_M62",     BUS_TYPE_SCSI },
+    { "DEC",      "RRD45   (C) DEC",    "0436", "[SCSI-1] DEC RRD45 0436",                  "DEC_RRD45_0436",                BUS_TYPE_SCSI },
+    { "MATSHITA", "CD-ROM CR-501",      "1.0b", "[SCSI-1] MATSHITA CD-ROM CR-501 1.0b",     "MATSHITA_CD-ROM_CR-501_1.0b",   BUS_TYPE_SCSI },
+    { "NEC",      "CD-ROM DRIVE:25",    "1.0a", "[SCSI-1] NEC CD-ROM DRIVE:25 1.0a",        "NEC_CD-ROM_DRIVE25_1.0a",       BUS_TYPE_SCSI },
+    { "NEC",      "CD-ROM DRIVE:38",    "1.00", "[SCSI-2] NEC CD-ROM DRIVE:38 1.00",        "NEC_CD-ROM_DRIVE38_1.00",       BUS_TYPE_SCSI },
+    { "NEC",      "CD-ROM DRIVE:75",    "1.03", "[SCSI-1] NEC CD-ROM DRIVE:75 1.03",        "NEC_CD-ROM_DRIVE75_1.03",       BUS_TYPE_SCSI },
+    { "NEC",      "CD-ROM DRIVE:77",    "1.06", "[SCSI-1] NEC CD-ROM DRIVE:77 1.06",        "NEC_CD-ROM_DRIVE77_1.06",       BUS_TYPE_SCSI },
+    { "NEC",      "CD-ROM DRIVE:211",   "1.00", "[SCSI-2] NEC CD-ROM DRIVE:211 1.00",       "NEC_CD-ROM_DRIVE211_1.00",      BUS_TYPE_SCSI },
+    { "NEC",      "CD-ROM DRIVE:464",   "1.05", "[SCSI-2] NEC CD-ROM DRIVE:464 1.05",       "NEC_CD-ROM_DRIVE464_1.05",       BUS_TYPE_SCSI },
+    { "ShinaKen", "CD-ROM DM-3x1S",     "1.04", "[SCSI-1] ShinaKen CD-ROM DM-3x1S 1.04",    "ShinaKen_CD-ROM_DM-3x1S_1.04",  BUS_TYPE_SCSI },
+    { "SONY",     "CD-ROM CDU-541",     "1.0i", "[SCSI-1] SONY CD-ROM CDU-541 1.0i",        "SONY_CD-ROM_CDU-541_1.0i",      BUS_TYPE_SCSI },
+    { "SONY",     "CD-ROM CDU-561",     "1.8k", "[SCSI-2] SONY CD-ROM CDU-561 1.8k",        "SONY_CD-ROM_CDU-561_1.8k",      BUS_TYPE_SCSI },
+    { "SONY",     "CD-ROM CDU-76S",     "1.00", "[SCSI-2] SONY CD-ROM CDU-76S 1.00",        "SONY_CD-ROM_CDU-76S_1.00",      BUS_TYPE_SCSI },
+    { "PHILIPS",  "CDD2600",            "1.07", "[SCSI-2] PHILIPS CDD2600 1.07",            "PHILIPS_CDD2600_1.07",          BUS_TYPE_SCSI },
+    { "PIONEER",  "CD-ROM DRM-604X",    "2403", "[SCSI-2] PIONEER CD-ROM DRM-604X 2403",    "PIONEER_CD-ROM_DRM-604X_2403",  BUS_TYPE_SCSI },
+    { "PLEXTOR",  "CD-ROM PX-32TS",     "1.03", "[SCSI-2] PLEXTOR CD-ROM PX-32TS 1.03",     "PLEXTOR_CD-ROM_PX-32TS_1.03",   BUS_TYPE_SCSI },
+    { "TEAC",     "CD 50",              "1.00", "[SCSI-2] TEAC CD 50 1.00",                 "TEAC_CD_50_1.00",               BUS_TYPE_SCSI },
+    { "TEAC",     "CD-ROM R55S",        "1.0R", "[SCSI-2] TEAC CD-ROM R55S 1.0R",           "TEAC_CD-ROM_R55S_1.0R",         BUS_TYPE_SCSI },
+    { "TEXEL",    "CD-ROM DM-3024",     "1.00", "[SCSI-1] TEXEL CD-ROM DM-3024 1.00",       "TEXEL_CD-ROM_DM-3024_1.00",     BUS_TYPE_SCSI },
+    { "TEXEL",    "CD-ROM DM-3028",     "1.06", "[SCSI-2] TEXEL CD-ROM DM-3028 1.06",       "TEXEL_CD-ROM_DM-3028_1.06",     BUS_TYPE_SCSI },
+    { "TOSHIBA",  "CD-ROM DRIVE:XM",    "3433", "[SCSI-2] TOSHIBA CD-ROM DRIVE:XM 3433",    "TOSHIBA_CD-ROM_DRIVEXM_3433",   BUS_TYPE_SCSI },
+    { "TOSHIBA",  "CD-ROM XM-3201B",    "3232", "[SCSI-1] TOSHIBA CD-ROM XM-3201B 3232",    "TOSHIBA_CD-ROM_XM-3201B_3232",  BUS_TYPE_SCSI },
+    { "TOSHIBA",  "CD-ROM XM-3301TA",   "0272", "[SCSI-2] TOSHIBA CD-ROM XM-3301TA 0272",   "TOSHIBA_CD-ROM_XM-3301TA_0272", BUS_TYPE_SCSI },
+    { "TOSHIBA",  "CD-ROM XM-5701TA",   "3136", "[SCSI-2] TOSHIBA CD-ROM XM-5701TA 3136",   "TOSHIBA_CD-ROM_XM-5701TA_3136", BUS_TYPE_SCSI },
+    { "TOSHIBA",  "DVD-ROM SD-M1401",   "1008", "[SCSI-2] TOSHIBA DVD-ROM SD-M1401 1008",   "TOSHIBA_DVD-ROM_SD-M1401_1008", BUS_TYPE_SCSI },
+    { "",         "",                   "",     "",                                         "",                              BUS_TYPE_NONE },
 };
 
 /* To shut up the GCC compilers. */
@@ -217,7 +224,7 @@ typedef struct cdrom_ops_t {
     void (*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);
     int  (*is_track_pre)(struct cdrom *dev, uint32_t lba);
     int  (*sector_size)(struct cdrom *dev, uint32_t lba);
-    int  (*read_sector)(struct cdrom *dev, int type, uint8_t *b, uint32_t lba);
+    int  (*read_sector)(struct cdrom *dev, uint8_t *b, uint32_t lba);
     int  (*track_type)(struct cdrom *dev, uint32_t lba);
     int  (*ext_medium_changed)(struct cdrom *dev);
     void (*exit)(struct cdrom *dev);
@@ -255,6 +262,7 @@ typedef struct cdrom {
     uint32_t seek_diff;
     uint32_t cd_end;
     uint32_t type;
+    uint32_t sector_size;
 
     int cd_buflen;
     int audio_op;
@@ -270,7 +278,9 @@ typedef struct cdrom {
     uint32_t (*get_volume)(void *p, int channel);
     uint32_t (*get_channel)(void *p, int channel);
 
-    int16_t cd_buffer[BUF_SIZE];
+    int16_t  cd_buffer[BUF_SIZE];
+
+    uint8_t  subch_buffer[96];
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
@@ -296,7 +306,8 @@ extern void    cdrom_audio_pause_resume(cdrom_t *dev, uint8_t resume);
 extern uint8_t cdrom_audio_scan(cdrom_t *dev, uint32_t pos, int type);
 extern uint8_t cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b);
 extern uint8_t cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, int msf);
-extern uint8_t cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf);
+extern uint8_t cdrom_get_current_status(cdrom_t *dev);
+extern void    cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf);
 extern void    cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, int msf);
 extern void    cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b);
 extern uint8_t cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b);
@@ -315,6 +326,7 @@ extern void cdrom_seek(cdrom_t *dev, uint32_t pos, uint8_t vendor_type);
 extern void cdrom_close_handler(uint8_t id);
 extern void cdrom_insert(uint8_t id);
 extern void cdrom_exit(uint8_t id);
+extern int  cdrom_is_empty(uint8_t id);
 extern void cdrom_eject(uint8_t id);
 extern void cdrom_reload(uint8_t id);
 

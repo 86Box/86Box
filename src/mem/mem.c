@@ -320,7 +320,6 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        uint64_t ret = temp & ~0x3fffff;
         if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
             cr2 = addr;
             temp &= 1;
@@ -337,10 +336,10 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         mmu_perm = temp & 4;
         rammap(addr2) |= (rw ? 0x60 : 0x20);
 
+        uint64_t page = temp & ~0x3fffff;
         if (cpu_features & CPU_FEATURE_PSE36)
-            ret |= (uint64_t) (temp & 0x1e000) << 32;
-
-        return ret + (addr & 0x3fffff);
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
@@ -492,14 +491,13 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        uint64_t ret = temp & ~0x3fffff;
         if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
+        uint64_t page = temp & ~0x3fffff;
         if (cpu_features & CPU_FEATURE_PSE36)
-            ret |= (uint64_t) (temp & 0x1e000) << 32;
-
-        return ret + (addr & 0x3fffff);
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));

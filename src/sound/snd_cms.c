@@ -95,15 +95,15 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
     int    chip = (addr & 2) >> 1;
 
     switch (addr & 0xf) {
-        case 1:
+        case 0x1: /* SAA #1 Register Select Port */
             cms->addrs[0] = val & 31;
             break;
-        case 3:
+        case 0x3: /* SAA #2 Register Select Port */
             cms->addrs[1] = val & 31;
             break;
 
-        case 0:
-        case 2:
+        case 0x0: /* SAA #1 Data Port */
+        case 0x2: /* SAA #2 Data Port */
             cms_update(cms);
             cms->regs[chip][cms->addrs[chip] & 31] = val;
             switch (cms->addrs[chip] & 31) {
@@ -145,8 +145,9 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             break;
-        case 0x6:
-        case 0x7:
+
+        case 0x6: /* GameBlaster Write Port */
+        case 0x7: /* GameBlaster Write Port */
             cms->latched_data = val;
             break;
 
@@ -161,14 +162,14 @@ cms_read(uint16_t addr, void *priv)
     const cms_t *cms = (cms_t *) priv;
 
     switch (addr & 0xf) {
-        case 0x1:
+        case 0x1: /* SAA #1 Register Select Port */
             return cms->addrs[0];
-        case 0x3:
+        case 0x3: /* SAA #2 Register Select Port */
             return cms->addrs[1];
-        case 0x4:
+        case 0x4: /* GameBlaster Read port (Always returns 0x7F) */
             return 0x7f;
-        case 0xa:
-        case 0xb:
+        case 0xa: /* GameBlaster Read Port */
+        case 0xb: /* GameBlaster Read Port */
             return cms->latched_data;
 
         default:

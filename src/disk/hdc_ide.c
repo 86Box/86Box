@@ -145,7 +145,7 @@ typedef struct mcide_t {
     rom_t bios_rom;
 } mcide_t;
 
-ide_board_t *ide_boards[IDE_BUS_MAX];
+ide_board_t *ide_boards[IDE_BUS_MAX] = { 0 };
 
 static uint8_t ide_ter_pnp_rom[] = {
     /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
@@ -618,9 +618,12 @@ ide_hd_identify(const ide_t *ide)
     if (!ide_boards[ide->board]->force_ata3 && (bm != NULL)) {
         ide->buffer[80] = 0x7e; /*ATA-1 to ATA-6 supported*/
         ide->buffer[81] = 0x19; /*ATA-6 revision 3a supported*/
-    } else {
+    } else
         ide->buffer[80] = 0x0e; /*ATA-1 to ATA-3 supported*/
-    }
+
+    ide->buffer[83] = ide->buffer[84] = 0x4000;
+    ide->buffer[86] = 0x0000;
+    ide->buffer[87] = 0x4000;
 }
 
 static void
@@ -2219,9 +2222,8 @@ ide_callback(void *priv)
                     ide->sector_pos      = 0;
                     ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
                                          ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
-                } else {
+                } else
                     ret = 0;
-                }
 
                 memcpy(ide->buffer, &ide->sector_buffer[ide->sector_pos * 512], 512);
 
