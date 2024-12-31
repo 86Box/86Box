@@ -60,8 +60,9 @@
 
 #define PNP_ROM_SB_16_PNP_NOIDE "roms/sound/creative/CT2941 PnP.BIN"
 #define PNP_ROM_SB_16_PNP_IDE   "roms/sound/creative/CTL0024A.BIN" /* CT2940 */
-#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
 #define PNP_ROM_SB_VIBRA16C     "roms/sound/creative/CT4180 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16CL    "roms/sound/creative/CT4100 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
 #define PNP_ROM_SB_32_PNP       "roms/sound/creative/CT3600 PnP.BIN"
 #define PNP_ROM_SB_AWE32_PNP    "roms/sound/creative/CT3980 PnP.BIN"
 #define PNP_ROM_SB_AWE64_VALUE  "roms/sound/creative/CT4520 PnP.BIN"
@@ -3392,16 +3393,23 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 }
 
 static int
+sb_vibra16c_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16C);
+}
+
+static int
+sb_vibra16cl_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16CL);
+}
+
+static int
 sb_vibra16xv_available(void)
 {
     return rom_present(PNP_ROM_SB_VIBRA16XV);
 }
 
-static int
-sb_vibra16c_available(void)
-{
-    return rom_present(PNP_ROM_SB_VIBRA16C);
-}
 
 static void *
 sb_vibra16_pnp_init(UNUSED(const device_t *info))
@@ -3437,24 +3445,31 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     switch (info->local) {
+        case SB_VIBRA16C: /* CTL7001 */
+        case SB_VIBRA16CL: /* CTL7002 */
+            sb->gameport = gameport_add(&gameport_pnp_device);
+            break;
+
         case SB_VIBRA16XV: /* CTL7005 */
             sb->gameport = gameport_add(&gameport_pnp_1io_device);
             break;
 
-        case SB_VIBRA16C: /* CTL7001/CTL7002 */
         default:
-            sb->gameport = gameport_add(&gameport_pnp_device);
             break;
     }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case SB_VIBRA16XV:
-            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
-            break;
-
         case SB_VIBRA16C:
             pnp_rom_file = PNP_ROM_SB_VIBRA16C;
+            break;
+
+        case SB_VIBRA16CL:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16CL;
+            break;
+
+        case SB_VIBRA16XV:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
             break;
 
         default:
@@ -3473,8 +3488,9 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     }
 
     switch (info->local) {
-        case SB_VIBRA16XV:
         case SB_VIBRA16C:
+        case SB_VIBRA16CL:
+        case SB_VIBRA16XV:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
@@ -5723,6 +5739,62 @@ const device_t sb_16_device = {
     .config        = sb_16_config
 };
 
+const device_t sb_vibra16c_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16C (On-Board)",
+    .internal_name = "sb_vibra16c_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16C,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16c_device = {
+    .name          = "Sound Blaster ViBRA 16C",
+    .internal_name = "sb_vibra16c",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16C,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16CL (On-Board)",
+    .internal_name = "sb_vibra16cl_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_device = {
+    .name          = "Sound Blaster ViBRA 16CL",
+    .internal_name = "sb_vibra16cl",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
 const device_t sb_vibra16s_onboard_device = {
     .name          = "Sound Blaster ViBRA 16S (On-Board)",
     .internal_name = "sb_vibra16s_onboard",
@@ -5774,34 +5846,6 @@ const device_t sb_vibra16xv_device = {
     .close         = sb_close,
     .reset         = NULL,
     .available     = sb_vibra16xv_available,
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
-};
-
-const device_t sb_vibra16c_onboard_device = {
-    .name          = "Sound Blaster ViBRA 16C (On-Board)",
-    .internal_name = "sb_vibra16c_onboard",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = SB_VIBRA16C,
-    .init          = sb_vibra16_pnp_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    .available     = sb_vibra16c_available,
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
-};
-
-const device_t sb_vibra16c_device = {
-    .name          = "Sound Blaster ViBRA 16C",
-    .internal_name = "sb_vibra16c",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = SB_VIBRA16C,
-    .init          = sb_vibra16_pnp_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    .available     = sb_vibra16c_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
