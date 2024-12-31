@@ -207,7 +207,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     else if ((lpKdhs->scanCode == 0x3e) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
              !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    else if ((lpKdhs->scanCode == 0x51) && bCtrlDown && !(lpKdhs->flags & LLKHF_UP))
+    else if ((lpKdhs->scanCode == 0x49) && bCtrlDown && !(lpKdhs->flags & LLKHF_UP))
         return TRUE;
     else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
         return TRUE;
