@@ -614,7 +614,6 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
     uint8_t old_value;
 
     // todo:
-    // RMA
     // Pixel formats (8bit vs 555 vs 565)
     // VBE 3.0?
     

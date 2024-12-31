@@ -6,20 +6,23 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          JENSEN HUANG APPROVED !!!!
+ *          Shared implementation file for all NVIDIA GPUs (hopefully to be) emulated by 86box.
  * 
  *          Credit to:
  * 
- *          - fuel (PCBox developer)
- *          - Marcelina Kościelnicka (envytools)
- *          - nouveau developers
- *          - Utah GLX developers
- *          - XFree86 developers
- *          - xemu developers
- *
+ *          - Marcelina Kościelnicka (envytools)                            https://envytools.readthedocs.io/en/latest/ 
+ *          - fuel (PCBox developer)                                        https://github.com/PCBox/PCBox
+ *          - nouveau developers                                            https://nouveau.freedesktop.org/
+ *          - Utah GLX developers                                           https://utah-glx.sourceforge.net/
+ *          - XFree86 developers                                            https://www.xfree86.org/
+ *          - xemu developers                                               https://github.com/xemu-project/xemu
+ *          - RivaTV developers                                             https://rivatv.sourceforge.net (esp. https://rivatv.sourceforge.net/stuff/riva128.txt) 
+ *          - Nvidia for leaking their driver symbols numerous times ;^)    https://nvidia.com 
+ *          - People who prevented me from giving up (various)              
+ * 
  * Authors: Connor Hyde / starfrost <mario64crashed@gmail.com>
  *
- *          Copyright 2024 Connor Hyde
+ *          Copyright 2024-2025 Connor Hyde
  */
 #ifdef EMU_DEVICE_H // what
 

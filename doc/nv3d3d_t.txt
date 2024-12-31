@@ -1,0 +1,161 @@
+12=unk_int12
+16=unk_short16
+22=unk_short22 (seems to determine if nv_sys_ptr is valid)
+24=unk_short24
+26=unk_short26
+44=unk_int44
+56=unk_int56
+60=unk_int60
+64=unk_short64
+66=unk_short66
+
+82=unk_short82
+
+362..822:
+	big_struct
+	(weird alignment?)
+	477
+	489
+	505
+
+1140=nv_sys_ptr
+	<very big structure - add when we add this structure> 
+
+1156=unk_int1156 [start of structure]
+1160=unk_int1160
+
+1168=unk_int1168 [possibly a byte array of up to 16 bytes)
+
+1184=unk_int1184
+
+1208=unk_int1208
+1212=unk_int1212
+1216=unk_int1216
+1220=unk_int1220
+1224=unk_int1224
+
+1236=unk_int1236
+1240=unk_int1240
+1244=unk_int1244
+1248=unk_int1248
+
+1256=unk_int1256
+1260=fog_table_enable
+1264=unk_int1264
+1270=unk_int1270
+1272=unk_byte1272
+1273=unk_byte1273
+1274=unk_byte1274 (?)
+1275=unk_byte1275
+
+1316=unk_int1316
+1320=unk_int1320
+
+1332=unk_int1332
+
+1340=unk_int1340
+1344=unk_int1344
+
+1356=unk_int1356
+1360=d3d_clear_enabled
+1364=texture_enabled
+1368=mipmap_size_max
+1372=mipmap_levels
+1376=user_mipmaps
+1380=zoh_mode (bool)
+1384=tex_heap
+1388=text_size
+1392=video_texture
+1396=min_video_tex_size
+1400=draw_prim
+1404=spread_x
+1408=spread_y
+1412=size_adj
+1416=turbo_adj
+1420=dma_min_push_count
+1424=dma_push_enable
+
+1436=unk_int1436
+1440=unk_int1440
+
+1448=unk_int1448
+1452=unk_int1452 (set to value of unk_int1908)
+1456=unk_int1456 (set to value of unk_int1956)
+1460=unk_int1460 (set to value of unk_int2020)
+
+1516=unk_int1516
+1520=unk_int1520
+1524=unk_int1524
+1528=unk_int1528
+1532=unk_int1532
+
+1548=unk_int1548
+1552=unk_int1552
+1556=unk_int1556
+1560=unk_int1560
+1564=unk_int1564
+
+1600=unk_int1600
+
+1612=unk_int1612
+1616=unk_int1616
+1620=unk_int1620
+
+1632=unk_int1632
+
+1640=unk_int1640
+1644=unk_ptr1644
+
+1676=unk_int1676
+1680=unk_int1680
+1684=unk_int1684
+1688=unk_int1688
+1692=unk_int1692
+1696=unk_int1696
+1700=unk_int1700
+
+1716=unk_int1716
+1720=unk_int1720
+1724=unk_int1724
+1728=unk_ptr1728
+
+1848=unk_int1848
+1852=unk_int1852
+1856=unk_int1856 (unk_int1552 | 0x800)
+1864=unk_func_ptr1864
+1868=unk_int1868
+
+1884=unk_int1884
+1888=ptr_to_start_of_structure?
+1892=hInstDll
+1896=unk_int1896
+1900=unk_int1900
+
+1908=unk_int1908
+1912=unk_int1912
+1916=unk_func_ptr1916
+1920=unk_func_ptr1920
+
+1932=unk_func_ptr1932
+1936=unk_func_ptr1936
+1944=unk_func_ptr1944
+
+1956..2020: Set of function pointrs
+	1956=unk_int1956
+	1960=unk_int1960
+	1960=unk_func_ptr1960
+	1964=unk_func_ptr1964
+	1968=unk_func_ptr1968
+	1976=unk_func_ptr1976
+	1980=unk_func_ptr1980
+	1988=unk_func_ptr1988
+	1996=unk_func_ptr1996
+	2000=unk_func_ptr2000
+	2004=unk_func_ptr2004
+	2008=unk_func_ptr2008
+
+	2020=unk_int2020
+
+2024=unk_int2024
+2028=unk_int2028
+2032=unk_int2032

@@ -115,7 +115,7 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
 // Write 16-bit ramin
 void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
 {
-    addr &= (nv3->nvbase.svga.vram_max- 1);
+    addr &= (nv3->nvbase.svga.vram_max - 1);
 
     // why does this not work in one line
     svga_t* svga = &nv3->nvbase.svga;

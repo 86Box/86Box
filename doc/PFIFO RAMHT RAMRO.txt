@@ -1,0 +1,38 @@
+PIO VS dma
+
+driver is DIRECTLY modifying pfifo 
+
+8X8 channel setup
+
+Names are 32-bit integers >4096
+
+RAMFC - DMA Context object 0,0 to 8,8 
+
+context = channel, render object, object type, offset in instance memory
+
+for a rectangle (type 0x47), object render = 1, channel 0, at 0x0400 in the ramht memory
+
+=0x00c70400 as the context
+
+the ramht hash :
+
+xor every byte of the hash individually and then xor that with the channel number
+
+so obj id 01020304 in channel 0 is 1 xor 2 xor 3 xor 4 xor 0
+
+Store in RAMHT at <subchannel start within RAMHT> + 4*16 = name
+Store in RAMHT at <subchannel start within RAMHT> + 4*16 + 4 = context
+
+then the ramin stuff starts at *0xc04000 since c00000 is the start of ramin [PCI BAR1] which is where you put the contents of the class struct
+
+nv_user
+
+Consider the 8x8 channels as 64 subchannels.
+Now you can do:
+
+They seem to end at 0x880000
+
+(0x880000)/64 = 0x2000 for each channel
+
+FAILURE -> RAMRO!
+

@@ -41,6 +41,8 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     nv/nv3/subsystems/nv3_ptimer.c
     nv/nv3/subsystems/nv3_pramin.c nv/nv3/subsystems/nv3_pramin_ramht.c nv/nv3/subsystems/nv3_pramin_ramfc.c nv/nv3/subsystems/nv3_pramin_ramro.c 
     nv/nv3/subsystems/nv3_pvideo.c
+
+    nv/nv3/classes/nv3_class_names.c
     )
 
 if(G100)

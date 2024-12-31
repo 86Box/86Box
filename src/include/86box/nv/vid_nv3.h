@@ -12,11 +12,11 @@
  *
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
- *          Copyright 2024 Connor Hyde
+ *          Copyright 2024-2025 Connor Hyde
  */
 
 // vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
-// Last updated     2 December 2024
+// Last updated     30 December 2024
 
 // The GPU base structure
 extern const device_config_t nv3_config[];
@@ -28,13 +28,20 @@ extern const device_config_t nv3_config[];
 #define NV3_LFB_RAMIN_START                             0xC00000        // RAMIN mapping start
 #define NV3_LFB_MAPPING_SIZE                            0x400000        // Size of RAMIN
 
+// DMA channels are basically the number of contexts that the gpu can deal with at once.
+// Channel 0 is always taken up by NV drivers.
+
+// Subchannels deal with specific parts of the GPU and are manipulated by the driver to manipulate the gpu.
+#define NV3_DMA_CHANNELS                                8
+#define NV3_DMA_SUBCHANNELS_PER_CHANNEL                 8
+
 #define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             10              // The amount by which we have to ration out the memory clock because it's not fast enough...
                                                                         // Multiply by this value to get the real clock speed.
 // Default value for the boot information register.
 // Depends on the chip
-#define NV3_BOOT_REG_REV_A00    0x00030100
-#define NV3_BOOT_REG_REV_B00    0x00030110
-#define NV3_BOOT_REG_REV_C00    0x00030120
+#define NV3_BOOT_REG_REV_A00                            0x00030100
+#define NV3_BOOT_REG_REV_B00                            0x00030110
+#define NV3_BOOT_REG_REV_C00                            0x00030120
 
 // various vbioses for testing
 // Coming soon: MIROmagic Premium BIOS (when I get mine dumped)
@@ -297,9 +304,9 @@ extern const device_config_t nv3_config[];
 #define NV3_PSTRAPS_OVERWRITE_ENABLED                   0x1
 #define NV3_PEXTDEV_END                                 0x101FFF
 #define NV3_PROM_START                                  0x110000    // VBIOS?
-#define NV3_PROM_END                                    0x110FFF
+#define NV3_PROM_END                                    0x11FFFF
 #define NV3_PALT_START                                  0x120000    // ??? but it exists
-#define NV3_PALT_END                                    0x120FFF
+#define NV3_PALT_END                                    0x12FFFF
 #define NV3_PME_START                                   0x200000    // Mediaport 
 #define NV3_PME_INTR                                    0x200100    // Mediaport: Interrupt Pending?
 #define NV3_PME_INTR_EN                                 0x200140    // Mediaport: Interrupt Enable
@@ -459,7 +466,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PDAC_END                                    0x680FFF    // OPTIONAL external DAC
 
 
-#define NV3_USER_START                                  0x800000    // Mapping for the area where objects are submitted into the FIFO
+#define NV3_USER_START                                  0x800000    // Mapping for the area where objects are submitted into the FIFO (up to 0x880000?)
 #define NV3_USER_END                                    0xFFFFFF
 
 // easier name
@@ -477,6 +484,8 @@ extern const device_config_t nv3_config[];
 // control structures for dma'd in graphics objects from pfifo
 // these all have configurable sizes, define them here
 #define NV3_PRAMIN_START                                0x1C00000
+
+
 
 #define NV3_PRAMIN_RAMHT_START                          0x1C00000   // Hashtable for storing submitted objects
 #define NV3_PRAMIN_RAMHT_END                            0x1C00FFF
@@ -651,7 +660,14 @@ typedef struct nv_pfifo_s
 {
     uint32_t interrupt_status;          // Interrupt status
     uint32_t interrupt_enable;          // Interrupt enable
+    uint32_t ramht_config;              // RAMHT config
+    uint32_t ramfc_config;              // RAMFC config
+    uint32_t ramro_config;              // RAMRO config
+    uint32_t cache_reassignment;        // Enable automatic reassignment into CACHE0?
+
 } nv3_pfifo_t;
+
+// create_object(uint32_t type) here
 
 // RAMDAC
 typedef struct nv3_pramdac_s
@@ -761,11 +777,47 @@ typedef struct nv3_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv3_ptimer_t;
 
+typedef struct nv3_pramin_name_s
+{
+    union 
+    {
+        uint32_t name;
+        uint8_t byte_high;
+        uint8_t byte_mid2;
+        uint8_t byte_mid1;
+        uint8_t byte_low;
+    };
+} nv3_pramin_name_t;
+
+typedef struct nv3_pramin_context_s
+{
+    union 
+    {
+        uint32_t context; 
+        uint8_t dma_channel;
+        uint8_t render_object;              //0=sw, 1=render
+        uint8_t class_id;
+        uint8_t ramin_offset;               //find
+    };
+} nv3_pramin_context_t;
+
+// Graphics object hashtable for specific DMA [channel, subchannel] pair
+typedef struct nv3_pramin_ramht_subchannel_s
+{
+    nv3_pramin_name_t    name;                      // must be >4096
+
+    // Contextual information.
+    // See the above union.
+    nv3_pramin_context_t context;                       
+} nv3_pramin_ramht_subchannel_t;
+
 // Graphics object hashtable
 typedef struct nv3_pramin_ramht_s
 {
-
+    nv3_pramin_ramht_subchannel_t subchannels[NV3_DMA_CHANNELS][NV3_DMA_SUBCHANNELS_PER_CHANNEL];
 } nv3_pramin_ramht_t;
+
+uint32_t nv3_pramin_ramht_hash(nv3_pramin_name_t name, uint32_t channel);
 
 // Anti-fuckup device
 typedef struct nv3_pramin_ramro_s
