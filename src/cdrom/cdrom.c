@@ -1894,14 +1894,14 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
             case 0x00:
                 lba = sector;
                 break;
-            case 0x40:
+            case 0x40: {
                 int m = bcd2bin((sector >> 24) & 0xff);
                 int s = bcd2bin((sector >> 16) & 0xff);
                 int f = bcd2bin((sector >> 8) & 0xff);
 
                 lba = MSFtoLBA(m, s, f) - 150;
                 break;
-            case 0x80:
+            } case 0x80:
                 lba = bcd2bin((sector >> 24) & 0xff);
                 break;
             /* Never used values but the compiler complains. */
