@@ -231,7 +231,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
 // Fire a VALID Pgraph interrupt: num is the bit# of the interrupt in the GPU subsystem INTR_EN register.
 void nv3_pgraph_interrupt_valid(uint32_t num)
 {
-    nv3->pgraph.interrupt_enable_0 |= (1 << num);
+    nv3->pgraph.interrupt_status_0 |= (1 << num);
     nv3_pmc_handle_interrupts(true);
 }
 
