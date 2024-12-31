@@ -73,12 +73,12 @@ typedef struct rivatimer_s
 } rivatimer_t;
 
 void rivatimer_init();                                              // Initialise the Rivatimer.
-rivatimer_t* rivatimer_create(double period, void (*callback)());
+rivatimer_t* rivatimer_create(double period, void (*callback)(double real_time));
 void rivatimer_destroy(rivatimer_t* rivatimer_ptr);
 
 void rivatimer_update_all();
 void rivatimer_start(rivatimer_t* rivatimer_ptr);
 void rivatimer_stop(rivatimer_t* rivatimer_ptr);
 double rivatimer_get_time(rivatimer_t* rivatimer_ptr);
-void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)());
+void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)(double real_time));
 void rivatimer_set_period(rivatimer_t* rivatimer_ptr, double period);

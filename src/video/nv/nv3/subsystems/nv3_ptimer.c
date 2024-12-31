@@ -57,7 +57,7 @@ void nv3_ptimer_interrupt(uint32_t num)
 }
 
 // Ticks the timer.
-void nv3_ptimer_tick()
+void nv3_ptimer_tick(double real_time)
 {
     // do not divide by zero
     if (nv3->ptimer.clock_numerator == 0
@@ -67,7 +67,14 @@ void nv3_ptimer_tick()
     // get the current time
     // Due to timer system limitations, the timer system is not capable of running at 100 megahertz. Therefore, we have to scale it down and then scale up the level of changes
     // to the state. 
-    double current_time = ((double)nv3->ptimer.clock_numerator * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)nv3->ptimer.clock_denominator; // *10.0?
+
+    // See Envytools. We need to use the frequency as a source. 
+    // But we need to figure out how many cycles actually occurred because this counts up every cycle...
+
+    // Convert to microseconds
+    double freq_base = (real_time / 1000000.0f) / ((double)1.0 / nv3->nvbase.memory_clock_frequency);
+
+    double current_time = freq_base * ((double)nv3->ptimer.clock_numerator * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)nv3->ptimer.clock_denominator; // *10.0?
 
     // Logging is suppressed when reading this register because it is read many times
     // So we only log when we update.

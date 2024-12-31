@@ -50,18 +50,16 @@ void nv3_pramdac_init()
 
 // Polls the pixel clock.
 // This updates the 2D/3D engine PGRAPH
-void nv3_pramdac_pixel_clock_poll()
+void nv3_pramdac_pixel_clock_poll(double real_time)
 {
-    // TODO: UPDATE PGRAPH! 
+    // TODO: ????
 }
 
 // Polls the memory clock.
-void nv3_pramdac_memory_clock_poll()
+void nv3_pramdac_memory_clock_poll(double real_time)
 {
-    //nv3_t* nv3_poll = (nv3_t*)priv;
-
-    // Let's hope qeeg was right here.
-    nv3_ptimer_tick();
+    nv3_ptimer_tick(real_time);
+    // TODO: UPDATE PGRAPH!
 }
 
 // Gets the vram clock register.
@@ -120,10 +118,8 @@ void nv3_pramdac_set_vram_clock()
 
     nv_log("NV3: Memory clock = %.2f MHz\n", frequency / 1000000.0f);    
 
-    nv3->nvbase.memory_clock_period = time;
+    nv3->nvbase.memory_clock_frequency = frequency;
     
-    //timer_on_auto(&nv3->nvbase.memory_clock_timer, nv3->nvbase.memory_clock_period);
-
     // Create and start if it it's not running.
     if (!nv3->nvbase.memory_clock_timer)
     {
@@ -170,7 +166,7 @@ void nv3_pramdac_set_pixel_clock()
 
     nv_log("NV3: Pixel clock = %.2f MHz\n", frequency / 1000000.0f);
 
-    nv3->nvbase.pixel_clock_period = time;
+    nv3->nvbase.pixel_clock_frequency = frequency;
 
     // Create and start if it it's not running.
     if (!nv3->nvbase.pixel_clock_timer)

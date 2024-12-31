@@ -59,7 +59,7 @@ void rivatimer_init()
 }
 
 // Creates a rivatimer.
-rivatimer_t* rivatimer_create(double period, void (*callback)())
+rivatimer_t* rivatimer_create(double period, void (*callback)(double real_time))
 {
     rivatimer_t* new_rivatimer = NULL;
 
@@ -210,7 +210,7 @@ void rivatimer_update_all()
                 continue;
             }
                     
-            rivatimer_ptr->callback();
+            rivatimer_ptr->callback(microseconds);
         }
 
         rivatimer_ptr = rivatimer_ptr->next;
@@ -254,7 +254,7 @@ double rivatimer_get_time(rivatimer_t* rivatimer_ptr)
     return rivatimer_ptr->time;
 }
 
-void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)())
+void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)(double real_time))
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
         fatal("rivatimer_set_callback: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");

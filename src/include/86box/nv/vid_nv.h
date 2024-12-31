@@ -107,10 +107,10 @@ typedef struct nv_base_s
     uint32_t bar1_lfb_base;                     // PCI Base Address Register 1 - Linear Framebuffer (NV_BASE)
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
     uint32_t gpu_revision;                      // GPU Stepping
-    double pixel_clock_period;                  // Period in seconds for pixel clock
+    double pixel_clock_frequency;               // Frequency used for pixel clock
     rivatimer_t* pixel_clock_timer;             // Timer for measuring pixel clock
     bool pixel_clock_enabled;                   // Pixel Clock Enabled - stupid crap used to prevent us enabling the timer multiple times
-    double memory_clock_period;                 // Period in seconds for pixel clock
+    double memory_clock_frequency;              // Source Frequency for PTIMER
     rivatimer_t* memory_clock_timer;            // Timer for measuring memory/gpu clock
     bool memory_clock_enabled;                  // Memory Clock Enabled - stupid crap used to prevent us eanbling the timer multiple times
     void* i2c;                                  // I2C for monitor EDID

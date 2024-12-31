@@ -577,7 +577,8 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_REGISTER_RL0                           0x34
 #define NV3_CRTC_REGISTER_RL1                           0x35
 #define NV3_CRTC_REGISTER_RMA                           0x38        // REAL MODE ACCESS!
-#define NV3_CRTC_REGISTER_I2C                           0x3F    
+#define NV3_CRTC_REGISTER_I2C                           0x3E    
+#define NV3_CRTC_REGISTER_I2C_GPIO                      0x3F
 
 // where the fuck is GDC?
 #define NV3_CRTC_BANKED_128K_A0000                      0x00
@@ -904,7 +905,7 @@ void        nv3_speed_changed(void *priv);
 void        nv3_force_redraw(void* priv);
 
 // Memory Mapping
-void        nv3_update_mappings();
+void        nv3_update_mappings();                                              // Update memory mappings
 uint8_t     nv3_mmio_read8(uint32_t addr, void* priv);                          // Read 8-bit MMIO
 uint16_t    nv3_mmio_read16(uint32_t addr, void* priv);                         // Read 16-bit MMIO
 uint32_t    nv3_mmio_read32(uint32_t addr, void* priv);                         // Read 32-bit MMIO
@@ -917,12 +918,12 @@ void        nv3_svga_out(uint16_t addr, uint8_t val, void* priv);               
 uint8_t     nv3_pci_read(int32_t func, int32_t addr, void* priv);               // Read PCI configuration registers
 void        nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv); // Write PCI configuration registers
 
-uint8_t     nv3_ramin_read8(uint32_t addr, void* priv);                          // Read 8-bit RAMIN
-uint16_t    nv3_ramin_read16(uint32_t addr, void* priv);                         // Read 16-bit RAMIN
-uint32_t    nv3_ramin_read32(uint32_t addr, void* priv);                         // Read 32-bit RAMIN
-void        nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv);            // Write 8-bit RAMIN
-void        nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv);          // Write 16-bit RAMIN
-void        nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv);          // Write 32-bit RAMIN
+uint8_t     nv3_ramin_read8(uint32_t addr, void* priv);                         // Read 8-bit RAMIN
+uint16_t    nv3_ramin_read16(uint32_t addr, void* priv);                        // Read 16-bit RAMIN
+uint32_t    nv3_ramin_read32(uint32_t addr, void* priv);                        // Read 32-bit RAMIN
+void        nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv);           // Write 8-bit RAMIN
+void        nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv);         // Write 16-bit RAMIN
+void        nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv);         // Write 32-bit RAMIN
 
 // MMIO Arbitration
 // Determine where the hell in this mess our reads or writes are going
@@ -1015,12 +1016,12 @@ void        nv3_pbus_rma_write(uint16_t addr, uint8_t val);
 void        nv3_pramdac_init();
 void        nv3_pramdac_set_vram_clock();
 void        nv3_pramdac_set_pixel_clock();
-void        nv3_pramdac_pixel_clock_poll();
-void        nv3_pramdac_memory_clock_poll();
+void        nv3_pramdac_pixel_clock_poll(double real_time);
+void        nv3_pramdac_memory_clock_poll(double real_time);
 
 // NV3 PTIMER
 void        nv3_ptimer_init();
-void        nv3_ptimer_tick();
+void        nv3_ptimer_tick(double real_time);
 
 // NV3 PVIDEO
 void        nv3_pvideo_init();
