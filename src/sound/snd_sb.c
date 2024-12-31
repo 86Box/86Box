@@ -50,6 +50,7 @@
 
 #define SB_VIBRA16XV 0
 #define SB_VIBRA16C  1
+#define SB_VIBRA16CL  2
 
 #define SB_32_PNP      0
 #define SB_AWE32_PNP   1
