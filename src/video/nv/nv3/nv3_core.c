@@ -52,12 +52,18 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
     addr &= 0xFFFFFF;
 
     if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END)
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO)
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
         ret = nv3_svga_in(real_address, nv3);
+
+        nv_log("NV3: Redirected MMIO read8 to SVGA: addr=0x%04x returned 0x%02x", addr, ret);
         
         return ret; 
     }
@@ -76,7 +82,11 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
     addr &= 0xFFFFFF;
 
     if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END)
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO)
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -84,6 +94,8 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
         ret = nv3_svga_in(real_address, nv3)
         | (nv3_svga_in(real_address + 1, nv3) << 8);
         
+        nv_log("NV3: Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x", addr, ret);
+
         return ret; 
     }
 
@@ -100,7 +112,11 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
     addr &= 0xFFFFFF;
 
     if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END)
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO)
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -109,7 +125,9 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
         | (nv3_svga_in(real_address + 1, nv3) << 8)
         | (nv3_svga_in(real_address + 2, nv3) << 16)
         | (nv3_svga_in(real_address + 3, nv3) << 24);
-        
+
+        nv_log("NV3: Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%08x", addr, ret);
+
         return ret; 
     }
 
@@ -123,12 +141,18 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
     addr &= 0xFFFFFF;
 
     // This is weitek vga stuff
+    // If we need to add more of these we can convert these to a switch statement
     if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END)
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO)
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
+        nv_log("NV3: Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x", addr, val);
         nv3_svga_out(real_address, val & 0xFF, nv3);
 
         return; 
@@ -150,11 +174,16 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
 
     // This is weitek vga stuff
     if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END)
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO)
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
+        nv_log("NV3: Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%04x", addr, val);
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
         
@@ -177,10 +206,16 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
 
     // This is weitek vga stuff
     if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END)
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO)
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
+
+        nv_log("NV3: Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%08x", addr, val);
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
@@ -989,8 +1024,9 @@ void* nv3_init_agp(const device_t* info)
 void nv3_close(void* priv)
 {
     // Shut down I2C and the DDC
-    i2c_gpio_close(nv3->nvbase.i2c);
     ddc_close(nv3->nvbase.ddc);
+    i2c_gpio_close(nv3->nvbase.i2c);
+
 
     // Destroy the Rivatimers. (It doesn't matter if they are running.)
     rivatimer_destroy(nv3->nvbase.pixel_clock_timer);

@@ -425,6 +425,12 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_REAL_END                             0x5C1FFF
 
 #define NV3_PRMCIO_START                                0x601000
+// Following four are CRTC+I2C access registers
+// and get redirected to VGA
+#define NV3_PRMCIO_CRX_MONO                             0x6013B4
+#define NV3_PRMCIO_CR_MONO                              0x6013B5
+#define NV3_PRMCIO_CRX_COLOR                            0x6013D4
+#define NV3_PRMCIO_CR_COLOR                             0x6013D5
 #define NV3_PRMCIO_END                                  0x601FFF
 
 #define NV3_PDAC_START                                  0x680000    // OPTIONAL external DAC
