@@ -72,12 +72,19 @@ win_cdrom_ioctl_log(const char *fmt, ...)
 #    define win_cdrom_ioctl_log(fmt, ...)
 #endif
 
+static void
+plat_cdrom_close_handle(win_cdrom_ioctl_t *ioctl)
+{
+    if (ioctl->handle != NULL)
+        CloseHandle(ioctl->handle);
+}
+
 static int
 plat_cdrom_open(void *local)
 {
     win_cdrom_ioctl_t *ioctl = (win_cdrom_ioctl_t *) local;
 
-    plat_cdrom_close(local);
+    plat_cdrom_close_handle(local);
 
     ioctl->handle = CreateFileW((LPCWSTR) ioctl->path, GENERIC_READ | GENERIC_WRITE,
                                 FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
@@ -107,20 +114,47 @@ plat_cdrom_load(void *local)
 static int
 plat_cdrom_read_normal_toc(win_cdrom_ioctl_t *ioctl, uint8_t *toc_buf)
 {
-    long size = 0;
+    long                     size         = 0;
+    PCDROM_TOC_FULL_TOC_DATA cur_full_toc = NULL;
 
     memset(toc_buf, 0x00, 65536);
+
+    cur_full_toc = (PCDROM_TOC_FULL_TOC_DATA) calloc(1, 65536);
+    if (ioctl->blocks_num != 0) {
+        memset(ioctl->cur_rti, 0x00, ioctl->blocks_num * 11);
+        ioctl->blocks_num = 0;
+    }
+
+    ioctl->cur_read_toc_ex.Format       = CDROM_READ_TOC_EX_FORMAT_TOC;
+    win_cdrom_ioctl_log("cur_read_toc_ex.Format = %i\n", ioctl->cur_read_toc_ex.Format);
+    ioctl->cur_read_toc_ex.Msf          = 1;
+    ioctl->cur_read_toc_ex.SessionTrack = 0;
+
     plat_cdrom_open(ioctl);
-    int temp = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC, NULL, 0, toc_buf, 65535, (LPDWORD) &size, NULL);
+    int temp = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX, &ioctl->cur_read_toc_ex, 65535,
+                               cur_full_toc, 65535, (LPDWORD) &size, NULL);
     plat_cdrom_close(ioctl);
-#ifdef ENABLE_WIN_CDROM_IOCTL_LOG
     win_cdrom_ioctl_log("temp = %i\n", temp);
 
+    if (temp != 0) {
+        int length = ((cur_full_toc->Length[0] << 8) | cur_full_toc->Length[1]) + 2;
+        memcpy(toc_buf, cur_full_toc, length);
+    }
+
+    free(cur_full_toc);
+
+#ifdef ENABLE_WIN_CDROM_IOCTL_LOG
     PCDROM_TOC toc = (PCDROM_TOC) toc_buf;
     const int tracks_num = (((toc->Length[0] << 8) | toc->Length[1]) - 2) / 8;
-    win_cdrom_ioctl_log("%i tracks\n", tracks_num);
-    for (int i = 0; i < tracks_num; i++)
-        win_cdrom_ioctl_log("Track %03i: Point %02X\n", i, (int) toc->TrackData[i].TrackNumber);
+
+    win_cdrom_ioctl_log("%i tracks: %02X %02X %02X %02X\n",
+                        tracks_num, toc_buf[0], toc_buf[1], toc_buf[2], toc_buf[3]);
+
+    for (int i = 0; i < tracks_num; i++) {
+        uint8_t *t  = (uint8_t *) &toc->TrackData[i];
+        win_cdrom_ioctl_log("Track %03i: %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                            i, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
+    }
 #endif
 
     return temp;
@@ -130,10 +164,10 @@ static void
 plat_cdrom_read_raw_toc(win_cdrom_ioctl_t *ioctl)
 {
     long                     size         = 0;
-    int                      status;
     PCDROM_TOC_FULL_TOC_DATA cur_full_toc = NULL;
 
     memset(ioctl->cur_rti, 0x00, 65536);
+
     cur_full_toc = (PCDROM_TOC_FULL_TOC_DATA) calloc(1, 65536);
     if (ioctl->blocks_num != 0) {
         memset(ioctl->cur_rti, 0x00, ioctl->blocks_num * 11);
@@ -143,11 +177,11 @@ plat_cdrom_read_raw_toc(win_cdrom_ioctl_t *ioctl)
     ioctl->cur_read_toc_ex.Format       = CDROM_READ_TOC_EX_FORMAT_FULL_TOC;
     win_cdrom_ioctl_log("cur_read_toc_ex.Format = %i\n", ioctl->cur_read_toc_ex.Format);
     ioctl->cur_read_toc_ex.Msf          = 1;
-    ioctl->cur_read_toc_ex.SessionTrack = 1;
+    ioctl->cur_read_toc_ex.SessionTrack = 0;
 
     plat_cdrom_open(ioctl);
-    status = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX, &ioctl->cur_read_toc_ex, 65535,
-                             cur_full_toc, 65535, (LPDWORD) &size, NULL);
+    int status = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX, &ioctl->cur_read_toc_ex, 65535,
+                                 cur_full_toc, 65535, (LPDWORD) &size, NULL);
     plat_cdrom_close(ioctl);
     win_cdrom_ioctl_log("status = %i\n", status);
 
@@ -156,15 +190,21 @@ plat_cdrom_read_raw_toc(win_cdrom_ioctl_t *ioctl)
         memcpy(ioctl->cur_rti, cur_full_toc->Descriptors, ioctl->blocks_num * 11);
     }
 
-    free(cur_full_toc);
-
 #ifdef ENABLE_WIN_CDROM_IOCTL_LOG
-    win_cdrom_ioctl_log("%i blocks\n", ioctl->blocks_num);
+    uint8_t *u = (uint8_t *) cur_full_toc;
+
+    win_cdrom_ioctl_log("%i blocks: %02X %02X %02X %02X\n",
+                        ioctl->blocks_num, u[0], u[1], u[2], u[3]);
 
     raw_track_info_t *rti = (raw_track_info_t *) ioctl->cur_rti;
-    for (int i = 0; i < ioctl->blocks_num; i++)
-         win_cdrom_ioctl_log("Block %03i: Session %03i, Point %02X\n", i, (int) rti[i].session, (int) rti[i].point);
+    for (int i = 0; i < ioctl->blocks_num; i++) {
+        uint8_t *t  = (uint8_t *) &rti[i];
+        win_cdrom_ioctl_log("Block %03i: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                            i, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7], t[8], t[9], t[10]);
+    }
 #endif
+
+    free(cur_full_toc);
 }
 
 void
@@ -206,7 +246,7 @@ plat_cdrom_is_track_audio(void *local, uint32_t sector)
 
         win_cdrom_ioctl_log("F: %i, L: %i, C: %i (%i), c: %02X, A: %08X, S: %08X\n",
                             toc->FirstTrack, toc->LastTrack, cur_td->TrackNumber, c,
-                            cur_td->Control, track_addr, sector);
+                            cur_td->Control, cur_addr, sector);
 
         if ((cur_td->TrackNumber >= toc->FirstTrack) && (cur_td->TrackNumber <= toc->LastTrack) &&
             (sector >= cur_addr) && (sector < next_addr)) {
@@ -343,9 +383,14 @@ plat_cdrom_ext_medium_changed(void *local)
         memcpy(toc, new_toc, 65535);
         if (memcmp(ioctl->path, ioctl->old_path, sizeof(ioctl->path)) != 0)
             memcpy(ioctl->old_path, ioctl->path, sizeof(ioctl->path));
-    } else if (memcmp(&(new_ltd->Address[1]), &(cur_ltd->Address[1]), 3))
+    } else if (memcmp(&(new_ltd->Address[1]), &(cur_ltd->Address[1]), 3)) {
         /* The TOC has changed. */
+        ioctl->toc_valid = 1;
+        memcpy(toc, new_toc, 65535);
+        if (memcmp(ioctl->path, ioctl->old_path, sizeof(ioctl->path)) != 0)
+            memcpy(ioctl->old_path, ioctl->path, sizeof(ioctl->path));
         ret = 1;
+    }
 
     win_cdrom_ioctl_log("plat_cdrom_ext_medium_changed(): %i\n", ret);
 
@@ -458,38 +503,61 @@ plat_cdrom_get_sector_size(void *local, UNUSED(uint32_t sector))
 }
 
 int
-plat_cdrom_read_sector(void *local, uint8_t *buffer, int raw, uint32_t sector)
+plat_cdrom_read_sector(void *local, uint8_t *buffer, uint32_t sector)
 {
-    win_cdrom_ioctl_t *     ioctl  = (win_cdrom_ioctl_t *) local;
-    int                     status;
-    long                    size   = 0;
-    int                     buflen = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
+    typedef struct SCSI_PASS_THROUGH_DIRECT_BUF {
+        SCSI_PASS_THROUGH_DIRECT spt;
+        ULONG                    Filler;
+        UCHAR                    SenseBuf[32];
+    } SCSI_PASS_THROUGH_DIRECT_BUF;
+
+    win_cdrom_ioctl_t *          ioctl   = (win_cdrom_ioctl_t *) local;
+    int                          sc_offs = (sector == 0xffffffff) ? 0 : 2352;
+    unsigned long int            unused  = 0;
+    int                          ret;
+    SCSI_PASS_THROUGH_DIRECT_BUF req;
+
+    memset(&req, 0x00, sizeof(req));
+    req.Filler                    = 0;
+    req.spt.Length                = sizeof(SCSI_PASS_THROUGH_DIRECT);
+    req.spt.CdbLength             = 12;
+    req.spt.DataIn                = SCSI_IOCTL_DATA_IN;
+    req.spt.SenseInfoOffset       = offsetof(SCSI_PASS_THROUGH_DIRECT_BUF, SenseBuf);
+    req.spt.SenseInfoLength       = sizeof(req.SenseBuf);
+    req.spt.TimeOutValue          = 6;
+    req.spt.DataTransferLength    = 2368;
+    req.spt.DataBuffer            = buffer;
+
+    /* Fill in the CDB. */
+    req.spt.Cdb[0]                 = 0xbe;             /* READ CD */
+    req.spt.Cdb[1]                 = 0x00;             /* DAP = 0, Any Sector Type. */
+    req.spt.Cdb[2]                 = (sector >> 24) & 0xff;
+    req.spt.Cdb[3]                 = (sector >> 16) & 0xff;
+    req.spt.Cdb[4]                 = (sector >> 8) & 0xff;
+    req.spt.Cdb[5]                 = sector & 0xff;    /* Starting Logical Block Address. */
+    req.spt.Cdb[6]                 = 0x00;
+    req.spt.Cdb[7]                 = 0x00;
+    req.spt.Cdb[8]                 = 0x01;             /* Transfer Length. */
+    /* If sector is FFFFFFFF, only return the subchannel. */
+    req.spt.Cdb[9]                 = (sector == 0xffffffff) ? 0x00 : 0xf8;
+    req.spt.Cdb[10]                = 0x02;
+    req.spt.Cdb[11]                = 0x00;
 
     plat_cdrom_open(ioctl);
-
-    if (raw) {
-        /* Raw */
-        win_cdrom_ioctl_log("Raw\n");
-        RAW_READ_INFO in;
-        in.DiskOffset.LowPart  = sector * COOKED_SECTOR_SIZE;
-        in.DiskOffset.HighPart = 0;
-        in.SectorCount         = 1;
-        in.TrackMode           = CDDA;
-        status = DeviceIoControl(ioctl->handle, IOCTL_CDROM_RAW_READ, &in, sizeof(in),
-                                 buffer, buflen, (LPDWORD) &size, NULL);
-    } else {
-        /* Cooked */
-        win_cdrom_ioctl_log("Cooked\n");
-        int success  = 0;
-        DWORD newPos = SetFilePointer(ioctl->handle, sector * COOKED_SECTOR_SIZE, 0, FILE_BEGIN);
-        if (newPos != 0xFFFFFFFF)
-            success = ReadFile(ioctl->handle, buffer, buflen, (LPDWORD) &size, NULL);
-        status  = (success != 0);
-    }
+    ret = DeviceIoControl(ioctl->handle, IOCTL_SCSI_PASS_THROUGH_DIRECT, &req, sizeof(req), &req, sizeof(req),
+                          &unused, NULL);
     plat_cdrom_close(ioctl);
-    win_cdrom_ioctl_log("ReadSector status=%d, sector=%d, size=%" PRId64 ".\n", status, sector, (long long) size);
 
-    return (status > 0) ? (size == buflen) : -1;
+    /* Construct raw subchannel data from Q only. */
+    if (ret && (req.spt.DataTransferLength >= 2368))
+        for (int i = 11; i >= 0; i--)
+             for (int j = 7; j >= 0; j--)
+                  buffer[2352 + (i * 8) + j] = ((buffer[sc_offs + i] >> (7 - j)) & 0x01) << 6;
+
+    win_cdrom_ioctl_log("plat_cdrom_read_scsi_direct: ret = %d, req.spt.DataTransferLength = %lu\n",
+                        ret, req.spt.DataTransferLength);
+    win_cdrom_ioctl_log("Sense: %08X, %08X\n", req.spt.SenseInfoLength, req.spt.SenseInfoOffset);
+    return ret && (req.spt.DataTransferLength >= 2368);
 }
 
 void
@@ -508,10 +576,8 @@ plat_cdrom_close(void *local)
 {
     win_cdrom_ioctl_t *ioctl = (win_cdrom_ioctl_t *) local;
 
-    if (ioctl->handle != NULL) {
-        CloseHandle(ioctl->handle);
-        ioctl->handle = NULL;
-    }
+    plat_cdrom_close_handle(ioctl);
+    ioctl->handle = NULL;
 }
 
 int
