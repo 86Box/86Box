@@ -574,8 +574,8 @@ uint8_t nv3_svga_in(uint16_t addr, void* priv)
                     ret = (nv3->nvbase.svga.displine >> 8) & 7;
                     break;
                 case NV3_CRTC_REGISTER_I2C:
-                    ret = i2c_gpio_get_sda((nv3->nvbase.i2c) << 3)
-                    | i2c_gpio_get_scl((nv3->nvbase.i2c) << 2);
+                    ret = i2c_gpio_get_sda(nv3->nvbase.i2c) << 3
+                    | i2c_gpio_get_scl(nv3->nvbase.i2c) << 2;
 
                     break;
                 default:
@@ -1003,7 +1003,7 @@ void nv3_close(void* priv)
 }
 
 // See if the bios rom is available.
-void nv3_available()
+int32_t nv3_available()
 {
     return rom_present(NV3_VBIOS_ASUS_V3000_V151)
     || rom_present(NV3_VBIOS_DIAMOND_V330_V162)
