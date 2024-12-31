@@ -61,7 +61,7 @@ nv_register_t pmc_registers[] = {
 uint32_t nv3_pmc_clear_interrupts()
 {
     nv_log("NV3: Clearing IRQs\n");
-    pci_set_irq(nv3->nvbase.pci_slot, PCI_INTA, &nv3->nvbase.pci_irq_state);
+    pci_clear_irq(nv3->nvbase.pci_slot, PCI_INTA, &nv3->nvbase.pci_irq_state);
 }
 
 // Handle hardware interrupts
