@@ -63,19 +63,16 @@ typedef struct track_file_t {
 
 #define BLOCK_NONE   ((uint64_t) -1LL)
 
-typedef struct track_block_t {
+typedef struct track_index_t {
     /* Is the current block in the file? If not, return all 0x00's. */
-    int           type;
+    int           in_file;
     /* The amount of bytes to skip at the beginning of each sector. */
     int           skip;
     /* Starting and ending sector LBA - negative in order to accomodate LBA -150 to -1
        to read the pregap of track 1. */
-    int64_t       start_sector;
-    int64_t       end_sector;
-    /* Starting and ending offset in the file. */
-    uint64_t      start_offs;
-    uint64_t      end_offs;
-} track_block_t;
+    uint64_t      start;
+    uint64_t      length;
+} track_index_t;
 
 typedef struct track_t {
     int           pregap_len;   /* Pre-gap  - not in file. */
@@ -93,7 +90,7 @@ typedef struct track_t {
     uint64_t      start;
     uint64_t      length;
     uint64_t      skip;
-    track_block_t blocks[256];
+    track_index_t indexes[3];
     track_file_t *file;
 } track_t;
 
@@ -108,10 +105,14 @@ extern int  cdi_set_device(cd_img_t *cdi, const char *path);
 extern void cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out);
 extern void cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out);
 extern int  cdi_get_audio_track_pre(cd_img_t *cdi, int track);
-extern int  cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr);
-extern int  cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num, uint32_t *start, uint8_t *attr);
+extern int  cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num,
+                                     TMSF *start, uint8_t *attr);
+extern int  cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num,
+                                         uint32_t *start, uint8_t *attr);
+extern void cdi_get_raw_track_info(cd_img_t *cdi, int *num, uint8_t *buffer);
 extern int  cdi_get_track(cd_img_t *cdi, uint32_t sector);
-extern int  cdi_get_audio_sub(cd_img_t *cdi, uint32_t sector, uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos);
+extern int  cdi_get_audio_sub(cd_img_t *cdi, uint32_t sector, uint8_t *attr, uint8_t *track,
+                              uint8_t *index, TMSF *rel_pos, TMSF *abs_pos);
 extern int  cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector);
 extern int  cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint32_t num);
 extern int  cdi_read_sector_sub(cd_img_t *cdi, uint8_t *buffer, uint32_t sector);

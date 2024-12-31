@@ -38,17 +38,6 @@ typedef struct scsi_cdrom_t {
     uint8_t current_cdb[16];
     uint8_t sense[256];
 
-#ifdef ANCIENT_CODE
-    /* Task file. */
-    uint8_t features;
-    uint8_t phase;
-    uint16_t request_length;
-    uint8_t status;
-    uint8_t error;
-    uint16_t pad;
-    uint32_t pos;
-#endif
-
     uint8_t id;
     uint8_t cur_lun;
     uint8_t early;
@@ -72,9 +61,12 @@ typedef struct scsi_cdrom_t {
 
     double callback;
 
+    uint8_t  (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
+
+    int                sony_vendor;
+
     mode_sense_pages_t ms_pages_saved_sony;
     mode_sense_pages_t ms_drive_status_pages_saved;
-    int                sony_vendor;
 } scsi_cdrom_t;
 #endif
 
