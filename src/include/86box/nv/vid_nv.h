@@ -28,6 +28,8 @@
 
 //TODO: split this all into nv1, nv3, nv4...
 
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/timer.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -68,16 +70,19 @@ void nv_log(const char *fmt, ...);
 
 typedef enum nv_bus_generation_e
 {
+    // NV1 - Prototype version
+    nv_bus_vlb = 0,
+
     // NV1
     // NV3
-    nv_bus_pci = 0,
+    nv_bus_pci = 1,
 
     // NV3
-    nv_bus_agp_1x = 1,
+    nv_bus_agp_1x = 2,
 
     // NV3T
     // NV4
-    nv_bus_agp_2x = 2,
+    nv_bus_agp_2x = 3,
 
 } nv_bus_generation;
 
@@ -103,11 +108,13 @@ typedef struct nv_base_s
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
     uint32_t gpu_revision;                      // GPU Stepping
     double pixel_clock_period;                  // Period in seconds for pixel clock
-    rivatimer_t* pixel_clock_timer;
+    rivatimer_t* pixel_clock_timer;             // Timer for measuring pixel clock
     bool pixel_clock_enabled;                   // Pixel Clock Enabled - stupid crap used to prevent us enabling the timer multiple times
     double memory_clock_period;                 // Period in seconds for pixel clock
-    rivatimer_t* memory_clock_timer;
+    rivatimer_t* memory_clock_timer;            // Timer for measuring memory/gpu clock
     bool memory_clock_enabled;                  // Memory Clock Enabled - stupid crap used to prevent us eanbling the timer multiple times
+    void* i2c;                                  // I2C for monitor EDID
+    void* ddc;                                  
 } nv_base_t;
 
 #define NV_REG_LIST_END                 0xD15EA5E

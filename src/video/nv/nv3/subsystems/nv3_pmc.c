@@ -72,7 +72,7 @@ uint32_t nv3_pmc_handle_interrupts(bool send_now)
     // PGRAPH DMA INTR_EN (there is no DMA engine yet)
     // PRM Real-Mode Compatibility Interrupts
 
-    uint32_t new_intr_value;
+    uint32_t new_intr_value = 0x00;
 
     // set the new interrupt value
     // PAUDIO not used

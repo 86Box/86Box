@@ -568,7 +568,10 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_REGISTER_PIXELMODE_16BPP               0x02
 #define NV3_CRTC_REGISTER_PIXELMODE_32BPP               0x03 
 
-#define NV3_CRTC_REGISTER_RMA                           0x38 // REAL MODE ACCESS!
+#define NV3_CRTC_REGISTER_RL0                           0x34
+#define NV3_CRTC_REGISTER_RL1                           0x35
+#define NV3_CRTC_REGISTER_RMA                           0x38        // REAL MODE ACCESS!
+#define NV3_CRTC_REGISTER_I2C                           0x3F    
 
 // where the fuck is GDC?
 #define NV3_CRTC_BANKED_128K_A0000                      0x00

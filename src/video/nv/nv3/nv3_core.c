@@ -243,7 +243,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             break;
         
         case PCI_REG_COMMAND_H:
-            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_H] | NV3_PCI_COMMAND_H_FAST_BACK2BACK; // always enable fast back2back
+            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_H] & NV3_PCI_COMMAND_H_FAST_BACK2BACK; // always enable fast back2back
             break;
 
         // pci status register
@@ -447,15 +447,6 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
     }
 }
 
-void nv3_close(void* priv)
-{
-    rivatimer_destroy(nv3->nvbase.pixel_clock_timer);
-    rivatimer_destroy(nv3->nvbase.memory_clock_timer);
-    svga_close(&nv3->nvbase.svga);
-    free(nv3);
-    nv3 = NULL;
-}
-
 
 //
 // SVGA functions
@@ -575,6 +566,18 @@ uint8_t nv3_svga_in(uint16_t addr, void* priv)
             // Support the extended NVIDIA CRTC register range
             switch (nv3->nvbase.svga.crtcreg)
             {
+                case NV3_CRTC_REGISTER_RL0:
+                    ret = nv3->nvbase.svga.displine & 0xFF; 
+                    break;
+                    /* Is rl1?*/
+                case NV3_CRTC_REGISTER_RL1:
+                    ret = (nv3->nvbase.svga.displine >> 8) & 7;
+                    break;
+                case NV3_CRTC_REGISTER_I2C:
+                    ret = i2c_gpio_get_sda((nv3->nvbase.i2c) << 3)
+                    | i2c_gpio_get_scl((nv3->nvbase.i2c) << 2);
+
+                    break;
                 default:
                     ret = nv3->nvbase.svga.crtc[nv3->nvbase.svga.crtcreg];
             }
@@ -641,6 +644,8 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
                 val = (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_OVERFLOW] & ~0x10) | (val & 0x10);
 
             // set the register value...
+            uint8_t old_value = nv3->nvbase.svga.crtc[crtcreg];
+
             nv3->nvbase.svga.crtc[crtcreg] = val;
             // ...now act on it
 
@@ -664,6 +669,27 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
                 case NV3_CRTC_REGISTER_RMA:
                     nv3->pbus.rma.mode = val & NV3_CRTC_REGISTER_RMA_MODE_MAX;
                     break;
+                case NV3_CRTC_REGISTER_I2C:
+                    uint8_t scl = !!(val & 0x20);
+                    uint8_t sda = !!(val & 0x10);
+                    // Set an I2C GPIO register
+                    i2c_gpio_set(nv3->nvbase.i2c, scl, sda);
+                    break;
+            }
+
+            /* Recalculate the timings if we actually changed them 
+            Additionally only do it if the value actually changed*/
+            if (old_value != val)
+            {
+                // Thx to Fuel who basically wrote all the SVGA compatibility code already (although I fixed some issues), because VGA is boring 
+                // and in the words of an ex-Rendition/3dfx/NVIDIA engineer, "VGA was basically an undocumented bundle of steaming you-know-what.   
+                // And it was essential that any cores the PC 3D startups acquired had to work with all the undocumented modes and timing tweaks (mode X, etc.)"
+                if (nv3->nvbase.svga.crtcreg < 0xE
+                && nv3->nvbase.svga.crtcreg > 0x10)
+                {
+                    nv3->nvbase.svga.fullchange = changeframecount;
+                    svga_recalctimings(&nv3->nvbase.svga);
+                }
             }
 
             break;
@@ -937,7 +963,9 @@ void* nv3_init(const device_t *info)
     nv3_ptimer_init();              // Initialise programmable interval timer
     nv3_pvideo_init();              // Initialise video overlay engine
 
-    nv_log("NV3: Initialising timers...\n");
+    nv_log("NV3: Initialising I2C...");
+    nv3->nvbase.i2c = i2c_gpio_init("nv3_i2c");
+    nv3->nvbase.ddc = ddc_init(i2c_gpio_get_bus(nv3->nvbase.i2c));
 
     return nv3;
 }
@@ -958,6 +986,38 @@ void* nv3_init_agp(const device_t* info)
     nv3_init(info);
 }
 
+void nv3_close(void* priv)
+{
+    // Shut down I2C and the DDC
+    i2c_gpio_close(nv3->nvbase.i2c);
+    ddc_close(nv3->nvbase.ddc);
+
+    // Destroy the Rivatimers. (It doesn't matter if they are running.)
+    rivatimer_destroy(nv3->nvbase.pixel_clock_timer);
+    rivatimer_destroy(nv3->nvbase.memory_clock_timer);
+    
+    // Shut down SVGA
+    svga_close(&nv3->nvbase.svga);
+    free(nv3);
+    nv3 = NULL;
+}
+
+// See if the bios rom is available.
+void nv3_available()
+{
+    return rom_present(NV3_VBIOS_ASUS_V3000_V151)
+    || rom_present(NV3_VBIOS_DIAMOND_V330_V162)
+    || rom_present(NV3_VBIOS_ERAZOR_V14700)
+    || rom_present(NV3_VBIOS_ERAZOR_V15403)
+    || rom_present(NV3_VBIOS_ERAZOR_V15500)
+    || rom_present(NV3_VBIOS_STB_V128_V182)
+    || rom_present(NV3_VBIOS_STB_V128_V182)
+    || rom_present(NV3T_VBIOS_ASUS_V170)
+    || rom_present(NV3T_VBIOS_DIAMOND_V330_V182B)
+    || rom_present(NV3T_VBIOS_REFERENCE_CEK_V171)
+    || rom_present(NV3T_VBIOS_REFERENCE_CEK_V172);
+}
+
 // NV3 (RIVA 128)
 // PCI
 // 2MB or 4MB VRAM
@@ -971,6 +1031,7 @@ const device_t nv3_device_pci =
     .close = nv3_close,
     .speed_changed = nv3_speed_changed,
     .force_redraw = nv3_force_redraw,
+    .available = nv3_available,
     .config = nv3_config,
 };
 
@@ -987,5 +1048,6 @@ const device_t nv3_device_agp =
     .close = nv3_close,
     .speed_changed = nv3_speed_changed,
     .force_redraw = nv3_force_redraw,
+    .available = nv3_available,
     .config = nv3_config,
 };
