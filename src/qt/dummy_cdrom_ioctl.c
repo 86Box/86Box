@@ -218,18 +218,14 @@ plat_cdrom_get_sector_size(UNUSED(void *local), UNUSED(uint32_t sector))
 }
 
 int
-plat_cdrom_read_sector(void *local, uint8_t *buffer, int raw, uint32_t sector)
+plat_cdrom_read_sector(void *local, uint8_t *buffer, uint32_t sector)
 {
     dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
 
     plat_cdrom_open(ioctl);
 
-    if (raw)
-        /* Raw */
-        dummy_cdrom_ioctl_log("Raw\n");
-    else
-        /* Cooked */
-        dummy_cdrom_ioctl_log("Cooked\n");
+    /* Raw */
+    dummy_cdrom_ioctl_log("Raw\n");
 
     plat_cdrom_close(ioctl);
 

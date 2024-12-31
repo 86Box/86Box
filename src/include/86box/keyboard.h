@@ -194,8 +194,10 @@ typedef struct scancode {
 extern "C" {
 #endif
 
-extern uint8_t keyboard_mode;
-extern int     keyboard_scan;
+extern uint8_t  keyboard_mode;
+extern int      keyboard_scan;
+
+extern uint16_t scancode_map[768];
 
 extern void (*keyboard_send)(uint16_t val);
 extern void kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
@@ -288,6 +290,9 @@ extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
 extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);
 extern void         kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa);
 extern atkbc_dev_t *kbc_at_dev_init(uint8_t inst);
+/* This is so we can disambiguate scan codes that would otherwise conflict and get
+   passed on incorrectly. */
+extern uint16_t     convert_scan_code(uint16_t scan_code);
 
 #ifdef __cplusplus
 }

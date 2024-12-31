@@ -13,9 +13,11 @@
  * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           Miran Grca, <mgrca8@gmail.com>
  *           TheCollector1995, <mariogplayer@gmail.com>
+ *           Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2016-2020 Miran Grca.
+ *           Copyright 2024      Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -43,18 +45,35 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
-#define PNP_ROM_SB_16_PNP      "roms/sound/creative/CTL0024A.BIN"
-#define PNP_ROM_SB_VIBRA16XV   "roms/sound/creative/CT4170 PnP.BIN"
-#define PNP_ROM_SB_VIBRA16C    "roms/sound/creative/CT4180 PnP.BIN"
-#define PNP_ROM_SB_32_PNP      "roms/sound/creative/CT3600 PnP.BIN"
-#define PNP_ROM_SB_AWE32_PNP   "roms/sound/creative/CT3980 PnP.BIN"
-#define PNP_ROM_SB_AWE64_VALUE "roms/sound/creative/CT4520 PnP.BIN"
-#define PNP_ROM_SB_AWE64       "roms/sound/creative/CTL009DA.BIN"
-#define PNP_ROM_SB_AWE64_GOLD  "roms/sound/creative/CT4540 PnP.BIN"
+#define SB_16_PNP_NOIDE 0
+#define SB_16_PNP_IDE   1
+
+#define SB_VIBRA16XV 0
+#define SB_VIBRA16C  1
+#define SB_VIBRA16CL  2
+
+#define SB_32_PNP      0
+#define SB_AWE32_PNP   1
+#define SB_AWE64_VALUE 2
+#define SB_AWE64_NOIDE 3
+#define SB_AWE64_IDE   4
+#define SB_AWE64_GOLD  5
+
+#define PNP_ROM_SB_16_PNP_NOIDE "roms/sound/creative/CT2941 PnP.BIN"
+#define PNP_ROM_SB_16_PNP_IDE   "roms/sound/creative/CTL0024A.BIN" /* CT2940 */
+#define PNP_ROM_SB_VIBRA16C     "roms/sound/creative/CT4180 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16CL    "roms/sound/creative/CT4100 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
+#define PNP_ROM_SB_32_PNP       "roms/sound/creative/CT3600 PnP.BIN"
+#define PNP_ROM_SB_AWE32_PNP    "roms/sound/creative/CT3980 PnP.BIN"
+#define PNP_ROM_SB_AWE64_VALUE  "roms/sound/creative/CT4520 PnP.BIN"
+#define PNP_ROM_SB_AWE64_NOIDE  "roms/sound/creative/CT4380 PnP noIDE.BIN"
+#define PNP_ROM_SB_AWE64_IDE    "roms/sound/creative/CTL009DA.BIN" /* CT4381? */
+#define PNP_ROM_SB_AWE64_GOLD   "roms/sound/creative/CT4540 PnP.BIN"
 /* TODO: Find real ESS PnP ROM dumps. */
-#define PNP_ROM_ESS0100        "roms/sound/ess/ESS0100.BIN"
-#define PNP_ROM_ESS0102        "roms/sound/ess/ESS0102.BIN"
-#define PNP_ROM_ESS0968        "roms/sound/ess/ESS0968.BIN"
+#define PNP_ROM_ESS0100         "roms/sound/ess/ESS0100.BIN"
+#define PNP_ROM_ESS0102         "roms/sound/ess/ESS0102.BIN"
+#define PNP_ROM_ESS0968         "roms/sound/ess/ESS0968.BIN"
 
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
    Note that for positive dB values, this is not amplitude, it is amplitude - 1. */
@@ -2167,7 +2186,8 @@ sb_16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void 
             break;
 
         case 1: /* IDE */
-            ide_pnp_config_changed(0, config, (void *) 3);
+            if (sb->has_ide)
+                ide_pnp_config_changed(0, config, (void *) 3);
             break;
 
         case 2: /* Reserved (16) / WaveTable (32+) */
@@ -2219,7 +2239,7 @@ sb_awe32_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
 }
 
 static void
-sb_awe64_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+sb_awe64_pnp_ide_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
@@ -2240,7 +2260,7 @@ sb_awe64_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
 }
 
 static void
-sb_awe64_gold_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+sb_awe64_pnp_noide_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
@@ -3276,9 +3296,15 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
 }
 
 static int
-sb_16_pnp_available(void)
+sb_16_pnp_noide_available(void)
 {
-    return rom_present(PNP_ROM_SB_16_PNP);
+    return rom_present(PNP_ROM_SB_16_PNP_NOIDE);
+}
+
+static int
+sb_16_pnp_ide_available(void)
+{
+    return rom_present(PNP_ROM_SB_16_PNP_IDE);
 }
 
 static void *
@@ -3314,19 +3340,40 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    device_add(&ide_qua_pnp_device);
-    other_ide_present++;
+    // Does it have IDE?
+    if (info->local != SB_16_PNP_NOIDE) {
+        device_add(&ide_qua_pnp_device);
+        other_ide_present++;
 
-    uint8_t *pnp_rom = NULL;
-
-    FILE *fp = rom_fopen(PNP_ROM_SB_16_PNP, "rb");
-    if (fp) {
-        if (fread(sb->pnp_rom, 1, 390, fp) == 390)
-            pnp_rom = sb->pnp_rom;
-        fclose(fp);
+        sb->has_ide = 1;
     }
 
-    isapnp_add_card(pnp_rom, 390, sb_16_pnp_config_changed,
+    const char *pnp_rom_file = NULL;
+    uint16_t    pnp_rom_len = 512;
+    switch (info->local) {
+        case SB_16_PNP_NOIDE:
+            pnp_rom_file = PNP_ROM_SB_16_PNP_NOIDE;
+            break;
+
+        case SB_16_PNP_IDE:
+            pnp_rom_file = PNP_ROM_SB_16_PNP_IDE;
+            break;
+
+        default:
+            break;
+    }
+
+    uint8_t *pnp_rom = NULL;
+    if (pnp_rom_file) {
+        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        if (fp) {
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
+                pnp_rom = sb->pnp_rom;
+            fclose(fp);
+        }
+    }
+
+    isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
                     NULL, NULL, NULL, sb);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
@@ -3336,7 +3383,9 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    ide_remove_handlers(3);
+
+    if (info->local != SB_16_PNP_NOIDE)
+        ide_remove_handlers(3);
 
     sb->gameport_addr = 0;
     gameport_remap(sb->gameport, 0);
@@ -3345,16 +3394,23 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 }
 
 static int
+sb_vibra16c_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16C);
+}
+
+static int
+sb_vibra16cl_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16CL);
+}
+
+static int
 sb_vibra16xv_available(void)
 {
     return rom_present(PNP_ROM_SB_VIBRA16XV);
 }
 
-static int
-sb_vibra16c_available(void)
-{
-    return rom_present(PNP_ROM_SB_VIBRA16C);
-}
 
 static void *
 sb_vibra16_pnp_init(UNUSED(const device_t *info))
@@ -3368,9 +3424,9 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, (info->local == 0) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
     /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
-    sb_dsp_setdma16_supported(&sb->dsp, info->local != 0);
+    sb_dsp_setdma16_supported(&sb->dsp, info->local != SB_VIBRA16XV);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -3389,16 +3445,32 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport = gameport_add(&gameport_pnp_device);
+    switch (info->local) {
+        case SB_VIBRA16C: /* CTL7001 */
+        case SB_VIBRA16CL: /* CTL7002 */
+            sb->gameport = gameport_add(&gameport_pnp_device);
+            break;
+
+        case SB_VIBRA16XV: /* CTL7005 */
+            sb->gameport = gameport_add(&gameport_pnp_1io_device);
+            break;
+
+        default:
+            break;
+    }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case 0:
-            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
+        case SB_VIBRA16C:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16C;
             break;
 
-        case 1:
-            pnp_rom_file = PNP_ROM_SB_VIBRA16C;
+        case SB_VIBRA16CL:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16CL;
+            break;
+
+        case SB_VIBRA16XV:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
             break;
 
         default:
@@ -3407,18 +3479,20 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
     }
 
     switch (info->local) {
-        case 0:
-        case 1:
-            isapnp_add_card(pnp_rom, 512, sb_vibra16_pnp_config_changed,
+        case SB_VIBRA16C:
+        case SB_VIBRA16CL:
+        case SB_VIBRA16XV:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
 
@@ -3495,9 +3569,15 @@ sb_awe64_value_available(void)
 }
 
 static int
-sb_awe64_available(void)
+sb_awe64_noide_available(void)
 {
-    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64);
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_NOIDE);
+}
+
+static int
+sb_awe64_ide_available(void)
+{
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_IDE);
 }
 
 static int
@@ -3592,7 +3672,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ?
+    sb_dsp_init(&sb->dsp, (info->local >= SB_AWE64_VALUE) ?
                 SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -3619,30 +3699,37 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    if ((info->local != 2) && (info->local != 4)) {
+    // Does it have IDE?
+    if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD)) {
         device_add(&ide_qua_pnp_device);
         other_ide_present++;
+
+        sb->has_ide = 1;
     }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case 0:
+        case SB_32_PNP:
             pnp_rom_file = PNP_ROM_SB_32_PNP;
             break;
 
-        case 1:
+        case SB_AWE32_PNP:
             pnp_rom_file = PNP_ROM_SB_AWE32_PNP;
             break;
 
-        case 2:
+        case SB_AWE64_VALUE:
             pnp_rom_file = PNP_ROM_SB_AWE64_VALUE;
             break;
 
-        case 3:
-            pnp_rom_file = PNP_ROM_SB_AWE64;
+        case SB_AWE64_NOIDE:
+            pnp_rom_file = PNP_ROM_SB_AWE64_NOIDE;
             break;
 
-        case 4:
+        case SB_AWE64_IDE:
+            pnp_rom_file = PNP_ROM_SB_AWE64_IDE;
+            break;
+
+        case SB_AWE64_GOLD:
             pnp_rom_file = PNP_ROM_SB_AWE64_GOLD;
             break;
 
@@ -3652,30 +3739,36 @@ sb_awe32_pnp_init(const device_t *info)
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
     }
 
     switch (info->local) {
-        case 0:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_32_PNP:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 1:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE32_PNP:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 3:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE64_IDE:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_ide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 2:
-        case 4:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE64_VALUE:
+        case SB_AWE64_NOIDE:
+        case SB_AWE64_GOLD:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_noide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         default:
@@ -3688,7 +3781,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    if ((info->local != 2) && (info->local != 4))
+
+    if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD))
         ide_remove_handlers(3);
 
     emu8k_change_addr(&sb->emu8k, 0);
@@ -3789,6 +3883,8 @@ ess_x688_init(UNUSED(const device_t *info))
         ide_set_side(4, ide_side);
         ide_set_irq(4, ide_irq);
         other_ide_present++;
+
+        ess->has_ide = 1;
     }
 
     return ess;
@@ -3816,7 +3912,6 @@ static void *
 ess_x688_pnp_init(UNUSED(const device_t *info))
 {
     sb_t    *ess  = calloc(sizeof(sb_t), 1);
-    int      len  = 512;
 
     ess->pnp = 1 + (int) info->local;
 
@@ -3848,21 +3943,24 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     device_add(&ide_qua_pnp_device);
     other_ide_present++;
 
+    ess->has_ide = 1;
+
     const char *pnp_rom_file = NULL;
+    uint16_t    pnp_rom_len  = 512;
     switch (info->local) {
         case 0:
             pnp_rom_file = PNP_ROM_ESS0100;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 1:
             pnp_rom_file = PNP_ROM_ESS0102;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 2:
             pnp_rom_file = PNP_ROM_ESS0968;
-            len          = 135;
+            pnp_rom_len  = 135;
             break;
 
         default:
@@ -3873,13 +3971,13 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     if (pnp_rom_file) {
         FILE *fp = rom_fopen(pnp_rom_file, "rb");
         if (fp) {
-            if (fread(ess->pnp_rom, 1, len, fp) == len)
+            if (fread(ess->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = ess->pnp_rom;
             fclose(fp);
         }
     }
 
-    isapnp_add_card(pnp_rom, len, ess_x688_pnp_config_changed,
+    isapnp_add_card(pnp_rom, sizeof(ess->pnp_rom), ess_x688_pnp_config_changed,
                     NULL, NULL, NULL, ess);
 
     sb_dsp_setaddr(&ess->dsp, 0);
@@ -5642,6 +5740,62 @@ const device_t sb_16_device = {
     .config        = sb_16_config
 };
 
+const device_t sb_vibra16c_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16C (On-Board)",
+    .internal_name = "sb_vibra16c_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16C,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16c_device = {
+    .name          = "Sound Blaster ViBRA 16C",
+    .internal_name = "sb_vibra16c",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16C,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16CL (On-Board)",
+    .internal_name = "sb_vibra16cl_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_device = {
+    .name          = "Sound Blaster ViBRA 16CL",
+    .internal_name = "sb_vibra16cl",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
 const device_t sb_vibra16s_onboard_device = {
     .name          = "Sound Blaster ViBRA 16S (On-Board)",
     .internal_name = "sb_vibra16s_onboard",
@@ -5670,11 +5824,11 @@ const device_t sb_vibra16s_device = {
     .config        = sb_16_config
 };
 
-const device_t sb_vibra16xv_device = {
-    .name          = "Sound Blaster ViBRA 16XV",
-    .internal_name = "sb_vibra16xv",
+const device_t sb_vibra16xv_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16XV (On-Board)",
+    .internal_name = "sb_vibra16xv_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = SB_VIBRA16XV,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -5684,29 +5838,15 @@ const device_t sb_vibra16xv_device = {
     .config        = sb_16_pnp_config
 };
 
-const device_t sb_vibra16c_onboard_device = {
-    .name          = "Sound Blaster ViBRA 16C (On-Board)",
-    .internal_name = "sb_vibra16c_onboard",
+const device_t sb_vibra16xv_device = {
+    .name          = "Sound Blaster ViBRA 16XV",
+    .internal_name = "sb_vibra16xv",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .local         = SB_VIBRA16XV,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    .available     = sb_vibra16c_available,
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
-};
-
-const device_t sb_vibra16c_device = {
-    .name          = "Sound Blaster ViBRA 16C",
-    .internal_name = "sb_vibra16c",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
-    .init          = sb_vibra16_pnp_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    .available     = sb_vibra16c_available,
+    .available     = sb_vibra16xv_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5730,11 +5870,25 @@ const device_t sb_16_pnp_device = {
     .name          = "Sound Blaster 16 PnP",
     .internal_name = "sb16_pnp",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = SB_16_PNP_NOIDE,
     .init          = sb_16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    .available     = sb_16_pnp_available,
+    { .available = sb_16_pnp_noide_available },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_16_pnp_ide_device = {
+    .name          = "Sound Blaster 16 PnP (IDE)",
+    .internal_name = "sb16_pnp_ide",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_16_PNP_IDE,
+    .init          = sb_16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_16_pnp_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5772,7 +5926,7 @@ const device_t sb_32_pnp_device = {
     .name          = "Sound Blaster 32 PnP",
     .internal_name = "sb32_pnp",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = SB_32_PNP,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
@@ -5800,7 +5954,7 @@ const device_t sb_awe32_pnp_device = {
     .name          = "Sound Blaster AWE32 PnP",
     .internal_name = "sbawe32_pnp",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .local         = SB_AWE32_PNP,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
@@ -5814,7 +5968,7 @@ const device_t sb_awe64_value_device = {
     .name          = "Sound Blaster AWE64 Value",
     .internal_name = "sbawe64_value",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 2,
+    .local         = SB_AWE64_VALUE,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
@@ -5828,11 +5982,25 @@ const device_t sb_awe64_device = {
     .name          = "Sound Blaster AWE64",
     .internal_name = "sbawe64",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 3,
+    .local         = SB_AWE64_NOIDE,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    .available     = sb_awe64_available,
+    { .available = sb_awe64_noide_available },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_awe64_config
+};
+
+const device_t sb_awe64_ide_device = {
+    .name          = "Sound Blaster AWE64 (IDE)",
+    .internal_name = "sbawe64_ide",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_AWE64_IDE,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
+    .available     = sb_awe64_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_config
@@ -5842,7 +6010,7 @@ const device_t sb_awe64_gold_device = {
     .name          = "Sound Blaster AWE64 Gold",
     .internal_name = "sbawe64_gold",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 4,
+    .local         = SB_AWE64_GOLD,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,

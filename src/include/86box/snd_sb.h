@@ -182,6 +182,7 @@ typedef struct sb_t {
     void   *gameport;
 
     int pnp;
+    int has_ide;
 
     uint8_t pos_regs[8];
     uint8_t pnp_rom[512];
