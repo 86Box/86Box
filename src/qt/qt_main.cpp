@@ -151,6 +151,9 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     BOOL              bCtrlDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
     uint16_t          scancode  = lpKdhs->scanCode & 0x00ff;
 
+    if ((nCode < 0) || (nCode != HC_ACTION) || (!mouse_capture && !video_fullscreen))
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+
     if (lpKdhs->flags & LLKHF_EXTENDED)
         scancode |= 0x100;
 
