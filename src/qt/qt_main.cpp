@@ -144,15 +144,10 @@ keyboard_getkeymap()
 }
 
 static LRESULT CALLBACK
-emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
+input_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     LPKBDLLHOOKSTRUCT lpKdhs    = (LPKBDLLHOOKSTRUCT) lParam;
-    /* Checks if CTRL was pressed. */
-    BOOL              bCtrlDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
     uint16_t          scancode  = lpKdhs->scanCode & 0x00ff;
-
-    if ((nCode < 0) || (nCode != HC_ACTION) || (!mouse_capture && !video_fullscreen))
-        return CallNextHookEx(NULL, nCode, wParam, lParam);
 
     if (lpKdhs->flags & LLKHF_EXTENDED)
         scancode |= 0x100;
@@ -184,7 +179,19 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
     main_window->checkFullscreenHotkey();
 
-    if ((lpKdhs->scanCode == 0x01) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
+}
+
+static LRESULT CALLBACK
+emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    LPKBDLLHOOKSTRUCT lpKdhs    = (LPKBDLLHOOKSTRUCT) lParam;
+    /* Checks if CTRL was pressed. */
+    BOOL              bCtrlDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
+
+    if ((nCode < 0) || (nCode != HC_ACTION) || (!mouse_capture && !video_fullscreen))
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+    else if ((lpKdhs->scanCode == 0x01) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
         !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
     else if ((lpKdhs->scanCode == 0x01) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
@@ -207,6 +214,11 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     else
         return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
+#endif
+
+#ifdef Q_OS_WINDOWS
+static HHOOK llhook  = NULL;
+static HHOOK llihook = NULL;
 #endif
 
 void
@@ -285,10 +297,6 @@ main_thread_fn()
 }
 
 static std::thread *main_thread;
-
-#ifdef Q_OS_WINDOWS
-static HHOOK llhook = NULL;
-#endif
 
 int
 main(int argc, char *argv[])
@@ -473,18 +481,12 @@ main(int argc, char *argv[])
         });
     }
 
-#ifdef Q_OS_WINDOWS
-    if (!raw_input) {
-        llhook = SetWindowsHookEx(WH_KEYBOARD_LL, emu_LowLevelKeyboardProc, NULL, 0);
-        atexit([] () -> void { if (llhook) UnhookWindowsHookEx(llhook); });
-    }
-#endif
-
     /* Setup raw input */
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter) {
         app.installNativeEventFilter(rawInputFilter.get());
-        main_window->setSendKeyboardInput(false);
+        if (raw_input)
+            main_window->setSendKeyboardInput(false);
     }
 #endif
 
@@ -542,6 +544,19 @@ main(int argc, char *argv[])
 #endif
             plat_pause(0);
     });
+
+#ifdef Q_OS_WINDOWS
+    if (!raw_input) {
+        llhook = SetWindowsHookEx(WH_KEYBOARD_LL, emu_LowLevelKeyboardProc, NULL, 0);
+        llihook = SetWindowsHookEx(WH_KEYBOARD_LL, input_LowLevelKeyboardProc, NULL, GetCurrentThreadId());
+        atexit([] () -> void {
+            if (llihook)
+                UnhookWindowsHookEx(llihook);
+            if (llhook)
+                UnhookWindowsHookEx(llhook);
+        });
+    }
+#endif
 
     const auto ret       = app.exec();
     cpu_thread_run = 0;
