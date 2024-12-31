@@ -119,7 +119,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
 
     nv_register_t* reg = nv_get_register(address, pfifo_registers, sizeof(pfifo_registers)/sizeof(pfifo_registers[0]));
 
-    nv_log("NV3: pfifo Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("NV3: PFIFO Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)

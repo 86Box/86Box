@@ -50,7 +50,7 @@ uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
 
     uint8_t val = nv3->nvbase.svga.vram[addr];
 
-    nv_log("NV3: Read byte from ramin addr=0x%08x (raw address=0x%08x)", addr, raw_addr);
+    nv_log("NV3: Read byte from RAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
 
     return val;
 }
@@ -70,7 +70,7 @@ uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
 
     uint16_t val = vram_16bit[addr]; // what
 
-    nv_log("NV3: Read word from ramin addr=0x%08x (raw address=0x%08x)", addr, raw_addr);
+    nv_log("NV3: Read word from RAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
 
     return val;
 }
@@ -90,7 +90,7 @@ uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
 
     uint32_t val = vram_32bit[addr];
 
-    nv_log("NV3: Read dword from ramin addr=0x%08x (raw address=0x%08x)", addr, raw_addr);
+    nv_log("NV3: Read dword from RAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
 
     return val;
 }
@@ -109,7 +109,7 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
 
     nv3->nvbase.svga.vram[addr] = val;
 
-    nv_log("NV3: Write byte to ramin addr=0x%08x val=0x%08x (raw address=0x%08x)", addr, val, raw_addr);
+    nv_log("NV3: Write byte to RAMIN addr=0x%08x val=0x%02x (raw address=0x%08x)\n", addr, val, raw_addr);
 }
 
 // Write 16-bit ramin
@@ -127,7 +127,7 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
 
     vram_16bit[addr] = val;
 
-    nv_log("NV3: Write word to ramin addr=0x%08x (raw address=0x%08x)", addr, raw_addr);
+    nv_log("NV3: Write word to RAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, raw_addr);
 }
 
 // Write 32-bit ramin
@@ -145,5 +145,5 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
 
     vram_32bit[addr] = val;
 
-    nv_log("NV3: Write dword to ramin addr=0x%08x (raw address=0x%08x)", addr, raw_addr);
+    nv_log("NV3: Write dword to RAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
 }
