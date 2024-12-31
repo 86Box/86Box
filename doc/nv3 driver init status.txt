@@ -106,3 +106,7 @@ NvFindAdapter -> RmPostNvDevice						Success 17:32 27/11/2024
 NvFindAdapter -> NVGetNVInfo						Success 17:32 27/11/2024
 NvFindAdapter -> NVMapFrameBuffer					Success 17:32 27/11/2024
 
+00:00 30/12/2024: stateGr -> i2c_Write 
+22:31 31/12/2024: fifoService
+
+fix ptimer issue
