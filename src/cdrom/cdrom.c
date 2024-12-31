@@ -1200,7 +1200,9 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
         }
 
         if (s != -1)  for (int i = s; i < j; i++) {
+#ifdef ENABLE_CDROM_LOG
             uint8_t *c = &(b[len]);
+#endif
 
             if (!sony)
                 b[len++] = 0;                /* Reserved */
@@ -1235,8 +1237,10 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
                 b[len++] = temp;
             }
 
+#ifdef ENABLE_CDROM_LOG
             cdrom_log("Track %02X: %02X %02X %02X %02X %02X %02X %02X %02X\n",
                       i, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
+#endif
         }
     } else
         b[2] = b[3] = 0;

@@ -1457,6 +1457,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
         prev->indexes[2].length = 0;
     }
 
+#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
     for (int i = 0; i < cdi->tracks_num; i++) {
         track_t *t = &(cdi->tracks[i]);
         for (int j = 0; j < 3; j++) {
@@ -1472,6 +1473,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
                                      (int) ((ti->start + ti->length - 1) % 75));
         }
     }
+#endif
 
     return 1;
 }

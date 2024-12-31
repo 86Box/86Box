@@ -293,13 +293,16 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
     dev->cdrom_capacity = image_get_capacity(dev);
-    cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
+    cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity,
+                    ((uint64_t) dev->cdrom_capacity) << 11ULL);
+#ifdef ENABLE_CDROM_IMAGE_LOG
     int cm, cs, cf;
     cf = dev->cdrom_capacity % 75;
     cs = (dev->cdrom_capacity / 75) % 60;
     cm = (dev->cdrom_capacity / 75) / 60;
     cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes) (time: %02i:%02i:%02i)\n",
                     dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity - 150ULL) * 2352ULL, cm, cs, cf);
+#endif
 
     /* Attach this handler to the drive. */
     dev->ops = &cdrom_image_ops;
