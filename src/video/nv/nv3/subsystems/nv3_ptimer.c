@@ -69,12 +69,19 @@ void nv3_ptimer_tick()
     // to the state. 
     double current_time = ((double)nv3->ptimer.clock_numerator * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)nv3->ptimer.clock_denominator; // *10.0?
 
+    // Logging is suppressed when reading this register because it is read many times
+    // So we only log when we update.
+
     // truncate it 
     nv3->ptimer.time += (uint64_t)current_time;
+
+
+    nv_log("PTIMER time ticked (The value is now 0x%08x)\n", nv3->ptimer.time);
 
     // Check if the alarm has actually triggered...
     if (nv3->ptimer.time >= nv3->ptimer.alarm)
     {
+        nv_log("PTIMER alarm interrupt fired because we reached TIME value 0x%08x\n", nv3->ptimer.alarm);
         nv3_ptimer_interrupt(NV3_PTIMER_INTR_ALARM);
     }
 }
@@ -85,7 +92,13 @@ uint32_t nv3_ptimer_read(uint32_t address)
 
     nv_register_t* reg = nv_get_register(address, ptimer_registers, sizeof(ptimer_registers)/sizeof(ptimer_registers[0]));
 
-    nv_log("NV3: PTIMER Read from 0x%08x", address);
+    // Only log these when tehy actually tick
+    if (address != NV3_PTIMER_TIME_0_NSEC
+    && address != NV3_PTIMER_TIME_1_NSEC)
+    {
+        nv_log("NV3: PTIMER Read from 0x%08x", address);
+    }
+    
 
     uint32_t ret = 0x00;
 
@@ -129,11 +142,15 @@ uint32_t nv3_ptimer_read(uint32_t address)
             }
 
         }
-
-        if (reg->friendly_name)
-            nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
-        else   
-            nv_log("\n");
+        //TIME0 and TIME1 produce too much log spam that slows everything down 
+        if (reg->address != NV3_PTIMER_TIME_0_NSEC
+        && reg->address != NV3_PTIMER_TIME_1_NSEC)
+        {
+            if (reg->friendly_name)
+                nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
+            else   
+                nv_log("\n");
+        }
     }
     else
     {
