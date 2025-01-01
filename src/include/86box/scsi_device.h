@@ -129,6 +129,7 @@
 #define GPCMD_CADDY_EJECT_TOSHIBA                     0xc4 /* Toshiba Vendor Unique command */
 #define GPCMD_PAUSE_SONY                              0xc5 /* Sony Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_MATSUSHITA                   0xc5 /* Matsushita Vendor Unique command */
+#define GPCMD_UNKNOWN_SCSI2_NEC                       0xc5 /* NEC Vendor Unique Command */
 #define GPCMD_STOP_CHINON                             0xc6 /* Chinon Vendor Unique command */
 #define GPCMD_PLAY_TRACK_SONY                         0xc6 /* Sony Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA    0xc6 /* Toshiba Vendor Unique command */
