@@ -89,6 +89,7 @@ extern const device_t ide_w83769f_vlb_device;                   /* Winbond W8376
 extern const device_t ide_w83769f_vlb_34_device;                /* Winbond W83769F VLB (Port 34h) */
 extern const device_t ide_w83769f_pci_device;                   /* Winbond W83769F PCI */
 extern const device_t ide_w83769f_pci_34_device;                /* Winbond W83769F PCI (Port 34h) */
+extern const device_t ide_w83769f_pci_single_channel_device;    /* Winbond W83769F PCI (Only primary channel) */
 
 extern const device_t ide_ter_device;
 extern const device_t ide_ter_pnp_device;
