@@ -631,6 +631,7 @@ extern int machine_at_valuepointp60_init(const machine_t *);
 extern int machine_at_revenge_init(const machine_t *);
 extern int machine_at_586is_init(const machine_t *);
 extern int machine_at_pb520r_init(const machine_t *);
+extern int machine_at_m5pi_init(const machine_t *);
 
 extern int machine_at_excalibur_init(const machine_t *);
 
