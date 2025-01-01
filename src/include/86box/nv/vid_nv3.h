@@ -6,7 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          JENSEN HUANG APPROVED !!!!
+ *          vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
+ *          Last updated     1 January 2025 (STILL WORKING ON IT)
  *
  *
  *
@@ -15,8 +16,7 @@
  *          Copyright 2024-2025 Connor Hyde
  */
 
-// vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
-// Last updated     30 December 2024
+
 
 // The GPU base structure
 extern const device_config_t nv3_config[];

@@ -39,6 +39,15 @@
 
 extern const char* nv3_class_names[];
 
+/* Object Class 0x01 (real hardware)
+    Beta factor
+*/
+typedef struct nv_object_class_001
+{
+    uint8_t reserved[0xFF];         // Required for NV_CLASS Core Functionality
+    // Put the rest of it here
+} nv3_beta_factor_t;
+
 /* 
 Object Class 0x07 (real hardware)
              0x1E (drivers)

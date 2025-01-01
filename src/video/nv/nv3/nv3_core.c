@@ -679,7 +679,7 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
                 val = (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_OVERFLOW] & ~0x10) | (val & 0x10);
 
             // set the register value...
-            uint8_t old_value = nv3->nvbase.svga.crtc[crtcreg];
+            old_value = nv3->nvbase.svga.crtc[crtcreg];
 
             nv3->nvbase.svga.crtc[crtcreg] = val;
             // ...now act on it
