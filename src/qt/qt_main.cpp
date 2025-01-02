@@ -154,7 +154,8 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
     if (show_second_monitors)  for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
         const auto &secondaryRenderer = main_window->renderers[monitor_index];
-        is_over_window = is_over_window && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId()));
+        is_over_window = is_over_window && (secondaryRenderer != nullptr) &&
+                         (GetForegroundWindow() == ((HWND) secondaryRenderer->winId()));
     }
 
     if ((nCode < 0) || (nCode != HC_ACTION)/* || (!mouse_capture && !video_fullscreen)*/ || !is_over_window)
