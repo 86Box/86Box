@@ -493,14 +493,26 @@ device_get_name(const device_t *dev, int bus, char *name)
             sbus = (dev->flags & DEVICE_AT) ? "ISA16" : "ISA";
         else if (dev->flags & DEVICE_CBUS)
             sbus = "C-BUS";
+        else if (dev->flags & DEVICE_PCMCIA)
+            sbus = "PCMCIA";
         else if (dev->flags & DEVICE_MCA)
             sbus = "MCA";
+        else if (dev->flags & DEVICE_HIL)
+            sbus = "HP HIL";
         else if (dev->flags & DEVICE_EISA)
             sbus = "EISA";
+        else if (dev->flags & DEVICE_AT32)
+            sbus = "AT/32";
+        else if (dev->flags & DEVICE_OLB)
+            sbus = "OLB";
         else if (dev->flags & DEVICE_VLB)
             sbus = "VLB";
         else if (dev->flags & DEVICE_PCI)
             sbus = "PCI";
+        else if (dev->flags & DEVICE_CARDBUS)
+            sbus = "CARDBUS";
+        else if (dev->flags & DEVICE_USB)
+            sbus = "USB";
         else if (dev->flags & DEVICE_AGP)
             sbus = "AGP";
         else if (dev->flags & DEVICE_AC97)
@@ -767,13 +779,16 @@ device_is_valid(const device_t *device, int m)
     if ((device->flags & DEVICE_ATKBC) && !machine_has_bus(m, MACHINE_BUS_ISA16) && !machine_has_bus(m, MACHINE_BUS_DM_KBC))
         return 0;
 
+    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2_PORTS))
+        return 0;
+
     if ((device->flags & DEVICE_ISA) && !machine_has_bus(m, MACHINE_BUS_ISA))
         return 0;
 
     if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS))
         return 0;
 
-    if ((device->flags & DEVICE_PCMCIA) && !machine_has_bus(m, MACHINE_BUS_PCMCIA))
+    if ((device->flags & DEVICE_PCMCIA) && !machine_has_bus(m, MACHINE_BUS_PCMCIA) && !machine_has_bus(m, MACHINE_BUS_ISA))
         return 0;
 
     if ((device->flags & DEVICE_MCA) && !machine_has_bus(m, MACHINE_BUS_MCA))
@@ -785,6 +800,9 @@ device_is_valid(const device_t *device, int m)
     if ((device->flags & DEVICE_EISA) && !machine_has_bus(m, MACHINE_BUS_EISA))
         return 0;
 
+    if ((device->flags & DEVICE_AT32) && !machine_has_bus(m, MACHINE_BUS_AT32))
+        return 0;
+
     if ((device->flags & DEVICE_OLB) && !machine_has_bus(m, MACHINE_BUS_OLB))
         return 0;
 
@@ -794,16 +812,13 @@ device_is_valid(const device_t *device, int m)
     if ((device->flags & DEVICE_PCI) && !machine_has_bus(m, MACHINE_BUS_PCI))
         return 0;
 
-    if ((device->flags & DEVICE_CARDBUS) && !machine_has_bus(m, MACHINE_BUS_CARDBUS))
+    if ((device->flags & DEVICE_CARDBUS) && !machine_has_bus(m, MACHINE_BUS_CARDBUS) && !machine_has_bus(m, MACHINE_BUS_PCI))
         return 0;
 
     if ((device->flags & DEVICE_USB) && !machine_has_bus(m, MACHINE_BUS_USB))
         return 0;
 
     if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP))
-        return 0;
-
-    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2_PORTS))
         return 0;
 
     if ((device->flags & DEVICE_AC97) && !machine_has_bus(m, MACHINE_BUS_AC97))
