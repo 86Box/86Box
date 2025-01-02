@@ -11,9 +11,11 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 
 #ifndef SOUND_SND_SB_H
@@ -195,6 +197,12 @@ typedef struct sb_t {
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
 } sb_t;
+
+typedef struct goldfinch_t {
+    emu8k_t emu8k;
+
+    uint8_t pnp_rom[512];
+} goldfinch_t;
 
 extern void    sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ct1345_mixer_read(uint16_t addr, void *priv);
