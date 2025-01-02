@@ -86,7 +86,8 @@ nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_TRAPPED_ADDRESS, "PGRAPH Trapped Address", NULL, NULL },
     { NV3_PGRAPH_TRAPPED_DATA, "PGRAPH Trapped Data", NULL, NULL },
     { NV3_PGRAPH_TRAPPED_INSTANCE, "PGRAPH Trapped Object Instance", NULL, NULL },
-
+    { NV3_PGRAPH_DMA_INTR_0, "PGRAPH DMA Interrupt Status (unimplemented)", NULL, NULL },
+    { NV3_PGRAPH_DMA_INTR_EN_0, "PGRAPH DMA Interrupt Enable (unimplemented)", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
