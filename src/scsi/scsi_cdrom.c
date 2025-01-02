@@ -2114,7 +2114,7 @@ scsi_cdrom_command_matsushita(void *sc, uint8_t *cdb, int32_t *BufLen)
             dev->current_cdb[0] = cdb[0];
             /* Keep cmd_stat at 0x00, therefore, it's going to process it as GPCMD_PLAY_AUDIO_MSF. */
             break;
-  
+
         case GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA:
             cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_INDEX;
             dev->current_cdb[0] = cdb[0];
@@ -2161,6 +2161,12 @@ scsi_cdrom_command_nec(void *sc, uint8_t *cdb, int32_t *BufLen)
 
     switch (cdb[0]) {
         case GPCMD_NO_OPERATION_NEC:
+            scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            scsi_cdrom_command_complete(dev);
+            cmd_stat = 0x01;
+            break;
+
+        case GPCMD_UNKNOWN_SCSI2_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
@@ -2305,7 +2311,7 @@ scsi_cdrom_command_pioneer(void *sc, uint8_t *cdb, int32_t *BufLen)
             else {
                 ret = cdrom_read_disc_info_toc(dev->drv, dev->buffer, cdb[2], cdb[1] & 3);
                 len = 4;
-        
+
                 if (ret) {
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);
                     scsi_cdrom_data_command_finish(dev, len, len, len, 0);
@@ -2844,7 +2850,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         }
                     } else
                         ret = scsi_cdrom_read_blocks(dev, &alloc_length, 1, 0);
-    
+
                     if (ret > 0) {
                         dev->requested_blocks = max_len;
                         dev->packet_len       = alloc_length;
