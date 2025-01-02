@@ -398,26 +398,6 @@ plat_cdrom_ext_medium_changed(void *local)
     return ret;
 }
 
-void
-plat_cdrom_get_audio_tracks(void *local, int *st_track, int *end, TMSF *lead_out)
-{
-    win_cdrom_ioctl_t *ioctl = (win_cdrom_ioctl_t *) local;
-    PCDROM_TOC         toc   = (PCDROM_TOC) ioctl->cur_toc;
-
-    plat_cdrom_read_toc(ioctl);
-
-    PTRACK_DATA        ltd   = &toc->TrackData[toc->LastTrack];
-
-    *st_track       = 1;
-    *end            = toc->LastTrack;
-    lead_out->min   = ltd->Address[1];
-    lead_out->sec   = ltd->Address[2];
-    lead_out->fr    = ltd->Address[3];
-
-    win_cdrom_ioctl_log("plat_cdrom_get_audio_tracks(): %02i, %02i, %02i:%02i:%02i\n",
-                        *st_track, *end, lead_out->min, lead_out->sec, lead_out->fr);
-}
-
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
 plat_cdrom_get_audio_track_info(void *local, UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
