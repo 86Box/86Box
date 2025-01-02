@@ -56,14 +56,6 @@ cdrom_ioctl_log(const char *fmt, ...)
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 static void
-ioctl_get_tracks(cdrom_t *dev, int *first, int *last)
-{
-    TMSF        tmsf;
-
-    plat_cdrom_get_audio_tracks(dev->local, first, last, &tmsf);
-}
-
-static void
 ioctl_get_track_info(cdrom_t *dev, uint32_t track, int end, track_info_t *ti)
 {
     TMSF      tmsf;
@@ -209,7 +201,6 @@ ioctl_exit(cdrom_t *dev)
 }
 
 static const cdrom_ops_t cdrom_ioctl_ops = {
-    ioctl_get_tracks,
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
     ioctl_get_subchannel,

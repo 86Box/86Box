@@ -218,7 +218,6 @@ typedef struct raw_track_info_t {
 
 /* Define the various CD-ROM drive operations (ops). */
 typedef struct cdrom_ops_t {
-    void (*get_tracks)(struct cdrom *dev, int *first, int *last);
     void (*get_track_info)(struct cdrom *dev, uint32_t track, int end, track_info_t *ti);
     void (*get_raw_track_info)(struct cdrom *dev, int *num, raw_track_info_t *rti);
     void (*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);

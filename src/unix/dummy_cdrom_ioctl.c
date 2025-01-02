@@ -144,23 +144,6 @@ plat_cdrom_ext_medium_changed(void *local)
     return ret;
 }
 
-void
-plat_cdrom_get_audio_tracks(void *local, int *st_track, int *end, TMSF *lead_out)
-{
-    dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
-
-    plat_cdrom_read_toc(ioctl);
-
-    *st_track       = 1;
-    *end            = 1;
-    lead_out->min   = 0;
-    lead_out->sec   = 0;
-    lead_out->fr    = 2;
-
-    dummy_cdrom_ioctl_log("plat_cdrom_get_audio_tracks(): %02i, %02i, %02i:%02i:%02i\n",
-                          *st_track, *end, lead_out->min, lead_out->sec, lead_out->fr);
-}
-
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
 plat_cdrom_get_audio_track_info(void *local, UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
