@@ -8668,6 +8668,8 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Compaq Presario 7100 / 7200 Series, using MiTAC/Trigon PL4600C (486). */
+    /* Has a VIA VT82C42N KBC. */
     {
         .name = "[UMC 8881] Compaq Presario 7100/7200 Series 486",
         .internal_name = "pl4600c",
