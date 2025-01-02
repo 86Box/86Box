@@ -175,8 +175,6 @@ uint8_t nv3_pbus_rma_read(uint16_t addr)
 // Implements a 32-bit write using 16 bit port number
 void nv3_pbus_rma_write(uint16_t addr, uint8_t val)
 {
-    uint8_t ret = 0x00;
-
     // addresses are in reality 8bit so just mask it to be safe
     addr &= 0xFF;
 
