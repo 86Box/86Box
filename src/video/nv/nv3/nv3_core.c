@@ -34,11 +34,22 @@ nv3_t* nv3;
 // Prototypes for functions only used in this translation unit
 void nv3_init_mappings_mmio();
 void nv3_init_mappings_svga();
-void nv3_shutdown_mappings_mmio();
-void nv3_shutdown_mappings_svga();
+bool nv3_is_svga_redirect_address(uint32_t addr);
 
 uint8_t nv3_svga_in(uint16_t addr, void* priv);
 void nv3_svga_out(uint16_t addr, uint8_t val, void* priv);
+
+// Determine if this address needs to be redirected to the SVGA subsystem.
+
+bool nv3_is_svga_redirect_address(uint32_t addr)
+{
+    return (addr >= NV3_PRMVIO_START
+    && addr <= NV3_PRMVIO_END
+    || addr == NV3_PRMCIO_CR_COLOR
+    || addr == NV3_PRMCIO_CRX_COLOR
+    || addr == NV3_PRMCIO_CR_MONO
+    || addr == NV3_PRMCIO_CRX_MONO);
+}
 
 // All MMIO regs are 32-bit i believe internally
 // so we have to do some munging to get this to read
@@ -51,12 +62,7 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
     // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
     addr &= 0xFFFFFF;
 
-    if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO)
+    if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -81,12 +87,7 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
     // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
     addr &= 0xFFFFFF;
 
-    if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO)
+    if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -111,12 +112,7 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
     // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
     addr &= 0xFFFFFF;
 
-    if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO)
+    if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -142,12 +138,7 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
 
     // This is weitek vga stuff
     // If we need to add more of these we can convert these to a switch statement
-    if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO)
+    if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -205,12 +196,7 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
     addr &= 0xFFFFFF;
 
     // This is weitek vga stuff
-    if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO)
+    if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
@@ -1026,7 +1012,6 @@ void nv3_close(void* priv)
     // Shut down I2C and the DDC
     ddc_close(nv3->nvbase.ddc);
     i2c_gpio_close(nv3->nvbase.i2c);
-
 
     // Destroy the Rivatimers. (It doesn't matter if they are running.)
     rivatimer_destroy(nv3->nvbase.pixel_clock_timer);
