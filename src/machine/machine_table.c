@@ -6834,7 +6834,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-6360 */
         .ram = {
             .min = 1024,
-            .max = 32768,
+            .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
