@@ -153,6 +153,7 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_soundpiper_32_mca_device },
     { &cmi8338_device               },
     { &cmi8738_device               },
+    { &es1370_device                },
     { &es1371_device                },
     { &es1373_device                },
     { &ct5880_device                },
