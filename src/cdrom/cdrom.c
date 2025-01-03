@@ -2174,7 +2174,7 @@ cdrom_exit(uint8_t id)
 
     memset(dev->image_path, 0, sizeof(dev->image_path));
 
-    pclog("cdrom_exit(%i): cdrom_insert(%i)\n", id, id);
+    cdrom_log("cdrom_exit(%i): cdrom_insert(%i)\n", id, id);
     cdrom_insert(id);
 }
 
@@ -2252,7 +2252,7 @@ cdrom_reload(uint8_t id)
 #endif
 
         /* Signal media change to the emulated machine. */
-        pclog("cdrom_reload(%i): cdrom_insert(%i)\n", id, id);
+        cdrom_log("cdrom_reload(%i): cdrom_insert(%i)\n", id, id);
         cdrom_insert(id);
 
         /* The drive was previously empty, transition directly to UNIT ATTENTION. */
