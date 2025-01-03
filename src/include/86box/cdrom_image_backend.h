@@ -6,16 +6,15 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          CD-ROM image file handling module header , translated to C
- *          from cdrom_dosbox.h.
+ *          CD-ROM image file handling module header.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
- *          Fred N. van Kempen, <decwiz@yahoo.com>
- *          The DOSBox Team, <unknown>
+ *          RichardG, <richardg867@gmail.com>
+ *          Cacodemon345
  *
- *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2017-2020 Fred N. van Kempen.
- *          Copyright 2002-2020 The DOSBox Team.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2025 Cacodemon345.
  */
 #ifndef CDROM_IMAGE_BACKEND_H
 #define CDROM_IMAGE_BACKEND_H
@@ -57,72 +56,59 @@ typedef struct track_file_t {
     int motorola;
 } track_file_t;
 
-#define BLOCK_EMPTY  0 /* Empty block. */
-#define BLOCK_ZERO   1 /* Block not in the file, return all 0x00's. */
-#define BLOCK_NORMAL 2 /* Block in the file. */
-
-#define BLOCK_NONE   ((uint64_t) -1LL)
+#define INDEX_SPECIAL -2 /* Track A0h onwards. */
+#define INDEX_NONE    -1 /* Empty block. */
+#define INDEX_ZERO     0 /* Block not in the file, return all 0x00's. */
+#define INDEX_NORMAL   1 /* Block in the file. */
 
 typedef struct track_index_t {
-    /* Is the current block in the file? If not, return all 0x00's. */
-    int           in_file;
+    /* Is the current block in the file? If not, return all 0x00's. -1 means not yet loaded. */
+    int32_t       type;
     /* The amount of bytes to skip at the beginning of each sector. */
-    int           skip;
+    int32_t       skip;
     /* Starting and ending sector LBA - negative in order to accomodate LBA -150 to -1
        to read the pregap of track 1. */
     uint64_t      start;
     uint64_t      length;
+    uint64_t      file_start;
+    uint64_t      file_length;
+    track_file_t *file;
 } track_index_t;
 
 typedef struct track_t {
-    int           pregap_len;   /* Pre-gap  - not in file. */
-    int           index0_len;   /* Pre-gap  - in file. */
-    int           postgap_len;  /* Post-gap - not in file. */
-    int           blocks_num;   /* Number of blocks. */
-    int           number;
-    int           track_number;
-    int           attr;
-    int           sector_size;
-    int           mode2;
-    int           form;
-    int           pre;
-    int           noskip;       /* Do not skip by 8 bytes.*/
-    uint64_t      start;
-    uint64_t      length;
-    uint64_t      skip;
-    track_index_t indexes[3];
-    track_file_t *file;
+    uint8_t       session;
+    uint8_t       attr;
+    uint8_t       tno;
+    uint8_t       point;
+    uint8_t       extra[4];
+    uint8_t       mode;
+    uint8_t       form;
+    uint8_t       pad;
+    uint8_t       skip;
+    uint32_t      sector_size;
+    track_index_t idx[3];
 } track_t;
 
 typedef struct cd_img_t {
-    int      tracks_num;
-    track_t *tracks;
+    int32_t       tracks_num;
+    track_t      *tracks;
 } cd_img_t;
 
 /* Binary file functions. */
-extern void cdi_close(cd_img_t *cdi);
-extern int  cdi_set_device(cd_img_t *cdi, const char *path);
-extern void cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out);
-extern void cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out);
-extern int  cdi_get_audio_track_pre(cd_img_t *cdi, int track);
-extern int  cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num,
-                                     TMSF *start, uint8_t *attr);
-extern int  cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num,
-                                         uint32_t *start, uint8_t *attr);
 extern void cdi_get_raw_track_info(cd_img_t *cdi, int *num, uint8_t *buffer);
-extern int  cdi_get_track(cd_img_t *cdi, uint32_t sector);
 extern int  cdi_get_audio_sub(cd_img_t *cdi, uint32_t sector, uint8_t *attr, uint8_t *track,
                               uint8_t *index, TMSF *rel_pos, TMSF *abs_pos);
 extern int  cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector);
-extern int  cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint32_t num);
 extern int  cdi_read_sector_sub(cd_img_t *cdi, uint8_t *buffer, uint32_t sector);
 extern int  cdi_get_sector_size(cd_img_t *cdi, uint32_t sector);
+extern int  cdi_is_audio(cd_img_t *cdi, uint32_t sector);
+extern int  cdi_is_pre(cd_img_t *cdi, uint32_t sector);
 extern int  cdi_is_mode2(cd_img_t *cdi, uint32_t sector);
 extern int  cdi_get_mode2_form(cd_img_t *cdi, uint32_t sector);
 extern int  cdi_load_iso(cd_img_t *cdi, const char *filename);
 extern int  cdi_load_cue(cd_img_t *cdi, const char *cuefile);
-extern int  cdi_has_data_track(cd_img_t *cdi);
-extern int  cdi_has_audio_track(cd_img_t *cdi);
+extern void cdi_close(cd_img_t *cdi);
+extern int  cdi_set_device(cd_img_t *cdi, const char *path);
 
 /* Virtual ISO functions. */
 extern int           viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count);

@@ -158,6 +158,7 @@ extern const device_t sb_16_pnp_ide_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;
 extern const device_t sb_16_reply_mca_device;
+extern const device_t sb_goldfinch_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
@@ -184,6 +185,7 @@ extern const device_t ess_soundpiper_32_mca_device;
 extern const device_t ess_chipchat_16_mca_device;
 
 /* Ensoniq AudioPCI */
+extern const device_t es1370_device;
 extern const device_t es1371_device;
 extern const device_t es1371_onboard_device;
 extern const device_t es1373_device;

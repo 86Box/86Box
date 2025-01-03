@@ -43,6 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #endif
 
 #ifdef Q_OS_WINDOWS
+#    include "qt_rendererstack.hpp"
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
 #    include <86box/win.h>
@@ -143,95 +144,49 @@ keyboard_getkeymap()
     }
 }
 
-static void
-kbd_handle(uint16_t scancode, uint16_t flags)
-{
-    if (flags & LLKHF_EXTENDED)
-        scancode |= 0x100;
-
-    /* Translate the scan code to 9-bit */
-    scancode = convert_scan_code(scancode);
-
-    /* Remap it according to the list from the Registry */
-    if ((scancode < (sizeof(scancode_map) / sizeof(scancode_map[0]))) && (scancode != scancode_map[scancode])) {
-        // pclog("Scan code remap: %03X -> %03X\n", scancode, scancode_map[scancode]);
-        scancode = scancode_map[scancode];
-    }
-
-    /* If it's not 0xFFFF, send it to the emulated
-       keyboard.
-       We use scan code 0xFFFF to mean a mapping that
-       has a prefix other than E0 and that is not E1 1D,
-       which is, for our purposes, invalid. */
-
-    /* Translate right CTRL to left ALT if the user has so
-       chosen. */
-    if ((scancode == 0x11d) && rctrl_is_lalt)
-        scancode = 0x038;
-
-    /* Normal scan code pass through, pass it through as is if
-       it's not an invalid scan code. */
-    if (scancode != 0xFFFF)
-        keyboard_input(!(flags & LLKHF_UP), scancode);
-}
-
-static LRESULT CALLBACK
-input_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    LPKBDLLHOOKSTRUCT lpKdhs    = (LPKBDLLHOOKSTRUCT) lParam;
-
-    kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
-
-    main_window->checkFullscreenHotkey();
-
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
-}
-
 static LRESULT CALLBACK
 emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     LPKBDLLHOOKSTRUCT lpKdhs    = (LPKBDLLHOOKSTRUCT) lParam;
     /* Checks if CTRL was pressed. */
     BOOL              bCtrlDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
+    BOOL              is_over_window = (GetForegroundWindow() == ((HWND) main_window->winId()));
 
-    if ((nCode < 0) || (nCode != HC_ACTION) || (!mouse_capture && !video_fullscreen))
+    if (show_second_monitors)  for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
+        const auto &secondaryRenderer = main_window->renderers[monitor_index];
+        is_over_window = is_over_window && (secondaryRenderer != nullptr) &&
+                         (GetForegroundWindow() == ((HWND) secondaryRenderer->winId()));
+    }
+
+    if ((nCode < 0) || (nCode != HC_ACTION)/* || (!mouse_capture && !video_fullscreen)*/ || !is_over_window)
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     else if ((lpKdhs->scanCode == 0x01) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
-        !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED))) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+        !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    } else if ((lpKdhs->scanCode == 0x01) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED))) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode == 0x01) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    } else if ((lpKdhs->scanCode == 0x0f) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
-             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED))) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode == 0x0f) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    } else if ((lpKdhs->scanCode == 0x0f) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED))) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode == 0x0f) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    } else if ((lpKdhs->scanCode == 0x39) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
-             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED))) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode == 0x39) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    } else if ((lpKdhs->scanCode == 0x3e) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
-             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED))) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode == 0x3e) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         return TRUE;
-    } else if ((lpKdhs->scanCode == 0x49) && bCtrlDown && !(lpKdhs->flags & LLKHF_UP)) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode == 0x49) && bCtrlDown && !(lpKdhs->flags & LLKHF_UP))
         return TRUE;
-    } else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED)) {
-        kbd_handle(lpKdhs->scanCode & 0x00ff, lpKdhs->flags);
+    else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
         return TRUE;
-    } else
+    else
         return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 #endif
 
 #ifdef Q_OS_WINDOWS
 static HHOOK llhook  = NULL;
-static HHOOK llihook = NULL;
 #endif
 
 void
@@ -494,12 +449,17 @@ main(int argc, char *argv[])
         });
     }
 
+    /* Force raw input if a debugger is present. */
+    if (IsDebuggerPresent()) {
+        pclog("WARNING: Debugged detected, forcing raw input\n");
+        hook_enabled = 0;
+    }
+
     /* Setup raw input */
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter) {
         app.installNativeEventFilter(rawInputFilter.get());
-        if (raw_input)
-            main_window->setSendKeyboardInput(false);
+        main_window->setSendKeyboardInput(false);
     }
 #endif
 
@@ -559,12 +519,10 @@ main(int argc, char *argv[])
     });
 
 #ifdef Q_OS_WINDOWS
-    if (!raw_input) {
+    if (hook_enabled) {
+        /* Yes, low-level hooks *DO* work raw input, at least global ones. */
         llhook = SetWindowsHookEx(WH_KEYBOARD_LL, emu_LowLevelKeyboardProc, NULL, 0);
-        llihook = SetWindowsHookEx(WH_KEYBOARD_LL, input_LowLevelKeyboardProc, NULL, GetCurrentThreadId());
         atexit([] () -> void {
-            if (llihook)
-                UnhookWindowsHookEx(llihook);
             if (llhook)
                 UnhookWindowsHookEx(llhook);
         });
