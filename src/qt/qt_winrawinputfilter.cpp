@@ -44,6 +44,8 @@
 #include <86box/plat.h>
 #include <86box/86box.h>
 
+extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
+
 #include <array>
 #include <memory>
 
@@ -166,54 +168,10 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
 void
 WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
-    USHORT     scancode;
-
     RAWKEYBOARD rawKB = raw->data.keyboard;
-    scancode          = rawKB.MakeCode;
 
-    /* If it's not a scan code that starts with 0xE1 */
-    if ((rawKB.Flags & RI_KEY_E1)) {
-        if (rawKB.MakeCode == 0x1D) {
-            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
-                                               otherwise be E0 00 but that is invalid
-                                               anyway).
-                                               Also, take a potential mapping into
-                                               account. */
-        } else
-            scancode = 0xFFFF;
-        if (scancode != 0xFFFF)
-            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-    } else {
-        if (rawKB.Flags & RI_KEY_E0)
-            scancode |= 0x100;
-
-        /* Translate the scan code to 9-bit */
-        scancode = convert_scan_code(scancode);
-
-        /* Remap it according to the list from the Registry */
-        if ((scancode < (sizeof(scancode_map) / sizeof(scancode_map[0]))) && (scancode != scancode_map[scancode])) {
-            // pclog("Scan code remap: %03X -> %03X\n", scancode, scancode_map[scancode]);
-            scancode = scancode_map[scancode];
-        }
-
-        /* If it's not 0xFFFF, send it to the emulated
-           keyboard.
-           We use scan code 0xFFFF to mean a mapping that
-           has a prefix other than E0 and that is not E1 1D,
-           which is, for our purposes, invalid. */
-
-        /* Translate right CTRL to left ALT if the user has so
-           chosen. */
-        if ((scancode == 0x11d) && rctrl_is_lalt)
-            scancode = 0x038;
-
-        /* Normal scan code pass through, pass it through as is if
-           it's not an invalid scan code. */
-        if (scancode != 0xFFFF)
-            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-
-        window->checkFullscreenHotkey();
-    }
+    win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
+                        (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
 }
 
 void
