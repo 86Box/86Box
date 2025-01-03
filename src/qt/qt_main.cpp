@@ -242,7 +242,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             /* Pause - send E1 1D. */
             pclog("Send E1 1D\n");
             win_keyboard_handle(0xe1, 0, 0, 0);
-            win_keyboard_handle(0x1d, 0, 0, 0);
+            win_keyboard_handle(0x1d, LLKHF_UP, 0, 0);
         }
     } else if (!last && (lpKdhs->scanCode == 0x00000036))
         /* Non-fake right shift. */
