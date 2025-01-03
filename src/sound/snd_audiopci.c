@@ -398,7 +398,7 @@ es1370_calc_sample_rate(es137x_t *dev)
 
     dev->calc_sample_rate = 1411200 / (((dev->int_ctrl >> 16) & 0x1fff) + 2);
 
-    // pclog("ES1370 calc sample rate %u\n", dev->calc_sample_rate);
+    // audiopci_log("ES1370 calc sample rate %u\n", dev->calc_sample_rate);
 
     dev->interp_factor = 1.0;
     dev->interp_step   = 1;
@@ -2833,7 +2833,7 @@ const device_t es1370_device = {
     .init          = es1370_init,
     .close         = es137x_close,
     .reset         = es137x_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = es137x_speed_changed,
     .force_redraw  = NULL,
     .config        = es1370_config
