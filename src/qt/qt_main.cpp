@@ -43,10 +43,12 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #endif
 
 #ifdef Q_OS_WINDOWS
+#    include "qt_rendererstack.hpp"
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
 #    include <86box/win.h>
 #    include <shobjidl.h>
+#    include <windows.h>
 #endif
 
 extern "C" {
@@ -81,12 +83,111 @@ extern QElapsedTimer elapsed_timer;
 extern MainWindow   *main_window;
 
 extern "C" {
+#include <86box/keyboard.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);
 }
 
 void qt_set_sequence_auto_mnemonic(bool b);
+
+#ifdef Q_OS_WINDOWS
+static void
+keyboard_getkeymap()
+{
+    const LPCSTR  keyName   = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
+    const LPCSTR  valueName = "Scancode Map";
+    unsigned char buf[32768];
+    DWORD         bufSize;
+    HKEY          hKey;
+    int           j;
+    UINT32       *bufEx2;
+    int           scMapCount;
+    UINT16       *bufEx;
+    int           scancode_unmapped;
+    int           scancode_mapped;
+
+    /* First, prepare the default scan code map list which is 1:1.
+     * Remappings will be inserted directly into it.
+     * 512 bytes so this takes less memory, bit 9 set means E0
+     * prefix.
+     */
+    for (j = 0; j < 512; j++)
+        scancode_map[j] = j;
+
+    /* Get the scan code remappings from:
+    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
+    bufSize = 32768;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
+            bufEx2     = (UINT32 *) buf;
+            scMapCount = bufEx2[2];
+            if ((bufSize != 0) && (scMapCount != 0)) {
+                bufEx = (UINT16 *) (buf + 12);
+                for (j = 0; j < scMapCount * 2; j += 2) {
+                    /* Each scan code is 32-bit: 16 bits of remapped scan code,
+                    and 16 bits of original scan code. */
+                    scancode_unmapped = bufEx[j + 1];
+                    scancode_mapped   = bufEx[j];
+
+                    scancode_unmapped = convert_scan_code(scancode_unmapped);
+                    scancode_mapped   = convert_scan_code(scancode_mapped);
+
+                    /* Ignore source scan codes with prefixes other than E1
+                       that are not E1 1D. */
+                    if (scancode_unmapped != 0xFFFF)
+                        scancode_map[scancode_unmapped] = scancode_mapped;
+                }
+            }
+        }
+        RegCloseKey(hKey);
+    }
+}
+
+static LRESULT CALLBACK
+emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    LPKBDLLHOOKSTRUCT lpKdhs    = (LPKBDLLHOOKSTRUCT) lParam;
+    /* Checks if CTRL was pressed. */
+    BOOL              bCtrlDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
+    BOOL              is_over_window = (GetForegroundWindow() == ((HWND) main_window->winId()));
+
+    if (show_second_monitors)  for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
+        const auto &secondaryRenderer = main_window->renderers[monitor_index];
+        is_over_window = is_over_window && (secondaryRenderer != nullptr) &&
+                         (GetForegroundWindow() == ((HWND) secondaryRenderer->winId()));
+    }
+
+    if ((nCode < 0) || (nCode != HC_ACTION)/* || (!mouse_capture && !video_fullscreen)*/ || !is_over_window)
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+    else if ((lpKdhs->scanCode == 0x01) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+        !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
+        return TRUE;
+    else if ((lpKdhs->scanCode == 0x01) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
+        return TRUE;
+    else if ((lpKdhs->scanCode == 0x0f) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
+        return TRUE;
+    else if ((lpKdhs->scanCode == 0x0f) && bCtrlDown && !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
+        return TRUE;
+    else if ((lpKdhs->scanCode == 0x39) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
+        return TRUE;
+    else if ((lpKdhs->scanCode == 0x3e) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
+             !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
+        return TRUE;
+    else if ((lpKdhs->scanCode == 0x49) && bCtrlDown && !(lpKdhs->flags & LLKHF_UP))
+        return TRUE;
+    else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
+        return TRUE;
+    else
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+}
+#endif
+
+#ifdef Q_OS_WINDOWS
+static HHOOK llhook  = NULL;
+#endif
 
 void
 main_thread_fn()
@@ -176,6 +277,7 @@ main(int argc, char *argv[])
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
+
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
 
@@ -192,6 +294,13 @@ main(int argc, char *argv[])
     app.installNativeEventFilter(&cocoafilter);
 #endif
     elapsed_timer.start();
+
+    for (size_t i = 0; i < sizeof(scancode_map) / sizeof(scancode_map[0]); i++)
+        scancode_map[i] = i;
+
+#ifdef Q_OS_WINDOWS
+    keyboard_getkeymap();
+#endif
 
     if (!pc_init(argc, argv)) {
         return 0;
@@ -340,6 +449,12 @@ main(int argc, char *argv[])
         });
     }
 
+    /* Force raw input if a debugger is present. */
+    if (IsDebuggerPresent()) {
+        pclog("WARNING: Debugged detected, forcing raw input\n");
+        hook_enabled = 0;
+    }
+
     /* Setup raw input */
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter) {
@@ -402,6 +517,17 @@ main(int argc, char *argv[])
 #endif
             plat_pause(0);
     });
+
+#ifdef Q_OS_WINDOWS
+    if (hook_enabled) {
+        /* Yes, low-level hooks *DO* work raw input, at least global ones. */
+        llhook = SetWindowsHookEx(WH_KEYBOARD_LL, emu_LowLevelKeyboardProc, NULL, 0);
+        atexit([] () -> void {
+            if (llhook)
+                UnhookWindowsHookEx(llhook);
+        });
+    }
+#endif
 
     const auto ret       = app.exec();
     cpu_thread_run = 0;

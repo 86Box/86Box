@@ -53,13 +53,12 @@ extern void     plat_cdrom_get_raw_track_info(void *local, int *num, raw_track_i
 extern int      plat_cdrom_is_track_audio(void *local, uint32_t sector);
 extern int      plat_cdrom_is_track_pre(void *local, uint32_t sector);
 extern uint32_t plat_cdrom_get_last_block(void *local);
-extern void     plat_cdrom_get_audio_tracks(void *local, int *st_track, int *end, TMSF *lead_out);
 extern int      plat_cdrom_get_audio_track_info(void *local, int end, int track, int *track_num, TMSF *start,
                                                 uint8_t *attr);
 extern int      plat_cdrom_get_audio_sub(void *local, uint32_t sector, uint8_t *attr, uint8_t *track,
                                          uint8_t *index, TMSF *rel_pos, TMSF *abs_pos);
 extern int      plat_cdrom_get_sector_size(void *local, uint32_t sector);
-extern int      plat_cdrom_read_sector(void *local, uint8_t *buffer, int raw, uint32_t sector);
+extern int      plat_cdrom_read_sector(void *local, uint8_t *buffer, uint32_t sector);
 extern void     plat_cdrom_eject(void *local);
 extern void     plat_cdrom_close(void *local);
 extern int      plat_cdrom_set_drive(void *local, const char *drv);

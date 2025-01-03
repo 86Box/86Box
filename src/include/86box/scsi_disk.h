@@ -31,17 +31,6 @@ typedef struct scsi_disk_t {
     uint8_t  current_cdb[16];
     uint8_t  sense[256];
 
-#ifdef ANCIENT_CODE
-    /* Task file. */
-    uint8_t features;
-    uint8_t phase;
-    uint16_t request_length;
-    uint8_t status;
-    uint8_t error;
-    uint16_t pad;
-    uint32_t pos;
-#endif
-
     uint8_t id;
     uint8_t cur_lun;
     uint8_t pad0;
@@ -64,6 +53,8 @@ typedef struct scsi_disk_t {
     uint32_t packet_len;
 
     double callback;
+
+    uint8_t  (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 } scsi_disk_t;
 
 extern scsi_disk_t *scsi_disk[HDD_NUM];
