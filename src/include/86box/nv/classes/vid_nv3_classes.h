@@ -53,8 +53,6 @@ typedef struct nv3_class_ctx_switch_method_s
         uint16_t reserved : 9;
         bool reset_if_volatile; // ????
     } set_notify_ctx_dma;           // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];        // Required for NV_CLASS Core Functionality
-    uint32_t set_notify;
 
 } nv3_class_ctx_switch_method_t;
 
@@ -150,7 +148,7 @@ typedef struct nv3_position_32_s
 */
 typedef struct nv3_object_class_001
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];        // Required for NV_CLASS Core Functionality
     uint32_t set_notify;
     uint8_t reserved2[0x1F8];
@@ -167,7 +165,7 @@ typedef struct nv3_object_class_001
 */
 typedef struct nv3_object_class_002
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0xFF];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F8];
@@ -183,7 +181,7 @@ typedef struct nv3_object_class_002
 */
 typedef struct nv3_object_class_003
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0xFF];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F8];
@@ -199,7 +197,7 @@ typedef struct nv3_object_class_003
 */
 typedef struct nv3_object_class_004
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0xFF];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F8];
@@ -215,7 +213,7 @@ typedef struct nv3_object_class_004
 */
 typedef struct nv3_object_class_005
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0xFF];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F4];
@@ -235,7 +233,7 @@ typedef struct nv3_object_class_005
 */
 typedef struct nv3_object_class_006
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0xFF];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x200];
@@ -254,7 +252,7 @@ typedef struct nv3_object_class_006
 */
 typedef struct nv3_object_class_007
 {
-    uint32_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1FC];
@@ -282,7 +280,7 @@ typedef struct nv3_object_class_008_cpoint_s
 */
 typedef struct nv3_object_class_008
 {
-    uint32_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
@@ -322,7 +320,7 @@ typedef struct nv3_object_class_009_line32_s
 */
 typedef struct nv3_object_class_009
 {
-    uint32_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
@@ -346,7 +344,7 @@ typedef struct nv3_object_class_009
 */
 typedef struct nv3_object_class_00A
 {
-    uint32_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
@@ -369,7 +367,7 @@ typedef struct nv3_object_class_00A
 */
 typedef struct nv3_object_class_00B
 {
-    uint32_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
@@ -409,7 +407,7 @@ typedef struct nv3_object_class_00C_nclip_s
 */
 typedef struct nv3_object_class_00C
 {
-    uint32_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x2F4];                       
@@ -453,7 +451,7 @@ typedef struct nv3_object_class_00C
 */
 typedef struct nv3_object_class_00D
 {
-    uint32_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
     uint8_t reserved2[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved3[0x204];
