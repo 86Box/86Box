@@ -466,9 +466,19 @@ typedef struct nv3_object_class_00D
     uint8_t reserved4[2];
     uint32_t buffer_notify;                         // Notify the Buffedr
     uint8_t reserved5[0x1CD3];  
-} nv3_memory_to_memory_format;
+} nv3_memory_to_memory_format_t;
 
-
+/* 
+    Object Class 0x0E (real hardware)
+    0x?? (drivers)
+    Also 0x4E in context IDs.
+    
+    Represents a scaled image coming from memory.
+*/
+typedef struct nv3_object_class_00E
+{
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;
+} nv3_scaled_image_from_memory_t;
 
 /* WHY IS THE FORMAT DIFFERENT TO THE REST OF THE GPU? 
    They are making it look like a bitfield but it's hex?
