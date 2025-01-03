@@ -7,7 +7,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
- *          Last updated     1 January 2025 (STILL WORKING ON IT)
+ *          Last updated     2 January 2025 (STILL WORKING ON IT)
  *
  *
  *
@@ -603,7 +603,9 @@ extern const device_config_t nv3_config[];
 
 /* 
     STRUCTURES FOR THE GPU START HERE
+    OBJECT CLASS & RENDERING RELATED STUFF IS IN VID_NV3_CLASSES.H
 */
+
 
 //todo: pixel format
 
