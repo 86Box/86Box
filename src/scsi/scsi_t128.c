@@ -509,6 +509,9 @@ t128_init(const device_t *info)
     if (!t128->bios_enabled && !(info->flags & DEVICE_MCA))
         t128->status                |= 0x80;
 
+    if (info->flags & DEVICE_MCA)
+        t128->status                |= 0x08;
+
     if (info->local == 0)
         timer_add(&t128->timer, t128_callback, t128, 0);
 

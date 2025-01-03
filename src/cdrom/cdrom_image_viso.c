@@ -8,9 +8,7 @@
  *
  *          Virtual ISO CD-ROM image back-end.
  *
- *
- *
- * Authors: RichardG <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.
  */

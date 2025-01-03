@@ -56,14 +56,6 @@ cdrom_ioctl_log(const char *fmt, ...)
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 static void
-ioctl_get_tracks(cdrom_t *dev, int *first, int *last)
-{
-    TMSF        tmsf;
-
-    plat_cdrom_get_audio_tracks(dev->local, first, last, &tmsf);
-}
-
-static void
 ioctl_get_track_info(cdrom_t *dev, uint32_t track, int end, track_info_t *ti)
 {
     TMSF      tmsf;
@@ -109,7 +101,8 @@ ioctl_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
     subc->rel_f = rel_pos.fr;
 
     cdrom_ioctl_log("ioctl_get_subchannel(): %02X, %02X, %02i, %02i:%02i:%02i, %02i:%02i:%02i\n",
-                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f);
+                    subc->attr, subc->track, subc->index, subc->abs_m, subc->abs_s, subc->abs_f,
+                    subc->rel_m, subc->rel_s, subc->rel_f);
 }
 
 static int
@@ -157,29 +150,16 @@ ioctl_sector_size(cdrom_t *dev, uint32_t lba)
 }
 
 static int
-ioctl_read_sector(cdrom_t *dev, int type, uint8_t *b, uint32_t lba)
+ioctl_read_sector(cdrom_t *dev, uint8_t *b, uint32_t lba)
 {
-    switch (type) {
-        case CD_READ_DATA:
-            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Data.\n");
-            return plat_cdrom_read_sector(dev->local, b, 0, lba);
-        case CD_READ_AUDIO:
-            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Audio.\n");
-            return plat_cdrom_read_sector(dev->local, b, 1, lba);
-        case CD_READ_RAW:
-            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Raw.\n");
-            return plat_cdrom_read_sector(dev->local, b, 1, lba);
-        default:
-            cdrom_ioctl_log("cdrom_ioctl_read_sector(): Unknown CD read type.\n");
-            break;
-    }
-    return 0;
+    cdrom_ioctl_log("cdrom_ioctl_read_sector(): Raw.\n");
+    return plat_cdrom_read_sector(dev->local, b, lba);
 }
 
 static int
 ioctl_track_type(cdrom_t *dev, uint32_t lba)
 {
-    int ret = 0;
+    int ret = CD_TRACK_UNK_DATA;
 
     if (ioctl_is_track_audio(dev, lba, 0))
         ret = CD_TRACK_AUDIO;
@@ -221,7 +201,6 @@ ioctl_exit(cdrom_t *dev)
 }
 
 static const cdrom_ops_t cdrom_ioctl_ops = {
-    ioctl_get_tracks,
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
     ioctl_get_subchannel,

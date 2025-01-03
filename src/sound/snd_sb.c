@@ -1,23 +1,21 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Sound Blaster emulation.
+ *          Sound Blaster emulation.
  *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           Miran Grca, <mgrca8@gmail.com>
- *           TheCollector1995, <mariogplayer@gmail.com>
- *           Jasmine Iwanek, <jriwanek@gmail.com>
- *
- *           Copyright 2008-2020 Sarah Walker.
- *           Copyright 2016-2020 Miran Grca.
- *           Copyright 2024      Jasmine Iwanek.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -50,6 +48,7 @@
 
 #define SB_VIBRA16XV 0
 #define SB_VIBRA16C  1
+#define SB_VIBRA16CL  2
 
 #define SB_32_PNP      0
 #define SB_AWE32_PNP   1
@@ -60,8 +59,10 @@
 
 #define PNP_ROM_SB_16_PNP_NOIDE "roms/sound/creative/CT2941 PnP.BIN"
 #define PNP_ROM_SB_16_PNP_IDE   "roms/sound/creative/CTL0024A.BIN" /* CT2940 */
-#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
 #define PNP_ROM_SB_VIBRA16C     "roms/sound/creative/CT4180 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16CL    "roms/sound/creative/CT4100 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
+#define PNP_ROM_SB_GOLDFINCH    "roms/sound/creative/CT1920 PnP.BIN"
 #define PNP_ROM_SB_32_PNP       "roms/sound/creative/CT3600 PnP.BIN"
 #define PNP_ROM_SB_AWE32_PNP    "roms/sound/creative/CT3980 PnP.BIN"
 #define PNP_ROM_SB_AWE64_VALUE  "roms/sound/creative/CT4520 PnP.BIN"
@@ -505,6 +506,28 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
 
     if (sb->opl_enabled)
         sb->opl.reset_buffer(sb->opl.priv);
+}
+
+// TODO: Goldfinch
+static void
+sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const int len, void *priv)
+{
+    goldfinch_t *goldfinch = (goldfinch_t *) priv;
+
+    emu8k_update(&goldfinch->emu8k);
+
+    for (int c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
+
+        out_l += ((double) goldfinch->emu8k.buffer[c]);
+        out_r += ((double) goldfinch->emu8k.buffer[c + 1]);
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    goldfinch->emu8k.pos = 0;
 }
 
 static void
@@ -2216,6 +2239,21 @@ sb_vibra16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, 
 }
 
 static void
+goldfinch_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    goldfinch_t *goldfinch = (goldfinch_t *) priv;
+
+    switch (ld) {
+        default:
+            break;
+
+        case 0: /* WaveTable */
+                emu8k_change_addr(&goldfinch->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+            break;
+    }
+}
+
+static void
 sb_awe32_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
@@ -3392,16 +3430,23 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 }
 
 static int
+sb_vibra16c_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16C);
+}
+
+static int
+sb_vibra16cl_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16CL);
+}
+
+static int
 sb_vibra16xv_available(void)
 {
     return rom_present(PNP_ROM_SB_VIBRA16XV);
 }
 
-static int
-sb_vibra16c_available(void)
-{
-    return rom_present(PNP_ROM_SB_VIBRA16C);
-}
 
 static void *
 sb_vibra16_pnp_init(UNUSED(const device_t *info))
@@ -3437,24 +3482,31 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     switch (info->local) {
+        case SB_VIBRA16C: /* CTL7001 */
+        case SB_VIBRA16CL: /* CTL7002 */
+            sb->gameport = gameport_add(&gameport_pnp_device);
+            break;
+
         case SB_VIBRA16XV: /* CTL7005 */
             sb->gameport = gameport_add(&gameport_pnp_1io_device);
             break;
 
-        case SB_VIBRA16C: /* CTL7001/CTL7002 */
         default:
-            sb->gameport = gameport_add(&gameport_pnp_device);
             break;
     }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case SB_VIBRA16XV:
-            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
-            break;
-
         case SB_VIBRA16C:
             pnp_rom_file = PNP_ROM_SB_VIBRA16C;
+            break;
+
+        case SB_VIBRA16CL:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16CL;
+            break;
+
+        case SB_VIBRA16XV:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
             break;
 
         default:
@@ -3473,8 +3525,9 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     }
 
     switch (info->local) {
-        case SB_VIBRA16XV:
         case SB_VIBRA16C:
+        case SB_VIBRA16CL:
+        case SB_VIBRA16XV:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
@@ -3531,6 +3584,12 @@ static int
 sb_awe32_available(void)
 {
     return rom_present(EMU8K_ROM_PATH);
+}
+
+static int
+sb_goldfinch_available(void)
+{
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_GOLDFINCH);
 }
 
 static int
@@ -3640,6 +3699,54 @@ sb_awe32_init(UNUSED(const device_t *info))
     gameport_remap(sb->gameport, sb->gameport_addr);
 
     return sb;
+}
+
+static void *
+sb_goldfinch_init(const device_t *info)
+{
+    goldfinch_t *goldfinch   = malloc(sizeof(goldfinch_t));
+    int          onboard_ram = device_get_config_int("onboard_ram");
+
+    memset(goldfinch, 0x00, sizeof(goldfinch_t));
+
+    wavetable_add_handler(sb_get_wavetable_buffer_goldfinch, goldfinch);
+
+    emu8k_init(&goldfinch->emu8k, 0, onboard_ram);
+
+    const char *pnp_rom_file = NULL;
+    switch (info->local) {
+        case 0:
+            pnp_rom_file = PNP_ROM_SB_GOLDFINCH;
+            break;
+
+        default:
+            break;
+    }
+
+    uint8_t *pnp_rom = NULL;
+    if (pnp_rom_file) {
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 256;
+        if (fp) {
+            if (fread(goldfinch->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
+                pnp_rom = goldfinch->pnp_rom;
+            fclose(fp);
+        }
+    }
+
+    switch (info->local) {
+        case 0:
+            isapnp_add_card(pnp_rom, sizeof(goldfinch->pnp_rom), goldfinch_pnp_config_changed,
+                            NULL, NULL, NULL, goldfinch);
+            break;
+
+        default:
+            break;
+    }
+
+    emu8k_change_addr(&goldfinch->emu8k, 0);
+
+    return goldfinch;
 }
 
 static void *
@@ -4035,6 +4142,16 @@ sb_close(void *priv)
     sb_dsp_close(&sb->dsp);
 
     free(sb);
+}
+
+static void
+sb_goldfinch_close(void *priv)
+{
+    goldfinch_t *goldfinch = (goldfinch_t *) priv;
+
+    emu8k_close(&goldfinch->emu8k);
+
+    free(goldfinch);
 }
 
 static void
@@ -4744,6 +4861,54 @@ static const device_config_t sb_16_pnp_config[] = {
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t sb_goldfinch_config[] = {
+    {
+        .name = "onboard_ram",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "None",
+                .value = 0
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = "2 MB",
+                .value = 2048
+            },
+            {
+                .description = "4 MB",
+                .value = 4096
+            },
+            {
+                .description = "8 MB",
+                .value = 8192
+            },
+            {
+                .description = "16 MB",
+                .value = 16384
+            },
+            {
+                .description = "28 MB",
+                .value = 28672
+            },
+            { .description = "" }
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -5723,6 +5888,62 @@ const device_t sb_16_device = {
     .config        = sb_16_config
 };
 
+const device_t sb_vibra16c_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16C (On-Board)",
+    .internal_name = "sb_vibra16c_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16C,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16c_device = {
+    .name          = "Sound Blaster ViBRA 16C",
+    .internal_name = "sb_vibra16c",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16C,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16CL (On-Board)",
+    .internal_name = "sb_vibra16cl_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_device = {
+    .name          = "Sound Blaster ViBRA 16CL",
+    .internal_name = "sb_vibra16cl",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
 const device_t sb_vibra16s_onboard_device = {
     .name          = "Sound Blaster ViBRA 16S (On-Board)",
     .internal_name = "sb_vibra16s_onboard",
@@ -5774,34 +5995,6 @@ const device_t sb_vibra16xv_device = {
     .close         = sb_close,
     .reset         = NULL,
     .available     = sb_vibra16xv_available,
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
-};
-
-const device_t sb_vibra16c_onboard_device = {
-    .name          = "Sound Blaster ViBRA 16C (On-Board)",
-    .internal_name = "sb_vibra16c_onboard",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = SB_VIBRA16C,
-    .init          = sb_vibra16_pnp_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    .available     = sb_vibra16c_available,
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
-};
-
-const device_t sb_vibra16c_device = {
-    .name          = "Sound Blaster ViBRA 16C",
-    .internal_name = "sb_vibra16c",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = SB_VIBRA16C,
-    .init          = sb_vibra16_pnp_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    .available     = sb_vibra16c_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5875,6 +6068,20 @@ const device_t sb_16_compat_nompu_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t sb_goldfinch_device = {
+    .name          = "Creative EMU8000 PnP (Goldfinch)",
+    .internal_name = "sb_goldfinch",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_goldfinch_init,
+    .close         = sb_goldfinch_close,
+    .reset         = NULL,
+    .available     = sb_goldfinch_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = sb_goldfinch_config
 };
 
 const device_t sb_32_pnp_device = {
