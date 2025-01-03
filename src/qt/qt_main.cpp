@@ -520,7 +520,7 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
     if (hook_enabled) {
-        /* Yes, low-level hooks *DO* work raw input, at least global ones. */
+        /* Yes, low-level hooks *DO* work with raw input, at least global ones. */
         llhook = SetWindowsHookEx(WH_KEYBOARD_LL, emu_LowLevelKeyboardProc, NULL, 0);
         atexit([] () -> void {
             if (llhook)
