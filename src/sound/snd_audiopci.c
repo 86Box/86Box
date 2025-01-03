@@ -1,24 +1,24 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Ensoniq AudioPCI family emulation.
+ *          Ensoniq AudioPCI family emulation.
  *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           RichardG, <richardg867@gmail.com>
- *           Miran Grca, <mgrca8@gmail.com>
- *           Jasmine Iwanek, <jriwanek@gmail.com>
- *           Cacodemon345
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          RichardG, <richardg867@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *          Cacodemon345
  *
- *           Copyright 2008-2021 Sarah Walker.
- *           Copyright 2021-2024 RichardG.
- *           Copyright 2021      Miran Grca.
- *           Copyright 2024-2025 Jasmine Iwanek.
- *           Copyright 2024-2025 Cacodemon345.
+ *          Copyright 2008-2021 Sarah Walker.
+ *          Copyright 2021-2024 RichardG.
+ *          Copyright 2021      Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2025 Cacodemon345.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -166,7 +166,7 @@ static const double akm4531_att_2dbstep_5bits[] = {
 
 static double akm4531_gain_2dbstep_5bits[0x20];
 
-#define AUDIOPCI_ES1370           0x50001274
+#define AUDIOPCI_ES1370           0x50000000
 #define AUDIOPCI_ES1371           0x13710200
 #define AUDIOPCI_ES1373           0x13710400
 #define AUDIOPCI_CT5880           0x58800400
@@ -861,7 +861,7 @@ es137x_inb(uint16_t port, void *priv)
                 ret = dev->spdif_chstatus & 0xff;
             break;
         case 0x1d:
-            if (dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
                 ret = dev->spdif_chstatus >> 8;
             break;
         case 0x1e:
@@ -939,7 +939,7 @@ es137x_inw(uint16_t port, void *priv)
                 ret = dev->spdif_chstatus & 0xffff;
             break;
         case 0x1e:
-            if ((dev->type >= AUDIOPCI_ES1373) && dev->type != AUDIOPCI_ES1370))
+            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
                 ret = dev->spdif_chstatus >> 16;
             break;
 
@@ -1056,7 +1056,7 @@ es137x_inl(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if ((dev->type >= AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_ES1370))
+            if ((dev->type >= AUDIOPCI_ES1373) || (dev->type != AUDIOPCI_ES1370))
                 ret = dev->spdif_chstatus;
             break;
 
@@ -1127,7 +1127,7 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 dev->dac[1].prev_out_r     = 0;
                 es137x_fetch(dev, 1);
             }
-            // pclog("INTCTRL 0x%02X\n", val & 0xff);
+            // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffffff00) | val;
             break;
         case 0x01:
@@ -1148,11 +1148,11 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
            Addressable as longword only, but PCem implements byte access, which
            must be for a reason */
         case 0x06:
-            if ((dev->type >= AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_ES1370))
+            if ((dev->type >= AUDIOPCI_ES1373) || (dev->type != AUDIOPCI_ES1370))
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val << 16);
             break;
         case 0x07:
-            if ((dev->type >= AUDIOPCI_CT5880) || (dev->type == AUDIOPCI_ES1370))
+            if ((dev->type >= AUDIOPCI_CT5880) || (dev->type != AUDIOPCI_ES1370))
                 dev->int_status = (dev->int_status & 0xd2ffffff) | (val << 24);
             break;
 
@@ -1282,7 +1282,7 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                 dev->step_pcm              = dev->interp_step;
                 es137x_fetch(dev, 1);
             }
-            // pclog("INTCTRL 0x%02X\n", val & 0xff);
+            // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffff0000) | val;
             break;
         case 0x02:
@@ -1381,7 +1381,9 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
            Addressable as byte, word, longword */
         case 0x00:
             {
-                uint8_t dac1start = 0, dac2start = 0;
+                uint8_t dac1start = 0;
+                uint8_t dac2start = 0;
+
                 if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
                     dev->dac[0].addr           = dev->dac[0].addr_latch;
                     dev->dac[0].buffer_pos     = 0;
@@ -1400,7 +1402,7 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
                     dac2start                  = 1;
                     es137x_fetch(dev, 1);
                 }
-                // pclog("INTCTRL 0x%02X\n", val & 0xff);
+                // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
                 dev->int_ctrl = val;
                 gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
                 es1370_calc_sample_rate(dev);
@@ -1885,9 +1887,9 @@ es1370_pci_read(int func, int addr, void *priv)
             return 0x12;
 
         case 0x02:       /* Device ID */
-            return 0x00; /* ES1370 */
+            return dev->type >> 16; /* ES1370 */
         case 0x03:
-            return 0x50;
+            return dev->type >> 24;
 
         case 0x04: /* Command TODO */
             return dev->pci_command;
@@ -1900,7 +1902,7 @@ es1370_pci_read(int func, int addr, void *priv)
             return 0x00;
 
         case 0x08:       /* Class Code & Revision ID */
-            return 0x00; /* Revision ID - 0x00 is actual Ensoniq-branded ES1370 */
+            return dev->type >> 8; /* Revision ID - 0x00 is actual Ensoniq-branded ES1370 */
         case 0x09:
             return 0x00; /* Multimedia audio device */
         case 0x0a:
@@ -1922,14 +1924,8 @@ es1370_pci_read(int func, int addr, void *priv)
         case 0x13:
             return dev->base_addr >> 24;
 
-        case 0x2c:
-            return 0x42; /* Subsystem vendor ID */
-        case 0x2d:
-            return 0x49;
-        case 0x2e:
-            return 0x4c; /* Subsystem product ID */
-        case 0x2f:
-            return 0x4c;
+        case 0x2c ... 0x2f:
+            return dev->subsys_id[addr & 3]; /* Subsystem vendor ID */
 
 #if 0
         case 0x34: // TODO
@@ -2167,7 +2163,7 @@ es1371_pci_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x40:
-            if ((dev->type >= AUDIOPCI_ES1373) && dev->type != AUDIOPCI_ES1370))
+            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
                 dev->subsys_lock = val;
             break;
 
@@ -2449,7 +2445,7 @@ dac0_count:
 
     if (dev->int_ctrl & INT_DAC2_EN) {
         if (((dev->type >= AUDIOPCI_ES1373) && (dev->int_ctrl & INT_DAC2_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
-            if (dev->calc_sample_rate != 44100 && dev->type == AUDIOPCI_ES1370) {
+            if ((dev->calc_sample_rate != 44100) && (dev->type == AUDIOPCI_ES1370)) {
                 if ((dev->dac[1].buffer_pos - dev->dac[1].buffer_pos_end) >= 0 && dev->step_pcm >= dev->interp_step)
                     es137x_fetch(dev, 1);
 
@@ -2620,6 +2616,7 @@ es1370_init(const device_t *info)
 {
     es137x_t *dev = malloc(sizeof(es137x_t));
     memset(dev, 0x00, sizeof(es137x_t));
+    dev->type = info->local;
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, dev);
@@ -2645,8 +2642,6 @@ es1370_init(const device_t *info)
     dev->pcm_vol_r    = 1 << 15;
     dev->master_vol_l = 1 << 15;
     dev->master_vol_r = 1 << 15;
-
-    dev->type = AUDIOPCI_ES1370;
 
     es137x_reset(dev);
 
@@ -2834,7 +2829,7 @@ const device_t es1370_device = {
     .name          = "Ensoniq AudioPCI (ES1370)",
     .internal_name = "es1370",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = AUDIOPCI_ES1370,
     .init          = es1370_init,
     .close         = es137x_close,
     .reset         = es137x_reset,
