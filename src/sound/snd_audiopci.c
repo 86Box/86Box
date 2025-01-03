@@ -2627,7 +2627,7 @@ es1370_init(const device_t *info)
     dev->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(dev->gameport, 0x200);
 
-    pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1370_pci_read, es1370_pci_write, dev, &dev->pci_slot);
+    pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1370_pci_read, es1370_pci_write, dev, &dev->pci_slot);
 
     timer_add(&dev->dac[1].timer, es137x_poll, dev, 1);
 
