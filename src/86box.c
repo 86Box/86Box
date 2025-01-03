@@ -207,7 +207,7 @@ int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether
                                                                          also apply when maximized. */
 int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
                                                                          loss */
-int      raw_input                              = 0;              /* (C) Use raw input */
+int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
@@ -454,6 +454,8 @@ delete_nvr_file(uint8_t flash)
     fn = NULL;
 }
 
+extern void  device_find_all_descs(void);
+
 /*
  * Perform initial startup of the PC.
  *
@@ -563,7 +565,7 @@ usage:
             printf("-S or --settings        - show only the settings dialog\n");
 #endif
             printf("-V or --vmname name     - overrides the name of the running VM\n");
-            printf("-W or --raw             - uses raw input (compatibility-only outside Windows)\n");
+            printf("-W or --nohook          - disables keyboard hook (compatibility-only outside Windows)\n");
             printf("-X or --clear what      - clears the 'what' (cmos/flash/both)\n");
             printf("-Y or --donothing       - do not show any UI or run the emulation\n");
             printf("-Z or --lastvmpath      - the last parameter is VM path rather than config\n");
@@ -639,8 +641,8 @@ usage:
             dump_missing = 1;
         } else if (!strcasecmp(argv[c], "--donothing") || !strcasecmp(argv[c], "-Y")) {
             do_nothing = 1;
-        } else if (!strcasecmp(argv[c], "--raw") || !strcasecmp(argv[c], "-W")) {
-            raw_input = 1;
+        } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
+            hook_enabled = 0;
         } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
             if ((c + 1) == argc)
                 goto usage;

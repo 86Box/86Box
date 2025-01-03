@@ -1426,33 +1426,11 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
     buf[8] = 0x00;
 }
 
+/* TODO: Actually implement this properly. */
 void
 cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
 {
-    track_info_t ti;
-    int          first_track;
-    int          last_track;
-
-    if (dev != NULL) {
-        dev->ops->get_tracks(dev, &first_track, &last_track);
-        dev->ops->get_track_info(dev, *curtoctrk, 0, &ti);
-        buf[0] = (ti.attr << 4) & 0xf0;
-        buf[1] = ti.number;
-        buf[2] = bin2bcd(*curtoctrk + 1);
-        buf[3] = ti.m;
-        buf[4] = ti.s;
-        buf[5] = ti.f;
-        buf[6] = 0x00;
-        dev->ops->get_track_info(dev, 1, 0, &ti);
-        buf[7] = ti.m;
-        buf[8] = ti.s;
-        buf[9] = ti.f;
-        if (*curtoctrk >= (last_track + 1))
-            *curtoctrk = 0;
-        else if (mode)
-            *curtoctrk = *curtoctrk + 1;
-    } else
-        memset(buf, 0x00, 10);
+    memset(buf, 0x00, 10);
 }
 
 uint8_t
@@ -2196,7 +2174,7 @@ cdrom_exit(uint8_t id)
 
     memset(dev->image_path, 0, sizeof(dev->image_path));
 
-    pclog("cdrom_exit(%i): cdrom_insert(%i)\n", id, id);
+    cdrom_log("cdrom_exit(%i): cdrom_insert(%i)\n", id, id);
     cdrom_insert(id);
 }
 
@@ -2274,7 +2252,7 @@ cdrom_reload(uint8_t id)
 #endif
 
         /* Signal media change to the emulated machine. */
-        pclog("cdrom_reload(%i): cdrom_insert(%i)\n", id, id);
+        cdrom_log("cdrom_reload(%i): cdrom_insert(%i)\n", id, id);
         cdrom_insert(id);
 
         /* The drive was previously empty, transition directly to UNIT ATTENTION. */

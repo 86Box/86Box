@@ -64,9 +64,7 @@ WindowsRawInputFilter::Register(MainWindow *window)
          .hwndTarget  = nullptr}
     };
 
-    if (raw_input && (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE))
-            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
-    else if (!raw_input && RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0])) == FALSE)
+    if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
             return std::unique_ptr<WindowsRawInputFilter>(nullptr);
 
     std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
@@ -97,10 +95,7 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
          .hwndTarget  = NULL}
     };
 
-    if (raw_input)
-        RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
-    else
-        RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0]));
+    RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
 }
 
 bool

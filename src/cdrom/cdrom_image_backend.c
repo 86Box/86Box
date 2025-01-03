@@ -436,7 +436,7 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
     const uint64_t       seek         = (sect + 150 - idx->start + idx->file_start) * trk->sector_size;
  
     cdrom_image_backend_log("cdrom_read_sector(%08X): track %02X, index %02X, %016" PRIX64 ", %016" PRIX64 ", %i\n",
-                            sector, track, index, trk->start, trk->sector_size);
+                            sector, track, index, idx->start, trk->sector_size);
 
     if (track_is_raw)
         raw_size = trk->sector_size;
@@ -1477,12 +1477,18 @@ cdi_close(cd_img_t *cdi)
 int
 cdi_set_device(cd_img_t *cdi, const char *path)
 {
-    int ret;
+    uintptr_t ext = path + strlen(path) - strrchr(path, '.');
+    int       ret;
 
-    if ((ret = cdi_load_cue(cdi, path)))
-        return ret;
+    cdrom_image_backend_log("cdi_set_device(): %" PRIu64 ", %lli, %s\n",
+                            ext, strlen(path), path + strlen(path) - ext + 1);
 
-    cdi_clear_tracks(cdi);
+    if ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CUE")) {
+        if ((ret = cdi_load_cue(cdi, path)))
+            return ret;
+
+        cdi_clear_tracks(cdi);
+    }
 
     if ((ret = cdi_load_iso(cdi, path)))
         return ret;
