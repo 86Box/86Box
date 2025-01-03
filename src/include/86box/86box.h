@@ -165,7 +165,7 @@ extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 #endif
 extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
-extern int    raw_input;                    /* (C) Use raw input */
+extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 
 /* Keyboard variables for future key combination redefinition. */
 extern uint16_t key_prefix_1_1;
