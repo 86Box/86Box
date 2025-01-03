@@ -200,22 +200,8 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     BOOL              bCtrlDown = GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
     BOOL              is_over_window = (GetForegroundWindow() == ((HWND) main_window->winId()));
     BOOL              ret       = TRUE;
-/* Leave this in, in case we have to still bring hook input back. */
-#ifdef HOOK_INPUT_TESTS
+
     static int        last      = 0;
-
-    pclog("Old: %08X, %08X, %08X, %i\n", lpKdhs->scanCode, lpKdhs->flags, lpKdhs->vkCode, last);
-
-    if (!last && (lpKdhs->scanCode == 0x00000036))
-        lpKdhs->flags &= ~LLKHF_EXTENDED;
-
-    if (lpKdhs->scanCode == 0x00000236)
-        last = 1;
-    else if (last && (lpKdhs->scanCode == 0x00000036))
-        last = 0;
-
-    pclog("New: %08X, %08X, %08X, %i\n", lpKdhs->scanCode, lpKdhs->flags, lpKdhs->vkCode, last);
-#endif
 
     if (show_second_monitors)  for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
         const auto &secondaryRenderer = main_window->renderers[monitor_index];
@@ -246,7 +232,26 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
         ret = TRUE;
     else
-        return CallNextHookEx(NULL, nCode, wParam, lParam);
+        ret = CallNextHookEx(NULL, nCode, wParam, lParam);
+
+    if (lpKdhs->scanCode == 0x00000045) {
+        if ((lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000090)) {
+             /* NumLock. */
+             lpKdhs->flags &= ~LLKHF_EXTENDED;
+        } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
+            /* Pause - send E1 1D. */
+            pclog("Send E1 1D\n");
+            win_keyboard_handle(0xe1, 0, 0, 0);
+            win_keyboard_handle(0x1d, 0, 0, 0);
+        }
+    } else if (!last && (lpKdhs->scanCode == 0x00000036))
+        /* Non-fake right shift. */
+        lpKdhs->flags &= ~LLKHF_EXTENDED;
+
+    if (lpKdhs->scanCode == 0x00000236)
+        last = 1;
+    else if (last && (lpKdhs->scanCode == 0x00000036))
+        last = 0;
 
     win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
 

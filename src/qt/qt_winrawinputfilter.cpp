@@ -66,7 +66,9 @@ WindowsRawInputFilter::Register(MainWindow *window)
          .hwndTarget  = nullptr}
     };
 
-    if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
+    if (hook_enabled && (RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0])) == FALSE))
+            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    else if (!hook_enabled && (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE))
             return std::unique_ptr<WindowsRawInputFilter>(nullptr);
 
     std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
@@ -97,7 +99,10 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
          .hwndTarget  = NULL}
     };
 
-    RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+    if (hook_enabled)
+        RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0]));
+    else
+        RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
 }
 
 bool
@@ -155,10 +160,8 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
                     mouse_handle(raw);
                 break;
             case RIM_TYPEHID:
-                {
-                    win_joystick_handle(raw);
-                    break;
-                }
+                win_joystick_handle(raw);
+                break;
         }
     }
 }
