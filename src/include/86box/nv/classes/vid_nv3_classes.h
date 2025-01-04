@@ -75,7 +75,7 @@ typedef struct nv3_color_16_a4r4g4b4_s
 } nv3_color_16_a4r4g4b4_t;
 
 /* A1R5G5B5 format */
-typedef struct nv3_color_16_a1r5g5b5_s;
+typedef struct nv3_color_16_a1r5g5b5_s
 {
     uint8_t a : 1;
     uint8_t r : 5;
@@ -491,6 +491,25 @@ typedef struct nv3_object_class_00E
     uint8_t reserved[0x100];
     uint32_t set_notify;
     uint8_t reserved2[0x200];
+    nv3_position_16_t clip_0;
+    nv3_size_16_t clip_1;
+    nv3_position_16_t rectangle_out_0;
+    nv3_size_16_t rectangle_out_1;
+    // Calculus in a graphics card
+    uint32_t delta_du_dx;
+    uint32_t delta_dv_dy;
+    uint8_t reserved3[0xE0];
+    nv3_size_16_t size; // can be size_y if YUV420
+    uint32_t pitch;
+    uint32_t offset;
+    uint32_t point;
+    // YUV420 stuff
+    uint32_t pitch_yuv420;
+    uint32_t offset_y;
+    uint32_t offset_u;
+    uint32_t offset_v;
+    uint32_t point_yuv420;
+    uint8_t reserved4[0x1BE7];  // pad to 0x2000
 } nv3_scaled_image_from_memory_t;
 
 /* WHY IS THE FORMAT DIFFERENT TO THE REST OF THE GPU? 
