@@ -98,8 +98,13 @@ typedef struct nv3_position_16_s
     {
         uint32_t pos;
 
-        uint16_t y;
-        uint16_t x;
+        struct vid_nv3_classes
+        {
+            uint16_t y;
+            uint16_t x;
+        };
+        
+    
     } position;
 } nv3_position_16_t;
 
@@ -110,8 +115,13 @@ typedef struct nv3_size_16_s
     {
         uint32_t size;
 
-        uint16_t h;
-        uint16_t w;
+        struct 
+        {
+            uint16_t h;
+            uint16_t w;
+        };
+        
+
     } size;
 } nv3_size_16_t;
 
@@ -166,7 +176,7 @@ typedef struct nv3_object_class_001
 typedef struct nv3_object_class_002
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0xFF];
+    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F8];
     uint8_t rop;                    // ROP3 (ID = ????????)
@@ -182,7 +192,7 @@ typedef struct nv3_object_class_002
 typedef struct nv3_object_class_003
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0xFF];
+    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F8];
     uint8_t color;                  // ROP3 (ID = ????????)
@@ -198,7 +208,7 @@ typedef struct nv3_object_class_003
 typedef struct nv3_object_class_004
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0xFF];
+    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F8];
     uint8_t color;                  // ROP3 (ID = ????????)
@@ -214,7 +224,7 @@ typedef struct nv3_object_class_004
 typedef struct nv3_object_class_005
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0xFF];
+    uint8_t reserved[0X100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1F4];
 
@@ -234,7 +244,7 @@ typedef struct nv3_object_class_005
 typedef struct nv3_object_class_006
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0xFF];
+    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x200];
     uint32_t shape;                 // 0 = 8x8, 1 = 64x1, 2 = 1x64
@@ -256,7 +266,7 @@ typedef struct nv3_object_class_007
     uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
     uint8_t reserved2[0x1FC];
-    uint8_t color;                  // ROP3 (ID = ????????)
+    uint32_t color;                 // The colour
     uint8_t reserved3[0xF8];
     nv3_position_16_t position[16];
     nv3_size_16_t size[16];
@@ -452,9 +462,9 @@ typedef struct nv3_object_class_00C
 typedef struct nv3_object_class_00D
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved2[0x100];
+    uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved3[0x204];
+    uint8_t reserved2[0x204];
     uint32_t offset_in;
     uint32_t offset_out;
     uint32_t pitch_in;
@@ -463,9 +473,9 @@ typedef struct nv3_object_class_00D
     uint32_t line_count;
     uint8_t format_input_bits;                      // 1 2 or 4 to increment by bits
     uint8_t format_output_bits;                     // 1 2 to 4 to increment by bits
-    uint8_t reserved4[2];
+    uint8_t reserved3[2];
     uint32_t buffer_notify;                         // Notify the Buffedr
-    uint8_t reserved5[0x1CD3];  
+    uint8_t reserved4[0x1CD3];  
 } nv3_memory_to_memory_format_t;
 
 /* 
@@ -478,6 +488,9 @@ typedef struct nv3_object_class_00D
 typedef struct nv3_object_class_00E
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
+    uint8_t reserved[0x100];
+    uint32_t set_notify;
+    uint8_t reserved2[0x200];
 } nv3_scaled_image_from_memory_t;
 
 /* WHY IS THE FORMAT DIFFERENT TO THE REST OF THE GPU? 
