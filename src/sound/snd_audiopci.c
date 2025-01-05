@@ -2828,6 +2828,10 @@ static const device_config_t ct5880_config[] = {
                 .description = "SigmaTel STAC9721T (stereo)",
                 .value = AC97_CODEC_STAC9721
             },
+            {
+                .description = "TriTech TR28023 / Creative CT1297",
+                .value = AC97_CODEC_TR28023
+            },
             { .description = "" }
         },
         .default_int = AC97_CODEC_STAC9708
