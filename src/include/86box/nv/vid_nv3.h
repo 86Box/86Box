@@ -183,7 +183,6 @@ extern const device_config_t nv3_config[];
 #define NV3_PMC_ENABLE_PVIDEO                           28
 #define NV3_PMC_ENABLE_PVIDEO_ENABLED                   0x1
 
-
 #define NV3_PMC_END                                     0xfff       // overlaps with CIO
 #define NV3_CIO_START                                   0x3b0       // Legacy SVGA Emulation Subsystem
 #define NV3_CIO_END                                     0x3df
@@ -194,8 +193,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PBUS_PCI_END                                0x18FF      // PCI mirror end
 #define NV3_PBUS_END                                    0x1FFF
 #define NV3_PFIFO_START                                 0x2000      // FIFO for DMA Object Submission (uses hashtable to store the objects)
+
 #define NV3_PFIFO_INTR                                  0x2100      // FIFO - Interrupt Status
 #define NV3_PFIFO_INTR_EN                               0x2140      // FIFO - Interrupt Enable
+
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
 #define NV3_PRM_INTR                                    0x4100
