@@ -20,6 +20,15 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
+    void on_comboBoxLpt1_currentIndexChanged(int index);
+    void on_pushButtonConfigureLpt1_clicked();
+    void on_comboBoxLpt2_currentIndexChanged(int index);
+    void on_pushButtonConfigureLpt2_clicked();
+    void on_comboBoxLpt3_currentIndexChanged(int index);
+    void on_pushButtonConfigureLpt3_clicked();
+    void on_comboBoxLpt4_currentIndexChanged(int index);
+    void on_pushButtonConfigureLpt4_clicked();
+
     void on_checkBoxParallel1_stateChanged(int state);
     void on_checkBoxParallel2_stateChanged(int state);
     void on_checkBoxParallel3_stateChanged(int state);

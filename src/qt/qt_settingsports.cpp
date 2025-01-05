@@ -111,11 +111,17 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
         cbox[i]->setCurrentIndex(-1);
         cbox[i]->setCurrentIndex(selectedRows[i]);
 
-        auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
+        auto *checkBox  = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
+        auto *buttonCfg = findChild<QPushButton *>(QString("pushButtonConfigureLpt%1").arg(i + 1));
         if (checkBox != NULL)
             checkBox->setChecked(lpt_ports[i].enabled > 0);
-        if (cbox[i] != NULL)
+        if (cbox[i] != NULL) {
             cbox[i]->setEnabled(lpt_ports[i].enabled > 0);
+            if (buttonCfg != NULL) {
+                int lptDevice = cbox[i]->currentData().toInt();
+                buttonCfg->setEnabled(lpt_device_has_config(lptDevice) && (lpt_ports[i].enabled > 0));
+            }
+        }
     }
 
     for (int i = 0; i < (SERIAL_MAX - 1); i++) {
@@ -130,6 +136,86 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             buttonPass->setEnabled((com_ports[i].enabled > 0) && serial_passthrough_enabled[i]);
         }
     }
+}
+
+void
+SettingsPorts::on_comboBoxLpt1_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    int lptDevice = ui->comboBoxLpt1->currentData().toInt();
+
+    ui->pushButtonConfigureLpt1->setEnabled(lpt_device_has_config(lptDevice));
+}
+
+void
+SettingsPorts::on_pushButtonConfigureLpt1_clicked()
+{
+    int   lptDevice = ui->comboBoxLpt1->currentData().toInt();
+    auto *device    = lpt_device_getdevice(lptDevice);
+
+    DeviceConfig::ConfigureDevice(device, 1);
+}
+
+void
+SettingsPorts::on_comboBoxLpt2_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    int lptDevice = ui->comboBoxLpt2->currentData().toInt();
+
+    ui->pushButtonConfigureLpt2->setEnabled(lpt_device_has_config(lptDevice));
+}
+
+void
+SettingsPorts::on_pushButtonConfigureLpt2_clicked()
+{
+    int   lptDevice = ui->comboBoxLpt2->currentData().toInt();
+    auto *device    = lpt_device_getdevice(lptDevice);
+
+    DeviceConfig::ConfigureDevice(device, 1);
+}
+
+void
+SettingsPorts::on_comboBoxLpt3_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    int lptDevice = ui->comboBoxLpt3->currentData().toInt();
+
+    ui->pushButtonConfigureLpt3->setEnabled(lpt_device_has_config(lptDevice));
+}
+
+void
+SettingsPorts::on_pushButtonConfigureLpt3_clicked()
+{
+    int   lptDevice = ui->comboBoxLpt3->currentData().toInt();
+    auto *device    = lpt_device_getdevice(lptDevice);
+
+    DeviceConfig::ConfigureDevice(device, 1);
+}
+
+void
+SettingsPorts::on_comboBoxLpt4_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    int lptDevice = ui->comboBoxLpt4->currentData().toInt();
+
+    ui->pushButtonConfigureLpt4->setEnabled(lpt_device_has_config(lptDevice));
+}
+
+void
+SettingsPorts::on_pushButtonConfigureLpt4_clicked()
+{
+    int   lptDevice = ui->comboBoxLpt4->currentData().toInt();
+    auto *device    = lpt_device_getdevice(lptDevice);
+
+    DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
