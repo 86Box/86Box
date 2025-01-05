@@ -423,9 +423,9 @@ es1370_calc_sample_rate(es137x_t *dev)
         dev->calc_sample_rate = 5512;
     }
 
-    dev->calc_sample_rate_synth = 44100 / (1 << ((dev->int_ctrl >> 12) & 3));
-    dev->interp_factor_synth    = 1. / (double) (1 << ((dev->int_ctrl >> 12) & 3));
-    dev->interp_step_synth      = (1 << ((dev->int_ctrl >> 12) & 3));
+    dev->calc_sample_rate_synth = 44100 / (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
+    dev->interp_factor_synth    = 1. / (double) ((1 << ((dev->int_ctrl >> 12) & 3) ^ 3));
+    dev->interp_step_synth      = (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
 }
 
 static void
