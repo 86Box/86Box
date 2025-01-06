@@ -197,6 +197,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_INTR                                  0x2100      // FIFO - Interrupt Status
 #define NV3_PFIFO_INTR_EN                               0x2140      // FIFO - Interrupt Enable
 
+#define NV3_PFIFO_CONFIG_0                              0x2200
+#define NV3_PFIFO_CONFIG_0_DMA_FETCH                    8
+#define NV3_PFIFO_CONFIG_RAMHT                          0x2210
+
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
 #define NV3_PRM_INTR                                    0x4100
@@ -669,7 +673,7 @@ typedef struct nv3_pbus_s
 } nv3_pbus_t;
 
 // Command submission to PGRAPH
-typedef struct nv_pfifo_s
+typedef struct nv3_pfifo_s
 {
     uint32_t interrupt_status;          // Interrupt status
     uint32_t interrupt_enable;          // Interrupt enable
@@ -715,6 +719,16 @@ typedef struct nv3_pramdac_s
     uint32_t hserr_width;       // horizontal sync error width
 } nv3_pramdac_t;
 
+typedef struct nv3_pgraph_context_switch_s
+{
+    
+} nv3_pgraph_context_switch_t;
+
+typedef struct nv3_pgraph_context_control_s
+{
+
+} nv3_pgraph_context_control_t;
+
 // Graphics Subsystem
 typedef struct nv3_pgraph_s
 {
@@ -723,6 +737,8 @@ typedef struct nv3_pgraph_s
     uint32_t interrupt_status_1;          // Interrupt status 1
     uint32_t interrupt_enable_1;          // Interrupt enable 1
 
+    nv3_pgraph_context_control_t context_control;
+    nv3_pgraph_context_switch_t context_user_submit;
     uint32_t context_cache[NV3_PGRAPH_CONTEXT_CACHE_SIZE];  // DMA context cache 
 } nv3_pgraph_t;
 
