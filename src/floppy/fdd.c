@@ -294,7 +294,7 @@ fdd_type_invert_densel(int type)
     int ret;
 
     if (drive_types[type].flags & FLAG_PS2)
-        ret = !!strstr(machine_getname(), "PS/");
+        ret = (!!strstr(machine_getname(), "PS/1")) || (!!strstr(machine_getname(), "PS/2"));
     else
         ret = drive_types[type].flags & FLAG_INVERT_DENSEL;
 
