@@ -392,8 +392,7 @@ umc_8886_close(void *priv)
 static void *
 umc_8886_init(const device_t *info)
 {
-    umc_8886_t *dev = (umc_8886_t *) malloc(sizeof(umc_8886_t));
-    memset(dev, 0, sizeof(umc_8886_t));
+    umc_8886_t *dev = (umc_8886_t *) calloc(1, sizeof(umc_8886_t));
 
     /* Device 12: UMC 8886xx */
     pci_add_card(PCI_ADD_SOUTHBRIDGE, umc_8886_read, umc_8886_write, dev, &dev->pci_slot);

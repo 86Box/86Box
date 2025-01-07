@@ -594,8 +594,7 @@ headland_init(const device_t *info)
     headland_t *dev;
     int         ht386 = 0;
 
-    dev = (headland_t *) malloc(sizeof(headland_t));
-    memset(dev, 0x00, sizeof(headland_t));
+    dev = (headland_t *) calloc(1, sizeof(headland_t));
 
     dev->has_cri   = (info->local & HEADLAND_HAS_CRI);
     dev->has_sleep = (info->local & HEADLAND_HAS_SLEEP);

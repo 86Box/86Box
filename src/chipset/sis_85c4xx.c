@@ -368,8 +368,7 @@ sis_85c4xx_close(void *priv)
 static void *
 sis_85c4xx_init(const device_t *info)
 {
-    sis_85c4xx_t *dev = (sis_85c4xx_t *) malloc(sizeof(sis_85c4xx_t));
-    memset(dev, 0, sizeof(sis_85c4xx_t));
+    sis_85c4xx_t *dev = (sis_85c4xx_t *) calloc(1, sizeof(sis_85c4xx_t));
 
     dev->is_471 = (info->local >> 8) & 0xff;
 

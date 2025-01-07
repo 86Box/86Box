@@ -1080,8 +1080,7 @@ threec501_nic_init(UNUSED(const device_t *info))
     uint32_t     mac;
     threec501_t *dev;
 
-    dev = malloc(sizeof(threec501_t));
-    memset(dev, 0x00, sizeof(threec501_t));
+    dev = calloc(1, sizeof(threec501_t));
     dev->maclocal[0] = 0x02; /* 02:60:8C (3Com OID) */
     dev->maclocal[1] = 0x60;
     dev->maclocal[2] = 0x8C;

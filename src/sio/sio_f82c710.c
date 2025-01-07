@@ -364,8 +364,7 @@ f82c710_close(void *priv)
 static void *
 f82c710_init(const device_t *info)
 {
-    upc_t *dev = (upc_t *) malloc(sizeof(upc_t));
-    memset(dev, 0, sizeof(upc_t));
+    upc_t *dev = (upc_t *) calloc(1, sizeof(upc_t));
     dev->local = info->local;
 
     if (dev->local == 606) {

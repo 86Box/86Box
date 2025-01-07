@@ -2320,8 +2320,7 @@ pas16_init(const device_t *info)
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
-    pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(pas16->mpu, 0, sizeof(mpu_t));
+    pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
 

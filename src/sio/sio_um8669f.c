@@ -328,8 +328,7 @@ um8669f_init(const device_t *info)
 {
     um8669f_log("UM8669F: init(%02X)\n", info->local);
 
-    um8669f_t *dev = (um8669f_t *) malloc(sizeof(um8669f_t));
-    memset(dev, 0, sizeof(um8669f_t));
+    um8669f_t *dev = (um8669f_t *) calloc(1, sizeof(um8669f_t));
 
     dev->pnp_card = isapnp_add_card(um8669f_pnp_rom, sizeof(um8669f_pnp_rom), um8669f_pnp_config_changed, NULL, NULL, NULL, dev);
     for (uint8_t i = 0; i < (sizeof(um8669f_pnp_defaults) / sizeof(isapnp_device_config_t)); i++)

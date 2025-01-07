@@ -358,8 +358,7 @@ ct_82c100_init(UNUSED(const device_t *info))
 {
     ct_82c100_t *dev;
 
-    dev = (ct_82c100_t *) malloc(sizeof(ct_82c100_t));
-    memset(dev, 0x00, sizeof(ct_82c100_t));
+    dev = (ct_82c100_t *) calloc(1, sizeof(ct_82c100_t));
 
     ct_82c100_reset(dev);
 

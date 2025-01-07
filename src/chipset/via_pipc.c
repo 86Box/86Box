@@ -1627,8 +1627,7 @@ pipc_reset(void *priv)
 static void *
 pipc_init(const device_t *info)
 {
-    pipc_t *dev = (pipc_t *) malloc(sizeof(pipc_t));
-    memset(dev, 0, sizeof(pipc_t));
+    pipc_t *dev = (pipc_t *) calloc(1, sizeof(pipc_t));
 
     pipc_log("PIPC: init()\n");
 

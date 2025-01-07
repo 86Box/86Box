@@ -725,8 +725,7 @@ via_apollo_reset(void *priv)
 static void *
 via_apollo_init(const device_t *info)
 {
-    via_apollo_t *dev = (via_apollo_t *) malloc(sizeof(via_apollo_t));
-    memset(dev, 0, sizeof(via_apollo_t));
+    via_apollo_t *dev = (via_apollo_t *) calloc(1, sizeof(via_apollo_t));
 
     dev->smram = smram_add();
     if (dev->id != VIA_8601)

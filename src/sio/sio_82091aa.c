@@ -257,8 +257,7 @@ i82091aa_close(void *priv)
 static void *
 i82091aa_init(const device_t *info)
 {
-    i82091aa_t *dev = (i82091aa_t *) malloc(sizeof(i82091aa_t));
-    memset(dev, 0, sizeof(i82091aa_t));
+    i82091aa_t *dev = (i82091aa_t *) calloc(1, sizeof(i82091aa_t));
 
     dev->fdc = device_add(&fdc_at_device);
 

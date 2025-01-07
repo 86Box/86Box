@@ -912,15 +912,13 @@ nic_init(const device_t *info)
 {
     uint32_t mac;
     uint32_t mac_oui;
-    char    *rom;
+    char    *rom = NULL;
     nic_t   *dev;
     int      set_oui = 0;
 
-    dev = malloc(sizeof(nic_t));
-    memset(dev, 0x00, sizeof(nic_t));
+    dev = calloc(1, sizeof(nic_t));
     dev->name  = info->name;
     dev->board = info->local;
-    rom        = NULL;
 
     if (dev->board >= NE2K_RTL8019AS) {
         dev->base_address = 0x340;

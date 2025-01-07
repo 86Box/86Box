@@ -2314,8 +2314,7 @@ fdc_close(void *priv)
 static void *
 fdc_init(const device_t *info)
 {
-    fdc_t *fdc = (fdc_t *) malloc(sizeof(fdc_t));
-    memset(fdc, 0, sizeof(fdc_t));
+    fdc_t *fdc = (fdc_t *) calloc(1, sizeof(fdc_t));
 
     fdc->flags = info->local;
 

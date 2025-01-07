@@ -884,7 +884,7 @@ wd76c10_init(const device_t *info)
     wd76c10_t *dev = (wd76c10_t *) calloc(1, sizeof(wd76c10_t));
     uint32_t total_mem = mem_size << 10;
     uint32_t accum_mem = 0x00000000;
-    ram_bank_t *rb;
+    ram_bank_t *rb = NULL;
 
     /* Calculate the physical RAM banks. */
     for (uint8_t i = 0; i < 4; i++) {

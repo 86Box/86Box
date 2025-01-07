@@ -467,8 +467,7 @@ pc87306_close(void *priv)
 static void *
 pc87306_init(UNUSED(const device_t *info))
 {
-    pc87306_t *dev = (pc87306_t *) malloc(sizeof(pc87306_t));
-    memset(dev, 0, sizeof(pc87306_t));
+    pc87306_t *dev = (pc87306_t *) calloc(1, sizeof(pc87306_t));
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 

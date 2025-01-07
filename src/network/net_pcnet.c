@@ -2916,8 +2916,7 @@ pcnet_init(const device_t *info)
     int      c;
     uint16_t checksum;
 
-    dev = malloc(sizeof(nic_t));
-    memset(dev, 0x00, sizeof(nic_t));
+    dev = calloc(1, sizeof(nic_t));
     dev->name  = info->name;
     dev->board = info->local & 0xff;
 

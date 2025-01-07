@@ -131,9 +131,7 @@ pc_cas_free(pc_cassette_t *cas)
 pc_cassette_t *
 pc_cas_new(void)
 {
-    pc_cassette_t *cas;
-
-    cas = malloc(sizeof(pc_cassette_t));
+    pc_cassette_t *cas = calloc(1, sizeof( pc_cassette_t));
 
     if (cas == NULL) {
         return (NULL);

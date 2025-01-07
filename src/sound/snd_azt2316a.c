@@ -974,8 +974,7 @@ azt_init(const device_t *info)
     int         loaded_from_eeprom = 0;
     uint16_t    addr_setting;
     uint8_t     read_eeprom[AZTECH_EEPROM_SIZE];
-    azt2316a_t *azt2316a = malloc(sizeof(azt2316a_t));
-    memset(azt2316a, 0, sizeof(azt2316a_t));
+    azt2316a_t *azt2316a = calloc(1, sizeof(azt2316a_t));
 
     azt2316a->type = info->local;
 
@@ -1226,8 +1225,7 @@ azt_init(const device_t *info)
       2x4 to 2x5 -> Mixer interface
       2x6, 2xA, 2xC, 2xE -> DSP chip
       2x8, 2x9, 388 and 389 FM chip (9 voices).*/
-    azt2316a->sb = malloc(sizeof(sb_t));
-    memset(azt2316a->sb, 0, sizeof(sb_t));
+    azt2316a->sb = calloc(1, sizeof(sb_t));
 
     azt2316a->sb->opl_enabled = device_get_config_int("opl");
 
@@ -1259,8 +1257,7 @@ azt_init(const device_t *info)
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
     if (azt2316a->cur_mpu401_enabled) {
-        azt2316a->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-        memset(azt2316a->mpu, 0, sizeof(mpu_t));
+        azt2316a->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         mpu401_init(azt2316a->mpu, azt2316a->cur_mpu401_addr, azt2316a->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
     } else
         azt2316a->mpu = NULL;

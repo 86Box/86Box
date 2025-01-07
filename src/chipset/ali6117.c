@@ -466,8 +466,7 @@ ali6117_init(const device_t *info)
 
     ali6117_log("ALI6117: init()\n");
 
-    ali6117_t *dev = (ali6117_t *) malloc(sizeof(ali6117_t));
-    memset(dev, 0, sizeof(ali6117_t));
+    ali6117_t *dev = (ali6117_t *) calloc(1, sizeof(ali6117_t));
 
     dev->local = info->local;
 

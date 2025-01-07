@@ -1538,8 +1538,7 @@ piix_speed_changed(void *priv)
 static void *
 piix_init(const device_t *info)
 {
-    piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
-    memset(dev, 0, sizeof(piix_t));
+    piix_t *dev = (piix_t *) calloc(1, sizeof(piix_t));
 
     dev->type = info->local & 0x0f;
     /* If (dev->type == 4) and (dev->rev & 0x08), then this is PIIX4E. */

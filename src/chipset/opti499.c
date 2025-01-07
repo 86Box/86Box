@@ -242,8 +242,7 @@ opti499_close(void *priv)
 static void *
 opti499_init(UNUSED(const device_t *info))
 {
-    opti499_t *dev = (opti499_t *) malloc(sizeof(opti499_t));
-    memset(dev, 0, sizeof(opti499_t));
+    opti499_t *dev = (opti499_t *) calloc(1, sizeof(opti499_t));
 
     device_add(&port_92_device);
 

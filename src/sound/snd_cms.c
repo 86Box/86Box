@@ -181,8 +181,7 @@ cms_read(uint16_t addr, void *priv)
 void *
 cms_init(UNUSED(const device_t *info))
 {
-    cms_t *cms = malloc(sizeof(cms_t));
-    memset(cms, 0, sizeof(cms_t));
+    cms_t *cms = calloc(1, sizeof(cms_t));
 
     uint16_t addr = device_get_config_hex16("base");
     io_sethandler(addr, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);

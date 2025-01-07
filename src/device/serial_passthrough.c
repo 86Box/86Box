@@ -178,8 +178,7 @@ serial_passthrough_dev_init(const device_t *info)
 {
     serial_passthrough_t *dev;
 
-    dev = (serial_passthrough_t *) malloc(sizeof(serial_passthrough_t));
-    memset(dev, 0, sizeof(serial_passthrough_t));
+    dev = (serial_passthrough_t *) calloc(1, sizeof(serial_passthrough_t));
     dev->mode = device_get_config_int("mode");
 
     dev->port      = device_get_instance() - 1;

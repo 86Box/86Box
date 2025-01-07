@@ -353,8 +353,7 @@ w83769f_close(void *priv)
 static void *
 w83769f_init(const device_t *info)
 {
-    w83769f_t *dev = (w83769f_t *) malloc(sizeof(w83769f_t));
-    memset(dev, 0x00, sizeof(w83769f_t));
+    w83769f_t *dev = (w83769f_t *) calloc(1, sizeof(w83769f_t));
 
     dev->id = next_id | 0x60;
 

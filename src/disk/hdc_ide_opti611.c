@@ -317,8 +317,7 @@ opti611_close(void *priv)
 static void *
 opti611_init(UNUSED(const device_t *info))
 {
-    opti611_t *dev = (opti611_t *) malloc(sizeof(opti611_t));
-    memset(dev, 0, sizeof(opti611_t));
+    opti611_t *dev = (opti611_t *) calloc(1, sizeof(opti611_t));
 
     dev->is_sec = info->local;
 

@@ -1162,8 +1162,7 @@ spock_mca_reset(void *priv)
 static void *
 spock_init(const device_t *info)
 {
-    spock_t *scsi = malloc(sizeof(spock_t));
-    memset(scsi, 0x00, sizeof(spock_t));
+    spock_t *scsi = calloc(1, sizeof(spock_t));
 
     scsi->bus = scsi_get_bus();
 

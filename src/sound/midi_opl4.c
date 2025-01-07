@@ -658,8 +658,7 @@ opl4_init(const device_t *info)
     midi_device_t *dev;
     extern void    al_set_midi(int freq, int buf_size);
 
-    dev = malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    dev = calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = opl4_midi_msg;
     dev->play_sysex = opl4_midi_sysex;

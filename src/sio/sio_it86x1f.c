@@ -799,8 +799,7 @@ it86x1f_close(void *priv)
 static void *
 it86x1f_init(UNUSED(const device_t *info))
 {
-    it86x1f_t *dev = (it86x1f_t *) malloc(sizeof(it86x1f_t));
-    memset(dev, 0, sizeof(it86x1f_t));
+    it86x1f_t *dev = (it86x1f_t *) calloc(1, sizeof(it86x1f_t));
 
     uint8_t i;
     for (i = 0; i < (sizeof(it86x1f_models) / sizeof(it86x1f_models[0])); i++) {

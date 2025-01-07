@@ -1348,12 +1348,10 @@ gus_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     uint8_t gus_ram = device_get_config_int("gus_ram");
-    gus_t  *gus     = malloc(sizeof(gus_t));
-    memset(gus, 0x00, sizeof(gus_t));
+    gus_t  *gus     = calloc(1, sizeof(gus_t));
 
     gus->gus_end_ram = 1 << (18 + gus_ram);
-    gus->ram         = (uint8_t *) malloc(gus->gus_end_ram);
-    memset(gus->ram, 0x00, (gus->gus_end_ram));
+    gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
         gus->ctrl[c]  = 1;

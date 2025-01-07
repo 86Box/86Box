@@ -920,8 +920,7 @@ wd1007vse1_init(UNUSED(const device_t *info))
 {
     int c;
 
-    esdi_t *esdi = malloc(sizeof(esdi_t));
-    memset(esdi, 0x00, sizeof(esdi_t));
+    esdi_t *esdi = calloc(1, sizeof(esdi_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {

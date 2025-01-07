@@ -619,8 +619,7 @@ vid_init_1512(amstrad_t *ams)
     amsvid_t *vid;
 
     /* Allocate a video controller block. */
-    vid = (amsvid_t *) malloc(sizeof(amsvid_t));
-    memset(vid, 0x00, sizeof(amsvid_t));
+    vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc1512);
 
@@ -823,8 +822,7 @@ vid_init_1640(amstrad_t *ams)
     amsvid_t *vid;
 
     /* Allocate a video controller block. */
-    vid = (amsvid_t *) malloc(sizeof(amsvid_t));
-    memset(vid, 0x00, sizeof(amsvid_t));
+    vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
 
     rom_init(&vid->bios_rom, "roms/machines/pc1640/40100",
              0xc0000, 0x8000, 0x7fff, 0, 0);
@@ -1620,8 +1618,7 @@ vid_init_200(amstrad_t *ams)
     mda_t    *mda;
 
     /* Allocate a video controller block. */
-    vid = (amsvid_t *) malloc(sizeof(amsvid_t));
-    memset(vid, 0x00, sizeof(amsvid_t));
+    vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
 
     vid->emulation = device_get_config_int("video_emulation");
 
@@ -2870,8 +2867,7 @@ machine_amstrad_init(const machine_t *model, int type)
 {
     amstrad_t *ams;
 
-    ams = (amstrad_t *) malloc(sizeof(amstrad_t));
-    memset(ams, 0x00, sizeof(amstrad_t));
+    ams = (amstrad_t *) calloc(1, sizeof(amstrad_t));
     ams->type     = type;
     amstrad_latch = 0x80000000;
 

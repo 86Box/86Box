@@ -637,8 +637,7 @@ static void
     *
     sis_85c496_init(const device_t *info)
 {
-    sis_85c496_t *dev = malloc(sizeof(sis_85c496_t));
-    memset(dev, 0x00, sizeof(sis_85c496_t));
+    sis_85c496_t *dev = calloc(1, sizeof(sis_85c496_t));
 
     dev->smram = smram_add();
 

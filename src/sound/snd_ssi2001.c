@@ -70,8 +70,7 @@ ssi2001_write(uint16_t addr, uint8_t val, void *priv)
 void *
 ssi2001_init(UNUSED(const device_t *info))
 {
-    ssi2001_t *ssi2001 = malloc(sizeof(ssi2001_t));
-    memset(ssi2001, 0, sizeof(ssi2001_t));
+    ssi2001_t *ssi2001 = calloc(1, sizeof(ssi2001_t));
 
     ssi2001->psid = sid_init(0);
     sid_reset(ssi2001->psid);
@@ -110,10 +109,8 @@ entertainer_write(uint16_t addr, uint8_t val, void *priv)
 void *
 entertainer_init(UNUSED(const device_t *info))
 {
-    ssi2001_t     *ssi2001     = malloc(sizeof(ssi2001_t));
-    entertainer_t *entertainer = malloc(sizeof(entertainer_t));
-    memset(ssi2001, 0, sizeof(ssi2001_t));
-    memset(entertainer, 0, sizeof(entertainer_t));
+    ssi2001_t     *ssi2001     = calloc(1, sizeof(ssi2001_t));
+    entertainer_t *entertainer = calloc(1, sizeof(entertainer_t));
 
     ssi2001->psid = sid_init(0);
     sid_reset(ssi2001->psid);

@@ -82,8 +82,7 @@ dac_get_buffer(int32_t *buffer, int len, void *priv)
 static void *
 dac_init(void *lpt)
 {
-    lpt_dac_t *lpt_dac = malloc(sizeof(lpt_dac_t));
-    memset(lpt_dac, 0, sizeof(lpt_dac_t));
+    lpt_dac_t *lpt_dac = calloc(1, sizeof(lpt_dac_t));
 
     lpt_dac->lpt = lpt;
 

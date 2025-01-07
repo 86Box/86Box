@@ -284,8 +284,7 @@ opti283_close(void *priv)
 static void *
 opti283_init(UNUSED(const device_t *info))
 {
-    opti283_t *dev = (opti283_t *) malloc(sizeof(opti283_t));
-    memset(dev, 0x00, sizeof(opti283_t));
+    opti283_t *dev = (opti283_t *) calloc(1, sizeof(opti283_t));
 
     io_sethandler(0x0022, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
     io_sethandler(0x0023, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);

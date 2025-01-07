@@ -914,8 +914,7 @@ serial_reset(void *priv)
 static void *
 serial_init(const device_t *info)
 {
-    serial_t *dev = (serial_t *) malloc(sizeof(serial_t));
-    memset(dev, 0, sizeof(serial_t));
+    serial_t *dev = (serial_t *) calloc(1, sizeof(serial_t));
 
     dev->inst = next_inst;
 
