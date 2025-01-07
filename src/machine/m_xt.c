@@ -65,15 +65,82 @@ machine_pc_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ibmpc82_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ibm5150_1501476",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "1501476 (10/27/82)", .internal_name = "ibm5150_1501476", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_27OCT82_1501476_U33.BIN", "" } },
+            { .name = "5000024 (08/16/82)", .internal_name = "ibm5150_5000024", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_16AUG82_5000024_U33.BIN", "" } },
+            // The following are Diagnostic ROMs.
+            { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
+            { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_8kb.bin", "" } },
+            { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "enable_basic",
+        .description = "IBM Cassette Basic",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmpc82_device = {
+    .name          = "IBM PC (1982) Devices",
+    .internal_name = "ibmpc82_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmpc82_config
+};
+
 int
 machine_pc82_init(const machine_t *model)
 {
-    int ret;
-    int ret2;
+    int         ret = 0;
+    int         ret2;
+    uint8_t     enable_5161;
+    uint8_t     enable_basic;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/ibmpc82/pc102782.bin",
-                           0x000fe000, 40960, 0);
-    if (ret) {
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    enable_basic = machine_get_config_int("enable_basic");
+    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret          = bios_load_linear(fn, 0x000fe000, 40960, 0);
+    device_context_restore();
+
+    if (enable_basic && ret) {
         ret2 = bios_load_aux_linear("roms/machines/ibmpc82/ibm-basic-1.10.rom",
                                     0x000f6000, 32768, 0);
         if (!ret2) {
@@ -92,9 +159,11 @@ machine_pc82_init(const machine_t *model)
         return ret;
 
     device_add(&keyboard_pc82_device);
-    device_add(&ibm_5161_device);
 
     machine_xt_common_init(model, 0);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
