@@ -628,6 +628,8 @@ svga_recalctimings(svga_t *svga)
     int              hsyncstart;
     int              hsyncend;
 #endif
+    int              old_monitor_overscan_x = svga->monitor->mon_overscan_x;
+    int              old_monitor_overscan_y = svga->monitor->mon_overscan_y;
 
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
@@ -1009,6 +1011,9 @@ svga_recalctimings(svga_t *svga)
         svga->dpms_ui = 0;
         ui_sb_set_text_w(NULL);
     }
+
+    if (enable_overscan && (svga->monitor->mon_overscan_x != old_monitor_overscan_x || svga->monitor->mon_overscan_y != old_monitor_overscan_y))
+        video_force_resize_set_monitor(1, svga->monitor_index);
 }
 
 static void
