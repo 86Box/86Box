@@ -660,13 +660,15 @@ device_get_config_string(const char *str)
 int
 device_get_config_int(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_int((char *) device_current.name, (char *) str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_int((char *) device_current.name, (char *) str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return 0;
@@ -675,13 +677,15 @@ device_get_config_int(const char *str)
 int
 device_get_config_int_ex(const char *str, int def)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_int((char *) device_current.name, (char *) str, def));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_int((char *) device_current.name, (char *) str, def));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return def;
@@ -690,13 +694,15 @@ device_get_config_int_ex(const char *str, int def)
 int
 device_get_config_hex16(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_hex16((char *) device_current.name, (char *) str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_hex16((char *) device_current.name, (char *) str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return 0;
@@ -705,13 +711,15 @@ device_get_config_hex16(const char *str)
 int
 device_get_config_hex20(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_hex20((char *) device_current.name, (char *) str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_hex20((char *) device_current.name, (char *) str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return 0;
@@ -720,13 +728,15 @@ device_get_config_hex20(const char *str)
 int
 device_get_config_mac(const char *str, int def)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_mac((char *) device_current.name, (char *) str, def));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_mac((char *) device_current.name, (char *) str, def));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return def;
@@ -735,60 +745,68 @@ device_get_config_mac(const char *str, int def)
 void
 device_set_config_int(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_int((char *) device_current.name, (char *) str, val);
-            break;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_int((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
         }
-
-        cfg++;
     }
 }
 
 void
 device_set_config_hex16(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_hex16((char *) device_current.name, (char *) str, val);
-            break;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_hex16((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
         }
-
-        cfg++;
     }
 }
 
 void
 device_set_config_hex20(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_hex20((char *) device_current.name, (char *) str, val);
-            break;
-        }
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_hex20((char *) device_current.name, (char *) str, val);
+                break;
+            }
 
         cfg++;
+        }
     }
 }
 
 void
 device_set_config_mac(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_mac((char *) device_current.name, (char *) str, val);
-            break;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_mac((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
         }
-
-        cfg++;
     }
 }
 
@@ -806,20 +824,18 @@ device_is_valid(const device_t *device, int mch)
 int
 machine_get_config_int(char *str)
 {
-    const device_t        *dev = machine_get_device(machine);
-    const device_config_t *cfg;
+    const device_t *dev = machine_get_device(machine);
 
-    if (dev == NULL)
-        return 0;
+    if (dev != NULL) {
+        const device_config_t *cfg = dev->config;
 
-    cfg = dev->config;
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_int((char *) dev->name, str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_int((char *) dev->name, str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
-
     return 0;
 }
 
@@ -830,9 +846,8 @@ machine_get_config_string(char *str)
     const char     *ret = "";
 
     if (dev != NULL) {
-        const device_config_t *cfg;
+        const device_config_t *cfg = dev->config;
 
-        cfg = dev->config;
         while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
             if (!strcmp(str, cfg->name)) {
                 const char *s = config_get_string((char *) dev->name, str,
