@@ -647,9 +647,7 @@ static const device_config_t hercules_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -661,7 +659,7 @@ const device_t hercules_device = {
     .init          = hercules_init,
     .close         = hercules_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = speed_changed,
     .force_redraw  = NULL,
     .config        = hercules_config

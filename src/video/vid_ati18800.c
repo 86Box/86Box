@@ -347,9 +347,7 @@ static const device_config_t ati18800_wonder_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t ati18800_wonder_device = {
@@ -360,7 +358,7 @@ const device_t ati18800_wonder_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_wonder_available },
+    .available     = ati18800_wonder_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = ati18800_wonder_config
@@ -374,7 +372,7 @@ const device_t ati18800_vga88_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_vga88_available },
+    .available     = ati18800_vga88_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL
@@ -388,7 +386,7 @@ const device_t ati18800_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_available },
+    .available     = ati18800_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL

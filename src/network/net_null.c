@@ -218,8 +218,8 @@ net_null_close(void *priv)
 }
 
 const netdrv_t net_null_drv = {
-    &net_null_in_available,
-    &net_null_init,
-    &net_null_close,
-    NULL
+    .notify_in = &net_null_in_available,
+    .init      = &net_null_init,
+    .close     = &net_null_close,
+    .priv      = NULL
 };

@@ -1655,9 +1655,7 @@ static const device_config_t ega_config[] = {
         },
         .default_int = 9
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1669,7 +1667,7 @@ const device_t ega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = ega_standalone_available },
+    .available     = ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1683,7 +1681,7 @@ const device_t cpqega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = cpqega_standalone_available },
+    .available     = cpqega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1697,7 +1695,7 @@ const device_t sega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = sega_standalone_available },
+    .available     = sega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1711,7 +1709,7 @@ const device_t atiega800p_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = atiega800p_standalone_available },
+    .available     = atiega800p_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1725,7 +1723,7 @@ const device_t iskra_ega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = iskra_ega_standalone_available },
+    .available     = iskra_ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1739,7 +1737,7 @@ const device_t et2000_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = et2000_standalone_available },
+    .available     = et2000_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config

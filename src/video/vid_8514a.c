@@ -4038,9 +4038,7 @@ static const device_config_t isa_ext8514_config[] = {
             { .description = ""                      }
         },
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 // clang-format off
@@ -4083,9 +4081,7 @@ static const device_config_t mca_ext8514_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 // clang-format off
@@ -4097,7 +4093,7 @@ const device_t gen8514_isa_device = {
     .init = ibm8514_init,
     .close = ibm8514_close,
     .reset = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ibm8514_speed_changed,
     .force_redraw = ibm8514_force_redraw,
     .config = isa_ext8514_config
@@ -4111,7 +4107,7 @@ const device_t ibm8514_mca_device = {
     .init = ibm8514_init,
     .close = ibm8514_close,
     .reset = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ibm8514_speed_changed,
     .force_redraw = ibm8514_force_redraw,
     .config = mca_ext8514_config

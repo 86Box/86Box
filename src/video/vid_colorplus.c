@@ -425,9 +425,7 @@ static const device_config_t colorplus_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -439,7 +437,7 @@ const device_t colorplus_device = {
     .init          = colorplus_standalone_init,
     .close         = colorplus_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = colorplus_speed_changed,
     .force_redraw  = NULL,
     .config        = colorplus_config
