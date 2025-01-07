@@ -199,7 +199,9 @@ extern const device_config_t nv3_config[];
 
 #define NV3_PFIFO_CONFIG_0                              0x2200
 #define NV3_PFIFO_CONFIG_0_DMA_FETCH                    8
-#define NV3_PFIFO_CONFIG_RAMHT                          0x2210
+#define NV3_PFIFO_CONFIG_RAMHT                          0x2210      // Hashtable for graphics objects config
+#define NV3_PFIFO_CONFIG_RAMRO                          0x2214
+#define NV3_PFIFO_CONFIG_RAMFC                          0x2218
 
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
