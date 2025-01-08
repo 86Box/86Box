@@ -2831,11 +2831,10 @@ sb_init(UNUSED(const device_t *info))
        This mirror may also exist on SB 1.5 & MCV, however I am unable to test this. It shouldn't
        exist on SB 1.0 as the CMS chips are always present there. Syndicate requires this mirror
        for music to play. */
-    sb_t          *sb         = malloc(sizeof(sb_t));
+    sb_t          *sb         = calloc(1, sizeof(sb_t));
     const uint16_t addr       = device_get_config_hex16("base");
     uint16_t       mixer_addr = 0x0000;
     uint8_t        model      = 0;
-    memset(sb, 0, sizeof(sb_t));
 
     switch (info->local) {
         default:
@@ -2922,8 +2921,7 @@ sb_mcv_init(UNUSED(const device_t *info))
     /* SB1/2 port mappings, 210h to 260h in 10h steps
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip */
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
@@ -2981,9 +2979,8 @@ sb_pro_v1_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    sb_t    *sb   = malloc(sizeof(sb_t));
+    sb_t    *sb   = calloc(1, sizeof(sb_t));
     uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled) {
@@ -3044,9 +3041,8 @@ sb_pro_v2_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    sb_t    *sb   = malloc(sizeof(sb_t));
+    sb_t    *sb   = calloc(1, sizeof(sb_t));
     uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
@@ -3098,8 +3094,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
        2x4 to 2x5 -> Mixer interface
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices) */
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
@@ -3127,8 +3122,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
 static void *
 sb_pro_compat_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     fm_driver_get(FM_YMF262, &sb->opl);
 
@@ -3141,8 +3135,7 @@ sb_pro_compat_init(UNUSED(const device_t *info))
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sbpro, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, 1);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3152,11 +3145,9 @@ sb_pro_compat_init(UNUSED(const device_t *info))
 static void *
 sb_16_init(UNUSED(const device_t *info))
 {
-    sb_t          *sb       = malloc(sizeof(sb_t));
+    sb_t          *sb       = calloc(1, sizeof(sb_t));
     const uint16_t addr     = device_get_config_hex16("base");
     const uint16_t mpu_addr = device_get_config_hex16("base401");
-
-    memset(sb, 0x00, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
@@ -3199,8 +3190,7 @@ sb_16_init(UNUSED(const device_t *info))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     if (mpu_addr) {
-        sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-        memset(sb->mpu, 0, sizeof(mpu_t));
+        sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
                     device_get_config_int("receive_input401"));
     } else
@@ -3220,8 +3210,7 @@ sb_16_init(UNUSED(const device_t *info))
 static void *
 sb_16_reply_mca_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0x00, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
@@ -3240,8 +3229,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3275,8 +3263,7 @@ sb_16_pnp_ide_available(void)
 static void *
 sb_16_pnp_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0x00, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->pnp = 1;
 
@@ -3295,8 +3282,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3379,8 +3365,7 @@ sb_vibra16xv_available(void)
 static void *
 sb_vibra16_pnp_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0x00, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->pnp = 1;
 
@@ -3401,8 +3386,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3480,8 +3464,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 static void *
 sb_16_compat_init(const device_t *info)
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     fm_driver_get(FM_YMF262, &sb->opl);
 
@@ -3496,7 +3479,7 @@ sb_16_compat_init(const device_t *info)
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, (int) (intptr_t) info->local);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
@@ -3559,7 +3542,7 @@ sb_awe64_gold_available(void)
 static void *
 sb_awe32_init(UNUSED(const device_t *info))
 {
-    sb_t    *sb          = malloc(sizeof(sb_t));
+    sb_t    *sb          = calloc(1, sizeof(sb_t));
     uint16_t addr        = device_get_config_hex16("base");
     uint16_t mpu_addr    = device_get_config_hex16("base401");
     uint16_t emu_addr    = device_get_config_hex16("emu_base");
@@ -3609,7 +3592,7 @@ sb_awe32_init(UNUSED(const device_t *info))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     if (mpu_addr) {
-        sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+        sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         memset(sb->mpu, 0, sizeof(mpu_t));
         mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
                     device_get_config_int("receive_input401"));
@@ -3632,10 +3615,8 @@ sb_awe32_init(UNUSED(const device_t *info))
 static void *
 sb_goldfinch_init(const device_t *info)
 {
-    goldfinch_t *goldfinch   = malloc(sizeof(goldfinch_t));
+    goldfinch_t *goldfinch   = calloc(1, sizeof(goldfinch_t));
     int          onboard_ram = device_get_config_int("onboard_ram");
-
-    memset(goldfinch, 0x00, sizeof(goldfinch_t));
 
     wavetable_add_handler(sb_get_wavetable_buffer_goldfinch, goldfinch);
 
@@ -3680,10 +3661,8 @@ sb_goldfinch_init(const device_t *info)
 static void *
 sb_awe32_pnp_init(const device_t *info)
 {
-    sb_t *sb          = malloc(sizeof(sb_t));
+    sb_t *sb          = calloc(1, sizeof(sb_t));
     int   onboard_ram = device_get_config_int("onboard_ram");
-
-    memset(sb, 0x00, sizeof(sb_t));
 
     sb->pnp = 1;
 
@@ -3705,8 +3684,7 @@ sb_awe32_pnp_init(const device_t *info)
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
