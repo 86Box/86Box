@@ -4308,10 +4308,6 @@ static const device_config_t sb2_config[] = {
                 .description = "0x240",
                 .value = 0x240
             },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
             { .description = "" }
         }
     },
@@ -4327,14 +4323,6 @@ static const device_config_t sb2_config[] = {
             {
                 .description = "Disabled",
                 .value = 0
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
             },
             {
                 .description = "0x250",
