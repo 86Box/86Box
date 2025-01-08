@@ -252,6 +252,9 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
         {
             rgba8_t  write_data = colour_data;
             uint16_t new_depth  = depth_data;
+            int      colbfog_r  = 0;
+            int      colbfog_g  = 0;
+            int      colbfog_b  = 0;
 
             if (params->fbzMode & FBZ_DEPTH_ENABLE) {
                 uint16_t old_depth = *(uint16_t *) (&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]);
@@ -261,6 +264,10 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
 
             if ((params->fbzMode & FBZ_CHROMAKEY) && write_data.r == params->chromaKey_r && write_data.g == params->chromaKey_g && write_data.b == params->chromaKey_b)
                 goto skip_pixel;
+
+            colbfog_r = write_data.r;
+            colbfog_g = write_data.g;
+            colbfog_b = write_data.b;
 
             if (params->fogMode & FOG_ENABLE) {
                 int32_t z       = new_depth << 12;
@@ -438,6 +445,9 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
         for (int c = 0; c < count; c++) {
             rgba8_t  write_data = colour_data[c];
             uint16_t new_depth  = depth_data[c];
+            int      colbfog_r  = 0;
+            int      colbfog_g  = 0;
+            int      colbfog_b  = 0;
 
             if (params->fbzMode & FBZ_DEPTH_ENABLE) {
                 uint16_t old_depth = *(uint16_t *) (&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]);
@@ -447,6 +457,10 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
 
             if ((params->fbzMode & FBZ_CHROMAKEY) && write_data.r == params->chromaKey_r && write_data.g == params->chromaKey_g && write_data.b == params->chromaKey_b)
                 goto skip_pixel;
+
+            colbfog_r = write_data.r;
+            colbfog_g = write_data.g;
+            colbfog_b = write_data.b;
 
             if (params->fogMode & FOG_ENABLE) {
                 int32_t z       = new_depth << 12;
