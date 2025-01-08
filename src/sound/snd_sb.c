@@ -43,6 +43,9 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
+#define SB_1  0
+#define SB_15 1
+
 #define SB_16_PNP_NOIDE 0
 #define SB_16_PNP_IDE   1
 
@@ -2818,16 +2821,30 @@ sb_1_init(UNUSED(const device_t *info))
        2x0 to 2x3 -> CMS chip
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip */
-    sb_t          *sb   = malloc(sizeof(sb_t));
-    const uint16_t addr = device_get_config_hex16("base");
+    sb_t          *sb    = malloc(sizeof(sb_t));
+    uint8_t        model = 0;
+    const uint16_t addr  = device_get_config_hex16("base");
     memset(sb, 0, sizeof(sb_t));
+
+    switch (info->local) {
+        default:
+        case SB_1:
+            model           = SB1;
+            sb->cms_enabled = 1;
+            break;
+
+        case SB_15:
+            model           = SB15;
+            sb->cms_enabled = device_get_config_int("cms");
+            break;
+    }
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB1, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, model, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -2843,58 +2860,6 @@ sb_1_init(UNUSED(const device_t *info))
                       sb->opl.priv);
     }
 
-    sb->cms_enabled = 1;
-    memset(&sb->cms, 0, sizeof(cms_t));
-    io_sethandler(addr, 0x0004,
-                  cms_read, NULL, NULL,
-                  cms_write, NULL, NULL,
-                  &sb->cms);
-
-    sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
-    if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
-    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
-
-    if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
-
-    return sb;
-}
-
-void *
-sb_15_init(UNUSED(const device_t *info))
-{
-    /* SB1/2 port mappings, 210h to 260h in 10h steps
-       2x0 to 2x3 -> CMS chip
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip */
-    sb_t          *sb   = malloc(sizeof(sb_t));
-    const uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
-
-    sb->opl_enabled = device_get_config_int("opl");
-    if (sb->opl_enabled)
-        fm_driver_get(FM_YM3812, &sb->opl);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB15, SB_SUBTYPE_DEFAULT, sb);
-    sb_dsp_setaddr(&sb->dsp, addr);
-    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    /* DSP I/O handler is activated in sb_dsp_setaddr */
-    if (sb->opl_enabled) {
-        io_sethandler(addr + 8, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-        io_sethandler(0x0388, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-    }
-
-    sb->cms_enabled = device_get_config_int("cms");
     if (sb->cms_enabled) {
         memset(&sb->cms, 0, sizeof(cms_t));
         io_sethandler(addr, 0x0004,
@@ -4211,7 +4176,8 @@ static const device_config_t sb_config[] = {
             },
             {
                 .description = "0x260",
-                .value = 0x260 },
+                .value = 0x260
+            },
             { .description = "" }
         }
     },
@@ -4260,7 +4226,7 @@ static const device_config_t sb_config[] = {
                 .description = "DMA 3",
                 .value = 3
             },
-            { "" }
+            { .description = "" }
         }
     },
     {
@@ -4314,8 +4280,7 @@ static const device_config_t sb15_config[] = {
                 .description = "0x260",
                 .value = 0x260
             },
-            {
-                .description = "" }
+            { .description = "" }
         }
     },
     {
@@ -5769,7 +5734,7 @@ const device_t sb_1_device = {
     .name          = "Sound Blaster v1.0",
     .internal_name = "sb",
     .flags         = DEVICE_ISA,
-    .local         = 0,
+    .local         = SB_1,
     .init          = sb_1_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -5783,8 +5748,8 @@ const device_t sb_15_device = {
     .name          = "Sound Blaster v1.5",
     .internal_name = "sb1.5",
     .flags         = DEVICE_ISA,
-    .local         = 0,
-    .init          = sb_15_init,
+    .local         = SB_15,
+    .init          = sb_1_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
