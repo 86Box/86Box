@@ -34,7 +34,7 @@ void nv_log(const char *fmt, ...)
 
     if (nv_do_log) {
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        pclog_ex_cyclic(fmt, ap);
         va_end(ap);
     }
 }

@@ -253,11 +253,36 @@ static volatile atomic_int do_pause_ack = 0;
 static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
-static char buff[1024];
-static int  seen = 0;
+
+#define LOG_SIZE_BUFFER             1024            /* Log size buffer */
+#define LOG_SIZE_BUFFER_CYCLIC      32              /* Cyclic log size buffer (number of lines that should be cehcked) */
+#define LOG_MINIMUM_REPEAT_ORDER    4               /* Minimum repeat size */
+
+static char buff[LOG_SIZE_BUFFER];
+static char cyclic_buff[LOG_SIZE_BUFFER_CYCLIC][LOG_SIZE_BUFFER];
+static int32_t cyclic_last_line = 0;
+static int32_t log_cycles = 0;
+
+static int seen = 0;
 
 static int suppr_seen = 1;
 #endif
+
+/* 
+    Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
+*/
+void
+pclog_ensure_stdlog_open()
+{
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+}
 
 /*
  * Log something to the logfile or stdout.
@@ -270,19 +295,12 @@ void
 pclog_ex(const char *fmt, va_list ap)
 {
 #ifndef RELEASE_BUILD
-    char temp[1024];
+    char temp[LOG_SIZE_BUFFER];
 
     if (strcmp(fmt, "") == 0)
         return;
 
-    if (stdlog == NULL) {
-        if (log_path[0] != '\0') {
-            stdlog = plat_fopen(log_path, "w");
-            if (stdlog == NULL)
-                stdlog = stdout;
-        } else
-            stdlog = stdout;
-    }
+    pclog_ensure_stdlog_open();
 
     vsprintf(temp, fmt, ap);
     if (suppr_seen && !strcmp(buff, temp))
@@ -297,6 +315,179 @@ pclog_ex(const char *fmt, va_list ap)
 
     fflush(stdlog);
 #endif
+}
+
+
+/*
+Starfrost, 7-8 January 2025: 
+
+For RIVA 128 emulation I needed a way to suppress logging if a repeated pattern of the same set of lines were found. 
+
+It doesn't need to be super fast so I don't bother to use an optimised approach. I use iterate from 1 to n/2 and see if a pattern repeats or not.
+ 
+Implements a version of the Rabin-Karp algorithm https://en.wikipedia.org/wiki/Rabin%E2%80%93Karp_algorithm
+*/
+void 
+pclog_ex_cyclic(const char* fmt, va_list ap)
+{
+#ifndef RELEASE_BUILD
+    char temp[LOG_SIZE_BUFFER];
+
+    cyclic_last_line %= LOG_SIZE_BUFFER_CYCLIC;
+
+    vsprintf(temp, fmt, ap);
+
+    pclog_ensure_stdlog_open();
+
+    strncpy(cyclic_buff[cyclic_last_line], temp, LOG_SIZE_BUFFER);
+
+    uint32_t hashes[LOG_SIZE_BUFFER_CYCLIC] = {0};
+
+    // Random numbers
+    uint32_t base = 257;
+    uint32_t mod = 1000000007;
+
+    uint32_t repeat_order = 0;
+    bool is_cycle = false;
+
+    // compute the set of hashes for the current log buffer
+    for (int32_t log_line = 0; log_line < LOG_SIZE_BUFFER_CYCLIC; log_line++)
+    {
+        if (cyclic_buff[log_line][0] == '\0')
+            continue; // skip
+
+        for (int32_t log_line_char = 0; log_line_char < LOG_SIZE_BUFFER; log_line_char++)
+        {
+            hashes[log_line] = hashes[log_line] * base + cyclic_buff[log_line][log_line_char] % mod;
+        }
+    }
+
+
+    // Now see if there are real cycles...
+    // We implement a minimum repeat size.
+    for (int32_t check_size = LOG_MINIMUM_REPEAT_ORDER; check_size < LOG_SIZE_BUFFER_CYCLIC / 2; check_size++)
+    {
+        //TODO: Log what we need for cycle 1.
+        //TODO: Command line option that lets us turn off this behaviour.
+        for (int32_t log_line_to_check = 0; log_line_to_check < check_size; log_line_to_check++)
+        {
+            if (hashes[log_line_to_check] == hashes[(log_line_to_check + check_size) % LOG_SIZE_BUFFER_CYCLIC])
+            {
+                repeat_order = check_size;
+                break;
+            }
+        }
+
+        is_cycle = (repeat_order != 0);
+
+        // if there still is a cycle..
+        if (is_cycle)
+            break;
+            
+    }
+
+    if (is_cycle)
+    {
+        if (cyclic_last_line % repeat_order == 0)
+        {
+            log_cycles++;
+
+            if (log_cycles == 1)
+                fprintf(stdlog, "%s", temp); // allow normal logging
+            if (log_cycles > 1 && log_cycles < 100)
+                fprintf(stdlog, "***** Cyclical Log Repeat of Order %d #%d *****\n", repeat_order, log_cycles);
+            else if (log_cycles == 100)
+                fprintf(stdlog, "Logged the same cycle 100 times...shutting up until something interesting happens\n");
+        }
+    }
+    else
+    {
+        log_cycles = 0;
+        fprintf(stdlog, "%s", temp);
+    }
+
+    cyclic_last_line++;
+    
+    /*
+    This version sucks
+    bool is_cycle = false;
+
+    uint32_t repeat_order = 0;
+
+    for (int32_t log_line = 0; log_line < (LOG_SIZE_BUFFER_CYCLIC); log_line++)
+    {
+        for (int32_t check_size = 1; check_size < (LOG_SIZE_BUFFER_CYCLIC / 2); check_size++)
+        {
+            uint32_t log_to_check = log_line + check_size;
+
+            // Loop around
+            if (log_to_check >= LOG_SIZE_BUFFER_CYCLIC)
+                log_to_check %= LOG_SIZE_BUFFER_CYCLIC;
+
+            // find an initial repeat
+            if (cyclic_buff[log_line][0] != '\0'
+            || cyclic_buff[log_to_check][0] != '\0')
+            {
+                if (!strncmp(cyclic_buff[log_line], cyclic_buff[log_to_check], LOG_SIZE_BUFFER))
+                {
+                    // now see if there are actually repeats (loop over to the start of the log...)
+
+                    int32_t highest_real_loop = 1; 
+
+                    for (int32_t loop_chk = 1; loop_chk < check_size; loop_chk++)
+                    {
+                        uint32_t log_to_check_1 = log_line + loop_chk;
+                        uint32_t log_to_check_2 = (log_line + loop_chk) + check_size;
+
+                        if (log_to_check_1 >= LOG_SIZE_BUFFER_CYCLIC)
+                            log_to_check_1 %= LOG_SIZE_BUFFER_CYCLIC;
+
+                        if (log_to_check_2 >= LOG_SIZE_BUFFER_CYCLIC)
+                            log_to_check_2 %= LOG_SIZE_BUFFER_CYCLIC;
+
+                        if (!strncmp(cyclic_buff[log_to_check_1], cyclic_buff[log_to_check_2], LOG_SIZE_BUFFER))
+                        {
+                            is_cycle = true;
+                            repeat_order = check_size;
+                            break;
+                        }
+                    }
+
+
+                }
+                     
+            }
+
+            if (is_cycle) break;
+        }
+
+        if (is_cycle) break;
+    }
+
+    if (is_cycle
+    && cyclic_last_line % repeat_order == 0)
+    {
+        log_cycles++;
+    }
+    else if (!is_cycle)
+        log_cycles = 0;
+ 
+
+    if (log_cycles <= 1)
+    {
+        strcpy(buff, temp);
+        fprintf(stdlog, "%s", temp);
+    }
+    else
+    {
+        if (cyclic_last_line % repeat_order == 0)
+            fprintf(stdlog, "***** Cyclical Log Repeat %d *****\n", log_cycles);
+    }
+
+    fflush(stdlog);
+*/
+#endif
+
 }
 
 void
