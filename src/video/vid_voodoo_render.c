@@ -970,7 +970,6 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                     int      colbfog_r = 0;
                     int      colbfog_g = 0;
                     int      colbfog_b = 0;
-                    int      colbfog_a = 0;
                     int      msel_r;
                     int      msel_g;
                     int      msel_b;
