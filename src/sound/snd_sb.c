@@ -45,6 +45,7 @@
 
 #define SB_1  0
 #define SB_15 1
+#define SB_2  2
 
 #define SB_16_PNP_NOIDE 0
 #define SB_16_PNP_IDE   1
@@ -2815,15 +2816,25 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
 }
 
 void *
-sb_1_init(UNUSED(const device_t *info))
+sb_init(UNUSED(const device_t *info))
 {
-    /* SB1/2 port mappings, 210h to 260h in 10h steps
-       2x0 to 2x3 -> CMS chip
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip */
-    sb_t          *sb    = malloc(sizeof(sb_t));
-    uint8_t        model = 0;
-    const uint16_t addr  = device_get_config_hex16("base");
+    /* SB1.x port mappings, 210h to 260h in 10h steps:
+       (SB2 port mappings are 220h or 240h)
+           2x0 to 2x3 -> CMS chip
+           2x6, 2xA, 2xC, 2xE -> DSP chip
+           2x8, 2x9, 388 and 389 FM chip
+       SB2 "CD version" also uses 250h or 260h:
+           2x0 to 2x3 -> CDROM interface
+           2x4 to 2x5 -> Mixer interface */
+    /* My SB 2.0 mirrors the OPL2 at ports 2x0/2x1. Presumably this mirror is disabled when the
+       CMS chips are present.
+       This mirror may also exist on SB 1.5 & MCV, however I am unable to test this. It shouldn't
+       exist on SB 1.0 as the CMS chips are always present there. Syndicate requires this mirror
+       for music to play. */
+    sb_t          *sb         = malloc(sizeof(sb_t));
+    const uint16_t addr       = device_get_config_hex16("base");
+    uint16_t       mixer_addr = 0x0000;
+    uint8_t        model      = 0;
     memset(sb, 0, sizeof(sb_t));
 
     switch (info->local) {
@@ -2837,6 +2848,12 @@ sb_1_init(UNUSED(const device_t *info))
             model           = SB15;
             sb->cms_enabled = device_get_config_int("cms");
             break;
+
+        case SB_2:
+            model           = SB2;
+            sb->cms_enabled = device_get_config_int("cms");
+            mixer_addr      = device_get_config_int("mixaddr");
+            break;
     }
 
     sb->opl_enabled = device_get_config_int("opl");
@@ -2848,8 +2865,19 @@ sb_1_init(UNUSED(const device_t *info))
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+
+    if (mixer_addr > 0x0000)
+        sb_ct1335_mixer_reset(sb);
+
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
+        // TODO: See if this applies to the SB1.5 as well
+        if ((!sb->cms_enabled) && (model == SB2)) {
+            io_sethandler(addr, 0x0002,
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
+        }
         io_sethandler(addr + 8, 0x0002,
                       sb->opl.read, NULL, NULL,
                       sb->opl.write, NULL, NULL,
@@ -2868,7 +2896,15 @@ sb_1_init(UNUSED(const device_t *info))
                       &sb->cms);
     }
 
-    sb->mixer_enabled = 0;
+    if (mixer_addr > 0x000) {
+        sb->mixer_enabled = 1;
+        io_sethandler(mixer_addr + 4, 0x0002,
+                      sb_ct1335_mixer_read, NULL, NULL,
+                      sb_ct1335_mixer_write, NULL, NULL,
+                      sb);
+    } else
+        sb->mixer_enabled = 0;
+
     sound_add_handler(sb_get_buffer_sb2, sb);
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sb2, sb);
@@ -2909,85 +2945,6 @@ sb_mcv_init(UNUSED(const device_t *info))
     mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, NULL, sb);
     sb->pos_regs[0] = 0x84;
     sb->pos_regs[1] = 0x50;
-
-    if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
-
-    return sb;
-}
-
-void *
-sb_2_init(UNUSED(const device_t *info))
-{
-    /* SB2 port mappings, 220h or 240h.
-       2x0 to 2x3 -> CMS chip
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip
-       "CD version" also uses 250h or 260h for
-       2x0 to 2x3 -> CDROM interface
-       2x4 to 2x5 -> Mixer interface */
-    /* My SB 2.0 mirrors the OPL2 at ports 2x0/2x1. Presumably this mirror is disabled when the
-       CMS chips are present.
-       This mirror may also exist on SB 1.5 & MCV, however I am unable to test this. It shouldn't
-       exist on SB 1.0 as the CMS chips are always present there. Syndicate requires this mirror
-       for music to play.*/
-    sb_t    *sb         = malloc(sizeof(sb_t));
-    uint16_t addr       = device_get_config_hex16("base");
-    uint16_t mixer_addr = device_get_config_int("mixaddr");
-
-    memset(sb, 0, sizeof(sb_t));
-
-    sb->opl_enabled = device_get_config_int("opl");
-    if (sb->opl_enabled)
-        fm_driver_get(FM_YM3812, &sb->opl);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB2, SB_SUBTYPE_DEFAULT, sb);
-    sb_dsp_setaddr(&sb->dsp, addr);
-    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    if (mixer_addr > 0x000)
-        sb_ct1335_mixer_reset(sb);
-
-    sb->cms_enabled = device_get_config_int("cms");
-    /* DSP I/O handler is activated in sb_dsp_setaddr */
-    if (sb->opl_enabled) {
-        if (!sb->cms_enabled) {
-            io_sethandler(addr, 0x0002,
-                          sb->opl.read, NULL, NULL,
-                          sb->opl.write, NULL, NULL,
-                          sb->opl.priv);
-        }
-        io_sethandler(addr + 8, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-        io_sethandler(0x0388, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-    }
-
-    if (sb->cms_enabled) {
-        memset(&sb->cms, 0, sizeof(cms_t));
-        io_sethandler(addr, 0x0004,
-                      cms_read, NULL, NULL,
-                      cms_write, NULL, NULL,
-                      &sb->cms);
-    }
-
-    if (mixer_addr > 0x000) {
-        sb->mixer_enabled = 1;
-        io_sethandler(mixer_addr + 4, 0x0002,
-                      sb_ct1335_mixer_read, NULL, NULL,
-                      sb_ct1335_mixer_write, NULL, NULL,
-                      sb);
-    } else
-        sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
-    if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
-    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -5735,7 +5692,7 @@ const device_t sb_1_device = {
     .internal_name = "sb",
     .flags         = DEVICE_ISA,
     .local         = SB_1,
-    .init          = sb_1_init,
+    .init          = sb_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
@@ -5749,7 +5706,7 @@ const device_t sb_15_device = {
     .internal_name = "sb1.5",
     .flags         = DEVICE_ISA,
     .local         = SB_15,
-    .init          = sb_1_init,
+    .init          = sb_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
@@ -5776,8 +5733,8 @@ const device_t sb_2_device = {
     .name          = "Sound Blaster v2.0",
     .internal_name = "sb2.0",
     .flags         = DEVICE_ISA,
-    .local         = 0,
-    .init          = sb_2_init,
+    .local         = SB_2,
+    .init          = sb_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
