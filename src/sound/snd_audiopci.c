@@ -423,9 +423,9 @@ es1370_calc_sample_rate(es137x_t *dev)
         dev->calc_sample_rate = 5512;
     }
 
-    dev->calc_sample_rate_synth = 44100 / (1 << ((dev->int_ctrl >> 12) & 3));
-    dev->interp_factor_synth    = 1. / (double) (1 << ((dev->int_ctrl >> 12) & 3));
-    dev->interp_step_synth      = (1 << ((dev->int_ctrl >> 12) & 3));
+    dev->calc_sample_rate_synth = 44100 / (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
+    dev->interp_factor_synth    = 1. / (double) ((1 << ((dev->int_ctrl >> 12) & 3) ^ 3));
+    dev->interp_step_synth      = (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
 }
 
 static void
@@ -446,11 +446,13 @@ es137x_reset(void *priv)
 
     /* Interrupt/Chip Select Status Register, Address 04H
        Addressable as longword only */
-    if (dev->type >= AUDIOPCI_CT5880)
+    if (dev->type == AUDIOPCI_ES1370)
+        dev->int_status = 0x00000060;
+    else if (dev->type == AUDIOPCI_CT5880)
         dev->int_status = 0x52080ec0;
-    else if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+    else if (dev->type == AUDIOPCI_ES1373)
         dev->int_status = 0x7f080ec0;
-    else
+    else /* AUDIOPCI_ES1371 */
         dev->int_status = 0x7ffffec0;
 
     /* UART Status Register, Address 09H
@@ -784,7 +786,7 @@ es137x_inb(uint16_t port, void *priv)
             break;
         case 0x03:
             ret = dev->int_ctrl >> 24;
-            if ((dev->type < AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if (dev->type == AUDIOPCI_ES1371)
                 ret |= 0xfc;
             break;
 
@@ -857,19 +859,19 @@ es137x_inb(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus & 0xff;
             break;
         case 0x1d:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 8;
             break;
         case 0x1e:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 16;
             break;
         case 0x1f:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 24;
             break;
 
@@ -882,10 +884,15 @@ es137x_inb(uint16_t port, void *priv)
             ret = dev->si_cr >> 8;
             break;
         case 0x22:
-            ret = (dev->si_cr >> 16) | 0x80;
+            ret = dev->si_cr >> 16;
+            if (dev->type != AUDIOPCI_ES1370)
+                ret |= 0x80;
             break;
         case 0x23:
-            ret = 0xff;
+            if (dev->type == AUDIOPCI_ES1370)
+                ret = 0x00;
+            else
+                ret = 0xff;
             break;
 
         default:
@@ -910,7 +917,7 @@ es137x_inw(uint16_t port, void *priv)
             break;
         case 0x02:
             ret = (dev->int_ctrl >> 16) & 0xff0f;
-            if ((dev->type < AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if (dev->type == AUDIOPCI_ES1371)
                 ret |= 0xfc00;
             break;
 
@@ -935,11 +942,11 @@ es137x_inw(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus & 0xffff;
             break;
         case 0x1e:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 16;
             break;
 
@@ -949,7 +956,9 @@ es137x_inw(uint16_t port, void *priv)
             ret = dev->si_cr & 0xffff;
             break;
         case 0x22:
-            ret = (dev->si_cr >> 16) | 0xff80;
+            ret = dev->si_cr >> 16;
+            if (dev->type != AUDIOPCI_ES1370)
+                ret |= 0xff80;
             break;
 
         /* DAC1 Channel Sample Count Register, Address 24H
@@ -1056,14 +1065,16 @@ es137x_inl(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if ((dev->type >= AUDIOPCI_ES1373) || (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus;
             break;
 
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            ret = dev->si_cr | 0xff800000;
+            ret = dev->si_cr;
+            if (dev->type != AUDIOPCI_ES1370)
+                ret |= 0xff800000;
             break;
 
         /* DAC1 Channel Sample Count Register, Address 24H
@@ -1148,11 +1159,11 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
            Addressable as longword only, but PCem implements byte access, which
            must be for a reason */
         case 0x06:
-            if ((dev->type >= AUDIOPCI_ES1373) || (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val << 16);
             break;
         case 0x07:
-            if ((dev->type >= AUDIOPCI_CT5880) || (dev->type != AUDIOPCI_ES1370))
+            if (dev->type == AUDIOPCI_CT5880)
                 dev->int_status = (dev->int_status & 0xd2ffffff) | (val << 24);
             break;
 
@@ -1235,18 +1246,28 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            dev->si_cr = (dev->si_cr & 0xffffff00) | val;
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xffff00) | val;
+            else
+                dev->si_cr = (dev->si_cr & 0xffffff00) | val;
             break;
         case 0x21:
-            dev->si_cr = (dev->si_cr & 0xffff00ff) | (val << 8);
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xff00ff) | (val << 8);
+            else
+                dev->si_cr = (dev->si_cr & 0xffff00ff) | (val << 8);
             if (!(dev->si_cr & SI_P1_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+
             es137x_update_irqs(dev);
             break;
         case 0x22:
-            dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x7f) << 16);
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xc0ffff) | ((val & 0x3f) << 16);
+            else
+                dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x7f) << 16);
             break;
 
         default:
@@ -1334,7 +1355,11 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            dev->si_cr = (dev->si_cr & 0xffff0000) | val;
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xff0000) | val;
+            else
+                dev->si_cr = (dev->si_cr & 0xffff0000) | val;
+
             if (!(dev->si_cr & SI_P1_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
@@ -1342,7 +1367,10 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
             es137x_update_irqs(dev);
             break;
         case 0x22:
-            dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x007f) << 16);
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xc0ffff) | ((val & 0x3f) << 16);
+            else
+                dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x007f) << 16);
             break;
 
         /* DAC1 Channel Sample Count Register, Address 24H
@@ -1417,9 +1445,9 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
            Addressable as longword only */
         case 0x04:
             audiopci_log("[W] STATUS = %08X\n", val);
-            if (dev->type >= AUDIOPCI_CT5880)
+            if (dev->type == AUDIOPCI_CT5880)
                 dev->int_status = (dev->int_status & 0xd208ffff) | (val & 0x2df70000);
-            else if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            else if (dev->type == AUDIOPCI_ES1373)
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val & 0x00f70000);
             break;
 
@@ -1523,7 +1551,10 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            dev->si_cr = (val & 0x007fffff) | 0xff800000;
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = val & 0x3fffff;
+            else
+                dev->si_cr = (val & 0x007fffff) | 0xff800000;
             if (!(dev->si_cr & SI_P1_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
@@ -2032,7 +2063,7 @@ es1371_pci_read(int func, int addr, void *priv)
             return 0x80; /* Maximum latency */
 
         case 0x40:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 return dev->subsys_lock;
             break;
 
@@ -2163,7 +2194,7 @@ es1371_pci_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x40:
-            if ((dev->type >= AUDIOPCI_ES1373) && (dev->type != AUDIOPCI_ES1370))
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 dev->subsys_lock = val;
             break;
 
@@ -2386,7 +2417,7 @@ es137x_poll(void *priv)
     es137x_update(dev);
 
     if (dev->int_ctrl & INT_DAC1_EN) {
-        if (((dev->type >= AUDIOPCI_ES1373) && (dev->int_ctrl & INT_DAC1_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
+        if ((((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & INT_DAC1_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
             if ((dev->calc_sample_rate_synth != 44100) && (dev->type == AUDIOPCI_ES1370)) {
                 if ((dev->dac[0].buffer_pos - dev->dac[0].buffer_pos_end) >= 0 && dev->step_synth >= dev->interp_step_synth)
                     es137x_fetch(dev, 0);
@@ -2444,7 +2475,7 @@ dac0_count:
     }
 
     if (dev->int_ctrl & INT_DAC2_EN) {
-        if (((dev->type >= AUDIOPCI_ES1373) && (dev->int_ctrl & INT_DAC2_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
+        if ((((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & INT_DAC2_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
             if ((dev->calc_sample_rate != 44100) && (dev->type == AUDIOPCI_ES1370)) {
                 if ((dev->dac[1].buffer_pos - dev->dac[1].buffer_pos_end) >= 0 && dev->step_pcm >= dev->interp_step)
                     es137x_fetch(dev, 1);
@@ -2796,6 +2827,10 @@ static const device_config_t ct5880_config[] = {
             {
                 .description = "SigmaTel STAC9721T (stereo)",
                 .value = AC97_CODEC_STAC9721
+            },
+            {
+                .description = "TriTech TR28023 / Creative CT1297",
+                .value = AC97_CODEC_TR28023
             },
             { .description = "" }
         },
