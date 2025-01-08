@@ -212,6 +212,37 @@ machine_at_neat_ami_init(const machine_t *model)
     return ret;
 }
 
+// TODO
+// Onboard Paradise PVGA1A-JK VGA Graphics
+// Data Technology Corporation DTC7187 RLL Controller
+int
+machine_at_ataripc4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ataripc4/AMI_PC4X_1.7_EVEN.BIN",
+                                "roms/machines/ataripc4/AMI_PC4X_1.7_ODD.BIN",
+#if 0
+    ret = bios_load_interleaved("roms/machines/ataripc4/ami_pc4x_1.7_even.bin",
+                                "roms/machines/ataripc4/ami_pc4x_1.7_odd.bin",
+#endif
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&neat_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
 int
 machine_at_px286_init(const machine_t *model)
 {
