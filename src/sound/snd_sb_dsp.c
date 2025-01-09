@@ -78,7 +78,19 @@ static int sb_commands[256] = {
 };
 
 char     sb16_copyright[]  = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
-uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40c, 0x40d, 0x410 };
+uint16_t sb_dsp_versions[] = {
+	0,     /* Pad */
+	0,     /* SADLIB     - No DSP */
+	0x105, /* SB1        - DSP v1.05 */
+	0x200, /* SB15       - DSP v2.00 */
+	0x201, /* SB2        - DSP v2.01 - needed for high-speed DMA */
+	0x300, /* SBPRO      - DSP v3.00 */
+	0x302, /* SBPRO2     - DSP v3.02 + OPL3 */
+	0x405, /* SB16       - DSP v4.05 + OPL3 */
+	0x40c, /* SBAWE32    - DSP v4.12 + OPL3 */
+	0x40d, /* SBAWE32PNP - DSP v4.13 + OPL3 */
+	0x410  /* SBAWE64    - DSP v4.16 + OPL3 */
+};
 
 /*These tables were 'borrowed' from DOSBox*/
 int8_t scaleMap4[64] = {
