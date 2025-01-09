@@ -78,7 +78,19 @@ static int sb_commands[256] = {
 };
 
 char     sb16_copyright[]  = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
-uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40c, 0x40d, 0x410 };
+uint16_t sb_dsp_versions[] = {
+	0,     /* Pad */
+	0,     /* SADLIB     - No DSP */
+	0x105, /* SB1        - DSP v1.05 */
+	0x200, /* SB15       - DSP v2.00 */
+	0x201, /* SB2        - DSP v2.01 - needed for high-speed DMA */
+	0x300, /* SBPRO      - DSP v3.00 */
+	0x302, /* SBPRO2     - DSP v3.02 + OPL3 */
+	0x405, /* SB16       - DSP v4.05 + OPL3 */
+	0x40c, /* SBAWE32    - DSP v4.12 + OPL3 */
+	0x40d, /* SBAWE32PNP - DSP v4.13 + OPL3 */
+	0x410  /* SBAWE64    - DSP v4.16 + OPL3 */
+};
 
 /*These tables were 'borrowed' from DOSBox*/
 int8_t scaleMap4[64] = {
@@ -1836,31 +1848,31 @@ sb_do_reset(sb_dsp_t *dsp, const uint8_t v)
 }
 
 void
-sb_write(uint16_t a, uint8_t v, void *priv)
+sb_write(uint16_t addr, uint8_t val, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
-    sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, a, v);
+    sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, addr, val);
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16) && (IS_NOT_ESS(dsp) || ((a & 0xF) != 0xE)))
-        a &= 0xfffe;
+    if ((dsp->sb_type < SB16) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xE)))
+        addr &= 0xfffe;
 
-    switch (a & 0xF) {
+    switch (addr & 0xF) {
         case 6: /* Reset */
-            sb_do_reset(dsp, v);
+            sb_do_reset(dsp, val);
 
-            if (!(v & 2) && (dsp->espcm_fifo_reset & 2)) {
+            if (!(val & 2) && (dsp->espcm_fifo_reset & 2)) {
                 fifo_reset(dsp->espcm_fifo);
             }
-            dsp->espcm_fifo_reset = v;
+            dsp->espcm_fifo_reset = val;
             dsp->uart_midi        = 0;
             dsp->uart_irq         = 0;
             dsp->onebyte_midi     = 0;
             return;
         case 0xC: /* Command/data write */
             if (dsp->uart_midi || dsp->onebyte_midi) {
-                midi_raw_out_byte(v);
+                midi_raw_out_byte(val);
                 dsp->onebyte_midi = 0;
                 return;
             }
@@ -1873,8 +1885,8 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                 return;
             }
             if (dsp->sb_data_stat == -1) {
-                dsp->sb_command = v;
-                if (v == 0x01)
+                dsp->sb_command = val;
+                if (val == 0x01)
                     sb_add_data(dsp, 0);
                 dsp->sb_data_stat++;
                 if (IS_AZTECH(dsp)) {
@@ -1901,7 +1913,7 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                     }
                 }
             } else {
-                dsp->sb_data[dsp->sb_data_stat++] = v;
+                dsp->sb_data[dsp->sb_data_stat++] = val;
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
                 sb_exec_command(dsp);
@@ -1920,17 +1932,17 @@ sb_write(uint16_t a, uint8_t v, void *priv)
 }
 
 uint8_t
-sb_read(uint16_t a, void *priv)
+sb_read(uint16_t addr, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
     uint8_t   ret = 0x00;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16) && (IS_NOT_ESS(dsp) || ((a & 0xF) != 0xF)))
+    if ((dsp->sb_type < SB16) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xF)))
         /* Exception: ESS AudioDrive does not alias port base+0xf */
-            a &= 0xfffe;
+            addr &= 0xfffe;
 
-    switch (a & 0xf) {
+    switch (addr & 0xf) {
         case 0x6:
             if (IS_ESS(dsp)) {
                 ret = (dsp->espcm_fifo_reset & 0x03) | 0x08 | (dsp->activity & 0xe0);
