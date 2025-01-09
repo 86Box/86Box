@@ -43,6 +43,11 @@
 #include <86box/vid_ati_mach8.h>
 #include "cpu.h"
 
+#ifdef CLAMP
+#    undef CLAMP
+#endif
+
+
 #define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140_4k.BIN"
 
 static void     ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv);
@@ -67,6 +72,17 @@ ibm8514_log(const char *fmt, ...)
 #else
 #    define ibm8514_log(fmt, ...)
 #endif
+
+static int16_t
+CLAMP(int16_t in, int16_t min, int16_t max)
+{
+    if (in < min)
+        return min;
+    if (in > max)
+        return max;
+
+    return in;
+}
 
 #define WRITE8(addr, var, val)                        \
     switch ((addr) & 1) {                             \
@@ -415,14 +431,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             dev->accel.ssv_state = 1;
             if (len == 2) {
                 dev->accel.short_stroke = val;
-
-                dev->accel.cx = dev->accel.cur_x;
-                if (dev->accel.cur_x >= 0x600)
-                    dev->accel.cx |= ~0x5ff;
-
-                dev->accel.cy = dev->accel.cur_y;
-                if (dev->accel.cur_y >= 0x600)
-                    dev->accel.cy |= ~0x5ff;
 
                 if (dev->accel.cmd & 0x1000) {
                     ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke & 0xff, len);
@@ -969,6 +977,7 @@ ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t 
         dev->accel.ssv_len  = ssv & 0x0f;
         dev->accel.ssv_dir  = ssv & 0xe0;
         dev->accel.ssv_draw = ssv & 0x10;
+        dev->accel.ssv_len_back = dev->accel.ssv_len;
 
         if (ibm8514_cpu_src(svga)) {
             dev->data_available  = 0;
@@ -1006,6 +1015,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     uint16_t   bkgd_color      = dev->accel.bkgd_color;
     uint32_t   old_mix_dat;
     int        and3            = dev->accel.cur_x & 3;
+    int        poly_src;
 
     if (!dev->bpp) {
         compare &= 0xff;
@@ -1121,13 +1131,24 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
     old_mix_dat = mix_dat;
 
+    if (cmd == 5 || cmd == 1 || (cmd == 2 && (dev->accel.multifunc[0x0a] & 0x06)))
+        ibm8514_log("CMD=%d, full=%04x, pixcntl=%d, filling=%02x.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06);
+
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
-            if (dev->accel.ssv_state == 0)
+            if (dev->accel.ssv_state == 0) {
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
                 break;
+            }
 
             if (dev->accel.cmd & 0x08) {
                 while (count-- && dev->accel.ssv_len >= 0) {
@@ -1289,7 +1310,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         else
                             dev->accel.cy--;
 
-                        if (dev->accel.err_term >= 0) {
+                        if (dev->accel.err_term >= dev->accel.ssv_len_back) {
                             dev->accel.err_term += dev->accel.destx_distp;
                             if (dev->accel.cmd & 0x20)
                                 dev->accel.cx++;
@@ -1303,7 +1324,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         else
                             dev->accel.cx--;
 
-                        if (dev->accel.err_term >= 0) {
+                        if (dev->accel.err_term >= dev->accel.ssv_len_back) {
                             dev->accel.err_term += dev->accel.destx_distp;
                             if (dev->accel.cmd & 0x80)
                                 dev->accel.cy++;
@@ -1454,6 +1475,10 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                     if (!dev->accel.sy) {
                         dev->accel.cmd_back = 1;
+                        if (!cpu_input) {
+                            dev->accel.cur_x = dev->accel.cx;
+                            dev->accel.cur_y = dev->accel.cy;
+                        }
                         break;
                     }
 
@@ -1505,8 +1530,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                     dev->accel.sy--;
                 }
-                dev->accel.cur_x = dev->accel.cx;
-                dev->accel.cur_y = dev->accel.cy;
                 dev->accel.x_count = 0;
                 dev->accel.output = 0;
             } else { /*Bresenham Line*/
@@ -1580,7 +1603,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             else
                                 dev->accel.cy--;
 
-                            if (dev->accel.err_term >= 0) {
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
                                 dev->accel.err_term += dev->accel.destx_distp;
                                 if (dev->accel.cmd & 0x20)
                                     dev->accel.cx++;
@@ -1594,7 +1617,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             else
                                 dev->accel.cx--;
 
-                            if (dev->accel.err_term >= 0) {
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
                                 dev->accel.err_term += dev->accel.destx_distp;
                                 if (dev->accel.cmd & 0x80)
                                     dev->accel.cy++;
@@ -1673,6 +1696,10 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                         if (!dev->accel.sy) {
                             dev->accel.cmd_back = 1;
+                            if (!cpu_input) {
+                                dev->accel.cur_x = dev->accel.cx;
+                                dev->accel.cur_y = dev->accel.cy;
+                            }
                             break;
                         }
 
@@ -1682,7 +1709,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             else
                                 dev->accel.cy--;
 
-                            if (dev->accel.err_term >= 0) {
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
                                 dev->accel.err_term += dev->accel.destx_distp;
                                 if (dev->accel.cmd & 0x20)
                                     dev->accel.cx++;
@@ -1696,7 +1723,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             else
                                 dev->accel.cx--;
 
-                            if (dev->accel.err_term >= 0) {
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
                                 dev->accel.err_term += dev->accel.destx_distp;
                                 if (dev->accel.cmd & 0x80)
                                     dev->accel.cy++;
@@ -1709,8 +1736,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         dev->accel.sy--;
                     }
                 }
-                dev->accel.cur_x = dev->accel.cx;
-                dev->accel.cur_y = dev->accel.cy;
             }
             break;
 
@@ -2283,34 +2308,61 @@ skip_nibble_rect_write:
                             }
                         }
                     } else if ((dev->accel.multifunc[0x0a] & 0x06) == 0x04) { /*Polygon Draw Type A*/
+                        ibm8514_log("Polygon Draw Type A: Clipping: L=%d, R=%d, T=%d, B=%d, C(%d,%d), sx=%d, sy=%d.\n", clip_l, clip_r, clip_t, clip_b, dev->accel.cx, dev->accel.cy, dev->accel.sx, dev->accel.sy);
                         while (count-- && (dev->accel.sy >= 0)) {
                             if ((dev->accel.cx >= clip_l) &&
                                 (dev->accel.cx <= clip_r) &&
                                 (dev->accel.cy >= clip_t) &&
                                 (dev->accel.cy <= clip_b)) {
-                                READ(dev->accel.dest + dev->accel.cx, mix_dat);
-                                if ((mix_dat & rd_mask_polygon) == rd_mask_polygon)
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.cx, poly_src);
+                                if ((poly_src & rd_mask_polygon) == rd_mask_polygon)
                                     dev->accel.fill_state ^= 1;
 
                                 READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
                                 old_dest_dat = dest_dat;
                                 if (dev->accel.fill_state) {
-                                    if (!(rd_mask_polygon & 0x01) && (wrt_mask & 0x01)) {
-                                        MIX(mix_dat ^ rd_mask_polygon, dest_dat, mix_dat);
-                                        ibm8514_log("Filling c(%d,%d) without bit 0 of rdmask=%02x, wrtmask=%02x, mixdat=%02x, dest=%02x, old=%02x.\n", dev->accel.cx, dev->accel.cy, rd_mask_polygon, wrt_mask, mix_dat, dest_dat, old_dest_dat);
-                                        dest_dat &= ~rd_mask_polygon;
-                                    } else if ((rd_mask_polygon & 0x01) && (wrt_mask & 0x01)) {
-                                        ibm8514_log("Filling c(%d,%d) with bit 0 of rdmask=%02x, wrtmask=%02x.\n", dev->accel.cx, dev->accel.cy, rd_mask_polygon, wrt_mask);
-                                        dest_dat &= ~(rd_mask_polygon & wrt_mask);
+                                    if (rd_mask_polygon & 0x01) {
+                                        if (wrt_mask & 0x01) {
+                                            dest_dat &= ~(rd_mask_polygon & wrt_mask); /*Fill State On, Write Mask 1, Read Mask 1.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    } else {
+                                        if (wrt_mask & 0x01) {
+                                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                            dest_dat &= ~rd_mask_polygon; /*Fill State On, Write Mask 1, Read Mask 0.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
                                     }
                                 } else {
-                                    if (!(rd_mask_polygon & 0x01) && (wrt_mask & 0x01))
-                                        dest_dat &= ~rd_mask_polygon;
-                                    else if ((rd_mask_polygon & 0x01) && (wrt_mask & 0x01))
-                                        dest_dat &= ~(rd_mask_polygon & wrt_mask);
+                                    if (rd_mask_polygon & 0x01) {
+                                        if (wrt_mask & 0x01) {
+                                            dest_dat &= ~(rd_mask_polygon & wrt_mask); /*Fill State Off, Write Mask 1, Read Mask 1.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    } else {
+                                        if (wrt_mask & 0x01) {
+                                            dest_dat &= ~rd_mask_polygon; /*Fill State Off, Write Mask 1, Read Mask 0.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    }
                                 }
-
-                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
 
                                 if ((compare_mode == 0) ||
                                     ((compare_mode == 0x10) && (dest_dat >= compare)) ||
@@ -2322,7 +2374,11 @@ skip_nibble_rect_write:
                                     ibm8514_log("Results c(%d,%d):rdmask=%02x, wrtmask=%02x, mix=%02x, destdat=%02x, nowrite=%d.\n", dev->accel.cx, dev->accel.cy, rd_mask_polygon, wrt_mask, mix_dat, dest_dat, dev->accel.cx_back);
                                     WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
                                 }
-                            }
+                            } else
+                                ibm8514_log("Out of bounds DrawA C(%d,%d).\n", dev->accel.cx, dev->accel.cy);
+
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
 
                             if (dev->accel.cmd & 0x20)
                                 dev->accel.cx++;
@@ -2356,6 +2412,8 @@ skip_nibble_rect_write:
                                 if (dev->accel.sy < 0) {
                                     ibm8514_log(".\n");
                                     dev->accel.cmd_back = 1;
+                                    dev->accel.cur_x = dev->accel.cx;
+                                    dev->accel.cur_y = dev->accel.cy;
                                     return;
                                 }
                             }
@@ -2468,7 +2526,7 @@ skip_nibble_rect_write:
                 else
                     dev->accel.oldcy = dev->accel.cy - 1;
 
-                ibm8514_log("Polygon Boundary activated=%04x, len=%d, cur(%d,%d), frgdmix=%02x, err=%d, clipping: l=%d, r=%d, t=%d, b=%d, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.sy, dev->accel.cx, dev->accel.cy, dev->accel.frgd_mix & 0x1f, dev->accel.err_term, dev->accel.multifunc[2], dev->accel.multifunc[4], dev->accel.clip_top, clip_b, dev->accel.multifunc[0x0a]);
+                ibm8514_log("Polygon Boundary activated=%04x, len=%d, cur(%d,%d), frgdmix=%02x, err=%d, clipping: l=%d, r=%d, t=%d, b=%d, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.sy, dev->accel.cx, dev->accel.cy, dev->accel.frgd_mix & 0x1f, dev->accel.err_term, clip_l, clip_r, clip_t, clip_b, dev->accel.multifunc[0x0a]);
 
                 if (ibm8514_cpu_src(svga)) {
                     dev->data_available  = 0;
@@ -2483,8 +2541,7 @@ skip_nibble_rect_write:
 
             if (dev->accel.cmd & 0x08) { /*Vectored Boundary Line*/
                 while (count-- && (dev->accel.sy >= 0)) {
-                    if (dev->accel.cx < clip_l)
-                        dev->accel.cx = clip_l;
+                    dev->accel.cx = CLAMP(dev->accel.cx, clip_l, clip_r);
 
                     if ((dev->accel.cx >= clip_l) &&
                         (dev->accel.cx <= clip_r) &&
@@ -2591,11 +2648,10 @@ skip_nibble_rect_write:
                 }
             } else { /*Vectored Bresenham*/
                 while (count-- && (dev->accel.sy >= 0)) {
-                    if (dev->accel.cx < clip_l)
-                        dev->accel.cx = clip_l;
+                    dev->accel.cx = CLAMP(dev->accel.cx, clip_l, clip_r);
 
                     if ((dev->accel.cx >= clip_l) &&
-                        (dev->accel.cx <= clip_r) &&
+                        (dev->accel.cx < clip_r) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
@@ -2658,7 +2714,7 @@ skip_nibble_rect_write:
                         else
                             dev->accel.cy--;
 
-                        if (dev->accel.err_term >= 0) {
+                        if (dev->accel.err_term >= dev->accel.maj_axis_pcnt_no_limit) {
                             dev->accel.err_term += dev->accel.destx_distp;
                             if (dev->accel.cmd & 0x20)
                                 dev->accel.cx++;
@@ -2673,7 +2729,7 @@ skip_nibble_rect_write:
                             dev->accel.cx--;
 
                         dev->accel.oldcy = dev->accel.cy;
-                        if (dev->accel.err_term >= 0) {
+                        if (dev->accel.err_term >= dev->accel.maj_axis_pcnt_no_limit) {
                             dev->accel.err_term += dev->accel.destx_distp;
                             if (dev->accel.cmd & 0x80)
                                 dev->accel.cy++;
