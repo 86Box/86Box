@@ -214,6 +214,7 @@ machine_xt_amixt_init(const machine_t *model)
 
 // TODO
 // Onboard EGA Graphics (NSI Logic EVC315-S on early boards STMicroelectronics EGA on later revisions)
+// RTC
 // Adaptec ACB-2072 RLL Controller Card (Optional)
 // Atari PCM1 Mouse Support
 int
