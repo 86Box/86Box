@@ -419,7 +419,7 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
     const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
     const int                dsp_rec_pos = sb->dsp.record_pos_write;
     double                   bass_treble;
-    const int32_t           *opl_buf = NULL;
+    const int32_t           *opl_buf     = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -1812,8 +1812,8 @@ sb_mcv_read(int port, void *priv)
 void
 sb_mcv_write(int port, uint8_t val, void *priv)
 {
-    uint16_t addr;
-    sb_t    *sb = (sb_t *) priv;
+    uint16_t addr = 0;
+    sb_t    *sb   = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1876,8 +1876,8 @@ sb_pro_mcv_read(int port, void *priv)
 static void
 sb_pro_mcv_write(int port, uint8_t val, void *priv)
 {
-    uint16_t addr;
-    sb_t    *sb = (sb_t *) priv;
+    uint16_t addr = 0;
+    sb_t    *sb   = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1947,8 +1947,8 @@ sb_16_reply_mca_read(int port, void *priv)
 static void
 sb_16_reply_mca_write(const int port, const uint8_t val, void *priv)
 {
-    uint16_t addr;
-    sb_t    *sb = (sb_t *) priv;
+    uint16_t addr = 0;
+    sb_t    *sb   = (sb_t *) priv;
 
     if (port < 0x102)
         return;
