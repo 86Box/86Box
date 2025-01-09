@@ -104,7 +104,7 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
     else if (address >= NV3_USER_START && address <= NV3_USER_END)
         ret = nv3_user_read(address);
     else if (address >= NV3_PRAMIN_START && address <= NV3_PRAMIN_END)
-        ret = nv3_pramin_read(address); // RAMHT, RAMFC, RAMRO etc dettermined by nv3_ramin_* function
+        ret = nv3_pramin_arbitrate_read(address); // RAMHT, RAMFC, RAMRO etc dettermined by nv3_ramin_* function
     else 
     {
         nv_log("NV3: MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
@@ -167,7 +167,7 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
     else if (address >= NV3_USER_START && address <= NV3_USER_END)
         nv3_user_write(address, value);
     else if (address >= NV3_PRAMIN_START && address <= NV3_PRAMIN_END)
-        nv3_pramin_write(address, value); // RAMHT, RAMFC, RAMRO etc is determined by the nv3_ramin_* functions
+        nv3_pramin_arbitrate_write(address, value); // RAMHT, RAMFC, RAMRO etc is determined by the nv3_ramin_* functions
     else 
     {
         nv_log("NV3: MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x\n", address);
@@ -202,5 +202,3 @@ void        nv3_vram_write(uint32_t address, uint32_t value) {};
 
 uint32_t    nv3_user_read(uint32_t address) { return 0; };
 void        nv3_user_write(uint32_t address, uint32_t value) {};
-uint32_t    nv3_pramin_read(uint32_t address) { return 0; };
-void        nv3_pramin_write(uint32_t address, uint32_t value) {};

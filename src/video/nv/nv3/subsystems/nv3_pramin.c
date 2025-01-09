@@ -147,3 +147,16 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
 
     nv_log("NV3: Write dword to RAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
 }
+
+/* 
+Arbitrates reads and writes to RAMFC, RAMRO, RAMHT and generic RAMIN
+*/
+uint32_t nv3_pramin_arbitrate_read(uint32_t address)
+{
+    return 0;
+}
+
+void nv3_pramin_arbitrate_write(uint32_t address, uint32_t value) 
+{
+    
+}

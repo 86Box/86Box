@@ -37,6 +37,9 @@
 nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_INTR, "PFIFO - Interrupt Status", NULL, NULL},
     { NV3_PFIFO_INTR_EN, "PFIFO - Interrupt Enable", NULL, NULL,},
+    { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
+    { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
+    { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -89,6 +92,16 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     break;
                 case NV3_PFIFO_INTR_EN:
                     ret = nv3->pfifo.interrupt_enable;
+                    break;
+                // These may need to become functions.
+                case NV3_PFIFO_CONFIG_RAMFC:
+                    ret = nv3->pfifo.ramfc_config;
+                    break;
+                case NV3_PFIFO_CONFIG_RAMHT:
+                    ret = nv3->pfifo.ramht_config;
+                    break;
+                case NV3_PFIFO_CONFIG_RAMRO:
+                    ret = nv3->pfifo.ramro_config;
                     break;
             }
         }
@@ -148,6 +161,46 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     break;
                 case NV3_PFIFO_INTR_EN:
                     nv3->pbus.interrupt_enable = value & 0x00001111;
+                    break;
+                case NV3_PFIFO_CONFIG_RAMHT:
+                    nv3->pfifo.ramht_config = value;
+// This code sucks a bit fix it later
+#ifdef ENABLE_NV_LOG
+                    uint32_t new_size_ramht = ((value >> 16) & 0x03);
+
+                    if (new_size_ramht == 0)
+                        new_size_ramht = 0x1000;
+                    else if (new_size_ramht == 1)
+                        new_size_ramht = 0x2000;
+                    else if (new_size_ramht == 2)
+                        new_size_ramht = 0x4000;
+                    else if (new_size_ramht == 3)
+                        new_size_ramht = 0x8000;  
+
+                    nv_log("NV3: RAMHT Reconfiguration\n"
+                    "Base Address in RAMIN: %d\n"
+                    "Size: 0x%08x bytes\n", (value >> 12) & 0x1f, new_size_ramht); 
+#endif
+                    break;
+                case NV3_PFIFO_CONFIG_RAMFC:
+                    nv3->pfifo.ramfc_config = value;
+
+                    nv_log("NV3: RAMFC Reconfiguration\n"
+                    "Base Address in RAMIN: %d\n", (value >> 12) & 0x1f); 
+                    break;
+                case NV3_PFIFO_CONFIG_RAMRO:
+                    nv3->pfifo.ramro_config = value;
+
+                    uint32_t new_size_ramro = ((value >> 16) & 0x01);
+
+                    if (new_size_ramro == 0)
+                        new_size_ramro = 0x200;
+                    else if (new_size_ramro == 1)
+                        new_size_ramro = 0x2000;
+                    
+                    nv_log("NV3: RAMRO Reconfiguration\n"
+                    "Base Address in RAMIN: %d\n"
+                    "Size: 0x%08x bytes\n", (value >> 12) & 0x1f, new_size_ramro); 
                     break;
             }
         }

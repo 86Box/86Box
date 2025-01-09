@@ -199,9 +199,26 @@ extern const device_config_t nv3_config[];
 
 #define NV3_PFIFO_CONFIG_0                              0x2200
 #define NV3_PFIFO_CONFIG_0_DMA_FETCH                    8
+
 #define NV3_PFIFO_CONFIG_RAMHT                          0x2210      // Hashtable for graphics objects config
-#define NV3_PFIFO_CONFIG_RAMRO                          0x2214
-#define NV3_PFIFO_CONFIG_RAMFC                          0x2218
+#define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS             12
+#define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS_DEFAULT     0x0
+#define NV3_PFIFO_CONFIG_RAMHT_SIZE                     16
+#define NV3_PFIFO_CONFIG_RAMHT_4K                       0x0
+#define NV3_PFIFO_CONFIG_RAMHT_8K                       0x1
+#define NV3_PFIFO_CONFIG_RAMHT_16K                      0x2
+#define NV3_PFIFO_CONFIG_RAMHT_32K                      0x3
+
+#define NV3_PFIFO_CONFIG_RAMFC                          0x2214
+#define NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS             9
+#define NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS_DEFAULT     0x1C00      // Hardcoded in silicon?
+
+#define NV3_PFIFO_CONFIG_RAMRO                          0x2218
+#define NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS             9
+#define NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS_DEFAULT     0x1E00      // Hardcoded in silicon?
+#define NV3_PFIFO_CONFIG_RAMRO_SIZE                     16
+#define NV3_PFIFO_CONFIG_RAMRO_SIZE_512B                0x0
+#define NV3_PFIFO_CONFIG_RAMRO_SIZE_8K                  0x1 
 
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
@@ -1001,8 +1018,8 @@ uint32_t    nv3_user_read(uint32_t address);
 void        nv3_user_write(uint32_t address, uint32_t value);
 #define nv3_object_submit_start nv3_user_read
 #define nv3_object_submit_end nv3_user_write
-uint32_t    nv3_pramin_read(uint32_t address);
-void        nv3_pramin_write(uint32_t address, uint32_t value);
+uint32_t    nv3_pramin_arbitrate_read(uint32_t address);
+void        nv3_pramin_arbitrate_write(uint32_t address, uint32_t value);
 // TODO: RAMHT, RAMFC...or maybe handle it inside of nv3_pramin_*
 
 // GPU subsystems
