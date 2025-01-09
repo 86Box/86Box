@@ -450,6 +450,7 @@ extern int machine_at_mr286_init(const machine_t *);
 
 extern int machine_at_neat_init(const machine_t *);
 extern int machine_at_neat_ami_init(const machine_t *);
+extern int machine_at_ataripc4_init(const machine_t *);
 
 extern int machine_at_quadt386sx_init(const machine_t *);
 
@@ -916,6 +917,7 @@ extern int machine_xt86_init(const machine_t *);
 
 extern int machine_xt_americxt_init(const machine_t *);
 extern int machine_xt_amixt_init(const machine_t *);
+extern int machine_xt_ataripc3_init(const machine_t *);
 extern int machine_xt_dtk_init(const machine_t *);
 extern int machine_xt_jukopc_init(const machine_t *);
 extern int machine_xt_openxt_init(const machine_t *);
