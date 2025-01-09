@@ -29,15 +29,19 @@
 
 enum {
     SADLIB  = 1,     /* No DSP */
-    SB1,             /* DSP v1.05 */
-    SB15,            /* DSP v2.00 */
-    SB2,             /* DSP v2.01 - needed for high-speed DMA */
-    SBPRO,           /* DSP v3.00 */
-    SBPRO2,          /* DSP v3.02 + OPL3 */
-    SB16,            /* DSP v4.05 + OPL3 */
-    SBAWE32,         /* DSP v4.12 + OPL3 */
-    SBAWE32PNP,      /* DSP v4.13 + OPL3 */
-    SBAWE64          /* DSP v4.16 + OPL3 */
+    SB_DSP_105,      /* DSP v1.05, Original CT1320 (Also known as CT1310) */
+    SB_DSP_200,      /* DSP v2.00 */
+    SB_DSP_201,      /* DSP v2.01 - needed for high-speed DMA, Seen on CT1350B with CT1336 */
+    SB_DSP_202,      /* DSP v2.02 - Seen on CT1350B with CT1336A */
+    SBPRO_DSP_300,   /* DSP v3.00 */
+    SBPRO2_DSP_302,  /* DSP v3.02 + OPL3 */
+    SB16_DSP_404,    /* DSP v4.05 + OPL3 */
+    SB16_DSP_405,    /* DSP v4.05 + OPL3 */
+    SB16_DSP_406,    /* DSP v4.06 + OPL3 */
+    SB16_DSP_411,    /* DSP v4.11 + OPL3 */
+    SBAWE32_DSP_412, /* DSP v4.12 + OPL3 */
+    SBAWE32_DSP_413, /* DSP v4.13 + OPL3 */
+    SBAWE64_DSP_416  /* DSP v4.16 + OPL3 */
 };
 
 /* SB 2.0 CD version */
