@@ -59,6 +59,8 @@ extern const device_t ibmpc_device;
 extern const device_t ibmpc82_device;
 extern const device_t ibmxt_device;
 extern const device_t ibmxt86_device;
+extern const device_t ibmat_device;
+extern const device_t ibmxt286_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -2677,7 +2679,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &ibmat_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -2797,7 +2799,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &ibmxt286_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,

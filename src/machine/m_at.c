@@ -53,6 +53,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/nvr.h>
 #include <86box/gameport.h>
+#include <86box/ibm_5161.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/rom.h>
@@ -149,10 +150,41 @@ machine_at_ps2_ide_init(const machine_t *model)
     device_add(&ide_isa_device);
 }
 
+static const device_config_t ibmat_config[] = {
+    // clang-format off
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmat_device = {
+    .name          = " IBM AT Devices",
+    .internal_name = "ibmat_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmat_config
+};
+
 int
 machine_at_ibm_init(const machine_t *model)
 {
-    int ret;
+    int     ret;
+    uint8_t enable_5161;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    device_context_restore();
 
     ret = bios_load_interleaved("roms/machines/ibmat/62x0820.u27",
                                 "roms/machines/ibmat/62x0821.u47",
@@ -162,6 +194,9 @@ machine_at_ibm_init(const machine_t *model)
         return ret;
 
     machine_at_ibm_common_init(model);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
@@ -218,10 +253,41 @@ machine_at_ibmatpx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ibmxt286_config[] = {
+    // clang-format off
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmxt286_device = {
+    .name          = "IBM XT Model 286 Devices",
+    .internal_name = "ibmxt286_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt286_config
+};
+
 int
 machine_at_ibmxt286_init(const machine_t *model)
 {
-    int ret;
+    int     ret;
+    uint8_t enable_5161;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    device_context_restore();
 
     ret = bios_load_interleaved("roms/machines/ibmxt286/bios_5162_21apr86_u34_78x7460_27256.bin",
                                 "roms/machines/ibmxt286/bios_5162_21apr86_u35_78x7461_27256.bin",
@@ -231,6 +297,9 @@ machine_at_ibmxt286_init(const machine_t *model)
         return ret;
 
     machine_at_ibm_common_init(model);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
