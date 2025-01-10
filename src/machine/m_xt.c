@@ -62,6 +62,29 @@ machine_xt_common_init(const machine_t *model, int fixed_floppy)
 static const device_config_t ibmpc_config[] = {
     // clang-format off
     {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ibm5150_5700671",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "5700671 (10/19/81)", .internal_name = "ibm5150_5700671", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_19OCT81_5700671_U33.BIN", "" } },
+            { .name = "5700051 (04/24/81)", .internal_name = "ibm5150_5700051", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_24APR81_5700051_U33.BIN", "" } },
+            // The following are Diagnostic ROMs.
+            { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
+            { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_8kb.bin", "" } },
+            { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    {
         .name = "enable_5161",
         .description = "IBM 5161 Expansion Unit",
         .type = CONFIG_BINARY,
@@ -94,27 +117,36 @@ const device_t ibmpc_device = {
 int
 machine_pc_init(const machine_t *model)
 {
-    int     ret;
-    uint8_t enable_5161;
-    uint8_t enable_basic;
+    int         ret = 0;
+    int         ret2;
+    uint8_t     enable_5161;
+    uint8_t     enable_basic;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
 
     device_context(model->device);
     enable_5161  = machine_get_config_int("enable_5161");
     enable_basic = machine_get_config_int("enable_basic");
+    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret          = bios_load_linear(fn, 0x000fe000, 40960, 0);
     device_context_restore();
 
-    ret = bios_load_linear("roms/machines/ibmpc/BIOS_5150_24APR81_U33.BIN",
-                           0x000fe000, 40960, 0);
-
     if (enable_basic && ret) {
-        bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U29 - 5700019.bin",
-                             0x000f6000, 8192, 0);
-        bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U30 - 5700027.bin",
-                             0x000f8000, 8192, 0);
-        bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U31 - 5700035.bin",
-                             0x000fa000, 8192, 0);
-        bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U32 - 5700043.bin",
-                             0x000fc000, 8192, 0);
+        ret2 = bios_load_aux_linear("roms/machines/ibmpc/ibm-basic-1.00.rom",
+                                    0x000f6000, 32768, 0);
+        if (!ret2) {
+            bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U29 - 5700019.bin",
+                                 0x000f6000, 8192, 0);
+            bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U30 - 5700027.bin",
+                                 0x000f8000, 8192, 0);
+            bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U31 - 5700035.bin",
+                                 0x000fa000, 8192, 0);
+            bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U32 - 5700043.bin",
+                                 0x000fc000, 8192, 0);
+        }
     }
 
     if (bios_only || !ret)
@@ -192,7 +224,7 @@ machine_pc82_init(const machine_t *model)
     int         ret2;
     uint8_t     enable_5161;
     uint8_t     enable_basic;
-    const char* fn;
+    const char *fn;
 
     /* No ROMs available. */
     if (!device_available(model->device))
@@ -209,13 +241,13 @@ machine_pc82_init(const machine_t *model)
         ret2 = bios_load_aux_linear("roms/machines/ibmpc82/ibm-basic-1.10.rom",
                                     0x000f6000, 32768, 0);
         if (!ret2) {
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.f6",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U29 - 5000019.bin",
                                  0x000f6000, 8192, 0);
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.f8",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U30 - 5000021.bin",
                                  0x000f8000, 8192, 0);
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.fa",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U31 - 5000022.bin",
                                  0x000fa000, 8192, 0);
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.fc",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U32 - 5000023.bin",
                                  0x000fc000, 8192, 0);
         }
     }
