@@ -384,6 +384,33 @@ machine_genxt_init(const machine_t *model)
 static const device_config_t ibmxt86_config[] = {
     // clang-format off
     {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ibm5160_050986",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "1501512 (05/09/86)", .internal_name = "ibm5160_050986", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" } },
+            { .name = "5000026 (01/10/86)", .internal_name = "ibm5160_011086", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0851_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0854_27256_F000.BIN", "" } },
+            { .name = "1501512 (01/10/86) (Alt)", .internal_name = "ibm5160_011086_alt", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0852_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0853_27256_F000.BIN", "" } },
+#if 0
+            // The following are Diagnostic ROMs.
+            { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
+            { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_8kb.bin", "" } },
+            { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
+#endif
+            { .files_no = 0 }
+        },
+    },
+    {
         .name = "enable_5161",
         .description = "IBM 5161 Expansion Unit",
         .type = CONFIG_BINARY,
@@ -410,21 +437,26 @@ const device_t ibmxt86_device = {
 int
 machine_xt86_init(const machine_t *model)
 {
-    int     ret;
-    uint8_t enable_5161;
+    int         ret = 0;
+    uint8_t     enable_5161;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
 
     device_context(model->device);
     enable_5161  = machine_get_config_int("enable_5161");
-    device_context_restore();
+    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret          = bios_load_linear(fn, 0x000fe000, 65536, 0x6000);
 
-    ret = bios_load_linear("roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
-                           0x000fe000, 65536, 0x6000);
     if (ret) {
-        (void) bios_load_aux_linear("roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
-                                    0x000f8000, 24576, 0);
-        (void) bios_load_aux_linear("roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN",
-                                    0x000f0000, 32768, 0);
+        fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+        (void) bios_load_aux_linear(fn, 0x000f8000, 24576, 0);
+        fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 1);
+        (void) bios_load_aux_linear(fn, 0x000f0000, 32768, 0);
     }
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
