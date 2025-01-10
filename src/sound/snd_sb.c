@@ -292,7 +292,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
     if (!sb->opl_enabled)
         return;
 
-    if (sb->dsp.sb_type == SBPRO) {
+    if (sb->dsp.sb_type == SBPRO_DSP_300) {
         opl_buf  = sb->opl.update(sb->opl.priv);
         opl2_buf = sb->opl2.update(sb->opl2.priv);
     } else
@@ -304,7 +304,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
         out_l = 0.0;
         out_r = 0.0;
 
-        if (sb->dsp.sb_type == SBPRO) {
+        if (sb->dsp.sb_type == SBPRO_DSP_300) {
             /* Two chips for LEFT and RIGHT channels.
                Each chip stores data into the LEFT channel only (no sample alternating.) */
             out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
@@ -326,7 +326,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
     }
 
     sb->opl.reset_buffer(sb->opl.priv);
-    if (sb->dsp.sb_type == SBPRO)
+    if (sb->dsp.sb_type == SBPRO_DSP_300)
         sb->opl2.reset_buffer(sb->opl2.priv);
 }
 
@@ -1161,7 +1161,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff:
-                if ((sb->dsp.sb_type > SBAWE32) && !sb->dsp.sb_16_dma_supported) {
+                if ((sb->dsp.sb_type > SBAWE32_DSP_412) && !sb->dsp.sb_16_dma_supported) {
                     /*
                        Bit 5: High DMA channel enabled (0 = yes, 1 = no);
                        Bit 2: ????;
@@ -1345,7 +1345,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 /* http://the.earth.li/~tfm/oldpage/sb_mixer.html - 0x10, 0x20, 0x80. */
                 const uint8_t temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) |
                                      ((sb->dsp.sb_irq401) ? 4 : 0);
-                if (sb->dsp.sb_type >= SBAWE32)
+                if (sb->dsp.sb_type >= SBAWE32_DSP_412)
                     ret = temp | 0x80;
                 else
                     ret = temp | 0x40;
@@ -1390,7 +1390,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                           - Register FF = FF: Volume playback normal.
                           - Register FF = Not FF: Volume playback low unless
                                           bit 6 of 82h is set. */
-                if (sb->dsp.sb_type > SBAWE32)
+                if (sb->dsp.sb_type > SBAWE32_DSP_412)
                     ret = mixer->regs[mixer->index];
                 break;
 
@@ -2223,7 +2223,7 @@ sb_16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void 
             break;
 
         case 2: /* Reserved (16) / WaveTable (32+) */
-            if (sb->dsp.sb_type > SB16)
+            if (sb->dsp.sb_type >= SBAWE32_DSP_412)
                 emu8k_change_addr(&sb->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
             break;
 
@@ -2839,17 +2839,17 @@ sb_init(UNUSED(const device_t *info))
     switch (info->local) {
         default:
         case SB_1:
-            model           = SB1;
+            model           = SB_DSP_105;
             sb->cms_enabled = 1;
             break;
 
         case SB_15:
-            model           = SB15;
+            model           = SB_DSP_200;
             sb->cms_enabled = device_get_config_int("cms");
             break;
 
         case SB_2:
-            model           = SB2;
+            model           = SB_DSP_201;
             sb->cms_enabled = device_get_config_int("cms");
             mixer_addr      = device_get_config_int("mixaddr");
             break;
@@ -2871,7 +2871,7 @@ sb_init(UNUSED(const device_t *info))
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         // TODO: See if this applies to the SB1.5 as well
-        if ((!sb->cms_enabled) && (model == SB2)) {
+        if ((!sb->cms_enabled) && ((model == SB_DSP_201) || (model == SB_DSP_202))) {
             io_sethandler(addr, 0x0002,
                           sb->opl.read, NULL, NULL,
                           sb->opl.write, NULL, NULL,
@@ -2928,7 +2928,7 @@ sb_mcv_init(UNUSED(const device_t *info))
         fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB15, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB_DSP_105, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, 0);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -2991,7 +2991,7 @@ sb_pro_v1_init(UNUSED(const device_t *info))
     }
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO_DSP_300, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3049,7 +3049,7 @@ sb_pro_v2_init(UNUSED(const device_t *info))
         fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3100,7 +3100,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -3127,7 +3127,7 @@ sb_pro_compat_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -3154,7 +3154,7 @@ sb_16_init(UNUSED(const device_t *info))
         fm_driver_get((int) (intptr_t) info->local, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, (info->local == FM_YMF289B) ? SBAWE32PNP : SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == FM_YMF289B) ? SBAWE32_DSP_413 : SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3216,7 +3216,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -3270,7 +3270,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
@@ -3373,7 +3373,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
     sb_dsp_setdma16_supported(&sb->dsp, info->local != SB_VIBRA16XV);
     sb_ct1745_mixer_reset(sb);
@@ -3469,7 +3469,7 @@ sb_16_compat_init(const device_t *info)
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -3555,7 +3555,7 @@ sb_awe32_init(UNUSED(const device_t *info))
         fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBAWE32, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBAWE32_DSP_412, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3670,7 +3670,7 @@ sb_awe32_pnp_init(const device_t *info)
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, (info->local >= SB_AWE64_VALUE) ?
-                SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+                SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
@@ -3803,7 +3803,7 @@ ess_x688_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setaddr(&ess->dsp, addr);
     sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
@@ -3914,7 +3914,7 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
@@ -4000,7 +4000,7 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
