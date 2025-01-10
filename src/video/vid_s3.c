@@ -273,6 +273,7 @@ typedef struct s3_t {
         int      dat_count;
         int      b2e8_pix, temp_cnt;
         int      ssv_len;
+        int      ssv_len_back;
         uint8_t  ssv_dir;
         uint8_t  ssv_draw;
         uint8_t  dat_buf_16bit;
@@ -511,7 +512,7 @@ s3_update_irqs(s3_t *s3)
 }
 
 void        s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, void *priv);
-void        s3_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_t *s3, uint8_t ssv);
+void        s3_short_stroke_start(s3_t *s3, uint8_t ssv);
 static void s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3);
 
 #define WRITE8(addr, var, val)                        \
@@ -922,15 +923,12 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             s3->accel.short_stroke = (s3->accel.short_stroke & 0xff) | (val << 8);
             s3->accel.ssv_state    = 1;
 
-            s3->accel.cx = s3->accel.cur_x & 0xfff;
-            s3->accel.cy = s3->accel.cur_y & 0xfff;
-
             if (s3->accel.cmd & 0x1000) {
-                s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
-                s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke >> 8);
+                s3_short_stroke_start(s3, s3->accel.short_stroke & 0xff);
+                s3_short_stroke_start(s3, s3->accel.short_stroke >> 8);
             } else {
-                s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke >> 8);
-                s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
+                s3_short_stroke_start(s3, s3->accel.short_stroke >> 8);
+                s3_short_stroke_start(s3, s3->accel.short_stroke & 0xff);
             }
             break;
 
@@ -1787,15 +1785,12 @@ s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
         s3->accel.short_stroke = val;
         s3->accel.ssv_state    = 1;
 
-        s3->accel.cx = s3->accel.cur_x & 0xfff;
-        s3->accel.cy = s3->accel.cur_y & 0xfff;
-
         if (s3->accel.cmd & 0x1000) {
-            s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
-            s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke >> 8);
+            s3_short_stroke_start(s3, s3->accel.short_stroke & 0xff);
+            s3_short_stroke_start(s3, s3->accel.short_stroke >> 8);
         } else {
-            s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke >> 8);
-            s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
+            s3_short_stroke_start(s3, s3->accel.short_stroke >> 8);
+            s3_short_stroke_start(s3, s3->accel.short_stroke & 0xff);
         }
     }
 }
@@ -7823,19 +7818,16 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 }
 
 void
-s3_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_t *s3, uint8_t ssv)
+s3_short_stroke_start(s3_t *s3, uint8_t ssv)
 {
-    if (!cpu_input) {
-        s3->accel.ssv_len  = ssv & 0x0f;
-        s3->accel.ssv_dir  = ssv & 0xe0;
-        s3->accel.ssv_draw = ssv & 0x10;
+    s3->accel.ssv_len  = ssv & 0x0f;
+    s3->accel.ssv_dir  = ssv & 0xe0;
+    s3->accel.ssv_draw = !!(ssv & 0x10);
 
-        if (s3_cpu_src(s3)) {
-            return; /*Wait for data from CPU*/
-        }
-    }
+    if (s3_cpu_src(s3))
+        return; /*Wait for data from CPU*/
 
-    s3->accel_start(count, cpu_input, mix_dat, cpu_dat, s3);
+    s3->accel_start(-1, 0, -1, 0, s3);
 }
 
 void
@@ -7978,11 +7970,13 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
-            if (s3->accel.ssv_state == 0)
+            if (s3->accel.ssv_state == 0) {
+                s3->accel.cx = s3->accel.cur_x & 0xfff;
+                s3->accel.cy = s3->accel.cur_y & 0xfff;
                 break;
+            }
 
-            if (s3->accel.cmd & 0x08) /*Radial*/
-            {
+            if (s3->accel.cmd & 0x08) { /*Radial*/
                 while (count-- && s3->accel.ssv_len >= 0) {
                     if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r && (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
@@ -8036,8 +8030,11 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     else
                         cpu_dat >>= 16;
 
-                    if (!s3->accel.ssv_len)
+                    if (!s3->accel.ssv_len) {
+                        s3->accel.cur_x = s3->accel.cx & 0xfff;
+                        s3->accel.cur_y = s3->accel.cy & 0xfff;
                         break;
+                    }
 
                     switch (s3->accel.ssv_dir & 0xe0) {
                         case 0x00:
@@ -8077,9 +8074,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     s3->accel.cx &= 0xfff;
                     s3->accel.cy &= 0xfff;
                 }
-
-                s3->accel.cur_x = s3->accel.cx & 0xfff;
-                s3->accel.cur_y = s3->accel.cy & 0xfff;
             }
             break;
 
@@ -8270,7 +8264,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         else
                             s3->accel.cy--;
 
-                        if (s3->accel.err_term >= 0) {
+                        if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
                             s3->accel.err_term += s3->accel.destx_distp;
                             if (s3->accel.cmd & 0x20)
                                 s3->accel.cx++;
@@ -8284,7 +8278,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         else
                             s3->accel.cx--;
 
-                        if (s3->accel.err_term >= 0) {
+                        if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
                             s3->accel.err_term += s3->accel.destx_distp;
                             if (s3->accel.cmd & 0x80)
                                 s3->accel.cy++;

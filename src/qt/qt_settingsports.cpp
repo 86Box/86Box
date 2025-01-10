@@ -160,6 +160,7 @@ SettingsPorts::on_pushButtonSerialPassThru4_clicked()
     DeviceConfig::ConfigureDevice(&serial_passthrough_device, 4, qobject_cast<Settings *>(Settings::settings));
 }
 
+#if 0
 void
 SettingsPorts::on_pushButtonSerialPassThru5_clicked()
 {
@@ -177,6 +178,7 @@ SettingsPorts::on_pushButtonSerialPassThru7_clicked()
 {
     DeviceConfig::ConfigureDevice(&serial_passthrough_device, 7, qobject_cast<Settings *>(Settings::settings));
 }
+#endif
 
 void
 SettingsPorts::on_checkBoxSerialPassThru1_clicked(bool checked)

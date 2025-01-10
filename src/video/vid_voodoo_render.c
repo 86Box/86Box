@@ -967,6 +967,9 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                     int      src_g = 0;
                     int      src_b = 0;
                     int      src_a = 0;
+                    int      colbfog_r = 0;
+                    int      colbfog_g = 0;
+                    int      colbfog_b = 0;
                     int      msel_r;
                     int      msel_g;
                     int      msel_b;
@@ -1262,6 +1265,10 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                     }
                     if (cca_invert_output)
                         src_a ^= 0xff;
+
+                    colbfog_r = src_r;
+                    colbfog_g = src_g;
+                    colbfog_b = src_b;
 
                     if (params->fogMode & FOG_ENABLE)
                         APPLY_FOG(src_r, src_g, src_b, state->z, state->ia, state->w);

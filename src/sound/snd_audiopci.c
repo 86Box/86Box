@@ -1,24 +1,24 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Ensoniq AudioPCI family emulation.
+ *          Ensoniq AudioPCI family emulation.
  *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           RichardG, <richardg867@gmail.com>
- *           Miran Grca, <mgrca8@gmail.com>
- *           Jasmine Iwanek, <jriwanek@gmail.com>
- *           Cacodemon345
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          RichardG, <richardg867@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *          Cacodemon345
  *
- *           Copyright 2008-2021 Sarah Walker.
- *           Copyright 2021-2024 RichardG.
- *           Copyright 2021      Miran Grca.
- *           Copyright 2024-2025 Jasmine Iwanek.
- *           Copyright 2024-2025 Cacodemon345.
+ *          Copyright 2008-2021 Sarah Walker.
+ *          Copyright 2021-2024 RichardG.
+ *          Copyright 2021      Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2025 Cacodemon345.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -145,10 +145,10 @@ typedef struct es137x_t {
     uint32_t calc_sample_rate;
     uint32_t calc_sample_rate_synth;
 
-    double interp_factor;
+    double   interp_factor;
     uint32_t interp_step;
 
-    double interp_factor_synth;
+    double   interp_factor_synth;
     uint32_t interp_step_synth;
 
     uint32_t step_pcm;
@@ -156,18 +156,20 @@ typedef struct es137x_t {
 } es137x_t;
 
 static const double akm4531_att_2dbstep_5bits[] = {
+    // clang-format off
        25.0,    32.0,    41.0,    51.0,    65.0,    82.0,   103.0,   130.0,
       164.0,   206.0,   260.0,   327.0,   412.0,   519.0,   653.0,   822.0,
      1036.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
      6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
+    // clang-format on
 };
 
 static double akm4531_gain_2dbstep_5bits[0x20];
 
-#define AUDIOPCI_ES1370 0x50001271
-#define AUDIOPCI_ES1371 0x13710200
-#define AUDIOPCI_ES1373 0x13710400
-#define AUDIOPCI_CT5880 0x58800400
+#define AUDIOPCI_ES1370           0x50000000
+#define AUDIOPCI_ES1371           0x13710200
+#define AUDIOPCI_ES1373           0x13710400
+#define AUDIOPCI_CT5880           0x58800400
 
 #define LEGACY_SB_ADDR            (1 << 29)
 #define LEGACY_SSCAPE_ADDR_SHIFT  27
@@ -365,7 +367,7 @@ es137x_reset_fifo(es137x_t *dev)
 static void
 akm4531_reset(es137x_t *dev)
 {
-    akm4531_t* codec = &dev->akm_codec;
+    akm4531_t *codec = &dev->akm_codec;
 
     memset(codec->registers, 0, sizeof(codec->registers));
 
@@ -382,8 +384,10 @@ akm4531_reset(es137x_t *dev)
     codec->registers[0x16] = 0x3;
 }
 
-static double lerp(double v0, double v1, double t) {
-  return (1. - t) * v0 + t * v1;
+static double
+lerp(double v0, double v1, double t)
+{
+    return (1. - t) * v0 + t * v1;
 }
 
 static void
@@ -394,34 +398,34 @@ es1370_calc_sample_rate(es137x_t *dev)
 
     dev->calc_sample_rate = 1411200 / (((dev->int_ctrl >> 16) & 0x1fff) + 2);
 
-    //pclog("ES1370 calc sample rate %u\n", dev->calc_sample_rate);
+    // audiopci_log("ES1370 calc sample rate %u\n", dev->calc_sample_rate);
 
     dev->interp_factor = 1.0;
-    dev->interp_step = 1;
+    dev->interp_step   = 1;
 
     if (dev->calc_sample_rate >= 44100 || dev->calc_sample_rate < 11025) {
-        dev->interp_factor = 1.0;
-        dev->interp_step = 1;
+        dev->interp_factor    = 1.0;
+        dev->interp_step      = 1;
         dev->calc_sample_rate = 44100;
     }
     if (dev->calc_sample_rate == 22050) {
         dev->interp_factor = 0.5;
-        dev->interp_step = 2;
+        dev->interp_step   = 2;
     }
     if (dev->calc_sample_rate == 11025) {
         dev->interp_factor = 0.25;
-        dev->interp_step = 4;
+        dev->interp_step   = 4;
     }
     if ((((dev->int_ctrl >> 16) & 0x1fff) + 2) == 256) {
         /* 5512.5 Hz */
-        dev->interp_factor = 0.125;
-        dev->interp_step = 8;
+        dev->interp_factor    = 0.125;
+        dev->interp_step      = 8;
         dev->calc_sample_rate = 5512;
     }
 
-    dev->calc_sample_rate_synth = 44100 / (1 << ((dev->int_ctrl >> 12) & 3));
-    dev->interp_factor_synth = 1. / (double)(1 << ((dev->int_ctrl >> 12) & 3));
-    dev->interp_step_synth = (1 << ((dev->int_ctrl >> 12) & 3));
+    dev->calc_sample_rate_synth = 44100 / (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
+    dev->interp_factor_synth    = 1. / (double) ((1 << ((dev->int_ctrl >> 12) & 3) ^ 3));
+    dev->interp_step_synth      = (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
 }
 
 static void
@@ -432,7 +436,7 @@ es137x_reset(void *priv)
     nmi = 0;
 
     /* Default subsystem ID. */
-    dev->subsys_lock = 0x00;
+    dev->subsys_lock                   = 0x00;
     *((uint16_t *) &dev->subsys_id[0]) = (dev->type == AUDIOPCI_ES1370) ? 0x4942 : 0x1274;
     *((uint16_t *) &dev->subsys_id[2]) = (dev->type == AUDIOPCI_ES1370) ? 0x4c4c : 0x1371;
 
@@ -442,11 +446,13 @@ es137x_reset(void *priv)
 
     /* Interrupt/Chip Select Status Register, Address 04H
        Addressable as longword only */
-    if (dev->type >= AUDIOPCI_CT5880)
+    if (dev->type == AUDIOPCI_ES1370)
+        dev->int_status = 0x00000060;
+    else if (dev->type == AUDIOPCI_CT5880)
         dev->int_status = 0x52080ec0;
-    else if (dev->type >= AUDIOPCI_ES1373 && dev->type != AUDIOPCI_ES1370)
+    else if (dev->type == AUDIOPCI_ES1373)
         dev->int_status = 0x7f080ec0;
-    else
+    else /* AUDIOPCI_ES1371 */
         dev->int_status = 0x7ffffec0;
 
     /* UART Status Register, Address 09H
@@ -780,7 +786,7 @@ es137x_inb(uint16_t port, void *priv)
             break;
         case 0x03:
             ret = dev->int_ctrl >> 24;
-            if (dev->type < AUDIOPCI_ES1373 && dev->type != AUDIOPCI_ES1370)
+            if (dev->type == AUDIOPCI_ES1371)
                 ret |= 0xfc;
             break;
 
@@ -853,19 +859,19 @@ es137x_inb(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus & 0xff;
             break;
         case 0x1d:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 8;
             break;
         case 0x1e:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 16;
             break;
         case 0x1f:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 24;
             break;
 
@@ -878,10 +884,15 @@ es137x_inb(uint16_t port, void *priv)
             ret = dev->si_cr >> 8;
             break;
         case 0x22:
-            ret = (dev->si_cr >> 16) | 0x80;
+            ret = dev->si_cr >> 16;
+            if (dev->type != AUDIOPCI_ES1370)
+                ret |= 0x80;
             break;
         case 0x23:
-            ret = 0xff;
+            if (dev->type == AUDIOPCI_ES1370)
+                ret = 0x00;
+            else
+                ret = 0xff;
             break;
 
         default:
@@ -906,7 +917,7 @@ es137x_inw(uint16_t port, void *priv)
             break;
         case 0x02:
             ret = (dev->int_ctrl >> 16) & 0xff0f;
-            if (dev->type < AUDIOPCI_ES1373 && dev->type != AUDIOPCI_ES1370)
+            if (dev->type == AUDIOPCI_ES1371)
                 ret |= 0xfc00;
             break;
 
@@ -931,11 +942,11 @@ es137x_inw(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus & 0xffff;
             break;
         case 0x1e:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus >> 16;
             break;
 
@@ -945,7 +956,9 @@ es137x_inw(uint16_t port, void *priv)
             ret = dev->si_cr & 0xffff;
             break;
         case 0x22:
-            ret = (dev->si_cr >> 16) | 0xff80;
+            ret = dev->si_cr >> 16;
+            if (dev->type != AUDIOPCI_ES1370)
+                ret |= 0xff80;
             break;
 
         /* DAC1 Channel Sample Count Register, Address 24H
@@ -1003,7 +1016,7 @@ es137x_inl(uint16_t port, void *priv)
     es137x_t *dev = (es137x_t *) priv;
     uint32_t  ret = 0xffffffff;
 
-    if (dev->type == AUDIOPCI_ES1370 && (port & 0x3c) == 0x14)
+    if ((dev->type == AUDIOPCI_ES1370) && (port & 0x3c) == 0x14)
         port = 0x10;
 
     switch (port & 0x3c) {
@@ -1011,7 +1024,7 @@ es137x_inl(uint16_t port, void *priv)
            Addressable as byte, word, longword */
         case 0x00:
             ret = dev->int_ctrl & 0xff0fffff;
-            if (ret < AUDIOPCI_ES1373 && ret != AUDIOPCI_ES1370)
+            if ((ret < AUDIOPCI_ES1373) && (ret != AUDIOPCI_ES1370))
                 ret |= 0xfc000000;
             break;
 
@@ -1052,14 +1065,16 @@ es137x_inl(uint16_t port, void *priv)
         /* S/PDIF Channel Status Control Register, Address 1CH
            Addressable as byte, word, longword */
         case 0x1c:
-            if (dev->type >= AUDIOPCI_ES1373 || dev->type == AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 ret = dev->spdif_chstatus;
             break;
 
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            ret = dev->si_cr | 0xff800000;
+            ret = dev->si_cr;
+            if (dev->type != AUDIOPCI_ES1370)
+                ret |= 0xff800000;
             break;
 
         /* DAC1 Channel Sample Count Register, Address 24H
@@ -1123,7 +1138,7 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 dev->dac[1].prev_out_r     = 0;
                 es137x_fetch(dev, 1);
             }
-            //pclog("INTCTRL 0x%02X\n", val & 0xff);
+            // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffffff00) | val;
             break;
         case 0x01:
@@ -1144,11 +1159,11 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
            Addressable as longword only, but PCem implements byte access, which
            must be for a reason */
         case 0x06:
-            if (dev->type >= AUDIOPCI_ES1373 || dev->type == AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val << 16);
             break;
         case 0x07:
-            if (dev->type >= AUDIOPCI_CT5880 || dev->type == AUDIOPCI_ES1370)
+            if (dev->type == AUDIOPCI_CT5880)
                 dev->int_status = (dev->int_status & 0xd2ffffff) | (val << 24);
             break;
 
@@ -1231,18 +1246,28 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            dev->si_cr = (dev->si_cr & 0xffffff00) | val;
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xffff00) | val;
+            else
+                dev->si_cr = (dev->si_cr & 0xffffff00) | val;
             break;
         case 0x21:
-            dev->si_cr = (dev->si_cr & 0xffff00ff) | (val << 8);
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xff00ff) | (val << 8);
+            else
+                dev->si_cr = (dev->si_cr & 0xffff00ff) | (val << 8);
             if (!(dev->si_cr & SI_P1_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+
             es137x_update_irqs(dev);
             break;
         case 0x22:
-            dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x7f) << 16);
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xc0ffff) | ((val & 0x3f) << 16);
+            else
+                dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x7f) << 16);
             break;
 
         default:
@@ -1278,7 +1303,7 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                 dev->step_pcm              = dev->interp_step;
                 es137x_fetch(dev, 1);
             }
-            //pclog("INTCTRL 0x%02X\n", val & 0xff);
+            // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffff0000) | val;
             break;
         case 0x02:
@@ -1300,7 +1325,7 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
         case 0x10:
             if (dev->type != AUDIOPCI_ES1370)
                 break;
-            
+
             dev->akm_codec.registers[(val >> 8) & 0xFF] = val & 0xFF;
             if ((val >> 8) == 0x16 && !(val & 1))
                 akm4531_reset(dev);
@@ -1330,7 +1355,11 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            dev->si_cr = (dev->si_cr & 0xffff0000) | val;
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xff0000) | val;
+            else
+                dev->si_cr = (dev->si_cr & 0xffff0000) | val;
+
             if (!(dev->si_cr & SI_P1_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
@@ -1338,7 +1367,10 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
             es137x_update_irqs(dev);
             break;
         case 0x22:
-            dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x007f) << 16);
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = (dev->si_cr & 0xc0ffff) | ((val & 0x3f) << 16);
+            else
+                dev->si_cr = (dev->si_cr & 0xff80ffff) | ((val & 0x007f) << 16);
             break;
 
         /* DAC1 Channel Sample Count Register, Address 24H
@@ -1376,44 +1408,46 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
         /* Interrupt/Chip Select Control Register, Address 00H
            Addressable as byte, word, longword */
         case 0x00:
-        {
-            uint8_t dac1start = 0, dac2start = 0;
-            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                dev->dac[0].addr           = dev->dac[0].addr_latch;
-                dev->dac[0].buffer_pos     = 0;
-                dev->dac[0].buffer_pos_end = 0;
-                dev->dac[0].prev_out_l     = 0;
-                dev->dac[0].prev_out_r     = 0;
-                dac1start                  = 1;
-                es137x_fetch(dev, 0);
+            {
+                uint8_t dac1start = 0;
+                uint8_t dac2start = 0;
+
+                if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
+                    dev->dac[0].addr           = dev->dac[0].addr_latch;
+                    dev->dac[0].buffer_pos     = 0;
+                    dev->dac[0].buffer_pos_end = 0;
+                    dev->dac[0].prev_out_l     = 0;
+                    dev->dac[0].prev_out_r     = 0;
+                    dac1start                  = 1;
+                    es137x_fetch(dev, 0);
+                }
+                if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
+                    dev->dac[1].addr           = dev->dac[1].addr_latch;
+                    dev->dac[1].buffer_pos     = 0;
+                    dev->dac[1].buffer_pos_end = 0;
+                    dev->dac[1].prev_out_l     = 0;
+                    dev->dac[1].prev_out_r     = 0;
+                    dac2start                  = 1;
+                    es137x_fetch(dev, 1);
+                }
+                // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
+                dev->int_ctrl = val;
+                gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
+                es1370_calc_sample_rate(dev);
+                if (dac1start)
+                    dev->step_synth = dev->interp_step_synth;
+                if (dac2start)
+                    dev->step_pcm = dev->interp_step;
+                break;
             }
-            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                dev->dac[1].addr           = dev->dac[1].addr_latch;
-                dev->dac[1].buffer_pos     = 0;
-                dev->dac[1].buffer_pos_end = 0;
-                dev->dac[1].prev_out_l     = 0;
-                dev->dac[1].prev_out_r     = 0;
-                dac2start                  = 1;
-                es137x_fetch(dev, 1);
-            }
-            //pclog("INTCTRL 0x%02X\n", val & 0xff);
-            dev->int_ctrl = val;
-            gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
-            es1370_calc_sample_rate(dev);
-            if (dac1start)
-                dev->step_synth = dev->interp_step_synth;
-            if (dac2start)
-                dev->step_pcm = dev->interp_step;
-            break;
-        }
 
         /* Interrupt/Chip Select Status Register, Address 04H
            Addressable as longword only */
         case 0x04:
             audiopci_log("[W] STATUS = %08X\n", val);
-            if (dev->type >= AUDIOPCI_CT5880)
+            if (dev->type == AUDIOPCI_CT5880)
                 dev->int_status = (dev->int_status & 0xd208ffff) | (val & 0x2df70000);
-            else if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            else if (dev->type == AUDIOPCI_ES1373)
                 dev->int_status = (dev->int_status & 0xff08ffff) | (val & 0x00f70000);
             break;
 
@@ -1426,8 +1460,7 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
         /* Sample Rate Converter Interface Register, Address 10H
            Addressable as longword only */
         case 0x10:
-            if (dev->type == AUDIOPCI_ES1370)
-            {
+            if (dev->type == AUDIOPCI_ES1370) {
                 dev->akm_codec.registers[(val >> 8) & 0xFF] = val & 0xFF;
                 if ((val >> 8) == 0x16 && !(val & 1))
                     akm4531_reset(dev);
@@ -1518,7 +1551,10 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
         /* Serial Interface Control Register, Address 20H
             Addressable as byte, word, longword */
         case 0x20:
-            dev->si_cr = (val & 0x007fffff) | 0xff800000;
+            if (dev->type == AUDIOPCI_ES1370)
+                dev->si_cr = val & 0x3fffff;
+            else
+                dev->si_cr = (val & 0x007fffff) | 0xff800000;
             if (!(dev->si_cr & SI_P1_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
@@ -1876,28 +1912,28 @@ es1370_pci_read(int func, int addr, void *priv)
         return 0x00;
 
     switch (addr) {
-        case 0x00: /* Vendor ID */
+        case 0x00:       /* Vendor ID */
             return 0x74; /* Ensoniq */
         case 0x01:
             return 0x12;
 
-        case 0x02: /* Device ID */
-            return 0x00; /* ES1370 */
+        case 0x02:       /* Device ID */
+            return dev->type >> 16; /* ES1370 */
         case 0x03:
-            return 0x50;
+            return dev->type >> 24;
 
         case 0x04: /* Command TODO */
             return dev->pci_command;
         case 0x05:
             return dev->pci_serr;
 
-        case 0x06: /* Status TODO */
+        case 0x06:       /* Status TODO */
             return 0x10; /* Supports ACPI */
         case 0x07:
             return 0x00;
 
-        case 0x08: /* Class Code & Revision ID */
-            return 0x00; /* Revision ID - 0x00 is actual Ensoniq-branded ES1370 */
+        case 0x08:       /* Class Code & Revision ID */
+            return dev->type >> 8; /* Revision ID - 0x00 is actual Ensoniq-branded ES1370 */
         case 0x09:
             return 0x00; /* Multimedia audio device */
         case 0x0a:
@@ -1910,7 +1946,7 @@ es1370_pci_read(int func, int addr, void *priv)
 //        case 0x0e: /* Header Type TODO */
 //        case 0x0f: /* BIST TODO */
 
-        case 0x10: /* Base Address TODO */
+        case 0x10:                                 /* Base Address TODO */
             return 0x01 | (dev->base_addr & 0xc0); /* memBaseAddr */
         case 0x11:
             return dev->base_addr >> 8;
@@ -1919,14 +1955,8 @@ es1370_pci_read(int func, int addr, void *priv)
         case 0x13:
             return dev->base_addr >> 24;
 
-        case 0x2c:
-            return 0x42; /* Subsystem vendor ID */
-        case 0x2d:
-            return 0x49;
-        case 0x2e:
-            return 0x4c; /* Subsystem product ID */
-        case 0x2f:
-            return 0x4c;
+        case 0x2c ... 0x2f:
+            return dev->subsys_id[addr & 3]; /* Subsystem vendor ID */
 
 #if 0
         case 0x34: // TODO
@@ -2033,7 +2063,7 @@ es1371_pci_read(int func, int addr, void *priv)
             return 0x80; /* Maximum latency */
 
         case 0x40:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 return dev->subsys_lock;
             break;
 
@@ -2164,7 +2194,7 @@ es1371_pci_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x40:
-            if (dev->type >= AUDIOPCI_ES1373 && dev->type < AUDIOPCI_ES1370)
+            if ((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880))
                 dev->subsys_lock = val;
             break;
 
@@ -2387,9 +2417,8 @@ es137x_poll(void *priv)
     es137x_update(dev);
 
     if (dev->int_ctrl & INT_DAC1_EN) {
-        if (((dev->type >= AUDIOPCI_ES1373) && (dev->int_ctrl & INT_DAC1_BYPASS)) || dev->type == AUDIOPCI_ES1370) {
-            if (dev->calc_sample_rate_synth != 44100 && dev->type == AUDIOPCI_ES1370)
-            {
+        if ((((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & INT_DAC1_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
+            if ((dev->calc_sample_rate_synth != 44100) && (dev->type == AUDIOPCI_ES1370)) {
                 if ((dev->dac[0].buffer_pos - dev->dac[0].buffer_pos_end) >= 0 && dev->step_synth >= dev->interp_step_synth)
                     es137x_fetch(dev, 0);
 
@@ -2446,9 +2475,8 @@ dac0_count:
     }
 
     if (dev->int_ctrl & INT_DAC2_EN) {
-        if (((dev->type >= AUDIOPCI_ES1373) && (dev->int_ctrl & INT_DAC2_BYPASS)) || dev->type == AUDIOPCI_ES1370) {
-            if (dev->calc_sample_rate != 44100 && dev->type == AUDIOPCI_ES1370)
-            {
+        if ((((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & INT_DAC2_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
+            if ((dev->calc_sample_rate != 44100) && (dev->type == AUDIOPCI_ES1370)) {
                 if ((dev->dac[1].buffer_pos - dev->dac[1].buffer_pos_end) >= 0 && dev->step_pcm >= dev->interp_step)
                     es137x_fetch(dev, 1);
 
@@ -2619,6 +2647,7 @@ es1370_init(const device_t *info)
 {
     es137x_t *dev = malloc(sizeof(es137x_t));
     memset(dev, 0x00, sizeof(es137x_t));
+    dev->type = info->local;
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, dev);
@@ -2629,7 +2658,7 @@ es1370_init(const device_t *info)
     dev->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(dev->gameport, 0x200);
 
-    pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1370_pci_read, es1370_pci_write, dev, &dev->pci_slot);
+    pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1370_pci_read, es1370_pci_write, dev, &dev->pci_slot);
 
     timer_add(&dev->dac[1].timer, es137x_poll, dev, 1);
 
@@ -2640,19 +2669,17 @@ es1370_init(const device_t *info)
     dev->dac[1].vol_l = 1 << 12;
     dev->dac[1].vol_r = 1 << 12;
 
-    dev->pcm_vol_l = 1 << 15;
-    dev->pcm_vol_r = 1 << 15;
+    dev->pcm_vol_l    = 1 << 15;
+    dev->pcm_vol_r    = 1 << 15;
     dev->master_vol_l = 1 << 15;
     dev->master_vol_r = 1 << 15;
-
-    dev->type = AUDIOPCI_ES1370;
 
     es137x_reset(dev);
 
     es137x_speed_changed(dev);
 
     for (int i = 0; i < 0x20; i++) {
-        double attn = (12.0 - (i * 2.0));
+        double attn                   = (12.0 - (i * 2.0));
         akm4531_gain_2dbstep_5bits[i] = pow(10, attn / 10.) * 32767.0;
     }
 
@@ -2706,11 +2733,11 @@ es137x_speed_changed(void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 
-    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) (dev->type == AUDIOPCI_ES1370 ? WT_FREQ : SOUND_FREQ)));
+    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ((dev->type == AUDIOPCI_ES1370) ? WT_FREQ : SOUND_FREQ)));
 }
 
 static const device_config_t es1370_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name = "receive_input",
         .description = "Receive input (MIDI)",
@@ -2719,11 +2746,11 @@ static const device_config_t es1370_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 static const device_config_t es1371_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name = "codec",
         .description = "Codec",
@@ -2749,11 +2776,11 @@ static const device_config_t es1371_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 static const device_config_t es1373_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name = "codec",
         .description = "Codec",
@@ -2783,11 +2810,11 @@ static const device_config_t es1373_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 static const device_config_t ct5880_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name = "codec",
         .description = "Codec",
@@ -2801,6 +2828,10 @@ static const device_config_t ct5880_config[] = {
                 .description = "SigmaTel STAC9721T (stereo)",
                 .value = AC97_CODEC_STAC9721
             },
+            {
+                .description = "TriTech TR28023 / Creative CT1297",
+                .value = AC97_CODEC_TR28023
+            },
             { .description = "" }
         },
         .default_int = AC97_CODEC_STAC9708
@@ -2813,11 +2844,11 @@ static const device_config_t ct5880_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 static const device_config_t es1371_onboard_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name = "receive_input",
         .description = "Receive MIDI input",
@@ -2826,18 +2857,18 @@ static const device_config_t es1371_onboard_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t es1370_device = {
     .name          = "Ensoniq AudioPCI (ES1370)",
     .internal_name = "es1370",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = AUDIOPCI_ES1370,
     .init          = es1370_init,
     .close         = es137x_close,
     .reset         = es137x_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = es137x_speed_changed,
     .force_redraw  = NULL,
     .config        = es1370_config

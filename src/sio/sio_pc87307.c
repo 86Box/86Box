@@ -34,6 +34,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_fallthrough.h>
 
 typedef struct pc87307_t {
     uint8_t   id;
@@ -323,8 +324,12 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
             }
             break;
         case 0x60:
+            if (dev->regs[0x07] == 0x04) {
+                val &= 0x03;
+            }
+            fallthrough;
         case 0x62:
-            dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0x07;
+            dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val;
             if ((dev->cur_reg == 0x62) && (dev->regs[0x07] != 0x07))
                 break;
             switch (dev->regs[0x07]) {
