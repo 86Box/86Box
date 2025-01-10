@@ -13,10 +13,12 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2025      Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +38,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
