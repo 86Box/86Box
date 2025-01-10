@@ -665,6 +665,19 @@ dma_ps2_read(uint16_t addr, UNUSED(void *priv))
                     temp = dma_c->arb_level;
                     break;
 
+                case 9: /*Set DMA mask*/
+                    dma_m |= (1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xa: /*Reset DMA mask*/
+                    dma_m &= ~(1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xb:
+                    if (!(dma_m & (1 << dma_ps2.xfr_channel)))
+                        dma_ps2_run(dma_ps2.xfr_channel);
+                    break;
+
                 default:
                     fatal("Bad XFR Read command %i channel %i\n", dma_ps2.xfr_command, dma_ps2.xfr_channel);
             }
@@ -765,6 +778,19 @@ dma_ps2_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 
                 case 8: /*Arbitration Level*/
                     dma_c->arb_level = val;
+                    break;
+
+                case 9: /*Set DMA mask*/
+                    dma_m |= (1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xa: /*Reset DMA mask*/
+                    dma_m &= ~(1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xb:
+                    if (!(dma_m & (1 << dma_ps2.xfr_channel)))
+                        dma_ps2_run(dma_ps2.xfr_channel);
                     break;
 
                 default:

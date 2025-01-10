@@ -524,7 +524,8 @@ MediaMenu::cdromMute(int i)
 void
 MediaMenu::cdromMount(int i, const QString &filename)
 {
-    QByteArray fn = filename.toUtf8().data();
+    QByteArray fn        = filename.toUtf8().data();
+    int        was_empty = cdrom_is_empty(i);
 
     cdrom_exit(i);
 
@@ -542,8 +543,13 @@ MediaMenu::cdromMount(int i, const QString &filename)
         cdrom_image_open(&(cdrom[i]), fn.data());
 
     /* Signal media change to the emulated machine. */
-    if (cdrom[i].insert)
+    if (cdrom[i].insert) {
         cdrom[i].insert(cdrom[i].priv);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            cdrom[i].insert(cdrom[i].priv);
+    }
 
     if (strlen(cdrom[i].image_path) > 0)
         ui_sb_update_icon_state(SB_CDROM | i, 0);

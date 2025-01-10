@@ -336,16 +336,20 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
             continue;
         }
 
-        char temp[MAX_IMAGE_PATH_LEN -1] = { 0 };
+        char temp[MAX_IMAGE_PATH_LEN * 2] = { 0 };
 
         if (path_abs(checked_path.toUtf8().data())) {
             if (checked_path.length() > (MAX_IMAGE_PATH_LEN - 1))
-                fatal("removeMissingImages(): checked_path.length() > 2047\n");
+                fatal("removeMissingImages(): checked_path.length() > %i\n", MAX_IMAGE_PATH_LEN - 1);
             else
                 snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", checked_path.toUtf8().constData());
-        } else
-            snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
-                     path_get_slash(usr_path), checked_path.toUtf8().constData());
+        } else {
+            if ((strlen(usr_path) + strlen(path_get_slash(usr_path)) + checked_path.length()) > (MAX_IMAGE_PATH_LEN - 1))
+                fatal("removeMissingImages(): Combined absolute path length > %i\n", MAX_IMAGE_PATH_LEN - 1);
+            else
+                snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                         path_get_slash(usr_path), checked_path.toUtf8().constData());
+        }
         path_normalize(temp);
 
         QString qstr = QString::fromUtf8(temp);
