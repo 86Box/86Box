@@ -278,11 +278,11 @@ static const device_config_t ibmxt_config[] = {
         .bios = {
             { .name = "1501512 (11/08/82)", .internal_name = "ibm5160_1501512_5000027", .bios_type = BIOS_NORMAL,
               .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" } },
-#if 0
             { .name = "1501512 (11/08/82) (Alt)", .internal_name = "ibm5160_1501512_6359116", .bios_type = BIOS_NORMAL,
               .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_6359116.BIN", "" } },
             { .name = "5000026 (08/16/82)", .internal_name = "ibm5160_5000026_5000027", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" } },
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" } },
+#if 0
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
@@ -327,7 +327,7 @@ const device_t ibmxt_device = {
 int
 machine_xt_init(const machine_t *model)
 {
-    int         ret;
+    int         ret = 0;
     uint8_t     enable_5161;
     uint8_t     enable_basic;
     const char *fn;
