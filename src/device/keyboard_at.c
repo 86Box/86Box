@@ -1961,18 +1961,24 @@ keyboard_at_write(void *priv)
         }
     } else {
         if (dev->flags & FLAG_CTRLDAT) {
-            /* Special case - another command during another command that wants input - proceed
+            /*
+               Special case - another command during another command that wants input - proceed
                as normal but do not cancel the command (so keep waiting for input), unless the
-               command in progress is ED (Set/reset LEDs). */
-            if (val == 0xed) {
-                keyboard_scan = 1;
+               command in progress is ED (Set/reset LEDs).
+
+               It appears to also apply to command EE (Echo), F4 (Enable), F5 (Diable and Set
+               Default), and F6 (SetDefault).
+             */
+            if ((val == 0xed) || (val == 0xee) || (val == 0xf4) || (val == 0xf5) || (val == 0xf6))
                 dev->flags &= ~FLAG_CTRLDAT;
-            } else
+            else
                 dev->state = DEV_STATE_MAIN_WANT_IN;
         }
 
         switch (val) {
             case 0xed: /* set/reset LEDs */
+                if ((dev->flags & FLAG_CTRLDAT) && (dev->command == 0xed))
+                    keyboard_scan = 1;
                 dev->command = val;
                 keyboard_at_log("%s: set/reset LEDs\n", dev->name);
                 dev->flags |= FLAG_CTRLDAT;
