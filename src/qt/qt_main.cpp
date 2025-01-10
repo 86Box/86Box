@@ -240,7 +240,6 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
              lpKdhs->flags &= ~LLKHF_EXTENDED;
         } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
             /* Pause - send E1 1D. */
-            pclog("Send E1 1D\n");
             win_keyboard_handle(0xe1, 0, 0, 0);
             win_keyboard_handle(0x1d, LLKHF_UP, 0, 0);
         }

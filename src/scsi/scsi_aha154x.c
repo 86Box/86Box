@@ -678,6 +678,7 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
                 aha_eeprom_save(dev);
 
                 dev->rom_addr = config->mem[0].base;
+                aha_log("Base = %08X, Size = %08X\n", config->mem[0].base, config->mem[0].size);
                 if (dev->rom_addr) {
                     mem_mapping_enable(&dev->bios.mapping);
                     aha_log("SCSI BIOS set to: %08X-%08X\n", dev->rom_addr, dev->rom_addr + config->mem[0].size - 1);
@@ -869,13 +870,12 @@ aha_setmcode(x54x_t *dev)
     }
     aha1542cp_pnp_rom = (uint8_t *) malloc(dev->pnp_len + 7);
     fseek(fp, dev->pnp_offset, SEEK_SET);
-    (void) !fread(aha1542cp_pnp_rom, dev->pnp_len, 1, fp);
+    (void) !fread(aha1542cp_pnp_rom, 4, 1, fp);
     memset(&(aha1542cp_pnp_rom[4]), 0x00, 5);
     fseek(fp, dev->pnp_offset + 4, SEEK_SET);
     (void) !fread(&(aha1542cp_pnp_rom[9]), dev->pnp_len - 4, 1, fp);
-    /* Even the real AHA-1542CP microcode seem to be flipping bit
-       4 to not erroneously indicate there is a range length. */
-    aha1542cp_pnp_rom[0x87] |= 0x04;
+    /* Patch determined from Dizzy's AHA-1542CP PNP ROM dump. */
+    aha1542cp_pnp_rom[0x26] = 0x03;
     /* Insert the terminator and the checksum byte that will later
        be filled in by the isapnp code. */
     aha1542cp_pnp_rom[dev->pnp_len + 5] = 0x79;

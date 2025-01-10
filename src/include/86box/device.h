@@ -18,7 +18,7 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2021      Andreas J. Reichel.
- *          Copyright 2021-2022 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -197,12 +197,12 @@ extern "C" {
 #endif
 
 extern void  device_init(void);
-extern void  device_set_context(device_context_t *c, const device_t *dev, int inst);
+extern void  device_set_context(device_context_t *ctx, const device_t *dev, int inst);
 extern void  device_context(const device_t *dev);
 extern void  device_context_inst(const device_t *dev, int inst);
 extern void  device_context_restore(void);
-extern void *device_add(const device_t *d);
-extern void *device_add_linked(const device_t *d, void *priv);
+extern void *device_add(const device_t *dev);
+extern void *device_add_linked(const device_t *dev, void *priv);
 extern void *device_add_params(const device_t *dev, void *params);
 extern void  device_add_ex(const device_t *dev, void *priv);
 extern void  device_add_ex_params(const device_t *dev, void *priv, void *params);
@@ -223,27 +223,27 @@ extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);
 extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, int file_no);
 
-extern int device_is_valid(const device_t *, int m);
+extern int device_is_valid(const device_t *, int mch);
 
 extern const device_t* device_context_get_device(void);
 
 extern int         device_get_config_int(const char *name);
-extern int         device_get_config_int_ex(const char *s, int dflt_int);
+extern int         device_get_config_int_ex(const char *str, int def);
 extern int         device_get_config_hex16(const char *name);
 extern int         device_get_config_hex20(const char *name);
-extern int         device_get_config_mac(const char *name, int dflt_int);
-extern void        device_set_config_int(const char *s, int val);
-extern void        device_set_config_hex16(const char *s, int val);
-extern void        device_set_config_hex20(const char *s, int val);
-extern void        device_set_config_mac(const char *s, int val);
+extern int         device_get_config_mac(const char *name, int def);
+extern void        device_set_config_int(const char *str, int val);
+extern void        device_set_config_hex16(const char *str, int val);
+extern void        device_set_config_hex20(const char *str, int val);
+extern void        device_set_config_mac(const char *str, int val);
 extern const char *device_get_config_string(const char *name);
 extern int         device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
 extern const char *device_get_internal_name(const device_t *dev);
 
-extern int   machine_get_config_int(char *s);
-extern char *machine_get_config_string(char *s);
+extern int   machine_get_config_int(char *str);
+extern char *machine_get_config_string(char *str);
 
 extern const device_t device_none;
 extern const device_t device_internal;
