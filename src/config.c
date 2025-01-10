@@ -524,23 +524,23 @@ load_input_devices(void)
 
     for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
         sprintf(temp, "joystick_%i_nr", js);
-        joystick_state[js].plat_joystick_nr = ini_section_get_int(cat, temp, 0);
+        joystick_state[0][js].plat_joystick_nr = ini_section_get_int(cat, temp, 0);
 
-        if (joystick_state[js].plat_joystick_nr) {
+        if (joystick_state[0][js].plat_joystick_nr) {
             for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++) {
                 sprintf(temp, "joystick_%i_axis_%i", js, axis_nr);
-                joystick_state[js].axis_mapping[axis_nr] = ini_section_get_int(cat, temp, axis_nr);
+                joystick_state[0][js].axis_mapping[axis_nr] = ini_section_get_int(cat, temp, axis_nr);
             }
             for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++) {
                 sprintf(temp, "joystick_%i_button_%i", js, button_nr);
-                joystick_state[js].button_mapping[button_nr] = ini_section_get_int(cat, temp, button_nr);
+                joystick_state[0][js].button_mapping[button_nr] = ini_section_get_int(cat, temp, button_nr);
             }
             for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
                 sprintf(temp, "joystick_%i_pov_%i", js, pov_nr);
                 p                                   = ini_section_get_string(cat, temp, "0, 0");
-                joystick_state[js].pov_mapping[pov_nr][0] = joystick_state[js].pov_mapping[pov_nr][1] = 0;
-                sscanf(p, "%i, %i", &joystick_state[js].pov_mapping[pov_nr][0],
-                       &joystick_state[js].pov_mapping[pov_nr][1]);
+                joystick_state[0][js].pov_mapping[pov_nr][0] = joystick_state[0][js].pov_mapping[pov_nr][1] = 0;
+                sscanf(p, "%i, %i", &joystick_state[0][js].pov_mapping[pov_nr][0],
+                       &joystick_state[0][js].pov_mapping[pov_nr][1]);
             }
         }
     }
@@ -2195,21 +2195,21 @@ save_input_devices(void)
 
         for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
             sprintf(tmp2, "joystick_%i_nr", js);
-            ini_section_set_int(cat, tmp2, joystick_state[js].plat_joystick_nr);
+            ini_section_set_int(cat, tmp2, joystick_state[0][js].plat_joystick_nr);
 
-            if (joystick_state[js].plat_joystick_nr) {
+            if (joystick_state[0][js].plat_joystick_nr) {
                 for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++) {
                     sprintf(tmp2, "joystick_%i_axis_%i", js, axis_nr);
-                    ini_section_set_int(cat, tmp2, joystick_state[js].axis_mapping[axis_nr]);
+                    ini_section_set_int(cat, tmp2, joystick_state[0][js].axis_mapping[axis_nr]);
                 }
                 for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++) {
                     sprintf(tmp2, "joystick_%i_button_%i", js, button_nr);
-                    ini_section_set_int(cat, tmp2, joystick_state[js].button_mapping[button_nr]);
+                    ini_section_set_int(cat, tmp2, joystick_state[0][js].button_mapping[button_nr]);
                 }
                 for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
                     sprintf(tmp2, "joystick_%i_pov_%i", js, pov_nr);
-                    sprintf(temp, "%i, %i", joystick_state[js].pov_mapping[pov_nr][0],
-                            joystick_state[js].pov_mapping[pov_nr][1]);
+                    sprintf(temp, "%i, %i", joystick_state[0][js].pov_mapping[pov_nr][0],
+                            joystick_state[0][js].pov_mapping[pov_nr][1]);
                     ini_section_set_string(cat, tmp2, temp);
                 }
             }

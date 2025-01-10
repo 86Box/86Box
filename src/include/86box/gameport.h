@@ -45,7 +45,7 @@
 
 #define AXIS_NOT_PRESENT    -99999
 
-#define JOYSTICK_PRESENT(n) (joystick_state[n].plat_joystick_nr != 0)
+#define JOYSTICK_PRESENT(gp, js) (joystick_state[gp][js].plat_joystick_nr != 0)
 
 #define GAMEPORT_1ADDR      0x010000
 #define GAMEPORT_6ADDR      0x060000
@@ -146,7 +146,7 @@ extern const device_t *standalone_gameport_type;
 #endif
 extern int             gameport_instance_id;
 extern plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-extern joystick_t      joystick_state[MAX_JOYSTICKS];
+extern joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 extern int             joysticks_present;
 
 extern int joystick_type;

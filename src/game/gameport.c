@@ -102,7 +102,7 @@ static const struct {
     { NULL }
 };
 
-static joystick_instance_t *joystick_instance = NULL;
+static joystick_instance_t *joystick_instance[GAMEPORT_MAX] = { NULL, NULL };
 
 static uint8_t gameport_pnp_rom[] = {
     0x09, 0xf8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,          /* BOX0002, dummy checksum (filled in by isapnp_add_card) */
@@ -284,10 +284,10 @@ gameport_update_joystick_type(void)
         gameport_add(standalone_gameport_type);
 
     /* Reset the joystick interface. */
-    if (joystick_instance) {
-        joystick_instance->intf->close(joystick_instance->dat);
-        joystick_instance->intf = joysticks[joystick_type].joystick;
-        joystick_instance->dat  = joystick_instance->intf->init();
+    if (joystick_instance[0]) {
+        joystick_instance[0]->intf->close(joystick_instance[0]->dat);
+        joystick_instance[0]->intf = joysticks[joystick_type].joystick;
+        joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
     }
 }
 
@@ -372,30 +372,30 @@ gameport_init(const device_t *info)
     memset(dev, 0x00, sizeof(gameport_t));
 
     /* Allocate global instance. */
-    if (!joystick_instance && joystick_type) {
-        joystick_instance = malloc(sizeof(joystick_instance_t));
-        memset(joystick_instance, 0x00, sizeof(joystick_instance_t));
+    if (!joystick_instance[0] && joystick_type) {
+        joystick_instance[0] = malloc(sizeof(joystick_instance_t));
+        memset(joystick_instance[0], 0x00, sizeof(joystick_instance_t));
 
-        joystick_instance->axis[0].joystick = joystick_instance;
-        joystick_instance->axis[1].joystick = joystick_instance;
-        joystick_instance->axis[2].joystick = joystick_instance;
-        joystick_instance->axis[3].joystick = joystick_instance;
+        joystick_instance[0]->axis[0].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[1].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[2].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[3].joystick = joystick_instance[0];
 
-        joystick_instance->axis[0].axis_nr = 0;
-        joystick_instance->axis[1].axis_nr = 1;
-        joystick_instance->axis[2].axis_nr = 2;
-        joystick_instance->axis[3].axis_nr = 3;
+        joystick_instance[0]->axis[0].axis_nr = 0;
+        joystick_instance[0]->axis[1].axis_nr = 1;
+        joystick_instance[0]->axis[2].axis_nr = 2;
+        joystick_instance[0]->axis[3].axis_nr = 3;
 
-        timer_add(&joystick_instance->axis[0].timer, timer_over, &joystick_instance->axis[0], 0);
-        timer_add(&joystick_instance->axis[1].timer, timer_over, &joystick_instance->axis[1], 0);
-        timer_add(&joystick_instance->axis[2].timer, timer_over, &joystick_instance->axis[2], 0);
-        timer_add(&joystick_instance->axis[3].timer, timer_over, &joystick_instance->axis[3], 0);
+        timer_add(&joystick_instance[0]->axis[0].timer, timer_over, &joystick_instance[0]->axis[0], 0);
+        timer_add(&joystick_instance[0]->axis[1].timer, timer_over, &joystick_instance[0]->axis[1], 0);
+        timer_add(&joystick_instance[0]->axis[2].timer, timer_over, &joystick_instance[0]->axis[2], 0);
+        timer_add(&joystick_instance[0]->axis[3].timer, timer_over, &joystick_instance[0]->axis[3], 0);
 
-        joystick_instance->intf = joysticks[joystick_type].joystick;
-        joystick_instance->dat  = joystick_instance->intf->init();
+        joystick_instance[0]->intf = joysticks[joystick_type].joystick;
+        joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
     }
 
-    dev->joystick = joystick_instance;
+    dev->joystick = joystick_instance[0];
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
     dev->len = (info->local >> 16) & 0xff;
@@ -464,11 +464,11 @@ gameport_close(void *priv)
     gameport_remap(dev, 0);
 
     /* Free the global instance here, if it wasn't already freed. */
-    if (joystick_instance) {
-        joystick_instance->intf->close(joystick_instance->dat);
+    if (joystick_instance[0]) {
+        joystick_instance[0]->intf->close(joystick_instance[0]->dat);
 
-        free(joystick_instance);
-        joystick_instance = NULL;
+        free(joystick_instance[0]);
+        joystick_instance[0] = NULL;
     }
 
     free(dev);
