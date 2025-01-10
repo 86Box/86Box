@@ -224,7 +224,7 @@ machine_pc82_init(const machine_t *model)
     int         ret2;
     uint8_t     enable_5161;
     uint8_t     enable_basic;
-    const char* fn;
+    const char *fn;
 
     /* No ROMs available. */
     if (!device_available(model->device))
@@ -241,13 +241,13 @@ machine_pc82_init(const machine_t *model)
         ret2 = bios_load_aux_linear("roms/machines/ibmpc82/ibm-basic-1.10.rom",
                                     0x000f6000, 32768, 0);
         if (!ret2) {
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.f6",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U29 - 5000019.bin",
                                  0x000f6000, 8192, 0);
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.f8",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U30 - 5000021.bin",
                                  0x000f8000, 8192, 0);
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.fa",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U31 - 5000022.bin",
                                  0x000fa000, 8192, 0);
-            bios_load_aux_linear("roms/machines/ibmpc82/basicc11.fc",
+            bios_load_aux_linear("roms/machines/ibmpc82/IBM 5150 - Cassette BASIC version C1.10 - U32 - 5000023.bin",
                                  0x000fc000, 8192, 0);
         }
     }
