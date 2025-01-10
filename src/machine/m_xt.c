@@ -37,14 +37,54 @@ machine_xt_common_init(const machine_t *model, int fixed_floppy)
     standalone_gameport_type = &gameport_device;
 }
 
+static const device_config_t ibmpc_config[] = {
+    // clang-format off
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "enable_basic",
+        .description = "IBM Cassette Basic",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmpc_device = {
+    .name          = "IBM PC (1981) Device",
+    .internal_name = "ibmpc_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmpc_config
+};
+
 int
 machine_pc_init(const machine_t *model)
 {
-    int ret;
+    int     ret;
+    uint8_t enable_5161;
+    uint8_t enable_basic;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    enable_basic = machine_get_config_int("enable_basic");
+    device_context_restore();
 
     ret = bios_load_linear("roms/machines/ibmpc/BIOS_5150_24APR81_U33.BIN",
                            0x000fe000, 40960, 0);
-    if (ret) {
+
+    if (enable_basic && ret) {
         bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U29 - 5700019.bin",
                              0x000f6000, 8192, 0);
         bios_load_aux_linear("roms/machines/ibmpc/IBM 5150 - Cassette BASIC version C1.00 - U30 - 5700027.bin",
@@ -61,6 +101,9 @@ machine_pc_init(const machine_t *model)
     device_add(&keyboard_pc_device);
 
     machine_xt_common_init(model, 0);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
@@ -168,10 +211,42 @@ machine_pc82_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ibmxt_config[] = {
+    // clang-format off
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmxt_device = {
+    .name          = "IBM XT (1982) Device",
+    .internal_name = "ibmxt_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt_config
+};
+
 int
 machine_xt_init(const machine_t *model)
 {
-    int ret;
+    int     ret;
+    uint8_t enable_5161;
+    uint8_t enable_basic;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    device_context_restore();
 
     ret = bios_load_linear("roms/machines/ibmxt/xt.rom",
                            0x000f0000, 65536, 0);
@@ -189,11 +264,12 @@ machine_xt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-
     device_add(&keyboard_xt_device);
-    device_add(&ibm_5161_device);
 
     machine_xt_common_init(model, 0);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
@@ -216,10 +292,41 @@ machine_genxt_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ibmxt86_config[] = {
+    // clang-format off
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmxt86_device = {
+    .name          = "IBM XT (1986) Device",
+    .internal_name = "ibmxt86_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt86_config
+};
+
 int
 machine_xt86_init(const machine_t *model)
 {
-    int ret;
+    int     ret;
+    uint8_t enable_5161;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    device_context_restore();
 
     ret = bios_load_linear("roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
                            0x000fe000, 65536, 0x6000);
@@ -234,9 +341,11 @@ machine_xt86_init(const machine_t *model)
         return ret;
 
     device_add(&keyboard_xt86_device);
-    device_add(&ibm_5161_device);
 
     machine_xt_common_init(model, 0);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
