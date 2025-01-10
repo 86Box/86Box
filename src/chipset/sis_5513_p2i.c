@@ -106,7 +106,7 @@ sis_5513_apc_reset(sis_5513_pci_to_isa_t *dev)
 {
     memset(dev->apc_regs, 0x00, sizeof(dev->apc_regs));
 
-    if (dev->rev == 0b0) {
+    if (dev->rev == 0xb0) {
         dev->apc_regs[0x03] = 0x80;
         dev->apc_regs[0x04] = 0x38;
         dev->apc_regs[0x07] = 0x01;
