@@ -28,3 +28,12 @@
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
+uint32_t nv3_ramfc_read(uint32_t address)
+{
+    nv_log("NV3: RAMFC (Unused DMA channel context) Read (0x%04x), UNIMPLEMENTED - RETURNING 0x00", address);
+}
+
+void nv3_ramfc_write(uint32_t address, uint32_t value)
+{
+    nv_log("NV3: RAMFC (Unused DMA channel context) Write (0x%04x -> 0x%04x), UNIMPLEMENTED", value, address);
+}

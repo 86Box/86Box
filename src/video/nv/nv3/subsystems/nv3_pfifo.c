@@ -179,14 +179,14 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
 
                     nv_log("NV3: RAMHT Reconfiguration\n"
                     "Base Address in RAMIN: %d\n"
-                    "Size: 0x%08x bytes\n", (value >> 12) & 0x1f, new_size_ramht); 
+                    "Size: 0x%08x bytes\n", ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << 12, new_size_ramht); 
 #endif
                     break;
                 case NV3_PFIFO_CONFIG_RAMFC:
                     nv3->pfifo.ramfc_config = value;
 
                     nv_log("NV3: RAMFC Reconfiguration\n"
-                    "Base Address in RAMIN: %d\n", (value >> 12) & 0x1f); 
+                    "Base Address in RAMIN: %d\n", ((nv3->pfifo.ramfc_config >> NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS) & 0x7F) << 9); 
                     break;
                 case NV3_PFIFO_CONFIG_RAMRO:
                     nv3->pfifo.ramro_config = value;
@@ -200,7 +200,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     
                     nv_log("NV3: RAMRO Reconfiguration\n"
                     "Base Address in RAMIN: %d\n"
-                    "Size: 0x%08x bytes\n", (value >> 12) & 0x1f, new_size_ramro); 
+                    "Size: 0x%08x bytes\n", ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS) & 0x7F) << 9, new_size_ramro); 
                     break;
             }
         }

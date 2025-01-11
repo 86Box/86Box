@@ -7,7 +7,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
- *          Last updated     2 January 2025 (STILL WORKING ON IT)
+ *          Last updated     9 January 2025 (STILL WORKING ON IT)
  *
  *
  *
@@ -204,10 +204,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS             12
 #define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS_DEFAULT     0x0
 #define NV3_PFIFO_CONFIG_RAMHT_SIZE                     16
-#define NV3_PFIFO_CONFIG_RAMHT_4K                       0x0
-#define NV3_PFIFO_CONFIG_RAMHT_8K                       0x1
-#define NV3_PFIFO_CONFIG_RAMHT_16K                      0x2
-#define NV3_PFIFO_CONFIG_RAMHT_32K                      0x3
+#define NV3_PFIFO_CONFIG_RAMHT_SIZE_4K                  0x0
+#define NV3_PFIFO_CONFIG_RAMHT_SIZE_8K                  0x1
+#define NV3_PFIFO_CONFIG_RAMHT_SIZE_16K                 0x2
+#define NV3_PFIFO_CONFIG_RAMHT_SIZE_32K                 0x3
 
 #define NV3_PFIFO_CONFIG_RAMFC                          0x2214
 #define NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS             9
@@ -578,7 +578,7 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_REGISTER_STANDARDVGA_END               0x18
 
 
-// These are nvidia (25-63)
+// These are nvidia, licensed from weitek (25-63)
 #define NV3_CRTC_REGISTER_RPC0                          0x19        // What does this mean?
 #define NV3_CRTC_REGISTER_RPC1                          0x1A        // What does this mean?
 #define NV3_CRTC_REGISTER_READ_BANK                     0x1D
@@ -865,7 +865,7 @@ typedef struct nv3_pramin_ramht_s
     nv3_pramin_ramht_subchannel_t subchannels[NV3_DMA_CHANNELS][NV3_DMA_SUBCHANNELS_PER_CHANNEL];
 } nv3_pramin_ramht_t;
 
-uint32_t nv3_pramin_ramht_hash(nv3_pramin_name_t name, uint32_t channel);
+uint32_t nv3_ramht_hash(nv3_pramin_name_t name, uint32_t channel);
 
 // Anti-fuckup device
 typedef struct nv3_pramin_ramro_s
@@ -963,6 +963,16 @@ void        nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv);           
 void        nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv);         // Write 16-bit RAMIN
 void        nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv);         // Write 32-bit RAMIN
 
+bool        nv3_pramin_arbitrate_read(uint32_t address, uint32_t* value);       // Read arbitration so we can read/write to the structures in the first 64k of ramin
+bool        nv3_pramin_arbitrate_write(uint32_t address, uint32_t value);       // Write arbitration so we can read/write to the structures in the first 64k of ramin
+
+uint32_t    nv3_ramfc_read(uint32_t address);
+void        nv3_ramfc_write(uint32_t address, uint32_t value);
+uint32_t    nv3_ramro_read(uint32_t address);
+void        nv3_ramro_write(uint32_t address, uint32_t value);
+uint32_t    nv3_ramht_read(uint32_t address);
+void        nv3_ramht_write(uint32_t address, uint32_t value);
+
 // MMIO Arbitration
 // Determine where the hell in this mess our reads or writes are going
 uint32_t    nv3_mmio_arbitrate_read(uint32_t address);
@@ -1018,8 +1028,6 @@ uint32_t    nv3_user_read(uint32_t address);
 void        nv3_user_write(uint32_t address, uint32_t value);
 #define nv3_object_submit_start nv3_user_read
 #define nv3_object_submit_end nv3_user_write
-uint32_t    nv3_pramin_arbitrate_read(uint32_t address);
-void        nv3_pramin_arbitrate_write(uint32_t address, uint32_t value);
 // TODO: RAMHT, RAMFC...or maybe handle it inside of nv3_pramin_*
 
 // GPU subsystems

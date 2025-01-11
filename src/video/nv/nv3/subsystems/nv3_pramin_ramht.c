@@ -32,9 +32,20 @@
 It is used to get the offset within RAMHT of a graphics object.
  */
 
-uint32_t nv3_pramin_ramht_hash(nv3_pramin_name_t name, uint32_t channel)
+uint32_t nv3_ramht_hash(nv3_pramin_name_t name, uint32_t channel)
 {
     uint32_t hash = (name.byte_high ^ name.byte_mid2 ^ name.byte_mid1 ^ name.byte_low ^ (uint8_t)channel);
     nv_log("NV3: Generating RAMHT hash (RAMHT slot=0x%04x (from name 0x%08x for DMA channel 0x%04x)\n)", name, channel);
     return hash;
+}
+
+
+uint32_t nv3_ramht_read(uint32_t address)
+{
+    nv_log("NV3: RAMHT (Graphics object storage hashtable) Read (0x%04x), UNIMPLEMENTED - RETURNING 0x00", address);
+}
+
+void nv3_ramht_write(uint32_t address, uint32_t value)
+{
+    nv_log("NV3: RAMHT (Graphics object storage hashtable) Write (0x%04x -> 0x%04x), UNIMPLEMENTED", value, address);
 }
