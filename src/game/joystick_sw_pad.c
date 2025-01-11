@@ -190,7 +190,7 @@ sw_write(void *priv)
                 sw->poll_data = 1;
             }
 
-            for (uint8_t js = 0; js < MAX_JOYSTICKS; js++) {
+            for (uint8_t js = 0; js < 4; js++) {
                 uint16_t data = 0x3fff;
 
                 if (!JOYSTICK_PRESENT(js))
