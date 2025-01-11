@@ -707,10 +707,10 @@ static const device_config_t pb450_config[] = {
 };
 
 const device_t pb450_device = {
-    .name = "Packard Bell PB450 Devices",
+    .name          = "Packard Bell PB450 Devices",
     .internal_name = "pb450_device",
-    .flags = 0,
-    .local = 0,
+    .flags         = 0,
+    .local         = 0,
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
