@@ -475,8 +475,6 @@ load_input_devices(void)
 {
     ini_section_t cat = ini_find_section(config, "Input devices");
     char          temp[512];
-    int           c;
-    int           d;
     char         *p;
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
@@ -495,8 +493,8 @@ load_input_devices(void)
                 /* Workaround for ini_section_get_int returning 0 on non-integer data */
                 joystick_type = joystick_get_from_internal_name("2axis_2button");
             else {
-                c = ini_section_get_int(cat, "joystick_type", 8);
-                switch (c) {
+                int js = ini_section_get_int(cat, "joystick_type", 8);
+                switch (js) {
                     case JS_TYPE_2AXIS_4BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_4button");
                         break;
@@ -527,25 +525,25 @@ load_input_devices(void)
     } else
         joystick_type = JS_TYPE_NONE;
 
-    for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
-        sprintf(temp, "joystick_%i_nr", c);
-        joystick_state[c].plat_joystick_nr = ini_section_get_int(cat, temp, 0);
+    for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
+        sprintf(temp, "joystick_%i_nr", js);
+        joystick_state[js].plat_joystick_nr = ini_section_get_int(cat, temp, 0);
 
-        if (joystick_state[c].plat_joystick_nr) {
-            for (d = 0; d < joystick_get_axis_count(joystick_type); d++) {
-                sprintf(temp, "joystick_%i_axis_%i", c, d);
-                joystick_state[c].axis_mapping[d] = ini_section_get_int(cat, temp, d);
+        if (joystick_state[js].plat_joystick_nr) {
+            for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++) {
+                sprintf(temp, "joystick_%i_axis_%i", js, axis_nr);
+                joystick_state[js].axis_mapping[axis_nr] = ini_section_get_int(cat, temp, axis_nr);
             }
-            for (d = 0; d < joystick_get_button_count(joystick_type); d++) {
-                sprintf(temp, "joystick_%i_button_%i", c, d);
-                joystick_state[c].button_mapping[d] = ini_section_get_int(cat, temp, d);
+            for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++) {
+                sprintf(temp, "joystick_%i_button_%i", js, button_nr);
+                joystick_state[js].button_mapping[button_nr] = ini_section_get_int(cat, temp, button_nr);
             }
-            for (d = 0; d < joystick_get_pov_count(joystick_type); d++) {
-                sprintf(temp, "joystick_%i_pov_%i", c, d);
+            for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
+                sprintf(temp, "joystick_%i_pov_%i", js, pov_nr);
                 p                                   = ini_section_get_string(cat, temp, "0, 0");
-                joystick_state[c].pov_mapping[d][0] = joystick_state[c].pov_mapping[d][1] = 0;
-                sscanf(p, "%i, %i", &joystick_state[c].pov_mapping[d][0],
-                       &joystick_state[c].pov_mapping[d][1]);
+                joystick_state[js].pov_mapping[js][pov_nr] = joystick_state[js].pov_mapping[pov_nr][1] = 0;
+                sscanf(p, "%i, %i", &joystick_state[js].pov_mapping[pov_nr][0],
+                       &joystick_state[js].pov_mapping[pov_nr][1]);
             }
         }
     }
@@ -743,11 +741,9 @@ load_ports(void)
     ini_section_t cat = ini_find_section(config, "Ports (COM & LPT)");
     char         *p;
     char          temp[512];
-    int           c;
-
     memset(temp, 0, sizeof(temp));
 
-    for (c = 0; c < SERIAL_MAX; c++) {
+    for (int c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
@@ -758,7 +754,7 @@ load_ports(void)
             config_log("Serial Port %d: passthrough enabled.\n\n", c + 1);
     }
 
-    for (c = 0; c < PARALLEL_MAX; c++) {
+    for (int c = 0; c < PARALLEL_MAX; c++) {
         sprintf(temp, "lpt%d_enabled", c + 1);
         lpt_ports[c].enabled = !!ini_section_get_int(cat, temp, (c == 0) ? 1 : 0);
 
@@ -776,11 +772,10 @@ load_storage_controllers(void)
     ini_section_t migration_cat;
     char         *p;
     char          temp[512];
-    int           c;
     int           min = 0;
     int           free_p = 0;
 
-    for (c = min; c < SCSI_CARD_MAX; c++) {
+    for (int c = min; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
@@ -932,7 +927,7 @@ load_storage_controllers(void)
         ini_section_delete_var(cat, "cassette_ui_writeprot");
     }
 
-    for (c = 0; c < 2; c++) {
+    for (int c = 0; c < 2; c++) {
         sprintf(temp, "cartridge_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
@@ -2140,50 +2135,49 @@ save_input_devices(void)
     ini_section_t cat = ini_find_or_create_section(config, "Input devices");
     char          temp[512];
     char          tmp2[512];
-    int           c;
-    int           d;
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
     if (!joystick_type) {
         ini_section_delete_var(cat, "joystick_type");
 
-        for (c = 0; c < 16; c++) {
-            sprintf(tmp2, "joystick_%i_nr", c);
+        for (int js = 0; js < MAX_PLAT_JOYSTICKS; js++) {
+            sprintf(tmp2, "joystick_%i_nr", js);
             ini_section_delete_var(cat, tmp2);
 
-            for (d = 0; d < 16; d++) {
-                sprintf(tmp2, "joystick_%i_axis_%i", c, d);
+            for (int axis_nr = 0; axis_nr < 16; axis_nr++) {
+                sprintf(tmp2, "joystick_%i_axis_%i", js, axis_nr);
                 ini_section_delete_var(cat, tmp2);
             }
-            for (d = 0; d < 16; d++) {
-                sprintf(tmp2, "joystick_%i_button_%i", c, d);
+            for (int button_nr = 0; button_nr < 16; button_nr++) {
+                sprintf(tmp2, "joystick_%i_button_%i", js, button_nr);
                 ini_section_delete_var(cat, tmp2);
             }
-            for (d = 0; d < 16; d++) {
-                sprintf(tmp2, "joystick_%i_pov_%i", c, d);
+            for (int pov_nr = 0; pov_nr < 16; pov_nr++) {
+                sprintf(tmp2, "joystick_%i_pov_%i", js, pov_nr);
                 ini_section_delete_var(cat, tmp2);
             }
         }
     } else {
         ini_section_set_string(cat, "joystick_type", joystick_get_internal_name(joystick_type));
 
-        for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
-            sprintf(tmp2, "joystick_%i_nr", c);
-            ini_section_set_int(cat, tmp2, joystick_state[c].plat_joystick_nr);
+        for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
+            sprintf(tmp2, "joystick_%i_nr", js);
+            ini_section_set_int(cat, tmp2, joystick_state[js].plat_joystick_nr);
 
-            if (joystick_state[c].plat_joystick_nr) {
-                for (d = 0; d < joystick_get_axis_count(joystick_type); d++) {
-                    sprintf(tmp2, "joystick_%i_axis_%i", c, d);
-                    ini_section_set_int(cat, tmp2, joystick_state[c].axis_mapping[d]);
+            if (joystick_state[js].plat_joystick_nr) {
+                for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++) {
+                    sprintf(tmp2, "joystick_%i_axis_%i", js, axis_nr);
+                    ini_section_set_int(cat, tmp2, joystick_state[js].axis_mapping[axis_nr]);
                 }
-                for (d = 0; d < joystick_get_button_count(joystick_type); d++) {
-                    sprintf(tmp2, "joystick_%i_button_%i", c, d);
-                    ini_section_set_int(cat, tmp2, joystick_state[c].button_mapping[d]);
+                for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++) {
+                    sprintf(tmp2, "joystick_%i_button_%i", js, button_nr);
+                    ini_section_set_int(cat, tmp2, joystick_state[js].button_mapping[button_nr]);
                 }
-                for (d = 0; d < joystick_get_pov_count(joystick_type); d++) {
-                    sprintf(tmp2, "joystick_%i_pov_%i", c, d);
-                    sprintf(temp, "%i, %i", joystick_state[c].pov_mapping[d][0], joystick_state[c].pov_mapping[d][1]);
+                for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
+                    sprintf(tmp2, "joystick_%i_pov_%i", js, pov_nr);
+                    sprintf(temp, "%i, %i", joystick_state[js].pov_mapping[pov_nr][0],
+                            joystick_state[js].pov_mapping[pov_nr][1]);
                     ini_section_set_string(cat, tmp2, temp);
                 }
             }
@@ -2341,10 +2335,8 @@ save_ports(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Ports (COM & LPT)");
     char          temp[512];
-    int           c;
-    int           d;
 
-    for (c = 0; c < SERIAL_MAX; c++) {
+    for (int c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         if (((c < 2) && com_ports[c].enabled) || ((c >= 2) && !com_ports[c].enabled))
             ini_section_delete_var(cat, temp);
@@ -2358,9 +2350,9 @@ save_ports(void)
             ini_section_delete_var(cat, temp);
     }
 
-    for (c = 0; c < PARALLEL_MAX; c++) {
+    for (int c = 0; c < PARALLEL_MAX; c++) {
         sprintf(temp, "lpt%d_enabled", c + 1);
-        d = (c == 0) ? 1 : 0;
+        int d = (c == 0) ? 1 : 0;
         if (lpt_ports[c].enabled == d)
             ini_section_delete_var(cat, temp);
         else
