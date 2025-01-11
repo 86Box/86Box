@@ -134,9 +134,14 @@ plat_cdrom_get_last_block(void *local)
 }
 
 int
-plat_cdrom_ext_medium_changed(void *local)
+plat_cdrom_ext_medium_changed(UNUSED(void *local))
 {
+#if 0
     dummy_cdrom_ioctl_t *ioctl = (dummy_cdrom_ioctl_t *) local;
+
+    plat_cdrom_read_toc(ioctl);
+#endif
+
     int                  ret   = 0;
 
     dummy_cdrom_ioctl_log("plat_cdrom_ext_medium_changed(): %i\n", ret);

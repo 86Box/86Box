@@ -1195,7 +1195,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
 
     for (int i = 0; i < 3; i++) {
         lead[i] = cdi->tracks_num;
-        (void *) cdi_insert_track(cdi, session, 0xa0 + i);
+        (void) cdi_insert_track(cdi, session, 0xa0 + i);
     }
     cdrom_image_backend_log("lead[2] = %016" PRIX64 "\n", (uint64_t) &(cdi->tracks[lead[2]]));
 
@@ -1393,7 +1393,7 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
 
                             for (int i = 0; i < 3; i++) {
                                 lead[i] = cdi->tracks_num;
-                                (void *) cdi_insert_track(cdi, session, 0xa0 + i);
+                                (void) cdi_insert_track(cdi, session, 0xa0 + i);
                             }
                             cdrom_image_backend_log("lead[2] = %016" PRIX64 "\n",
                                                     (uint64_t) &(cdi->tracks[lead[2]]));
