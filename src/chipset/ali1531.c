@@ -225,12 +225,8 @@ ali1531_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             ali1531_shadow_recalc(val, dev);
             break;
 
-        case 0x50:
-        case 0x51:
-        case 0x52:
-        case 0x54:
-        case 0x55:
-        case 0x56:
+        case 0x50 ... 0x52:
+        case 0x54 ... 0x56:
             dev->pci_conf[addr] = val;
             break;
 
@@ -247,8 +243,7 @@ ali1531_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = val & 0x86;
             break;
 
-        case 0x59:
-        case 0x5a:
+        case 0x59 ... 0x5a:
         case 0x5c:
             dev->pci_conf[addr] = val;
             break;
@@ -270,8 +265,7 @@ ali1531_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             spd_write_drbs_interleaved(dev->pci_conf, 0x60, 0x6f, 1);
             break;
 
-        case 0x70:
-        case 0x71:
+        case 0x70 ... 0x71:
             dev->pci_conf[addr] = val;
             break;
 
@@ -283,8 +277,7 @@ ali1531_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = val & 0x2b;
             break;
 
-        case 0x76:
-        case 0x77:
+        case 0x76 ... 0x77:
             dev->pci_conf[addr] = val;
             break;
 

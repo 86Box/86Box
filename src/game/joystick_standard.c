@@ -62,17 +62,13 @@ joystick_standard_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
-    if (JOYSTICK_PRESENT(0)) {
-        if (joystick_state[0].button[0])
-            ret &= ~0x10;
-        if (joystick_state[0].button[1])
-            ret &= ~0x20;
-    }
-    if (JOYSTICK_PRESENT(1)) {
-        if (joystick_state[1].button[0])
-            ret &= ~0x40;
-        if (joystick_state[1].button[1])
-            ret &= ~0x80;
+    for (int js = 0; js < 2; js++) {
+        if (JOYSTICK_PRESENT(js)) {
+            if (joystick_state[js].button[0])
+                ret &= ~0x10;
+            if (joystick_state[js].button[1])
+                ret &= ~0x20;
+        }
     }
 
     return ret;
@@ -140,9 +136,7 @@ joystick_standard_read_axis_4button(UNUSED(void *priv), int axis)
         case 1:
             return joystick_state[0].axis[1];
         case 2:
-            return 0;
         case 3:
-            return 0;
         default:
             return 0;
     }
@@ -162,7 +156,6 @@ joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
         case 2:
             return joystick_state[0].axis[2];
         case 3:
-            return 0;
         default:
             return 0;
     }
