@@ -684,20 +684,64 @@ machine_at_403tg_d_mr_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pb450_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "pci10a",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "PCI 1.0A", .internal_name = "pci10a", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
+            { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pb450_device = {
+    .name = "Packard Bell PB450 Devices",
+    .internal_name = "pb450_device",
+    .flags = 0,
+    .local = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pb450_config
+};
+
 int
 machine_at_pb450_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/pb450/OPTI802.bin",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
 
+    device_context(model->device);
+    fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+    
     if (bios_only || !ret)
         return ret;
 
     machine_at_common_init_ex(model, 2);
     device_add(&ide_vlb_2ch_device);
 
+    /* TODO: Detect if we're using the PNP and not the PCI ROM and don't add these? */
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
@@ -713,6 +757,7 @@ machine_at_pb450_init(const machine_t *model)
     device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_sec_device);
     device_add(&intel_flash_bxt_device);
+    /* TODO: Detect if we're using the PNP and not the PCI ROM and don't add this? */
     device_add(&phoenix_486_jumper_pci_device);
 
     return ret;
