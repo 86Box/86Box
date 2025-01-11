@@ -522,16 +522,10 @@ joystick_process(void)
                 joystick_state[js].button[button_nr] = plat_joystick_state[joystick_nr].b[joystick_state[js].button_mapping[button_nr]];
 
             for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
-                int    x;
-                int    y;
-                double angle;
-                double magnitude;
-
-                x = joystick_get_axis(joystick_nr, joystick_state[js].pov_mapping[pov_nr][0]);
-                y = joystick_get_axis(joystick_nr, joystick_state[js].pov_mapping[pov_nr][1]);
-
-                angle     = (atan2((double) y, (double) x) * 360.0) / (2 * M_PI);
-                magnitude = sqrt((double) x * (double) x + (double) y * (double) y);
+                int    x         = joystick_get_axis(joystick_nr, joystick_state[js].pov_mapping[pov_nr][0]);
+                int    y         = joystick_get_axis(joystick_nr, joystick_state[js].pov_mapping[pov_nr][1]);
+                double angle     = (atan2((double) y, (double) x) * 360.0) / (2 * M_PI);
+                double magnitude = sqrt((double) x * (double) x + (double) y * (double) y);
 
                 if (magnitude < 16384)
                     joystick_state[js].pov[pov_nr] = -1;

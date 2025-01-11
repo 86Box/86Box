@@ -67,9 +67,9 @@ joystick_init(void)
                 snprintf(plat_joystick_state[js].axis[axis_nr].name, sizeof(plat_joystick_state[js].axis[axis_nr].name), "Axis %i", axis_nr);
                 plat_joystick_state[js].axis[axis_nr].id = axis_nr;
             }
-            for (int buttons_nr = 0; buttons_nr < plat_joystick_state[js].nr_buttons; buttons_nr++) {
-                snprintf(plat_joystick_state[js].button[buttons_nr].name, sizeof(plat_joystick_state[js].button[buttons_nr].name), "Button %i", buttons_nr);
-                plat_joystick_state[js].button[buttons_nr].id = buttons_nr;
+            for (int button_nr = 0; button_nr < plat_joystick_state[js].nr_buttons; button_nr++) {
+                snprintf(plat_joystick_state[js].button[button_nr].name, sizeof(plat_joystick_state[js].button[button_nr].name), "Button %i", button_nr);
+                plat_joystick_state[js].button[button_nr].id = button_nr;
             }
             for (int pov_nr = 0; pov_nr < plat_joystick_state[js].nr_povs; pov_nr++) {
                 snprintf(plat_joystick_state[js].pov[pov_nr].name, sizeof(plat_joystick_state[js].pov[pov_nr].name), "POV %i", pov_nr);
@@ -143,7 +143,12 @@ joystick_process(void)
             plat_joystick_state[js].p[pov_nr] = SDL_JoystickGetHat(sdl_joy[js], pov_nr);
 
 #if 0
-        pclog("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", js, joystick_state[js].x, joystick_state[js].y, joystick_state[js].b[0], joystick_state[js].b[1], joysticks_present);
+        pclog("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", js,
+              joystick_state[js].x,
+              joystick_state[js].y,
+              joystick_state[js].b[0],
+              joystick_state[js].b[1],
+              joysticks_present);
 #endif
     }
 
