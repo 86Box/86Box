@@ -214,7 +214,7 @@ machine_at_neat_ami_init(const machine_t *model)
 
 // TODO
 // Onboard Paradise PVGA1A-JK VGA Graphics
-// Data Technology Corporation DTC7187 RLL Controller
+// Data Technology Corporation DTC7187 RLL Controller (Optional)
 int
 machine_at_ataripc4_init(const machine_t *model)
 {

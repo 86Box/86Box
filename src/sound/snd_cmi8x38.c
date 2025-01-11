@@ -497,7 +497,7 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
         /* Set TDMA channels if auto-detection is enabled. */
         if ((dev->io_regs[0x27] & 0x01) && (mixer->index == 0x81)) {
             dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
-            if (dev->sb->dsp.sb_type >= SB16)
+            if (dev->sb->dsp.sb_type >= SB16_DSP_404)
                 dev->tdma_16 = dev->sb->dsp.sb_16_dmanum;
         }
     } else {
@@ -879,7 +879,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             dev->sb->dsp.sbleftright_default = !!(val & 0x02);
 
             /* Enable or disable SB16 mode. */
-            dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO2 : SB16;
+            dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO2_DSP_302 : SB16_DSP_405;
             break;
 
         case 0x22:
