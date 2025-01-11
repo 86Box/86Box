@@ -741,7 +741,6 @@ machine_at_pb450_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
     device_add(&ide_vlb_2ch_device);
 
-    /* TODO: Detect if we're using the PNP and not the PCI ROM and don't add these? */
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
@@ -757,7 +756,6 @@ machine_at_pb450_init(const machine_t *model)
     device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_sec_device);
     device_add(&intel_flash_bxt_device);
-    /* TODO: Detect if we're using the PNP and not the PCI ROM and don't add this? */
     device_add(&phoenix_486_jumper_pci_device);
 
     return ret;
