@@ -238,7 +238,7 @@ static const device_config_t xtide_config[] = {
         .default_string = "xt",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Regular XT", .internal_name = "xt", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XT, "" } },
@@ -260,7 +260,7 @@ static const device_config_t xtide_at_config[] = {
         .default_string = "at",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Regular AT", .internal_name = "at", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT, "" } },

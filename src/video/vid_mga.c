@@ -6851,8 +6851,7 @@ static const device_config_t mystique_config[] = {
         .name = "memory",
         .description = "Memory size",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "2 MB",
                 .value = 2
@@ -6865,15 +6864,11 @@ static const device_config_t mystique_config[] = {
                 .description = "8 MB",
                 .value = 8
             },
-            {
-                .description = ""
-            }
+            { .description = "" }
         },
         .default_int = 8
     },
-    {
-        .type = CONFIG_END
-    }
+    { .type = CONFIG_END }
   // clang-format on
 };
 
@@ -6883,8 +6878,7 @@ static const device_config_t millennium_ii_config[] = {
         .name = "memory",
         .description = "Memory size",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "4 MB",
                 .value = 4
@@ -6897,15 +6891,11 @@ static const device_config_t millennium_ii_config[] = {
                 .description = "16 MB",
                 .value = 16
             },
-            {
-                .description = ""
-            }
+            { .description = "" }
         },
         .default_int = 8
     },
-    {
-        .type = CONFIG_END
-    }
+    { .type = CONFIG_END }
   // clang-format on
 };
 

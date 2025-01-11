@@ -222,10 +222,6 @@ machine_at_ataripc4_init(const machine_t *model)
 
     ret = bios_load_interleaved("roms/machines/ataripc4/AMI_PC4X_1.7_EVEN.BIN",
                                 "roms/machines/ataripc4/AMI_PC4X_1.7_ODD.BIN",
-#if 0
-    ret = bios_load_interleaved("roms/machines/ataripc4/ami_pc4x_1.7_even.bin",
-                                "roms/machines/ataripc4/ami_pc4x_1.7_odd.bin",
-#endif
                                 0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

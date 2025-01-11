@@ -35,6 +35,6 @@ private:
 
     VulkanRenderer2 *renderer;
 };
-#endif
+#endif // QT_CONFIG(vulkan)
 
 #endif // VULKANWINDOWRENDERER_HPP

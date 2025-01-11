@@ -86,6 +86,7 @@
  *           Copyright 2008-2024 Sarah Walker.
  *           Copyright 2024 Miran Grca.
  */
+#define _USE_MATH_DEFINES 
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
