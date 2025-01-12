@@ -268,13 +268,13 @@ static int seen = 0;
 static int suppr_seen = 1;
 
 // Functions only used in this translation unit
-void pclog_ensure_stdlog_open();
+void pclog_ensure_stdlog_open(void);
 #endif
 
 /* 
     Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
 */
-void pclog_ensure_stdlog_open()
+void pclog_ensure_stdlog_open(void)
 {
 #ifndef RELEASE_BUILD
     if (stdlog == NULL) {
