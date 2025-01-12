@@ -18,6 +18,7 @@
 add_library(fdd OBJECT
     fdd.c
     fdc.c
+    fdc_compaticard.c
     fdc_magitronic.c
     fdc_monster.c
     fdc_pii15xb.c
