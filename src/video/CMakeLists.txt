@@ -27,7 +27,9 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_tkd8001_ramdac.c vid_att20c49x_ramdac.c vid_s3.c vid_s3_virge.c
     vid_ibm_rgb528_ramdac.c vid_sdac_ramdac.c vid_ogc.c vid_mga.c vid_nga.c
     vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c vid_xga.c
-    vid_bochs_vbe.c)
+    vid_bochs_vbe.c
+    nv/nv_rivatimer.c
+    )
 
 if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
