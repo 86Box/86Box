@@ -57,7 +57,7 @@ add_library(dev OBJECT
     mouse_microtouch_touchscreen.c
 )
 
-if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
     target_link_libraries(86Box atomic)
 endif()
 
