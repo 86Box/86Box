@@ -664,6 +664,12 @@ typedef struct nv3_pci_config_s
     uint8_t int_line;
 } nv3_pci_config_t;
 
+/* Notifier Engine */
+typedef struct nv3_notifier_s
+{
+    /* TODO */
+} nv3_notifier_t;
+
 // add enums for eac
 // Chip configuration
 typedef struct nv3_straps_s
@@ -773,6 +779,11 @@ typedef struct nv3_pgraph_dma_settings_s
     /* TODO */
 } nv3_pgraph_dma_settings_t;
 
+typedef struct nv3_pgraph_clip_misc_settings_s
+{
+    /* TODO */
+} nv3_pgraph_clip_misc_settings_t;
+
 // Graphics Subsystem
 typedef struct nv3_pgraph_s
 {
@@ -808,8 +819,10 @@ typedef struct nv3_pgraph_s
     uint32_t pattern_shape;                                 // may need to be an enum - 0=8x8, 1=64x1, 2=1x64
     uint32_t plane_mask;                                    // only 7:0 relevant
     nv3_color_x3a10g10b10_t chroma_key;                     // color key
-    nv3_pgraph_dma_settings_t dma_settings;
     uint32_t beta_factor;
+    nv3_pgraph_dma_settings_t dma_settings;
+    nv3_pgraph_clip_misc_settings_t clip_misc_settings;
+    nv3_notifier_t notifier;
 } nv3_pgraph_t;
 
 // GPU Manufacturing Configuration (again)
