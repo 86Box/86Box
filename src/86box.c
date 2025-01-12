@@ -271,8 +271,7 @@ static int suppr_seen = 1;
 /* 
     Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
 */
-void
-pclog_ensure_stdlog_open()
+void pclog_ensure_stdlog_open()
 {
     if (stdlog == NULL) {
         if (log_path[0] != '\0') {
@@ -399,7 +398,7 @@ pclog_ex_cyclic(const char* fmt, va_list ap)
                 {
                     // *very important* to prevent out of bounds index
                     uint32_t real_index = index % LOG_SIZE_BUFFER_CYCLIC_LINES;
-                    fprintf(stdlog, "%s", temp);
+                    fprintf(stdlog, "%s", cyclic_buff[real_index]);
 
                 }
 
