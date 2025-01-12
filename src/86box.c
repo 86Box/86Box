@@ -266,6 +266,9 @@ static int32_t log_cycles = 0;
 static int seen = 0;
 
 static int suppr_seen = 1;
+
+// Functions only used in this translation unit
+void pclog_ensure_stdlog_open();
 #endif
 
 /* 
@@ -273,6 +276,7 @@ static int suppr_seen = 1;
 */
 void pclog_ensure_stdlog_open()
 {
+#ifndef RELEASE_BUILD
     if (stdlog == NULL) {
         if (log_path[0] != '\0') {
             stdlog = plat_fopen(log_path, "w");
@@ -281,6 +285,7 @@ void pclog_ensure_stdlog_open()
         } else
             stdlog = stdout;
     }
+#endif
 }
 
 /*
