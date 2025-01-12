@@ -45,10 +45,10 @@ bool nv3_is_svga_redirect_address(uint32_t addr)
 {
     return (addr >= NV3_PRMVIO_START
     && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO);
+    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_COLOR
+    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR
+    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_MONO
+    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO);
 }
 
 // All MMIO regs are 32-bit i believe internally
@@ -164,12 +164,7 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
     addr &= 0xFFFFFF;
 
     // This is weitek vga stuff
-    if (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CR_COLOR
-    || addr == NV3_PRMCIO_CRX_COLOR
-    || addr == NV3_PRMCIO_CR_MONO
-    || addr == NV3_PRMCIO_CRX_MONO)
+    if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;

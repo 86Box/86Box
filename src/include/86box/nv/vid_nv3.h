@@ -451,10 +451,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PRMCIO_START                                0x601000
 // Following four are CRTC+I2C access registers
 // and get redirected to VGA
-#define NV3_PRMCIO_CRX_MONO                             0x6013B4
-#define NV3_PRMCIO_CR_MONO                              0x6013B5
-#define NV3_PRMCIO_CRX_COLOR                            0x6013D4
-#define NV3_PRMCIO_CR_COLOR                             0x6013D5
+#define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO         0x6013B4    // Current CRTC Register Index - Monochrome
+#define NV3_PRMCIO_CRTC_REGISTER_CUR_MONO               0x6013B5    // Currently Selected CRTC Register - Monochrome
+#define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR        0x6013D4    // Current CRTC Register Index - Colour
+#define NV3_PRMCIO_CRTC_REGISTER_CUR_COLOR              0x6013D5    
 #define NV3_PRMCIO_END                                  0x601FFF
 
 #define NV3_PDAC_START                                  0x680000    // OPTIONAL external DAC
@@ -825,7 +825,7 @@ typedef struct nv3_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv3_ptimer_t;
 
-typedef struct nv3_pramin_name_s
+typedef struct nv3_pramin_name_sd
 {
     union 
     {
@@ -843,7 +843,7 @@ typedef struct nv3_pramin_context_s
     {
         uint32_t context; 
         uint8_t dma_channel;
-        uint8_t render_object;              //0=sw, 1=render
+        uint8_t render_object;              //0=sw, 1=hw accelerated render
         uint8_t class_id;
         uint8_t ramin_offset;               //find
     };
@@ -866,6 +866,32 @@ typedef struct nv3_pramin_ramht_s
 } nv3_pramin_ramht_t;
 
 uint32_t nv3_ramht_hash(nv3_pramin_name_t name, uint32_t channel);
+
+typedef enum nv3_pramin_ramro_reason_e
+{
+    nv3_runout_reason_illegal_access = 0,
+
+    // PFIFO CACHE0/CACHE1 were turned off, so the graphics object could not be processed.
+    nv3_runout_reason_no_cache_available = 1,
+
+    // Ran out of CACHE0 & CACHE1 space.
+    nv3_runout_reason_cache_ran_out = 2,
+
+    nv3_runout_reason_free_count_overrun = 3,
+
+    nv3_runout_reason_caught_lying = 4,
+
+    // Access reserved by pagetable
+    nv3_runout_reason_reserved_access = 5,
+
+} nv3_pramin_ramro_reason;
+
+/* This is a gigantic error handling system */
+typedef struct nv3_pramin_ramro_entry_s
+{
+    
+    //todo
+} nv3_pramin_ramro_entry_t;
 
 // Anti-fuckup device
 typedef struct nv3_pramin_ramro_s
