@@ -197,7 +197,7 @@ ncr5380_bus_read(ncr_t *ncr)
             phase = (ncr->cur_bus & SCSI_PHASE_MESSAGE_IN);
 
             if (phase == SCSI_PHASE_DATA_IN) {
-                if (ncr->dma_mode == DMA_IDLE) {
+                if ((ncr->dma_mode == DMA_IDLE) || ncr->dma_initiator_receive_ext) {
                     ncr5380_log("Phase Data In.\n");
                     if ((dev->sc != NULL) && (dev->sc->temp_buffer != NULL))
                         ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
@@ -210,7 +210,7 @@ ncr5380_bus_read(ncr_t *ncr)
                     ncr->state = STATE_IDLE;
                     ncr->cur_bus &= ~BUS_BSY;
                 } else {
-                    if (ncr->dma_mode == DMA_IDLE)
+                    if ((ncr->dma_mode == DMA_IDLE) || ncr->dma_send_ext)
                         ncr->state = STATE_DATAOUT;
                 }
             } else if (phase == SCSI_PHASE_STATUS) {
