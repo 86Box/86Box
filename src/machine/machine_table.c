@@ -14634,7 +14634,7 @@ const machine_t machines[] = {
        firmware. */
 
 {
-        .name = "[i440LX] ABIT BX6",
+        .name = "[i440BX] ABIT BX6",
         .internal_name = "bx6",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440BX,
