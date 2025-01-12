@@ -34,7 +34,7 @@ rivatimer_t* rivatimer_tail;        // The tail of the rivatimer list.
 /* Functions only used in this translation unit */
 bool rivatimer_really_exists(rivatimer_t* rivatimer);   // Determine if a rivatimer really exists in the linked list.
 
-void rivatimer_init()
+void rivatimer_init(void)
 {
     // Destroy all the rivatimers.
     rivatimer_t* rivatimer_ptr = rivatimer_head;
@@ -162,7 +162,7 @@ void rivatimer_destroy(rivatimer_t* rivatimer_ptr)
     rivatimer_ptr = NULL; //explicitly set to null
 }
 
-void rivatimer_update_all()
+void rivatimer_update_all(void)
 {
     rivatimer_t* rivatimer_ptr = rivatimer_head;
 

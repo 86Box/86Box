@@ -63,7 +63,7 @@ typedef struct rivatimer_s
     double                  value;          // The current value of the rivatimer
     bool                    running;        // Is this RivaTimer running?
     struct rivatimer_s*     next;           // Next RivaTimer
-    void                    (*callback)(void);  // Callback to call on fire
+    void                    (*callback)(double real_time);  // Callback to call on fire
     #ifdef _WIN32
     LARGE_INTEGER           starting_time;  // Starting time.
     #else
