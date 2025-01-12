@@ -809,7 +809,7 @@ typedef struct nv3_pgraph_s
     uint32_t plane_mask;                                    // only 7:0 relevant
     nv3_color_x3a10g10b10_t chroma_key;                     // color key
     nv3_pgraph_dma_settings_t dma_settings;
-    
+    uint32_t beta_factor;
 } nv3_pgraph_t;
 
 // GPU Manufacturing Configuration (again)

@@ -14,7 +14,15 @@
  *
  *          Copyright 2024-2025 starfrost
  */
-
+#include <stdio.h>
+#include <stdint.h>
+#include <86Box/86box.h>
+#include <86Box/device.h>
+#include <86Box/mem.h>
+#include <86box/pci.h>
+#include <86Box/rom.h> // DEPENDENT!!!
+#include <86Box/video.h>
+#include <86box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
 /* These are the object classes AS RECOGNISED BY THE GRAPHICS HARDWARE. */

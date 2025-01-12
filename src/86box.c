@@ -395,7 +395,7 @@ pclog_ex_cyclic(const char* fmt, va_list ap)
                 // 'Replay' the last few log entries so they actually show up
                 // Todo: is this right?
 
-                for (uint32_t index = cyclic_last_line - 1; index > (cyclic_last_line - repeat_order); cyclic_last_line--)
+                for (uint32_t index = cyclic_last_line - 1; index > (cyclic_last_line - repeat_order); index--)
                 {
                     // *very important* to prevent out of bounds index
                     uint32_t real_index = index % LOG_SIZE_BUFFER_CYCLIC_LINES;
