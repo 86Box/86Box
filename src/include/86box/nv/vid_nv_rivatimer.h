@@ -47,7 +47,7 @@ So I decided to create this timer that is completely separate from the CPU Core.
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <86Box/86box.h>
+#include <86box/86box.h>
 
 #ifdef _WIN32     
 #include <Windows.h>

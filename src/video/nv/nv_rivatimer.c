@@ -22,7 +22,7 @@ Since Windows XP, QueryPerformanceCounter and QueryPerformanceFrequency cannot f
 
 */
 
-#include <86Box/nv/vid_nv_rivatimer.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 #ifdef _WIN32
 LARGE_INTEGER performance_frequency;
