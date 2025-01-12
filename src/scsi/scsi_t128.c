@@ -287,6 +287,7 @@ write_again:
                 t128->block_count = (t128->block_count - 1) & 0xff;
                 t128_log("T128 Remaining blocks to be written=%d\n", t128->block_count);
                 if (!t128->block_count) {
+                    ncr->dma_mode = DMA_IDLE;
                     t128->block_loaded = 0;
                     t128_log("IO End of write transfer\n");
                     ncr->tcr |= TCR_LAST_BYTE_SENT;
@@ -343,6 +344,7 @@ read_again:
                 t128_log("T128 Remaining blocks to be read=%d, status=%02x, len=%i, cdb[0] = %02x\n", t128->block_count, t128->status, dev->buffer_length, ncr->command[0]);
                 if (!t128->block_count) {
                     t128->block_loaded = 0;
+                    ncr->dma_mode = DMA_IDLE;
                     t128_log("IO End of read transfer\n");
                     ncr->isr |= STATUS_END_OF_DMA;
                     timer_stop(&t128->timer);
