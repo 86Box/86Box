@@ -173,8 +173,8 @@ static const device_config_t opl2board_config[] = {
         .type = CONFIG_SERPORT,
         .default_string = "",
         .file_filter = NULL,
-        .spinner = {},
-        .selection = {}
+        .spinner = { 0 },
+        .selection = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

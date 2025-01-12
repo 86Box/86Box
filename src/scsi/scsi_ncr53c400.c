@@ -841,7 +841,7 @@ static const device_config_t rt1000b_config[] = {
         .default_string = "v8_10r",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Version 8.10R", .internal_name = "v8_10r", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { RT1000B_810R_ROM, "" } },

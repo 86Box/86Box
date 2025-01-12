@@ -88,7 +88,7 @@ plat_serpt_set_params(void *priv)
     const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     if (dev->mode == SERPT_MODE_HOSTSER) {
-        DCB serialattr = {};
+        DCB serialattr = { 0 };
         GetCommState((HANDLE) dev->master_fd, &serialattr);
 #define BAUDRATE_RANGE(baud_rate, min, max)    \
     if (baud_rate >= min && baud_rate < max) { \

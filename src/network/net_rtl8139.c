@@ -28,6 +28,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef _MVC_VER
+#include <stddef.h>
+#endif
 #include <time.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -531,14 +534,14 @@ rtl8139_write_buffer(RTL8139State *s, const void *buf, int size)
 
             if (size > wrapped) {
                 dma_bm_write(s->RxBuf + s->RxBufAddr,
-                             buf, size - wrapped, 1);
+                             (uint8_t *) buf, size - wrapped, 1);
             }
 
             /* reset buffer pointer */
             s->RxBufAddr = 0;
 
             dma_bm_write(s->RxBuf + s->RxBufAddr,
-                         buf + (size - wrapped), wrapped, 1);
+                         (uint8_t *) buf + (size - wrapped), wrapped, 1);
 
             s->RxBufAddr = wrapped;
 

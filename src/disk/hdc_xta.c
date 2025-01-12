@@ -1114,7 +1114,7 @@ static const device_config_t wdxt150_config[] = {
         .default_string = "",
         .default_int = 0x0320,
         .file_filter = "",
-        .spinner = { 0 }, /*W2*/
+        .spinner = { 0 },
         .selection = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
@@ -1128,7 +1128,7 @@ static const device_config_t wdxt150_config[] = {
         .default_string = "",
         .default_int = 5,
         .file_filter = "",
-        .spinner = { 0 }, /*W3*/
+        .spinner = { 0 },
         .selection = {
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 4", .value = 4 },
@@ -1142,7 +1142,7 @@ static const device_config_t wdxt150_config[] = {
         .default_string = "",
         .default_int = 0xc8000,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .selection = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CA00H", .value = 0xca000 },
@@ -1156,7 +1156,7 @@ static const device_config_t wdxt150_config[] = {
         .default_string = "rev_1",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Revision 1.0", .internal_name = "rev_1", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { WD_REV_1_BIOS_FILE, "" } },

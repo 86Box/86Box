@@ -230,7 +230,11 @@ static HarddiskDialog *callbackPtr = nullptr;
 static MVHDGeom
 create_drive_vhd_fixed(const QString &fileName, HarddiskDialog *p, uint16_t cyl, uint8_t heads, uint8_t spt)
 {
-    MVHDGeom _86box_geometry = { .cyl = cyl, .heads = heads, .spt = spt };
+    MVHDGeom _86box_geometry = {
+        .cyl   = cyl,
+        .heads = heads,
+        .spt   = spt
+    };
     MVHDGeom vhd_geometry;
     adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
 
@@ -256,7 +260,11 @@ create_drive_vhd_fixed(const QString &fileName, HarddiskDialog *p, uint16_t cyl,
 static MVHDGeom
 create_drive_vhd_dynamic(const QString &fileName, uint16_t cyl, uint8_t heads, uint8_t spt, int blocksize)
 {
-    MVHDGeom _86box_geometry = { .cyl = cyl, .heads = heads, .spt = spt };
+    MVHDGeom _86box_geometry = {
+        .cyl   = cyl,
+        .heads = heads,
+        .spt   = spt
+    };
     MVHDGeom vhd_geometry;
     adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
     int                 vhd_error     = 0;

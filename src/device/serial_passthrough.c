@@ -282,8 +282,8 @@ static const device_config_t serial_passthrough_config[] = {
         .type = CONFIG_SERPORT,
         .default_string = "",
         .file_filter = NULL,
-        .spinner = {},
-        .selection = {}
+        .spinner = { 0 },
+        .selection = { { 0 } }
     },
 #ifdef _WIN32
     {
@@ -292,8 +292,8 @@ static const device_config_t serial_passthrough_config[] = {
         .type = CONFIG_STRING,
         .default_string = "\\\\.\\pipe\\86Box\\test",
         .file_filter = NULL,
-        .spinner = {},
-        .selection = {}
+        .spinner = { 0 },
+        .selection = { { 0 } }
     },
 #endif
     {

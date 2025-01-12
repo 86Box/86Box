@@ -104,8 +104,8 @@ struct unittester_state {
     /* 0x04: Exit */
     uint8_t exit_code;
 };
-static struct unittester_state       unittester;
-static const struct unittester_state unittester_defaults = {
+static struct unittester_state unittester;
+static struct unittester_state unittester_defaults = {
     .trigger_port = 0x0080,
     .iobase_port  = 0xFFFF,
     .fsm1         = UT_FSM1_WAIT_8,
@@ -589,7 +589,7 @@ unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 static void *
 unittester_init(UNUSED(const device_t *info))
 {
-    unittester = (struct unittester_state) unittester_defaults;
+    unittester = unittester_defaults;
 
     unittester_exit_enabled = !!device_get_config_int("exit_enabled");
 
