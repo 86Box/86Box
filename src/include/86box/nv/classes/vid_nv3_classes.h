@@ -75,7 +75,17 @@ typedef struct nv3_color_argb_32_s
     uint8_t a;
 } nv3_color_argb_32_t;
 
-/* A4R4G4B4 */
+/* 30-bit colour format for internal PGRAPH use */
+typedef struct nv3_color_x3a10g10b10_s
+{
+    uint8_t reserved : 2;
+    bool alpha_if_chroma_key_otherwise_reserved2 : 1; // 1-bit ALPHA if chroma key, OTHERWISE USELESS and IGNORE
+    uint16_t r : 10;
+    uint16_t g : 10;
+    uint16_t b : 10;
+} nv3_color_x3a10g10b10_t;
+
+/* 16-bit A4R4G4B4 colour format */
 typedef struct nv3_color_16_a4r4g4b4_s
 {
     uint8_t a : 4;
@@ -108,15 +118,24 @@ typedef struct nv3_position_16_s
     {
         uint32_t pos;
 
-        struct vid_nv3_classes
+        struct
         {
             uint16_t y;
             uint16_t x;
         };
-        
     
     } position;
 } nv3_position_16_t;
+
+/* A big position format with 30:16 = y, 15:11 = nothing, 10:0 = x */
+typedef struct nv3_position_16_bigy_s
+{
+    // WHOSE IDEA WAS THIS?
+    uint16_t x : 11; 
+    uint8_t reserved : 5;
+    uint16_t y : 15;
+    bool reserved2 : 1;
+} nv3_position_16_bigy_t;
 
 /* Generic 16-bit size */
 typedef struct nv3_size_16_s
@@ -130,7 +149,6 @@ typedef struct nv3_size_16_s
             uint16_t h;
             uint16_t w;
         };
-        
 
     } size;
 } nv3_size_16_t;

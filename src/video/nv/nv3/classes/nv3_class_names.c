@@ -15,10 +15,7 @@
  *          Copyright 2024-2025 starfrost
  */
 
-/* Taken from Win9x drivers 0.77, these had the best reversing potential */
-
-#include <86Box/nv/classes/vid_nv3_classes.h>
-
+#include <86Box/nv/vid_nv3.h>
 
 /* These are the object classes AS RECOGNISED BY THE GRAPHICS HARDWARE. */
 /* The drivers implement a COMPLETELY DIFFERENT SET OF CLASSES. */

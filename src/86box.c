@@ -323,8 +323,6 @@ Starfrost, 7-8 January 2025:
 
 For RIVA 128 emulation I needed a way to suppress logging if a repeated pattern of the same set of lines were found. 
 
-It doesn't need to be super fast so I don't bother to use an optimised approach. I use iterate from 1 to n/2 and see if a pattern repeats or not.
- 
 Implements a version of the Rabin-Karp algorithm https://en.wikipedia.org/wiki/Rabin%E2%80%93Karp_algorithm
 */
 void 

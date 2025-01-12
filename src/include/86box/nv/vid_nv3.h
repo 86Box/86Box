@@ -5,18 +5,24 @@
  *          system designs based on the PCI bus.
  *
  *          This file is part of the 86Box distribution.
- *
- *          vid_nv3.h: NV3 Architecture Hardware Reference (open-source)
- *          Last updated     9 January 2025 (STILL WORKING ON IT)
- *
- *
+ * 
+ *          Welcome to what happens when a single person demands that their overly complicated "vision" of a design be implemented 
+ *          with absolutely no compromise. This is true lunacy.
+ * 
+ *          Explanation of what is being done here, and how this all works, hopefully posted on the 86Box blog.
+ *          Notes specific to a subsystem in the header or c file for that subsystem
+ *          Also check the doc folder for some more notres
+ * 
+ *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
+ *          Last updated:   12 January 2025 (STILL WORKING ON IT!!!)
  *
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
  *          Copyright 2024-2025 Connor Hyde
  */
 
-
+#pragma once
+#include <86Box/nv/classes/vid_nv3_classes.h>
 
 // The GPU base structure
 extern const device_config_t nv3_config[];
@@ -738,19 +744,42 @@ typedef struct nv3_pramdac_s
     uint32_t hserr_width;       // horizontal sync error width
 } nv3_pramdac_t;
 
+/* Holds DMA context channel information */
 typedef struct nv3_pgraph_context_switch_s
 {
-    
+    /* TODO */
 } nv3_pgraph_context_switch_t;
 
 typedef struct nv3_pgraph_context_control_s
 {
-
+    /* TODO */
 } nv3_pgraph_context_control_t;
+
+/* DMA object context info 
+   Context uploaded from CACHE0/CACH1 by DMA Puller
+*/
+typedef struct nv3_pgraph_context_user_s
+{
+    bool reserved3 : 1;
+    uint8_t channel : 7;
+    uint8_t reserved2 : 4;
+    uint8_t class : 5;
+    uint8_t subchannel : 3;
+    uint16_t reserved : 12;
+} nv3_pgraph_context_user_t; 
+
+typedef struct nv3_pgraph_dma_settings_s
+{
+    /* TODO */
+} nv3_pgraph_dma_settings_t;
 
 // Graphics Subsystem
 typedef struct nv3_pgraph_s
 {
+    uint32_t debug_0;
+    uint32_t debug_1;
+    uint32_t debug_2;
+    uint32_t debug_3;
     uint32_t interrupt_status_0;          // Interrupt status 0
     uint32_t interrupt_enable_0;          // Interrupt enable 0 
     uint32_t interrupt_status_1;          // Interrupt status 1
@@ -758,7 +787,29 @@ typedef struct nv3_pgraph_s
 
     nv3_pgraph_context_control_t context_control;
     nv3_pgraph_context_switch_t context_user_submit;
-    uint32_t context_cache[NV3_PGRAPH_CONTEXT_CACHE_SIZE];  // DMA context cache 
+    nv3_pgraph_context_user_t context_user;
+    uint32_t context_cache[NV3_PGRAPH_CONTEXT_CACHE_SIZE];  // DMA context cache (nv3_pgraph_context_user_t array?)
+
+    // UCLIP stuff
+    uint32_t abs_uclip_xmin;
+    uint32_t abs_uclip_xmax;
+    uint32_t abs_uclip_ymin;
+    uint32_t abs_uclip_ymax;
+    nv3_position_16_bigy_t src_canvas_min;
+    nv3_position_16_bigy_t src_canvas_max;
+    nv3_position_16_bigy_t dst_canvas_min;
+    nv3_position_16_bigy_t dst_canvas_max;
+    nv3_color_x3a10g10b10_t pattern_color_0_0;
+    uint32_t pattern_color_0_1;                             // only 7:0 relevant
+    nv3_color_x3a10g10b10_t pattern_color_1_0;
+    uint32_t pattern_color_1_1;                             // only 7:0 relevant
+    uint32_t pattern_bitmap_high;                           // high part of pattern bitmap for blit
+    uint32_t pattern_bitmap_low;
+    uint32_t pattern_shape;                                 // may need to be an enum - 0=8x8, 1=64x1, 2=1x64
+    uint32_t plane_mask;                                    // only 7:0 relevant
+    nv3_color_x3a10g10b10_t chroma_key;                     // color key
+    nv3_pgraph_dma_settings_t dma_settings;
+    
 } nv3_pgraph_t;
 
 // GPU Manufacturing Configuration (again)
