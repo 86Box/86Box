@@ -492,8 +492,7 @@ pic_read(uint16_t addr, void *priv)
             else
                 dev->data_bus = 0x00;
 #endif
-        } else
-            cpu_block_end = 1;
+        }
         /* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
            simply read whatever is currently on the data bus. */
     }
