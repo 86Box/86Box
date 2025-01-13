@@ -1634,28 +1634,55 @@ cpu_data_opff_rm(void)
     }
 }
 
+uint8_t
+cpu_inb(uint16_t port)
+{
+    uint8_t ret;
+
+    wait(4, 0);
+    old_cycles = cycles;
+
+    ret = inb(port);
+
+    resub_cycles();
+}
+
 uint16_t
 cpu_inw(uint16_t port)
 {
-    if (is8086 && !(port & 1)) {
-        wait(4, 0);
-    } else {
-        wait(8, 0);
-    }
+    uint16_t ret;
 
-    return inw(port);
+    if (is8086 && !(port & 1))
+        wait(4, 0);
+    else
+        wait(8, 0);
+
+    ret = inw(port);
+
+    resub_cycles();
+}
+
+void
+cpu_outb(uint16_t port, uint16_t val)
+{
+    wait(4, 0);
+
+    outb(port, val);
+
+    resub_cycles();
 }
 
 void
 cpu_outw(uint16_t port, uint16_t val)
 {
-    if (is8086 && !(port & 1)) {
+    if (is8086 && !(port & 1))
         wait(4, 0);
-    } else {
+    else
         wait(8, 0);
-    }
 
-    return outw(port, val);
+    outw(port, val);
+
+    resub_cycles();
 }
 
 /* Executes instructions up to the specified number of cycles. */
@@ -1804,8 +1831,7 @@ execx86(int cycs)
                         writememw(es, DI, cpu_inw(DX));
                         DI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
-                        wait(4, 0);
-                        writememb(es, DI, inb(DX));
+                        writememb(es, DI, cpu_inb(DX));
                         DI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
 
@@ -1833,8 +1859,7 @@ execx86(int cycs)
                         cpu_outw(DX, readmemw(dest_seg, SI));
                         SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
-                        wait(4, 0);
-                        outb(DX, readmemb(dest_seg + SI));
+                        cpu_outb(DX, readmemb(dest_seg + SI));
                         SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
                     if (in_rep == 0)
