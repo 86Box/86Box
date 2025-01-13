@@ -17,6 +17,7 @@
  *          Copyright 2015-2020 Andrew Jenner.
  *          Copyright 2016-2020 Miran Grca.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -491,12 +492,13 @@ pic_read(uint16_t addr, void *priv)
             else
                 dev->data_bus = 0x00;
 #endif
-        }
+        } else
+            cpu_block_end = 1;
         /* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
            simply read whatever is currently on the data bus. */
     }
 
-    pic_log("pic_read(%04X, %08X) = %02X\n", addr, priv, dev->data_bus);
+    pic_log("pic_read(%04X) = %02X\n", addr, dev->data_bus);
 
     return dev->data_bus;
 }
