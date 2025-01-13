@@ -193,6 +193,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                             else
                                 timer_on_auto(&ncr400->timer, ncr->period);
 
+                            ncr->wait_data_back = ncr->wait_data;
                             ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, datawait=%d, enabled=%d.\n",
                                   ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, ncr->wait_data, ncr->wait_complete, ncr->clear_req, ncr->data_wait, timer_is_enabled(&ncr400->timer));
                         }
