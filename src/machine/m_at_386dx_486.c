@@ -499,7 +499,6 @@ machine_at_dellx30_init(const machine_t *model)
     device_add(&keyboard_ps2_acer_pci_device);
     device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_device);
-    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
