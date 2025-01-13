@@ -1637,52 +1637,72 @@ cpu_data_opff_rm(void)
 uint8_t
 cpu_inb(uint16_t port)
 {
+    int     old_cycles = cycles;
     uint8_t ret;
 
-    wait(4, 0);
+    wait(is_mazovia ? 5 : 4, 1);
     old_cycles = cycles;
 
     ret = inb(port);
 
-    resub_cycles();
+    resub_cycles(old_cycles);
+
+    return ret;
 }
 
 uint16_t
 cpu_inw(uint16_t port)
 {
+    int      old_cycles = cycles;
     uint16_t ret;
 
-    if (is8086 && !(port & 1))
-        wait(4, 0);
-    else
-        wait(8, 0);
+    wait(is_mazovia ? 5 : 4, 1);
+    if (is8086 && !(port & 1)) {
+        old_cycles = cycles;
+        ret = inw(port);
+    } else {
+        wait(is_mazovia ? 5 : 4, 1);
+        old_cycles = cycles;
+        ret = inb(port++);
+        ret |= (inb(port) << 8);
+    }
 
-    ret = inw(port);
+    resub_cycles(old_cycles);
 
-    resub_cycles();
+    return ret;
 }
 
 void
 cpu_outb(uint16_t port, uint16_t val)
 {
-    wait(4, 0);
+    int old_cycles = cycles;
+
+    wait(is_mazovia ? 5 : 4, 1);
+    old_cycles = cycles;
 
     outb(port, val);
 
-    resub_cycles();
+    resub_cycles(old_cycles);
 }
 
 void
 cpu_outw(uint16_t port, uint16_t val)
 {
-    if (is8086 && !(port & 1))
-        wait(4, 0);
-    else
-        wait(8, 0);
+    int old_cycles = cycles;
 
-    outw(port, val);
+    wait(is_mazovia ? 5 : 4, 1);
 
-    resub_cycles();
+    if (is8086 && !(port & 1)) {
+        old_cycles = cycles;
+        outw(port, val);
+    } else {
+        wait(is_mazovia ? 5 : 4, 1);
+        old_cycles = cycles;
+        outb(port++, val);
+        outb(port, val >> 8);
+    }
+
+    resub_cycles(old_cycles);
 }
 
 /* Executes instructions up to the specified number of cycles. */
