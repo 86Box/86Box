@@ -360,7 +360,7 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
                         ncr5380_log("DMA mode idle IN=%d.\n", ncr->data_pos);
                         ncr->timer(ncr->priv, ncr->period);
                     } else {
-                        pclog("DMA mode IN=%d.\n", ncr->data_pos);
+                        ncr5380_log("DMA mode IN=%d.\n", ncr->data_pos);
                         ncr->clear_req = 3;
                     }
 
@@ -496,7 +496,7 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
             break;
 
         case 7: /* start DMA Initiator Receive */
-            pclog("[%04X:%08X]: Write: start DMA initiator receive register, dma? = %02x\n", CS, cpu_state.pc, ncr->mode & MODE_DMA);
+            ncr5380_log("[%04X:%08X]: Write: start DMA initiator receive register, dma? = %02x\n", CS, cpu_state.pc, ncr->mode & MODE_DMA);
             /*a Read 6/10 has occurred, start the timer when the block count is loaded*/
             ncr->dma_mode = DMA_INITIATOR_RECEIVE;
             if (ncr->dma_initiator_receive_ext)
