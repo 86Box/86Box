@@ -1622,7 +1622,7 @@ static const device_config_t ev165a_config[] = {
 };
 
 static const device_t ev165a_device = {
-    .name          = "Everex Magi Magic EV-165A",
+    .name          = "Everex Maxi Magic EV-165A",
     .internal_name = "ev165a",
     .flags         = DEVICE_ISA,
     .local         = ISAMEM_EV165A_CARD,
