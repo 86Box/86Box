@@ -4097,6 +4097,10 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "3.08    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:280    ", 40); /* Model */
                 break;
+             case CDROM_TYPE_NEC_CDR_1900A_100:
+                ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "NEC                 CDR-1900A            ", 40); /* Model */
+                break;
             case CDROM_TYPE_PHILIPS_PCA403CD_U31P:
                 ide_padstr((char *) (ide->buffer + 23), "U31P    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "PHILIPS CD-ROM PCA403CD                 ", 40); /* Model */
@@ -4108,6 +4112,10 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
             case CDROM_TYPE_SONY_CDU311_30h:
                 ide_padstr((char *) (ide->buffer + 23), "3.0h    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "SONY CD-ROM CDU311                      ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TEAC_CD_532E_20A:
+                ide_padstr((char *) (ide->buffer + 23), "2.0A    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "TEAC CD-532E                            ", 40); /* Model */
                 break;
             case CDROM_TYPE_TOSHIBA_5302TA_0305:
                 ide_padstr((char *) (ide->buffer + 23), "0305    ", 8);                                  /* Firmware */
