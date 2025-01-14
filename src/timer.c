@@ -4,6 +4,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 uint64_t TIMER_USEC;
 uint32_t timer_target;
@@ -167,6 +168,9 @@ timer_init(void)
 {
     timer_target = 0ULL;
     tsc          = 0;
+
+    /* Initialise the CPU-independent timer */
+    rivatimer_init();
 
     timer_inited = 1;
 }
