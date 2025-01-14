@@ -629,24 +629,36 @@ isartc_close(void *priv)
 static const device_config_t ev170_config[] = {
   // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
-        {
-            { "240H", 0x0240 },
-            { "2C0H", 0x02c0 },
-            { ""             }
+        .name           = "base",
+		.description    = "Address",
+		.type           = CONFIG_HEX16,
+		.default_string = "",
+		.default_int    = 0x02C0,
+		.file_filter    = "",
+		.spinner        = { 0 },
+        .selection      = {
+            { .description = "240H", .value = 0x0240 },
+            { .description = "2C0H", .value = 0x02c0 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-        {
-            { "Disabled", -1 },
-            { "IRQ2",      2 },
-            { "IRQ5",      5 },
-            { "IRQ7",      7 },
-            { ""             }
+        .name           = "irq",
+		.description    = "IRQ",
+		.type           = CONFIG_SELECTION,
+		.default_string = "",
+		.default_int    = -1,
+		.file_filter    = "",
+		.spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "IRQ2",     .value =  2 },
+            { .description = "IRQ5",     .value =  5 },
+            { .description = "IRQ7",     .value =  7 },
+            { .description = ""                      }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -658,7 +670,7 @@ static const device_t ev170_device = {
     .init          = isartc_init,
     .close         = isartc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ev170_config
@@ -667,14 +679,20 @@ static const device_t ev170_device = {
 static const device_config_t pii147_config[] = {
   // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
-        {
-            { "Clock 1", 0x0240 },
-            { "Clock 2", 0x0340 },
-            { "" }
+        .name           = "base",
+		.description    = "Address",
+		.type           = CONFIG_HEX16,
+		.default_string = "",
+		.default_int    = 0x0240,
+		.file_filter    = "",
+		.spinner        = { 0 },
+        .selection      = {
+            { .description = "Clock 1", .value = 0x0240 },
+            { .description = "Clock 2", .value = 0x0340 },
+            { .description = ""                         }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -686,7 +704,7 @@ static const device_t pii147_device = {
     .init          = isartc_init,
     .close         = isartc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pii147_config
@@ -695,16 +713,22 @@ static const device_t pii147_device = {
 static const device_config_t p5pak_config[] = {
   // clang-format off
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-        {
-            { "Disabled", -1 },
-            { "IRQ2",      2 },
-            { "IRQ3",      3 },
-            { "IRQ5",      5 },
-            { ""             }
+        .name           = "irq",
+		.description    = "IRQ",
+		.type           = CONFIG_SELECTION,
+		.default_string = "",
+		.default_int    = -1,
+		.file_filter    = "",
+		.spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", -1 },
+            { .description = "IRQ2",      2 },
+            { .description = "IRQ3",      3 },
+            { .description = "IRQ5",      5 },
+            { .description = ""             }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -716,7 +740,7 @@ static const device_t p5pak_device = {
     .init          = isartc_init,
     .close         = isartc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = p5pak_config
@@ -725,17 +749,22 @@ static const device_t p5pak_device = {
 static const device_config_t a6pak_config[] = {
   // clang-format off
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-        {
-            { "Disabled", -1 },
-            { "IRQ2",      2 },
-            { "IRQ4",      4 },
-            { "IRQ5",      5 },
-            { "IRQ7",      7 },
-            { ""             }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int    = -1,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "IRQ2",     .value =  2 },
+            { .description = "IRQ3",     .value =  3 },
+            { .description = "IRQ5",     .value =  5 },
+            { .description = ""                      }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -747,7 +776,7 @@ static const device_t a6pak_device = {
     .init          = isartc_init,
     .close         = isartc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = a6pak_config
@@ -846,7 +875,7 @@ const device_t vendex_xt_rtc_onboard_device = {
     .init          = isartc_init,
     .close         = isartc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
