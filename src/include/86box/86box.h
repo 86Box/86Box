@@ -189,7 +189,6 @@ extern int config_changed; /* config has changed */
 #ifdef HAVE_STDARG_H
 extern void pclog_ex(const char *fmt, va_list ap);
 extern void fatal_ex(const char *fmt, va_list ap);
-extern void pclog_ex_cyclic(const char* fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
 #ifdef _MSC_VER

@@ -254,14 +254,9 @@ static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
 
-#define LOG_SIZE_BUFFER                 1024            /* Log size buffer */
-#define LOG_SIZE_BUFFER_CYCLIC_LINES    32              /* Cyclic log size buffer (number of lines that should be cehcked) */
-#define LOG_MINIMUM_REPEAT_ORDER        4               /* Minimum repeat size */
+#define LOG_SIZE_BUFFER 1024            /* Log size buffer */
 
 static char buff[LOG_SIZE_BUFFER];
-static char cyclic_buff[LOG_SIZE_BUFFER_CYCLIC_LINES][LOG_SIZE_BUFFER];
-static int32_t cyclic_last_line = 0;
-static int32_t log_cycles = 0;
 
 static int seen = 0;
 
@@ -322,112 +317,6 @@ pclog_ex(const char *fmt, va_list ap)
 }
 
 
-/*
-Starfrost, 7-8 January 2025: 
-
-For RIVA 128 emulation I needed a way to suppress logging if a repeated pattern of the same set of lines were found. 
-
-Implements a version of the Rabin-Karp algorithm https://en.wikipedia.org/wiki/Rabin%E2%80%93Karp_algorithm
-*/
-void 
-pclog_ex_cyclic(const char* fmt, va_list ap)
-{
-#ifndef RELEASE_BUILD
-    char temp[LOG_SIZE_BUFFER];
-
-    cyclic_last_line %= LOG_SIZE_BUFFER_CYCLIC_LINES;
-
-    vsprintf(temp, fmt, ap);
-
-    pclog_ensure_stdlog_open();
-
-    strncpy(cyclic_buff[cyclic_last_line], temp, LOG_SIZE_BUFFER);
-
-    uint32_t hashes[LOG_SIZE_BUFFER_CYCLIC_LINES] = {0};
-
-    // Random numbers
-    uint32_t base = 257;
-    uint32_t mod = 1000000007;
-
-    uint32_t repeat_order = 0;
-    bool is_cycle = false;
-
-    // compute the set of hashes for the current log buffer
-    for (int32_t log_line = 0; log_line < LOG_SIZE_BUFFER_CYCLIC_LINES; log_line++)
-    {
-        if (cyclic_buff[log_line][0] == '\0')
-            continue; // skip
-
-        for (int32_t log_line_char = 0; log_line_char < LOG_SIZE_BUFFER; log_line_char++)
-        {
-            hashes[log_line] = hashes[log_line] * base + cyclic_buff[log_line][log_line_char] % mod;
-        }
-    }
-
-
-    // Now see if there are real cycles...
-    // We implement a minimum repeat size.
-    for (int32_t check_size = LOG_MINIMUM_REPEAT_ORDER; check_size < LOG_SIZE_BUFFER_CYCLIC_LINES / 2; check_size++)
-    {
-        //TODO: Log what we need for cycle 1.
-        //TODO: Command line option that lets us turn off this behaviour.
-        for (int32_t log_line_to_check = 0; log_line_to_check < check_size; log_line_to_check++)
-        {
-            if (hashes[log_line_to_check] == hashes[(log_line_to_check + check_size) % LOG_SIZE_BUFFER_CYCLIC_LINES])
-            {
-                repeat_order = check_size;
-                break;
-            }
-        }
-
-        is_cycle = (repeat_order != 0);
-
-        // if there still is a cycle..
-        if (is_cycle)
-            break;
-            
-    }
-
-    if (is_cycle)
-    {
-        if (cyclic_last_line % repeat_order == 0)
-        {
-            log_cycles++;
-
-            if (log_cycles == 1)
-            {
-                // 'Replay' the last few log entries so they actually show up
-                // Todo: is this right?
-
-                for (uint32_t index = cyclic_last_line - 1; index > (cyclic_last_line - repeat_order); index--)
-                {
-                    // *very important* to prevent out of bounds index
-                    uint32_t real_index = index % LOG_SIZE_BUFFER_CYCLIC_LINES;
-                    fprintf(stdlog, "%s", cyclic_buff[real_index]);
-
-                }
-
-                fprintf(stdlog, "%s", temp); // allow normal logging
-            }
-                
-
-            if (log_cycles > 1 && log_cycles < 100)
-                fprintf(stdlog, "***** Cyclical Log Repeat of Order %d #%d *****\n", repeat_order, log_cycles);
-            else if (log_cycles == 100)
-                fprintf(stdlog, "Logged the same cycle 100 times...shutting up until something interesting happens\n");
-        }
-    }
-    else
-    {
-        log_cycles = 0;
-        fprintf(stdlog, "%s", temp);
-    }
-
-    cyclic_last_line++;
-    
-#endif
-
-}
 
 void
 pclog_toggle_suppr(void)
