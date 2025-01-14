@@ -148,6 +148,12 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         ncr400->busy = 1;
                         if (!(ncr->mode & MODE_MONITOR_BUSY) && ((scsi_device_get_callback(dev) > 0.0)))
                             timer_on_auto(&ncr400->timer, ncr->period / 250.0);
+                        else if ((ncr->mode & MODE_MONITOR_BUSY) && !ncr->wait_data) {
+                            if (scsi_device_get_callback(dev) > 0.0)
+                                timer_on_auto(&ncr400->timer, 100.0);
+                            else
+                                timer_on_auto(&ncr400->timer, 40.0);
+                        }
                     }
                 }
                 break;
@@ -181,13 +187,15 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
                             memset(ncr400->buffer, 0, MIN(128, dev->buffer_length));
                             if (ncr->mode & MODE_MONITOR_BUSY)
-                                timer_on_auto(&ncr400->timer, ncr->period);
+                                timer_on_auto(&ncr400->timer, (ncr->period / 4.0) * 3.0);
                             else if (scsi_device_get_callback(dev) > 0.0)
                                 timer_on_auto(&ncr400->timer, 40.0);
                             else
                                 timer_on_auto(&ncr400->timer, ncr->period);
 
-                            ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, datawait=%d, enabled=%d.\n", ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, ncr->wait_complete, ncr->wait_data, ncr->wait_complete, ncr->clear_req, ncr->data_wait, timer_is_enabled(&ncr400->timer));
+                            ncr->wait_data_back = ncr->wait_data;
+                            ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, datawait=%d, enabled=%d.\n",
+                                  ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, ncr->wait_data, ncr->wait_complete, ncr->clear_req, ncr->data_wait, timer_is_enabled(&ncr400->timer));
                         }
                         break;
 
@@ -244,6 +252,12 @@ ncr53c400_read(uint32_t addr, void *priv)
                         ncr53c400_log("Transfer busy read, status = %02x.\n", ncr400->status_ctrl);
                         if (!(ncr->mode & MODE_MONITOR_BUSY) && (scsi_device_get_callback(dev) > 0.0))
                             timer_on_auto(&ncr400->timer, ncr->period / 250.0);
+                        else if ((ncr->mode & MODE_MONITOR_BUSY) && !ncr->wait_data) {
+                            if (scsi_device_get_callback(dev) > 0.0)
+                                timer_on_auto(&ncr400->timer, 100.0);
+                            else
+                                timer_on_auto(&ncr400->timer, 40.0);
+                        }
                     }
                 }
                 break;
@@ -397,16 +411,20 @@ t130b_in(uint16_t port, void *priv)
 }
 
 static void
-ncr53c400_dma_mode_ext(void *priv, UNUSED(void *ext_priv))
+ncr53c400_dma_mode_ext(void *priv, void *ext_priv)
 {
-    ncr_t   *ncr        = (ncr_t *) priv;
+    ncr53c400_t    *ncr400     = (ncr53c400_t *) ext_priv;
+    ncr_t          *ncr        = (ncr_t *) priv;
 
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
-    if (!(ncr->mode & MODE_DMA)) {
-        ncr53c400_log("No DMA mode\n");
-        ncr->tcr &= ~TCR_LAST_BYTE_SENT;
-        ncr->isr &= ~STATUS_END_OF_DMA;
-        ncr->dma_mode = DMA_IDLE;
+    ncr53c400_log("BlockCountLoaded=%d.\n", ncr400->block_count_loaded);
+    if (!ncr400->block_count_loaded) {
+        if (!(ncr->mode & MODE_DMA)) {
+            ncr53c400_log("No DMA mode\n");
+            ncr->tcr &= ~TCR_LAST_BYTE_SENT;
+            ncr->isr &= ~STATUS_END_OF_DMA;
+            ncr->dma_mode = DMA_IDLE;
+        }
     }
 }
 
@@ -474,6 +492,7 @@ ncr53c400_callback(void *priv)
                     ncr400->block_count = (ncr400->block_count - 1) & 0xff;
                     ncr53c400_log("NCR 53c400 Remaining blocks to be written=%d\n", ncr400->block_count);
                     if (!ncr400->block_count) {
+                        ncr->dma_mode = DMA_IDLE;
                         ncr400->block_count_loaded = 0;
                         ncr53c400_log("IO End of write transfer\n");
                         ncr->tcr |= TCR_LAST_BYTE_SENT;
@@ -527,6 +546,7 @@ ncr53c400_callback(void *priv)
                     ncr400->block_count = (ncr400->block_count - 1) & 0xff;
                     ncr53c400_log("NCR 53c400 Remaining blocks to be read=%d\n", ncr400->block_count);
                     if (!ncr400->block_count) {
+                        ncr->dma_mode = DMA_IDLE;
                         ncr400->block_count_loaded = 0;
                         ncr53c400_log("IO End of read transfer\n");
                         ncr->isr |= STATUS_END_OF_DMA;
@@ -544,6 +564,7 @@ ncr53c400_callback(void *priv)
             break;
     }
 
+    ncr53c400_log("Bus Read.\n");
     ncr5380_bus_read(ncr);
 
     if (!(ncr->cur_bus & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {

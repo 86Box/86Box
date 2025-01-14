@@ -2129,6 +2129,13 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
 
                 dev->state     = STATE_MAIN_IBF;
                 return;
+            } else if (val == 0xae) {
+                /* Fast track it because of the LG MultiNet. */
+                kbc_at_log("ATkbc: enable keyboard\n");
+                set_enable_kbd(dev, 1);
+
+                dev->state     = STATE_MAIN_IBF;
+                return;
             }
             break;
 
