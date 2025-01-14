@@ -104,6 +104,7 @@ typedef struct ncr_t {
     int     state;
     int     clear_req;
     int     wait_data;
+    int     wait_data_back;
     int     wait_complete;
     int     command_pos;
     int     data_pos;

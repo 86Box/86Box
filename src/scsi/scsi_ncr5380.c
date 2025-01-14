@@ -197,20 +197,30 @@ ncr5380_bus_read(ncr_t *ncr)
             phase = (ncr->cur_bus & SCSI_PHASE_MESSAGE_IN);
 
             if (phase == SCSI_PHASE_DATA_IN) {
-                ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
-                ncr->state   = STATE_DATAIN;
-                ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP;
+                if ((ncr->dma_mode == DMA_IDLE) || ncr->dma_initiator_receive_ext || (ncr->wait_data_back == 1)) {
+                    ncr5380_log("Phase Data In.\n");
+                    if ((dev->sc != NULL) && (dev->sc->temp_buffer != NULL))
+                        ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
+
+                    ncr->state   = STATE_DATAIN;
+                    ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP;
+                }
             } else if (phase == SCSI_PHASE_DATA_OUT) {
                 if (ncr->new_phase & BUS_IDLE) {
                     ncr->state = STATE_IDLE;
                     ncr->cur_bus &= ~BUS_BSY;
-                } else
-                    ncr->state = STATE_DATAOUT;
+                } else {
+                    if ((ncr->dma_mode == DMA_IDLE) || ncr->dma_send_ext || (ncr->wait_data_back == 1))
+                        ncr->state = STATE_DATAOUT;
+                }
             } else if (phase == SCSI_PHASE_STATUS) {
+                ncr5380_log("Phase Status.\n");
+                ncr->wait_data_back = 0;
                 ncr->cur_bus |= BUS_REQ;
                 ncr->state   = STATE_STATUS;
                 ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(dev->status) | BUS_DBP;
             } else if (phase == SCSI_PHASE_MESSAGE_IN) {
+                ncr5380_log("Phase Message In.\n");
                 ncr->state   = STATE_MESSAGEIN;
                 ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(0) | BUS_DBP;
             } else if (phase == SCSI_PHASE_MESSAGE_OUT) {
@@ -335,19 +345,22 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
             if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
                 if (ncr->data_pos >= dev->buffer_length) {
                     ncr->cur_bus &= ~BUS_REQ;
+                    ncr5380_log("CMD Phase1 DataIn.\n");
                     scsi_device_command_phase1(dev);
                     ncr->new_phase     = SCSI_PHASE_STATUS;
                     ncr->wait_data     = 4;
                     ncr->wait_complete = 8;
                 } else {
-                    ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
+                    if ((dev->sc != NULL) && (dev->sc->temp_buffer != NULL))
+                        ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
+
                     ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
                     if (ncr->dma_mode == DMA_IDLE) { /*If a data in command that is not read 6/10 has been issued*/
                         ncr->data_wait |= 1;
-                        ncr5380_log("DMA mode idle in\n");
+                        ncr5380_log("DMA mode idle IN=%d.\n", ncr->data_pos);
                         ncr->timer(ncr->priv, ncr->period);
                     } else {
-                        ncr5380_log("DMA mode IN.\n");
+                        ncr5380_log("DMA mode IN=%d.\n", ncr->data_pos);
                         ncr->clear_req = 3;
                     }
 
@@ -359,7 +372,8 @@ ncr5380_bus_update(ncr_t *ncr, int bus)
         case STATE_DATAOUT:
             dev = &scsi_devices[ncr->bus][ncr->target_id];
             if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-                dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(bus);
+                if ((dev->sc != NULL) && (dev->sc->temp_buffer != NULL))
+                    dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(bus);
 
                 if (ncr->data_pos >= dev->buffer_length) {
                     ncr->cur_bus &= ~BUS_REQ;
@@ -439,12 +453,12 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
 
     switch (port & 7) {
         case 0: /* Output data register */
-            ncr5380_log("Write: Output data register, val = %02x\n", val);
+            ncr5380_log("[%04X:%08X]: Write: Output data register, val=%02x\n", CS, cpu_state.pc, val);
             ncr->output_data = val;
             break;
 
         case 1: /* Initiator Command Register */
-            ncr5380_log("Write: Initiator command register\n");
+            ncr5380_log("[%04X:%08X]: Write: Initiator command register, val=%02x.\n", CS, cpu_state.pc, val);
             if ((val & 0x80) && !(ncr->icr & 0x80)) {
                 ncr5380_log("Resetting the 5380\n");
                 ncr5380_reset(ncr);
@@ -465,7 +479,7 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
             break;
 
         case 3: /* Target Command Register */
-            ncr5380_log("Write: Target Command register\n");
+            ncr5380_log("Write: Target Command register, val=%02x.\n", val);
             ncr->tcr = val;
             break;
 
@@ -482,7 +496,7 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
             break;
 
         case 7: /* start DMA Initiator Receive */
-            ncr5380_log("Write: start DMA initiator receive register, dma? = %02x\n", ncr->mode & MODE_DMA);
+            ncr5380_log("[%04X:%08X]: Write: start DMA initiator receive register, dma? = %02x\n", CS, cpu_state.pc, ncr->mode & MODE_DMA);
             /*a Read 6/10 has occurred, start the timer when the block count is loaded*/
             ncr->dma_mode = DMA_INITIATOR_RECEIVE;
             if (ncr->dma_initiator_receive_ext)
@@ -510,13 +524,13 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
             ncr5380_log("Read: Current SCSI data register\n");
             if (ncr->icr & ICR_DBP) {
                 /*Return the data from the output register if on data bus phase from ICR*/
-                ncr5380_log("Data Bus Phase, ret = %02x\n", ncr->output_data);
                 ret = ncr->output_data;
+                ncr5380_log("[%04X:%08X]: Data Bus Phase, ret=%02x, clearreq=%d, waitdata=%x.\n", CS, cpu_state.pc, ret, ncr->clear_req, ncr->wait_data);
             } else {
                 /*Return the data from the SCSI bus*/
                 ncr5380_bus_read(ncr);
-                ncr5380_log("NCR GetData=%02x\n", BUS_GETDATA(ncr->cur_bus));
                 ret = BUS_GETDATA(ncr->cur_bus);
+                ncr5380_log("[%04X:%08X]: NCR Get SCSI bus data=%02x.\n", CS, cpu_state.pc, ret);
             }
             break;
 
@@ -595,7 +609,9 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
             break;
 
         case 6:
-            ret = ncr->tx_data;
+            ncr5380_log("Read: Input Data.\n");
+            ncr5380_bus_read(ncr);
+            ret = BUS_GETDATA(ncr->cur_bus);
             break;
 
         case 7: /* reset Parity/Interrupt */

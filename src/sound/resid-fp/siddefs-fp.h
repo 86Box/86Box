@@ -24,7 +24,11 @@
 #define RESID_BRANCH_HINTS true
 
 // Compiler specifics.
+#ifndef _MSC_VER
 #define HAVE_BUILTIN_EXPECT true
+#else
+#define HAVE_BUILTIN_EXPECT false
+#endif
 
 // Branch prediction macros, lifted off the Linux kernel.
 #if RESID_BRANCH_HINTS && HAVE_BUILTIN_EXPECT

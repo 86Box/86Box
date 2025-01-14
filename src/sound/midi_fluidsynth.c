@@ -330,8 +330,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "output_gain",
         .description = "Output Gain",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 100
         },
@@ -347,8 +346,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus_voices",
         .description = "Chorus Voices",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 99
         },
@@ -358,8 +356,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus_level",
         .description = "Chorus Level",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 100
         },
@@ -369,8 +366,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus_speed",
         .description = "Chorus Speed",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 10,
             .max = 500
         },
@@ -380,8 +376,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus_depth",
         .description = "Chorus Depth",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 2560
         },
@@ -391,8 +386,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus_waveform",
         .description = "Chorus Waveform",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "Sine",
                 .value = 0
@@ -414,8 +408,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb_room_size",
         .description = "Reverb Room Size",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 100
         },
@@ -425,8 +418,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb_damping",
         .description = "Reverb Damping",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 100
         },
@@ -436,8 +428,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb_width",
         .description = "Reverb Width",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 1000
         },
@@ -447,8 +438,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb_level",
         .description = "Reverb Level",
         .type = CONFIG_SPINNER,
-        .spinner =
-        {
+        .spinner = {
             .min = 0,
             .max = 100
         },
@@ -458,8 +448,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "interpolation",
         .description = "Interpolation Method",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "None",
                 .value = 0

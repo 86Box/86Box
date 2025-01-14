@@ -972,7 +972,7 @@ static const device_config_t et4000_tc6058af_config[] = {
         .default_string = "v1_10",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Version 1.10", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
@@ -1019,7 +1019,7 @@ static const device_config_t et4000_bios_config[] = {
         .default_string = "v8_01",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Version 8.01", .internal_name = "v8_01", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 32768, .files = { BIOS_ROM_PATH, "" } },

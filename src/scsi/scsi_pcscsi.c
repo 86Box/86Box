@@ -630,6 +630,7 @@ esp_hard_reset(esp_t *dev)
     fifo8_reset(&dev->fifo);
     fifo8_reset(&dev->cmdfifo);
     dev->dma             = 0;
+    dev->tchi_written    = 0;
     dev->rregs[ESP_CFG1] = dev->mca ? dev->HostID : 7;
     esp_log("ESP Reset\n");
 
@@ -1346,7 +1347,7 @@ esp_reg_read(esp_t *dev, uint32_t saddr)
             if (dev->mca) {
                 ret = dev->rregs[ESP_TCHI];
             } else {
-                if (dev->rregs[ESP_CFG2] & 0x40)
+                if (!dev->tchi_written)
                     ret = TCHI_AM53C974;
                 else
                     ret = dev->rregs[ESP_TCHI];
@@ -1369,6 +1370,8 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
     esp_log("Write reg %02x = %02x\n", saddr, val);
     switch (saddr) {
         case ESP_TCHI:
+            dev->tchi_written = 1;
+            fallthrough;
         case ESP_TCLO:
         case ESP_TCMID:
             esp_log("ESP TCW reg%02x = %02x.\n", saddr, val);

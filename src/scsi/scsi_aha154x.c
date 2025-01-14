@@ -1421,7 +1421,7 @@ static const device_config_t aha_154xcp_config[] = {
         .default_string = "v1_02_en",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "Version 1.02 (English)", .internal_name = "v1_02_en", .bios_type = BIOS_NORMAL,
               .files_no = 2, .local = 0, .size = 32768, .files = { "roms/scsi/adaptec/aha1542cp102.bin",

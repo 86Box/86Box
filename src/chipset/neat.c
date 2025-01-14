@@ -37,6 +37,9 @@
 
 #define EMS_MAXPAGE 4
 #define EMS_PGSIZE  16384
+#define EMS_PGMASK  16383
+
+#define REG_MASK       0x0f
 
 /* CS8221 82C211 controller registers. */
 #define REG_RA0        0x60 /* PROCCLK selector */
@@ -194,36 +197,46 @@
 #define RB10_P0EXT     0xc0 /*  page 0 extension */
 #define RB10_P0EXT_SH  6
 
-#define REG_RB11       0x6f /* Miscellaneous */
-#define RB11_MASK      0xe6 /* 111R R11R */
-#define RB11_GA20      0x02 /*  gate for A20 */
-#define RB11_RASTMO    0x04 /*  enable RAS timeout counter */
-#define RB11_EMSLEN    0xe0 /*  EMS memory chunk size */
-#define RB11_EMSLEN_SH 5
+#define REG_RB12       0x6f /* Miscellaneous */
+#define RB12_MASK      0xe6 /* 111R R11R */
+#define RB12_GA20      0x02 /*  gate for A20 */
+#define RB12_RASTMO    0x04 /*  enable RAS timeout counter */
+#define RB12_EMSLEN    0xe0 /*  EMS memory chunk size */
+#define RB12_EMSLEN_SH 5
 
-typedef struct emspage_t {
-    int8_t        enabled; /* 1=ENABLED */
+#define RAM_FLAG_EMS        0x08
+#define RAM_FLAG_ROMCS      0x04
+#define RAM_FLAG_SHREAD     0x02
+#define RAM_FLAG_SHWRITE    0x01
+#define RAM_FMASK_EMS       0x08
+#define RAM_FMASK_SHADOW    0x07
+
+typedef struct ram_page_t {
+    int8_t        enabled;              /* 1=ENABLED */
     char          pad;
-    uint16_t      page;    /* selected page in EMS block */
-    uint32_t      start;   /* start of EMS in RAM */
-    uint8_t      *addr;    /* start addr in EMS RAM */
-    mem_mapping_t mapping; /* mapping entry for page */
-} emspage_t;
+    uint32_t      phys_base;
+    uint32_t      virt_base;
+    mem_mapping_t mapping;             /* mapping entry for page */
+} ram_page_t;
 
 typedef struct neat_t {
-    uint8_t regs[128]; /* all the CS8221 registers */
-    uint8_t indx;      /* programmed index into registers */
+    uint8_t       ram_flags[32];
+    uint8_t       regs[128];           /* all the CS8221 registers */
+    uint8_t       indx;                /* programmed index into registers */
 
-    char pad;
+    char          pad;
 
-    uint16_t ems_base;          /* configured base address */
-    uint16_t ems_oldbase;
-    uint32_t ems_frame;         /* configured frame address */
-    uint32_t ems_oldframe;
-    uint16_t ems_size;          /* EMS size in KB */
-    uint16_t ems_pages;         /* EMS size in pages */
-    emspage_t ems[EMS_MAXPAGE]; /* EMS page registers */
+    uint16_t      ems_base;            /* configured base address */
+    uint32_t      ems_frame;           /* configured frame address */
+    uint16_t      ems_size;            /* EMS size in KB */
+    uint16_t      ems_pages;           /* EMS size in pages */
+
+    ram_page_t    ems[EMS_MAXPAGE];    /* EMS page registers */
+    ram_page_t    shadow[32];          /* Shadow RAM pages */
 } neat_t;
+
+static uint8_t defaults[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00,
+                                0x00, 0x00, 0xa0, 0x63, 0x10, 0x00, 0x00, 0x12 };
 
 #ifdef ENABLE_NEAT_LOG
 int neat_do_log = ENABLE_NEAT_LOG;
@@ -247,11 +260,11 @@ neat_log(const char *fmt, ...)
 static uint8_t
 ems_readb(uint32_t addr, void *priv)
 {
-    neat_t *dev = (neat_t *) priv;
-    uint8_t ret = 0xff;
+    ram_page_t *dev = (ram_page_t *) priv;
+    uint8_t     ret = 0xff;
 
     /* Grab the data. */
-    ret = *(uint8_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff));
+    ret = *(uint8_t *) &(ram[addr - dev->virt_base + dev->phys_base]);
 
     return ret;
 }
@@ -260,11 +273,11 @@ ems_readb(uint32_t addr, void *priv)
 static uint16_t
 ems_readw(uint32_t addr, void *priv)
 {
-    neat_t  *dev = (neat_t *) priv;
-    uint16_t ret = 0xffff;
+    ram_page_t *dev = (ram_page_t *) priv;
+    uint16_t    ret = 0xffff;
 
     /* Grab the data. */
-    ret = *(uint16_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff));
+    ret = *(uint16_t *) &(ram[addr - dev->virt_base + dev->phys_base]);
 
     return ret;
 }
@@ -273,40 +286,113 @@ ems_readw(uint32_t addr, void *priv)
 static void
 ems_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    neat_t *dev = (neat_t *) priv;
+    ram_page_t *dev = (ram_page_t *) priv;
 
     /* Write the data. */
-    *(uint8_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff)) = val;
+    *(uint8_t *) &(ram[addr - dev->virt_base + dev->phys_base]) = val;
 }
 
 /* Write one word to paged RAM. */
 static void
 ems_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    neat_t *dev = (neat_t *) priv;
+    ram_page_t *dev = (ram_page_t *) priv;
 
     /* Write the data. */
-    *(uint16_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff)) = val;
+    *(uint16_t *) &(ram[addr - dev->virt_base + dev->phys_base]) = val;
+}
+
+static void
+neat_mem_update_state(neat_t *dev, uint32_t addr, uint32_t size, uint8_t new_flags, uint8_t mask)
+{
+    if ((addr >= 0x00080000) && (addr < 0x00100000) &&
+        ((new_flags ^ dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE]) & mask)) {
+        dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE] &= ~mask;
+        dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE] |= new_flags;
+
+        new_flags = dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE];
+
+        neat_log("neat_mem_update_state(): %08X-%08X: %02X\n", addr, addr + size - 1, new_flags);
+
+        if (new_flags & RAM_FLAG_EMS)
+            mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        else if (new_flags & RAM_FLAG_ROMCS)
+            mem_set_mem_state(addr, size, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+        else  switch (new_flags & (RAM_FLAG_SHREAD | RAM_FLAG_SHWRITE)) {
+            case 0:
+                mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+                break;
+            case 1:
+                mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+                break;
+            case 2:
+                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+                break;
+            case 3:
+                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                break;
+            default:
+                break;
+        }
+    }
+
+    flushmmucache_nopc();
+}
+
+static void
+shadow_recalc(neat_t *dev)
+{
+    for (uint8_t i = 8; i < 32; i++) {
+        int romcs      = 0;
+        int write      = 1;
+        int shadow_reg = REG_RB3 + ((i - 8) >> 3);
+        int shadow_bit = i & 7;
+        int ram_flags;
+        int read;
+
+        if (i > 16) {
+            int rb1_romcs_bit = 7 - (i >> 2);
+            int rb1_write_bit = rb1_romcs_bit + 4;
+
+            romcs = !(dev->regs[REG_RB1] & (1 << rb1_romcs_bit));
+            write = !(dev->regs[REG_RB1] & (1 << rb1_write_bit));
+        } else if (i <= 8)
+            shadow_bit ^= 4;
+
+        read  = dev->regs[shadow_reg] & (1 << shadow_bit);
+        write = write && read;
+
+        ram_flags  = romcs ? RAM_FLAG_ROMCS   : 0x00;
+        ram_flags |= read  ? RAM_FLAG_SHREAD  : 0x00;
+        ram_flags |= write ? RAM_FLAG_SHWRITE : 0x00;
+
+        if ((ram_flags > 0x00) && !(ram_flags & RAM_FLAG_ROMCS))
+            mem_mapping_set_addr(&(dev->shadow[i].mapping), dev->shadow[i].virt_base, EMS_PGSIZE);
+        else
+            mem_mapping_disable(&(dev->shadow[i].mapping));
+
+        neat_mem_update_state(dev, dev->shadow[i].virt_base, EMS_PGSIZE, ram_flags, RAM_FMASK_SHADOW);
+    }
 }
 
 /* Re-calculate the active-page physical address. */
 static void
-ems_recalc(neat_t *dev, emspage_t *ems)
+ems_recalc(neat_t *dev, ram_page_t *ems)
 {
-    if (ems->page >= dev->ems_pages) {
-        /* That page does not exist. */
-        ems->enabled = 0;
-    }
+    uint32_t page = ems->phys_base / EMS_PGSIZE;
 
-    /* Pre-calculate the page address in EMS RAM. */
-    ems->addr = ram + ems->start + (ems->page * EMS_PGSIZE);
+    if ((dev->regs[REG_RB7] & RB7_EMSEN) && ems->enabled &&
+        (page >= 0x40) && (page < (0x40 + dev->ems_pages))) {
+        neat_log("ems_recalc(): %08X-%08X -> %08X-%08X\n",
+                 ems->virt_base, ems->virt_base + EMS_PGSIZE - 1,
+                 ems->phys_base, ems->phys_base + EMS_PGSIZE - 1);
+        mem_mapping_set_addr(&ems->mapping, ems->virt_base, EMS_PGSIZE);
 
-    if (ems->enabled) {
         /* Update the EMS RAM address for this page. */
-        mem_mapping_set_exec(&ems->mapping, ems->addr);
+        mem_mapping_set_exec(&ems->mapping, ram + ems->phys_base);
 
-        /* Enable this page. */
-        mem_mapping_enable(&ems->mapping);
+        if ((ems->virt_base >= 0x00080000) && (ems->virt_base < 0x00100000))
+            neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, RAM_FLAG_EMS, RAM_FMASK_EMS);
 
 #if NEAT_DEBUG > 1
         neat_log("NEAT EMS: page %d set to %08lx, %sabled)\n",
@@ -315,15 +401,18 @@ ems_recalc(neat_t *dev, emspage_t *ems)
     } else {
         /* Disable this page. */
         mem_mapping_disable(&ems->mapping);
+
+        if ((ems->virt_base >= 0x00080000) && (ems->virt_base < 0x00100000))
+            neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, 0x00, RAM_FMASK_EMS);
     }
 }
 
 static void
 ems_write(uint16_t port, uint8_t val, void *priv)
 {
-    neat_t    *dev = (neat_t *) priv;
-    emspage_t *ems;
-    int        vpage;
+    neat_t     *dev   = (neat_t *) priv;
+    ram_page_t *ems;
+    int         vpage;
 
 #if NEAT_DEBUG > 1
     neat_log("NEAT: ems_write(%04x, %02x)\n", port, val);
@@ -337,8 +426,7 @@ ems_write(uint16_t port, uint8_t val, void *priv)
         case 0x0008:
         case 0x0009:
             ems->enabled = !!(val & 0x80);
-            ems->page &= 0x0180;       /* clear lower bits */
-            ems->page |= (val & 0x7f); /* add new bits */
+            ems->phys_base = (ems->phys_base & 0xffe00000) | ((val & 0x7f) * EMS_PGSIZE);
             ems_recalc(dev, ems);
             break;
         default:
@@ -358,7 +446,7 @@ ems_read(uint16_t port, void *priv)
 
     switch (port & 0x000f) {
         case 0x0008: /* page number register */
-            ret = dev->ems[vpage].page & 0x7f;
+            ret = (dev->ems[vpage].phys_base / EMS_PGSIZE) & 0x7f;
             if (dev->ems[vpage].enabled)
                 ret |= 0x80;
             break;
@@ -373,68 +461,21 @@ ems_read(uint16_t port, void *priv)
     return ret;
 }
 
-/* Initialize the EMS module. */
 static void
-ems_init(neat_t *dev, int en)
+ems_update(neat_t *dev, int en)
 {
-    uint8_t j;
-
-    /* Remove if needed. */
-    if (!en) {
-        if (dev->ems_base > 0)
-            for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
-                /* Disable for now. */
-                mem_mapping_disable(&dev->ems[i].mapping);
-
-                /* Remove I/O handler. */
-                io_removehandler(dev->ems_base + (i * EMS_PGSIZE), 2,
-                                 ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
-            }
-
-#ifdef ENABLE_NEAT_LOG
-        neat_log("NEAT: EMS disabled\n");
-#endif
-
-        return;
-    }
-
-    /* Get configured I/O address. */
-    j             = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
-    dev->ems_base = 0x0208 + (0x10 * j);
-
-    /* Get configured frame address. */
-    j              = (dev->regs[REG_RB9] & RB9_FRAME) >> RB9_FRAME_SH;
-    dev->ems_frame = 0xC0000 + (EMS_PGSIZE * j);
-
-    /*
-     * For each supported page (we can have a maximum of 4),
-     * create, initialize and disable the mappings, and set
-     * up the I/O control handler.
-     */
     for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
-        /* Create and initialize a page mapping. */
-        mem_mapping_add(&dev->ems[i].mapping,
-                        dev->ems_frame + (EMS_PGSIZE * i), EMS_PGSIZE,
-                        ems_readb, ems_readw, NULL,
-                        ems_writeb, ems_writew, NULL,
-                        ram, MEM_MAPPING_EXTERNAL,
-                        dev);
-
-        /* Disable for now. */
-        mem_mapping_disable(&dev->ems[i].mapping);
-
         /* Set up an I/O port handler. */
-        io_sethandler(dev->ems_base + (i * EMS_PGSIZE), 2,
-                      ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
+        io_handler(en, dev->ems_base + (i * EMS_PGSIZE), 2,
+                   ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
 
-        /*
-         * TODO: update the 'high_mem' mapping to reflect that we now
-         * have NN MB less extended memory available..
-         */
+        if (en)
+            dev->ems[i].virt_base = dev->ems_frame + (i * EMS_PGSIZE);
+
+        ems_recalc(dev, &(dev->ems[i]));
     }
 
-    neat_log("NEAT: EMS enabled, I/O=%04xH, Frame=%05XH\n",
-             dev->ems_base, dev->ems_frame);
+    flushmmucache_nopc();
 }
 
 static void
@@ -442,6 +483,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 {
     neat_t  *dev = (neat_t *) priv;
     uint8_t  xval;
+    uint8_t j;
     uint8_t *reg;
     int      i;
 
@@ -493,6 +535,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB1:
                     val &= RB1_MASK;
                     *reg = (*reg & ~RB1_MASK) | val;
+                    shadow_recalc(dev);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB1=%02x(%02x)\n", val, *reg);
 #endif
@@ -501,6 +544,10 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB2:
                     val &= RB2_MASK;
                     *reg = (*reg & ~RB2_MASK) | val;
+                    if (val & RB2_TOP128)
+                        neat_mem_update_state(dev, 0x00080000, 0x00020000, RAM_FLAG_SHREAD | RAM_FLAG_SHWRITE, RAM_FMASK_SHADOW);
+                    else
+                        neat_mem_update_state(dev, 0x00080000, 0x00020000, 0x00, RAM_FMASK_SHADOW);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB2=%02x(%02x)\n", val, *reg);
 #endif
@@ -509,6 +556,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB3:
                     val &= RB3_MASK;
                     *reg = (*reg & ~RB3_MASK) | val;
+                    shadow_recalc(dev);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB3=%02x(%02x)\n", val, *reg);
 #endif
@@ -517,6 +565,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB4:
                     val &= RB4_MASK;
                     *reg = (*reg & ~RB4_MASK) | val;
+                    shadow_recalc(dev);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB4=%02x(%02x)\n", val, *reg);
 #endif
@@ -525,6 +574,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB5:
                     val &= RB5_MASK;
                     *reg = (*reg & ~RB5_MASK) | val;
+                    shadow_recalc(dev);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB5=%02x(%02x)\n", val, *reg);
 #endif
@@ -544,10 +594,9 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB7=%02x(%02x)\n", val, *reg);
 #endif
-                    if (val & RB7_EMSEN)
-                        ems_init(dev, 1);
-                    else if (xval & RB7_EMSEN)
-                        ems_init(dev, 0);
+
+                    if (xval & RB7_EMSEN)
+                        ems_update(dev, !!(val & RB7_EMSEN));
 
                     if (xval & RB7_UMAREL) {
                         if (val & RB7_UMAREL)
@@ -571,10 +620,19 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB9=%02x(%02x)\n", val, *reg);
 #endif
-                    if (dev->regs[REG_RB7] & RB7_EMSEN) {
-                        ems_init(dev, 0);
-                        ems_init(dev, 1);
-                    }
+
+                    ems_update(dev, 0);
+
+                    /* Get configured I/O address. */
+                    j             = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
+                    dev->ems_base = 0x0208 + (0x10 * j);
+
+                    /* Get configured frame address. */
+                    j              = (dev->regs[REG_RB9] & RB9_FRAME) >> RB9_FRAME_SH;
+                    dev->ems_frame = 0xc0000 + (EMS_PGSIZE * j);
+
+                    if (dev->regs[REG_RB7] & RB7_EMSEN)
+                        ems_update(dev, 1);
                     break;
 
                 case REG_RB10:
@@ -584,23 +642,29 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     neat_log("NEAT: RB10=%02x(%02x)\n", val, *reg);
 #endif
 
-                    dev->ems[3].start = ((val & RB10_P3EXT) >> RB10_P3EXT_SH) << 21;
-                    dev->ems[2].start = ((val & RB10_P2EXT) >> RB10_P2EXT_SH) << 21;
-                    dev->ems[1].start = ((val & RB10_P1EXT) >> RB10_P1EXT_SH) << 21;
-                    dev->ems[0].start = ((val & RB10_P0EXT) >> RB10_P0EXT_SH) << 21;
-                    for (i = 0; i < EMS_MAXPAGE; i++)
-                        ems_recalc(dev, &dev->ems[i]);
+                    dev->ems[3].phys_base = (dev->ems[3].phys_base & 0x001fffff) |
+                                            (((val & RB10_P3EXT) >> RB10_P3EXT_SH) << 21);
+                    dev->ems[2].phys_base = (dev->ems[2].phys_base & 0x001fffff) |
+                                            (((val & RB10_P2EXT) >> RB10_P2EXT_SH) << 21);
+                    dev->ems[1].phys_base = (dev->ems[1].phys_base & 0x001fffff) |
+                                            (((val & RB10_P1EXT) >> RB10_P1EXT_SH) << 21);
+                    dev->ems[0].phys_base = (dev->ems[0].phys_base & 0x001fffff) |
+                                            (((val & RB10_P0EXT) >> RB10_P0EXT_SH) << 21);
+
+                    if (dev->regs[REG_RB7] & RB7_EMSEN)
+                        for (i = 0; i < EMS_MAXPAGE; i++)
+                            ems_recalc(dev, &dev->ems[i]);
                     break;
 
-                case REG_RB11:
-                    val &= RB11_MASK;
-                    *reg = (*reg & ~RB11_MASK) | val;
+                case REG_RB12:
+                    val &= RB12_MASK;
+                    *reg = (*reg & ~RB12_MASK) | val;
 #if NEAT_DEBUG > 1
-                    neat_log("NEAT: RB11=%02x(%02x)\n", val, *reg);
+                    neat_log("NEAT: RB12=%02x(%02x)\n", val, *reg);
 #endif
-                    i = (val & RB11_EMSLEN) >> RB11_EMSLEN_SH;
+                    i = (val & RB12_EMSLEN) >> RB12_EMSLEN_SH;
                     switch (i) {
-                        case 0: /* "less than 2MB" */
+                        case 0: /* "less than 1MB" */
                             dev->ems_size = 512;
                             break;
 
@@ -617,10 +681,18 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                             break;
                     }
                     dev->ems_pages = (dev->ems_size << 10) / EMS_PGSIZE;
+
+                    if (dev->regs[REG_RB7] & RB7_EMSEN)
+                        for (i = 0; i < EMS_MAXPAGE; i++)
+                            ems_recalc(dev, &dev->ems[i]);
+
                     if (dev->regs[REG_RB7] & RB7_EMSEN) {
                         neat_log("NEAT: EMS %iKB (%i pages)\n",
                                  dev->ems_size, dev->ems_pages);
                     }
+
+                    mem_a20_key = val & RB12_GA20;
+                    mem_a20_recalc();
                     break;
 
                 default:
@@ -629,6 +701,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
             }
             break;
+
         default:
             break;
     }
@@ -646,8 +719,10 @@ neat_read(uint16_t port, void *priv)
             break;
 
         case 0x23:
-            if ((dev->indx >= 0x60) && (dev->indx <= 0x6f))
+            if ((dev->indx >= 0x60) && (dev->indx <= 0x6e))
                 ret = dev->regs[dev->indx];
+            else if (dev->indx == 0x6f)
+                ret = (dev->regs[dev->indx] & 0xfd) | (mem_a20_key & 2);
             break;
 
         default:
@@ -674,16 +749,50 @@ neat_init(UNUSED(const device_t *info))
 {
     neat_t *dev;
     uint8_t dram_mode = 0;
-    uint8_t i;
+    uint8_t j;
 
     /* Create an instance. */
     dev = (neat_t *) malloc(sizeof(neat_t));
     memset(dev, 0x00, sizeof(neat_t));
 
+    /* Get configured I/O address. */
+    j             = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
+    dev->ems_base = 0x0208 + (0x10 * j);
+
+    /* Get configured frame address. */
+    j              = (dev->regs[REG_RB9] & RB9_FRAME) >> RB9_FRAME_SH;
+    dev->ems_frame = 0xc0000 + (EMS_PGSIZE * j);
+
+    mem_mapping_disable(&ram_mid_mapping);
+
+    /*
+     * For each supported page (we can have a maximum of 4),
+     * create, initialize and disable the mappings, and set
+     * up the I/O control handler.
+     */
+    for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
+        /* Create and initialize a page mapping. */
+        mem_mapping_add(&dev->ems[i].mapping,
+                        dev->ems_frame + (EMS_PGSIZE * i), EMS_PGSIZE,
+                        ems_readb, ems_readw, NULL,
+                        ems_writeb, ems_writew, NULL,
+                        ram, MEM_MAPPING_INTERNAL,
+                        &(dev->ems[i]));
+
+        /* Disable for now. */
+        mem_mapping_disable(&dev->ems[i].mapping);
+    }
+
+    for (uint8_t i = 0; i < 32; i++) {
+        dev->shadow[i].virt_base = dev->shadow[i].phys_base =
+            (i * EMS_PGSIZE) + 0x00080000;
+        dev->shadow[i].enabled   = 1;
+    }
+
     /* Initialize some of the registers to specific defaults. */
-    for (i = REG_RA0; i <= REG_RB11; i++) {
+    for (uint8_t i = REG_RA0; i <= REG_RB12; i++) {
         dev->indx = i;
-        neat_write(0x0023, 0x00, dev);
+        neat_write(0x0023, defaults[i & REG_MASK], dev);
     }
 
     /*

@@ -1634,28 +1634,75 @@ cpu_data_opff_rm(void)
     }
 }
 
+uint8_t
+cpu_inb(uint16_t port)
+{
+    int     old_cycles = cycles;
+    uint8_t ret;
+
+    wait(is_mazovia ? 5 : 4, 1);
+    old_cycles = cycles;
+
+    ret = inb(port);
+
+    resub_cycles(old_cycles);
+
+    return ret;
+}
+
 uint16_t
 cpu_inw(uint16_t port)
 {
+    int      old_cycles = cycles;
+    uint16_t ret;
+
+    wait(is_mazovia ? 5 : 4, 1);
     if (is8086 && !(port & 1)) {
-        wait(4, 0);
+        old_cycles = cycles;
+        ret = inw(port);
     } else {
-        wait(8, 0);
+        wait(is_mazovia ? 5 : 4, 1);
+        old_cycles = cycles;
+        ret = inb(port++);
+        ret |= (inb(port) << 8);
     }
 
-    return inw(port);
+    resub_cycles(old_cycles);
+
+    return ret;
+}
+
+void
+cpu_outb(uint16_t port, uint16_t val)
+{
+    int old_cycles = cycles;
+
+    wait(is_mazovia ? 5 : 4, 1);
+    old_cycles = cycles;
+
+    outb(port, val);
+
+    resub_cycles(old_cycles);
 }
 
 void
 cpu_outw(uint16_t port, uint16_t val)
 {
+    int old_cycles = cycles;
+
+    wait(is_mazovia ? 5 : 4, 1);
+
     if (is8086 && !(port & 1)) {
-        wait(4, 0);
+        old_cycles = cycles;
+        outw(port, val);
     } else {
-        wait(8, 0);
+        wait(is_mazovia ? 5 : 4, 1);
+        old_cycles = cycles;
+        outb(port++, val);
+        outb(port, val >> 8);
     }
 
-    return outw(port, val);
+    resub_cycles(old_cycles);
 }
 
 /* Executes instructions up to the specified number of cycles. */
@@ -1804,8 +1851,7 @@ execx86(int cycs)
                         writememw(es, DI, cpu_inw(DX));
                         DI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
-                        wait(4, 0);
-                        writememb(es, DI, inb(DX));
+                        writememb(es, DI, cpu_inb(DX));
                         DI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
 
@@ -1833,8 +1879,7 @@ execx86(int cycs)
                         cpu_outw(DX, readmemw(dest_seg, SI));
                         SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
-                        wait(4, 0);
-                        outb(DX, readmemb(dest_seg + SI));
+                        cpu_outb(DX, readmemb(dest_seg + SI));
                         SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
                     if (in_rep == 0)

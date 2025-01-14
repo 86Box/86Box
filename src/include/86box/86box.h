@@ -187,12 +187,17 @@ extern int config_changed; /* config has changed */
 
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
-extern void pclog_ex(const char *fmt, va_list);
-extern void fatal_ex(const char *fmt, va_list);
+extern void pclog_ex(const char *fmt, va_list ap);
+extern void fatal_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
+#ifdef _MSC_VER
+extern void pclog(const char *fmt, ...);
+extern void fatal(const char *fmt, ...);
+#else
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+#endif
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);

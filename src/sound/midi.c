@@ -71,7 +71,7 @@ typedef struct
     const device_t *device;
 } MIDI_OUT_DEVICE, MIDI_IN_DEVICE;
 
-static const MIDI_OUT_DEVICE devices[] = {
+static const MIDI_OUT_DEVICE midi_out_devices[] = {
     // clang-format off
     { &device_none          },
 #ifdef USE_FLUIDSYNTH
@@ -106,8 +106,8 @@ static const MIDI_IN_DEVICE midi_in_devices[] = {
 int
 midi_out_device_available(int card)
 {
-    if (devices[card].device)
-        return device_available(devices[card].device);
+    if (midi_out_devices[card].device)
+        return device_available(midi_out_devices[card].device);
 
     return 1;
 }
@@ -115,21 +115,21 @@ midi_out_device_available(int card)
 const device_t *
 midi_out_device_getdevice(int card)
 {
-    return devices[card].device;
+    return midi_out_devices[card].device;
 }
 
 int
 midi_out_device_has_config(int card)
 {
-    if (!devices[card].device)
+    if (!midi_out_devices[card].device)
         return 0;
-    return devices[card].device->config ? 1 : 0;
+    return midi_out_devices[card].device->config ? 1 : 0;
 }
 
 const char *
 midi_out_device_get_internal_name(int card)
 {
-    return device_get_internal_name(devices[card].device);
+    return device_get_internal_name(midi_out_devices[card].device);
 }
 
 int
@@ -137,8 +137,8 @@ midi_out_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (devices[c].device != NULL) {
-        if (!strcmp(devices[c].device->internal_name, s))
+    while (midi_out_devices[c].device != NULL) {
+        if (!strcmp(midi_out_devices[c].device->internal_name, s))
             return c;
         c++;
     }
@@ -149,8 +149,8 @@ midi_out_device_get_from_internal_name(char *s)
 void
 midi_out_device_init(void)
 {
-    if ((midi_output_device_current > 0) && devices[midi_output_device_current].device)
-        device_add(devices[midi_output_device_current].device);
+    if ((midi_output_device_current > 0) && midi_out_devices[midi_output_device_current].device)
+        device_add(midi_out_devices[midi_output_device_current].device);
     midi_output_device_last = midi_output_device_current;
 }
 
