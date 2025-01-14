@@ -47,7 +47,7 @@ So I decided to create this timer that is completely separate from the CPU Core.
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <86Box\86box.h>
+#include <86box/86box.h>
 
 #ifdef _WIN32     
 #include <Windows.h>
@@ -63,7 +63,7 @@ typedef struct rivatimer_s
     double                  value;          // The current value of the rivatimer
     bool                    running;        // Is this RivaTimer running?
     struct rivatimer_s*     next;           // Next RivaTimer
-    void                    (*callback)();  // Callback to call on fire
+    void                    (*callback)(double real_time);  // Callback to call on fire
     #ifdef _WIN32
     LARGE_INTEGER           starting_time;  // Starting time.
     #else
@@ -72,11 +72,11 @@ typedef struct rivatimer_s
     double                  time;           // Accumulated time in uS.
 } rivatimer_t;
 
-void rivatimer_init();                                              // Initialise the Rivatimer.
+void rivatimer_init(void);                                              // Initialise the Rivatimer.
 rivatimer_t* rivatimer_create(double period, void (*callback)(double real_time));
 void rivatimer_destroy(rivatimer_t* rivatimer_ptr);
 
-void rivatimer_update_all();
+void rivatimer_update_all(void);
 void rivatimer_start(rivatimer_t* rivatimer_ptr);
 void rivatimer_stop(rivatimer_t* rivatimer_ptr);
 double rivatimer_get_time(rivatimer_t* rivatimer_ptr);

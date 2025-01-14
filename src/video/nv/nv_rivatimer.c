@@ -22,7 +22,7 @@ Since Windows XP, QueryPerformanceCounter and QueryPerformanceFrequency cannot f
 
 */
 
-#include <86Box/nv/vid_nv_rivatimer.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 #ifdef _WIN32
 LARGE_INTEGER performance_frequency;
@@ -34,7 +34,7 @@ rivatimer_t* rivatimer_tail;        // The tail of the rivatimer list.
 /* Functions only used in this translation unit */
 bool rivatimer_really_exists(rivatimer_t* rivatimer);   // Determine if a rivatimer really exists in the linked list.
 
-void rivatimer_init()
+void rivatimer_init(void)
 {
     // Destroy all the rivatimers.
     rivatimer_t* rivatimer_ptr = rivatimer_head;
@@ -120,7 +120,7 @@ bool rivatimer_really_exists(rivatimer_t* rivatimer)
 void rivatimer_destroy(rivatimer_t* rivatimer_ptr)
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
-        fatal("rivatimer_destroy: The timer was already destroyed, or never existed in the first place. Punch starfrost in the face");
+        fatal("rivatimer_destroy: The timer was already destroyed, or never existed in the first place.");
     
     // Case: We are destroying the head
     if (rivatimer_ptr == rivatimer_head)
@@ -162,7 +162,7 @@ void rivatimer_destroy(rivatimer_t* rivatimer_ptr)
     rivatimer_ptr = NULL; //explicitly set to null
 }
 
-void rivatimer_update_all()
+void rivatimer_update_all(void)
 {
     rivatimer_t* rivatimer_ptr = rivatimer_head;
 
@@ -221,7 +221,7 @@ void rivatimer_update_all()
 void rivatimer_start(rivatimer_t* rivatimer_ptr)
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
-        fatal("rivatimer_start: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+        fatal("rivatimer_start: The timer has been destroyed, or never existed in the first place.");
 
     if (rivatimer_ptr->period <= 0)
         fatal("rivatimer_start: Zero period!");
@@ -239,7 +239,7 @@ void rivatimer_start(rivatimer_t* rivatimer_ptr)
 void rivatimer_stop(rivatimer_t* rivatimer_ptr)
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
-        fatal("rivatimer_stop: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+        fatal("rivatimer_stop: The timer has been destroyed, or never existed in the first place.");
 
     rivatimer_ptr->running = false;
     rivatimer_ptr->time = 0;
@@ -249,7 +249,7 @@ void rivatimer_stop(rivatimer_t* rivatimer_ptr)
 double rivatimer_get_time(rivatimer_t* rivatimer_ptr)
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
-        fatal("rivatimer_get_time: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+        fatal("rivatimer_get_time: The timer has been destroyed, or never existed in the first place.");
 
     return rivatimer_ptr->time;
 }
@@ -257,7 +257,7 @@ double rivatimer_get_time(rivatimer_t* rivatimer_ptr)
 void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)(double real_time))
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
-        fatal("rivatimer_set_callback: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+        fatal("rivatimer_set_callback: The timer has been destroyed, or never existed in the first place.");
 
     if (!callback)
         fatal("rivatimer_set_callback: No callback!");
@@ -268,7 +268,7 @@ void rivatimer_set_callback(rivatimer_t* rivatimer_ptr, void (*callback)(double 
 void rivatimer_set_period(rivatimer_t* rivatimer_ptr, double period)
 {
     if (!rivatimer_really_exists(rivatimer_ptr))
-       fatal("rivatimer_set_period: The timer has been destroyed, or never existed in the first place. Punch starfrost in the face");
+       fatal("rivatimer_set_period: The timer has been destroyed, or never existed in the first place.");
 
     rivatimer_ptr->period = period;
 }
