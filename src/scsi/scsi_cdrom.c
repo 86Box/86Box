@@ -4113,7 +4113,7 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "3.0h    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "SONY CD-ROM CDU311                      ", 40); /* Model */
                 break;
-            case CDROM_TYPE_TEAC_CD_532E_20A:
+            case CDROM_TYPE_TEAC_CD532E_20A:
                 ide_padstr((char *) (ide->buffer + 23), "2.0A    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "TEAC CD-532E                            ", 40); /* Model */
                 break;
