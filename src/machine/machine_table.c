@@ -3597,7 +3597,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 512,
-            .max = 16384,
+            .max = 5120,
             .step = 128
         },
         .nvrmask = 127,
@@ -3637,7 +3637,7 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
-            .max = 16384,
+            .max = 8192,
             .step = 128
         },
         .nvrmask = 127,
