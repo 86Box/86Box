@@ -4037,6 +4037,14 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
         ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
     } else {
         switch (dev->drv->type) {
+            case CDROM_TYPE_ASUS_CDS500_141:
+                ide_padstr((char *) (ide->buffer + 23), "1.41    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "ASUS    CD-S500/A                       ", 40); /* Model */
+                break;
+            case CDROM_TYPE_ASUS_CDS520_132:
+                ide_padstr((char *) (ide->buffer + 23), "1.32    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "ASUS    CD-S520/A4                      ", 40); /* Model */
+                break;
             case CDROM_TYPE_AZT_CDA46802I_115:
                 ide_padstr((char *) (ide->buffer + 23), "1.15    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "AZT CDA46802I                           ", 40); /* Model */
@@ -4053,9 +4061,25 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */
                 break;
+            case CDROM_TYPE_HLDTST_GCE8525B_101:
+                ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST GCE-8525B                      ", 40); /* Model */
+                break;
             case CDROM_TYPE_KENWOOD_UCR_421_208E:
                 ide_padstr((char *) (ide->buffer + 23), "208E    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "KENWOOD CD-ROM UCR-421                  ", 40); /* Model */
+                break;
+            case CDROM_TYPE_LG_CRN8245B_120:
+                ide_padstr((char *) (ide->buffer + 23), "1.20    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "LG CD-ROM CRN-8245B                     ", 40); /* Model */
+                break;
+            case CDROM_TYPE_LTN48125S_1S07:
+                ide_padstr((char *) (ide->buffer + 23), "1S07    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "LTN48125S                               ", 40); /* Model */
+                break;
+            case CDROM_TYPE_MATSHITA_585_Z18P:
+                ide_padstr((char *) (ide->buffer + 23), "Z18P    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "MATSHITA CD-ROM CR-585                  ", 40); /* Model */
                 break;
             case CDROM_TYPE_MATSHITA_587_7S13:
                 ide_padstr((char *) (ide->buffer + 23), "7S13    ", 8);                                  /* Firmware */
@@ -4113,6 +4137,18 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "3.0h    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "SONY CD-ROM CDU311                      ", 40); /* Model */
                 break;
+            case CDROM_TYPE_SONY_CDU5225_NYS4:
+                ide_padstr((char *) (ide->buffer + 23), "NYS4    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "SONY    CD-ROM CDU5225                  ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TEAC_CD516E_10G:
+                ide_padstr((char *) (ide->buffer + 23), "1.0G    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "TEAC CD-516E                            ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TEAC_CD524EA_30D:
+                ide_padstr((char *) (ide->buffer + 23), "3.0D    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "TEAC CD-524EA                           ", 40); /* Model */
+                break;
             case CDROM_TYPE_TEAC_CD532E_20A:
                 ide_padstr((char *) (ide->buffer + 23), "2.0A    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "TEAC CD-532E                            ", 40); /* Model */
@@ -4124,6 +4160,14 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
             case CDROM_TYPE_TOSHIBA_5702B_TA70:
                 ide_padstr((char *) (ide->buffer + 23), "TA70    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "TOSHIBA CD-ROM XM-5702B                 ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TOSHIBA_6702B_1007:
+                ide_padstr((char *) (ide->buffer + 23), "1007    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "TOSHIBA CD-ROM XM-6702B                 ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TOSHIBA_M1802_1051:
+                ide_padstr((char *) (ide->buffer + 23), "1051    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "TOSHIBA DVD-ROM SD-M1802                ", 40); /* Model */
                 break;
         }
     }
