@@ -27,7 +27,7 @@
 #ifdef EMU_DEVICE_H // what
 
 //TODO: split this all into nv1, nv3, nv4...
-
+#include <86box/log.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/timer.h>
@@ -35,6 +35,7 @@
 #include <86box/vid_svga_render.h>
 #include <86box/nv/vid_nv_rivatimer.h>
 
+void nv_log_set_device(void* device);
 void nv_log(const char *fmt, ...);
 
 // Defines common to all NV chip architectural generations
@@ -92,6 +93,7 @@ typedef struct nv_base_s
     rom_t vbios;                                // NVIDIA/OEm VBIOS
     // move to nv3_cio_t?
     svga_t svga;                                // SVGA core (separate to nv3) - Weitek licensed
+    void* log;                                  // new logging engine
     // stuff that doesn't fit in the svga structure
     uint32_t cio_read_bank;                     // SVGA read bank
     uint32_t cio_write_bank;                    // SVGA write bank
@@ -114,7 +116,7 @@ typedef struct nv_base_s
     rivatimer_t* memory_clock_timer;            // Timer for measuring memory/gpu clock
     bool memory_clock_enabled;                  // Memory Clock Enabled - stupid crap used to prevent us eanbling the timer multiple times
     void* i2c;                                  // I2C for monitor EDID
-    void* ddc;                                  
+    void* ddc;                                  // Display Data Channel for EDID
 } nv_base_t;
 
 #define NV_REG_LIST_END                 0xD15EA5E

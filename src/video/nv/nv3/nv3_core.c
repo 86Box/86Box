@@ -913,6 +913,10 @@ void nv3_update_mappings()
 //
 void* nv3_init(const device_t *info)
 {
+    nv3->nvbase.log = log_open("NV3");
+
+    // Allows nv_log to be used for multiple nvidia devices
+    nv_log_set_device(nv3->nvbase.log);    
     nv_log("NV3: initialising core\n");
 
     // Figure out which vbios the user selected
@@ -928,9 +932,13 @@ void* nv3_init(const device_t *info)
     int32_t err = rom_init(&nv3->nvbase.vbios, vbios_file, 0xC0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     
     if (err)
-            nv_log("NV3: failed to load VBIOS err=%d\n", err);
+    {
+        nv_log("NV3 FATAL: failed to load VBIOS err=%d\n", err);
+        fatal("Nvidia NV3 init failed: Somehow selected a nonexistent VBIOS? err=%d\n", err);
+        return NULL;
+    }
     else    
-            nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
+        nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
     // set the vram amount and gpu revision
     uint32_t vram_amount = device_get_config_int("VRAM");
@@ -1004,6 +1012,10 @@ void* nv3_init_agp(const device_t* info)
 
 void nv3_close(void* priv)
 {
+    // Shut down logging
+    log_close(nv3->nvbase.log);
+    nv_log_set_device(NULL);
+
     // Shut down I2C and the DDC
     ddc_close(nv3->nvbase.ddc);
     i2c_gpio_close(nv3->nvbase.i2c);

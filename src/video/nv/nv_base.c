@@ -17,9 +17,11 @@
 
 // Common NV1/3/4... init
 #define HAVE_STDARG_H // wtf is this crap
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdarg.h>
+
+#include <86box/log.h>
 #include <86box/86box.h>
 #include <86box/nv/vid_nv.h>
 
@@ -28,13 +30,25 @@
 #ifdef ENABLE_NV_LOG
 int nv_do_log = ENABLE_NV_LOG;
 
+// A bit of kludge so that in the future we can abstract this function acorss multiple generations of Nvidia GPUs
+void* nv_log_device;
+
+void nv_log_set_device(void* device)
+{
+    nv_log_device = device;
+}
+
 void nv_log(const char *fmt, ...)
 {
+    if (!nv_log_device)
+        return;
+
     va_list ap;
 
     if (nv_do_log) {
         va_start(ap, fmt);
-        pclog_ex_cyclic(fmt, ap);
+
+        log_out_cyclic(nv_log_device, fmt, ap);
         va_end(ap);
     }
 }
