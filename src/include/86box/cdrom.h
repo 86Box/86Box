@@ -151,7 +151,7 @@ static const struct
     { "HITACHI",  "CDR-8130",           "0020", "HITACHI CDR-8130 0020",         "HITACHI_CDR-8130_0020",         BUS_TYPE_IDE  },
     { "HL-DT-ST", "GCE-8525B",          "1.01", "HL-DT-ST GCE-8525B 1.01",       "HL-DT-ST_GCE-8525B_1.01",       BUS_TYPE_IDE  },
     { "KENWOOD",  "CD-ROM UCR-421",     "208E", "KENWOOD CD-ROM UCR-421 208E",   "KENWOOD_CD-ROM_UCR-421_208E",   BUS_TYPE_IDE  },
-    { "LG",       "CRN-8245B",          "1.20", "LG CRN-8245B 1.20",             "LG_CRN-8245B_1.20",             BUS_TYPE_IDE  },
+    { "LG",       "CD-ROM CRN-8245B",   "1.20", "LG CD-ROM CRN-8245B 1.20",      "LG_CD-ROM_CRN-8245B_1.20",      BUS_TYPE_IDE  },
     { "LITE-ON",  "LTN48125S",          "1S07", "LITE-ON LTN48125S 1S07",        "LITE-ON_LTN48125S_1S07",        BUS_TYPE_IDE  },
     { "MATSHITA", "CD-ROM CR-585",      "Z18P", "MATSHITA CD-ROM CR-585 Z18P",   "MATSHITA_CD-ROM_CR-585_Z18P",   BUS_TYPE_IDE  },
     { "MATSHITA", "CD-ROM CR-587",      "7S13", "MATSHITA CD-ROM CR-587 7S13",   "MATSHITA_CD-ROM_CR-587_7S13",   BUS_TYPE_IDE  },
