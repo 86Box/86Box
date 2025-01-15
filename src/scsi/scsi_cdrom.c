@@ -4065,17 +4065,25 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST GCE-8525B                      ", 40); /* Model */
                 break;
+            case CDROM_TYPE_HLDTST_GSA4160_A302:
+                ide_padstr((char *) (ide->buffer + 23), "A302    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST DVDRAM GSA-4160                ", 40); /* Model */
+                break;
             case CDROM_TYPE_KENWOOD_UCR_421_208E:
                 ide_padstr((char *) (ide->buffer + 23), "208E    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "KENWOOD CD-ROM UCR-421                  ", 40); /* Model */
                 break;
-            case CDROM_TYPE_LG_CRN8245B_120:
-                ide_padstr((char *) (ide->buffer + 23), "1.20    ", 8);                                  /* Firmware */
+            case CDROM_TYPE_LG_CRN8245B_130:
+                ide_padstr((char *) (ide->buffer + 23), "1.30    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "LG CD-ROM CRN-8245B                     ", 40); /* Model */
                 break;
             case CDROM_TYPE_LTN48125S_1S07:
                 ide_padstr((char *) (ide->buffer + 23), "1S07    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "LTN48125S                               ", 40); /* Model */
+                break;
+            case CDROM_TYPE_LTN526D_YSR5:
+                ide_padstr((char *) (ide->buffer + 23), "YSR5    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "LTN526D                                 ", 40); /* Model */
                 break;
             case CDROM_TYPE_MATSHITA_585_Z18P:
                 ide_padstr((char *) (ide->buffer + 23), "Z18P    ", 8);                                  /* Firmware */
