@@ -345,23 +345,27 @@ neat_mem_update_state(neat_t *dev, uint32_t addr, uint32_t size, uint8_t new_fla
 
         new_flags = dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE];
 
-        neat_log("neat_mem_update_state(): %08X-%08X: %02X\n", addr, addr + size - 1, new_flags);
-
-        if (new_flags & RAM_FLAG_EMS)
+        if (new_flags & RAM_FLAG_EMS) {
+            neat_log("neat_mem_update_state(): %08X-%08X: %02X (EMS)\n", addr, addr + size - 1, new_flags);
             mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-        else if (new_flags & RAM_FLAG_ROMCS)
+        } else if (new_flags & RAM_FLAG_ROMCS) {
+            neat_log("neat_mem_update_state(): %08X-%08X: %02X (ROMCS)\n", addr, addr + size - 1, new_flags);
             mem_set_mem_state(addr, size, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
-        else  switch (new_flags & (RAM_FLAG_SHREAD | RAM_FLAG_SHWRITE)) {
+        } else  switch (new_flags & (RAM_FLAG_SHREAD | RAM_FLAG_SHWRITE)) {
             case 0:
+                neat_log("neat_mem_update_state(): %08X-%08X: %02X (RE | WE)\n", addr, addr + size - 1, new_flags);
                 mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
                 break;
             case 1:
+                neat_log("neat_mem_update_state(): %08X-%08X: %02X (RE | WI)\n", addr, addr + size - 1, new_flags);
                 mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
                 break;
             case 2:
+                neat_log("neat_mem_update_state(): %08X-%08X: %02X (RI | WE)\n", addr, addr + size - 1, new_flags);
                 mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
                 break;
             case 3:
+                neat_log("neat_mem_update_state(): %08X-%08X: %02X (RI | WI)\n", addr, addr + size - 1, new_flags);
                 mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 break;
             default:
@@ -383,14 +387,24 @@ shadow_recalc(neat_t *dev)
         int ram_flags;
         int read;
 
-        if (i > 16) {
+        if (i >= 16) {
             int rb1_romcs_bit = 7 - (i >> 2);
             int rb1_write_bit = rb1_romcs_bit + 4;
 
             romcs = !(dev->regs[REG_RB1] & (1 << rb1_romcs_bit));
             write = !(dev->regs[REG_RB1] & (1 << rb1_write_bit));
-        } else if (i <= 8)
+            neat_log("Shadow %08X-%08X: [%02X, %02X] %02X:%02X, %02X, %02X\n",
+                     dev->shadow[i].virt_base, dev->shadow[i].virt_base + EMS_PGSIZE - 1,
+                     dev->regs[REG_RB1], dev->regs[shadow_reg],
+                     shadow_reg, shadow_bit,
+                     rb1_romcs_bit, rb1_write_bit);
+        } else {
             shadow_bit ^= 4;
+            neat_log("Shadow %08X-%08X: [--, %02X] %02X:%02X, shadow bit ^= 4\n",
+                     dev->shadow[i].virt_base, dev->shadow[i].virt_base + EMS_PGSIZE - 1,
+                     dev->regs[shadow_reg],
+                     shadow_reg, shadow_bit);
+        }
 
         read  = dev->regs[shadow_reg] & (1 << shadow_bit);
         write = write && read;
@@ -425,8 +439,7 @@ ems_recalc(neat_t *dev, ram_page_t *ems)
         /* Update the EMS RAM address for this page. */
         mem_mapping_set_exec(&ems->mapping, ram + ems->phys_base);
 
-        if ((ems->virt_base >= 0x00080000) && (ems->virt_base < 0x00100000))
-            neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, RAM_FLAG_EMS, RAM_FMASK_EMS);
+        neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, RAM_FLAG_EMS, RAM_FMASK_EMS);
 
 #if NEAT_DEBUG > 1
         neat_log("NEAT EMS: page %d set to %08lx, %sabled)\n",
@@ -436,11 +449,8 @@ ems_recalc(neat_t *dev, ram_page_t *ems)
         /* Disable this page. */
         mem_mapping_disable(&ems->mapping);
 
-        if ((ems->virt_base >= 0x00080000) && (ems->virt_base < 0x00100000))
-            neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, 0x00, RAM_FMASK_EMS);
+        neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, 0x00, RAM_FMASK_EMS);
     }
-
-    flushmmucache_nopc();
 }
 
 static void
@@ -921,6 +931,17 @@ neat_init(UNUSED(const device_t *info))
         dev->shadow[i].virt_base = dev->shadow[i].phys_base =
             (i * EMS_PGSIZE) + 0x00080000;
         dev->shadow[i].enabled   = 1;
+
+        /* Create and initialize a page mapping. */
+        mem_mapping_add(&dev->shadow[i].mapping,
+                        dev->shadow[i].virt_base, EMS_PGSIZE,
+                        ems_readb, ems_readw, NULL,
+                        ems_writeb, ems_writew, NULL,
+                        ram + dev->shadow[i].virt_base, MEM_MAPPING_INTERNAL,
+                        &(dev->shadow[i]));
+
+        /* Disable for now. */
+        mem_mapping_disable(&dev->shadow[i].mapping);
     }
 
     /* Initialize some of the registers to specific defaults. */
