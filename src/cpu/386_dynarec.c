@@ -386,7 +386,7 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
-static __inline void
+static void __attribute__((noinline))
 exec386_dynarec_dyn(void)
 {
     uint32_t start_pc  = 0;
