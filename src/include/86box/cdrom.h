@@ -143,7 +143,7 @@ static const struct
     const int   bus_type;
 } cdrom_drive_types[] = {
     { "86BOX",    "CD-ROM",             "1.00", "86BOX CD-ROM 1.00",             "86BOX_CD-ROM_1.00",             BUS_TYPE_BOTH  },
-    { "ASUS",     "CD-S500/A",          "1.41", "ASUS CD-S500/A 1.15",           "ASUS_CD-S500A_1.41",            BUS_TYPE_IDE  },
+    { "ASUS",     "CD-S500/A",          "1.41", "ASUS CD-S500/A 1.41",           "ASUS_CD-S500A_1.41",            BUS_TYPE_IDE  },
     { "ASUS",     "CD-S520/A4",         "1.32", "ASUS CD-S520/A4 1.32",          "ASUS_CD-S520A4_1.32",           BUS_TYPE_IDE  },
     { "AZT",      "CDA46802I",          "1.15", "AZT CDA46802I 1.15",            "AZT_CDA46802I_1.15",            BUS_TYPE_IDE  },
     { "BTC",      "CD-ROM BCD36XH",     "U1.0", "BTC CD-ROM BCD36XH U1.0",       "BTC_CD-ROM_BCD36XH_U1.0",       BUS_TYPE_IDE  },
@@ -175,7 +175,7 @@ static const struct
     { "TOSHIBA",  "CD-ROM XM-5302TA",   "0305", "TOSHIBA CD-ROM XM-5302TA 0305", "TOSHIBA_CD-ROM_XM-5302TA_0305", BUS_TYPE_IDE  },
     { "TOSHIBA",  "CD-ROM XM-5702B",    "TA70", "TOSHIBA CD-ROM XM-5702B TA70",  "TOSHIBA_CD-ROM_XM-5702B_TA70",  BUS_TYPE_IDE  },
     { "TOSHIBA",  "CD-ROM XM-6702B",    "1007", "TOSHIBA CD-ROM XM-6702B 1007",  "TOSHIBA_CD-ROM_XM-6702B_1007",  BUS_TYPE_IDE  },
-    { "TOSHIBA",  "DVD-ROM SD-M1802",   "1051", "TOSHIBA DVD-ROM SD-M1802 1.15", "TOSHIBA_DVD-ROM_SD-M1802_1051", BUS_TYPE_IDE  },
+    { "TOSHIBA",  "DVD-ROM SD-M1802",   "1051", "TOSHIBA DVD-ROM SD-M1802 1051", "TOSHIBA_DVD-ROM_SD-M1802_1051", BUS_TYPE_IDE  },
     { "CHINON",   "CD-ROM CDS-431",     "H42 ", "[SCSI-1] CHINON CD-ROM CDS-431 H42",       "CHINON_CD-ROM_CDS-431_H42",     BUS_TYPE_SCSI },
     { "CHINON",   "CD-ROM CDX-435",     "M62 ", "[SCSI-1] CHINON CD-ROM CDX-435 M62",       "CHINON_CD-ROM_CDX-435_M62",     BUS_TYPE_SCSI },
     { "DEC",      "RRD45   (C) DEC",    "0436", "[SCSI-1] DEC RRD45 0436",                  "DEC_RRD45_0436",                BUS_TYPE_SCSI },
