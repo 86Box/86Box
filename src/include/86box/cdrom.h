@@ -164,7 +164,7 @@ static const struct
     { "NEC",      "CD-ROM DRIVE:273",   "4.20", "NEC CD-ROM DRIVE:273 4.20",     "NEC_CD-ROM_DRIVE273_4.20",      BUS_TYPE_IDE  },
     { "NEC",      "CD-ROM DRIVE:280",   "1.05", "NEC CD-ROM DRIVE:280 1.05",     "NEC_CD-ROM_DRIVE280_1.05",      BUS_TYPE_IDE  },
     { "NEC",      "CD-ROM DRIVE:280",   "3.08", "NEC CD-ROM DRIVE:280 3.08",     "NEC_CD-ROM_DRIVE280_3.08",      BUS_TYPE_IDE  },
-    { "NEC",      "CDR-1900A",          "1.00", "NEC CDR-1900A        1.00",     "NEC_CDR-1900A_1.00",            BUS_TYPE_IDE  },
+    { "NEC",      "CDR-1900A",          "1.00", "NEC CDR-1900A 1.00",            "NEC_CDR-1900A_1.00",            BUS_TYPE_IDE  },
     { "PHILIPS",  "CD-ROM PCA403CD",    "U31P", "PHILIPS CD-ROM PCA403CD U31P",  "PHILIPS_CD-ROM_PCA403CD_U31P",  BUS_TYPE_IDE  },
     { "SONY",     "CD-ROM CDU76",       "1.0i", "SONY CD-ROM CDU76 1.0i",        "SONY_CD-ROM_CDU76_1.0i",        BUS_TYPE_IDE  },
     { "SONY",     "CD-ROM CDU311",      "3.0h", "SONY CD-ROM CDU311 3.0h",       "SONY_CD-ROM_CDU311_3.0h",       BUS_TYPE_IDE  },
