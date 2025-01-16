@@ -203,7 +203,7 @@ const device_t ibmat_device = {
 int
 machine_at_ibm_init(const machine_t *model)
 {
-    int         ret;
+    int         ret = 0;
     uint8_t     enable_5161;
     const char *fn[2];
 
