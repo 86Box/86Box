@@ -5962,10 +5962,10 @@ const machine_t machines[] = {
     /* Uses some variant of Phoenix MultiKey/42 as the Intel 8242 chip has a Phoenix
        copyright. */
     {
-        .name = "[OPTi 895] Mylex MVI486",
+        .name = "[OPTi 495] Mylex MVI486",
         .internal_name = "mvi486",
         .type = MACHINE_TYPE_486,
-        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .chipset = MACHINE_CHIPSET_OPTI_495,
         .init = machine_at_mvi486_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
