@@ -204,12 +204,14 @@
 #define RB12_EMSLEN    0xe0 /*  EMS memory chunk size */
 #define RB12_EMSLEN_SH 5
 
-#define RAM_FLAG_EMS        0x08
-#define RAM_FLAG_ROMCS      0x04
-#define RAM_FLAG_SHREAD     0x02
-#define RAM_FLAG_SHWRITE    0x01
-#define RAM_FMASK_EMS       0x08
-#define RAM_FMASK_SHADOW    0x07
+#define MEM_FLAG_REMAP      0x10
+#define MEM_FLAG_EMS        0x08
+#define MEM_FLAG_ROMCS      0x04
+#define MEM_FLAG_READ       0x02
+#define MEM_FLAG_WRITE      0x01
+#define MEM_FMASK_REMAP     0x10
+#define MEM_FMASK_EMS       0x08
+#define MEM_FMASK_SHADOW    0x07
 
 typedef struct ram_page_t {
     int8_t        enabled;              /* 1=ENABLED */
@@ -220,7 +222,7 @@ typedef struct ram_page_t {
 } ram_page_t;
 
 typedef struct neat_t {
-    uint8_t       ram_flags[32];
+    uint8_t       mem_flags[32];
     uint8_t       regs[128];           /* all the CS8221 registers */
     uint8_t       indx;                /* programmed index into registers */
 
@@ -339,19 +341,22 @@ static void
 neat_mem_update_state(neat_t *dev, uint32_t addr, uint32_t size, uint8_t new_flags, uint8_t mask)
 {
     if ((addr >= 0x00080000) && (addr < 0x00100000) &&
-        ((new_flags ^ dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE]) & mask)) {
-        dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE] &= ~mask;
-        dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE] |= new_flags;
+        ((new_flags ^ dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE]) & mask)) {
+        dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE] &= ~mask;
+        dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE] |= new_flags;
 
-        new_flags = dev->ram_flags[(addr - 0x00080000) / EMS_PGSIZE];
+        new_flags = dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE];
 
-        if (new_flags & RAM_FLAG_EMS) {
-            neat_log("neat_mem_update_state(): %08X-%08X: %02X (EMS)\n", addr, addr + size - 1, new_flags);
-            mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-        } else if (new_flags & RAM_FLAG_ROMCS) {
+        if (new_flags & MEM_FLAG_ROMCS) {
             neat_log("neat_mem_update_state(): %08X-%08X: %02X (ROMCS)\n", addr, addr + size - 1, new_flags);
             mem_set_mem_state(addr, size, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
-        } else  switch (new_flags & (RAM_FLAG_SHREAD | RAM_FLAG_SHWRITE)) {
+        } else if (new_flags & MEM_FLAG_REMAP) {
+            neat_log("neat_mem_update_state(): %08X-%08X: %02X (REMAP)\n", addr, addr + size - 1, new_flags);
+            mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+        } else if (new_flags & MEM_FLAG_EMS) {
+            neat_log("neat_mem_update_state(): %08X-%08X: %02X (EMS)\n", addr, addr + size - 1, new_flags);
+            mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        } else  switch (new_flags & (MEM_FLAG_READ | MEM_FLAG_WRITE)) {
             case 0:
                 neat_log("neat_mem_update_state(): %08X-%08X: %02X (RE | WE)\n", addr, addr + size - 1, new_flags);
                 mem_set_mem_state(addr, size, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
@@ -384,7 +389,7 @@ shadow_recalc(neat_t *dev)
         int write      = 1;
         int shadow_reg = REG_RB3 + ((i - 8) >> 3);
         int shadow_bit = i & 7;
-        int ram_flags;
+        int mem_flags;
         int read;
 
         if (i >= 16) {
@@ -409,16 +414,16 @@ shadow_recalc(neat_t *dev)
         read  = dev->regs[shadow_reg] & (1 << shadow_bit);
         write = write && read;
 
-        ram_flags  = romcs ? RAM_FLAG_ROMCS   : 0x00;
-        ram_flags |= read  ? RAM_FLAG_SHREAD  : 0x00;
-        ram_flags |= write ? RAM_FLAG_SHWRITE : 0x00;
+        mem_flags  = romcs ? MEM_FLAG_ROMCS : 0x00;
+        mem_flags |= read  ? MEM_FLAG_READ  : 0x00;
+        mem_flags |= write ? MEM_FLAG_WRITE : 0x00;
 
-        if ((ram_flags > 0x00) && !(ram_flags & RAM_FLAG_ROMCS))
+        if ((mem_flags > 0x00) && !(mem_flags & MEM_FLAG_ROMCS))
             mem_mapping_set_addr(&(dev->shadow[i].mapping), dev->shadow[i].virt_base, EMS_PGSIZE);
         else
             mem_mapping_disable(&(dev->shadow[i].mapping));
 
-        neat_mem_update_state(dev, dev->shadow[i].virt_base, EMS_PGSIZE, ram_flags, RAM_FMASK_SHADOW);
+        neat_mem_update_state(dev, dev->shadow[i].virt_base, EMS_PGSIZE, mem_flags, MEM_FMASK_SHADOW);
     }
 }
 
@@ -439,7 +444,7 @@ ems_recalc(neat_t *dev, ram_page_t *ems)
         /* Update the EMS RAM address for this page. */
         mem_mapping_set_exec(&ems->mapping, ram + ems->phys_base);
 
-        neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, RAM_FLAG_EMS, RAM_FMASK_EMS);
+        neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, MEM_FLAG_EMS, MEM_FMASK_EMS);
 
 #if NEAT_DEBUG > 1
         neat_log("NEAT EMS: page %d set to %08lx, %sabled)\n",
@@ -449,7 +454,7 @@ ems_recalc(neat_t *dev, ram_page_t *ems)
         /* Disable this page. */
         mem_mapping_disable(&ems->mapping);
 
-        neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, 0x00, RAM_FMASK_EMS);
+        neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, 0x00, MEM_FMASK_EMS);
     }
 }
 
@@ -571,10 +576,19 @@ ems_set_handlers(neat_t *dev)
 }
 
 static void
+remap_update_states(neat_t *dev, uint8_t flag)
+{
+    for (uint8_t i = 0; i < 24; i++)
+         neat_mem_update_state(dev, 0x000a0000 + (i * EMS_PGSIZE), EMS_PGSIZE, flag, MEM_FMASK_REMAP);
+}
+
+static void
 remap_update(neat_t *dev, uint8_t val)
 {
     if (dev->regs[REG_RB7] & RB7_UMAREL) {
-        mem_remap_top_ex(0, (dev->remap_base >= 1024) ? dev->remap_base : 1024);
+        mem_remap_top_ex_nomid(0, (dev->remap_base >= 1024) ? dev->remap_base : 1024);
+
+        remap_update_states(dev, 0x00);
         neat_log("0 kB at %08X\n", ((dev->remap_base >= 1024) ? dev->remap_base : 1024) << 10);
     }
 
@@ -595,12 +609,11 @@ remap_update(neat_t *dev, uint8_t val)
         mem_mapping_disable(&ram_high_mapping);
 
     if (val & RB7_UMAREL) {
-        mem_remap_top_ex(384, (dev->remap_base >= 1024) ? dev->remap_base : 1024);
+        mem_remap_top_ex_nomid(384, (dev->remap_base >= 1024) ? dev->remap_base : 1024);
+
+        remap_update_states(dev, MEM_FLAG_REMAP);
         neat_log("384 kB at %08X\n", ((dev->remap_base >= 1024) ? dev->remap_base : 1024) << 10);
     }
-
-    /* Yes, this has to be done on every step because mem_remap_top_ex() reenables it. */
-    mem_mapping_disable(&ram_mid_mapping);
 }
 
 static void
@@ -672,9 +685,9 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     val &= RB2_MASK;
                     *reg = (*reg & ~RB2_MASK) | val;
                     if (val & RB2_TOP128)
-                        neat_mem_update_state(dev, 0x00080000, 0x00020000, RAM_FLAG_SHREAD | RAM_FLAG_SHWRITE, RAM_FMASK_SHADOW);
+                        neat_mem_update_state(dev, 0x00080000, 0x00020000, MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_SHADOW);
                     else
-                        neat_mem_update_state(dev, 0x00080000, 0x00020000, 0x00, RAM_FMASK_SHADOW);
+                        neat_mem_update_state(dev, 0x00080000, 0x00020000, 0x00, MEM_FMASK_SHADOW);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RB2=%02x(%02x)\n", val, *reg);
 #endif
