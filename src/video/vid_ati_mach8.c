@@ -3493,14 +3493,17 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                 dev->vendor_mode = 1;
             }
             svga_recalctimings(svga);
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
+
             mach_log("ATI 8514/A: (0x%04x) val=0x%02x, extended 8514/A mode=%02x.\n", port, val, mach->regs[0xb0] & 0x20);
             break;
 
         case 0x32ee:
         case 0x32ef:
             WRITE8(port, mach->local_cntl, val);
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
             break;
 
         case 0x36ee:
@@ -3546,7 +3549,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             mach_log("ATI 8514/A: (0x%04x): ON=%d, val=%04x, hdisp=%d, vdisp=%d.\n", port, mach->accel.clock_sel & 0x01, val, dev->hdisp, dev->vdisp);
             mach_log("Vendor ATI mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
             svga_recalctimings(svga);
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
             break;
 
         case 0x52ee:
@@ -3580,7 +3584,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             if (!mach->pci_bus)
                 mach->linear_base = (mach->memory_aperture & 0xff00) << 12;
 
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
             break;
 
         case 0x62ee:
