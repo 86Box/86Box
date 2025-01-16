@@ -1310,7 +1310,7 @@ static const device_config_t a6pak_config[] = {
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 576,
+            .max = 384,
             .step = 64
         },
         .selection = { { 0 } }
