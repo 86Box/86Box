@@ -237,7 +237,7 @@ typedef struct neat_t {
     ram_page_t    shadow[32];          /* Shadow RAM pages */
 } neat_t;
 
-static uint8_t defaults[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00,
+static uint8_t defaults[16] = { 0x0a, 0x45, 0xfc, 0x00, 0x00, 0x7f, 0x00, 0x00,
                                 0x00, 0x00, 0xa0, 0x63, 0x10, 0x00, 0x00, 0x12 };
 
 static uint8_t masks[4]     = { RB10_P0EXT, RB10_P1EXT, RB10_P2EXT, RB10_P3EXT };
@@ -628,6 +628,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RA0:
                     val &= RA0_MASK;
                     *reg = (*reg & ~RA0_MASK) | val | (RA0_REV_ID << RA0_REV_SH);
+                    if ((xval & 0x20) && (val & 0x20))
+                        outb(0x64, 0xfe);
 #if NEAT_DEBUG > 1
                     neat_log("NEAT: RA0=%02x(%02x)\n", val, *reg);
 #endif
