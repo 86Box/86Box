@@ -386,7 +386,11 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
+#if defined(_WIN32) || defined(__APPLE__)
+static __inline void
+#else
 static void __attribute__((noinline))
+#endif
 exec386_dynarec_dyn(void)
 {
     uint32_t start_pc  = 0;
