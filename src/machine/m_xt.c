@@ -74,6 +74,13 @@ static const device_config_t ibmpc_config[] = {
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_19OCT81_5700671_U33.BIN", "" } },
             { .name = "5700051 (04/24/81)", .internal_name = "ibm5150_5700051", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_24APR81_5700051_U33.BIN", "" } },
+
+            // GlaBIOS for IBM PC
+            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8P.ROM", "" } },
+            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VP.ROM", "" } },
+
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
@@ -177,6 +184,13 @@ static const device_config_t ibmpc82_config[] = {
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_27OCT82_1501476_U33.BIN", "" } },
             { .name = "5000024 (08/16/82)", .internal_name = "ibm5150_5000024", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_16AUG82_5000024_U33.BIN", "" } },
+
+            // GlaBIOS for IBM PC
+            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8P.ROM", "" } },
+            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VP.ROM", "" } },
+
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
@@ -283,6 +297,12 @@ static const device_config_t ibmxt_config[] = {
             { .name = "5000026 (08/16/82)", .internal_name = "ibm5160_5000026_5000027", .bios_type = BIOS_NORMAL,
               .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" } },
 #if 0
+            // GlaBIOS for IBM XT
+            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "" } },
+            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VX.ROM", "" } },
+
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
@@ -399,6 +419,12 @@ static const device_config_t ibmxt86_config[] = {
             { .name = "1501512 (01/10/86) (Alt)", .internal_name = "ibm5160_011086_alt", .bios_type = BIOS_NORMAL,
               .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0852_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0853_27256_F000.BIN", "" } },
 #if 0
+            // GlaBIOS for IBM XT
+            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "" } },
+            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VX.ROM", "" } },
+
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
