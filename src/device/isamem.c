@@ -1310,7 +1310,7 @@ static const device_config_t a6pak_config[] = {
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 576,
+            .max = 384,
             .step = 64
         },
         .selection = { { 0 } }
@@ -1547,12 +1547,12 @@ static const device_config_t ev165a_config[] = {
         .description = "Memory size",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 512,
+        .default_int = 256,
         .file_filter = "",
         .spinner = {
             .min = 0,
             .max = 2048,
-            .step = 512
+            .step = 256
         },
         .selection = { { 0 } }
     },
@@ -1561,12 +1561,12 @@ static const device_config_t ev165a_config[] = {
         .description = "Start Address",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 0,
+        .default_int = 64,
         .file_filter = "",
         .spinner = {
-            .min = 0,
-            .max = 896,
-            .step = 128
+            .min = 64,
+            .max = 640,
+            .step = 64
         },
         .selection = { { 0 } }
     },
@@ -1579,8 +1579,8 @@ static const device_config_t ev165a_config[] = {
         .file_filter = "",
         .spinner = {
             .min = 0,
-            .max = 16384,
-            .step = 128
+            .max = 2048,
+            .step = 256
         },
         .selection = { { 0 } }
     },
@@ -1622,7 +1622,7 @@ static const device_config_t ev165a_config[] = {
 };
 
 static const device_t ev165a_device = {
-    .name          = "Everex Magi Magic EV-165A",
+    .name          = "Everex Maxi Magic EV-165A",
     .internal_name = "ev165a",
     .flags         = DEVICE_ISA,
     .local         = ISAMEM_EV165A_CARD,
