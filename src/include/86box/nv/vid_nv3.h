@@ -784,6 +784,29 @@ typedef struct nv3_pgraph_clip_misc_settings_s
     /* TODO */
 } nv3_pgraph_clip_misc_settings_t;
 
+typedef struct nv3_pgraph_status_s
+{
+    bool overall_busy : 1;          // Is anything busy?
+    uint8_t reserved : 3;
+    bool xy_logic_busy : 1;         // Determines if the line drawing/xy/vector stuff is busy.
+    uint8_t reserved2 : 3;
+    bool port_notify_busy : 1;      // Mediaport?/PIO? notifier engine busy
+    uint8_t reserved3 : 3;
+    bool port_register_busy : 1;
+    uint8_t reserved4 : 3;
+    bool port_dma_busy : 1;         // Mediaport?/PIO? DMA engine busy
+    bool dma_engine_busy : 1;       // DMA engine busy
+    uint8_t reserved5 : 2;
+    bool dma_notify_busy : 1;       // Are the notifiers busy?
+    uint8_t reserved6 : 3;
+    bool engine_3d_busy : 1;        // 3d engine busy?  
+    bool engine_cache_busy : 1;     // PFIFO CACHE0/CACHE1 busy?
+    bool engine_zfifo_busy : 1;     // ZFIFO (zeta buffer? z buffer?) busy?
+    bool port_user_busy : 1;        // User context switch?
+    uint8_t reserved7 : 3;
+
+} nv3_pgraph_status_t;
+
 // Graphics Subsystem
 typedef struct nv3_pgraph_s
 {
@@ -823,6 +846,17 @@ typedef struct nv3_pgraph_s
     nv3_pgraph_dma_settings_t dma_settings;
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
     nv3_notifier_t notifier;
+    nv3_position_16_bigy_t clip0_min;
+    nv3_position_16_bigy_t clip0_max;
+    nv3_position_16_bigy_t clip1_min;
+    nv3_position_16_bigy_t clip1_max;
+    uint32_t fifo_access;
+    nv3_pgraph_status_t status;
+    uint32_t trapped_address;
+    uint32_t trapped_data;
+    uint32_t trapped_instance;
+    uint32_t interrupt_status_dma;
+    uint32_t interrupt_enable_dma;
 } nv3_pgraph_t;
 
 // GPU Manufacturing Configuration (again)

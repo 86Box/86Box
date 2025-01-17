@@ -78,7 +78,7 @@ typedef struct nv3_color_argb_32_s
 /* 30-bit colour format for internal PGRAPH use */
 typedef struct nv3_color_x3a10g10b10_s
 {
-    uint8_t reserved : 2;
+    uint8_t reserved : 1;
     bool alpha_if_chroma_key_otherwise_reserved2 : 1; // 1-bit ALPHA if chroma key, OTHERWISE USELESS and IGNORE
     uint16_t r : 10;
     uint16_t g : 10;
