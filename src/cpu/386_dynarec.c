@@ -386,7 +386,11 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
+#if defined(__linux__) && !defined(__clang__) && defined(USE_NEW_DYNAREC)
+static inline void __attribute__((optimize("O2")))
+#else
 static __inline void
+#endif
 exec386_dynarec_dyn(void)
 {
     uint32_t start_pc  = 0;

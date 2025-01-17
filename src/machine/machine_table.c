@@ -64,6 +64,7 @@ extern const device_t ibmxt86_device;
 extern const device_t ibmat_device;
 extern const device_t ibmxt286_device;
 extern const device_t pb450_device;
+extern const device_t jukopc_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -954,7 +955,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &jukopc_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -3597,7 +3598,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 512,
-            .max = 16384,
+            .max = 5120,
             .step = 128
         },
         .nvrmask = 127,
@@ -3637,7 +3638,7 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
-            .max = 16384,
+            .max = 8192,
             .step = 128
         },
         .nvrmask = 127,
@@ -5962,10 +5963,10 @@ const machine_t machines[] = {
     /* Uses some variant of Phoenix MultiKey/42 as the Intel 8242 chip has a Phoenix
        copyright. */
     {
-        .name = "[OPTi 895] Mylex MVI486",
+        .name = "[OPTi 495] Mylex MVI486",
         .internal_name = "mvi486",
         .type = MACHINE_TYPE_486,
-        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .chipset = MACHINE_CHIPSET_OPTI_495,
         .init = machine_at_mvi486_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
