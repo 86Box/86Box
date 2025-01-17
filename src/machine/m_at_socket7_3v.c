@@ -694,7 +694,6 @@ machine_at_gw2kma_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
-
     device_add(&i430vx_device);
     device_add(&piix3_device);
     device_add(&fdc37c932fr_device);
