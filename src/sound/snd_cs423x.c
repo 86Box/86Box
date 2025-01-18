@@ -15,12 +15,13 @@
  *           Copyright 2021-2022 RichardG.
  */
 #include <math.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/dma.h>
@@ -63,6 +64,24 @@ enum {
     CRYSTAL_SLAM_BYTE1 = 2,
     CRYSTAL_SLAM_BYTE2 = 3
 };
+
+#ifdef ENABLE_CS423X_LOG
+int cs423x_do_log = ENABLE_CS423X_LOG;
+
+static void
+cs423x_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (cs423x_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define cs423x_log(fmt, ...)
+#endif
 
 static const uint8_t slam_init_key[32] = { 0x96, 0x35, 0x9A, 0xCD, 0xE6, 0xF3, 0x79, 0xBC,
                                            0x5E, 0xAF, 0x57, 0x2B, 0x15, 0x8A, 0xC5, 0xE2,
@@ -136,6 +155,8 @@ cs423x_nvram(cs423x_t *dev, uint8_t save)
         else
             (void) !fread(dev->eeprom_data, sizeof(dev->eeprom_data), 1, fp);
         fclose(fp);
+    } else {
+        cs423x_log("CS423x: EEPROM data %s failed\n", save ? "save" : "load");
     }
 }
 
@@ -166,8 +187,11 @@ cs423x_read(uint16_t addr, void *priv)
             /* Reading RAM is undocumented, but performed by:
                - Windows drivers (unknown purpose)
                - Intel VS440FX BIOS (PnP ROM checksum recalculation) */
-            if (dev->ram_dl == CRYSTAL_RAM_DATA)
-                ret = dev->ram_data[dev->ram_addr++];
+            if (dev->ram_dl == CRYSTAL_RAM_DATA) {
+                ret = dev->ram_data[dev->ram_addr];
+                cs423x_log("CS423x: RAM read(%04X) = %02X\n", dev->ram_addr, ret);
+                dev->ram_addr++;
+            }
             break;
 
         case 7: /* Global Status */
@@ -188,6 +212,8 @@ cs423x_read(uint16_t addr, void *priv)
             break;
     }
 
+    cs423x_log("CS423x: read(%X) = %02X\n", reg, ret);
+
     return ret;
 }
 
@@ -195,7 +221,9 @@ static void
 cs423x_write(uint16_t addr, uint8_t val, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    uint8_t   reg = addr & 0x07;
+    uint8_t   reg = addr & 7;
+
+    cs423x_log("CS423x: write(%X, %02X)\n", reg, val);
 
     switch (reg) {
         case 1: /* EEPROM Interface */
@@ -295,9 +323,11 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                 case CRYSTAL_RAM_ADDR_HI: /* high address byte */
                     dev->ram_addr |= val << 8;
                     dev->ram_dl = CRYSTAL_RAM_DATA;
+                    cs423x_log("CS423x: RAM start(%04X)\n", dev->ram_addr);
                     break;
 
                 case CRYSTAL_RAM_DATA: /* data */
+                    cs423x_log("CS423x: RAM write(%04X, %02X)\n", dev->ram_addr, val);
                     dev->ram_data[dev->ram_addr++] = val;
                     break;
 
@@ -309,6 +339,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
         case 6: /* RAM Access End */
             /* TriGem Delhi-III BIOS writes undocumented value 0x40 instead of 0x00. */
             if ((val == 0x00) || (val == 0x40)) {
+                cs423x_log("CS423x: RAM end\n");
                 dev->ram_dl = CRYSTAL_RAM_CMD;
 
                 /* Update PnP state and resource data. */
@@ -332,6 +363,8 @@ cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     cs423x_t *dev = (cs423x_t *) priv;
     uint8_t   idx;
 
+    cs423x_log("CS423x: slam_write(%02X)\n", val);
+
     switch (dev->slam_state) {
         case CRYSTAL_SLAM_NONE:
             /* Not in SLAM: read and compare Crystal key. */
@@ -346,6 +379,7 @@ cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
                     }
 
                     /* Enter SLAM. */
+                    cs423x_log("CS423x: SLAM unlocked\n");
                     dev->slam_state = CRYSTAL_SLAM_INDEX;
                 }
             } else {
@@ -356,6 +390,8 @@ cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
         case CRYSTAL_SLAM_INDEX:
             /* Intercept the Activate Audio Device command. */
             if (val == 0x79) {
+                cs423x_log("CS423x: Exiting SLAM\n");
+
                 /* Apply the last logical device's configuration. */
                 if (dev->slam_config) {
                     cs423x_pnp_config_changed(dev->slam_ld, dev->slam_config, dev);
@@ -376,6 +412,7 @@ cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
         case CRYSTAL_SLAM_BYTE1:
         case CRYSTAL_SLAM_BYTE2:
             /* Write register value: two bytes for I/O ports, single byte otherwise. */
+            cs423x_log("CS423x: SLAM write(%02X, %02X)\n", dev->slam_reg, val);
             switch (dev->slam_reg) {
                 case 0x06: /* Card Select Number */
                     isapnp_set_csn(dev->pnp_card, val);
@@ -446,7 +483,7 @@ cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
                     break;
             }
 
-            /* Prepare for the next register, unless a two-byte read returns above. */
+            /* Prepare for the next register, unless a two-byte write returns above. */
             dev->slam_state = CRYSTAL_SLAM_INDEX;
             break;
 
@@ -467,8 +504,11 @@ cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
 
     /* Enable SLAM if the CKD bit is not set. */
     if (enable && !(dev->ram_data[0x4002] & 0x10)) {
+        cs423x_log("CS423x: Enabling SLAM\n");
         dev->slam_enable = 1;
         io_sethandler(0x279, 1, NULL, NULL, NULL, cs423x_slam_write, NULL, NULL, dev);
+    } else {
+        cs423x_log("CS423x: Disabling SLAM\n");
     }
 }
 
@@ -484,6 +524,7 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
         /* Flip context bit. */
         dev->regs[7] ^= 0x80;
         ctx ^= 0x80;
+        cs423x_log("CS423x: Context switch to %s\n", ctx ? "WSS" : "SBPro");
 
         /* Update CD audio filter.
            FIXME: not thread-safe: filter function TOCTTOU in sound_cd_thread! */
@@ -553,6 +594,8 @@ cs423x_get_music_buffer(int32_t *buffer, int len, void *priv)
 static void
 cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
 {
+    cs423x_log("CS423x: Updating PnP ROM=%d hwconfig=%d\n", update_rom, update_hwconfig);
+
     if (dev->pnp_card) {
         /* Update PnP resource data if requested. */
         if (update_rom)
@@ -747,6 +790,7 @@ cs423x_init(const device_t *info)
 
     /* Initialize model-specific data. */
     dev->type = info->local & 0xff;
+    cs423x_log("CS423x: init(%02X)\n", dev->type);
     switch (dev->type) {
         case CRYSTAL_CS4235:
         case CRYSTAL_CS4236B:
@@ -848,6 +892,8 @@ static void
 cs423x_close(void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
+
+    cs423x_log("CS423x: close()\n");
 
     /* Save EEPROM contents to file. */
     if (dev->eeprom) {
