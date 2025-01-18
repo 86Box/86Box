@@ -52,6 +52,12 @@ enum {
     CRYSTAL_CS4238B = 0xc9
 };
 enum {
+    CRYSTAL_RAM_CMD     = 0,
+    CRYSTAL_RAM_ADDR_LO = 1,
+    CRYSTAL_RAM_ADDR_HI = 2,
+    CRYSTAL_RAM_DATA    = 3
+};
+enum {
     CRYSTAL_SLAM_NONE  = 0,
     CRYSTAL_SLAM_INDEX = 1,
     CRYSTAL_SLAM_BYTE1 = 2,
@@ -160,7 +166,7 @@ cs423x_read(uint16_t addr, void *priv)
             /* Reading RAM is undocumented, but performed by:
                - Windows drivers (unknown purpose)
                - Intel VS440FX BIOS (PnP ROM checksum recalculation) */
-            if (dev->ram_dl == 3)
+            if (dev->ram_dl == CRYSTAL_RAM_DATA)
                 ret = dev->ram_data[dev->ram_addr++];
             break;
 
@@ -255,7 +261,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 
         case 5: /* Control/RAM Access */
             switch (dev->ram_dl) {
-                case 0: /* commands */
+                case CRYSTAL_RAM_CMD: /* commands */
                     switch (val) {
                         case 0x55: /* Disable PnP Key */
                             dev->pnp_enable = 0;
@@ -273,7 +279,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                             break;
 
                         case 0xaa: /* Download RAM */
-                            dev->ram_dl = 1;
+                            dev->ram_dl = CRYSTAL_RAM_ADDR_LO;
                             break;
 
                         default:
@@ -281,17 +287,17 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
 
-                case 1: /* low address byte */
+                case CRYSTAL_RAM_ADDR_LO: /* low address byte */
                     dev->ram_addr = val;
-                    dev->ram_dl++;
+                    dev->ram_dl = CRYSTAL_RAM_ADDR_HI;
                     break;
 
-                case 2: /* high address byte */
-                    dev->ram_addr |= (val << 8);
-                    dev->ram_dl++;
+                case CRYSTAL_RAM_ADDR_HI: /* high address byte */
+                    dev->ram_addr |= val << 8;
+                    dev->ram_dl = CRYSTAL_RAM_DATA;
                     break;
 
-                case 3: /* data */
+                case CRYSTAL_RAM_DATA: /* data */
                     dev->ram_data[dev->ram_addr++] = val;
                     break;
 
@@ -303,7 +309,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
         case 6: /* RAM Access End */
             /* TriGem Delhi-III BIOS writes undocumented value 0x40 instead of 0x00. */
             if ((val == 0x00) || (val == 0x40)) {
-                dev->ram_dl = 0;
+                dev->ram_dl = CRYSTAL_RAM_CMD;
 
                 /* Update PnP state and resource data. */
                 cs423x_pnp_enable(dev, 1, 0);
