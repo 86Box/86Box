@@ -147,12 +147,19 @@ cs423x_read(uint16_t addr, void *priv)
                 ret |= 0x04;
             break;
 
+        case 3: /* Control Indirect Access Register */
+            /* Intel VS440FX BIOS tells CS4236 from CS4232 through the upper bits. Setting them is enough. */
+            ret |= 0xf0;
+            break;
+
         case 4: /* Control Indirect Data Register */
             ret = dev->indirect_regs[dev->regs[3]];
             break;
 
         case 5: /* Control/RAM Access */
-            /* Reading RAM is undocumented; the Windows drivers do so. */
+            /* Reading RAM is undocumented, but performed by:
+               - Windows drivers (unknown purpose)
+               - Intel VS440FX BIOS (PnP ROM checksum recalculation) */
             if (dev->ram_dl == 3)
                 ret = dev->ram_data[dev->ram_addr++];
             break;
