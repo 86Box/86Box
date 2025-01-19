@@ -47,10 +47,13 @@
 #define CRYSTAL_NOEEPROM 0x100
 
 enum {
-    CRYSTAL_CS4235  = 0xdd,
-    CRYSTAL_CS4236B = 0xcb,
+    CRYSTAL_CS4232  = 0x32, /* no chip ID; dummy value */
+    CRYSTAL_CS4236  = 0x36, /* no chip ID; dummy value */
+    CRYSTAL_CS4236B = 0xab, /* report an older revision ID to make the values nice and incremental */
     CRYSTAL_CS4237B = 0xc8,
-    CRYSTAL_CS4238B = 0xc9
+    CRYSTAL_CS4238B = 0xc9,
+    CRYSTAL_CS4235  = 0xdd,
+    CRYSTAL_CS4239  = 0xde
 };
 enum {
     CRYSTAL_RAM_CMD     = 0,
@@ -143,6 +146,7 @@ typedef struct cs423x_t {
 static void cs423x_slam_enable(cs423x_t *dev, uint8_t enable);
 static void cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig);
 static void cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
+static void cs423x_reset(void *priv);
 
 static void
 cs423x_nvram(cs423x_t *dev, uint8_t save)
@@ -173,13 +177,15 @@ cs423x_read(uint16_t addr, void *priv)
                 ret |= 0x04;
             break;
 
-        case 3: /* Control Indirect Access Register */
+        case 3: /* Control Indirect Access Register (CS4236B+) */
             /* Intel VS440FX BIOS tells CS4236 from CS4232 through the upper bits. Setting them is enough. */
-            ret |= 0xf0;
+            if (dev->type >= CRYSTAL_CS4236)
+                ret |= 0xf0;
             break;
 
-        case 4: /* Control Indirect Data Register */
-            ret = dev->indirect_regs[dev->regs[3]];
+        case 4: /* Control Indirect Data Register (CS4236B+) / Control Data Register (CS4236) */
+            if (dev->type >= CRYSTAL_CS4236B)
+                ret = dev->indirect_regs[dev->regs[3]];
             break;
 
         case 5: /* Control/RAM Access */
@@ -193,7 +199,10 @@ cs423x_read(uint16_t addr, void *priv)
             }
             break;
 
-        case 7: /* Global Status */
+        case 7: /* Global Status (CS4236+) */
+            if (dev->type < CRYSTAL_CS4236)
+                break;
+
             /* Context switching: take active context and interrupt flag, then clear interrupt flag. */
             ret &= 0xc0;
             dev->regs[7] &= 0x80;
@@ -225,50 +234,75 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
     cs423x_log("CS423x: write(%X, %02X)\n", reg, val);
 
     switch (reg) {
+        case 0: /* Joystick and Power Control */
+            if (dev->type <= CRYSTAL_CS4232)
+                val &= 0xeb;
+            break;
+
         case 1: /* EEPROM Interface */
+            if (dev->type <= CRYSTAL_CS4232)
+                val &= 0x37;
             if (val & 0x04)
                 i2c_gpio_set(dev->i2c, val & 0x01, val & 0x02);
             break;
 
-        case 3: /* Control Indirect Access Register */
+        case 2: /* Block Power Down (CS4236+) */
+            if (dev->type < CRYSTAL_CS4236)
+                return;
+            break;
+
+        case 3: /* Control Indirect Access Register (CS4236B+) */
+            if (dev->type < CRYSTAL_CS4236B)
+                return;
             val &= 0x0f;
             break;
 
-        case 4: /* Control Indirect Data Register */
+        case 4: /* Control Indirect Data Register (CS4236B+) / Control Data Register (CS4236) */
+            if (dev->type < CRYSTAL_CS4236) {
+                return;
+            } else if (dev->type == CRYSTAL_CS4236) {
+                val &= 0x40;
+                break;
+            }
             switch (dev->regs[3] & 0x0f) {
                 case 0: /* WSS Master Control */
-                    if (val & 0x80)
+                    if ((dev->type < CRYSTAL_CS4235) && (val & 0x80))
                         ad1848_init(&dev->ad1848, dev->ad1848_type);
                     val = 0x00;
                     break;
 
-                case 1:        /* Version / Chip ID */
-                case 7:        /* Reserved */
-                case 9 ... 15: /* unspecified */
+                case 1:         /* Version / Chip ID */
+                case 7:         /* Reserved */
+                case 10 ... 15: /* unspecified */
                     return;
 
-                case 2: /* 3D Space and {Center|Volume} */
-                case 6: /* Upper Channel Status */
+                case 2: /* 3D Space and {Center|Volume} (CS4237B+) */
                     if (dev->type < CRYSTAL_CS4237B)
                         return;
                     break;
 
-                case 3: /* 3D Enable */
+                case 3: /* 3D Enable (CS4237B+) */
                     if (dev->type < CRYSTAL_CS4237B)
                         return;
                     val &= 0xe0;
                     break;
 
-                case 4: /* Consumer Serial Port Enable */
+                case 4: /* Consumer Serial Port Enable (CS423[78]B, unused on CS4235+) */
                     if (dev->type < CRYSTAL_CS4237B)
                         return;
                     val &= 0xf0;
                     break;
 
-                case 5: /* Lower Channel Status */
+                case 5: /* Lower Channel Status (CS423[78]B, unused on CS4235+) */
                     if (dev->type < CRYSTAL_CS4237B)
                         return;
-                    val &= 0xfe;
+                    if (dev->type < CRYSTAL_CS4235) /* bit 0 changed from reserved to unused on CS4235 */
+                        val &= 0xfe;
+                    break;
+
+                case 6: /* Upper Channel Status (CS423[78]B, unused on CS4235+) */
+                    if (dev->type < CRYSTAL_CS4237B)
+                        return;
                     break;
 
                 case 8: /* CS9236 Wavetable Control */
@@ -278,6 +312,16 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                     /* Update WTEN state on the WSS codec. */
                     dev->ad1848.wten = !!(val & 0x08);
                     ad1848_updatevolmask(&dev->ad1848);
+                    break;
+
+                case 9: /* Power Management (CS4235+) */
+                    if (dev->type < CRYSTAL_CS4235)
+                        return;
+                    if ((dev->indirect_regs[dev->regs[3]] & 0x80) && !(val & 0x80)) {
+                        cs423x_reset(dev);
+                        return;
+                    }
+                    val &= 0x83;
                     break;
 
                 default:
@@ -347,7 +391,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
-        case 7: /* Global Status */
+        case 7: /* Global Status (CS4236+) */
             return;
 
         default:
@@ -557,7 +601,7 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
     ad1848_update(&dev->ad1848);
 
     /* Don't output anything if the analog section is powered down. */
-    if (!(dev->indirect_regs[2] & 0xa4)) {
+    if (!(dev->indirect_regs[2] & 0xa4) && !(dev->indirect_regs[9] & 0x04)) {
         for (int c = 0; c < len * 2; c += 2) {
             buffer[c] += dev->ad1848.buffer[c] / 2;
             buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
@@ -570,26 +614,22 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 cs423x_get_music_buffer(int32_t *buffer, int len, void *priv)
 {
-    cs423x_t       *dev = (cs423x_t *) priv;
-    int             opl_wss = dev->opl_wss;
-    const int32_t  *opl_buf = NULL;
+    cs423x_t *dev = (cs423x_t *) priv;
 
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
-    if (opl_wss)
-        opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
+    if (dev->opl_wss) {
+        const int32_t *opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
 
-    /* Don't output anything if the analog section is powered down. */
-    if (!(dev->indirect_regs[2] & 0xa4)) {
-        for (int c = 0; c < len * 2; c += 2) {
-            if (opl_wss) {
+        /* Don't output anything if the analog section or DAC2 (CS4235+) is powered down. */
+        if (!(dev->indirect_regs[2] & 0xa4) && !(dev->indirect_regs[9] & 0x06)) {
+            for (int c = 0; c < len * 2; c += 2) {
                 buffer[c] += (opl_buf[c] * dev->ad1848.fm_vol_l) >> 16;
                 buffer[c + 1] += (opl_buf[c + 1] * dev->ad1848.fm_vol_r) >> 16;
             }
         }
-    }
 
-    if (opl_wss)
         dev->sb->opl.reset_buffer(dev->sb->opl.priv);
+    }
 }
 
 static void
@@ -625,7 +665,7 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
         }
 
         /* Update SPS. */
-        if (dev->type != CRYSTAL_CS4235) {
+        if ((dev->type >= CRYSTAL_CS4236B) && (dev->type <= CRYSTAL_CS4238B)) {
             if (dev->ram_data[0x4003] & 0x04)
                 dev->indirect_regs[8] |= 0x04;
             else
@@ -637,6 +677,14 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
             dev->ad1848.xregs[4] |= 0x10;
         else
             dev->ad1848.xregs[4] &= ~0x10;
+
+        /* Update VCEN. */
+        if (dev->type == CRYSTAL_CS4236) {
+            if (dev->ram_data[0x4002] & 0x04)
+                dev->regs[4] |= 0x40;
+            else
+                dev->regs[4] &= ~0x40;            
+        }
 
         /* Inform WSS codec of the changes. */
         ad1848_updatevolmask(&dev->ad1848);
