@@ -100,9 +100,8 @@ static const uint8_t cs4236b_default[] = {
     0x75, 0xb9, 0xfc, /* IRQ routing */
     0x10, 0x03, /* DMA routing */
 
-    /* Default PnP resources */
-    /* TODO: broken, not picked up by VS440FX BIOS, pending hardware research of the actual defaults */
-    0x0e, 0x63, 0x42, 0x36, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0a, 0x10, 0x00, 0x14, 0x41, 0xd0, 0xff, 0xff, 0x79, 0x00
+    /* Default PnP data */
+    0x0e, 0x63, 0x42, 0x35, 0xff, 0xff, 0xff, 0xff, 0x00 /* hinted by documentation to be just the header */
     // clang-format on
 };
 
@@ -343,6 +342,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                 dev->ram_dl = CRYSTAL_RAM_CMD;
 
                 /* Update PnP state and resource data. */
+                dev->pnp_size = 384; /* we don't know the length */
                 cs423x_pnp_enable(dev, 1, 0);
             }
             break;
@@ -756,7 +756,7 @@ cs423x_reset(void *priv)
 
     /* Load default configuration data to RAM. */
     memcpy(&dev->ram_data[0x4000], cs4236b_default, sizeof(cs4236b_default));
-    dev->pnp_size = 19;
+    dev->pnp_size = 9;
 
     if (dev->eeprom) {
         /* Load EEPROM data to RAM if the magic bytes are present. */
