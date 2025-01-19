@@ -879,9 +879,9 @@ cs423x_init(const device_t *info)
                 cs423x_nvram(dev, 0);
             }
 
-            /* Initialize game port. The '7B and '8B game port only responds to 6 I/O ports; the remaining
-               2 ports are reserved on those chips, and probably connected to the Digital Assist feature. */
-            dev->gameport = gameport_add(((dev->type == CRYSTAL_CS4235) || (dev->type == CRYSTAL_CS4236B)) ? &gameport_pnp_device : &gameport_pnp_6io_device);
+            /* Initialize game port. The game port on all B chips only
+               responds to 6 I/O ports; the remaining 2 are reserved. */
+            dev->gameport = gameport_add((dev->type == CRYSTAL_CS4235) ? &gameport_pnp_device : &gameport_pnp_6io_device);
 
             break;
 
