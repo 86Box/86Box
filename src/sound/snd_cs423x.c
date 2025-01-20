@@ -144,6 +144,7 @@ typedef struct cs423x_t {
 } cs423x_t;
 
 static void cs423x_slam_enable(cs423x_t *dev, uint8_t enable);
+static void cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv);
 static void cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig);
 static void cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
 static void cs423x_reset(void *priv);
@@ -237,6 +238,12 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
         case 0: /* Joystick and Power Control */
             if (dev->type <= CRYSTAL_CS4232)
                 val &= 0xeb;
+            if ((dev->type >= CRYSTAL_CS4235) && (addr == 0) && (val & 0x08)) {
+                /* CS4235+ through X26 backdoor only (hence the addr check): WSS off (one-way trip?) */
+                io_removehandler(dev->wss_base, 4, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &dev->ad1848);
+                io_removehandler(dev->wss_base, 4, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
+                dev->wss_base = 0;
+            }
             break;
 
         case 1: /* EEPROM Interface */
