@@ -42,6 +42,7 @@
 #define DA2_FONTROM_BASESBCS 0x98000
 #define DA2_GAIJIRAM_SBCS 0x34000
 #define DA2_GAIJIRAM_SBEX 0x3c000
+#define DA2_INVALIDACCESS8 0xff
 #define DA2_MASK_MMIO 0x1ffff
 #define DA2_MASK_GRAM 0x1ffff
 #define DA2_MASK_CRAM 0xfff
@@ -1244,7 +1245,7 @@ uint16_t da2_in(uint16_t addr, void *p)
             break;
         case LS_DATA:
             //da2->ioctl[3] = 0x80;//3E1h:3 bit 7 color monitor, bit 3 busy(GC) bit 0 busy (IO?)
-            if (da2->ioctladdr > 0xf) return 0xff;
+            if (da2->ioctladdr > 0xf) return DA2_INVALIDACCESS8;
             temp = da2->ioctl[da2->ioctladdr];
             if (da2->ioctladdr == LS_STATUS) { /* Status register */
                 if ((da2->vgapal[0].r + da2->vgapal[0].g + da2->vgapal[0].b) >= 0x50 && da2->attrc[LV_COMPATIBILITY] & 0x08)
@@ -1275,14 +1276,14 @@ uint16_t da2_in(uint16_t addr, void *p)
             temp = da2->fctladdr;
             break;
         case LF_DATA:
-            if (da2->fctladdr > 0x1f) return 0xff;
+            if (da2->fctladdr > 0x1f) return DA2_INVALIDACCESS8;
             temp = da2->fctl[da2->fctladdr];
             break;
         case LC_INDEX:
             temp = da2->crtcaddr;
             break;
         case LC_DATA:
-            if (da2->crtcaddr > 0x1f) return 0xff;
+            if (da2->crtcaddr > 0x1f) return DA2_INVALIDACCESS8;
             temp = da2->crtc[da2->crtcaddr];
             break;
         case LV_PORT:
@@ -2270,12 +2271,12 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
             return da2->mmio.ram[addr];
             break;
         case 0x10://Font ROM
+            if (addr >= DA2_FONTROM_SIZE) return DA2_INVALIDACCESS8;
             da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
-            if (addr > DA2_FONTROM_SIZE) return 0xff;
             return da2->mmio.font[addr];
             break;
         default:
-            return 0xff;//invalid memory access
+            return DA2_INVALIDACCESS8;//invalid memory access
             break;
         }
     }
@@ -2677,7 +2678,7 @@ static void da2_code_writew(uint32_t addr, uint16_t val, void* p)
 static uint8_t da2_code_read(uint32_t addr, void* p)
 {
     da2_t* da2 = (da2_t*)p;
-    if ((addr & ~DA2_MASK_CRAM) != 0xE0000) return 0xff;
+    if ((addr & ~DA2_MASK_CRAM) != 0xE0000) return DA2_INVALIDACCESS8;
     addr &= DA2_MASK_CRAM;
     return da2->cram[addr];
 }
