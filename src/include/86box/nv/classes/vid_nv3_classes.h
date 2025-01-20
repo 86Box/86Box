@@ -1043,9 +1043,12 @@ typedef struct nv3_object_class_017
     /* No placeholder needed, it really is that long. */
 } nv3_d3d5_accelerated_triangle_with_zeta_buffer_t;
 
-/* 0x18, 0x19, 0x1A, 0x1B don't exist */
+/* 0x19, 0x1A, 0x1B don't exist */
 
+typedef struct nv3_object_class_018
+{
 
+} nv3_point_with_zeta_buffer_t;
 
 /* WHY IS THE FORMAT DIFFERENT TO THE REST OF THE GPU? 
    They are making it look like a bitfield but it's hex?

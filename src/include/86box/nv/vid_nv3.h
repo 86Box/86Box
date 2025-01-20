@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   12 January 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   20 January 2025 (STILL WORKING ON IT!!!)
  *
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -218,7 +218,6 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CONFIG_RAMFC                          0x2214
 #define NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS             9
 #define NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS_DEFAULT     0x1C00      // Hardcoded in silicon?
-
 #define NV3_PFIFO_CONFIG_RAMRO                          0x2218
 #define NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS             9
 #define NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS_DEFAULT     0x1E00      // Hardcoded in silicon?
@@ -226,6 +225,44 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CONFIG_RAMRO_SIZE_512B                0x0
 #define NV3_PFIFO_CONFIG_RAMRO_SIZE_8K                  0x1 
 
+#define NV3_PFIFO_RUNOUT_STATUS                         0x2400
+#define NV3_PFIFO_RUNOUT_STATUS_RANOUT                  0           // 1 if we fucked up
+#define NV3_PFIFO_RUNOUT_STATUS_LOW_MARK                4           // 1 if ramro is empty
+#define NV3_PFIFO_RUNOUT_STATUS_HIGH_MARK               8
+#define NV3_PFIFO_RUNOUT_PUT                            0x2410
+#define NV3_PFIFO_RUNOUT_PUT_ADDRESS                    3           // 9:3 if small ramfc(?) otherwise 12:3
+#define NV3_PFIFO_RUNOUT_GET                            0x2420
+#define NV3_PFIFO_RUNOUT_GET_ADDRESS                    3           // 13:3
+
+#define NV3_PFIFO_CACHE0_SIZE                           1           // This is for software-injected notified only!
+#define NV3_PFIFO_CACHE1_SIZE_REV_AB                    32
+#define NV3_PFIFO_CACHE1_SIZE_REV_C                     64
+#define NV3_PFIFO_CACHE1_SIZE_MAX                       NV3_PFIFO_CACHE1_SIZE_REV_C
+#define NV3_PFIFO_CACHE_REASSIGNMENT                    0x2500        
+#define NV3_PFIFO_CACHE0_ACCESS                         0x3000
+#define NV3_PFIFO_CACHE0_DMA_CHANNEL_ID                 0x3004
+#define NV3_PFIFO_CACHE0_PUT                            0x3010
+#define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
+#define NV3_PFIFO_CACHE0_PULLER                         0x3040
+#define NV3_PFIFO_CACHE0_GET                            0x3070
+#define NV3_PFIFO_CACHE0_GET_ADDRESS                    2           // 1 bit
+#define NV3_PFIFO_CACHE1_ACCESS                         0x3200
+#define NV3_PFIFO_CACHE1_DMA_CHANNEL_ID                 0x3204
+#define NV3_PFIFO_CACHE1_PUT                            0x3210
+#define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
+#define NV3_PFIFO_CACHE1_DMA_STATUS                     0x3218
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_0                   0x3220
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_2                   0x3228
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_3                   0x322C
+// Why does a gpu need its own translation lookaside buffer and pagetable format. Are they crazy
+#define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
+#define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
+#define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
+#define NV3_PFIFO_CACHE1_PULLER                         0x3240
+#define NV3_PFIFO_CACHE1_PULLER_CONTEXT_IS_CLEAN        0x3250
+#define NV3_PFIFO_CACHE1_GET                            0x3270
+#define NV3_PFIFO_CACHE1_GET_ADDRESS                    2           // 6:2
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
 #define NV3_PRM_INTR                                    0x4100
@@ -750,7 +787,7 @@ typedef struct nv3_pramdac_s
     uint32_t hserr_width;       // horizontal sync error width
 } nv3_pramdac_t;
 
-/* Holds DMA context channel information */
+/* Holds DMA channel context information */
 typedef struct nv3_pgraph_context_switch_s
 {
     /* TODO */
@@ -766,12 +803,20 @@ typedef struct nv3_pgraph_context_control_s
 */
 typedef struct nv3_pgraph_context_user_s
 {
-    bool reserved3 : 1;
-    uint8_t channel : 7;
-    uint8_t reserved2 : 4;
-    uint8_t class : 5;
-    uint8_t subchannel : 3;
-    uint16_t reserved : 12;
+    union
+    {
+        uint32_t value;
+
+        struct
+        {
+            bool reserved3 : 1;
+            uint8_t channel : 7;
+            uint8_t reserved2 : 3;
+            uint8_t class : 5;
+            uint8_t subchannel : 3;
+            uint16_t reserved : 13;
+        };
+    };
 } nv3_pgraph_context_user_t; 
 
 typedef struct nv3_pgraph_dma_settings_s
@@ -819,6 +864,7 @@ typedef struct nv3_pgraph_s
     uint32_t interrupt_status_1;          // Interrupt status 1
     uint32_t interrupt_enable_1;          // Interrupt enable 1
 
+    uint32_t context_switch;              // TODO: Make this a struct, it's just going to be enormous lol.
     nv3_pgraph_context_control_t context_control;
     nv3_pgraph_context_switch_t context_user_submit;
     nv3_pgraph_context_user_t context_user;
@@ -923,16 +969,21 @@ typedef struct nv3_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv3_ptimer_t;
 
-typedef struct nv3_pramin_name_sd
+typedef struct nv3_pramin_name_s
 {
     union 
     {
         uint32_t name;
-        uint8_t byte_high;
-        uint8_t byte_mid2;
-        uint8_t byte_mid1;
-        uint8_t byte_low;
+
+        struct
+        {
+            uint8_t byte_high;
+            uint8_t byte_mid2;
+            uint8_t byte_mid1;
+            uint8_t byte_low;
+        };
     };
+
 } nv3_pramin_name_t;
 
 typedef struct nv3_pramin_context_s
@@ -940,10 +991,16 @@ typedef struct nv3_pramin_context_s
     union 
     {
         uint32_t context; 
-        uint8_t dma_channel;
-        uint8_t render_object;              //0=sw, 1=hw accelerated render
-        uint8_t class_id;
-        uint8_t ramin_offset;               //find
+
+        struct
+        {
+            
+            uint8_t dma_channel;
+            uint8_t render_object;              //0=sw, 1=hw accelerated render
+            uint8_t class_id;
+            uint8_t ramin_offset;               //find
+        };
+
     };
 } nv3_pramin_context_t;
 
@@ -1110,8 +1167,6 @@ uint32_t    nv3_cio_read(uint32_t address);
 void        nv3_cio_write(uint32_t address, uint32_t value);
 uint32_t    nv3_pbus_read(uint32_t address);
 void        nv3_pbus_write(uint32_t address, uint32_t value);
-uint32_t    nv3_pfifo_read(uint32_t address);
-void        nv3_pfifo_write(uint32_t address, uint32_t value);
 uint32_t    nv3_prm_read(uint32_t address);
 void        nv3_prm_write(uint32_t address, uint32_t value);
 uint32_t    nv3_prmio_read(uint32_t address);
@@ -1133,8 +1188,6 @@ uint32_t    nv3_palt_read(uint32_t address);
 void        nv3_palt_write(uint32_t address, uint32_t value);
 uint32_t    nv3_pme_read(uint32_t address);
 void        nv3_pme_write(uint32_t address, uint32_t value);
-uint32_t    nv3_pgraph_read(uint32_t address);
-void        nv3_pgraph_write(uint32_t address, uint32_t value);
 
 // TODO: PGRAPH class registers
 
@@ -1163,11 +1216,18 @@ uint32_t    nv3_pmc_handle_interrupts(bool send_now);
 
 // NV3 PGRAPH
 void        nv3_pgraph_init();
+uint32_t    nv3_pgraph_read(uint32_t address);
+void        nv3_pgraph_write(uint32_t address, uint32_t value);
 void        nv3_pgraph_vblank_start(svga_t* svga);
 
 // NV3 PFIFO
 void        nv3_pfifo_init();
+uint32_t    nv3_pfifo_read(uint32_t address);
+void        nv3_pfifo_write(uint32_t address, uint32_t value);
 
+// NV3 PFIFO - Caches
+uint32_t    nv3_pfifo_cache1_normal2gray(uint32_t val);
+uint32_t    nv3_pfifo_cache1_gray2normal(uint32_t val);
 
 // NV3 PFB
 void        nv3_pfb_init();

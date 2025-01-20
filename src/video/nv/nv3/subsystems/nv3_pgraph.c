@@ -120,6 +120,17 @@ uint32_t nv3_pgraph_read(uint32_t address)
         {
             switch (reg->address)
             {
+                case NV3_PGRAPH_DEBUG_0:
+                    ret = nv3->pgraph.debug_0;
+                    break;
+                case NV3_PGRAPH_DEBUG_1:
+                    ret = nv3->pgraph.debug_1;
+                    break;
+                case NV3_PGRAPH_DEBUG_2:
+                    ret = nv3->pgraph.debug_2;
+                    break;
+                case NV3_PGRAPH_DEBUG_3:
+                    ret = nv3->pgraph.debug_3;
                 //interrupt status and enable regs
                 case NV3_PGRAPH_INTR_0:
                     ret = nv3->pgraph.interrupt_status_0;
@@ -132,6 +143,101 @@ uint32_t nv3_pgraph_read(uint32_t address)
                     break;
                 case NV3_PGRAPH_INTR_EN_1:
                     ret = nv3->pgraph.interrupt_enable_1;
+                    break;
+                // A lot of this is currently a temporary implementation so that we can just debug what the current state looks like
+                // during the driver initialisation process            
+
+                // In the future, these will most likely have their own functions...
+
+                // Context Swithcing (THIS IS CONTROLLED BY PFIFO!)
+                case NV3_PGRAPH_CONTEXT_SWITCH:
+                    ret = nv3->pgraph.context_switch;
+                    break;
+                case NV3_PGRAPH_CONTEXT_CONTROL:
+                    ret = *(uint32_t*)&nv3->pgraph.context_control;
+                    break;
+                case NV3_PGRAPH_CONTEXT_USER:
+                    ret = *(uint32_t*)&nv3->pgraph.context_user;
+                    break;
+                // Clip
+                case NV3_PGRAPH_ABS_UCLIP_XMIN:
+                    ret = nv3->pgraph.abs_uclip_xmin;
+                    break;
+                case NV3_PGRAPH_ABS_UCLIP_XMAX:
+                    ret = nv3->pgraph.abs_uclip_xmax;
+                    break;
+                case NV3_PGRAPH_ABS_UCLIP_YMIN:
+                    ret = nv3->pgraph.abs_uclip_ymin;
+                    break;
+                case NV3_PGRAPH_ABS_UCLIP_YMAX:
+                    ret = nv3->pgraph.abs_uclip_ymax;
+                    break;
+                // Canvas
+                case NV3_PGRAPH_SRC_CANVAS_MIN:
+                    ret = *(uint32_t*)&nv3->pgraph.src_canvas_min;
+                    break;
+                case NV3_PGRAPH_SRC_CANVAS_MAX:
+                    ret = *(uint32_t*)&nv3->pgraph.src_canvas_max;
+                    break;
+                // Pattern
+                case NV3_PGRAPH_PATTERN_COLOR_0_0:
+                    ret = *(uint32_t*)&nv3->pgraph.pattern_color_0_0;
+                    break;
+                case NV3_PGRAPH_PATTERN_COLOR_0_1:
+                    ret = *(uint32_t*)&nv3->pgraph.pattern_color_0_1;
+                    break;
+                case NV3_PGRAPH_PATTERN_COLOR_1_0:
+                    ret = *(uint32_t*)&nv3->pgraph.pattern_color_1_0;
+                    break;
+                case NV3_PGRAPH_PATTERN_COLOR_1_1:
+                    ret = *(uint32_t*)&nv3->pgraph.pattern_color_1_1;
+                    break;
+                case NV3_PGRAPH_PATTERN_BITMAP_HIGH:
+                    ret = nv3->pgraph.pattern_bitmap_high;
+                    break;
+                case NV3_PGRAPH_PATTERN_BITMAP_LOW:
+                    ret = nv3->pgraph.pattern_bitmap_low;
+                    break;
+                // Beta factor
+                case NV3_PGRAPH_BETA:
+                    ret = nv3->pgraph.beta_factor;
+                    break; 
+                // DMA
+                case NV3_PGRAPH_DMA:
+                    ret = *(uint32_t*)&nv3->pgraph.dma_settings;
+                    break;
+                case NV3_PGRAPH_NOTIFY:
+                    ret = *(uint32_t*)&nv3->pgraph.notifier;
+                    break;
+                // More clip
+                case NV3_PGRAPH_CLIP0_MIN:
+                    ret = *(uint32_t*)&nv3->pgraph.clip0_min;
+                    break;
+                case NV3_PGRAPH_CLIP0_MAX:
+                    ret = *(uint32_t*)&nv3->pgraph.clip0_max;
+                    break;
+                case NV3_PGRAPH_CLIP1_MIN:
+                    ret = *(uint32_t*)&nv3->pgraph.clip1_min;
+                    break;
+                case NV3_PGRAPH_CLIP1_MAX:
+                    ret = *(uint32_t*)&nv3->pgraph.clip1_max;
+                    break;
+                case NV3_PGRAPH_CLIP_MISC:
+                    ret = *(uint32_t*)&nv3->pgraph.clip_misc_settings;
+                    break;
+                // Overall Status
+                case NV3_PGRAPH_STATUS:
+                    ret = *(uint32_t*)&nv3->pgraph.status;
+                    break;
+                // Trapped Address
+                case NV3_PGRAPH_TRAPPED_ADDRESS:
+                    ret = nv3->pgraph.trapped_address;
+                    break;
+                case NV3_PGRAPH_TRAPPED_DATA:
+                    ret = nv3->pgraph.trapped_data;
+                    break;
+                case NV3_PGRAPH_TRAPPED_INSTANCE:
+                    ret = nv3->pgraph.trapped_instance;
                     break;
             }
         }
@@ -189,6 +295,18 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
         {
             switch (reg->address)
             {
+                case NV3_PGRAPH_DEBUG_0:
+                    nv3->pgraph.debug_0 = value;
+                    break;
+                case NV3_PGRAPH_DEBUG_1:
+                    nv3->pgraph.debug_1 = value;
+                    break;
+                case NV3_PGRAPH_DEBUG_2:
+                    nv3->pgraph.debug_2 = value;
+                    break;
+                case NV3_PGRAPH_DEBUG_3:
+                    nv3->pgraph.debug_3 = value;
+                    break;
                 //interrupt status and enable regs
                 case NV3_PGRAPH_INTR_0:
                     nv3->pgraph.interrupt_status_0 &= ~value;
@@ -210,6 +328,101 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                     nv3->pgraph.interrupt_enable_1 = value & 0x00011111; 
                     nv3_pmc_handle_interrupts(true);
 
+                    break;
+                // A lot of this is currently a temporary implementation so that we can just debug what the current state looks like
+                // during the driver initialisation process            
+
+                // In the future, these will most likely have their own functions...
+
+                // Context Swithcing (THIS IS CONTROLLED BY PFIFO!)
+                case NV3_PGRAPH_CONTEXT_SWITCH:
+                    nv3->pgraph.context_switch = value;
+                    break;
+                case NV3_PGRAPH_CONTEXT_CONTROL:
+                    *(uint32_t*)&nv3->pgraph.context_control = value;
+                    break;
+                case NV3_PGRAPH_CONTEXT_USER:
+                    *(uint32_t*)&nv3->pgraph.context_user = value;
+                    break;
+                // Clip
+                case NV3_PGRAPH_ABS_UCLIP_XMIN:
+                    nv3->pgraph.abs_uclip_xmin = value;
+                    break;
+                case NV3_PGRAPH_ABS_UCLIP_XMAX:
+                    nv3->pgraph.abs_uclip_xmax = value;
+                    break;
+                case NV3_PGRAPH_ABS_UCLIP_YMIN:
+                    nv3->pgraph.abs_uclip_ymin = value;
+                    break;
+                case NV3_PGRAPH_ABS_UCLIP_YMAX:
+                    nv3->pgraph.abs_uclip_ymax = value;
+                    break;
+                // Canvas
+                case NV3_PGRAPH_SRC_CANVAS_MIN:
+                    *(uint32_t*)&nv3->pgraph.src_canvas_min = value;
+                    break;
+                case NV3_PGRAPH_SRC_CANVAS_MAX:
+                    *(uint32_t*)&nv3->pgraph.src_canvas_max = value;
+                    break;
+                // Pattern
+                case NV3_PGRAPH_PATTERN_COLOR_0_0:
+                    *(uint32_t*)&nv3->pgraph.pattern_color_0_0 = value;
+                    break;
+                case NV3_PGRAPH_PATTERN_COLOR_0_1:
+                    *(uint32_t*)&nv3->pgraph.pattern_color_0_1 = value;
+                    break;
+                case NV3_PGRAPH_PATTERN_COLOR_1_0:
+                    *(uint32_t*)&nv3->pgraph.pattern_color_1_0 = value;
+                    break;
+                case NV3_PGRAPH_PATTERN_COLOR_1_1:
+                    *(uint32_t*)&nv3->pgraph.pattern_color_1_1 = value;
+                    break;
+                case NV3_PGRAPH_PATTERN_BITMAP_HIGH:
+                    nv3->pgraph.pattern_bitmap_high = value;
+                    break;
+                case NV3_PGRAPH_PATTERN_BITMAP_LOW:
+                    nv3->pgraph.pattern_bitmap_low = value;
+                    break;
+                // Beta factor
+                case NV3_PGRAPH_BETA:
+                    nv3->pgraph.beta_factor = value;
+                    break; 
+                // DMA
+                case NV3_PGRAPH_DMA:
+                    *(uint32_t*)&nv3->pgraph.dma_settings = value;
+                    break;
+                case NV3_PGRAPH_NOTIFY:
+                    *(uint32_t*)&nv3->pgraph.notifier = value;
+                    break;
+                // More clip
+                case NV3_PGRAPH_CLIP0_MIN:
+                    *(uint32_t*)&nv3->pgraph.clip0_min = value;
+                    break;
+                case NV3_PGRAPH_CLIP0_MAX:
+                    *(uint32_t*)&nv3->pgraph.clip0_max = value;
+                    break;
+                case NV3_PGRAPH_CLIP1_MIN:
+                    *(uint32_t*)&nv3->pgraph.clip1_min = value;
+                    break;
+                case NV3_PGRAPH_CLIP1_MAX:
+                    *(uint32_t*)&nv3->pgraph.clip1_max = value;
+                    break;
+                case NV3_PGRAPH_CLIP_MISC:
+                    *(uint32_t*)&nv3->pgraph.clip_misc_settings = value;
+                    break;
+                // Overall Status
+                case NV3_PGRAPH_STATUS:
+                    *(uint32_t*)&nv3->pgraph.status = value;
+                    break;
+                // Trapped Address
+                case NV3_PGRAPH_TRAPPED_ADDRESS:
+                    nv3->pgraph.trapped_address = value;
+                    break;
+                case NV3_PGRAPH_TRAPPED_DATA:
+                    nv3->pgraph.trapped_data = value;
+                    break;
+                case NV3_PGRAPH_TRAPPED_INSTANCE:
+                    nv3->pgraph.trapped_instance = value;
                     break;
             }
         }

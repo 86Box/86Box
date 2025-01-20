@@ -28,8 +28,6 @@
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
 
-
-
 //
 // ****** pfifo register list START ******
 //
@@ -206,4 +204,32 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
         }
     }
 
+}
+
+/* 
+https://en.wikipedia.org/wiki/Gray_code
+WHY?????? IT'S NOT A TELEGRAPH IT'S A GPU?????
+
+Convert from a normal number to a total insanity number which is only used in PFIFO CACHE1 for ungodly and totally unknowable reasons 
+*/
+uint32_t nv3_pfifo_cache1_normal2gray(uint32_t val)
+{
+    return (val) ^ (val >> 1);
+}
+
+/* 
+Back to sanity
+*/
+uint32_t  nv3_pfifo_cache1_gray2normal(uint32_t val)
+{
+    uint32_t mask = val >> 1;
+    
+    // shift right until we have our normla number again
+    while (mask)
+    {
+        val ^= mask;
+        mask >>= 1; 
+    }
+
+    return val;
 }

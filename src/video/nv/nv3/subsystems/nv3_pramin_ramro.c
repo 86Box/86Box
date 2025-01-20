@@ -30,10 +30,10 @@
 
 uint32_t nv3_ramro_read(uint32_t address)
 {
-    nv_log("NV3: RAM Runout (invalid dma object submission) Read (0x%04x), UNIMPLEMENTED - RETURNING 0x00", address);
+    nv_log("NV3: RAM Runout (invalid dma object submission) Read (0x%04x), UNIMPLEMENTED - RETURNING 0x00\n", address);
 }
 
 void nv3_ramro_write(uint32_t address, uint32_t value)
 {
-    nv_log("NV3: RAM Runout WRITE, OH CRAP!!!! (0x%04x -> 0x%04x), UNIMPLEMENTED\n (Todo: Read the entries...)", value, address);
+    nv_log("NV3: RAM Runout WRITE, OH CRAP!!!! (0x%04x -> 0x%04x), UNIMPLEMENTED\n (Todo: Read the entries...)\n", value, address);
 }

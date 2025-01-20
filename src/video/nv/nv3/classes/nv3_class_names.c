@@ -56,7 +56,7 @@ const char* nv3_class_names[] =
     "NV3 class 0x15: Stretched image from CPU",
     "NV3 INVALID class 0x16",
     "NV3 class 0x17: Direct3D 5.0 accelerated textured triangle w/zeta buffer",
-    "NV3 INVALID class 0x18",
+    "NV3 class 0x18: Point with zeta buffer",
     "NV3 INVALID class 0x19",
     "NV3 INVALID class 0x1A",
     "NV3 INVALID class 0x1B",
