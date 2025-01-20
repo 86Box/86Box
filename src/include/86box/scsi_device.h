@@ -333,6 +333,20 @@
 
 #define BUS_IDLE                      (1 << 31)
 
+#define STATE_IDLE                    0
+#define STATE_COMMAND                 1
+#define STATE_DATAIN                  2
+#define STATE_DATAOUT                 3
+#define STATE_STATUS                  4
+#define STATE_MESSAGEIN               5
+#define STATE_SELECT                  6
+#define STATE_MESSAGEOUT              7
+#define STATE_MESSAGE_ID              8
+
+#define PIO_TX_BUS                    0
+#define DMA_IN_TX_BUS                 1
+#define DMA_OUT_TX_BUS                2
+
 #define PHASE_IDLE                    0x00
 #define PHASE_COMMAND                 0x01
 #define PHASE_DATA_IN                 0x02
@@ -420,6 +434,36 @@ typedef struct scsi_device_t {
     void    (*command_stop)(scsi_common_t *sc);
 } scsi_device_t;
 
+typedef struct scsi_bus_t {
+    int      tx_mode;
+    int      clear_req;
+    int      wait_data;
+    int      wait_complete;
+    int      bus_out;
+    int      bus_in;
+    int      command_pos;
+    int      command_issued;
+    int      data_pos;
+    int      msgout_pos;
+    int      is_msgout;
+    int      state;
+    int      dma_on_pio_enabled;
+    uint8_t  data;
+    uint8_t  msglun;
+    uint8_t  data_wait;
+    uint8_t  command[16];
+    uint8_t  msgout[4];
+    uint8_t  target_id;
+    uint8_t  bus_device;
+    uint32_t bus_phase;
+    double   period;
+    double   speed;
+    double   divider;
+    double   multi;
+    void    *priv;
+    void   (*timer)(void *priv, double period);
+} scsi_bus_t;
+
 /* These are based on the INQUIRY values. */
 #define SCSI_NONE            0x0060
 #define SCSI_FIXED_DISK      0x0000
@@ -454,6 +498,8 @@ extern void     scsi_device_init(void);
 
 extern void    scsi_reset(void);
 extern uint8_t scsi_get_bus(void);
+extern int     scsi_bus_read(scsi_bus_t *scsi_bus);
+extern void    scsi_bus_update(scsi_bus_t *scsi_bus, int bus);
 
 extern void    scsi_bus_set_speed(uint8_t bus, double speed);
 extern double  scsi_bus_get_speed(uint8_t bus);
