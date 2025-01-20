@@ -273,18 +273,19 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     return;
 
                 case 12:
-                    if (ad1848->type != AD1848_TYPE_DEFAULT)
-                        ad1848->regs[12] = ((ad1848->regs[12] & 0x0f) + (val & 0xf0)) | 0x80;
+                    if (ad1848->type >= AD1848_TYPE_CS4248) {
+                        ad1848->regs[12] = 0x80 | (val & 0x70) | (ad1848->regs[12] & 0x0f);
+                        if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235)) {
+                            if (val & 0x40)
+                                ad1848->fmt_mask |= 0x80;
+                            else
+                                ad1848->fmt_mask &= ~0x80;
+                        }
+                    }
                     return;
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
-                    break;
-
-                case 17:
-                    /* Enable additional data formats on modes 2 and 3 where supported. */
-                    if ((ad1848->type == AD1848_TYPE_CS4231) || (ad1848->type == AD1848_TYPE_CS4236B))
-                        ad1848->fmt_mask = (val & 0x40) ? 0xf0 : 0x70;
                     break;
 
                 case 18:
