@@ -16,7 +16,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2018-2020 TheCollector1995.
- *          Copyright 2021 RichardG.
+ *          Copyright 2021-2025 RichardG.
  */
 
 #ifndef SOUND_AD1848_H
@@ -26,8 +26,10 @@ enum {
     AD1848_TYPE_DEFAULT = 0,
     AD1848_TYPE_CS4248  = 1,
     AD1848_TYPE_CS4231  = 2,
-    AD1848_TYPE_CS4235  = 3,
-    AD1848_TYPE_CS4236  = 4
+    AD1848_TYPE_CS4232  = 3,
+    AD1848_TYPE_CS4236  = 4,
+    AD1848_TYPE_CS4236B = 5,
+    AD1848_TYPE_CS4235  = 6
 };
 
 typedef struct ad1848_t {

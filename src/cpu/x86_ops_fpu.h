@@ -99,8 +99,8 @@ opWAIT(uint32_t fetchdat)
 
     if (fpu_softfloat) {
         if (fpu_state.swd & FPU_SW_Summary) {
-            if (is486 && (cr0 & 0x20))
-                x86_int(16);
+            if (cr0 & 0x20)
+                new_ne = 1;
             else
                 picint(1 << 13);
             return 1;

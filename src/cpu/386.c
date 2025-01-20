@@ -268,7 +268,8 @@ exec386_2386(int32_t cycs)
             } else {
                 CHECK_READ_CS(MIN(ol, 4));
             }
-            ins_fetch_fault = cpu_386_check_instruction_fault();
+            if (is386)
+                ins_fetch_fault = cpu_386_check_instruction_fault();
 
             /* Breakpoint fault has priority over other faults. */
             if (ins_fetch_fault) {
@@ -336,6 +337,14 @@ exec386_2386(int32_t cycs)
 #endif
                     }
                 }
+            } else if (new_ne) {
+                flags_rebuild();
+                new_ne = 0;
+#ifndef USE_NEW_DYNAREC
+                oldcs = CS;
+#endif
+                cpu_state.oldpc = cpu_state.pc;
+                x86_int(16);
             } else if (trap) {
                 flags_rebuild();
                 if (trap & 2) dr[6] |= 0x8000;

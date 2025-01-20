@@ -239,7 +239,7 @@ typedef struct neat_t {
     ram_page_t    shadow[32];          /* Shadow RAM pages */
 } neat_t;
 
-static uint8_t defaults[16] = { 0x0a, 0x45, 0xfc, 0x00, 0x00, 0x7f, 0x00, 0x00,
+static uint8_t defaults[16] = { 0x0a, 0x45, 0xfc, 0x00, 0x00, 0xfe, 0x00, 0x00,
                                 0x00, 0x00, 0xa0, 0x63, 0x10, 0x00, 0x00, 0x12 };
 
 static uint8_t masks[4]     = { RB10_P0EXT, RB10_P1EXT, RB10_P2EXT, RB10_P3EXT };
@@ -924,6 +924,16 @@ neat_init(UNUSED(const device_t *info))
 
     mem_mapping_disable(&ram_mid_mapping);
 
+    for (int i = 0; i < 24; i++) {
+       if (i >= 20)
+           neat_mem_update_state(dev, 0x000a0000 + (i * EMS_PGSIZE), EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_SHADOW);
+       else {
+           /* This is needed to actually trigger an update. */
+           dev->mem_flags[i + 8] = MEM_FLAG_ROMCS;
+           neat_mem_update_state(dev, 0x000a0000 + (i * EMS_PGSIZE), EMS_PGSIZE, 0x00, MEM_FMASK_SHADOW);
+       }
+    }
+
     /*
      * For each supported page (we can have a maximum of 4),
      * create, initialize and disable the mappings, and set
@@ -1096,7 +1106,7 @@ neat_init(UNUSED(const device_t *info))
             neat_log("NEAT: **INVALID DRAM SIZE %iKB !**\n", mem_size);
     }
     if (dram_mode > 0) {
-        neat_log("NEAT: using DRAM mode #%i (mem=%iKB)\n", i, mem_size);
+        neat_log("NEAT: using DRAM mode #%i (mem=%iKB)\n", dram_mode, mem_size);
     }
 
     /* Set up an I/O handler for the chipset. */

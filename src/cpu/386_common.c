@@ -72,6 +72,7 @@ extern uint8_t *pccache2;
 extern int      optype;
 extern uint32_t pccache;
 
+int      new_ne            = 0;
 int      in_sys            = 0;
 int      unmask_a20_in_smm = 0;
 uint32_t old_rammask       = 0xffffffff;
