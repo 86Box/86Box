@@ -267,7 +267,7 @@ void pclog_ensure_stdlog_open(void);
 #endif
 
 /* 
-    Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
+    Ensures STDLOG is open for pclog_ex
 */
 void pclog_ensure_stdlog_open(void)
 {

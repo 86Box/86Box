@@ -46,6 +46,7 @@ typedef struct log_t {
     char    cyclic_buff[LOG_SIZE_BUFFER_CYCLIC_LINES][LOG_SIZE_BUFFER];     // Cyclical log buffer. This is 32kb, might calloc?
     int32_t cyclic_last_line;
     int32_t log_cycles;
+    int32_t last_repeat_order; // used to detect changes between different repeating patterns
 } log_t;
 
 extern FILE *stdlog; /* file to log output to */
@@ -216,6 +217,13 @@ log_out_cyclic(void* priv, const char* fmt, va_list ap)
         {
             log->log_cycles++;
 
+            // If the order of the log repeat changes
+            if (log->last_repeat_order != repeat_order
+            && log->last_repeat_order > 0)
+            {
+                log->log_cycles = 1;
+            }
+
             if (log->log_cycles == 1)
             {
                 // 'Replay' the last few log entries so they actually show up
@@ -251,7 +259,7 @@ log_out_cyclic(void* priv, const char* fmt, va_list ap)
     }
 
     log->cyclic_last_line++;
-    
+    log->last_repeat_order = repeat_order;
 #endif
 
 }

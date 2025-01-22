@@ -575,10 +575,10 @@ uint8_t nv3_svga_in(uint16_t addr, void* priv)
     switch (addr)
     {
         // Alias for "get current SVGA CRTC register ID"
-        case 0x3D4:
+        case NV3_CRTC_REGISTER_INDEX:
             ret = nv3->nvbase.svga.crtcreg;
             break;
-        case 0x3D5:
+        case NV3_CRTC_REGISTER_CURRENT:
             // Support the extended NVIDIA CRTC register range
             switch (nv3->nvbase.svga.crtcreg)
             {
@@ -644,12 +644,12 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
     
     switch (addr)
     {
-        case 0x3D4:
+        case NV3_CRTC_REGISTER_INDEX:
             // real mode access to GPU MMIO space...
             nv3->nvbase.svga.crtcreg = val;
             break;
         // support the extended crtc regs and debug this out
-        case 0x3D5:
+        case NV3_CRTC_REGISTER_CURRENT:
 
             // Implements the VGA Protect register
             if ((nv3->nvbase.svga.crtcreg < NV3_CRTC_REGISTER_OVERFLOW) && (nv3->nvbase.svga.crtc[0x11] & 0x80))

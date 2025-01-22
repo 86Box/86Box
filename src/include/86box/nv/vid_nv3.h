@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   20 January 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   2 January 2025 (STILL WORKING ON IT!!!)
  *
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -267,7 +267,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
-#define NV3_PFIFO_CACHE1_PULLER                         0x3240
+#define NV3_PFIFO_CACHE1_PULLER_STATE0                  0x3240
+#define NV3_PFIFO_CACHE1_PULLER_STATE0_ENABLED          0
+#define NV3_PFIFO_CACHE1_PULLER_STATE0_HASH_SUCCESS     4
+#define NV3_PFIFO_CACHE1_PULLER_STATE0_DEVICE           8
 #define NV3_PFIFO_CACHE1_PULLER_CONTEXT_IS_CLEAN        0x3250
 #define NV3_PFIFO_CACHE1_GET                            0x3270
 #define NV3_PFIFO_CACHE1_GET_ADDRESS                    2           // 6:2
@@ -445,56 +448,56 @@ extern const device_config_t nv3_config[];
 
 // not sure about the class ids
 // these are NOT what each class is, just uSed to manipulate it (there isn't a one to one class->reg mapping anyway)
-#define NV3_PGRAPH_CLASS18_BETA_START                   0x410000    // Beta blending factor
-#define NV3_PGRAPH_CLASS18_BETA_END                     0x411FFF  
-#define NV3_PGRAPH_CLASS20_ROP_START                    0x420000    // Blending render operation used at final pixel/fragment generation stage
-#define NV3_PGRAPH_CLASS20_ROP_END                      0x421FFF
-#define NV3_PGRAPH_CLASS21_COLORKEY_START               0x430000    // Color key for image
-#define NV3_PGRAPH_CLASS21_COLORKEY_END                 0x431FFF      
-#define NV3_PGRAPH_CLASS22_PLANEMASK_START              0x440000    // Plane mask (for clipping?)
-#define NV3_PGRAPH_CLASS22_PLANEMASK_END                0x441FFF
-#define NV3_PGRAPH_CLASSXX_CLIP_START                   0x450000    // clipping, probably class 23
-#define NV3_PGRAPH_CLASSXX_CLIP_END                     0x451FFF
-#define NV3_PGRAPH_CLASS24_PATTERN_START                0x460000    // presumably a blend pattern 
-#define NV3_PGRAPH_CLASS24_PATTERN_END                  0x461FFF
-#define NV3_PGRAPH_CLASS30_RECTANGLE_START              0x470000    // also class 25 - that's black [NV1]
-#define NV3_PGRAPH_CLASS30_RECTANGLE_END                0x471FFF    // also class 25 - that's black [NV1]
-#define NV3_PGRAPH_CLASS26_POINT_START                  0x480000    // A single point
-#define NV3_PGRAPH_CLASS26_POINT_END                    0x481FFF
-#define NV3_PGRAPH_CLASS27_LINE_START                   0x490000    // A line
-#define NV3_PGRAPH_CLASS27_LINE_END                     0x491FFF       
-#define NV3_PGRAPH_CLASS28_LIN_START                    0x4A0000    // A lin - a line without its starting or ending pixels
-#define NV3_PGRAPH_CLASS28_LIN_END                      0x4A1FFF
-#define NV3_PGRAPH_CLASS29_TRIANGLE_START               0x4B0000    // A triangle [NV1 variant] - in NV1 this was converted to a quad patch
-#define NV3_PGRAPH_CLASS29_TRIANGLE_END                 0x4B1FFF   
-#define NV3_PGRAPH_CLASS75_GDITEXT_START                0x4C0000    // Windows 95/NT GDI text acceleration
-#define NV3_PGRAPH_CLASS75_GDITEXT_END                  0x4C1FFF    
+#define NV3_PGRAPH_CLASS01_BETA_START                   0x410000    // Beta blending factor
+#define NV3_PGRAPH_CLASS01_BETA_END                     0x411FFF  
+#define NV3_PGRAPH_CLASS02_ROP_START                    0x420000    // Blending render operation used at final pixel/fragment generation stage
+#define NV3_PGRAPH_CLASS02_ROP_END                      0x421FFF
+#define NV3_PGRAPH_CLASS03_COLORKEY_START               0x430000    // Color key for image
+#define NV3_PGRAPH_CLASS03_COLORKEY_END                 0x431FFF      
+#define NV3_PGRAPH_CLASS04_PLANEMASK_START              0x440000    // Plane mask (for clipping?)
+#define NV3_PGRAPH_CLASS04_PLANEMASK_END                0x441FFF
+#define NV3_PGRAPH_CLASS05_CLIP_START                   0x450000    // clipping, probably class 23
+#define NV3_PGRAPH_CLASS05_CLIP_END                     0x451FFF
+#define NV3_PGRAPH_CLASS06_PATTERN_START                0x460000    // presumably a blend pattern 
+#define NV3_PGRAPH_CLASS06_PATTERN_END                  0x461FFF
+#define NV3_PGRAPH_CLASS07_RECTANGLE_START              0x470000    // also class 25 - that's black [NV1]
+#define NV3_PGRAPH_CLASS07_RECTANGLE_END                0x471FFF    // also class 25 - that's black [NV1]
+#define NV3_PGRAPH_CLASS08_POINT_START                  0x480000    // A single point
+#define NV3_PGRAPH_CLASS08_POINT_END                    0x481FFF
+#define NV3_PGRAPH_CLASS09_LINE_START                   0x490000    // A line
+#define NV3_PGRAPH_CLASS09_LINE_END                     0x491FFF       
+#define NV3_PGRAPH_CLASS0A_LIN_START                    0x4A0000    // A lin - a line without its starting or ending pixels
+#define NV3_PGRAPH_CLASS0A_LIN_END                      0x4A1FFF
+#define NV3_PGRAPH_CLASS0B_TRIANGLE_START               0x4B0000    // A triangle [NV1 variant] - in NV1 this was converted to a quad patch
+#define NV3_PGRAPH_CLASS0B_TRIANGLE_END                 0x4B1FFF   
+#define NV3_PGRAPH_CLASS0C_GDITEXT_START                0x4C0000    // Windows 95/NT GDI text acceleration
+#define NV3_PGRAPH_CLASS0C_GDITEXT_END                  0x4C1FFF    
 
-#define NV3_PGRAPH_CLASS61_MEM2MEM_XFER_START           0x4D0000    // memory to memory transfer (not sure about which class this is)
-#define NV3_PGRAPH_CLASS61_MEM2MEM_XFER_END             0x4D1FFF    
-#define NV3_PGRAPH_CLASSXX_IMAGE2MEM_XFER_SCALED_START  0x4E0000    // class 55, 56
-#define NV3_PGRAPH_CLASSXX_IMAGE2MEM_XFER_SCALED_END    0x4E1FFF
+#define NV3_PGRAPH_CLASS0D_MEM2MEM_XFER_START           0x4D0000    // memory to memory transfer (not sure about which class this is)
+#define NV3_PGRAPH_CLASS0D_MEM2MEM_XFER_END             0x4D1FFF    
+#define NV3_PGRAPH_CLASS0E_IMAGE2MEM_XFER_SCALED_START  0x4E0000    // class 55, 56
+#define NV3_PGRAPH_CLASS0F_IMAGE2MEM_XFER_SCALED_END    0x4E1FFF
 
-#define NV3_PGRAPH_CLASS31_BLIT_START                   0x500000    // Blit 2d image from memory
-#define NV3_PGRAPH_CLASS31_BLIT_END                     0x501FFF      
+#define NV3_PGRAPH_CLASS10_BLIT_START                   0x500000    // Blit 2d image from memory
+#define NV3_PGRAPH_CLASS10_BLIT_END                     0x501FFF      
 
-#define NV3_PGRAPH_CLASSXX_CPU2MEM_IMAGE_START          0x510000    // Used for class 33, 34, 54
-#define NV3_PGRAPH_CLASSXX_CPU2MEM_IMAGE_END            0x511FFF    
-#define NV3_PGRAPH_CLASSXX_CPU2MEM_BITMAP_START         0x520000    // not sure, might depend on format
-#define NV3_PGRAPH_CLASSXX_CPU2MEM_BITMAP_END           0x521FFF    
+#define NV3_PGRAPH_CLASS11_CPU2MEM_IMAGE_START          0x510000    // Used for class 33, 34, 54
+#define NV3_PGRAPH_CLASS11_CPU2MEM_IMAGE_END            0x511FFF    
+#define NV3_PGRAPH_CLASS12_CPU2MEM_BITMAP_START         0x520000    // not sure, might depend on format
+#define NV3_PGRAPH_CLASS12_CPU2MEM_BITMAP_END           0x521FFF    
 
-#define NV3_PGRAPH_CLASSXX_IMAGE2MEM_XFER_START         0x540000    // send image to vram, not sure what class 
-#define NV3_PGRAPH_CLASSXX_IMAGE2MEM_XFER_END           0x541FFF    
-#define NV3_PGRAPH_CLASS54_CPU2MEM_STRETCHED_START      0x550000    // stretched cpu->vram transfer, 54
-#define NV3_PGRAPH_CLASS54_CPU2MEM_STRETCHED_END        0x551FFF  
+#define NV3_PGRAPH_CLASS14_IMAGE2MEM_XFER_START         0x540000    // send image to vram, not sure what class 
+#define NV3_PGRAPH_CLASS14_IMAGE2MEM_XFER_END           0x541FFF    
+#define NV3_PGRAPH_CLASS15_CPU2MEM_STRETCHED_START      0x550000    // stretched cpu->vram transfer, 54
+#define NV3_PGRAPH_CLASS15_CPU2MEM_STRETCHED_END        0x551FFF  
 
-#define NV3_PGRAPH_CLASS72_D3D5TRI_ZETA_START           0x570000    // [NV3] Copy a direct3d 5.0 accelerated triangle to the zeta buffer
-#define NV3_PGRAPH_CLASS72_D3D5TRI_ZETA_END             0x571FFF    
-#define NV3_PGRAPH_CLASSXX_POINTZETA_START              0x580000    // possibly class 69
-#define NV3_PGRAPH_CLASSXX_POINTZETA_END                0x581FFF
+#define NV3_PGRAPH_CLASS17_D3D5TRI_ZETA_START           0x570000    // [NV3] Copy a direct3d 5.0 accelerated triangle to the zeta buffer
+#define NV3_PGRAPH_CLASS17_D3D5TRI_ZETA_END             0x571FFF    
+#define NV3_PGRAPH_CLASS18_POINTZETA_START              0x580000    // possibly class 69
+#define NV3_PGRAPH_CLASS18_POINTZETA_END                0x581FFF
 
-#define NV3_PGRAPH_CLASS62_MEM2IMAGE_START              0x5C0000    // class 55, 56, 62, 63?
-#define NV3_PGRAPH_CLASS62_MEM2IMAGE_END                0x5C1FFF    
+#define NV3_PGRAPH_CLASS1C_MEM2IMAGE_START              0x5C0000    // class 55, 56, 62, 63?
+#define NV3_PGRAPH_CLASS1C_MEM2IMAGE_END                0x5C1FFF    
 
 #define NV3_PGRAPH_REGISTER_END                         0x401FFF    // end of pgraph registers
 #define NV3_PGRAPH_REAL_END                             0x5C1FFF
@@ -600,6 +603,12 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_DATA_OUT                               0x3C0
 #define NV3_CRTC_MISCOUT                                0x3C2
 
+#define NV3_RMA_REGISTER_START                          0x3D0
+#define NV3_RMA_REGISTER_END                            0x3D3
+
+#define NV3_CRTC_REGISTER_INDEX                         0x3D4 
+#define NV3_CRTC_REGISTER_CURRENT                       0x3D5
+
 // These are standard (0-18h)
 #define NV3_CRTC_REGISTER_HTOTAL                        0x00
 #define NV3_CRTC_REGISTER_HDISPEND                      0x01
@@ -662,8 +671,6 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_BANKED_32K_B8000                       0x0C
 
 
-#define NV3_RMA_REGISTER_START                          0x3D0
-#define NV3_RMA_REGISTER_END                            0x3D3
 
 #define NV3_CRTC_REGISTER_NVIDIA_END                    0x3F
 // for 86box 8bit addressing

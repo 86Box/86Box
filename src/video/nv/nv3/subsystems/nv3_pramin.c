@@ -185,7 +185,7 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
     if (!nv3_pramin_arbitrate_write(addr, val32))
     {
         vram_32bit[addr] = val;
-        nv_log("NV3: Write dword to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log("NV3: Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 }
