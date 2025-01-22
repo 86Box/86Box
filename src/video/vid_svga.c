@@ -984,7 +984,7 @@ svga_recalctimings(svga_t *svga)
             svga_log("IBM 8514/A poll.\n");
             timer_set_callback(&svga->timer, ibm8514_poll);
         } else {
-            svga_log("SVGA Poll.\n");
+            svga_log("SVGA poll enabled.\n");
             timer_set_callback(&svga->timer, svga_poll);
         }
     }
@@ -1081,6 +1081,7 @@ svga_poll(void *priv)
         }
     }
 
+    svga_log("SVGA Poll.\n");
     if (!svga->linepos) {
         if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.ena) {
             svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - svga->hwcursor_latch.yoff;
@@ -1406,16 +1407,34 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->ksc5601_english_font_type = 0;
 
     if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
+        svga->read = svga_read;
+        svga->readw = svga_readw;
+        svga->readl = svga_readl;
+        svga->write = svga_write;
+        svga->writew = svga_writew;
+        svga->writel = svga_writel;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, svga_readw, svga_readl,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     } else if ((info->flags & DEVICE_ISA) && (info->flags & DEVICE_AT)) {
+        svga->read = svga_read;
+        svga->readw = svga_readw;
+        svga->readl = NULL;
+        svga->write = svga_write;
+        svga->writew = svga_writew;
+        svga->writel = NULL;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, svga_readw, NULL,
                         svga_write, svga_writew, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     } else {
+        svga->read = svga_read;
+        svga->readw = NULL;
+        svga->readl = NULL;
+        svga->write = svga_write;
+        svga->writew = NULL;
+        svga->writel = NULL;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, NULL, NULL,
                         svga_write, NULL, NULL,

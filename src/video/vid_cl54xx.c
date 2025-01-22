@@ -4403,7 +4403,13 @@ gd54xx_init(const device_t *info)
     if ((vram == 1) || (vram >= 256 && vram <= 1024))
         svga->decode_mask = gd54xx->vram_mask;
 
+    svga->read = gd54xx_read;
+    svga->readw = gd54xx_readw;
+    svga->write = gd54xx_write;
+    svga->writew = gd54xx_writew;
     if (gd54xx->bit32) {
+        svga->readl = gd54xx_readl;
+        svga->writel = gd54xx_writel;
         mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, gd54xx_readl,
                                 gd54xx_write, gd54xx_writew, gd54xx_writel);
         mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
@@ -4423,6 +4429,8 @@ gd54xx_init(const device_t *info)
                         gd5480_vgablt_write, gd5480_vgablt_writew, gd5480_vgablt_writel,
                         NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     } else {
+        svga->readl = NULL;
+        svga->writel = NULL;
         mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, NULL,
                                 gd54xx_write, gd54xx_writew, NULL);
         mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,

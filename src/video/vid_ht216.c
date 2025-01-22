@@ -33,9 +33,12 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/vid_8514a.h>
 #include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/vid_ati_eeprom.h>
+#include <86box/vid_ati_mach8.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -425,9 +428,8 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                     svga->banked_mask = 0xffff;
             }
 
-            if (svga->gdcaddr <= 8) {
+            if (svga->gdcaddr <= 8)
                 svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && svga->chain4 && svga->packed_chain4;
-            }
             break;
 
         case 0x3D4:
@@ -625,7 +627,9 @@ ht216_remap(ht216_t *ht216)
 void
 ht216_recalctimings(svga_t *svga)
 {
-    ht216_t *ht216        = (ht216_t *) svga->priv;
+    ht216_t   *ht216      = (ht216_t *) svga->priv;
+    ibm8514_t *dev        = (ibm8514_t *) svga->dev8514;
+    mach_t    *mach       = (mach_t *) svga->ext8514;
     int      high_res_256 = 0;
 
 
@@ -672,10 +676,16 @@ ht216_recalctimings(svga_t *svga)
 
     if (!svga->scrblank && svga->attr_palette_enable) {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) /*40 column*/ {
+            if (svga->seqregs[1] & 8) /*40 column*/
                 svga->render = svga_render_text_40;
-            } else {
+            else
                 svga->render = svga_render_text_80;
+
+            if (ibm8514_active && (svga->dev8514 != NULL)) {
+                if (svga->ext8514 != NULL) {
+                    if (!(dev->accel.advfunc_cntl & 0x01) && !(mach->accel.clock_sel & 0x01)) /*FIXME: Possibly a BIOS bug within the V7 chips when it's used with a 8514/A card?*/
+                        dev->on &= ~0x01;
+                }
             }
         } else {
             if (svga->crtc[0x17] == 0xeb) {
@@ -1576,10 +1586,17 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     if (has_rom == 4)
         svga->ramdac = device_add(&sc11484_nors2_ramdac_device);
 
+    svga->read = ht216_read;
+    svga->readw = NULL;
+    svga->readl = NULL;
+    svga->write = ht216_write;
+    svga->writew = ht216_writew;
     if ((info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
+        svga->writel = ht216_writel;
         mem_mapping_set_handler(&svga->mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, ht216_writel);
         mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, ht216_writel_linear, NULL, MEM_MAPPING_EXTERNAL, svga);
     } else {
+        svga->writel = NULL;
         mem_mapping_set_handler(&svga->mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, NULL);
         mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, NULL, NULL, MEM_MAPPING_EXTERNAL, svga);
     }

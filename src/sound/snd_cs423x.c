@@ -12,7 +12,7 @@
  *
  * Authors:  RichardG, <richardg867@gmail.com>
  *
- *           Copyright 2021-2022 RichardG.
+ *           Copyright 2021-2025 RichardG.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -386,7 +386,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                 dev->ram_dl = CRYSTAL_RAM_CMD;
 
                 /* Update PnP state and resource data. */
-                dev->pnp_size = 384; /* we don't know the length */
+                dev->pnp_size = (dev->type >= CRYSTAL_CS4236) ? 384 : 256; /* we don't know the length */
                 cs423x_pnp_enable(dev, 1, 0);
             }
             break;
@@ -853,12 +853,13 @@ cs423x_init(const device_t *info)
     dev->type = info->local & 0xff;
     cs423x_log("CS423x: init(%02X)\n", dev->type);
     switch (dev->type) {
-        case CRYSTAL_CS4235:
         case CRYSTAL_CS4236B:
         case CRYSTAL_CS4237B:
         case CRYSTAL_CS4238B:
+        case CRYSTAL_CS4235:
+        case CRYSTAL_CS4239:
             /* Same WSS codec and EEPROM structure. */
-            dev->ad1848_type = (dev->type == CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : AD1848_TYPE_CS4236;
+            dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : AD1848_TYPE_CS4236B;
             dev->pnp_offset  = 0x4013;
 
             /* Different Chip Version and ID registers, which shouldn't be reset by ad1848_init. */

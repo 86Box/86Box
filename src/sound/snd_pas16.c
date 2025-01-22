@@ -86,7 +86,7 @@
  *           Copyright 2008-2024 Sarah Walker.
  *           Copyright 2024 Miran Grca.
  */
-#define _USE_MATH_DEFINES 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -706,6 +706,7 @@ static uint8_t
 pas16_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
+    scsi_bus_t *scsi_bus = NULL;
     uint8_t  ret   = 0xff;
 
     port -= pas16->base;
@@ -784,9 +785,11 @@ pas16_in(uint16_t port, void *priv)
                 ret = t128_read(0x1e00, pas16->scsi);
             break;
         case 0x5c01:
-            if (pas16->has_scsi)
+            if (pas16->has_scsi) {
+                scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
-                ret = (((pas16->scsi->ncr.dma_mode != DMA_IDLE) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+            }
             break;
         case 0x5c03:
             if (pas16->has_scsi)
@@ -1183,10 +1186,11 @@ pas16_scsi_callback(void *priv)
 {
     pas16_t *      pas16 = (pas16_t *) priv;
     t128_t  *      dev   = pas16->scsi;
+    scsi_bus_t *   scsi_bus = &dev->ncr.scsibus;
 
     t128_callback(pas16->scsi);
 
-    if ((dev->ncr.dma_mode != DMA_IDLE) && (dev->status & 0x04)) {
+    if ((scsi_bus->tx_mode != PIO_TX_BUS) && (dev->status & 0x04)) {
         timer_stop(&pas16->scsi_timer);
         pas16->timeout_status &= 0x7f;
     }

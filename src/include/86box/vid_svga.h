@@ -202,6 +202,14 @@ typedef struct svga_t {
 
     void (*vblank_start)(struct svga_t *svga);
 
+    void (*write)(uint32_t addr, uint8_t val, void *priv);
+    void (*writew)(uint32_t addr, uint16_t val, void *priv);
+    void (*writel)(uint32_t addr, uint32_t val, void *priv);
+
+    uint8_t (*read)(uint32_t addr, void *priv);
+    uint16_t (*readw)(uint32_t addr, void *priv);
+    uint32_t (*readl)(uint32_t addr, void *priv);
+
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
     float (*getclock)(int clock, void *priv);
     float (*getclock8514)(int clock, void *priv);
