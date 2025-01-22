@@ -29,7 +29,7 @@
 #include <86Box/nv/vid_nv3.h>
 
 //
-// ****** pfifo register list START ******
+// ****** PFIFO register list START ******
 //
 
 nv_register_t pfifo_registers[] = {
@@ -38,6 +38,12 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
+    { NV3_PFIFO_CACHE0_STATUS, "PFIFO - Cache0 Status", NULL, NULL},
+    { NV3_PFIFO_CACHE1_STATUS, "PFIFO - Cache1 Status", NULL, NULL}, 
+    { NV3_PFIFO_CACHE0_GET, "PFIFO - Cache0 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
+    { NV3_PFIFO_CACHE1_GET, "PFIFO - Cache1 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
+    { NV3_PFIFO_CACHE0_PUT, "PFIFO - Cache0 Put MUST TRIGGER DMA NOW TO INSERT ENTRY", NULL, NULL },
+    { NV3_PFIFO_CACHE1_PUT, "PFIFO - Cache1 Put MUST TRIGGER DMA NOW TO INSERT ENTRY", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -100,6 +106,9 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     break;
                 case NV3_PFIFO_CONFIG_RAMRO:
                     ret = nv3->pfifo.ramro_config;
+                    break;
+                case NV3_PFIFO_CACHE0_GET:
+                    //wa
                     break;
             }
         }
@@ -220,7 +229,7 @@ uint32_t nv3_pfifo_cache1_normal2gray(uint32_t val)
 /* 
 Back to sanity
 */
-uint32_t  nv3_pfifo_cache1_gray2normal(uint32_t val)
+uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
 {
     uint32_t mask = val >> 1;
     

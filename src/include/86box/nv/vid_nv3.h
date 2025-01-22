@@ -242,6 +242,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_ACCESS                         0x3000
 #define NV3_PFIFO_CACHE0_DMA_CHANNEL_ID                 0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
+#define NV3_PFIFO_CACHE0_STATUS                         0x3014
+#define NV3_PFIFO_CACHE0_STATUS_RANOUT                  0           // 1 if we fucked up
+#define NV3_PFIFO_CACHE0_STATUS_LOW_MARK                4           // 1 if ramro is empty
+#define NV3_PFIFO_CACHE0_STATUS_HIGH_MARK               8
 #define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
 #define NV3_PFIFO_CACHE0_PULLER                         0x3040
 #define NV3_PFIFO_CACHE0_GET                            0x3070
@@ -250,6 +254,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_CHANNEL_ID                 0x3204
 #define NV3_PFIFO_CACHE1_PUT                            0x3210
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
+#define NV3_PFIFO_CACHE1_STATUS                         0x3214
+#define NV3_PFIFO_CACHE1_STATUS_RANOUT                  0           // 1 if we fucked up
+#define NV3_PFIFO_CACHE1_STATUS_LOW_MARK                4           // 1 if ramro is empty
+#define NV3_PFIFO_CACHE1_STATUS_HIGH_MARK               8
 #define NV3_PFIFO_CACHE1_DMA_STATUS                     0x3218
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_0                   0x3220
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
@@ -740,6 +748,20 @@ typedef struct nv3_pbus_s
     nv3_pbus_rma_t rma;
 } nv3_pbus_t;
 
+typedef struct nv3_pfifo_cache_s
+{
+    uint8_t put_address;                // Trigger a DMA into the value you put here.
+    uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
+    /* TODO */
+} nv3_pfifo_cache_t;
+
+typedef struct nv3_pfifo_cache_entry_s
+{
+    uint8_t subchannel_id : 3;
+    uint16_t method : 11;               // method id depending on class (offset from entry channel start in ramin)
+    uint32_t data;                      // is this the context
+} nv3_pfifo_cache_entry_t; 
+
 // Command submission to PGRAPH
 typedef struct nv3_pfifo_s
 {
@@ -749,7 +771,10 @@ typedef struct nv3_pfifo_s
     uint32_t ramfc_config;              // RAMFC config
     uint32_t ramro_config;              // RAMRO config
     uint32_t cache_reassignment;        // Enable automatic reassignment into CACHE0?
-
+    nv3_pfifo_cache_t cache0_settings;
+    nv3_pfifo_cache_t cache1_settings;
+    uint32_t cache0_status;             // status of cache0
+    uint32_t cache1_status;             // status of cache1
 } nv3_pfifo_t;
 
 // create_object(uint32_t type) here

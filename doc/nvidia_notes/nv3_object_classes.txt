@@ -26,7 +26,7 @@ Object classes as understood by the GPU.
 0x15 = Stretched image from CPU
 0x16 = INVALID
 0x17 = Direct3D 5.0 accelerated textured triangle w/zeta buffer
-0x18 = INVALID
+0x18 = Point w/zeta buffer
 0x19 = INVALID
 0x1A = INVALID
 0x1B = INVALID

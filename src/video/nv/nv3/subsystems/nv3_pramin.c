@@ -43,6 +43,8 @@
 // Read 8-bit ramin
 uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
 {
+    if (!nv3) return;
+
     addr &= (nv3->nvbase.svga.vram_max - 1);
     uint32_t raw_addr = addr; // saved after and
 
@@ -62,6 +64,8 @@ uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
 // Read 16-bit ramin
 uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
 {
+    if (!nv3) return;
+
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
     // why does this not work in one line
@@ -86,6 +90,8 @@ uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
 // Read 32-bit ramin
 uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
 {
+    if (!nv3) return;
+
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
     // why does this not work in one line
@@ -111,6 +117,8 @@ uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
 // Write 8-bit ramin
 void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
 {
+    if (!nv3) return;
+
     addr &= (nv3->nvbase.svga.vram_max - 1);
     uint32_t raw_addr = addr; // saved after and
 
@@ -134,6 +142,8 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
 // Write 16-bit ramin
 void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
 {
+    if (!nv3) return;
+
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
     // why does this not work in one line
@@ -149,7 +159,7 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
     if (!nv3_pramin_arbitrate_write(addr, val32))
     {
         vram_16bit[addr] = val;
-        nv_log("NV3: Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log("NV3: Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 
@@ -158,6 +168,8 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
 // Write 32-bit ramin
 void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
 {
+    if (!nv3) return;
+
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
     // why does this not work in one line
@@ -173,7 +185,7 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
     if (!nv3_pramin_arbitrate_write(addr, val32))
     {
         vram_32bit[addr] = val;
-        nv_log("NV3: Write dnv3_pramin_arbitrate_readword to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log("NV3: Write dword to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 }
