@@ -43,7 +43,7 @@
 // Read 8-bit ramin
 uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
 {
-    if (!nv3) return;
+    if (!nv3) return 0x00;
 
     addr &= (nv3->nvbase.svga.vram_max - 1);
     uint32_t raw_addr = addr; // saved after and
@@ -64,7 +64,7 @@ uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
 // Read 16-bit ramin
 uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
 {
-    if (!nv3) return;
+    if (!nv3) return 0x00;
 
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
@@ -90,7 +90,7 @@ uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
 // Read 32-bit ramin
 uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
 {
-    if (!nv3) return;
+    if (!nv3) return 0x00;
 
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
