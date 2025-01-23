@@ -4085,7 +4085,7 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.13    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CRD-8322B                               ", 40); /* Model */
                 break;
-            case CDROM_TYPE_LG_CRD8400B_106:
+            case CDROM_TYPE_LG_CRD8400B_104:
                 ide_padstr((char *) (ide->buffer + 23), "1.04    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CRD-8400B                               ", 40); /* Model */
                 break;
