@@ -38,6 +38,11 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
+    { NV3_PFIFO_CACHE0_PULLER_CONTROL, "PFIFO - Cache0 Puller State0", NULL, NULL},
+    { NV3_PFIFO_CACHE0_PULLER_STATE1, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
+    { NV3_PFIFO_CACHE1_PULLER_CONTROL, "PFIFO - Cache1 Puller State0", NULL, NULL},
+    { NV3_PFIFO_CACHE1_PULLER_STATE1, "PFIFO - Cache1 Puller State1 (Is context clean?)", NULL, NULL},
+
     { NV3_PFIFO_CACHE0_STATUS, "PFIFO - Cache0 Status", NULL, NULL},
     { NV3_PFIFO_CACHE1_STATUS, "PFIFO - Cache1 Status", NULL, NULL}, 
     { NV3_PFIFO_CACHE0_GET, "PFIFO - Cache0 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
@@ -97,6 +102,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_INTR_EN:
                     ret = nv3->pfifo.interrupt_enable;
                     break;
+                // Debug
+                case NV3_PFIFO_DEBUG_0:
+                    ret = nv3->pfifo.debug_0;
+                    break;
                 // These may need to become functions.
                 case NV3_PFIFO_CONFIG_RAMFC:
                     ret = nv3->pfifo.ramfc_config;
@@ -109,6 +118,17 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     break;
                 case NV3_PFIFO_CACHE0_GET:
                     //wa
+                    break;
+                // Reassignment
+                case NV3_PFIFO_CACHE_REASSIGNMENT:
+                    ret = nv3->pfifo.cache_reassignment & 0x01; //1bit meaningful
+                    break;
+                // Control
+                case NV3_PFIFO_CACHE0_PULLER_CONTROL:
+                    ret = nv3->pfifo.cache0_settings.control & 0xFF; // 8bits meaningful
+                    break;
+                case NV3_PFIFO_CACHE1_PULLER_CONTROL:
+                    ret = nv3->pfifo.cache1_settings.control & 0xFF; // only 8bits are meaningful
                     break;
             }
         }
@@ -209,6 +229,21 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     "Base Address in RAMIN: %d\n"
                     "Size: 0x%08x bytes\n", ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS) & 0x7F) << 9, new_size_ramro); 
                     break;
+                case NV3_PFIFO_DEBUG_0:
+                    nv3->pfifo.debug_0 = value;
+                    break;
+                // Reassignment
+                case NV3_PFIFO_CACHE_REASSIGNMENT:
+                    nv3->pfifo.cache_reassignment = value & 0x01; //1bit meaningful
+                    break;
+                // Control
+                case NV3_PFIFO_CACHE0_PULLER_CONTROL:
+                    nv3->pfifo.cache0_settings.control = value; // 8bits meaningful
+                    break;
+                case NV3_PFIFO_CACHE1_PULLER_CONTROL:
+                    nv3->pfifo.cache1_settings.control = value; // 8bits meaningful
+
+                    break;
             }
         }
     }
@@ -236,8 +271,10 @@ uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
     // shift right until we have our normla number again
     while (mask)
     {
-        val ^= mask;
+        // NT4 drivers v1.29
         mask >>= 1; 
+        val ^= mask;
+        
     }
 
     return val;

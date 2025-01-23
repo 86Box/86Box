@@ -920,7 +920,7 @@ void* nv3_init(const device_t *info)
     nv_log("NV3: initialising core\n");
 
     // Figure out which vbios the user selected
-    const char* vbios_id = device_get_config_bios("VBIOS");
+    const char* vbios_id = device_get_config_bios("vbios");
     const char* vbios_file = "";
 
     // depends on the bus we are using
@@ -941,8 +941,8 @@ void* nv3_init(const device_t *info)
         nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
     // set the vram amount and gpu revision
-    uint32_t vram_amount = device_get_config_int("VRAM");
-    nv3->nvbase.gpu_revision = device_get_config_int("Chip Revision");
+    uint32_t vram_amount = device_get_config_int("vram_size");
+    nv3->nvbase.gpu_revision = device_get_config_int("chip_revision");
     
     // set up the bus and start setting up SVGA core
     if (nv3->nvbase.bus_generation == nv_bus_pci)

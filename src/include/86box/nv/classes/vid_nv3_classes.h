@@ -660,7 +660,7 @@ typedef struct nv3_object_class_015
     0x?? (drivers)
     Also 0x57 in context IDs.
     
-    Direct3D 5.0 accelerated triangle with zeta buffer (Not the same as a Zbuffer...)
+    Direct3D 5.0 accelerated triangle with zeta buffer (combined z buffer and stencil buffer)
     This is the final boss of this GPU. True horror stands below.
 */
 

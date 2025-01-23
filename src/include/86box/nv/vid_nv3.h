@@ -200,6 +200,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PBUS_END                                    0x1FFF
 #define NV3_PFIFO_START                                 0x2000      // FIFO for DMA Object Submission (uses hashtable to store the objects)
 
+#define NV3_PFIFO_DEBUG_0                               0x2080      // PFIFO Debug Register
+#define NV3_PFIFO_CACHE0_ERROR_PENDING                  0
+#define NV3_PFIFO_CACHE1_ERROR_PENDING                  1
+
 #define NV3_PFIFO_INTR                                  0x2100      // FIFO - Interrupt Status
 #define NV3_PFIFO_INTR_EN                               0x2140      // FIFO - Interrupt Enable
 
@@ -247,7 +251,12 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_STATUS_LOW_MARK                4           // 1 if ramro is empty
 #define NV3_PFIFO_CACHE0_STATUS_HIGH_MARK               8
 #define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
-#define NV3_PFIFO_CACHE0_PULLER                         0x3040
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL                  0x3040
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED          0
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_SUCCESS     4
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_DEVICE           8
+#define NV3_PFIFO_CACHE0_PULLER_STATE1                  0x3050
+#define NV3_PFIFO_CACHE0_PULLER_STATE1_CTX_IS_CLEAN     4
 #define NV3_PFIFO_CACHE0_GET                            0x3070
 #define NV3_PFIFO_CACHE0_GET_ADDRESS                    2           // 1 bit
 #define NV3_PFIFO_CACHE1_ACCESS                         0x3200
@@ -267,11 +276,12 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
-#define NV3_PFIFO_CACHE1_PULLER_STATE0                  0x3240
-#define NV3_PFIFO_CACHE1_PULLER_STATE0_ENABLED          0
-#define NV3_PFIFO_CACHE1_PULLER_STATE0_HASH_SUCCESS     4
-#define NV3_PFIFO_CACHE1_PULLER_STATE0_DEVICE           8
-#define NV3_PFIFO_CACHE1_PULLER_CONTEXT_IS_CLEAN        0x3250
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL                  0x3240
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED          0
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_SUCCESS     4
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_DEVICE           8
+#define NV3_PFIFO_CACHE1_PULLER_STATE1                  0x3250
+#define NV3_PFIFO_CACHE1_PULLER_STATE1_CTX_IS_CLEAN     4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
 #define NV3_PFIFO_CACHE1_GET_ADDRESS                    2           // 6:2
 #define NV3_PFIFO_END                                   0x3FFF
@@ -759,6 +769,26 @@ typedef struct nv3_pfifo_cache_s
 {
     uint8_t put_address;                // Trigger a DMA into the value you put here.
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
+    uint8_t channel_id; 
+    uint32_t status;
+    uint32_t status_puller;
+    uint32_t control;
+    uint32_t context[8];
+
+    /* cache1 only 
+        do we even need to emulate this?
+    */
+    bool dma_enabled;                   // 0x3220 bit0
+    bool dma_is_busy;                   // 0x3220 bit4
+    uint32_t dma_length;
+    uint32_t dma_address;
+    uint8_t dma_target_node;            // depends on card bus
+    uint8_t dma_tlb_tag;
+    uint8_t tlb_pte;                    // DMA Engine - Translation Lookaside Buffer
+    uint8_t tlb_pt_base;                // DMA Engine - TLB Pagetable Base Addres
+
+    bool context_is_dirty;
+
     /* TODO */
 } nv3_pfifo_cache_t;
 
@@ -767,6 +797,7 @@ typedef struct nv3_pfifo_cache_entry_s
     uint8_t subchannel_id : 3;
     uint16_t method : 11;               // method id depending on class (offset from entry channel start in ramin)
     uint32_t data;                      // is this the context
+
 } nv3_pfifo_cache_entry_t; 
 
 // Command submission to PGRAPH
@@ -774,14 +805,17 @@ typedef struct nv3_pfifo_s
 {
     uint32_t interrupt_status;          // Interrupt status
     uint32_t interrupt_enable;          // Interrupt enable
+    uint32_t debug_0;                   // Cache Debug register
     uint32_t ramht_config;              // RAMHT config
     uint32_t ramfc_config;              // RAMFC config
     uint32_t ramro_config;              // RAMRO config
     uint32_t cache_reassignment;        // Enable automatic reassignment into CACHE0?
     nv3_pfifo_cache_t cache0_settings;
     nv3_pfifo_cache_t cache1_settings;
-    uint32_t cache0_status;             // status of cache0
-    uint32_t cache1_status;             // status of cache1
+
+    nv3_pfifo_cache_entry_t cache0_entries[1];
+    nv3_pfifo_cache_entry_t cache1_entries[NV3_PFIFO_CACHE1_SIZE_MAX]; // ONLY 32 USED ON REVISION A/B CARDS
+    
 } nv3_pfifo_t;
 
 // create_object(uint32_t type) here
