@@ -1248,7 +1248,8 @@ void        nv3_pextdev_write(uint32_t address, uint32_t value);
 #define nv3_pstraps_read nv3_pextdev_read(NV3_PSTRAPS)
 #define nv3_pstraps_write(x) nv3_pextdev_write(NV3_PSTRAPS, x)
 
-uint32_t    nv3_prom_read(uint32_t address);
+// Reads from vbios are 8bit
+uint8_t     nv3_prom_read(uint32_t address);
 void        nv3_prom_write(uint32_t address, uint32_t value);
 uint32_t    nv3_palt_read(uint32_t address);
 void        nv3_palt_write(uint32_t address, uint32_t value);

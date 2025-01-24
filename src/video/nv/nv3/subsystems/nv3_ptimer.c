@@ -105,7 +105,6 @@ uint32_t nv3_ptimer_read(uint32_t address)
     {
         nv_log("NV3: PTIMER Read from 0x%08x", address);
     }
-    
 
     uint32_t ret = 0x00;
 

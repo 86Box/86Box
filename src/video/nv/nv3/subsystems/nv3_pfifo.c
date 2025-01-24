@@ -125,10 +125,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     break;
                 // Control
                 case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache0_settings.control & 0xFF; // 8bits meaningful
+                    ret = nv3->pfifo.cache0_settings.control; // 8bits meaningful
                     break;
                 case NV3_PFIFO_CACHE1_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache1_settings.control & 0xFF; // only 8bits are meaningful
+                    ret = nv3->pfifo.cache1_settings.control; // only 8bits are meaningful
                     break;
             }
         }

@@ -22,7 +22,7 @@
 #include <86Box/86box.h>
 #include <86Box/device.h>
 #include <86Box/mem.h>
-#include <86box/io.h>
+#include <86Box/io.h>
 #include <86box/pci.h>
 #include <86Box/rom.h> // DEPENDENT!!!
 #include <86Box/video.h>
@@ -727,6 +727,35 @@ void nv3_draw_cursor(svga_t* svga, int32_t drawline)
     nv_log("nv3_draw_cursor drawline=0x%04x", drawline);
 }
 
+// MMIO 0x6000->0x7FFF is mapped to a mirror of the VBIOS.
+
+uint8_t nv3_prom_read(uint32_t address)
+{
+    // prom area is 64k, so...
+    // first see if we even have a rom of 64kb in size
+    uint32_t max_rom_size = NV3_PROM_END - NV3_PROM_START;
+    uint32_t real_rom_size = max_rom_size;
+
+    // set it
+    if (nv3->nvbase.vbios.sz < max_rom_size)
+        real_rom_size = nv3->nvbase.vbios.sz;
+
+    //get our real address
+    uint8_t rom_address = address & max_rom_size;
+
+    // Does this mirror on real hardware?
+    if (rom_address >= real_rom_size)
+        return 0xFF;
+    else
+        return nv3->nvbase.vbios.rom[rom_address];
+}
+
+void nv3_prom_write(uint32_t address, uint32_t value)
+{
+    uint32_t real_addr = address & 0x1FFFF;
+    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=)");
+}
+
 // Initialise the MMIO mappings
 void nv3_init_mappings_mmio()
 {
@@ -905,8 +934,6 @@ void nv3_update_mappings()
             break;
     }
 }
-
-
 
 // 
 // Init code

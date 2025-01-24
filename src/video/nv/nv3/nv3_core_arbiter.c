@@ -189,8 +189,7 @@ uint32_t    nv3_prm_read(uint32_t address) { return 0; };
 void        nv3_prm_write(uint32_t address, uint32_t value) {};
 uint32_t    nv3_prmio_read(uint32_t address) { return 0; };
 void        nv3_prmio_write(uint32_t address, uint32_t value) {};
-uint32_t    nv3_prom_read(uint32_t address) { return 0; };
-void        nv3_prom_write(uint32_t address, uint32_t value) {};
+
 uint32_t    nv3_palt_read(uint32_t address) { return 0; };
 void        nv3_palt_write(uint32_t address, uint32_t value) {};
 
