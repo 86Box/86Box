@@ -9582,6 +9582,46 @@ const machine_t machines[] = {
     },
 
     /* OPTi 596/597/822 */
+    /* Has a VIA VT82C42N KBC with AMI 'F' firmware */
+    {
+        .name = "[OPTi 597] AT&T Globalyst 330 (Pentium)",
+        .internal_name = "globalyst330_p5",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_OPTI_547_597,
+        .init = machine_at_globalyst330_p5_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PCIV,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 8192,
+            .max = 65536,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* This has AMIKey 'F' KBC firmware. */
     {
         .name = "[OPTi 597] Supermicro P5VL-PCI",

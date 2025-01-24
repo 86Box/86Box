@@ -637,6 +637,7 @@ extern int machine_at_m5pi_init(const machine_t *);
 
 extern int machine_at_excalibur_init(const machine_t *);
 
+extern int machine_at_globalyst330_p5_init(const machine_t *);
 extern int machine_at_p5vl_init(const machine_t *);
 
 extern int machine_at_excaliburpci2_init(const machine_t *);
