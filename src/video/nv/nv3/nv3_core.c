@@ -8,8 +8,6 @@
  *
  *          NV3 bringup and device emulation.
  *
- *          Notes:
- *             xfree86 ref has INVERTED bit numbering? What?
  *
  * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
  *
@@ -747,13 +745,13 @@ uint8_t nv3_prom_read(uint32_t address)
     // Does this mirror on real hardware?
     if (rom_address >= real_rom_size)
     {
-        nv_log("PROM VBIOS Read to INVALID address 0x%05x, returning 0xFF", rom_address);
+        nv_log("NV3: PROM VBIOS Read to INVALID address 0x%05x, returning 0xFF", rom_address);
         return 0xFF;
     }
     else
     {
         uint8_t val = nv3->nvbase.vbios.rom[rom_address];
-        nv_log("PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);
+        nv_log("NV3: PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);
         return val;
     }
 }
@@ -761,7 +759,7 @@ uint8_t nv3_prom_read(uint32_t address)
 void nv3_prom_write(uint32_t address, uint32_t value)
 {
     uint32_t real_addr = address & 0x1FFFF;
-    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", address, value);
+    nv_log("NV3: What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", address, value);
 }
 
 // Initialise the MMIO mappings

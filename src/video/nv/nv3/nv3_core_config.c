@@ -225,6 +225,14 @@ const device_config_t nv3_config[] =
             },
         },
     },
+#ifndef RELEASE_BUILD
+    {
+        .name = "nv_debug_fulllog",
+        .description = "Disable Cyclical Lines Detection for nv_log (Use for getting full context at cost of VERY large log files)",
+        .type = CONFIG_BINARY,
+        .default_int = 0,
+    },
+#endif
     {
         .type = CONFIG_END
     }

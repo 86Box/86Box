@@ -35,6 +35,7 @@
 nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_INTR, "PFIFO - Interrupt Status", NULL, NULL},
     { NV3_PFIFO_INTR_EN, "PFIFO - Interrupt Enable", NULL, NULL,},
+    { NV3_PFIFO_DEBUG_0, "PFIFO - Debug 0", NULL, NULL, }, 
     { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
