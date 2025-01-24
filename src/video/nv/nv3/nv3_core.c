@@ -727,7 +727,8 @@ void nv3_draw_cursor(svga_t* svga, int32_t drawline)
     nv_log("nv3_draw_cursor drawline=0x%04x", drawline);
 }
 
-// MMIO 0x6000->0x7FFF is mapped to a mirror of the VBIOS.
+// MMIO 0x110000->0x111FFF is mapped to a mirror of the VBIOS.
+// Note this area is 64kb and the vbios is only 32kb. See below..
 
 uint8_t nv3_prom_read(uint32_t address)
 {
@@ -745,15 +746,22 @@ uint8_t nv3_prom_read(uint32_t address)
 
     // Does this mirror on real hardware?
     if (rom_address >= real_rom_size)
+    {
+        nv_log("PROM VBIOS Read to INVALID address 0x%05x, returning 0xFF", rom_address);
         return 0xFF;
+    }
     else
-        return nv3->nvbase.vbios.rom[rom_address];
+    {
+        uint8_t val = nv3->nvbase.vbios.rom[rom_address];
+        nv_log("PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);#
+        return val;
+    }
 }
 
 void nv3_prom_write(uint32_t address, uint32_t value)
 {
     uint32_t real_addr = address & 0x1FFFF;
-    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=)");
+    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x)", address);
 }
 
 // Initialise the MMIO mappings
