@@ -753,7 +753,7 @@ uint8_t nv3_prom_read(uint32_t address)
     else
     {
         uint8_t val = nv3->nvbase.vbios.rom[rom_address];
-        nv_log("PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);#
+        nv_log("PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);
         return val;
     }
 }
@@ -761,7 +761,7 @@ uint8_t nv3_prom_read(uint32_t address)
 void nv3_prom_write(uint32_t address, uint32_t value)
 {
     uint32_t real_addr = address & 0x1FFFF;
-    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x)", address);
+    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", address, value);
 }
 
 // Initialise the MMIO mappings
