@@ -4053,6 +4053,14 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "U1.0    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "BTC CD-ROM BCD36XH                      ", 40); /* Model */
                 break;
+            case CDROM_TYPE_CREATIVE_CD3231E:
+                ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CREATIVE CD3231E                        ", 40); /* Model */
+                break;
+            case CDROM_TYPE_CREATIVE_CD3621E:
+                ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CREATIVE CD3621E                        ", 40); /* Model */
+                break;
             case CDROM_TYPE_GOLDSTAR_CRD_8160B_314:
                 ide_padstr((char *) (ide->buffer + 23), "3.14    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "GOLDSTAR CRD-8160B                      ", 40); /* Model */
