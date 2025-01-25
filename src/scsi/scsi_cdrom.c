@@ -4061,9 +4061,17 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CREATIVE CD3621E                        ", 40); /* Model */
                 break;
+            case CDROM_TYPE_CYBERDRIVE_CW099D_V100:
+                ide_padstr((char *) (ide->buffer + 23), "V100    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CW099D ATAPI CD-R/RW                    ", 40); /* Model */
+                break;
             case CDROM_TYPE_GOLDSTAR_CRD_8160B_314:
                 ide_padstr((char *) (ide->buffer + 23), "3.14    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "GOLDSTAR CRD-8160B                      ", 40); /* Model */
+                break;
+            case CDROM_TYPE_GOLDSTAR_GCD_R580B_104:
+                ide_padstr((char *) (ide->buffer + 23), "1.04    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "GOLDSTAR GCD-R580B                      ", 40); /* Model */
                 break;
             case CDROM_TYPE_HITACHI_CDR_8130_0020:
                 ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
@@ -4093,9 +4101,13 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.13    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CRD-8322B                               ", 40); /* Model */
                 break;
-            case CDROM_TYPE_LG_CRD8400B_104:
-                ide_padstr((char *) (ide->buffer + 23), "1.04    ", 8);                                  /* Firmware */
-                ide_padstr((char *) (ide->buffer + 27), "CRD-8400B                               ", 40); /* Model */
+            case CDROM_TYPE_LG_CRD8400C_102:
+                ide_padstr((char *) (ide->buffer + 23), "1.02    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CRD-8400C                               ", 40); /* Model */
+                break;
+            case CDROM_TYPE_LG_CRD8482B_100:
+                ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CRD-8482B                               ", 40); /* Model */
                 break;
             case CDROM_TYPE_LTN48125S_1S07:
                 ide_padstr((char *) (ide->buffer + 23), "1S07    ", 8);                                  /* Firmware */
