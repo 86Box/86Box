@@ -4057,6 +4057,10 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "U1.0    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "BTC CD-ROM BCD36XH                      ", 40); /* Model */
                 break;
+            case CDROM_TYPE_COMPAQ_CRD8322B_113:
+                ide_padstr((char *) (ide->buffer + 23), "1.13    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CRD-8322B                               ", 40); /* Model */
+                break;
             case CDROM_TYPE_CREATIVE_CD3231E:
                 ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CREATIVE CD3231E                        ", 40); /* Model */
@@ -4101,9 +4105,9 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.30    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "LG CD-ROM CRN-8245B                     ", 40); /* Model */
                 break;
-            case CDROM_TYPE_LG_CRD8322B_113:
-                ide_padstr((char *) (ide->buffer + 23), "1.13    ", 8);                                  /* Firmware */
-                ide_padstr((char *) (ide->buffer + 27), "CRD-8322B                               ", 40); /* Model */
+            case CDROM_TYPE_LG_CRD8320B_111:
+                ide_padstr((char *) (ide->buffer + 23), "1.11    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CRD-8320B                               ", 40); /* Model */
                 break;
             case CDROM_TYPE_LG_CRD8400C_102:
                 ide_padstr((char *) (ide->buffer + 23), "1.02    ", 8);                                  /* Firmware */
