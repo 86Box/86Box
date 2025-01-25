@@ -4037,6 +4037,10 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
         ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
     } else {
         switch (dev->drv->type) {
+            case CDROM_TYPE_AOpen_DVD9632_115:
+                ide_padstr((char *) (ide->buffer + 23), "1.15    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "AOpen    DVD-9632                       ", 40); /* Model */
+                break;
             case CDROM_TYPE_ASUS_CDS500_141:
                 ide_padstr((char *) (ide->buffer + 23), "1.41    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "ASUS    CD-S500/A                       ", 40); /* Model */

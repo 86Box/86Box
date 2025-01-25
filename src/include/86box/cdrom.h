@@ -65,6 +65,7 @@ enum {
 enum
 {
     CDROM_TYPE_86BOX_100,
+    CDROM_TYPE_AOpen_DVD9632_115,
     CDROM_TYPE_ASUS_CDS500_141,
     CDROM_TYPE_ASUS_CDS520_132,
     CDROM_TYPE_AZT_CDA46802I_115,
@@ -161,6 +162,7 @@ static const struct
     const int   bus_type;
 } cdrom_drive_types[] = {
     { "86BOX",    "CD-ROM",             "1.00", "86BOX CD-ROM 1.00",              "86BOX_CD-ROM_1.00",              BUS_TYPE_BOTH  },
+    { "AOpen",    "DVD-9632",           "1.15", "AOpen DVD-9632 1.15",            "AOpen_DVD-9632_1.15",            BUS_TYPE_IDE  },
     { "ASUS",     "CD-S500/A",          "1.41", "ASUS CD-S500/A 1.41",            "ASUS_CD-S500A_1.41",             BUS_TYPE_IDE  },
     { "ASUS",     "CD-S520/A4",         "1.32", "ASUS CD-S520/A4 1.32",           "ASUS_CD-S520A4_1.32",            BUS_TYPE_IDE  },
     { "AZT",      "CDA46802I",          "1.15", "AZT CDA46802I 1.15",             "AZT_CDA46802I_1.15",             BUS_TYPE_IDE  },
