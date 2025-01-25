@@ -169,7 +169,7 @@ static const struct
     { "BTC",      "CD-ROM BCD36XH",     "U1.0", "BTC CD-ROM BCD36XH U1.0",        "BTC_CD-ROM_BCD36XH_U1.0",        BUS_TYPE_IDE  },
     { "CREATIVE", "CD3231E",            "1.00", "CREATIVE CD3231E 1.00",          "CREATIVE_CD3231E_1.00",          BUS_TYPE_IDE  },
     { "CREATIVE", "CD3621E",            "1.00", "CREATIVE CD3621E 1.00",          "CREATIVE_CD3621E_1.00",          BUS_TYPE_IDE  },
-    { "CYBERDRI", "CW099D",             "V100", "CYBERDRI CW099D V100",           "CYBERDRI_CW099D_V100",           BUS_TYPE_IDE  },
+    { "CYBDRIVE", "CW099D",             "V100", "CYBERDRIVE CW099D V100",         "CYBERDRIVE_CW099D_V100",         BUS_TYPE_IDE  },
     { "GOLDSTAR", "CRD-8160B",          "3.14", "GOLDSTAR CRD-8160B 3.14",        "GOLDSTAR_CRD-8160B_3.14",        BUS_TYPE_IDE  },
     { "GOLDSTAR", "GCD-R580B",          "1.04", "GOLDSTAR GCD-R580B 1.04",        "GOLDSTAR_GCD-R580B_1.04",        BUS_TYPE_IDE  },
     { "HITACHI",  "CDR-8130",           "0020", "HITACHI CDR-8130 0020",          "HITACHI_CDR-8130_0020",          BUS_TYPE_IDE  },
