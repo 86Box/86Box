@@ -4093,6 +4093,10 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST CD-ROM GCR-8526B               ", 40); /* Model */
                 break;
+            case CDROM_TYPE_HLDTST_GCR8163B_0L23:
+                ide_padstr((char *) (ide->buffer + 23), "0L23    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST DVDROM GDR-8163B               ", 40); /* Model */
+                break;
             case CDROM_TYPE_HLDTST_GSA4160_A302:
                 ide_padstr((char *) (ide->buffer + 23), "A302    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST DVDRAM GSA-4160                ", 40); /* Model */
@@ -4116,6 +4120,14 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
             case CDROM_TYPE_LG_CRD8482B_100:
                 ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CRD-8482B                               ", 40); /* Model */
+                break;
+            case CDROM_TYPE_LG_CRD8522B_102:
+                ide_padstr((char *) (ide->buffer + 23), "1.02    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CRD-8522B                               ", 40); /* Model */
+                break;
+            case CDROM_TYPE_LG_DRD820B_104:
+                ide_padstr((char *) (ide->buffer + 23), "1.04    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "DRD-820B                                ", 40); /* Model */
                 break;
             case CDROM_TYPE_LTN48125S_1S07:
                 ide_padstr((char *) (ide->buffer + 23), "1S07    ", 8);                                  /* Firmware */
@@ -4205,6 +4217,14 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "NYS4    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "SONY    CD-ROM CDU5225                  ", 40); /* Model */
                 break;
+            case CDROM_TYPE_SONY_CRX320EE_RYK3:
+                ide_padstr((char *) (ide->buffer + 23), "RYK3    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "SONY    CD-RW  CRX320EE                 ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TEAC_SN250_N0A:
+                ide_padstr((char *) (ide->buffer + 23), "N.0A    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "CD-SN250                                ", 40); /* Model */
+                break;
             case CDROM_TYPE_TEAC_CD516E_10G:
                 ide_padstr((char *) (ide->buffer + 23), "1.0G    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CD-516E                                 ", 40); /* Model */
@@ -4248,6 +4268,10 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
             case CDROM_TYPE_TOSHIBA_M1802_1051:
                 ide_padstr((char *) (ide->buffer + 23), "1051    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "TOSHIBA DVD-ROM SD-M1802                ", 40); /* Model */
+                break;
+            case CDROM_TYPE_TOSHIBA_R1512_1010:
+                ide_padstr((char *) (ide->buffer + 23), "1010    ", 8);                                  /* Firmware */
+                ide_padstr((char *) (ide->buffer + 27), "TOSHIBA DVD-ROM SD-R1512                ", 40); /* Model */
                 break;
         }
     }
