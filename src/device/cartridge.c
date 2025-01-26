@@ -104,6 +104,7 @@ cart_image_load(int drive, char *fn)
     if (size < 0x1200) {
         cartridge_log("cart_image_load(): File size %i is too small\n", size);
         cart_load_error(drive, fn);
+        fclose(fp);
         return;
     }
     if (size & 0x00000fff) {
