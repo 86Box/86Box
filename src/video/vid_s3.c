@@ -923,6 +923,9 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             s3->accel.short_stroke = (s3->accel.short_stroke & 0xff) | (val << 8);
             s3->accel.ssv_state    = 1;
 
+            s3->accel.cx = s3->accel.cur_x & 0xfff;
+            s3->accel.cy = s3->accel.cur_y & 0xfff;
+
             if (s3->accel.cmd & 0x1000) {
                 s3_short_stroke_start(s3, s3->accel.short_stroke & 0xff);
                 s3_short_stroke_start(s3, s3->accel.short_stroke >> 8);
@@ -1784,6 +1787,9 @@ s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
     } else {
         s3->accel.short_stroke = val;
         s3->accel.ssv_state    = 1;
+
+        s3->accel.cx = s3->accel.cur_x & 0xfff;
+        s3->accel.cy = s3->accel.cur_y & 0xfff;
 
         if (s3->accel.cmd & 0x1000) {
             s3_short_stroke_start(s3, s3->accel.short_stroke & 0xff);
@@ -7861,7 +7867,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
     uint32_t  srcbase;
     uint32_t  dstbase;
 
-    if ((s3->chip >= S3_TRIO64 || s3->chip == S3_VISION968 || s3->chip == S3_VISION868) && (s3->accel.cmd & (1 << 11)))
+    if (((s3->chip >= S3_TRIO64) || (s3->chip == S3_VISION968) || (s3->chip == S3_VISION868)) && (s3->accel.cmd & (1 << 11)))
         cmd |= 0x08;
 
     // SRC-BASE/DST-BASE
@@ -7970,11 +7976,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
-            if (s3->accel.ssv_state == 0) {
-                s3->accel.cx = s3->accel.cur_x & 0xfff;
-                s3->accel.cy = s3->accel.cur_y & 0xfff;
+            if (s3->accel.ssv_state == 0)
                 break;
-            }
 
             if (s3->accel.cmd & 0x08) { /*Radial*/
                 while (count-- && s3->accel.ssv_len >= 0) {

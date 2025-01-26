@@ -432,6 +432,14 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             if (len == 2) {
                 dev->accel.short_stroke = val;
 
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
+
                 if (dev->accel.cmd & 0x1000) {
                     ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke & 0xff, len);
                     ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke >> 8, len);
@@ -1139,16 +1147,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
       the NOP command)*/
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
-            if (dev->accel.ssv_state == 0) {
-                dev->accel.cx = dev->accel.cur_x;
-                if (dev->accel.cur_x >= 0x600)
-                    dev->accel.cx |= ~0x5ff;
-
-                dev->accel.cy = dev->accel.cur_y;
-                if (dev->accel.cur_y >= 0x600)
-                    dev->accel.cy |= ~0x5ff;
+            if (dev->accel.ssv_state == 0)
                 break;
-            }
 
             if (dev->accel.cmd & 0x08) {
                 while (count-- && dev->accel.ssv_len >= 0) {
