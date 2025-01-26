@@ -1975,7 +1975,7 @@ mo_global_init(void)
 }
 
 static int
-mo_get_max(const ide_t *ide, const int ide_has_dma, const int type)
+mo_get_max(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 
@@ -1999,7 +1999,7 @@ mo_get_max(const ide_t *ide, const int ide_has_dma, const int type)
 }
 
 static int
-mo_get_timings(const ide_t *ide, const int ide_has_dma, const int type)
+mo_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 

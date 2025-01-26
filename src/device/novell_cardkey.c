@@ -61,7 +61,7 @@ novell_cardkey_read(uint16_t port, void *priv)
     return val ^ 0xFF;
 }
 
-void* novell_cardkey_init(const device_t* info)
+void* novell_cardkey_init(UNUSED(const device_t* info))
 {
     char sernumstr[13] = { '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', 0 };
     int i = 0;

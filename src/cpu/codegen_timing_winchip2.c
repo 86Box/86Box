@@ -589,7 +589,7 @@ codegen_timing_winchip2_start(void)
 }
 
 static void
-codegen_timing_winchip2_prefix(uint8_t prefix, uint32_t fetchdat)
+codegen_timing_winchip2_prefix(uint8_t prefix, UNUSED(uint32_t fetchdat))
 {
     if (prefix == 0x0f) {
         /*0fh prefix is 'free'*/

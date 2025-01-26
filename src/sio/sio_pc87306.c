@@ -68,7 +68,7 @@ pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-pc87306_gpio_read(uint16_t port, void *priv)
+pc87306_gpio_read(uint16_t port, UNUSED(void *priv))
 {
     uint32_t ret = machine_handle_gpio(0, 0xffffffff);
 

@@ -1642,7 +1642,7 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
 }
 
 static int
-scsi_disk_get_max(const ide_t *ide, int ide_has_dma, const int type)
+scsi_disk_get_max(UNUSED(const ide_t *ide), int ide_has_dma, const int type)
 {
     int ret;
 
@@ -1668,7 +1668,7 @@ scsi_disk_get_max(const ide_t *ide, int ide_has_dma, const int type)
 }
 
 static int
-scsi_disk_get_timings(const ide_t *ide, const int ide_has_dma, const int type)
+scsi_disk_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 

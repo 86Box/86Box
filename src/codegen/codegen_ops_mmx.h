@@ -1,5 +1,5 @@
 static uint32_t
-ropMOVQ_q_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVQ_q_mm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg1;
     int host_reg2 = 0;
@@ -25,7 +25,7 @@ ropMOVQ_q_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropMOVQ_mm_q(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVQ_mm_q(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     MMX_ENTER();
 
@@ -50,7 +50,7 @@ ropMOVQ_mm_q(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropMOVD_l_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVD_l_mm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -74,7 +74,7 @@ ropMOVD_l_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropMOVD_mm_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVD_mm_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     MMX_ENTER();
 
@@ -95,36 +95,40 @@ ropMOVD_mm_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 
-#define MMX_OP(name, func)                                                                      \
-    static uint32_t                                                                             \
-    name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
-    {                                                                                           \
-        int src_reg1;                                                                           \
-        int src_reg2;                                                                           \
-        int xmm_src;                                                                            \
-        int xmm_dst;                                                                            \
-                                                                                                \
-        MMX_ENTER();                                                                            \
-                                                                                                \
-        if ((fetchdat & 0xc0) == 0xc0) {                                                        \
-            xmm_src = LOAD_MMX_Q_MMX(fetchdat & 7);                                             \
-        } else {                                                                                \
-            x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);        \
-                                                                                                \
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                          \
-                                                                                                \
-            CHECK_SEG_READ(target_seg);                                                         \
-                                                                                                \
-            MEM_LOAD_ADDR_EA_Q(target_seg);                                                     \
-            src_reg1 = LOAD_Q_REG_1;                                                            \
-            src_reg2 = LOAD_Q_REG_2;                                                            \
-            xmm_src  = LOAD_INT_TO_MMX(src_reg1, src_reg2);                                     \
-        }                                                                                       \
-        xmm_dst = LOAD_MMX_Q_MMX((fetchdat >> 3) & 7);                                          \
-        func(xmm_dst, xmm_src);                                                                 \
-        STORE_MMX_Q_MMX((fetchdat >> 3) & 7, xmm_dst);                                          \
-                                                                                                \
-        return op_pc + 1;                                                                       \
+#define MMX_OP(name, func)                                                               \
+    static uint32_t                                                                      \
+    name(UNUSED(uint8_t opcode),                                                         \
+         uint32_t fetchdat,                                                              \
+         uint32_t op_32,                                                                 \
+         uint32_t op_pc,                                                                 \
+         UNUSED(codeblock_t *block))                                                     \
+    {                                                                                    \
+        int src_reg1;                                                                    \
+        int src_reg2;                                                                    \
+        int xmm_src;                                                                     \
+        int xmm_dst;                                                                     \
+                                                                                         \
+        MMX_ENTER();                                                                     \
+                                                                                         \
+        if ((fetchdat & 0xc0) == 0xc0) {                                                 \
+            xmm_src = LOAD_MMX_Q_MMX(fetchdat & 7);                                      \
+        } else {                                                                         \
+            x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32); \
+                                                                                         \
+            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                   \
+                                                                                         \
+            CHECK_SEG_READ(target_seg);                                                  \
+                                                                                         \
+            MEM_LOAD_ADDR_EA_Q(target_seg);                                              \
+            src_reg1 = LOAD_Q_REG_1;                                                     \
+            src_reg2 = LOAD_Q_REG_2;                                                     \
+            xmm_src  = LOAD_INT_TO_MMX(src_reg1, src_reg2);                              \
+        }                                                                                \
+        xmm_dst = LOAD_MMX_Q_MMX((fetchdat >> 3) & 7);                                   \
+        func(xmm_dst, xmm_src);                                                          \
+        STORE_MMX_Q_MMX((fetchdat >> 3) & 7, xmm_dst);                                   \
+                                                                                         \
+        return op_pc + 1;                                                                \
     }
 
 MMX_OP(ropPAND, MMX_AND)
@@ -179,7 +183,7 @@ MMX_OP(ropPMULHW, MMX_PMULHW);
 MMX_OP(ropPMADDWD, MMX_PMADDWD);
 
 static uint32_t
-ropPSxxW_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropPSxxW_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int xmm_dst;
 
@@ -207,7 +211,7 @@ ropPSxxW_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 2;
 }
 static uint32_t
-ropPSxxD_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropPSxxD_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int xmm_dst;
 
@@ -235,7 +239,7 @@ ropPSxxD_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 2;
 }
 static uint32_t
-ropPSxxQ_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropPSxxQ_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int xmm_dst;
 
@@ -264,7 +268,7 @@ ropPSxxQ_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropEMMS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropEMMS(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc), UNUSED(codeblock_t *block))
 {
     codegen_mmx_entered = 0;
 

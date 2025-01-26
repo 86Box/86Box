@@ -469,7 +469,7 @@ track_flags(int drive)
 }
 
 static void
-set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+set_sector(int drive, int side, uint8_t c, UNUSED(uint8_t h), uint8_t r, UNUSED(uint8_t n))
 {
     pcjs_t *dev = images[drive];
 

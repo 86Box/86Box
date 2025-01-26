@@ -46,9 +46,9 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
-#include <86box/bswap.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 /* PCI info. */
 #define PCI_VENDID  0x1022 /* AMD */

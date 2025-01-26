@@ -17,7 +17,7 @@
  *          Copyright 2016-2019 Miran Grca.
  */
 static int
-opFILDiw_a16(uint32_t fetchdat)
+opFILDiw_a16(UNUSED(uint32_t fetchdat))
 {
     int16_t temp;
     FP_ENTER();
@@ -50,7 +50,7 @@ opFILDiw_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFISTiw_a16(uint32_t fetchdat)
+opFISTiw_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -75,7 +75,7 @@ opFISTiw_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFISTPiw_a16(uint32_t fetchdat)
+opFISTPiw_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -106,7 +106,7 @@ opFISTPiw_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFILDiq_a16(uint32_t fetchdat)
+opFILDiq_a16(UNUSED(uint32_t fetchdat))
 {
     int64_t temp64;
     FP_ENTER();
@@ -145,7 +145,7 @@ opFILDiq_a32(uint32_t fetchdat)
 #endif
 
 static int
-FBLD_a16(uint32_t fetchdat)
+FBLD_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t              load_reg_hi = 0xffff;
     uint64_t              load_reg_lo = BX_CONST64(0xC000000000000000);
@@ -228,7 +228,7 @@ FBLD_a32(uint32_t fetchdat)
 #endif
 
 static int
-FBSTP_a16(uint32_t fetchdat)
+FBSTP_a16(UNUSED(uint32_t fetchdat))
 {
     double  dt;
     double tempd;
@@ -296,7 +296,7 @@ FBSTP_a32(uint32_t fetchdat)
 #endif
 
 static int
-FISTPiq_a16(uint32_t fetchdat)
+FISTPiq_a16(UNUSED(uint32_t fetchdat))
 {
     int64_t temp64;
     FP_ENTER();
@@ -337,7 +337,7 @@ FISTPiq_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFILDil_a16(uint32_t fetchdat)
+opFILDil_a16(UNUSED(uint32_t fetchdat))
 {
     int32_t templ;
     FP_ENTER();
@@ -370,7 +370,7 @@ opFILDil_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFISTil_a16(uint32_t fetchdat)
+opFISTil_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -395,7 +395,7 @@ opFISTil_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFISTPil_a16(uint32_t fetchdat)
+opFISTPil_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -426,7 +426,7 @@ opFISTPil_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFLDe_a16(uint32_t fetchdat)
+opFLDe_a16(UNUSED(uint32_t fetchdat))
 {
     double t;
     FP_ENTER();
@@ -459,7 +459,7 @@ opFLDe_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTPe_a16(uint32_t fetchdat)
+opFSTPe_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -490,7 +490,7 @@ opFSTPe_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFLDd_a16(uint32_t fetchdat)
+opFLDd_a16(UNUSED(uint32_t fetchdat))
 {
     x87_td t;
     FP_ENTER();
@@ -523,7 +523,7 @@ opFLDd_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTd_a16(uint32_t fetchdat)
+opFSTd_a16(UNUSED(uint32_t fetchdat))
 {
     x87_td t;
     FP_ENTER();
@@ -552,7 +552,7 @@ opFSTd_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTPd_a16(uint32_t fetchdat)
+opFSTPd_a16(UNUSED(uint32_t fetchdat))
 {
     x87_td t;
     FP_ENTER();
@@ -587,7 +587,7 @@ opFSTPd_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFLDs_a16(uint32_t fetchdat)
+opFLDs_a16(UNUSED(uint32_t fetchdat))
 {
     x87_ts ts;
     FP_ENTER();
@@ -620,7 +620,7 @@ opFLDs_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTs_a16(uint32_t fetchdat)
+opFSTs_a16(UNUSED(uint32_t fetchdat))
 {
     x87_ts ts;
     FP_ENTER();
@@ -649,7 +649,7 @@ opFSTs_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTPs_a16(uint32_t fetchdat)
+opFSTPs_a16(UNUSED(uint32_t fetchdat))
 {
     x87_ts ts;
     FP_ENTER();

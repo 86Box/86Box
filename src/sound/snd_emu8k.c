@@ -328,7 +328,7 @@ emu8k_log(const char *fmt, ...)
 static inline int16_t
 EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
-    const register emu8k_mem_pointers_t addrmem = { { addr } };
+    register const emu8k_mem_pointers_t addrmem = { { addr } };
     return emu8k->ram_pointers[addrmem.hb_address][addrmem.lw_address];
 }
 

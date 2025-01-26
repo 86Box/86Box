@@ -1524,7 +1524,7 @@ scsi_cdrom_set_speed(scsi_cdrom_t *dev, const uint8_t *cdb)
 }
 
 static uint8_t
-scsi_cdrom_command_chinon(void *sc, const uint8_t *cdb, int32_t *BufLen)
+scsi_cdrom_command_chinon(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen))
 {
     scsi_cdrom_t *dev                    = (scsi_cdrom_t *) sc;
     uint8_t       cmd_stat               = 0x00;
@@ -1761,7 +1761,7 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
 }
 
 static uint8_t
-scsi_cdrom_command_matsushita(void *sc, const uint8_t *cdb, int32_t *BufLen)
+scsi_cdrom_command_matsushita(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen))
 {
     scsi_cdrom_t  *dev      = (scsi_cdrom_t *) sc;
     const uint8_t  cmd_stat = 0x00;
@@ -3581,7 +3581,7 @@ scsi_cdrom_close(void *priv)
 }
 
 static int
-scsi_cdrom_get_max(const ide_t *ide, const int ide_has_dma, const int type)
+scsi_cdrom_get_max(const ide_t *ide, UNUSED(const int ide_has_dma), const int type)
 {
     const scsi_cdrom_t *dev         = (scsi_cdrom_t *) ide->sc;
     int                 ret;
@@ -3600,7 +3600,7 @@ scsi_cdrom_get_max(const ide_t *ide, const int ide_has_dma, const int type)
 }
 
 static int
-scsi_cdrom_get_timings(const ide_t *ide, const int ide_has_dma, const int type)
+scsi_cdrom_get_timings(const ide_t *ide, UNUSED(const int ide_has_dma), const int type)
 {
     const scsi_cdrom_t *dev         = (scsi_cdrom_t *) ide->sc;
     int                 has_dma     = cdrom_has_dma(dev->drv->type);
@@ -3628,7 +3628,7 @@ scsi_cdrom_get_timings(const ide_t *ide, const int ide_has_dma, const int type)
  * Fill in ide->buffer with the output of the "IDENTIFY PACKET DEVICE" command
  */
 static void
-scsi_cdrom_identify(const ide_t *ide, const int ide_has_dma)
+scsi_cdrom_identify(const ide_t *ide, UNUSED(const int ide_has_dma))
 {
     const scsi_cdrom_t *dev         = (scsi_cdrom_t *) ide->sc;
     char                model[2048] = { 0 };

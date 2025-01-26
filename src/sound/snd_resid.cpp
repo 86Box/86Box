@@ -87,10 +87,10 @@ sid_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 #define CLOCK_DELTA(n) (int) (((14318180.0 * n) / 16.0) / (float) RESID_FREQ)
 
 static void
-fillbuf2(int &count, int16_t *buf, int len)
+fillbuf2(int &count, int16_t *buf, UNUSED(int len))
 {
-    int c;
-    c = psid->sid->clock(count, buf);
+    int c = psid->sid->clock(count, buf);
+
     if (!c)
         *buf = psid->last_sample;
     psid->last_sample = *buf;

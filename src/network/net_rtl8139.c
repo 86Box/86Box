@@ -44,10 +44,10 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_eeprom_nmc93cxx.h>
-#include <86box/bswap.h>
 #include <86box/nvr.h>
 #include "cpu.h"
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 #define PCI_PERIOD 30 /* 30 ns period = 33.333333 Mhz frequency */
 
@@ -1210,7 +1210,7 @@ rtl8139_CpCmd_read(RTL8139State *s)
 }
 
 static void
-rtl8139_IntrMitigate_write(UNUSED(RTL8139State *s), uint32_t val)
+rtl8139_IntrMitigate_write(UNUSED(RTL8139State *s), UNUSED(uint32_t val))
 {
     rtl8139_log("C+ IntrMitigate register write(w) val=0x%04x\n", val);
 }
@@ -3151,7 +3151,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
+rtl8139_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     RTL8139State *s = (RTL8139State *) priv;
 

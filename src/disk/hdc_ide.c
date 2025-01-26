@@ -386,7 +386,7 @@ ide_atapi_get_period(uint8_t channel)
 }
 
 static void
-ide_irq_update(ide_board_t *dev, int log)
+ide_irq_update(ide_board_t *dev, UNUSED(int log))
 {
     ide_t *ide;
     uint8_t set;
@@ -1894,7 +1894,7 @@ ide_read_data(ide_t *ide)
 }
 
 static uint8_t
-ide_status(ide_t *ide, ide_t *ide_other, int ch)
+ide_status(ide_t *ide, UNUSED(ide_t *ide_other), UNUSED(int ch))
 {
     uint8_t ret;
 
@@ -3207,7 +3207,7 @@ mcide_mca_reset(void *priv)
 }
 
 static void
-mcide_reset(void *priv)
+mcide_reset(UNUSED(void *priv))
 {
     for (uint8_t i = 0; i < 2; i++) {
         if (ide_boards[i] != NULL)

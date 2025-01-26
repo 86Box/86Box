@@ -27,6 +27,7 @@
 #include <86box/fdc.h>
 #include <86box/machine.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
 #ifndef OPS_286_386
 #    define OPS_286_386

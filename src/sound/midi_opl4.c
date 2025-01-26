@@ -557,7 +557,7 @@ program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
 }
 
 static void
-opl4_midi_thread(void *arg)
+opl4_midi_thread(UNUSED(void *arg))
 {
     opl4_midi_t *opl4_midi         = opl4_midi_cur;
     uint32_t     i                 = 0;
@@ -648,12 +648,13 @@ opl4_midi_msg(uint8_t *val)
 }
 
 void
-opl4_midi_sysex(uint8_t *data, unsigned int len)
+opl4_midi_sysex(UNUSED(uint8_t *data), UNUSED(unsigned int len))
 {
+    //
 }
 
 void *
-opl4_init(const device_t *info)
+opl4_init(UNUSED(const device_t *info))
 {
     midi_device_t *dev;
     extern void    al_set_midi(int freq, int buf_size);

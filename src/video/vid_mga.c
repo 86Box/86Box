@@ -6174,7 +6174,7 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
 }
 
 static uint8_t
-mystique_tvp3026_gpio_read(uint8_t cntl, void *priv)
+mystique_tvp3026_gpio_read(UNUSED(uint8_t cntl), void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 

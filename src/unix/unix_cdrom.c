@@ -70,7 +70,7 @@ cassette_eject(void)
 }
 
 void
-cartridge_mount(uint8_t id, char *fn, uint8_t wp)
+cartridge_mount(uint8_t id, char *fn, UNUSED(uint8_t wp))
 {
     cart_close(id);
     cart_load(id, fn);
@@ -121,7 +121,7 @@ floppy_eject(uint8_t id)
 }
 
 void
-plat_cdrom_ui_update(uint8_t id, uint8_t reload)
+plat_cdrom_ui_update(uint8_t id, UNUSED(uint8_t reload))
 {
     cdrom_t *drv = &cdrom[id];
 

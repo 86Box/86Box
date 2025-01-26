@@ -75,7 +75,7 @@ opOUT_EAX_imm(uint32_t fetchdat)
 }
 
 static int
-opIN_AL_DX(uint32_t fetchdat)
+opIN_AL_DX(UNUSED(uint32_t fetchdat))
 {
     check_io_perm(DX, 1);
     AL = inb(DX);
@@ -86,7 +86,7 @@ opIN_AL_DX(uint32_t fetchdat)
     return 0;
 }
 static int
-opIN_AX_DX(uint32_t fetchdat)
+opIN_AX_DX(UNUSED(uint32_t fetchdat))
 {
     check_io_perm(DX, 2);
     AX = inw(DX);
@@ -97,7 +97,7 @@ opIN_AX_DX(uint32_t fetchdat)
     return 0;
 }
 static int
-opIN_EAX_DX(uint32_t fetchdat)
+opIN_EAX_DX(UNUSED(uint32_t fetchdat))
 {
     check_io_perm(DX, 4);
     EAX = inl(DX);
@@ -109,7 +109,7 @@ opIN_EAX_DX(uint32_t fetchdat)
 }
 
 static int
-opOUT_AL_DX(uint32_t fetchdat)
+opOUT_AL_DX(UNUSED(uint32_t fetchdat))
 {
     check_io_perm(DX, 1);
     outb(DX, AL);
@@ -120,7 +120,7 @@ opOUT_AL_DX(uint32_t fetchdat)
     return x86_was_reset;
 }
 static int
-opOUT_AX_DX(uint32_t fetchdat)
+opOUT_AX_DX(UNUSED(uint32_t fetchdat))
 {
     check_io_perm(DX, 2);
     outw(DX, AX);
@@ -131,7 +131,7 @@ opOUT_AX_DX(uint32_t fetchdat)
     return 0;
 }
 static int
-opOUT_EAX_DX(uint32_t fetchdat)
+opOUT_EAX_DX(UNUSED(uint32_t fetchdat))
 {
     check_io_perm(DX, 4);
     outl(DX, EAX);

@@ -156,6 +156,7 @@ strnicmp(const char *s1, const char *s2, size_t n)
 void
 do_start(void)
 {
+    //
 }
 
 void
@@ -557,7 +558,7 @@ endblit()
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
-}
+} /*extern "C" */
 
 #ifdef Q_OS_WINDOWS
 size_t

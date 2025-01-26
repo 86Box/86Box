@@ -40,9 +40,8 @@
 #include <86box/fdc.h>
 #include <86box/smram.h>
 #include <86box/chipset.h>
-
+#include <86box/plat_unused.h>
  
-
 #ifdef ENABLE_ALI1409_LOG 
 int ali1409_do_log = ENABLE_ALI1409_LOG;
 
@@ -161,7 +160,7 @@ ali1409_close(void *priv)
 }
 
 static void *
-ali1409_init(const device_t *info)
+ali1409_init(UNUSED(const device_t *info))
 {
     ali1409_t *dev = (ali1409_t *) calloc(1, sizeof(ali1409_t));
 
@@ -172,7 +171,7 @@ ali1409_init(const device_t *info)
                 23h	Data Port
     */
    
-    ali1409_log ("Bus speed: %i",cpu_busspeed);
+    ali1409_log ("Bus speed: %i", cpu_busspeed);
    
 
     io_sethandler(0x0022, 0x0002, ali1409_read, NULL, NULL, ali1409_write, NULL, NULL, dev);

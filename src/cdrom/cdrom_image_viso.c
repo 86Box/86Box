@@ -32,13 +32,13 @@
 #include <time.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/bswap.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
 #include <86box/log.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/plat_dir.h>
 #include <86box/version.h>
 #include <86box/nvr.h>

@@ -16,7 +16,7 @@
 #include "codegen_ops_logic.h"
 
 uint32_t
-ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -29,7 +29,7 @@ ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -226,7 +226,7 @@ ropAND_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 }
 
 uint32_t
-ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -239,7 +239,7 @@ ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
     return op_pc + 1;
 }
 uint32_t
-ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -437,7 +437,7 @@ ropOR_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
 }
 
 uint32_t
-ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -449,7 +449,7 @@ ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
     return op_pc + 1;
 }
 uint32_t
-ropTEST_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropTEST_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -557,7 +557,7 @@ ropTEST_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 }
 
 uint32_t
-ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -570,7 +570,7 @@ ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 

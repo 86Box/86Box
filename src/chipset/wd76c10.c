@@ -37,6 +37,7 @@
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
 /* Lock/Unlock Procedures */
@@ -879,7 +880,7 @@ wd76c10_reset(void *priv)
 
 
 static void *
-wd76c10_init(const device_t *info)
+wd76c10_init(UNUSED(const device_t *info))
 {
     wd76c10_t *dev = (wd76c10_t *) calloc(1, sizeof(wd76c10_t));
     uint32_t total_mem = mem_size << 10;

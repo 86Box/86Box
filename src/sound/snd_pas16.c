@@ -1671,7 +1671,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
     - A 16-bit sample always takes two ctr_clock() ticks.
  */
 static uint16_t
-pas16_dma_channel_read(pas16_t *pas16, int channel)
+pas16_dma_channel_read(pas16_t *pas16, UNUSED(int channel))
 {
     int status;
     uint16_t ret;

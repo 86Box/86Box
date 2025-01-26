@@ -480,7 +480,7 @@ banshee_updatemapping(banshee_t *banshee)
 }
 
 uint32_t
-banshee_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+banshee_conv_16to32(svga_t* svga, uint16_t color, UNUSED(uint8_t bpp))
 {
     banshee_t *banshee = (banshee_t *) svga->priv;
     uint32_t ret = 0x00000000;

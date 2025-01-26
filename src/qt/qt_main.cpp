@@ -42,15 +42,6 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #    endif
 #endif
 
-#ifdef Q_OS_WINDOWS
-#    include "qt_rendererstack.hpp"
-#    include "qt_winrawinputfilter.hpp"
-#    include "qt_winmanagerfilter.hpp"
-#    include <86box/win.h>
-#    include <shobjidl.h>
-#    include <windows.h>
-#endif
-
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
@@ -63,6 +54,15 @@ extern "C" {
 #include <86box/gdbstub.h>
 #include <86box/version.h>
 }
+
+#ifdef Q_OS_WINDOWS
+#    include "qt_rendererstack.hpp"
+#    include "qt_winrawinputfilter.hpp"
+#    include "qt_winmanagerfilter.hpp"
+#    include <86box/win.h>
+#    include <shobjidl.h>
+#    include <windows.h>
+#endif
 
 #include <thread>
 #include <iostream>

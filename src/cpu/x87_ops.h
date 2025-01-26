@@ -542,7 +542,7 @@ op_nofpu_a32(uint32_t fetchdat)
 
 #ifdef FPU_8087
 static int
-FPU_ILLEGAL_a16(uint32_t fetchdat)
+FPU_ILLEGAL_a16(UNUSED(uint32_t fetchdat))
 {
     geteaw();
     wait(timing_rr, 0);

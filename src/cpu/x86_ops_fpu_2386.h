@@ -90,7 +90,7 @@ opESCAPE_df_a32(uint32_t fetchdat)
 }
 
 static int
-opWAIT(uint32_t fetchdat)
+opWAIT(UNUSED(uint32_t fetchdat))
 {
     if ((cr0 & 0xa) == 0xa) {
         x86_int(7);

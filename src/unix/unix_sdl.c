@@ -533,19 +533,19 @@ ui_window_title(wchar_t *str)
 }
 
 void
-ui_init_monitor(int monitor_index)
+ui_init_monitor(UNUSED(int monitor_index))
 {
     /* No-op. */
 }
 
 void
-ui_deinit_monitor(int monitor_index)
+ui_deinit_monitor(UNUSED(int monitor_index))
 {
     /* No-op. */
 }
 
 void
-plat_resize_request(int w, int h, int monitor_index)
+plat_resize_request(UNUSED(int w), UNUSED(int h), int monitor_index)
 {
     atomic_store((&doresize_monitors[monitor_index]), 1);
 }
