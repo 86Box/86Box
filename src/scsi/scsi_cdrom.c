@@ -4091,11 +4091,11 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 break;
             case CDROM_TYPE_HLDTST_GCR8526B_101:
                 ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
-                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST CD-ROM GCR-8526B               ", 40); /* Model */
+                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST GCR-8526B                      ", 40); /* Model */
                 break;
             case CDROM_TYPE_HLDTST_GCR8163B_0L23:
                 ide_padstr((char *) (ide->buffer + 23), "0L23    ", 8);                                  /* Firmware */
-                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST DVDROM GDR-8163B               ", 40); /* Model */
+                ide_padstr((char *) (ide->buffer + 27), "HL-DT-ST GDR-8163B                      ", 40); /* Model */
                 break;
             case CDROM_TYPE_HLDTST_GSA4160_A302:
                 ide_padstr((char *) (ide->buffer + 23), "A302    ", 8);                                  /* Firmware */
