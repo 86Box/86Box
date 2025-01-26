@@ -301,7 +301,7 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
                             if ((cmd >= 2) && (dev->accel.cmd & 0x1000))
                                 val = (val >> 8) | (val << 8);
                         }
-                        if ((cmd <= 2) || (cmd == 4) || ((cmd == 6))) {
+                        if ((cmd <= 2) || (cmd == 4) || (cmd == 6)) {
                             if ((dev->accel.cmd & 0x08) && (cmd >= 2))
                                 monoxfer = val;
                             else {
@@ -3606,6 +3606,12 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
 }
 
 void
+ibm8514_set_poll(svga_t *svga)
+{
+    timer_set_callback(&svga->timer, ibm8514_poll);
+}
+
+void
 ibm8514_poll(void *priv)
 {
     svga_t *svga = (svga_t *)priv;
@@ -3614,7 +3620,7 @@ ibm8514_poll(void *priv)
     int      wx;
     int      wy;
 
-    ibm8514_log("IBM 8514/A poll.\n");
+    ibm8514_log("IBM 8514/A poll=%x.\n", dev->on);
     if (dev->on) {
         ibm8514_log("ON!\n");
         if (!dev->linepos) {
@@ -3857,7 +3863,7 @@ ibm8514_mca_reset(void *priv)
     else
         ibm8514_mca_write(0x102, 0, svga);
 
-    timer_set_callback(&svga->timer, svga_poll);
+    svga_set_poll(svga);
 }
 
 static void *
