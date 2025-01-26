@@ -4061,12 +4061,8 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
                 ide_padstr((char *) (ide->buffer + 23), "1.13    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CRD-8322B                               ", 40); /* Model */
                 break;
-            case CDROM_TYPE_CREATIVE_CD3231E:
-                ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
-                ide_padstr((char *) (ide->buffer + 27), "CREATIVE CD3231E                        ", 40); /* Model */
-                break;
-            case CDROM_TYPE_CREATIVE_CD3621E:
-                ide_padstr((char *) (ide->buffer + 23), "1.00    ", 8);                                  /* Firmware */
+            case CDROM_TYPE_CREATIVE_CD3621E_SB03:
+                ide_padstr((char *) (ide->buffer + 23), "SB03    ", 8);                                  /* Firmware */
                 ide_padstr((char *) (ide->buffer + 27), "CREATIVE CD3621E                        ", 40); /* Model */
                 break;
             case CDROM_TYPE_CYBERDRIVE_CW099D_V100:
