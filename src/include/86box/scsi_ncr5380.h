@@ -74,6 +74,7 @@ typedef struct ncr_t {
     uint8_t output_data;
     uint8_t tx_data;
     uint8_t irq_state;
+    uint8_t isr_reg;
 
     uint8_t bus;
 
