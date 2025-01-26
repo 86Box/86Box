@@ -180,7 +180,10 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         }
                         if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
                             memset(ncr400->buffer, 0, MIN(128, dev->buffer_length));
-                            timer_on_auto(&ncr400->timer, scsi_bus->period);
+                            if (ncr400->type == ROM_T130B)
+                                timer_on_auto(&ncr400->timer, 10.0);
+                            else
+                                timer_on_auto(&ncr400->timer, scsi_bus->period);
                             ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, p=%lf enabled=%d.\n",
                                   ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, scsi_bus->wait_data, scsi_bus->wait_complete, scsi_bus->clear_req, scsi_bus->period, timer_is_enabled(&ncr400->timer));
                         } else
@@ -391,17 +394,20 @@ t130b_in(uint16_t port, void *priv)
 }
 
 static void
-ncr53c400_dma_mode_ext(void *priv, UNUSED(void *ext_priv), uint8_t val)
+ncr53c400_dma_mode_ext(void *priv, void *ext_priv, uint8_t val)
 {
+    ncr53c400_t    *ncr400     = (ncr53c400_t *) ext_priv;
     ncr_t          *ncr        = (ncr_t *) priv;
     scsi_bus_t     *scsi_bus   = &ncr->scsibus;
 
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
-    ncr53c400_log("NCR 53c400: BlockCountLoaded=%d, DMA mode enabled=%02x, valDMA=%02x.\n", ncr400->block_count_loaded, ncr->mode & MODE_DMA, val & MODE_DMA);
-    if (!(val & MODE_DMA) && (ncr->mode & MODE_DMA)) {
-        ncr->tcr &= ~TCR_LAST_BYTE_SENT;
-        ncr->isr &= ~STATUS_END_OF_DMA;
-        scsi_bus->tx_mode = PIO_TX_BUS;
+    ncr53c400_log("NCR 53c400: Loaded?=%d, DMA mode enabled=%02x, valDMA=%02x.\n", ncr400->block_count_loaded, ncr->mode & MODE_DMA, val & MODE_DMA);
+    if (!ncr400->block_count_loaded) {
+        if (!(val & MODE_DMA)) {
+            ncr->tcr &= ~TCR_LAST_BYTE_SENT;
+            ncr->isr &= ~STATUS_END_OF_DMA;
+            scsi_bus->tx_mode = PIO_TX_BUS;
+        }
     }
 }
 
@@ -417,8 +423,13 @@ ncr53c400_callback(void *priv)
     uint8_t        temp;
     uint8_t        status;
 
-    if (scsi_bus->tx_mode != PIO_TX_BUS)
-        timer_on_auto(&ncr400->timer, 1.0);
+    if (scsi_bus->tx_mode != PIO_TX_BUS) {
+        if (ncr400->type == ROM_T130B) {
+            ncr53c400_log("PERIOD T130B DMA=%lf.\n", scsi_bus->period / 200.0);
+            timer_on_auto(&ncr400->timer, scsi_bus->period / 200.0);
+        } else
+            timer_on_auto(&ncr400->timer, 1.0);
+    }
 
     if (scsi_bus->data_wait & 1) {
         scsi_bus->clear_req = 3;
@@ -727,7 +738,6 @@ ncr53c400_init(const device_t *info)
     scsi_bus->speed = 0.2;
     scsi_bus->divider = 2.0;
     scsi_bus->multi = 1.750;
-
     return ncr400;
 }
 

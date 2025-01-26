@@ -195,7 +195,7 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
             break;
 
         case 5: /* start DMA Send */
-            pclog("Write: start DMA send register\n");
+            ncr5380_log("Write: start DMA send register\n");
             /*a Write 6/10 has occurred, start the timer when the block count is loaded*/
             scsi_bus->tx_mode = DMA_OUT_TX_BUS;
             if (ncr->dma_send_ext)
@@ -238,7 +238,7 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
                 } else
                     ret = ncr->output_data;
 
-                ncr5380_log("[%04X:%08X]: Data Bus Phase, ret=%02x, clearreq=%d, waitdata=%x, txmode=%x.\n", CS, cpu_state.pc, ret, scsi_bus->clear_req, scsi_bus->wait_data, scsi_bus->tx_mode);
+                ncr5380_log("[%04X:%08X]: Data Bus Phase, CMDissued=%d, ret=%02x, clearreq=%d, waitdata=%x, txmode=%x.\n", CS, cpu_state.pc, scsi_bus->command_issued, ret, scsi_bus->clear_req, scsi_bus->wait_data, scsi_bus->tx_mode);
             } else {
                 /*Return the data from the SCSI bus*/
                 bus = scsi_bus_read(scsi_bus);
@@ -271,10 +271,6 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
                 ret |= BUS_SEL;
             if (ncr->icr & ICR_BSY)
                 ret |= BUS_BSY;
-
-            /*Note by TC1995: Horrible hack, I know.*/
-            (void) scsi_bus_read(scsi_bus);
-            (void) scsi_bus_read(scsi_bus);
             break;
 
         case 5: /* Bus and Status register */
@@ -319,6 +315,7 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
                 ret |= STATUS_BUSY_ERROR;
             }
             ret |= (ncr->isr & (STATUS_INT | STATUS_END_OF_DMA));
+            ncr->isr_reg = ret;
             break;
 
         case 6:
