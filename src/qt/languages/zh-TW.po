@@ -687,8 +687,11 @@ msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%hs\" �
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 \"%hs\" 不可用。將切換到其他可用顯示卡。"
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 2 \"%hs\" 不可用。將切換到其他可用顯示卡。"
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 2 \"%hs\" 不可用。禁用第二块显卡。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "由於缺少合適的 ROM，裝置 \"%hs\" 不可用。忽略设备。"
 
 msgid "Machine"
 msgstr "機型"
@@ -2120,3 +2123,9 @@ msgstr "IBM 8514/A 克隆 (ISA)"
 
 msgid "Vendor"
 msgstr "製造商"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "通用 PC/XT 記憶體擴充"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "通用 PC/AT 記憶體擴充"

@@ -687,8 +687,11 @@ msgstr "Sistem \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Video kartica \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video kartica 2 \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Video kartica 2 \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Isključivanje druge video karice."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Uređaj \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi. Ignoriranje uređaja."
 
 msgid "Machine"
 msgstr "Sistem"
@@ -2120,3 +2123,9 @@ msgstr "Klon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Proizvođać"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generičko proširenje memorije PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generičko proširenje memorije PC/AT"

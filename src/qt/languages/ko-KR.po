@@ -687,8 +687,11 @@ msgstr "roms/machines 디렉토리에 필요한 롬파일이 없어 기종 \"%hs
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 \"%hs\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
 
-msgid "Video card 2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 2 \"%hs\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 2 \"%hs\"을(를) 사용할 수 없습니다. 두 번째 비디오 카드를 비활성화합니다."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "필요한 롬파일이 없어 장치 \"%hs\"을(를) 사용할 수 없습니다. 장치를 무시합니다."
 
 msgid "Machine"
 msgstr "기종"
@@ -2120,3 +2123,9 @@ msgstr "IBM 8514/A 클론(ISA)"
 
 msgid "Vendor"
 msgstr "제조사"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "일반 PC/XT 메모리 확장 카드"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "일반 PC/AT 메모리 확장 카드"

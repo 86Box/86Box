@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/ini.h>
@@ -52,8 +53,10 @@
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
+#include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/sound.h>
+#include <86box/ui.h>
 
 #define DEVICE_MAX 256 /* max # of devices */
 
@@ -155,6 +158,17 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     void     *priv     = NULL;
     int16_t   c;
 
+    if (!device_available(dev)) {
+        wchar_t temp[512] = { 0 };
+        swprintf(temp, sizeof_w(temp),
+                 plat_get_string(STRING_HW_NOT_AVAILABLE_DEVICE),
+                 dev->name);
+        ui_msgbox_header(MBX_INFO,
+                         plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
+                         temp);
+        return ((void *) dev->name);
+    }
+
     if (params != NULL) {
         init_dev = calloc(1, sizeof(device_t));
         memcpy(init_dev, dev, sizeof(device_t));
@@ -171,7 +185,8 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
             break;
     }
     if (c >= DEVICE_MAX) {
-        fatal("DEVICE: too many devices\n");
+        fatal("Attempting to initialize more than the maximum "
+              "limit of %i devices\n", DEVICE_MAX);
         return NULL;
     }
 

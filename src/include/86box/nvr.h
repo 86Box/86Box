@@ -60,6 +60,7 @@
 #define TIME_SYNC_ENABLED  1
 #define TIME_SYNC_UTC      2
 
+#ifdef _TIMER_H_
 /* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
     char    *fn;   /* pathname of image file */
@@ -104,8 +105,6 @@ extern const device_t elt_nvr_device;
 extern void rtc_tick(void);
 
 extern void  nvr_init(nvr_t *);
-extern char *nvr_path(char *str);
-extern FILE *nvr_fopen(char *str, char *mode);
 extern int   nvr_load(void);
 extern void  nvr_close(void);
 extern void  nvr_set_ven_save(void (*ven_save)(void));
@@ -132,5 +131,9 @@ extern void nvr_irq_set(int irq, nvr_t *nvr);
 extern void nvr_smi_enable(int enable, nvr_t *nvr);
 extern uint8_t nvr_smi_status(nvr_t *nvr);
 extern void nvr_smi_status_clear(nvr_t *nvr);
+#endif
+
+extern char *nvr_path(char *str);
+extern FILE *nvr_fopen(char *str, char *mode);
 
 #endif /*EMU_NVR_H*/

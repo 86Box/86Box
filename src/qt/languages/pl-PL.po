@@ -687,8 +687,11 @@ msgstr "Maszyna \"%hs\" nie jest dostępna, ponieważ brakuje obrazów ROM w kat
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Karta wideo \"%hs\" nie jest dostępna, ponieważ brakuje obrazów ROM w katalogu roms/video. Przełączanie na dostępną kartę wideo."
 
-msgid "Video card 2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Karta wideo 2 \"%hs\" nie jest dostępna, ponieważ brakuje obrazów ROM w katalogu roms/video. Przełączanie na dostępną kartę wideo."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Karta wideo 2 \"%hs\" nie jest dostępna, ponieważ brakuje obrazów ROM w katalogu roms/video. Wyłączenie drugiej karty graficznej."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Urządzenie \"%hs\" nie jest dostępne, ponieważ brakuje obrazów ROM. Ignorowanie urządzenia."
 
 msgid "Machine"
 msgstr "Maszyna"
@@ -871,10 +874,10 @@ msgid "Invalid configuration"
 msgstr "Nieprawidłowa konfiguracja"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
+msgstr "%1 jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do generycznej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 jest wymagany do automatycznej konwersji plików PCL do PDF.\n\nDokumenty wysłane do ogólnej drukarki PCL zostaną zapisane jako pliki Printer Command Language (.pcl)."
+msgstr "%1 jest wymagany do automatycznej konwersji plików PCL do PDF.\n\nDokumenty wysłane do generycznej drukarki PCL zostaną zapisane jako pliki Printer Command Language (.pcl)."
 
 msgid "Entering fullscreen mode"
 msgstr "Przechodzenie do trybu pełnoekranowego"
@@ -1942,7 +1945,7 @@ msgid "New"
 msgstr "Nowość"
 
 msgid "Color (generic)"
-msgstr "Kolor (ogólny)"
+msgstr "Kolor (generyczny)"
 
 msgid "Green Monochrome"
 msgstr "Zielony monochromatyczny"
@@ -2056,16 +2059,16 @@ msgid "Stereo LPT DAC"
 msgstr "Stereofoniczny przetwornik cyfrowo-analogowy LPT"
 
 msgid "Generic Text Printer"
-msgstr "Ogólna drukarka tekstowa"
+msgstr "Generyczna drukarka tekstowa"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
 msgstr "Generyczna drukarka igłowa ESC/P"
 
 msgid "Generic PostScript Printer"
-msgstr "Ogólna drukarka PostScript"
+msgstr "Generyczna drukarka PostScript"
 
 msgid "Generic PCL5e Printer"
-msgstr "Drukarka PCL5e"
+msgstr "Generyczna drukarka PCL5e"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protokół internetowy linii równoległej"
@@ -2120,3 +2123,9 @@ msgstr "Klon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Producent"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generyczne rozszerzenie pamięci PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generyczne rozszerzenie pamięci PC/AT"

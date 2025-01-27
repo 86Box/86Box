@@ -632,7 +632,8 @@ ProgSettings::reloadStrings()
     translatedstrings[STRING_GHOSTPCL_ERROR_DESC]       = QCoreApplication::translate("", "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.").arg(LIB_NAME_GPCL).toStdWString();
     translatedstrings[STRING_HW_NOT_AVAILABLE_MACHINE]  = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
     translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO]    = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
-    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO2]   = QCoreApplication::translate("", "Video card #2 \"%hs\"  is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO2]   = QCoreApplication::translate("", "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_DEVICE]   = QCoreApplication::translate("", "Device \"%hs\" is not available due to missing ROMs. Ignoring the device.").toStdWString();
     translatedstrings[STRING_HW_NOT_AVAILABLE_TITLE]    = QCoreApplication::translate("", "Hardware not available").toStdWString();
     translatedstrings[STRING_MONITOR_SLEEP]             = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();

@@ -687,8 +687,11 @@ msgstr "Системна плата \"%hs\" недоступна через ві
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Відеокарта \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Відеокарта 2 \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Відеокарта 2 \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Відключення другої відеокарти."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Пристрій \"%hs\" недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
 
 msgid "Machine"
 msgstr "Комп'ютер"
@@ -2126,3 +2129,9 @@ msgstr "30 Гц (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
 msgstr "60 Гц (JMP2 = 2)"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Загальне розширення пам'яті PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Загальне розширення пам'яті PC/AT"

@@ -687,8 +687,11 @@ msgstr "Mẫu máy \"%hs\" không giả lập được do thiếu file ROM tươ
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Card đồ họa \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Hãy chọn card đồ họa khác."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Card đồ họa 2 \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Hãy chọn card đồ họa khác."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Card đồ họa 2 \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Vô hiệu hóa card đồ họa thứ hai."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Thiết bị \"%hs\" không giả lập được do thiếu file ROM. Bỏ qua thiết bị."
 
 msgid "Machine"
 msgstr "Mẫu máy"
@@ -2120,3 +2123,9 @@ msgstr "IBM 8514/A dòng vô tính (ISA)"
 
 msgid "Vendor"
 msgstr "Nhà sản xuất"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Chung mở rộng bộ nhớ qua PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Chung mở rộng bộ nhớ qua PC/AT"

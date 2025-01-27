@@ -47,6 +47,7 @@ enum {
     STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%hs\" is not available..." */
     STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
     STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
     STRING_GHOSTPCL_ERROR_DESC        /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
@@ -187,9 +188,6 @@ extern void zip_reload(uint8_t id);
 extern void mo_eject(uint8_t id);
 extern void mo_mount(uint8_t id, char *fn, uint8_t wp);
 extern void mo_reload(uint8_t id);
-extern int  ioctl_open(uint8_t id, char d);
-extern void ioctl_reset(uint8_t id);
-extern void ioctl_close(uint8_t id);
 
 /* Other stuff. */
 extern void startblit(void);

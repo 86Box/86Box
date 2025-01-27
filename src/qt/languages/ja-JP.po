@@ -687,8 +687,11 @@ msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs�
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
 
-msgid "Video card 2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。2枚目のビデオカードを無効にします。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "ROMがないため、デバイス「%hs」は使用できません。装置を無視する。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -2120,3 +2123,9 @@ msgstr "IBM 8514/A クローン（ISA）"
 
 msgid "Vendor"
 msgstr "業者"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "汎用PC/XTメモリ拡張カード"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "汎用PC/ATメモリ拡張カード"
