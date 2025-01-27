@@ -243,24 +243,27 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_SIZE_REV_C                     64
 #define NV3_PFIFO_CACHE1_SIZE_MAX                       NV3_PFIFO_CACHE1_SIZE_REV_C
 #define NV3_PFIFO_CACHE_REASSIGNMENT                    0x2500        
-#define NV3_PFIFO_CACHE0_ACCESS                         0x3000
-#define NV3_PFIFO_CACHE0_DMA_CHANNEL_ID                 0x3004
+#define NV3_PFIFO_CACHE0_PUSH_ACCESS                    0x3000
+#define NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID                0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
 #define NV3_PFIFO_CACHE0_STATUS                         0x3014
 #define NV3_PFIFO_CACHE0_STATUS_RANOUT                  0           // 1 if we fucked up
 #define NV3_PFIFO_CACHE0_STATUS_LOW_MARK                4           // 1 if ramro is empty
 #define NV3_PFIFO_CACHE0_STATUS_HIGH_MARK               8
 #define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL                  0x3040
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED          0
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_SUCCESS     4
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_DEVICE           8
-#define NV3_PFIFO_CACHE0_PULLER_STATE1                  0x3050
-#define NV3_PFIFO_CACHE0_PULLER_STATE1_CTX_IS_CLEAN     4
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL                 0x3040
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED         0
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_SUCCESS    4
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_DEVICE          8
+#define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY            0x3050
+#define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY_BOOL       4           // 1=dirty 0=clean
 #define NV3_PFIFO_CACHE0_GET                            0x3070
 #define NV3_PFIFO_CACHE0_GET_ADDRESS                    2           // 1 bit
-#define NV3_PFIFO_CACHE1_ACCESS                         0x3200
-#define NV3_PFIFO_CACHE1_DMA_CHANNEL_ID                 0x3204
+#define NV3_PFIFO_CACHE0_METHOD                         0x3100
+#define NV3_PFIFO_CACHE0_METHOD_ADDRESS                 2           // 12:2
+#define NV3_PFIFO_CACHE0_METHOD_SUBCHANNEL              13          // 15:13
+#define NV3_PFIFO_CACHE1_PUSH_ACCESS                    0x3200
+#define NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID                0x3204
 #define NV3_PFIFO_CACHE1_PUT                            0x3210
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
 #define NV3_PFIFO_CACHE1_STATUS                         0x3214
@@ -276,14 +279,17 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL                  0x3240
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED          0
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_SUCCESS     4
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_DEVICE           8
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL                 0x3240
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED         0
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_SUCCESS    4
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_DEVICE          8
 #define NV3_PFIFO_CACHE1_PULLER_STATE1                  0x3250
-#define NV3_PFIFO_CACHE1_PULLER_STATE1_CTX_IS_CLEAN     4
+#define NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY            4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
 #define NV3_PFIFO_CACHE1_GET_ADDRESS                    2           // 6:2
+#define NV3_PFIFO_CACHE1_METHOD                         0x3300
+#define NV3_PFIFO_CACHE1_METHOD_ADDRESS                 2           // 12:2
+#define NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL              13          // 15:13
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
 #define NV3_PRM_INTR                                    0x4100
@@ -588,7 +594,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PRAMIN_RAMHT_SIZE_2                         0x3FFF
 #define NV3_PRAMIN_RAMHT_SIZE_3                         0x7FFF
 
-#define NV3_PRAMIN_RAMAU_START                          0x1C01000   // Auxillary area
+/* OBSOLETE AREA for AUDIO probably. DO NOT USE! */
+#define NV3_PRAMIN_RAMAU_START                          0x1C01000   
 #define NV3_PRAMIN_RAMAU_END                            0x1C01BFF
 #define NV3_PRAMIN_RAMFC_START                          0x1C01C00   // context for unused PFIFO DMA channels
 #define NV3_PRAMIN_RAMFC_END                            0x1C01DFF
@@ -767,9 +774,10 @@ typedef struct nv3_pbus_s
 
 typedef struct nv3_pfifo_cache_s
 {
+    bool access_enabled;                // Can we even access this cache?
     uint8_t put_address;                // Trigger a DMA into the value you put here.
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
-    uint8_t channel_id; 
+    uint8_t channel_id;                 // The DMA channel ID of this cache.
     uint32_t status;
     uint32_t status_puller;
     uint32_t control;
@@ -778,15 +786,19 @@ typedef struct nv3_pfifo_cache_s
     /* cache1 only 
         do we even need to emulate this?
     */
+    uint32_t dma_status;                // 0x3218
     bool dma_enabled;                   // 0x3220 bit0
     bool dma_is_busy;                   // 0x3220 bit4
-    uint32_t dma_length;
-    uint32_t dma_address;
-    uint8_t dma_target_node;            // depends on card bus
-    uint8_t dma_tlb_tag;
-    uint8_t tlb_pte;                    // DMA Engine - Translation Lookaside Buffer
-    uint8_t tlb_pt_base;                // DMA Engine - TLB Pagetable Base Addres
 
+    uint32_t dma_state;                 // Corresponds to PFIFO_CACHE1_DMA0    
+    uint32_t dma_length;                // Corresponds to PFIFO_CACHE1_DMA1
+    uint32_t dma_address;               // Corresponds to PFIFO_CACHE1_DMA2
+    uint8_t dma_target_node;            // Corresponds to PFIFO_CACHE1_DMA3 depends on card bus
+    uint8_t dma_tlb_tag;
+    uint8_t dma_tlb_pte;                // DMA Engine - Translation Lookaside Buffer
+    uint8_t dma_tlb_pt_base;            // DMA Engine - TLB Pagetable Base Addres
+    uint16_t method_address;            // address of the method (i.e. what method it is)
+    uint16_t method_subchannel;         // subchannel
     bool context_is_dirty;
 
     /* TODO */
@@ -1293,6 +1305,10 @@ uint32_t    nv3_pfifo_read(uint32_t address);
 void        nv3_pfifo_write(uint32_t address, uint32_t value);
 
 // NV3 PFIFO - Caches
+void        nv3_pfifo_cache0_push();
+void        nv3_pfifo_cache0_pull();
+void        nv3_pfifo_cache1_push();
+void        nv3_pfifo_cache1_pull();
 uint32_t    nv3_pfifo_cache1_normal2gray(uint32_t val);
 uint32_t    nv3_pfifo_cache1_gray2normal(uint32_t val);
 

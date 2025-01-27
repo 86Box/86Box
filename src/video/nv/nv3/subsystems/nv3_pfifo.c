@@ -39,17 +39,33 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
-    { NV3_PFIFO_CACHE0_PULLER_CONTROL, "PFIFO - Cache0 Puller State0", NULL, NULL},
-    { NV3_PFIFO_CACHE0_PULLER_STATE1, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
+    { NV3_PFIFO_CACHE0_PULLER_CONTROL, "PFIFO - Cache0 Puller Control", NULL, NULL},
+    { NV3_PFIFO_CACHE1_PULLER_CONTROL, "PFIFO - Cache1 Puller Control"},
+    { NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
     { NV3_PFIFO_CACHE1_PULLER_CONTROL, "PFIFO - Cache1 Puller State0", NULL, NULL},
     { NV3_PFIFO_CACHE1_PULLER_STATE1, "PFIFO - Cache1 Puller State1 (Is context clean?)", NULL, NULL},
-
+    { NV3_PFIFO_CACHE0_PUSH_ACCESS, "PFIFO - Cache0 Access", NULL, NULL, },
+    { NV3_PFIFO_CACHE1_PUSH_ACCESS, "PFIFO - Cache1 Access", NULL, NULL, },
+    { NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID, "PFIFO - Cache0 DMA Channel ID", NULL, NULL, },
+    { NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID, "PFIFO - Cache1 DMA Channel ID", NULL, NULL, },
+    { NV3_PFIFO_CACHE0_ERROR_PENDING, "PFIFO - Cache0 DMA Error Pending?", NULL, NULL, },
     { NV3_PFIFO_CACHE0_STATUS, "PFIFO - Cache0 Status", NULL, NULL},
     { NV3_PFIFO_CACHE1_STATUS, "PFIFO - Cache1 Status", NULL, NULL}, 
     { NV3_PFIFO_CACHE0_GET, "PFIFO - Cache0 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
     { NV3_PFIFO_CACHE1_GET, "PFIFO - Cache1 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
     { NV3_PFIFO_CACHE0_PUT, "PFIFO - Cache0 Put MUST TRIGGER DMA NOW TO INSERT ENTRY", NULL, NULL },
     { NV3_PFIFO_CACHE1_PUT, "PFIFO - Cache1 Put MUST TRIGGER DMA NOW TO INSERT ENTRY", NULL, NULL },
+    //Cache1 exclusive stuff
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_0, "PFIFO - Cache1 DMA Config0"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_1, "PFIFO - Cache1 DMA Config1"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_2, "PFIFO - Cache1 DMA Config2"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_3, "PFIFO - Cache1 DMA Config3"},
+    { NV3_PFIFO_CACHE1_DMA_STATUS, "PFIFO - Cache1 DMA Status"},
+    { NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE, "PFIFO - Cache1 DMA Translation Lookaside Buffer - Pagetable Base"},
+    { NV3_PFIFO_CACHE1_DMA_TLB_PTE, "PFIFO - Cache1 DMA Status"},
+    { NV3_PFIFO_CACHE1_DMA_TLB_TAG, "PFIFO - Cache1 DMA Status"},
+    
+
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -107,7 +123,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_DEBUG_0:
                     ret = nv3->pfifo.debug_0;
                     break;
-                // These may need to become functions.
+                // Some of these may need to become functions.
                 case NV3_PFIFO_CONFIG_RAMFC:
                     ret = nv3->pfifo.ramfc_config;
                     break;
@@ -117,6 +133,45 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CONFIG_RAMRO:
                     ret = nv3->pfifo.ramro_config;
                     break;
+                case NV3_PFIFO_CACHE0_PULLER_CONTROL:
+                    ret = nv3->pfifo.cache0_settings.control;
+                    break;
+                case NV3_PFIFO_CACHE1_PULLER_CONTROL:
+                    ret = nv3->pfifo.cache1_settings.control;
+                    break;
+                case NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY:
+                    ret = nv3->pfifo.cache0_settings.context_is_dirty;
+                    break;
+                case NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY:
+                    ret = nv3->pfifo.cache1_settings.context_is_dirty;
+                    break;
+                case NV3_PFIFO_CACHE0_PUSH_ACCESS:
+                    ret = nv3->pfifo.cache0_settings.access_enabled;
+                    break;
+                case NV3_PFIFO_CACHE1_PUSH_ACCESS:
+                    ret = nv3->pfifo.cache1_settings.access_enabled;
+                    break; 
+                case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
+                    ret = nv3->pfifo.cache0_settings.channel_id;
+                    break;
+                case NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID:
+                    ret = nv3->pfifo.cache1_settings.channel_id;
+                    break;
+                case NV3_PFIFO_CACHE0_STATUS:
+                    /* Todo: Return values based on runout put/get*/
+                    ret = nv3->pfifo.cache0_settings.status;
+                    break;
+                case NV3_PFIFO_CACHE1_STATUS:
+                    ret = nv3->pfifo.cache1_settings.status; 
+                    break;
+                case NV3_PFIFO_CACHE0_METHOD:
+                    ret = ((nv3->pfifo.cache0_settings.method_subchannel << 13) & 0x07)
+                    | ((nv3->pfifo.cache0_settings.method_address << 2) & 0x7FF);
+                    break;
+                case NV3_PFIFO_CACHE1_METHOD:
+                    ret = ((nv3->pfifo.cache1_settings.method_subchannel << 13) & 0x07)
+                    | ((nv3->pfifo.cache1_settings.method_address << 2) & 0x7FF);
+                    break;
                 case NV3_PFIFO_CACHE0_GET:
                     //wa
                     break;
@@ -124,13 +179,34 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CACHE_REASSIGNMENT:
                     ret = nv3->pfifo.cache_reassignment & 0x01; //1bit meaningful
                     break;
+                // Cache1 exclusive stuff
                 // Control
-                case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache0_settings.control; // 8bits meaningful
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_0:
+                    ret = nv3->pfifo.cache1_settings.dma_state;
+                    break; 
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_1:
+                    ret = nv3->pfifo.cache1_settings.dma_length;
                     break;
-                case NV3_PFIFO_CACHE1_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache1_settings.control; // only 8bits are meaningful
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_2:
+                    ret = nv3->pfifo.cache1_settings.dma_address;
                     break;
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_3:
+                    ret = nv3->pfifo.cache1_settings.dma_target_node;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_STATUS:
+                    ret = nv3->pfifo.cache1_settings.dma_status;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE:
+                    ret = nv3->pfifo.cache1_settings.dma_tlb_pt_base;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_TLB_PTE:
+                    ret = nv3->pfifo.cache1_settings.dma_tlb_pte;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_TLB_TAG:
+                    ret = nv3->pfifo.cache1_settings.dma_tlb_tag;
+                    break;
+
+                
             }
         }
 
@@ -243,7 +319,64 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     break;
                 case NV3_PFIFO_CACHE1_PULLER_CONTROL:
                     nv3->pfifo.cache1_settings.control = value; // 8bits meaningful
-
+                    break;
+                case NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY:
+                    nv3->pfifo.cache0_settings.context_is_dirty = value;
+                    break;
+                case NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY:
+                    nv3->pfifo.cache1_settings.context_is_dirty = value;
+                    break;
+                case NV3_PFIFO_CACHE0_PUSH_ACCESS:
+                    nv3->pfifo.cache0_settings.access_enabled = value;
+                    break;
+                case NV3_PFIFO_CACHE1_PUSH_ACCESS:
+                    nv3->pfifo.cache1_settings.access_enabled = value;
+                    break; 
+                case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
+                    nv3->pfifo.cache0_settings.channel_id = value;
+                    break;
+                case NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID:
+                    nv3->pfifo.cache1_settings.channel_id = value;
+                    break;
+                case NV3_PFIFO_CACHE0_STATUS:
+                    /* Todo: Return values based on runout put/get*/
+                    nv3->pfifo.cache0_settings.status = value;
+                    break;
+                case NV3_PFIFO_CACHE1_STATUS:
+                    nv3->pfifo.cache1_settings.status = value; 
+                    break;
+                case NV3_PFIFO_CACHE0_METHOD:
+                    nv3->pfifo.cache0_settings.method_subchannel = (value >> 13) & 0x07;
+                    nv3->pfifo.cache0_settings.method_address = (value >> 2) & 0x7FF;
+                    
+                    break;
+                case NV3_PFIFO_CACHE1_METHOD:
+                    nv3->pfifo.cache1_settings.method_subchannel = (value >> 13) & 0x07;
+                    nv3->pfifo.cache1_settings.method_address = (value >> 2) & 0x7FF;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_0:
+                    nv3->pfifo.cache1_settings.dma_state = value;
+                    break; 
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_1:
+                    nv3->pfifo.cache1_settings.dma_length = value;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_2:
+                    nv3->pfifo.cache1_settings.dma_address = value;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_CONFIG_3:
+                    nv3->pfifo.cache1_settings.dma_target_node = value;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_STATUS:
+                    nv3->pfifo.cache1_settings.dma_status = value;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE:
+                    nv3->pfifo.cache1_settings.dma_tlb_pt_base = value;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_TLB_PTE:
+                    nv3->pfifo.cache1_settings.dma_tlb_pte = value;
+                    break;
+                case NV3_PFIFO_CACHE1_DMA_TLB_TAG:
+                    nv3->pfifo.cache1_settings.dma_tlb_tag = value;
                     break;
             }
         }
@@ -279,4 +412,24 @@ uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
     }
 
     return val;
+}
+
+void nv3_pfifo_cache0_push()
+{
+
+}
+
+void nv3_pfifo_cache0_pull()
+{
+
+}
+
+void nv3_pfifo_cache1_push()
+{
+
+}
+
+void nv3_pfifo_cache1_pull()
+{
+
 }
