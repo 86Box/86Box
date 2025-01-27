@@ -240,8 +240,6 @@ typedef struct xga_t {
         uint16_t px_map_height[4];
         uint32_t px_map_base[4];
     } accel;
-
-    int big_endian_linear;
 } xga_t;
 
 #endif /*VIDEO_XGA_H*/

@@ -189,6 +189,7 @@ typedef struct svga_t {
 
     void (*render)(struct svga_t *svga);
     void (*render8514)(struct svga_t *svga);
+    void (*render_xga)(struct svga_t *svga);
     void (*recalctimings_ex)(struct svga_t *svga);
 
     void (*video_out)(uint16_t addr, uint8_t val, void *priv);
@@ -306,6 +307,7 @@ typedef struct svga_t {
     void *  xga;
 } svga_t;
 
+extern void     ibm8514_set_poll(svga_t *svga);
 extern void     ibm8514_poll(void *priv);
 extern void     ibm8514_recalctimings(svga_t *svga);
 extern uint8_t  ibm8514_ramdac_in(uint16_t port, void *priv);
@@ -328,10 +330,11 @@ extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
 extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
 extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
 
-extern void xga_write_test(uint32_t addr, uint8_t val, void *priv);
-extern uint8_t xga_read_test(uint32_t addr, void *priv);
-extern void xga_poll(void *priv);
-extern void xga_recalctimings(svga_t *svga);
+extern void     xga_write_test(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t  xga_read_test(uint32_t addr, void *priv);
+extern void     xga_set_poll(svga_t *svga);
+extern void     xga_poll(void *priv);
+extern void     xga_recalctimings(svga_t *svga);
 
 extern uint32_t svga_decode_addr(svga_t *svga, uint32_t addr, int write);
 
@@ -376,6 +379,7 @@ uint32_t svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
 void svga_doblit(int wx, int wy, svga_t *svga);
+void svga_set_poll(svga_t *svga);
 void svga_poll(void *priv);
 
 enum {
