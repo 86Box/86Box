@@ -357,17 +357,14 @@ index_file_init(const uint8_t id, const char *filename, int *error, int *is_viso
             *is_viso = 1;
     }
 
-   return tf;
+    return tf;
 }
 
 static void
 index_file_close(track_index_t *idx)
 {
-    if ((idx == NULL) || (idx->file == NULL) || 
-        (idx->file->close == NULL))
+    if ((idx == NULL) || (idx->file == NULL))
         return;
-
-    idx->file->close(idx->file);
 
     image_log(idx->file->log, "Log closed\n");
 
@@ -375,6 +372,9 @@ index_file_close(track_index_t *idx)
         log_close(idx->file->log);
         idx->file->log = NULL;
     }
+
+    if (idx->file->close != NULL)
+        idx->file->close(idx->file);
 
     idx->file = NULL;
 }
@@ -567,7 +567,7 @@ image_cue_get_buffer(char *str, char **line, const int up)
 static int
 image_cue_get_keyword(char **dest, char **line)
 {
-    int success = image_cue_get_buffer(temp_keyword, line, 1);
+    const int success = image_cue_get_buffer(temp_keyword, line, 1);
 
     if (success)
         *dest = temp_keyword;
@@ -1676,16 +1676,16 @@ image_clear_tracks(cd_image_t *img)
 
             if (((cur->point >= 1) && (cur->point <= 99)) ||
                 (cur->point == 0xa2))  for (int j = 0; j < 3; j++) {
-                idx = &(cur->idx[j]);
-                /* Make sure we do not attempt to close a NULL file. */
-                if ((idx->file != NULL) && (idx->type == INDEX_NORMAL)) {
-                    if (idx->file != last) {
-                        last = idx->file;
-                        index_file_close(idx);
-                    } else
-                        idx->file = NULL;
+                    idx = &(cur->idx[j]);
+                    /* Make sure we do not attempt to close a NULL file. */
+                    if ((idx->file != NULL) && (idx->type == INDEX_NORMAL)) {
+                        if (idx->file != last) {
+                            last = idx->file;
+                            index_file_close(idx);
+                        } else
+                            idx->file = NULL;
+                    }
                 }
-            }
         }
 
         /* Now free the array. */
@@ -1905,8 +1905,8 @@ image_get_track_type(const void *local, const uint32_t sector)
         const track_t *nt = &(img->tracks[i + 1]);
 
         if (ct->point == 0xa0) {
-            uint8_t first = (ct->idx[1].start / 75 / 60);
-            uint8_t last  = (nt->idx[1].start / 75 / 60);
+            const uint8_t first = (ct->idx[1].start / 75 / 60);
+            const uint8_t last  = (nt->idx[1].start / 75 / 60);
 
             if ((trk->point >= first) && (trk->point <= last)) {
                 ret = (ct->idx[1].start / 75) % 60;
