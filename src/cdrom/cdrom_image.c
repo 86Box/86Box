@@ -2006,6 +2006,8 @@ image_open(cdrom_t *dev, const char *path)
         int       ret;
         const int is_cue = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CUE"));
 
+        img->dev = dev;
+
         if (is_cue) {
             ret = image_load_cue(img, path);
 
@@ -2028,8 +2030,6 @@ image_open(cdrom_t *dev, const char *path)
 
             sprintf(n, "CD-ROM %i Image", dev->id + 1);
             img->log          = log_open(n);
-
-            img->dev = dev;
 
             dev->ops = &image_ops;
         }

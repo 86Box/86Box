@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/config.h>
@@ -1522,14 +1523,14 @@ cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type)
             case 0x00:
                 dev->cd_end = pos2;
                 break;
-            case 0x40:
+            case 0x40: {
                 const int m   = bcd2bin((pos >> 24) & 0xff);
                 const int s   = bcd2bin((pos >> 16) & 0xff);
                 const int f   = bcd2bin((pos >> 8) & 0xff);
                 pos2 = MSFtoLBA(m, s, f) - 150;
                 dev->cd_end = pos2;
                 break;
-            case 0x80:
+            } case 0x80:
                 dev->cd_end = (pos2 >> 24) & 0xff;
                 break;
             case 0xc0:
@@ -1572,7 +1573,7 @@ cdrom_audio_scan(cdrom_t *dev, const uint32_t pos, const int type)
                 }
                 dev->seek_pos = pos2;
                 break;
-            case 0x40:
+            case 0x40: {
                 const int m   = bcd2bin((pos >> 24) & 0xff);
                 const int s   = bcd2bin((pos >> 16) & 0xff);
                 const int f   = bcd2bin((pos >> 8) & 0xff);
@@ -1584,7 +1585,7 @@ cdrom_audio_scan(cdrom_t *dev, const uint32_t pos, const int type)
 
                 dev->seek_pos = pos2;
                 break;
-            case 0x80:
+            } case 0x80:
                 dev->seek_pos = (pos >> 24) & 0xff;
                 break;
             default:

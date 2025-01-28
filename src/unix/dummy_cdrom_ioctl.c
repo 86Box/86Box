@@ -30,7 +30,7 @@
 #include <86box/cdrom.h>
 #include <86box/log.h>
 #include <86box/plat_unused.h>
-#include <86box/plat_cdrom.h>
+#include <86box/plat_cdrom_ioctl.h>
 
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
    there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
