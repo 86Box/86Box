@@ -104,8 +104,8 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
     else if (address >= NV3_USER_START && address <= NV3_USER_END)
         ret = nv3_user_read(address);
     // RAMIN is handled by a separate memory mapping in PCI BAR1
-    //else if (address >= NV3_PRAMIN_START && address <= NV3_PRAMIN_END)
-        //ret = nv3_pramin_arbitrate_read(address); // RAMHT, RAMFC, RAMRO etc dettermined by nv3_ramin_* function
+    //else if (address >= NV3_RAMIN_START && address <= NV3_RAMIN_END)
+        //ret = nv3_ramin_arbitrate_read(address); // RAMHT, RAMFC, RAMRO etc dettermined by nv3_ramin_* function
     else 
     {
         nv_log("NV3: MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
@@ -167,8 +167,8 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
         nv3_vram_write(address, value);
     else if (address >= NV3_USER_START && address <= NV3_USER_END)
         nv3_user_write(address, value);
-    else if (address >= NV3_PRAMIN_START && address <= NV3_PRAMIN_END)
-        nv3_pramin_arbitrate_write(address, value); // RAMHT, RAMFC, RAMRO etc is determined by the nv3_ramin_* functions
+    else if (address >= NV3_RAMIN_START && address <= NV3_RAMIN_END)
+        nv3_ramin_arbitrate_write(address, value); // RAMHT, RAMFC, RAMRO etc is determined by the nv3_ramin_* functions
     else 
     {
         nv_log("NV3: MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x\n", address);

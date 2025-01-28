@@ -158,10 +158,28 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = nv3->pfifo.cache1_settings.channel_id;
                     break;
                 case NV3_PFIFO_CACHE0_STATUS:
-                    /* Todo: Return values based on runout put/get*/
-                    ret = nv3->pfifo.cache0_settings.status;
+                    uint32_t ret = 0x00;
+                    
+                    // CACHE0 has only one entry so it can only ever be empty or full
+
+                    if (nv3->pfifo.cache0_settings.put_address == nv3->pfifo.cache1_settings.get_address)
+                        ret |= 1 << NV3_PFIFO_CACHE0_STATUS_EMPTY;
+                    else
+                        ret |= 1 << NV3_PFIFO_CACHE0_STATUS_FULL;
+    
                     break;
                 case NV3_PFIFO_CACHE1_STATUS:
+                    if (nv3->pfifo.cache1_settings.put_address == nv3->pfifo.cache1_settings.get_address)
+                        ret |= 1 << NV3_PFIFO_CACHE1_STATUS_EMPTY;
+
+                    // Check if Cache1 (0x7C bytes in size depending on gpu?) is full
+                    // Based on how the drivers do it
+                    if (!nv3_pfifo_cache1_is_free())
+                        ret |= 1 << NV3_PFIFO_CACHE1_STATUS_FULL;
+                    
+                    if (nv3->pfifo.runout_put == nv3->pfifo.runout_get)
+                        ret |= 1 << NV3_PFIFO_CACHE1_STATUS_RANOUT;
+
                     ret = nv3->pfifo.cache1_settings.status; 
                     break;
                 case NV3_PFIFO_CACHE0_METHOD:
@@ -338,13 +356,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 case NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID:
                     nv3->pfifo.cache1_settings.channel_id = value;
                     break;
-                case NV3_PFIFO_CACHE0_STATUS:
-                    /* Todo: Return values based on runout put/get*/
-                    nv3->pfifo.cache0_settings.status = value;
-                    break;
-                case NV3_PFIFO_CACHE1_STATUS:
-                    nv3->pfifo.cache1_settings.status = value; 
-                    break;
+                // CACHE0_STATUS and CACHE1_STATUS are not writable
                 case NV3_PFIFO_CACHE0_METHOD:
                     nv3->pfifo.cache0_settings.method_subchannel = (value >> 13) & 0x07;
                     nv3->pfifo.cache0_settings.method_address = (value >> 2) & 0x7FF;
@@ -432,4 +444,14 @@ void nv3_pfifo_cache1_push()
 void nv3_pfifo_cache1_pull()
 {
 
+}
+
+bool nv3_pfifo_cache1_is_free()
+{
+    // convert to gray code
+    uint32_t real_get_address = nv3_pfifo_cache1_normal2gray(nv3->pfifo.cache1_settings.get_address);
+    uint32_t real_put_address = nv3_pfifo_cache1_normal2gray(nv3->pfifo.cache1_settings.put_address);
+    
+    // There is no hope of being able to understand it. Nobody can understand
+    return (real_get_address - real_put_address - 4) & 0x7C; // there are 64 entries what
 }

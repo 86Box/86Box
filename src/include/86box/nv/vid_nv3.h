@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   2 January 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   28 January 2025 (STILL WORKING ON IT!!!)
  *
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -231,8 +231,8 @@ extern const device_config_t nv3_config[];
 
 #define NV3_PFIFO_RUNOUT_STATUS                         0x2400
 #define NV3_PFIFO_RUNOUT_STATUS_RANOUT                  0           // 1 if we fucked up
-#define NV3_PFIFO_RUNOUT_STATUS_LOW_MARK                4           // 1 if ramro is empty
-#define NV3_PFIFO_RUNOUT_STATUS_HIGH_MARK               8
+#define NV3_PFIFO_RUNOUT_STATUS_EMPTY                4           // 1 if ramro is empty
+#define NV3_PFIFO_RUNOUT_STATUS_FULL               8
 #define NV3_PFIFO_RUNOUT_PUT                            0x2410
 #define NV3_PFIFO_RUNOUT_PUT_ADDRESS                    3           // 9:3 if small ramfc(?) otherwise 12:3
 #define NV3_PFIFO_RUNOUT_GET                            0x2420
@@ -247,9 +247,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID                0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
 #define NV3_PFIFO_CACHE0_STATUS                         0x3014
-#define NV3_PFIFO_CACHE0_STATUS_RANOUT                  0           // 1 if we fucked up
-#define NV3_PFIFO_CACHE0_STATUS_LOW_MARK                4           // 1 if ramro is empty
-#define NV3_PFIFO_CACHE0_STATUS_HIGH_MARK               8
+#define NV3_PFIFO_CACHE0_STATUS_EMPTY                4           // 1 if ramro is empty
+#define NV3_PFIFO_CACHE0_STATUS_FULL               8
 #define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL                 0x3040
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED         0
@@ -268,8 +267,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
 #define NV3_PFIFO_CACHE1_STATUS                         0x3214
 #define NV3_PFIFO_CACHE1_STATUS_RANOUT                  0           // 1 if we fucked up
-#define NV3_PFIFO_CACHE1_STATUS_LOW_MARK                4           // 1 if ramro is empty
-#define NV3_PFIFO_CACHE1_STATUS_HIGH_MARK               8
+#define NV3_PFIFO_CACHE1_STATUS_EMPTY                4           // 1 if ramro is empty
+#define NV3_PFIFO_CACHE1_STATUS_FULL               8
 #define NV3_PFIFO_CACHE1_DMA_STATUS                     0x3218
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_0                   0x3220
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
@@ -583,32 +582,30 @@ extern const device_config_t nv3_config[];
 
 // control structures for dma'd in graphics objects from pfifo
 // these all have configurable sizes, define them here
-#define NV3_PRAMIN_START                                0x1C00000
+#define NV3_RAMIN_START                                0x1C00000
 
-
-
-#define NV3_PRAMIN_RAMHT_START                          0x1C00000   // Hashtable for storing submitted objects
-#define NV3_PRAMIN_RAMHT_END                            0x1C00FFF
-#define NV3_PRAMIN_RAMHT_SIZE_0                         0xFFF
-#define NV3_PRAMIN_RAMHT_SIZE_1                         0x1FFF
-#define NV3_PRAMIN_RAMHT_SIZE_2                         0x3FFF
-#define NV3_PRAMIN_RAMHT_SIZE_3                         0x7FFF
+#define NV3_RAMIN_RAMHT_START                          0x1C00000   // Hashtable for storing submitted objects
+#define NV3_RAMIN_RAMHT_END                            0x1C00FFF
+#define NV3_RAMIN_RAMHT_SIZE_0                         0xFFF
+#define NV3_RAMIN_RAMHT_SIZE_1                         0x1FFF
+#define NV3_RAMIN_RAMHT_SIZE_2                         0x3FFF
+#define NV3_RAMIN_RAMHT_SIZE_3                         0x7FFF
 
 /* OBSOLETE AREA for AUDIO probably. DO NOT USE! */
-#define NV3_PRAMIN_RAMAU_START                          0x1C01000   
-#define NV3_PRAMIN_RAMAU_END                            0x1C01BFF
-#define NV3_PRAMIN_RAMFC_START                          0x1C01C00   // context for unused PFIFO DMA channels
-#define NV3_PRAMIN_RAMFC_END                            0x1C01DFF
-#define NV3_PRAMIN_RAMFC_SIZE_0                         0x1FF
-#define NV3_PRAMIN_RAMFC_SIZE_1                         0xFFF
-#define NV3_PRAMIN_RAMRO_START                          0x1C01E00   // Runout area for invalid submissions
-#define NV3_PRAMIN_RAMRO_SIZE_0                         0x1FF
-#define NV3_PRAMIN_RAMRO_SIZE_1                         0x1FFF
-#define NV3_PRAMIN_RAMRO_END                            0x1C01FFF
-#define NV3_PRAMIN_RAMRM_START                          0x1C02000
-#define NV3_PRAMIN_RAMRM_END                            0x1C02FFF
+#define NV3_RAMIN_RAMAU_START                          0x1C01000   
+#define NV3_RAMIN_RAMAU_END                            0x1C01BFF
+#define NV3_RAMIN_RAMFC_START                          0x1C01C00   // context for unused PFIFO DMA channels
+#define NV3_RAMIN_RAMFC_END                            0x1C01DFF
+#define NV3_RAMIN_RAMFC_SIZE_0                         0x1FF
+#define NV3_RAMIN_RAMFC_SIZE_1                         0xFFF
+#define NV3_RAMIN_RAMRO_START                          0x1C01E00   // Runout area for invalid submissions
+#define NV3_RAMIN_RAMRO_SIZE_0                         0x1FF
+#define NV3_RAMIN_RAMRO_SIZE_1                         0x1FFF
+#define NV3_RAMIN_RAMRO_END                            0x1C01FFF
+#define NV3_RAMIN_RAMRM_START                          0x1C02000
+#define NV3_RAMIN_RAMRM_END                            0x1C02FFF
 
-#define NV3_PRAMIN_END                                  0x1FFFFFF
+#define NV3_RAMIN_END                                  0x1FFFFFF
 
 // not done
 
@@ -821,13 +818,19 @@ typedef struct nv3_pfifo_s
     uint32_t ramht_config;              // RAMHT config
     uint32_t ramfc_config;              // RAMFC config
     uint32_t ramro_config;              // RAMRO config
+    // Runout stuff
+    uint32_t runout_put;
+    uint32_t runout_get;
+
+    // Cache stuff
     uint32_t cache_reassignment;        // Enable automatic reassignment into CACHE0?
     nv3_pfifo_cache_t cache0_settings;
     nv3_pfifo_cache_t cache1_settings;
 
     nv3_pfifo_cache_entry_t cache0_entries[1];
     nv3_pfifo_cache_entry_t cache1_entries[NV3_PFIFO_CACHE1_SIZE_MAX]; // ONLY 32 USED ON REVISION A/B CARDS
-    
+
+
 } nv3_pfifo_t;
 
 // create_object(uint32_t type) here
@@ -1047,7 +1050,7 @@ typedef struct nv3_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv3_ptimer_t;
 
-typedef struct nv3_pramin_name_s
+typedef struct nv3_ramin_name_s
 {
     union 
     {
@@ -1062,9 +1065,9 @@ typedef struct nv3_pramin_name_s
         };
     };
 
-} nv3_pramin_name_t;
+} nv3_ramin_name_t;
 
-typedef struct nv3_pramin_context_s
+typedef struct nv3_ramin_context_s
 {
     union 
     {
@@ -1080,27 +1083,27 @@ typedef struct nv3_pramin_context_s
         };
 
     };
-} nv3_pramin_context_t;
+} nv3_ramin_context_t;
 
 // Graphics object hashtable for specific DMA [channel, subchannel] pair
-typedef struct nv3_pramin_ramht_subchannel_s
+typedef struct nv3_ramin_ramht_subchannel_s
 {
-    nv3_pramin_name_t    name;                      // must be >4096
+    nv3_ramin_name_t    name;                      // must be >4096
 
     // Contextual information.
     // See the above union.
-    nv3_pramin_context_t context;                       
-} nv3_pramin_ramht_subchannel_t;
+    nv3_ramin_context_t context;                       
+} nv3_ramin_ramht_subchannel_t;
 
 // Graphics object hashtable
-typedef struct nv3_pramin_ramht_s
+typedef struct nv3_ramin_ramht_s
 {
-    nv3_pramin_ramht_subchannel_t subchannels[NV3_DMA_CHANNELS][NV3_DMA_SUBCHANNELS_PER_CHANNEL];
-} nv3_pramin_ramht_t;
+    nv3_ramin_ramht_subchannel_t subchannels[NV3_DMA_CHANNELS][NV3_DMA_SUBCHANNELS_PER_CHANNEL];
+} nv3_ramin_ramht_t;
 
-uint32_t nv3_ramht_hash(nv3_pramin_name_t name, uint32_t channel);
+uint32_t nv3_ramht_hash(nv3_ramin_name_t name, uint32_t channel);
 
-typedef enum nv3_pramin_ramro_reason_e
+typedef enum nv3_ramin_ramro_reason_e
 {
     nv3_runout_reason_illegal_access = 0,
 
@@ -1117,37 +1120,40 @@ typedef enum nv3_pramin_ramro_reason_e
     // Access reserved by pagetable
     nv3_runout_reason_reserved_access = 5,
 
-} nv3_pramin_ramro_reason;
+} nv3_ramin_ramro_reason;
 
 /* This is a gigantic error handling system */
-typedef struct nv3_pramin_ramro_entry_s
+typedef struct nv3_ramin_ramro_entry_s
 {
     
     //todo
-} nv3_pramin_ramro_entry_t;
+} nv3_ramin_ramro_entry_t;
 
 // Anti-fuckup device
-typedef struct nv3_pramin_ramro_s
+typedef struct nv3_ramin_ramro_s
 {
 
-} nv3_pramin_ramro_t;
+} nv3_ramin_ramro_t;
 
 // context for unused channels
-typedef struct nv3_pramin_ramfc_s
+typedef struct nv3_ramin_ramfc_s
 {
 
-} nv3_pramin_ramfc_t;
+} nv3_ramin_ramfc_t;
 
-// ????? ram auxillary
-typedef struct nv_pramin_ramau_s
+// RAM for AUDIO - RevisionA ONLY
+typedef struct nv_ramin_ramau_s
 {
 
-} nv3_pramin_ramau_t;
+} nv3_ramin_ramau_t;
 
-typedef struct nv3_pramin_s
+typedef struct nv3_ramin_s
 {
 
-} nv3_pramin_t;
+} nv3_ramin_t;
+
+// RAMIN functions
+void nv3_ramin_find_object(uint32_t name, uint32_t cache_id, uint32_t channel_id, uint32_t subchannel_id);
 
 typedef struct nv3_pvideo_s
 {
@@ -1179,11 +1185,11 @@ typedef struct nv3_s
     nv3_pgraph_t pgraph;        // 2D/3D Graphics
     nv3_pextdev_t pextdev;      // Chip configuration
     nv3_ptimer_t ptimer;        // programmable interval timer
-    nv3_pramin_ramht_t ramht;   // hashtable for PGRAPH objects
-    nv3_pramin_ramro_t ramro;   // anti-fuckup mechanism for idiots who fucked up the FIFO submission
-    nv3_pramin_ramfc_t ramfc;   // context for unused channels
-    nv3_pramin_ramau_t ramau;   // auxillary weirdnes
-    nv3_pramin_t pramin;        // Ram for INput of DMA objects. Very important!
+    nv3_ramin_ramht_t ramht;   // hashtable for PGRAPH objects
+    nv3_ramin_ramro_t ramro;   // anti-fuckup mechanism for idiots who fucked up the FIFO submission
+    nv3_ramin_ramfc_t ramfc;   // context for unused channels
+    nv3_ramin_ramau_t ramau;   // auxillary weirdnes
+    nv3_ramin_t pramin;        // Ram for INput of DMA objects. Very important!
     nv3_pvideo_t pvideo;        // Video overlay
     nv3_pme_t pme;              // Mediaport - external MPEG decoder and video interface
     //more here
@@ -1222,8 +1228,8 @@ void        nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv);           
 void        nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv);         // Write 16-bit RAMIN
 void        nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv);         // Write 32-bit RAMIN
 
-bool        nv3_pramin_arbitrate_read(uint32_t address, uint32_t* value);       // Read arbitration so we can read/write to the structures in the first 64k of ramin
-bool        nv3_pramin_arbitrate_write(uint32_t address, uint32_t value);       // Write arbitration so we can read/write to the structures in the first 64k of ramin
+bool        nv3_ramin_arbitrate_read(uint32_t address, uint32_t* value);       // Read arbitration so we can read/write to the structures in the first 64k of ramin
+bool        nv3_ramin_arbitrate_write(uint32_t address, uint32_t value);       // Write arbitration so we can read/write to the structures in the first 64k of ramin
 
 uint32_t    nv3_ramfc_read(uint32_t address);
 void        nv3_ramfc_write(uint32_t address, uint32_t value);
@@ -1284,7 +1290,7 @@ uint32_t    nv3_user_read(uint32_t address);
 void        nv3_user_write(uint32_t address, uint32_t value);
 #define nv3_object_submit_start nv3_user_read
 #define nv3_object_submit_end nv3_user_write
-// TODO: RAMHT, RAMFC...or maybe handle it inside of nv3_pramin_*
+// TODO: RAMHT, RAMFC...or maybe handle it inside of nv3_ramin_*
 
 // GPU subsystems
 
@@ -1311,6 +1317,7 @@ void        nv3_pfifo_cache1_push();
 void        nv3_pfifo_cache1_pull();
 uint32_t    nv3_pfifo_cache1_normal2gray(uint32_t val);
 uint32_t    nv3_pfifo_cache1_gray2normal(uint32_t val);
+bool        nv3_pfifo_cache1_is_free();
 
 // NV3 PFB
 void        nv3_pfb_init();
