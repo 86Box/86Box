@@ -41,6 +41,7 @@ typedef struct ioctl_t {
     cdrom_t                *dev;
     void                   *log;
     int                     toc_valid;
+    HANDLE                  handle;
     char                    path[256];
 } ioctl_t;
 
@@ -65,7 +66,6 @@ ioctl_log(void *priv, const char *fmt, ...)
 static void
 ioctl_close_handle(UNUSED(const ioctl_t *ioctl))
 {
-    return 0;
 }
 
 static int
@@ -77,9 +77,8 @@ ioctl_open_handle(UNUSED(ioctl_t *ioctl))
 static void
 ioctl_read_toc(ioctl_t *ioctl)
 {
-    if (!ioctl->toc_valid) {
+    if (!ioctl->toc_valid)
         ioctl->toc_valid = 1;
-    }
 }
 
 /* Shared functions. */
@@ -88,15 +87,6 @@ ioctl_get_track_info(UNUSED(const void *local), UNUSED(const uint32_t track),
                      UNUSED(int end), UNUSED(track_info_t *ti))
 {
     return 0;
-}
-
-static void
-ioctl_get_raw_track_info(const void *local, UNUSED(int *num), UNUSED(uint8_t *rti))
-{
-    ioctl_t *ioctl = (ioctl_t *) local;
-
-    if (!ioctl->toc_valid)
-        ioctl->toc_valid = 1;
 }
 
 static void
@@ -126,9 +116,6 @@ ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
     ioctl_t *ioctl = (ioctl_t *) local;
 
     ioctl_open_handle(ioctl);
-
-    /* Raw */
-    ioctl_log("Raw\n");
 
     ioctl_close_handle(ioctl);
 
