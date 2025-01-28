@@ -140,8 +140,8 @@ void
 cdrom_mount(uint8_t id, char *fn)
 {
     strcpy(cdrom[id].prev_image_path, cdrom[id].image_path);
-    if (cdrom[id].ops && cdrom[id].ops->exit)
-        cdrom[id].ops->exit(&(cdrom[id]));
+    if (cdrom[id].ops && cdrom[id].ops->close)
+        cdrom[id].ops->close(cdrom[id].local);
     cdrom[id].ops = NULL;
     memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
     if ((fn != NULL) && (strlen(fn) >= 1) && (fn[strlen(fn) - 1] == '\\'))
@@ -187,8 +187,7 @@ mo_mount(uint8_t id, char *fn, uint8_t wp)
 
     mo_disk_close(dev);
     mo_drives[id].read_only = wp;
-    mo_load(dev, fn);
-    mo_insert(dev);
+    mo_load(dev, fn, 0);
 
     ui_sb_update_icon_state(SB_MO | id, strlen(mo_drives[id].image_path) ? 0 : 1);
 #if 0
@@ -245,8 +244,7 @@ zip_mount(uint8_t id, char *fn, uint8_t wp)
 
     zip_disk_close(dev);
     zip_drives[id].read_only = wp;
-    zip_load(dev, fn);
-    zip_insert(dev);
+    zip_load(dev, fn, 0);
 
     ui_sb_update_icon_state(SB_ZIP | id, strlen(zip_drives[id].image_path) ? 0 : 1);
 #if 0
