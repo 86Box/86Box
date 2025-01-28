@@ -22,7 +22,6 @@ endif()
 
 add_executable(86Box
     86box.c
-    all_devices.c
     config.c
     log.c
     random.c
