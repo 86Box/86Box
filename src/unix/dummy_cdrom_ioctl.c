@@ -41,7 +41,7 @@ typedef struct ioctl_t {
     cdrom_t                *dev;
     void                   *log;
     int                     toc_valid;
-    HANDLE                  handle;
+    void                   *handle;
     char                    path[256];
 } ioctl_t;
 
