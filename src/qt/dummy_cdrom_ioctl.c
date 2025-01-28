@@ -65,7 +65,6 @@ ioctl_log(void *priv, const char *fmt, ...)
 static void
 ioctl_close_handle(UNUSED(const ioctl_t *ioctl))
 {
-    return 0;
 }
 
 static int
