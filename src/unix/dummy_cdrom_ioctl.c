@@ -41,6 +41,7 @@ typedef struct ioctl_t {
     cdrom_t                *dev;
     void                   *log;
     int                     toc_valid;
+    char                    path[256];
 } ioctl_t;
 
 #ifdef ENABLE_IOCTL_LOG
@@ -110,11 +111,11 @@ ioctl_is_track_pre(const void *local, const uint32_t sector)
 {
     ioctl_t *ioctl = (ioctl_t *) local;
 
-    plat_cdrom_read_toc(ioctl);
+    ioctl_read_toc(ioctl);
 
     const int ret = 0;
 
-    ioctl_log("plat_cdrom_is_track_audio(%08X): %i\n", sector, ret);
+    ioctl_log("ioctl_is_track_audio(%08X): %i\n", sector, ret);
 
     return ret;
 }
@@ -124,12 +125,12 @@ ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
 {
     ioctl_t *ioctl = (ioctl_t *) local;
 
-    plat_cdrom_open(ioctl);
+    ioctl_open_handle(ioctl);
 
     /* Raw */
     ioctl_log("Raw\n");
 
-    plat_cdrom_close(ioctl);
+    ioctl_close_handle(ioctl);
 
     ioctl_log("ReadSector sector=%d.\n", sector);
 
@@ -226,8 +227,8 @@ ioctl_open(cdrom_t *dev, const char *drv)
 
         memset(ioctl->path, 0x00, sizeof(ioctl->path));
 
-        wsprintf(ioctl->path, L"%S", &(drv[8]));
-        ioctl_log(ioctl->log, "Path is %S\n", ioctl->path);
+        sprintf(ioctl->path, "%s", drv);
+        ioctl_log(ioctl->log, "Path is %s\n", ioctl->path);
 
         ioctl->dev          = dev;
         ioctl->toc_valid    = 0;
