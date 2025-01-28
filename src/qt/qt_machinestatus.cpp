@@ -369,12 +369,12 @@ MachineStatus::iterateNIC(const std::function<void(int)> &cb)
 }
 
 static int
-hdd_count(int bus)
+hdd_count(const int bus_type)
 {
     int c = 0;
 
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if (hdd[i].bus == bus) {
+        if (hdd[i].bus_type == bus_type) {
             c++;
         }
     }

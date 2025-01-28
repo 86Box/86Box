@@ -925,7 +925,7 @@ wd1007vse1_init(UNUSED(const device_t *info))
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
             loadhd(esdi, hdd[d].esdi_channel, d, hdd[d].fn);
 
             if (++c >= ESDI_NUM)

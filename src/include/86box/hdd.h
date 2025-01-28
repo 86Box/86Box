@@ -148,7 +148,7 @@ typedef struct hard_disk_t {
         uint8_t ide_channel;
         uint8_t scsi_id;
     };
-    uint8_t bus;
+    uint8_t bus_type;
     uint8_t bus_mode;  /* Bit 0 = PIO suported;
                           Bit 1 = DMA supportd. */
     uint8_t wp; /* Disk has been mounted READ-ONLY */

@@ -1799,7 +1799,7 @@ st506_init(const device_t *info)
     st506_xt_log("ST506: looking for disks...\n");
 #endif
     for (c = 0, i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
+        if ((hdd[i].bus_type == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
             st506_xt_log("ST506: disk '%s' on channel %i\n",
                          hdd[i].fn, hdd[i].mfm_channel);
             loadhd(dev, hdd[i].mfm_channel, i, hdd[i].fn);
