@@ -12,7 +12,7 @@
  *
  * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
  *
- *          Copyright 2024-2025 starfrost
+ *          Copyright 2024-2025 Connor Hyde
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,7 +34,7 @@ const char* nv3_class_names[] =
 {
     "NV3 INVALID class 0x00",
     "NV3 class 0x01: Beta factor",
-    "NV3 class 0x02: ROP5 (32-bit) operation",
+    "NV3 class 0x02: Render operation",
     "NV3 class 0x03: Chroma key",
     "NV3 class 0x04: Plane mask",
     "NV3 class 0x05: Clipping rectangle",

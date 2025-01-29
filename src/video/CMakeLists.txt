@@ -11,7 +11,10 @@
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2025 Connor Hyde
 #
+
+# todo: Split nv stuff into its own file...
 
 add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_compaq_cga.c vid_mda.c vid_hercules.c vid_herculesplus.c
@@ -43,6 +46,29 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     nv/nv3/subsystems/nv3_pvideo.c
 
     nv/nv3/classes/nv3_class_names.c
+    nv/nv3/classes/nv3_class_001_beta_factor.c
+    nv/nv3/classes/nv3_class_002_rop.c
+    nv/nv3/classes/nv3_class_003_chroma_key.c
+    nv/nv3/classes/nv3_class_004_plane_mask.c
+    nv/nv3/classes/nv3_class_005_clipping_rectangle.c
+    nv/nv3/classes/nv3_class_006_pattern.c
+    nv/nv3/classes/nv3_class_007_rectangle.c
+    nv/nv3/classes/nv3_class_008_point.c
+    nv/nv3/classes/nv3_class_009_line.c
+    nv/nv3/classes/nv3_class_00a_lin.c
+    nv/nv3/classes/nv3_class_00b_triangle.c
+    nv/nv3/classes/nv3_class_00c_win95_gdi_text.c
+    nv/nv3/classes/nv3_class_00d_m2mf.c
+    nv/nv3/classes/nv3_class_00e_scaled_image_from_mem.c
+    nv/nv3/classes/nv3_class_010_blit.c
+    nv/nv3/classes/nv3_class_011_image.c
+    nv/nv3/classes/nv3_class_012_bitmap.c
+    nv/nv3/classes/nv3_class_014_transfer2memory.c
+    nv/nv3/classes/nv3_class_015_stretched_image_from_cpu.c
+    nv/nv3/classes/nv3_class_017_d3d5_tri_zeta_buffer.c
+    nv/nv3/classes/nv3_class_018_point_zeta_buffer.c
+    nv/nv3/classes/nv3_class_01c_image_in_memory.c
+    
     )
 
 if(G100)

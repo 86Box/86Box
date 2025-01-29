@@ -332,3 +332,9 @@ bool nv3_ramin_arbitrate_write(uint32_t address, uint32_t value)
 
     return false;
 }
+
+// THIS IS THE MOST IMPORTANT FUNCTION!
+void nv3_ramin_find_object(uint32_t name, uint32_t cache_id, uint32_t channel_id, uint32_t subchannel_id)
+{  
+    // TODO: WRITE IT!!!
+}

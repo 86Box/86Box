@@ -1101,7 +1101,6 @@ typedef struct nv3_ramin_ramht_s
     nv3_ramin_ramht_subchannel_t subchannels[NV3_DMA_CHANNELS][NV3_DMA_SUBCHANNELS_PER_CHANNEL];
 } nv3_ramin_ramht_t;
 
-uint32_t nv3_ramht_hash(nv3_ramin_name_t name, uint32_t channel);
 
 typedef enum nv3_ramin_ramro_reason_e
 {
@@ -1152,8 +1151,6 @@ typedef struct nv3_ramin_s
 
 } nv3_ramin_t;
 
-// RAMIN functions
-void nv3_ramin_find_object(uint32_t name, uint32_t cache_id, uint32_t channel_id, uint32_t subchannel_id);
 
 typedef struct nv3_pvideo_s
 {
@@ -1230,6 +1227,10 @@ void        nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv);         
 
 bool        nv3_ramin_arbitrate_read(uint32_t address, uint32_t* value);       // Read arbitration so we can read/write to the structures in the first 64k of ramin
 bool        nv3_ramin_arbitrate_write(uint32_t address, uint32_t value);       // Write arbitration so we can read/write to the structures in the first 64k of ramin
+
+// RAMIN functions
+uint32_t    nv3_ramht_hash(nv3_ramin_name_t name, uint32_t channel);
+void        nv3_ramin_find_object(uint32_t name, uint32_t cache_id, uint32_t channel_id, uint32_t subchannel_id);
 
 uint32_t    nv3_ramfc_read(uint32_t address);
 void        nv3_ramfc_write(uint32_t address, uint32_t value);
