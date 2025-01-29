@@ -40,7 +40,7 @@ typedef struct log_t {
     char    *dev_name;
     int     seen;
     int     suppr_seen;
-    char    cyclic_buff[LOG_SIZE_BUFFER_CYCLIC_LINES][LOG_SIZE_BUFFER];     // Cyclical log buffer. This is 32kb, might calloc?
+    char**  cyclic_buff;
     int32_t cyclic_last_line;
     int32_t log_cycles;
     int32_t last_repeat_order;
@@ -92,14 +92,6 @@ log_set_suppr_seen(void *priv, int suppr_seen)
     log_t *log = (log_t *) priv;
 
     log->suppr_seen = suppr_seen;
-}
-
-void
-log_set_dev_name(void *priv, char *dev_name)
-{
-    log_t *log = (log_t *) priv;
-
-    log->dev_name = dev_name;
 }
 
 /*
@@ -280,10 +272,13 @@ log_out_cyclic(void* priv, const char* fmt, va_list ap)
             fprintf(stdlog, "%s", temp);
         }
 
-    log->cyclic_last_line++;
-    
-    log->last_repeat_order = repeat_order;
+        log->cyclic_last_line++;
+        
+        log->last_repeat_order = repeat_order;
+    }
+}
 #endif
+
 
 void
 log_fatal(void *priv, const char *fmt, ...)
