@@ -19,6 +19,9 @@
 #ifndef EMU_IDE_H
 #define EMU_IDE_H
 
+#define IDE_NUM             10    /* 8 drives per AT IDE + 2 for XT IDE */
+#define ATAPI_NUM           10    /* 8 drives per AT IDE + 2 for XT IDE */
+
 #define IDE_BUS_MAX         4
 #define IDE_CHAN_MAX        2
 
@@ -121,11 +124,11 @@ typedef struct ide_s {
     double         pending_delay;
 
 #ifdef SCSI_DEVICE_H
-    int     (*get_max)(int ide_has_dma, int type);
-    int     (*get_timings)(int ide_has_dma, int type);
-    void    (*identify)(struct ide_s *ide, int ide_has_dma);
-    void    (*stop)(scsi_common_t *sc);
-    void    (*packet_command)(scsi_common_t *sc, uint8_t *cdb);
+    int     (*get_max)(const struct ide_s *ide, const int ide_has_dma, const int type);
+    int     (*get_timings)(const struct ide_s *ide, const int ide_has_dma, const int type);
+    void    (*identify)(const struct ide_s *ide, const int ide_has_dma);
+    void    (*stop)(const scsi_common_t *sc);
+    void    (*packet_command)(scsi_common_t *sc, const uint8_t *cdb);
     void    (*device_reset)(scsi_common_t *sc);
     uint8_t (*phase_data_out)(scsi_common_t *sc);
     void    (*command_stop)(scsi_common_t *sc);
@@ -142,9 +145,7 @@ typedef struct ide_s {
 #endif
 } ide_t;
 
-#ifdef EMU_HDC_H
 extern ide_t *ide_drives[IDE_NUM];
-#endif
 #endif
 
 /* Type:

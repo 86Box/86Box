@@ -29,15 +29,21 @@
 #define SCSI_ID_MAX   16 /* 16 on wide buses */
 #define SCSI_LUN_MAX  8  /* always 8 */
 
-extern int scsi_card_current[SCSI_CARD_MAX];
+extern int             scsi_card_current[SCSI_CARD_MAX];
 
-extern int scsi_card_available(int card);
+extern void            scsi_reset(void);
+extern uint8_t         scsi_get_bus(void);
+
+extern int             scsi_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *scsi_card_getdevice(int card);
 #endif
-extern int         scsi_card_has_config(int card);
-extern const char *scsi_card_get_internal_name(int card);
-extern int         scsi_card_get_from_internal_name(char *s);
-extern void        scsi_card_init(void);
+extern int             scsi_card_has_config(int card);
+extern const char     *scsi_card_get_internal_name(int card);
+extern int             scsi_card_get_from_internal_name(char *s);
+extern void            scsi_card_init(void);
+
+extern void            scsi_bus_set_speed(uint8_t bus, double speed);
+extern double          scsi_bus_get_speed(uint8_t bus);
 
 #endif /*EMU_SCSI_H*/

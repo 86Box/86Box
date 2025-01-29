@@ -682,13 +682,16 @@ msgid "Surface images"
 msgstr "Pintalevykuvat"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Konetta \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen koneeseen."
+msgstr "Konetta \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen koneeseen."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Näytönohjainta \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
+msgstr "Näytönohjainta \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
 
-msgid "Video card 2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Näytönohjainta 2 \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Näytönohjainta 2 \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Toisen näytönohjaimen poistaminen käytöstä."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Laite \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Laitteen huomiotta jättäminen."
 
 msgid "Machine"
 msgstr "Tietokone"
@@ -2120,3 +2123,9 @@ msgstr "IBM 8514/A-klooni (ISA)"
 
 msgid "Vendor"
 msgstr "Valmistaja"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Yleinen PC/XT-muistilaajennus"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Yleinen PC/AT-muistilaajennus"

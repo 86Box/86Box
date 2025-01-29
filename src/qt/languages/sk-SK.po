@@ -687,8 +687,11 @@ msgstr "Počítač \"%hs\" ie je dostupný, pretože chýba obraz jeho pamäte R
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Video adaptér \"%hs\" nie je dostupný, pretože chýba obraz jeho pamäte ROM v zložke \"roms/video\". Konfigurácia sa prepne na iný dostupný adaptér."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video adaptér 2 \"%hs\" nie je dostupný, pretože chýba obraz jeho pamäte ROM v zložke \"roms/video\". Konfigurácia sa prepne na iný dostupný adaptér."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Video adaptér 2 \"%hs\" nie je dostupný, pretože chýba obraz jeho pamäte ROM v zložke \"roms/video\". Druhá grafická karta sa zakáže."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Zariadenie \"%hs\" nie je dostupné, pretože chýba obraz jeho pamäte ROM. Zariadenie sa ignoruje."
 
 msgid "Machine"
 msgstr "Počítač"
@@ -2120,3 +2123,9 @@ msgstr "Klon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Výrobca"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Všeobecné rozšírenie pamäte PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Všeobecné rozšírenie pamäte PC/AT"

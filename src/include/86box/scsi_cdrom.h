@@ -26,47 +26,56 @@ typedef struct scsi_cdrom_t {
     /* Common block. */
     mode_sense_pages_t ms_pages_saved;
 
-    cdrom_t * drv;
+    cdrom_t *          drv;
 #ifdef EMU_IDE_H
-    ide_tf_t *tf;
+    ide_tf_t *         tf;
 #else
-    void *    tf;
+    void *             tf;
 #endif
 
-    uint8_t *buffer;
-    uint8_t atapi_cdb[16];
-    uint8_t current_cdb[16];
-    uint8_t sense[256];
+    void *             log;
 
-    uint8_t id;
-    uint8_t cur_lun;
-    uint8_t early;
-    uint8_t pad1;
+    uint8_t *          buffer;
+    uint8_t            atapi_cdb[16];
+    uint8_t            current_cdb[16];
+    uint8_t            sense[256];
 
-    uint16_t max_transfer_len;
-    uint16_t pad2;
+    uint8_t            id;
+    uint8_t            cur_lun;
+    uint8_t            early;
+    uint8_t            sector_type;
 
-    int requested_blocks;
-    int packet_status;
-    int total_length;
-    int do_page_save;
-    int unit_attention;
-    int request_pos;
-    int old_len;
-    int media_status;
+    uint16_t           max_transfer_len;
+    uint16_t           sector_flags;
 
-    uint32_t sector_pos;
-    uint32_t sector_len;
-    uint32_t packet_len;
+    int                requested_blocks;
+    int                packet_status;
+    int                total_length;
+    int                do_page_save;
+    int                unit_attention;
+    int                request_pos;
+    int                old_len;
+    int                media_status;
 
-    double callback;
+    uint32_t           sector_pos;
+    uint32_t           sector_len;
+    uint32_t           packet_len;
 
-    uint8_t  (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
+    double             callback;
 
-    int                sony_vendor;
+    int                is_sony;
+    int                use_cdb_9;
 
-    mode_sense_pages_t ms_pages_saved_sony;
+    uint8_t            ven_cmd_is_data[256];
+
     mode_sense_pages_t ms_drive_status_pages_saved;
+
+    uint64_t           ms_page_flags;
+
+    mode_sense_pages_t ms_pages_default;
+    mode_sense_pages_t ms_pages_changeable;
+
+    uint8_t            (*ven_cmd)(void *sc, const uint8_t *cdb, int32_t *BufLen);
 } scsi_cdrom_t;
 #endif
 
@@ -74,10 +83,12 @@ extern scsi_cdrom_t *scsi_cdrom[CDROM_NUM];
 
 #define scsi_cdrom_sense_error dev->sense[0]
 #define scsi_cdrom_sense_key   dev->sense[2]
+#define scsi_cdrom_info        *(uint32_t *) &(dev->sense[3])
 #define scsi_cdrom_asc         dev->sense[12]
 #define scsi_cdrom_ascq        dev->sense[13]
 #define scsi_cdrom_drive       cdrom_drives[id].host_drive
 
 extern void scsi_cdrom_reset(scsi_common_t *sc);
+extern void scsi_cdrom_drive_reset(const int c);
 
 #endif /*EMU_SCSI_CDROM_H*/

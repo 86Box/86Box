@@ -123,7 +123,7 @@ hdd_bus_to_string(int bus, UNUSED(int cdrom))
 int
 hdd_is_valid(int c)
 {
-    if (hdd[c].bus == HDD_BUS_DISABLED)
+    if (hdd[c].bus_type == HDD_BUS_DISABLED)
         return 0;
 
     if (strlen(hdd[c].fn) == 0)

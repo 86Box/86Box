@@ -1265,7 +1265,7 @@ esdi_init(UNUSED(const device_t *info))
     dev->drives[0].present = dev->drives[1].present = 0;
 
     for (c = 0, i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_ESDI) && (hdd[i].esdi_channel < ESDI_NUM)) {
+        if ((hdd[i].bus_type == HDD_BUS_ESDI) && (hdd[i].esdi_channel < ESDI_NUM)) {
             /* This is an ESDI drive. */
             drive = &dev->drives[hdd[i].esdi_channel];
 

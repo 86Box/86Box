@@ -687,8 +687,11 @@ msgstr "Системная плата \"%hs\" недоступна из-за о�
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Видеокарта \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Видеокарта 2 \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Видеокарта 2 \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Вторая видеокарта отключена."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Устройство \"%hs\" недоступно из-за отсутствия файла его ПЗУ. Устройство проигнорировано."
 
 msgid "Machine"
 msgstr "Компьютер"

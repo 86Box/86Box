@@ -21,6 +21,7 @@
 #define SCSI_DEVICE_H
 
 /* Configuration. */
+#define SCSI_NUM         (SCSI_BUS_MAX * SCSI_ID_MAX)
 
 #define SCSI_LUN_USE_CDB 0xff
 
@@ -53,8 +54,8 @@
 #define GPCMD_SEEK_6                                  0x0b
 #define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
 #define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
-#define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command */
-#define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command */
+#define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command. */
+#define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command. */
 #define GPCMD_INQUIRY                                 0x12
 #define GPCMD_VERIFY_6                                0x13
 #define GPCMD_MODE_SELECT_6                           0x15
@@ -66,7 +67,7 @@
 #define GPCMD_PREVENT_REMOVAL                         0x1e
 #define GPCMD_READ_FORMAT_CAPACITIES                  0x23
 #define GPCMD_READ_CDROM_CAPACITY                     0x25
-#define GPCMD_UNKNOWN_CHINON                          0x26 /*Chinon Vendor Unique command*/
+#define GPCMD_UNKNOWN_CHINON                          0x26 /* Chinon Vendor Unique command. */
 #define GPCMD_READ_10                                 0x28
 #define GPCMD_READ_GENERATION                         0x29
 #define GPCMD_WRITE_10                                0x2a
@@ -233,16 +234,12 @@
 #define ASCQ_AUDIO_PLAY_OPERATION_PAUSED       0x12
 #define ASCQ_AUDIO_PLAY_OPERATION_COMPLETED    0x13
 
-/* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
-   Not that it means anything */
-#define CDROM_SPEED 706 /* 0x2C2 */
-
-#define BUFFER_SIZE (256 * 1024)
-
-#define RW_DELAY    (TIMER_USEC * 500)
-
 /* Some generally useful CD-ROM information */
+#ifdef CONSERVATIVE_MAXIMUM
 #define CD_MINS        90   /* max. minutes per CD */
+#else
+#define CD_MINS        100  /* max. minutes per CD - yes, 100-minute CD's in fact existed */
+#endif
 #define CD_SECS        60   /* seconds per minute */
 #define CD_FRAMES      75   /* frames per second */
 #define CD_FRAMESIZE   2048 /* bytes per frame, "cooked" mode */
@@ -276,6 +273,10 @@
 
 /* Profile list from MMC-6 revision 1 table 91 */
 #define MMC_PROFILE_NONE              0x0000
+#define MMC_PROFILE_REMOVABLE_DISK    0x0002
+#define MMC_PROFILE_MO                0x0003
+#define MMC_PROFILE_MO_WORM           0x0004
+#define MMC_PROFILE_AS_MO             0x0005
 #define MMC_PROFILE_CD_ROM            0x0008
 #define MMC_PROFILE_CD_R              0x0009
 #define MMC_PROFILE_CD_RW             0x000A
@@ -304,15 +305,12 @@
 #define MMC_PROFILE_HDDVD_RW_DL       0x005A
 #define MMC_PROFILE_INVALID           0xFFFF
 
-#define EARLY_ONLY                    64
 #define SCSI_ONLY                     32
 #define ATAPI_ONLY                    16
 #define IMPLEMENTED                   8
 #define NONDATA                       4
 #define CHECK_READY                   2
 #define ALLOW_UA                      1
-
-#define MSFtoLBA(m, s, f)             ((((m * 60) + s) * 75) + f)
 
 #define MSG_COMMAND_COMPLETE          0x00
 
@@ -371,7 +369,7 @@
 #define MODE_SELECT_PHASE_PAGE        4
 
 typedef struct mode_sense_pages_t {
-    uint8_t pages[0x40][0x40];
+    uint8_t            pages[0x40][0x40];
 } mode_sense_pages_t;
 
 /* This is so we can access the common elements to all SCSI device structs
@@ -379,89 +377,105 @@ typedef struct mode_sense_pages_t {
 typedef struct scsi_common_s {
     mode_sense_pages_t ms_pages_saved;
 
-    void *    priv;
+    void *             priv;
 #ifdef EMU_IDE_H
-    ide_tf_t *tf;
+    ide_tf_t *         tf;
 #else
-    void *    tf;
+    void *             tf;
 #endif
 
-    uint8_t *temp_buffer;
-    uint8_t atapi_cdb[16]; /* This is atapi_cdb in ATAPI-supporting devices,
-                              and pad in SCSI-only devices. */
-    uint8_t current_cdb[16];
-    uint8_t sense[256];
+    void *             log;
 
-    uint8_t id;
-    uint8_t cur_lun;
-    uint8_t pad0;
-    uint8_t pad1;
+    uint8_t *          temp_buffer;
+    /*
+       This is atapi_cdb in ATAPI-supporting devices,
+       and pad in SCSI-only devices.
+     */
+    uint8_t            atapi_cdb[16];
+    uint8_t            current_cdb[16];
+    uint8_t            sense[256];
 
-    uint16_t max_transfer_len;
-    uint16_t pad2;
+    uint8_t            id;
+    uint8_t            cur_lun;
+    uint8_t            pad0;
+    uint8_t            pad1;
 
-    int requested_blocks;
-    int packet_status;
-    int total_length;
-    int do_page_save;
-    int unit_attention;
-    int request_pos;
-    int old_len;
-    int media_status;
+    uint16_t           max_transfer_len;
+    uint16_t           pad2;
 
-    uint32_t sector_pos;
-    uint32_t sector_len;
-    uint32_t packet_len;
+    int                requested_blocks;
+    int                packet_status;
+    int                total_length;
+    int                do_page_save;
+    int                unit_attention;
+    int                request_pos;
+    int                old_len;
+    int                media_status;
 
-    double callback;
+    uint32_t           sector_pos;
+    uint32_t           sector_len;
+    uint32_t           packet_len;
 
-    uint8_t  (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
+    double             callback;
+
+    uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 } scsi_common_t;
 
 typedef struct scsi_device_t {
-    int32_t buffer_length;
+    int32_t            buffer_length;
 
-    uint8_t  status;
-    uint8_t  phase;
-    uint16_t type;
+    uint8_t            status;
+    uint8_t            phase;
 
-    scsi_common_t *sc;
+    uint16_t           type;
 
-    void    (*command)(scsi_common_t *sc, uint8_t *cdb);
-    void    (*request_sense)(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length);
-    void    (*reset)(scsi_common_t *sc);
-    uint8_t (*phase_data_out)(scsi_common_t *sc);
-    void    (*command_stop)(scsi_common_t *sc);
+    scsi_common_t *    sc;
+
+    void               (*command)(scsi_common_t *sc, const uint8_t *cdb);
+    void               (*request_sense)(scsi_common_t *sc, uint8_t *buffer,
+                                        uint8_t alloc_length);
+    void               (*reset)(scsi_common_t *sc);
+    uint8_t            (*phase_data_out)(scsi_common_t *sc);
+    void               (*command_stop)(scsi_common_t *sc);
 } scsi_device_t;
 
 typedef struct scsi_bus_t {
-    int      tx_mode;
-    int      clear_req;
-    int      wait_data;
-    int      wait_complete;
-    int      bus_out;
-    int      bus_in;
-    int      command_pos;
-    int      command_issued;
-    int      data_pos;
-    int      msgout_pos;
-    int      is_msgout;
-    int      state;
-    int      dma_on_pio_enabled;
-    uint8_t  data;
-    uint8_t  msglun;
-    uint8_t  data_wait;
-    uint8_t  command[16];
-    uint8_t  msgout[4];
-    uint8_t  target_id;
-    uint8_t  bus_device;
-    uint32_t bus_phase;
-    double   period;
-    double   speed;
-    double   divider;
-    double   multi;
-    void    *priv;
-    void   (*timer)(void *priv, double period);
+    uint8_t            data;
+    uint8_t            msglun;
+    uint8_t            data_wait;
+    uint8_t            target_id;
+    uint8_t            bus_device;
+    uint8_t            pad;
+    uint8_t            pad0;
+    uint8_t            pad1;
+
+    uint8_t            command[16];
+    uint8_t            msgout[4];
+    uint8_t            pad2[4];
+
+    int                tx_mode;
+    int                clear_req;
+    int                wait_data;
+    int                wait_complete;
+    int                bus_out;
+    int                bus_in;
+    int                command_pos;
+    int                command_issued;
+    int                data_pos;
+    int                msgout_pos;
+    int                is_msgout;
+    int                state;
+    int                dma_on_pio_enabled;
+
+    uint32_t           bus_phase;
+
+    double             period;
+    double             speed;
+    double             divider;
+    double             multi;
+
+    void              *priv;
+    void               (*timer)(void *priv, double period);
 } scsi_bus_t;
 
 /* These are based on the INQUIRY values. */
@@ -474,15 +488,8 @@ typedef struct scsi_bus_t {
 extern scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 #endif /* EMU_SCSI_H */
 
-extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
-extern int cdrom_LBAtoMSF_accurate(void);
-
-extern int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
-extern int mode_select_terminate(int force);
-extern int mode_select_write(uint8_t val);
-
-extern uint8_t *scsi_device_sense(scsi_device_t *dev);
 extern double   scsi_device_get_callback(scsi_device_t *dev);
+extern uint8_t *scsi_device_sense(scsi_device_t *dev);
 extern void     scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer,
                                           uint8_t alloc_length);
 extern void     scsi_device_reset(scsi_device_t *dev);
@@ -490,8 +497,8 @@ extern int      scsi_device_present(scsi_device_t *dev);
 extern int      scsi_device_valid(scsi_device_t *dev);
 extern int      scsi_device_cdb_length(scsi_device_t *dev);
 extern void     scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
-extern void     scsi_device_command_phase1(scsi_device_t *dev);
 extern void     scsi_device_command_stop(scsi_device_t *dev);
+extern void     scsi_device_command_phase1(scsi_device_t *dev);
 extern void     scsi_device_identify(scsi_device_t *dev, uint8_t lun);
 extern void     scsi_device_close_all(void);
 extern void     scsi_device_init(void);
