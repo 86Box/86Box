@@ -2207,7 +2207,11 @@ cdrom_readsector_raw(const cdrom_t *dev, uint8_t *buffer, const int sector, cons
 
             if (mode2) {
                 if (raw_buffer[0x000f] == 0x01)
-                    log_fatal(dev->log, "Mode 1 sector on CD-I/XA disc\n");
+                    /*
+                       Use Mode 1, since evidently specification-violating discs
+                       exist.
+                     */
+                    mode2 = 0;
                 else if (raw_buffer[0x0012] != raw_buffer[0x0016]) {
                     cdrom_log(dev->log, "[%s] XA Mode 2 sector with malformed "
                               "sub-header\n", cdrom_req_modes[cdrom_sector_type],
