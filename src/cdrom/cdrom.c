@@ -2192,12 +2192,21 @@ cdrom_readsector_raw(const cdrom_t *dev, uint8_t *buffer, const int sector, cons
         if (audio) {
             if (!track_type_is_valid(dev, cdrom_sector_type, cdrom_sector_flags, 1, 0x00))
                 ret = 0;
-            else
+            else {
                 ret = read_audio(dev, lba, temp_b);
+
+                /* Return with error if we had one. */
+                if (ret < 0)
+                    return ret;
+            }
         } else {
             int form = 0;
 
             ret = read_data(dev, lba);
+
+            /* Return with error if we had one. */
+            if (ret < 0)
+                return ret;
 
             if ((raw_buffer[0x000f] == 0x00) || (raw_buffer[0x000f] > 0x02)) {
                 cdrom_log(dev->log, "[%s] Unknown mode: %02X\n",
