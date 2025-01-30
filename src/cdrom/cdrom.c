@@ -43,11 +43,6 @@
 #define MIN_SEEK           2000
 #define MAX_SEEK           333333
 
-static int     cdrom_sector_size;
-/* Needs some extra breathing space in case of overflows. */
-static uint8_t raw_buffer[4096];
-static uint8_t extra_buffer[296];
-
 cdrom_t cdrom[CDROM_NUM] = { 0 };
 
 int cdrom_interface_current;
@@ -69,16 +64,16 @@ cdrom_log(void *priv, const char *fmt, ...)
 #    define cdrom_log(priv, fmt, ...)
 #endif
 
-static void    process_mode1(const cdrom_t *dev, const int cdrom_sector_flags,
+static void    process_mode1(cdrom_t *dev, const int cdrom_sector_flags,
                              uint8_t *b);
-static void    process_mode2_non_xa(const cdrom_t *dev, const int cdrom_sector_flags,
+static void    process_mode2_non_xa(cdrom_t *dev, const int cdrom_sector_flags,
                                     uint8_t *b);
-static void    process_mode2_xa_form1(const cdrom_t *dev, const int cdrom_sector_flags,
+static void    process_mode2_xa_form1(cdrom_t *dev, const int cdrom_sector_flags,
                                       uint8_t *b);
-static void    process_mode2_xa_form2(const cdrom_t *dev, const int cdrom_sector_flags,
+static void    process_mode2_xa_form2(cdrom_t *dev, const int cdrom_sector_flags,
                                       uint8_t *b);
 
-typedef void (*cdrom_process_data_t)(const cdrom_t *dev, const int cdrom_sector_flags,
+typedef void (*cdrom_process_data_t)(cdrom_t *dev, const int cdrom_sector_flags,
                                      uint8_t *b);
 
 static cdrom_process_data_t cdrom_process_data[4] = { process_mode1, process_mode2_non_xa,
@@ -289,13 +284,13 @@ msf_to_bcd(int *m, int *s, int *f)
 }
 
 static int
-read_data(const cdrom_t *dev, const uint32_t lba)
+read_data(cdrom_t *dev, const uint32_t lba)
 {
-    return dev->ops->read_sector(dev->local, raw_buffer, lba);
+    return dev->ops->read_sector(dev->local, dev->raw_buffer, lba);
 }
 
 static void
-cdrom_get_subchannel(const cdrom_t *dev, const uint32_t lba,
+cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba,
                      subchannel_t *subc, const int cooked)
 {
     const uint8_t  *scb;
@@ -306,10 +301,10 @@ cdrom_get_subchannel(const cdrom_t *dev, const uint32_t lba,
         ((dev->cd_status == CD_STATUS_PLAYING) || (dev->cd_status == CD_STATUS_PAUSED)))
         scb      = dev->subch_buffer;
     else {
-        scb      = (const uint8_t *) raw_buffer;
+        scb      = (const uint8_t *) dev->raw_buffer;
         scb_offs = 2352;
 
-        memset(raw_buffer, 0, 2448);
+        memset(dev->raw_buffer, 0, 2448);
 
         (void) read_data(dev, lba);
     }
@@ -645,36 +640,36 @@ track_type_is_valid(const cdrom_t *dev, const int type, const int flags, const i
 }
 
 static int
-read_audio(const cdrom_t *dev, const uint32_t lba, uint8_t *b)
+read_audio(cdrom_t *dev, const uint32_t lba, uint8_t *b)
 {
-    const int ret = dev->ops->read_sector(dev->local, raw_buffer, lba);
+    const int ret = dev->ops->read_sector(dev->local, dev->raw_buffer, lba);
 
-    memcpy(b, raw_buffer, 2352);
+    memcpy(b, dev->raw_buffer, 2352);
 
-    cdrom_sector_size = 2352;
+    dev->cdrom_sector_size = 2352;
 
     return ret;
 }
 
 
 static void
-process_mode1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
+process_mode1(cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
 {
-    cdrom_sector_size = 0;
+    dev->cdrom_sector_size = 0;
 
     if (cdrom_sector_flags & 0x80) {
         /* Sync */
         cdrom_log(dev->log, "[Mode 1] Sync\n");
-        memcpy(b, raw_buffer, 12);
-        cdrom_sector_size += 12;
+        memcpy(b, dev->raw_buffer, 12);
+        dev->cdrom_sector_size += 12;
         b += 12;
     }
 
     if (cdrom_sector_flags & 0x20) {
         /* Header */
         cdrom_log(dev->log, "[Mode 1] Header\n");
-        memcpy(b, raw_buffer + 12, 4);
-        cdrom_sector_size += 4;
+        memcpy(b, dev->raw_buffer + 12, 4);
+        dev->cdrom_sector_size += 4;
         b += 4;
     }
 
@@ -683,8 +678,8 @@ process_mode1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
         if (!(cdrom_sector_flags & 0x10)) {
             /* No user data */
             cdrom_log(dev->log, "[Mode 1] Sub-header\n");
-            memcpy(b, raw_buffer + 16, 8);
-            cdrom_sector_size += 8;
+            memcpy(b, dev->raw_buffer + 16, 8);
+            dev->cdrom_sector_size += 8;
             b += 8;
         }
     }
@@ -693,12 +688,13 @@ process_mode1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
         /* User data */
         cdrom_log(dev->log, "[Mode 1] User data\n");
         if (mult > 1) {
-            memcpy(b, raw_buffer + 16 + (part * dev->sector_size), dev->sector_size);
-            cdrom_sector_size += dev->sector_size;
+            memcpy(b, dev->raw_buffer + 16 + (part * dev->sector_size),
+                   dev->sector_size);
+            dev->cdrom_sector_size += dev->sector_size;
             b += dev->sector_size;
         } else {
-            memcpy(b, raw_buffer + 16, 2048);
-            cdrom_sector_size += 2048;
+            memcpy(b, dev->raw_buffer + 16, 2048);
+            dev->cdrom_sector_size += 2048;
             b += 2048;
         }
     }
@@ -706,29 +702,30 @@ process_mode1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
     if (cdrom_sector_flags & 0x08) {
         /* EDC/ECC */
         cdrom_log(dev->log, "[Mode 1] EDC/ECC\n");
-        memcpy(b, raw_buffer + 2064, (288 - ecc_diff));
-        cdrom_sector_size += (288 - ecc_diff);
+        memcpy(b, dev->raw_buffer + 2064, (288 - ecc_diff));
+        dev->cdrom_sector_size += (288 - ecc_diff);
     }
 }
 
 static void
-process_mode2_non_xa(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
+process_mode2_non_xa(cdrom_t *dev, const int cdrom_sector_flags,
+                     uint8_t *b)
 {
-    cdrom_sector_size = 0;
+    dev->cdrom_sector_size = 0;
 
     if (cdrom_sector_flags & 0x80) {
         /* Sync */
         cdrom_log(dev->log, "[Mode 2 Formless] Sync\n");
-        memcpy(b, raw_buffer, 12);
-        cdrom_sector_size += 12;
+        memcpy(b, dev->raw_buffer, 12);
+        dev->cdrom_sector_size += 12;
         b += 12;
     }
 
     if (cdrom_sector_flags & 0x20) {
         /* Header */
         cdrom_log(dev->log, "[Mode 2 Formless] Header\n");
-        memcpy(b, raw_buffer + 12, 4);
-        cdrom_sector_size += 4;
+        memcpy(b, dev->raw_buffer + 12, 4);
+        dev->cdrom_sector_size += 4;
         b += 4;
     }
 
@@ -736,45 +733,46 @@ process_mode2_non_xa(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *
     if (cdrom_sector_flags & 0x40) {
         /* Sub-header */
         cdrom_log(dev->log, "[Mode 2 Formless] Sub-header\n");
-        memcpy(b, raw_buffer + 16, 8);
-        cdrom_sector_size += 8;
+        memcpy(b, dev->raw_buffer + 16, 8);
+        dev->cdrom_sector_size += 8;
         b += 8;
     }
 
     if (cdrom_sector_flags & 0x10) {
         /* User data */
         cdrom_log(dev->log, "[Mode 2 Formless] User data\n");
-        memcpy(b, raw_buffer + 24, (2336 - ecc_diff));
-        cdrom_sector_size += (2336 - ecc_diff);
+        memcpy(b, dev->raw_buffer + 24, (2336 - ecc_diff));
+        dev->cdrom_sector_size += (2336 - ecc_diff);
     }
 }
 
 static void
-process_mode2_xa_form1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
+process_mode2_xa_form1(cdrom_t *dev, const int cdrom_sector_flags,
+                       uint8_t *b)
 {
-    cdrom_sector_size = 0;
+    dev->cdrom_sector_size = 0;
 
     if (cdrom_sector_flags & 0x80) {
         /* Sync */
         cdrom_log(dev->log, "[XA Mode 2 Form 1] Sync\n");
-        memcpy(b, raw_buffer, 12);
-        cdrom_sector_size += 12;
+        memcpy(b, dev->raw_buffer, 12);
+        dev->cdrom_sector_size += 12;
         b += 12;
     }
 
     if (cdrom_sector_flags & 0x20) {
         /* Header */
         cdrom_log(dev->log, "[XA Mode 2 Form 1] Header\n");
-        memcpy(b, raw_buffer + 12, 4);
-        cdrom_sector_size += 4;
+        memcpy(b, dev->raw_buffer + 12, 4);
+        dev->cdrom_sector_size += 4;
         b += 4;
     }
 
     if (cdrom_sector_flags & 0x40) {
         /* Sub-header */
         cdrom_log(dev->log, "[XA Mode 2 Form 1] Sub-header\n");
-        memcpy(b, raw_buffer + 16, 8);
-        cdrom_sector_size += 8;
+        memcpy(b, dev->raw_buffer + 16, 8);
+        dev->cdrom_sector_size += 8;
         b += 8;
     }
 
@@ -782,12 +780,13 @@ process_mode2_xa_form1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t
         /* User data */
         cdrom_log(dev->log, "[XA Mode 2 Form 1] User data\n");
         if (mult > 1) {
-            memcpy(b, raw_buffer + 24 + (part * dev->sector_size), dev->sector_size);
-            cdrom_sector_size += dev->sector_size;
+            memcpy(b, dev->raw_buffer + 24 + (part * dev->sector_size),
+                   dev->sector_size);
+            dev->cdrom_sector_size += dev->sector_size;
             b += dev->sector_size;
         } else {
-            memcpy(b, raw_buffer + 24, 2048);
-            cdrom_sector_size += 2048;
+            memcpy(b, dev->raw_buffer + 24, 2048);
+            dev->cdrom_sector_size += 2048;
             b += 2048;
         }
     }
@@ -795,46 +794,78 @@ process_mode2_xa_form1(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t
     if (cdrom_sector_flags & 0x08) {
         /* EDC/ECC */
         cdrom_log(dev->log, "[XA Mode 2 Form 1] EDC/ECC\n");
-        memcpy(b, raw_buffer + 2072, (280 - ecc_diff));
-        cdrom_sector_size += (280 - ecc_diff);
+        memcpy(b, dev->raw_buffer + 2072, (280 - ecc_diff));
+        dev->cdrom_sector_size += (280 - ecc_diff);
     }
 }
 
 static void
-process_mode2_xa_form2(const cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
+process_mode2_xa_form2(cdrom_t *dev, const int cdrom_sector_flags,
+                       uint8_t *b)
 {
-    cdrom_sector_size = 0;
+    dev->cdrom_sector_size = 0;
 
     if (cdrom_sector_flags & 0x80) {
         /* Sync */
         cdrom_log(dev->log, "[XA Mode 2 Form 2] Sync\n");
-        memcpy(b, raw_buffer, 12);
-        cdrom_sector_size += 12;
+        memcpy(b, dev->raw_buffer, 12);
+        dev->cdrom_sector_size += 12;
         b += 12;
     }
 
     if (cdrom_sector_flags & 0x20) {
         /* Header */
         cdrom_log(dev->log, "[XA Mode 2 Form 2] Header\n");
-        memcpy(b, raw_buffer + 12, 4);
-        cdrom_sector_size += 4;
+        memcpy(b, dev->raw_buffer + 12, 4);
+        dev->cdrom_sector_size += 4;
         b += 4;
     }
 
     if (cdrom_sector_flags & 0x40) {
         /* Sub-header */
         cdrom_log(dev->log, "[XA Mode 2 Form 2] Sub-header\n");
-        memcpy(b, raw_buffer + 16, 8);
-        cdrom_sector_size += 8;
+        memcpy(b, dev->raw_buffer + 16, 8);
+        dev->cdrom_sector_size += 8;
         b += 8;
     }
 
     if (cdrom_sector_flags & 0x10) {
         /* User data */
         cdrom_log(dev->log, "[XA Mode 2 Form 2] User data\n");
-        memcpy(b, raw_buffer + 24, (2328 - ecc_diff));
-        cdrom_sector_size += (2328 - ecc_diff);
+        memcpy(b, dev->raw_buffer + 24, (2328 - ecc_diff));
+        dev->cdrom_sector_size += (2328 - ecc_diff);
     }
+}
+
+static void
+process_ecc_and_subch(cdrom_t *dev, const int cdrom_sector_flags,
+                      uint8_t *b)
+{
+    if ((cdrom_sector_flags & 0x06) == 0x02) {
+        /* Add error flags. */
+        cdrom_log(dev->log, "Error flags\n");
+        memcpy(b + dev->cdrom_sector_size, dev->extra_buffer, 294);
+        dev->cdrom_sector_size += 294;
+    } else if ((cdrom_sector_flags & 0x06) == 0x04) {
+        /* Add error flags. */
+        cdrom_log(dev->log, "Full error flags\n");
+        memcpy(b + dev->cdrom_sector_size, dev->extra_buffer, 296);
+        dev->cdrom_sector_size += 296;
+     }
+
+     if ((cdrom_sector_flags & 0x700) == 0x100) {
+         cdrom_log(dev->log, "Raw subchannel data\n");
+         memcpy(b + dev->cdrom_sector_size, dev->raw_buffer + 2352, 96);
+         dev->cdrom_sector_size += 96;
+     } else if ((cdrom_sector_flags & 0x700) == 0x200) {
+         cdrom_log(dev->log, "Q subchannel data\n");
+         memcpy(b + dev->cdrom_sector_size, dev->raw_buffer + 2352, 16);
+         dev->cdrom_sector_size += 16;
+     } else if ((cdrom_sector_flags & 0x700) == 0x400) {
+         cdrom_log(dev->log, "R/W subchannel data\n");
+         memcpy(b + dev->cdrom_sector_size, dev->raw_buffer + 2352, 96);
+         dev->cdrom_sector_size += 96;
+     }
 }
 
 static void
@@ -855,7 +886,9 @@ cdrom_drive_reset(cdrom_t *dev)
 static void
 cdrom_unload(cdrom_t *dev)
 {
-    cdrom_log(dev->log, "CDROM: cdrom_unload(%s)\n", dev->image_path);
+    if (dev->log != NULL) {
+        cdrom_log(dev->log, "CDROM: cdrom_unload(%s)\n", dev->image_path);
+    }
 
     dev->cd_status = CD_STATUS_EMPTY;
 
@@ -1624,7 +1657,7 @@ cdrom_get_current_status(const cdrom_t *dev)
 }
 
 void
-cdrom_get_current_subchannel(const cdrom_t *dev, uint8_t *b, const int msf)
+cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 {
     subchannel_t subc;
 
@@ -1709,7 +1742,7 @@ cdrom_get_current_subchannel(const cdrom_t *dev, uint8_t *b, const int msf)
 }
 
 void
-cdrom_get_current_subchannel_sony(const cdrom_t *dev, uint8_t *b, const int msf)
+cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf)
 {
     subchannel_t subc;
 
@@ -1743,7 +1776,7 @@ cdrom_get_current_subchannel_sony(const cdrom_t *dev, uint8_t *b, const int msf)
 }
 
 uint8_t
-cdrom_get_audio_status_pioneer(const cdrom_t *dev, uint8_t *b)
+cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
 {
     uint8_t      ret;
     subchannel_t subc;
@@ -1769,7 +1802,7 @@ cdrom_get_audio_status_pioneer(const cdrom_t *dev, uint8_t *b)
 }
 
 uint8_t
-cdrom_get_audio_status_sony(const cdrom_t *dev, uint8_t *b, const int msf)
+cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, const int msf)
 {
     uint8_t      ret;
     subchannel_t subc;
@@ -1803,7 +1836,7 @@ cdrom_get_audio_status_sony(const cdrom_t *dev, uint8_t *b, const int msf)
 }
 
 void
-cdrom_get_current_subcodeq(const cdrom_t *dev, uint8_t *b)
+cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b)
 {
     subchannel_t subc;
 
@@ -2098,16 +2131,12 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
 }
 
 int
-cdrom_readsector_raw(const cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
+cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
                      int cdrom_sector_type, const int cdrom_sector_flags,
                      int *len, const uint8_t vendor_type)
 {
-    uint8_t *temp_b;
-    uint32_t lba;
-    int      audio  = 0;
-    int      mode2  = 0;
     int      pos    = sector;
-    int      ret;
+    int      ret    = 0;
 
     if ((cdrom_sector_type & 0x0f) >= 0x08) {
         mult               = cdrom_sector_type >> 4;
@@ -2121,163 +2150,142 @@ cdrom_readsector_raw(const cdrom_t *dev, uint8_t *buffer, const int sector, cons
         ecc_diff           = 0;
     }
 
-    if (dev->cd_status == CD_STATUS_EMPTY)
-        return 0;
+    if (dev->cd_status != CD_STATUS_EMPTY) {
+        uint8_t *temp_b;
+        uint8_t *b      = temp_b = buffer;
+        int      audio  = 0;
+        uint32_t lba;
+        int      mode2  = 0;
 
-    uint8_t *b = temp_b = buffer;
+        *len = 0;
 
-    *len = 0;
+        if (ismsf) {
+            const int m = (pos >> 16) & 0xff;
+            const int s = (pos >> 8) & 0xff;
+            const int f = pos & 0xff;
 
-    if (ismsf) {
-        const int m = (pos >> 16) & 0xff;
-        const int s = (pos >> 8) & 0xff;
-        const int f = pos & 0xff;
+            lba = MSFtoLBA(m, s, f) - 150;
+        } else {
+            switch (vendor_type) {
+                case 0x00:
+                    lba = pos;
+                    break;
+                case 0x40: {
+                    const int m = bcd2bin((pos >> 24) & 0xff);
+                    const int s = bcd2bin((pos >> 16) & 0xff);
+                    const int f = bcd2bin((pos >> 8) & 0xff);
 
-        lba = MSFtoLBA(m, s, f) - 150;
-    } else {
-        switch (vendor_type) {
-            case 0x00:
-                lba = pos;
-                break;
-            case 0x40: {
-                const int m = bcd2bin((pos >> 24) & 0xff);
-                const int s = bcd2bin((pos >> 16) & 0xff);
-                const int f = bcd2bin((pos >> 8) & 0xff);
-
-                lba = MSFtoLBA(m, s, f) - 150;
-                break;
-            } case 0x80:
-                lba = bcd2bin((pos >> 24) & 0xff);
-                break;
-            /* Never used values but the compiler complains. */
-            default:
-                lba = 0;
-        }
-    }
-
-    if (dev->ops->get_track_type)
-        audio = dev->ops->get_track_type(dev->local, lba);
-
-    int dm     = audio & CD_TRACK_MODE_MASK;
-    audio     &= CD_TRACK_AUDIO;
-
-    if (dm != CD_TRACK_NORMAL)
-        mode2 = 1;
-
-    memset(raw_buffer, 0, 2448);
-    memset(extra_buffer, 0, 296);
-
-    if ((cdrom_sector_flags & 0xf8) == 0x08) {
-        /* 0x08 is an illegal mode */
-        cdrom_log(dev->log, "[Mode 1] 0x08 is an illegal mode\n");
-        return 0;
-    }
-
-    if ((cdrom_sector_type > 5) && (cdrom_sector_type < 8)) {
-        cdrom_log(dev->log, "Attempting to read an unrecognized sector "
-                  "type from an image\n");
-        return 0;
-    } else {
-        if ((cdrom_sector_type > 1) && audio && (dev->cd_status & CD_STATUS_HAS_AUDIO)) {
-            cdrom_log(dev->log, "[%s] Attempting to read a data sector "
-                      "from an audio track\n", cdrom_req_modes[cdrom_sector_type]);
-            return 0;
-        } else if ((cdrom_sector_type == 1) &&
-                   (!audio || !(dev->cd_status & CD_STATUS_HAS_AUDIO))) {
-            cdrom_log(dev->log, "[Audio] Attempting to read an audio sector "
-                      "from a data track\n");
-            return 0;
+                    lba = MSFtoLBA(m, s, f) - 150;
+                    break;
+                } case 0x80:
+                    lba = bcd2bin((pos >> 24) & 0xff);
+                    break;
+                /* Never used values but the compiler complains. */
+                default:
+                    lba = 0;
+            }
         }
 
-        if (audio) {
-            if (!track_type_is_valid(dev, cdrom_sector_type, cdrom_sector_flags, 1, 0x00))
-                ret = 0;
-            else {
-                ret = read_audio(dev, lba, temp_b);
+        if (dev->ops->get_track_type)
+            audio = dev->ops->get_track_type(dev->local, lba);
+
+        const int dm  = audio & CD_TRACK_MODE_MASK;
+        audio        &= CD_TRACK_AUDIO;
+
+        if (dm != CD_TRACK_NORMAL)
+            mode2 = 1;
+
+        memset(dev->raw_buffer, 0, 2448);
+        memset(dev->extra_buffer, 0, 296);
+
+        if ((cdrom_sector_flags & 0xf8) == 0x08) {
+            /* 0x08 is an illegal mode */
+            cdrom_log(dev->log, "[Mode 1] 0x08 is an illegal mode\n");
+        } else if ((cdrom_sector_type > 5) && (cdrom_sector_type < 8)) {
+            cdrom_log(dev->log, "Attempting to read an unrecognized sector "
+                      "type from an image\n");
+            return 0;
+        } else {
+            if ((cdrom_sector_type > 1) && audio &&
+                (dev->cd_status & CD_STATUS_HAS_AUDIO)) {
+                cdrom_log(dev->log, "[%s] Attempting to read a data sector "
+                          "from an audio track\n",
+                          cdrom_req_modes[cdrom_sector_type]);
+            } else if ((cdrom_sector_type == 1) &&
+                       (!audio || !(dev->cd_status & CD_STATUS_HAS_AUDIO))) {
+                cdrom_log(dev->log, "[Audio] Attempting to read an audio "
+                          "sector from a data track\n");
+            } else if (audio) {
+                if (!track_type_is_valid(dev, cdrom_sector_type,
+                                         cdrom_sector_flags, 1, 0x00))
+                    ret = 0;
+                else
+                    ret = read_audio(dev, lba, temp_b);
+            } else {
+                ret = read_data(dev, lba);
 
                 /* Return with error if we had one. */
-                if (ret < 0)
-                    return ret;
+                if (ret > 0) {
+                    int form = 0;
+
+                    if ((dev->raw_buffer[0x000f] == 0x00) ||
+                        (dev->raw_buffer[0x000f] > 0x02)) {
+                        cdrom_log(dev->log, "[%s] Unknown mode: %02X\n",
+                                  cdrom_req_modes[cdrom_sector_type],
+                                  dev->raw_buffer[0x000f]);
+                        ret = 0;
+                    } else if (mode2) {
+                        if (dev->raw_buffer[0x000f] == 0x01)
+                            /*
+                               Use Mode 1, since evidently specification-violating
+                               discs exist.
+                             */
+                            mode2 = 0;
+                        else if (dev->raw_buffer[0x0012] !=
+                                 dev->raw_buffer[0x0016]) {
+                            cdrom_log(dev->log, "[%s] XA Mode 2 sector with "
+                                      "malformed sub-header\n",
+                                      cdrom_req_modes[cdrom_sector_type]);
+                            ret = 0;
+                        } else
+                            form = ((dev->raw_buffer[0x0012] & 0x20) >> 5) + 1;
+                    } else if (dev->raw_buffer[0x000f] == 0x02)
+                        mode2 = 1;
+
+                    if (ret > 0) {
+                        const int mode_id = mode2 + form;
+
+                        cdrom_log(dev->log, "[%s] %s detected\n",
+                                  cdrom_req_modes[cdrom_sector_type],
+                                  cdrom_modes[mode_id]);
+
+                        if (!track_type_is_valid(dev, cdrom_sector_type,
+                                                 cdrom_sector_flags, 0,
+                                                 (mode2 << 2) + form)) {
+                            cdrom_log(dev->log, "[%s] Invalid track type\n",
+                                      cdrom_req_modes[cdrom_sector_type]);
+                            ret = 0;
+                        } else if (cdrom_mode_masks[cdrom_sector_type] &
+                                   (1 << mode_id))
+                            cdrom_process_data[mode_id](dev, cdrom_sector_flags,
+                                                        temp_b);
+                        else {
+                            cdrom_log(dev->log, "[%s] Attempting to read a "
+                                      "%s sector\n",
+                                      cdrom_req_modes[cdrom_sector_type],
+                                      cdrom_modes[mode_id]);
+                            ret = 0;
+                        }
+                    }
+                }
             }
-        } else {
-            int form = 0;
 
-            ret = read_data(dev, lba);
-
-            /* Return with error if we had one. */
-            if (ret < 0)
-                return ret;
-
-            if ((raw_buffer[0x000f] == 0x00) || (raw_buffer[0x000f] > 0x02)) {
-                cdrom_log(dev->log, "[%s] Unknown mode: %02X\n",
-                          cdrom_req_modes[cdrom_sector_type], raw_buffer[0x000f]);
-                return 0;
-            }
-
-            if (mode2) {
-                if (raw_buffer[0x000f] == 0x01)
-                    /*
-                       Use Mode 1, since evidently specification-violating discs
-                       exist.
-                     */
-                    mode2 = 0;
-                else if (raw_buffer[0x0012] != raw_buffer[0x0016]) {
-                    cdrom_log(dev->log, "[%s] XA Mode 2 sector with malformed "
-                              "sub-header\n", cdrom_req_modes[cdrom_sector_type],
-                              raw_buffer[0x000f]);
-                    return 0;
-                } else
-                    form = ((raw_buffer[0x0012] & 0x20) >> 5) + 1;
-            } else if (raw_buffer[0x000f] == 0x02)
-                mode2 = 1;
-
-            const int mode_id = mode2 + form;
-
-            cdrom_log(dev->log, "[%s] %s detected\n", cdrom_req_modes[cdrom_sector_type],
-                      cdrom_modes[mode_id]);
-
-            if (!track_type_is_valid(dev, cdrom_sector_type, cdrom_sector_flags, 0,
-                                     (mode2 << 2) + form))
-                return 0;
-
-            /* It just so happens that only modes with even ID's have a sector user data size of 2048. */
-            if (cdrom_mode_masks[cdrom_sector_type] & (1 << mode_id))
-                cdrom_process_data[mode_id](dev, cdrom_sector_flags, temp_b);
-            else {
-                cdrom_log(dev->log, "[%s] Attempting to read a %s sector\n",
-                          cdrom_req_modes[cdrom_sector_type], cdrom_modes[mode_id]);
-                return 0;
+            if (ret > 0) {
+                process_ecc_and_subch(dev, cdrom_sector_flags, b);
+                *len = dev->cdrom_sector_size;
             }
         }
     }
-
-    if ((cdrom_sector_flags & 0x06) == 0x02) {
-        /* Add error flags. */
-        cdrom_log(dev->log, "Error flags\n");
-        memcpy(b + cdrom_sector_size, extra_buffer, 294);
-        cdrom_sector_size += 294;
-    } else if ((cdrom_sector_flags & 0x06) == 0x04) {
-        /* Add error flags. */
-        cdrom_log(dev->log, "Full error flags\n");
-        memcpy(b + cdrom_sector_size, extra_buffer, 296);
-        cdrom_sector_size += 296;
-    }
-
-    if ((cdrom_sector_flags & 0x700) == 0x100) {
-        cdrom_log(dev->log, "Raw subchannel data\n");
-        memcpy(b + cdrom_sector_size, raw_buffer + 2352, 96);
-        cdrom_sector_size += 96;
-    } else if ((cdrom_sector_flags & 0x700) == 0x200) {
-        cdrom_log(dev->log, "Q subchannel data\n");
-        memcpy(b + cdrom_sector_size, raw_buffer + 2352, 16);
-        cdrom_sector_size += 16;
-    } else if ((cdrom_sector_flags & 0x700) == 0x400) {
-        cdrom_log(dev->log, "R/W subchannel data\n");
-        memcpy(b + cdrom_sector_size, raw_buffer + 2352, 96);
-        cdrom_sector_size += 96;
-    }
-
-    *len = cdrom_sector_size;
 
     return ret;
 }
@@ -2495,7 +2503,7 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
 }
 
 int
-cdrom_read_track_information(const cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
+cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
 {
     uint8_t                 rti[65536] = { 0 };
     const raw_track_info_t *t          = (raw_track_info_t *) rti;
@@ -2609,7 +2617,7 @@ cdrom_read_track_information(const cdrom_t *dev, const uint8_t *cdb, uint8_t *bu
 
              if (track->adr_ctl & 0x04) {
                  ret  = read_data(dev, start);
-                 mode = raw_buffer[3];
+                 mode = dev->raw_buffer[3];
              }
          } else if (track->point != 0xa2)
              start = 0x00000000;
@@ -2763,9 +2771,7 @@ cdrom_hard_reset(void)
         cdrom_t *dev = &cdrom[i];
 
         if (dev->bus_type) {
-            cdrom_log(dev->log, "Hard reset\n");
-
-            dev->id       = i;
+             dev->id       = i;
 
             dev->is_early = cdrom_is_early(dev->type);
             dev->is_nec   = (dev->bus_type == CDROM_BUS_SCSI) &&
@@ -2777,6 +2783,8 @@ cdrom_hard_reset(void)
 
             sprintf(n, "CD-ROM %i      ", i + 1);
             dev->log = log_open(n);
+
+            cdrom_log(dev->log, "Hard reset\n");
 
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:

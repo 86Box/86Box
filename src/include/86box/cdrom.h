@@ -48,7 +48,7 @@
 #define CD_TOC_SESSION           1
 #define CD_TOC_RAW               2
 
-#define CD_IMAGE_HISTORY         4
+#define CD_IMAGE_HISTORY         10
 
 #define BUF_SIZE                 32768
 
@@ -333,6 +333,12 @@ typedef struct cdrom {
     int16_t            cd_buffer[BUF_SIZE];
 
     uint8_t            subch_buffer[96];
+
+    int                cdrom_sector_size;
+
+    /* Needs some extra breathing space in case of overflows. */
+    uint8_t            raw_buffer[4096];
+    uint8_t            extra_buffer[296];
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
@@ -394,11 +400,11 @@ extern uint8_t         cdrom_audio_scan(cdrom_t *dev, const uint32_t pos, const 
 extern void            cdrom_audio_pause_resume(cdrom_t *dev, const uint8_t resume);
 
 extern uint8_t         cdrom_get_current_status(const cdrom_t *dev);
-extern void            cdrom_get_current_subchannel(const cdrom_t *dev, uint8_t *b, const int msf);
-extern void            cdrom_get_current_subchannel_sony(const cdrom_t *dev, uint8_t *b, const int msf);
-extern uint8_t         cdrom_get_audio_status_pioneer(const cdrom_t *dev, uint8_t *b);
-extern uint8_t         cdrom_get_audio_status_sony(const cdrom_t *dev, uint8_t *b, const int msf);
-extern void            cdrom_get_current_subcodeq(const cdrom_t *dev, uint8_t *b);
+extern void            cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf);
+extern void            cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf);
+extern uint8_t         cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b);
+extern uint8_t         cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, const int msf);
+extern void            cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b);
 extern uint8_t         cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b);
 extern int             cdrom_read_toc(const cdrom_t *dev, uint8_t *b, const int type,
                                       const uint8_t start_track, const int msf, const int max_len);
@@ -411,13 +417,13 @@ extern uint8_t         cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint
 #endif
 extern uint8_t         cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                                                 const uint8_t track, const int type);
-extern int             cdrom_readsector_raw(const cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
+extern int             cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
                                             int cdrom_sector_type, const int cdrom_sector_flags,
                                             int *len, const uint8_t vendor_type);
 extern int             cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t format,
                                                 uint8_t *buffer, uint32_t *info);
 extern void            cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer);
-extern int             cdrom_read_track_information(const cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer);
+extern int             cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer);
 extern int             cdrom_ext_medium_changed(const cdrom_t *dev);
 extern int             cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert);
 

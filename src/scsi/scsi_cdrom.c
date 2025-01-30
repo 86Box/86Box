@@ -1108,6 +1108,9 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, const int vendor_type)
     int type  = dev->sector_type;
     int flags = dev->sector_flags;
 
+    /* Any of these commands stop the audio playing. */
+    cdrom_stop(dev->drv);
+
     switch (dev->current_cdb[0]) {
         case GPCMD_READ_CD_MSF_OLD:
         case GPCMD_READ_CD_MSF:
@@ -1508,6 +1511,9 @@ scsi_cdrom_stop(const scsi_common_t *sc)
 static void
 scsi_cdrom_set_speed(scsi_cdrom_t *dev, const uint8_t *cdb)
 {
+    /* Stop the audio playing. */
+    cdrom_stop(dev->drv);
+
     dev->drv->cur_speed = (cdb[3] | (cdb[2] << 8)) / 176;
     if (dev->drv->cur_speed < 1)
         dev->drv->cur_speed = 1;
@@ -3344,6 +3350,9 @@ atapi_out:
             }
 
             dev->drv->seek_diff = ABS((int) (pos - dev->drv->seek_pos));
+
+            /* Stop the audio playing. */
+            cdrom_stop(dev->drv);
 
             if (dev->use_cdb_9 && (cdb[0] == GPCMD_SEEK_10))
                 cdrom_seek(dev->drv, pos, cdb[9] & 0xc0);
