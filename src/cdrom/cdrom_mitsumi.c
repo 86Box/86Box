@@ -118,14 +118,6 @@ typedef struct mcd_t {
     int      newstat;
 } mcd_t;
 
-/* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
-   there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
-   of the audio while audio still plays. With an absolute conversion, the counter is fine. */
-#ifdef MSFtoLBA
-#undef MSFtoLBA
-#endif
-#define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
-
 #define CD_BCD(x)         (((x) % 10) | (((x) / 10) << 4))
 #define CD_DCB(x)         ((((x) &0xf0) >> 4) * 10 + ((x) &0x0f))
 
@@ -156,9 +148,9 @@ mitsumi_cdrom_is_ready(const cdrom_t *dev)
 static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
-    cdrom_t cdrom;
-    
-    dev->stat          = mitsumi_cdrom_is_ready(&cdrom) ? (STAT_READY | STAT_CHANGE) : 0;
+    cdrom_t *cdrom = calloc(1, sizeof(cdrom_t));
+
+    dev->stat          = mitsumi_cdrom_is_ready(cdrom) ? (STAT_READY | STAT_CHANGE) : 0;
     dev->cmdrd_count   = 0;
     dev->cmdbuf_count  = 0;
     dev->buf_count     = 0;
@@ -176,12 +168,12 @@ mitsumi_cdrom_reset(mcd_t *dev)
 static int
 mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 {
-    cdrom_t  cdrom;
+    cdrom_t *cdrom = calloc(1, sizeof(cdrom_t));
     uint8_t  status;
-    int      ret;
+    int      ret = 0;
 
     if (dev->drvmode == DRV_MODE_CDDA) {
-        status = cdrom_mitsumi_audio_play(&cdrom, dev->readmsf, dev->readcount);
+        status = cdrom_mitsumi_audio_play(cdrom, dev->readmsf, dev->readcount);
         if (status == 1)
             return status;
         else
@@ -195,15 +187,15 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         dev->data = 0;
         return 0;
     }
-    cdrom_stop(&cdrom);
-    ret = cdrom_readsector_raw(&cdrom, dev->buf, cdrom.seek_pos, 0, 2, 0x10, (int *) &dev->readcount, 0);
+    cdrom_stop(cdrom);
+    ret = cdrom_readsector_raw(cdrom, dev->buf, cdrom->seek_pos, 0, 2, 0x10, (int *) &dev->readcount, 0);
     if (ret <= 0)
         return 0;
     if (dev->mode & 0x40) {
         dev->buf[12] = CD_BCD((dev->readmsf >> 16) & 0xff);
         dev->buf[13] = CD_BCD((dev->readmsf >> 8) & 0xff);
     }
-    dev->readmsf   = cdrom_lba_to_msf_accurate(cdrom.seek_pos + 1);
+    dev->readmsf   = cdrom_lba_to_msf_accurate(cdrom->seek_pos + 1);
     dev->buf_count = dev->dmalen + 1;
     dev->buf_idx   = 0;
     dev->data      = 1;
@@ -224,7 +216,7 @@ static uint8_t
 mitsumi_cdrom_in(uint16_t port, void *priv)
 {
     mcd_t  *dev = (mcd_t *) priv;
-    uint8_t ret;
+    uint8_t ret = 0xff;
 
     pclog("Mitsumi CD-ROM IN=%03x\n", port);
     switch (port & 1) {
@@ -259,14 +251,14 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
             break;
     }
 
-    return 0xff;
+    return ret;
 }
 
 static void
 mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
     mcd_t   *dev   = (mcd_t *) priv;
-    cdrom_t cdrom;
+    cdrom_t *cdrom = calloc(1, sizeof(cdrom_t));
 
     pclog("Mitsumi CD-ROM OUT=%03x, val=%02x\n", port, val);
     switch (port & 1) {
@@ -348,19 +340,19 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         break;
                 }
                 if (!dev->cmdrd_count)
-                    dev->stat = mitsumi_cdrom_is_ready(&cdrom) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+                    dev->stat = mitsumi_cdrom_is_ready(cdrom) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
                 return;
             }
             dev->cmd          = val;
             dev->cmdbuf_idx   = 0;
             dev->cmdrd_count  = 0;
             dev->cmdbuf_count = 1;
-            dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(&cdrom) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+            dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(cdrom) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
             dev->data         = 0;
             switch (val) {
                 case CMD_GET_INFO:
-                    if (mitsumi_cdrom_is_ready(&cdrom)) {
-                        cdrom_get_track_buffer(&cdrom, &(dev->cmdbuf[1]));
+                    if (mitsumi_cdrom_is_ready(cdrom)) {
+                        cdrom_get_track_buffer(cdrom, &(dev->cmdbuf[1]));
                         dev->cmdbuf_count = 10;
                         dev->readcount    = 0;
                     } else {
@@ -369,8 +361,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_Q:
-                    if (mitsumi_cdrom_is_ready(&cdrom)) {
-                        cdrom_get_q(&cdrom, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
+                    if (mitsumi_cdrom_is_ready(cdrom)) {
+                        cdrom_get_q(cdrom, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
                         dev->cmdbuf_count = 11;
                         dev->readcount    = 0;
                     } else {
@@ -386,7 +378,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_STOPCDDA:
                 case CMD_STOP:
-                    cdrom_stop(&cdrom);
+                    cdrom_stop(cdrom);
                     dev->drvmode       = DRV_MODE_STOP;
                     dev->cur_toc_track = 0;
                     break;
@@ -395,7 +387,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_READ1X:
                 case CMD_READ2X:
-                    if (mitsumi_cdrom_is_ready(&cdrom)) {
+                    if (mitsumi_cdrom_is_ready(cdrom)) {
                         dev->readcount   = 0;
                         dev->drvmode     = (val == CMD_READ1X) ? DRV_MODE_CDDA : DRV_MODE_READ;
                         dev->cmdrd_count = 6;
@@ -411,7 +403,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     dev->cmdbuf_count = 3;
                     break;
                 case CMD_EJECT:
-                    cdrom_stop(&cdrom);
+                    cdrom_stop(cdrom);
                     cdrom_eject(0);
                     dev->readcount = 0;
                     break;
@@ -440,10 +432,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 static void *
 mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
-    mcd_t *dev;
-
-    dev = malloc(sizeof(mcd_t));
-    memset(dev, 0x00, sizeof(mcd_t));
+    mcd_t *dev = calloc(1, sizeof(mcd_t));
 
     dev->irq = MCD_DEFAULT_IRQ;
     dev->dma = MCD_DEFAULT_DMA;

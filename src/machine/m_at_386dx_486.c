@@ -684,14 +684,57 @@ machine_at_403tg_d_mr_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pb450_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "pci10a",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "PCI 1.0A", .internal_name = "pci10a", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
+            { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pb450_device = {
+    .name          = "Packard Bell PB450 Devices",
+    .internal_name = "pb450_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pb450_config
+};
+
 int
 machine_at_pb450_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/pb450/OPTI802.bin",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
 
+    device_context(model->device);
+    fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+    
     if (bios_only || !ret)
         return ret;
 
@@ -791,7 +834,7 @@ machine_at_mvi486_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti895_device);
+    device_add(&opti495_device);
     device_add(&keyboard_at_device);
     device_add(&pc87311_ide_device);
 

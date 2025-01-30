@@ -30,10 +30,11 @@
 ** OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 **
 ****************************************************************************/
+#include "qt_vulkanrenderer.hpp"
 
 #include <QCoreApplication>
 #include <QFile>
-#include "qt_vulkanrenderer.hpp"
+
 #if QT_CONFIG(vulkan)
 #    include <QVulkanFunctions>
 
@@ -676,7 +677,7 @@ VulkanRenderer2::initResources()
         v_texcoord = texcoord;
         gl_Position = ubuf.mvp * position;
     }
-#endif
+#endif /* 0 */
     VkShaderModule vertShaderModule = createShader(QStringLiteral(":/texture_vert.spv"));
 #if 0
     #version 440
@@ -691,7 +692,7 @@ VulkanRenderer2::initResources()
     {
         fragColor = texture(tex, v_texcoord);
     }
-#endif
+#endif /* 0 */
     VkShaderModule fragShaderModule = createShader(QStringLiteral(":/texture_frag.spv"));
 
     // Graphics pipeline
@@ -1009,4 +1010,4 @@ VulkanRenderer2::startNextFrame()
     m_window->frameReady();
     m_window->requestUpdate(); // render continuously, throttled by the presentation rate
 }
-#endif
+#endif /* QT_CONFIG(vulkan) */

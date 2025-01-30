@@ -1361,7 +1361,7 @@ gd54xx_in(uint16_t addr, void *priv)
                                    32-bit (Pre-5434)/64-bit (5434 and up) DRAM data bus width
                                    for 2M of memory
                                  */
-                                ret |= (gd54xx_is_5434(svga)) ? 0x98 : 0x18; 
+                                ret |= 0x18;
                                 break;
                             case 4096:
                                 ret |= 0x98; /*64-bit (5434 and up) DRAM data bus width for 4M of memory*/
@@ -2281,6 +2281,9 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *priv)
 
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
+        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
+            val = (val >> 8) | (val << 8);
+
         gd54xx_write(addr, val, gd54xx);
         gd54xx_write(addr + 1, val >> 8, gd54xx);
         return;
@@ -2308,6 +2311,9 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *priv)
 
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
+        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
+            val = ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24);
+
         gd54xx_write(addr, val, gd54xx);
         gd54xx_write(addr + 1, val >> 8, gd54xx);
         gd54xx_write(addr + 2, val >> 16, gd54xx);
@@ -3661,9 +3667,6 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
             mask_shift = 31 - byte_pos;
             if (!(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
                 cpu_dat >>= byte_pos;
-            else if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)
-                cpu_dat = ((cpu_dat & 0xff000000) >> 24) | ((cpu_dat & 0x00ff0000) >> 8) |
-                          ((cpu_dat & 0x0000ff00) << 8) | ((cpu_dat & 0x000000ff) << 24);
         } else
             mask_shift = 7;
 
@@ -4400,7 +4403,13 @@ gd54xx_init(const device_t *info)
     if ((vram == 1) || (vram >= 256 && vram <= 1024))
         svga->decode_mask = gd54xx->vram_mask;
 
+    svga->read = gd54xx_read;
+    svga->readw = gd54xx_readw;
+    svga->write = gd54xx_write;
+    svga->writew = gd54xx_writew;
     if (gd54xx->bit32) {
+        svga->readl = gd54xx_readl;
+        svga->writel = gd54xx_writel;
         mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, gd54xx_readl,
                                 gd54xx_write, gd54xx_writew, gd54xx_writel);
         mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
@@ -4420,6 +4429,8 @@ gd54xx_init(const device_t *info)
                         gd5480_vgablt_write, gd5480_vgablt_writew, gd5480_vgablt_writel,
                         NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     } else {
+        svga->readl = NULL;
+        svga->writel = NULL;
         mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, NULL,
                                 gd54xx_write, gd54xx_writew, NULL);
         mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,

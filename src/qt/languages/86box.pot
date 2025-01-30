@@ -687,7 +687,10 @@ msgstr ""
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr ""
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr ""
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
 msgstr ""
 
 msgid "Machine"

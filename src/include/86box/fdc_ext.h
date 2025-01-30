@@ -34,6 +34,10 @@ extern const device_t fdc_b215_device;
 extern const device_t fdc_pii151b_device;
 extern const device_t fdc_pii158b_device;
 
+extern const device_t fdc_compaticard_i_device;
+extern const device_t fdc_compaticard_ii_device;
+extern const device_t fdc_compaticard_iv_device;
+
 extern const device_t fdc_monster_device;
 
 extern void fdc_card_init(void);

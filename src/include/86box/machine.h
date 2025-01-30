@@ -450,6 +450,7 @@ extern int machine_at_mr286_init(const machine_t *);
 
 extern int machine_at_neat_init(const machine_t *);
 extern int machine_at_neat_ami_init(const machine_t *);
+extern int machine_at_ataripc4_init(const machine_t *);
 
 extern int machine_at_quadt386sx_init(const machine_t *);
 
@@ -636,6 +637,7 @@ extern int machine_at_m5pi_init(const machine_t *);
 
 extern int machine_at_excalibur_init(const machine_t *);
 
+extern int machine_at_globalyst330_p5_init(const machine_t *);
 extern int machine_at_p5vl_init(const machine_t *);
 
 extern int machine_at_excaliburpci2_init(const machine_t *);
@@ -744,6 +746,7 @@ extern int machine_at_tomahawk_init(const machine_t *);
 extern int machine_at_ficva502_init(const machine_t *);
 
 extern int machine_at_ficpa2012_init(const machine_t *);
+extern int machine_at_via809ds_init(const machine_t *);
 
 extern int machine_at_r534f_init(const machine_t *);
 extern int machine_at_ms5146_init(const machine_t *);
@@ -806,6 +809,7 @@ extern int machine_at_p2bls_init(const machine_t *);
 extern int machine_at_lgibmx7g_init(const machine_t *);
 extern int machine_at_p3bf_init(const machine_t *);
 extern int machine_at_bf6_init(const machine_t *);
+extern int machine_at_bx6_init(const machine_t *);
 extern int machine_at_ax6bc_init(const machine_t *);
 extern int machine_at_atc6310bxii_init(const machine_t *);
 extern int machine_at_686bx_init(const machine_t *);
@@ -916,6 +920,7 @@ extern int machine_xt86_init(const machine_t *);
 
 extern int machine_xt_americxt_init(const machine_t *);
 extern int machine_xt_amixt_init(const machine_t *);
+extern int machine_xt_ataripc3_init(const machine_t *);
 extern int machine_xt_dtk_init(const machine_t *);
 extern int machine_xt_jukopc_init(const machine_t *);
 extern int machine_xt_openxt_init(const machine_t *);

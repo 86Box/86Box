@@ -84,25 +84,75 @@ svga_get_pri(void)
 }
 
 void
+svga_set_poll(svga_t *svga)
+{
+    svga_log("SVGA Timer activated, enabled?=%x.\n", timer_is_enabled(&svga->timer));
+    timer_set_callback(&svga->timer, svga_poll);
+    if (!timer_is_enabled(&svga->timer))
+        timer_enable(&svga->timer);
+}
+
+void
 svga_set_override(svga_t *svga, int val)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t     *xga = (xga_t *) svga->xga;
+    uint8_t    ret_poll = 0;
 
     if (svga->override && !val)
         svga->fullchange = svga->monitor->mon_changeframecount;
+
     svga->override = val;
 
     svga_log("Override=%x.\n", val);
-    if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on) {
-            if (svga->override)
-                timer_set_callback(&svga->timer, svga_poll);
-            else
-                timer_set_callback(&svga->timer, ibm8514_poll);
-        } else
-            timer_set_callback(&svga->timer, svga_poll);
-    } else
-        timer_set_callback(&svga->timer, svga_poll);
+    if (ibm8514_active && (svga->dev8514 != NULL))
+        ret_poll |= 1;
+
+    if (xga_active && (svga->xga != NULL))
+        ret_poll |= 2;
+
+    if (svga->override)
+        svga_set_poll(svga);
+    else {
+        switch (ret_poll) {
+            case 0:
+            default:
+                svga_set_poll(svga);
+                break;
+
+            case 1:
+                if (ibm8514_active && (svga->dev8514 != NULL)) {
+                    if (dev->on)
+                        ibm8514_set_poll(svga);
+                    else
+                        svga_set_poll(svga);
+                } else
+                    svga_set_poll(svga);
+                break;
+
+            case 2:
+                if (xga_active && (svga->xga != NULL)) {
+                    if (xga->on)
+                        xga_set_poll(svga);
+                    else
+                        svga_set_poll(svga);
+                } else
+                    svga_set_poll(svga);
+                break;
+
+            case 3:
+                if (ibm8514_active && (svga->dev8514 != NULL) && xga_active && (svga->xga != NULL))  {
+                    if (dev->on)
+                        ibm8514_set_poll(svga);
+                    else if (xga->on)
+                        xga_set_poll(svga);
+                    else
+                        svga_set_poll(svga);
+                } else
+                    svga_set_poll(svga);
+                break;
+        }
+    }
 
 #ifdef OVERRIDE_OVERSCAN
     if (!val) {
@@ -241,7 +291,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
             if (ibm8514_active && dev)
                 dev->on = (val & 0x01) ? 0 : 1;
 
-            svga_log("Write Port 3C3.\n");
+            svga_log("Write Port 3C3=%x.\n", val & 0x01);
             svga_recalctimings(svga);
             break;
         case 0x3c4:
@@ -612,6 +662,8 @@ void
 svga_recalctimings(svga_t *svga)
 {
     ibm8514_t       *dev = (ibm8514_t *) svga->dev8514;
+    xga_t           *xga = (xga_t *) svga->xga;
+    uint8_t          set_timer = 0;
     double           crtcconst;
     double           _dispontime;
     double           _dispofftime;
@@ -620,6 +672,10 @@ svga_recalctimings(svga_t *svga)
     double           _dispontime8514 = 0.0;
     double           _dispofftime8514 = 0.0;
     double           disptime8514 = 0.0;
+    double           crtcconst_xga = 0.0;
+    double           _dispontime_xga = 0.0;
+    double           _dispofftime_xga = 0.0;
+    double           disptime_xga = 0.0;
 #ifdef ENABLE_SVGA_LOG
     int              vsyncend;
     int              vblankend;
@@ -628,6 +684,8 @@ svga_recalctimings(svga_t *svga)
     int              hsyncstart;
     int              hsyncend;
 #endif
+    int              old_monitor_overscan_x = svga->monitor->mon_overscan_x;
+    int              old_monitor_overscan_y = svga->monitor->mon_overscan_y;
 
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
@@ -707,6 +765,12 @@ svga_recalctimings(svga_t *svga)
             } else
                 svga->render = svga_render_text_80;
 
+            if (xga_active && (svga->xga != NULL)) {
+                if (xga->on) {
+                    if ((svga->mapping.base == 0xb8000) && (xga->aperture_cntl == 1)) /*Some operating systems reset themselves with ctrl-alt-del by going into text mode.*/
+                        xga->on = 0;
+                }
+            }
             svga->hdisp_old = svga->hdisp;
         } else {
             svga->hdisp_old = svga->hdisp;
@@ -902,6 +966,10 @@ svga_recalctimings(svga_t *svga)
         if (dev->on)
             crtcconst8514 = svga->clock8514;
     }
+    if (xga_active && (svga->xga != NULL)) {
+        if (xga->on)
+            crtcconst_xga = svga->clock_xga;
+    }
 
 #ifdef ENABLE_SVGA_LOG
     vsyncend = (svga->vsyncstart & 0xfffffff0) | (svga->crtc[0x11] & 0x0f);
@@ -950,6 +1018,13 @@ svga_recalctimings(svga_t *svga)
         }
     }
 
+    if (xga_active && (svga->xga != NULL)) {
+        if (xga->on) {
+            disptime_xga = xga->h_total ? xga->h_total : TIMER_USEC;
+            _dispontime_xga = xga->h_disp;
+        }
+    }
+
     if (svga->seqregs[1] & 8) {
         disptime *= 2;
         _dispontime *= 2;
@@ -966,25 +1041,84 @@ svga_recalctimings(svga_t *svga)
     if (svga->dispofftime < TIMER_USEC)
         svga->dispofftime = TIMER_USEC;
 
-    if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on) {
-            _dispofftime8514 = disptime8514 - _dispontime8514;
-            _dispontime8514 *= crtcconst8514;
-            _dispofftime8514 *= crtcconst8514;
+    if (ibm8514_active && (svga->dev8514 != NULL))
+        set_timer |= 1;
 
-            dev->dispontime  = (uint64_t) (_dispontime8514);
-            dev->dispofftime = (uint64_t) (_dispofftime8514);
-            if (dev->dispontime < TIMER_USEC)
-                dev->dispontime = TIMER_USEC;
-            if (dev->dispofftime < TIMER_USEC)
-                dev->dispofftime = TIMER_USEC;
+    if (xga_active && (svga->xga != NULL))
+        set_timer |= 2;
 
-            svga_log("IBM 8514/A poll.\n");
-            timer_set_callback(&svga->timer, ibm8514_poll);
-        } else {
-            svga_log("SVGA Poll.\n");
-            timer_set_callback(&svga->timer, svga_poll);
-        }
+    switch (set_timer) {
+        default:
+        case 0: /*VGA only*/
+            svga_set_poll(svga);
+            break;
+
+        case 1: /*Plus 8514/A*/
+            if (dev->on) {
+                _dispofftime8514 = disptime8514 - _dispontime8514;
+                _dispontime8514 *= crtcconst8514;
+                _dispofftime8514 *= crtcconst8514;
+
+                dev->dispontime  = (uint64_t) (_dispontime8514);
+                dev->dispofftime = (uint64_t) (_dispofftime8514);
+                if (dev->dispontime < TIMER_USEC)
+                    dev->dispontime = TIMER_USEC;
+                if (dev->dispofftime < TIMER_USEC)
+                    dev->dispofftime = TIMER_USEC;
+
+                ibm8514_set_poll(svga);
+            } else
+                svga_set_poll(svga);
+            break;
+
+        case 2: /*Plus XGA*/
+            if (xga->on) {
+                _dispofftime_xga = disptime_xga - _dispontime_xga;
+                _dispontime_xga *= crtcconst_xga;
+                _dispofftime_xga *= crtcconst_xga;
+
+                xga->dispontime  = (uint64_t) (_dispontime_xga);
+                xga->dispofftime = (uint64_t) (_dispofftime_xga);
+                if (xga->dispontime < TIMER_USEC)
+                    xga->dispontime = TIMER_USEC;
+                if (xga->dispofftime < TIMER_USEC)
+                    xga->dispofftime = TIMER_USEC;
+
+                xga_set_poll(svga);
+            } else
+                svga_set_poll(svga);
+            break;
+
+        case 3: /*Plus 8514/A and XGA*/
+            if (dev->on) {
+                _dispofftime8514 = disptime8514 - _dispontime8514;
+                _dispontime8514 *= crtcconst8514;
+                _dispofftime8514 *= crtcconst8514;
+
+                dev->dispontime  = (uint64_t) (_dispontime8514);
+                dev->dispofftime = (uint64_t) (_dispofftime8514);
+                if (dev->dispontime < TIMER_USEC)
+                    dev->dispontime = TIMER_USEC;
+                if (dev->dispofftime < TIMER_USEC)
+                    dev->dispofftime = TIMER_USEC;
+
+                ibm8514_set_poll(svga);
+            } else if (xga->on) {
+                _dispofftime_xga = disptime_xga - _dispontime_xga;
+                _dispontime_xga *= crtcconst_xga;
+                _dispofftime_xga *= crtcconst_xga;
+
+                xga->dispontime  = (uint64_t) (_dispontime_xga);
+                xga->dispofftime = (uint64_t) (_dispofftime_xga);
+                if (xga->dispontime < TIMER_USEC)
+                    xga->dispontime = TIMER_USEC;
+                if (xga->dispofftime < TIMER_USEC)
+                    xga->dispofftime = TIMER_USEC;
+
+                xga_set_poll(svga);
+            } else
+                svga_set_poll(svga);
+            break;
     }
 
     if (!svga->force_old_addr)
@@ -1009,6 +1143,9 @@ svga_recalctimings(svga_t *svga)
         svga->dpms_ui = 0;
         ui_sb_set_text_w(NULL);
     }
+
+    if (enable_overscan && (svga->monitor->mon_overscan_x != old_monitor_overscan_x || svga->monitor->mon_overscan_y != old_monitor_overscan_y))
+        video_force_resize_set_monitor(1, svga->monitor_index);
 }
 
 static void
@@ -1059,7 +1196,6 @@ void
 svga_poll(void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    xga_t     *xga  = (xga_t *) svga->xga;
     uint32_t   x;
     uint32_t   blink_delay;
     int        wx;
@@ -1067,15 +1203,7 @@ svga_poll(void *priv)
     int        ret;
     int        old_ma;
 
-    if (!svga->override) {
-        if (xga_active && xga && xga->on) {
-            if ((xga->disp_cntl_2 & 7) >= 2) {
-                xga_poll(svga);
-                return;
-            }
-        }
-    }
-
+    svga_log("SVGA Poll.\n");
     if (!svga->linepos) {
         if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.ena) {
             svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - svga->hwcursor_latch.yoff;
@@ -1401,16 +1529,34 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->ksc5601_english_font_type = 0;
 
     if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
+        svga->read = svga_read;
+        svga->readw = svga_readw;
+        svga->readl = svga_readl;
+        svga->write = svga_write;
+        svga->writew = svga_writew;
+        svga->writel = svga_writel;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, svga_readw, svga_readl,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     } else if ((info->flags & DEVICE_ISA) && (info->flags & DEVICE_AT)) {
+        svga->read = svga_read;
+        svga->readw = svga_readw;
+        svga->readl = NULL;
+        svga->write = svga_write;
+        svga->writew = svga_writew;
+        svga->writel = NULL;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, svga_readw, NULL,
                         svga_write, svga_writew, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     } else {
+        svga->read = svga_read;
+        svga->readw = NULL;
+        svga->readl = NULL;
+        svga->write = svga_write;
+        svga->writew = NULL;
+        svga->writel = NULL;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, NULL, NULL,
                         svga_write, NULL, NULL,
@@ -2046,6 +2192,8 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_w;
 
     if (!linear) {
+        (void) xga_read_test(addr, svga);
+        (void) xga_read_test(addr + 1, svga);
         addr = svga_decode_addr(svga, addr, 0);
         if (addr == 0xffffffff)
             return 0xffff;
@@ -2092,6 +2240,10 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_l;
 
     if (!linear) {
+        (void) xga_read_test(addr, svga);
+        (void) xga_read_test(addr + 1, svga);
+        (void) xga_read_test(addr + 2, svga);
+        (void) xga_read_test(addr + 3, svga);
         addr = svga_decode_addr(svga, addr, 0);
         if (addr == 0xffffffff)
             return 0xffffffff;

@@ -103,6 +103,7 @@
 #include <86box/machine_status.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -252,11 +253,35 @@ static volatile atomic_int do_pause_ack = 0;
 static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
-static char buff[1024];
-static int  seen = 0;
+
+#define LOG_SIZE_BUFFER 1024            /* Log size buffer */
+
+static char buff[LOG_SIZE_BUFFER];
+
+static int seen = 0;
 
 static int suppr_seen = 1;
+
+// Functions only used in this translation unit
+void pclog_ensure_stdlog_open(void);
 #endif
+
+/* 
+    Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
+*/
+void pclog_ensure_stdlog_open(void)
+{
+#ifndef RELEASE_BUILD
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+#endif
+}
 
 /*
  * Log something to the logfile or stdout.
@@ -269,19 +294,12 @@ void
 pclog_ex(const char *fmt, va_list ap)
 {
 #ifndef RELEASE_BUILD
-    char temp[1024];
+    char temp[LOG_SIZE_BUFFER];
 
     if (strcmp(fmt, "") == 0)
         return;
 
-    if (stdlog == NULL) {
-        if (log_path[0] != '\0') {
-            stdlog = plat_fopen(log_path, "w");
-            if (stdlog == NULL)
-                stdlog = stdout;
-        } else
-            stdlog = stdout;
-    }
+    pclog_ensure_stdlog_open();
 
     vsprintf(temp, fmt, ap);
     if (suppr_seen && !strcmp(buff, temp))
@@ -297,6 +315,8 @@ pclog_ex(const char *fmt, va_list ap)
     fflush(stdlog);
 #endif
 }
+
+
 
 void
 pclog_toggle_suppr(void)
@@ -1426,6 +1446,9 @@ pc_run(void)
         pc_reset_hard_close();
         pc_reset_hard_init();
     }
+
+    /* Update the guest-CPU independent timer for devices with independent clock speed */
+    rivatimer_update_all();
 
     /* Run a block of code. */
     startblit();

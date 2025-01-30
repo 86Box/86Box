@@ -1311,7 +1311,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     /* Load any disks for this device class. */
     c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
+        if ((hdd[i].bus_type == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
             drive = &dev->drives[hdd[i].xta_channel];
 
             if (!hdd_image_load(i)) {

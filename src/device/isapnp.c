@@ -121,6 +121,25 @@ typedef struct {
     isapnp_device_t *current_ld;
 } isapnp_t;
 
+static isapnp_device_t *
+isapnp_create_ld(isapnp_card_t *card)
+{
+    /* Allocate logical device. */
+    isapnp_device_t *ld = calloc(1, sizeof(isapnp_device_t));
+
+    /* Add to the end of the card's logical device list. */
+    isapnp_device_t *prev_ld = card->first_ld;
+    if (prev_ld) {
+        while (prev_ld->next)
+            prev_ld = prev_ld->next;
+        prev_ld->next = ld;
+    } else {
+        card->first_ld = ld;
+    }
+
+    return ld;
+}
+
 static void
 isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
 {
@@ -137,6 +156,8 @@ isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
         card->config.mem[i].size = (ld->regs[reg_base + 3] << 16) | (ld->regs[reg_base + 4] << 8);
         if (ld->regs[reg_base + 2] & 0x01) /* upper limit */
             card->config.mem[i].size -= card->config.mem[i].base;
+        else
+            card->config.mem[i].size = (card->config.mem[i].size | 0xff) ^ 0xffffffff;
     }
     for (uint8_t i = 0; i < 4; i++) {
         reg_base                   = (i == 0) ? 0x76 : (0x80 + (16 * i));
@@ -530,8 +551,12 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                 ld = ld->next;
             }
 
-            if (!ld)
-                isapnp_log("ISAPnP: CSN %02X has no device %02X\n", card->csn, val);
+            if (!ld) {
+                isapnp_log("ISAPnP: CSN %02X has no device %02X, creating one\n", card->csn, val);
+                dev->current_ld_card    = card;
+                dev->current_ld         = isapnp_create_ld(card);
+                dev->current_ld->number = val;
+            }
 
             break;
 
@@ -761,8 +786,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     uint8_t          mem_range_df    = 0;
     uint8_t          mem_range_32_df = 0;
     uint32_t         len;
-    isapnp_device_t *ld      = NULL;
-    isapnp_device_t *prev_ld = NULL;
+    isapnp_device_t *ld = NULL;
 
     /* Check if this is an existing card which already has logical devices.
        Any new logical devices will be added to the list after existing ones.
@@ -789,10 +813,25 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                             break;
                         }
 
-                        isapnp_log("ISAPnP: >>%s Memory range %d with %d bytes at %06X-%06X, align %d",
-                                   in_df ? ">" : "", mem_range,
-                                   *((uint16_t *) &card->rom[i + 10]) << 8, *((uint16_t *) &card->rom[i + 4]) << 8, ((card->rom[i + 3] & 0x4) ? 0 : (*((uint16_t *) &card->rom[i + 4]) << 8)) + (*((uint16_t *) &card->rom[i + 6]) << 8),
-                                   (*((uint16_t *) &card->rom[i + 8]) + 1) << 16);
+                        isapnp_log("ISAPnP: >>%s Memory range %d with %d bytes at %06X-%06X to %06X-%06X, align %d",
+                                   /* %s   */ in_df ? ">" : "",
+                                   /* %d   */ mem_range,
+                                   /* %d   */ *((uint16_t *) &card->rom[i + 8]),
+                                   /* %06X */ *((uint16_t *) &card->rom[i + 4]) << 8,
+                                   /* %06X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8) :
+                                              /* Range. */
+                                              (*((uint16_t *) &card->rom[i + 4]) << 8)) +
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8),
+                                   /* %06X */ *((uint16_t *) &card->rom[i + 6]) << 8,
+                                   /* %06X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8) :
+                                              /* Range. */
+                                              (*((uint16_t *) &card->rom[i + 6]) << 8)) +
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8),
+                                   /* %d   */ *((uint16_t *) &card->rom[i + 8]));
                         res = 1 << mem_range;
                         mem_range++;
                     } else {
@@ -806,9 +845,25 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                             break;
                         }
 
-                        isapnp_log("ISAPnP: >>%s 32-bit memory range %d with %d bytes at %08X-%08X, align %d", in_df ? ">" : "", mem_range_32,
-                                   *((uint32_t *) &card->rom[i + 16]) << 8, *((uint32_t *) &card->rom[i + 4]) << 8, ((card->rom[i + 3] & 0x4) ? 0 : (*((uint32_t *) &card->rom[i + 4]) << 8)) + (*((uint32_t *) &card->rom[i + 8]) << 8),
-                                   *((uint32_t *) &card->rom[i + 12]));
+                        isapnp_log("ISAPnP: >>%s 32-bit memory range %d with %d bytes at %08X-%08X, align %d",
+                                   /* %s   */ in_df ? ">" : "",
+                                   /* %d   */ mem_range_32,
+                                   /* %d   */ *((uint32_t *) &card->rom[i + 12]),
+                                   /* %08X */ *((uint32_t *) &card->rom[i + 4]),
+                                   /* %08X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              *((uint32_t *) &card->rom[i + 16]) :
+                                              /* Range. */
+                                              *((uint32_t *) &card->rom[i + 4])) +
+                                              *((uint32_t *) &card->rom[i + 16]),
+                                   /* %08X */ *((uint32_t *) &card->rom[i + 8]),
+                                   /* %08X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              *((uint32_t *) &card->rom[i + 16]) :
+                                              /* Range. */
+                                              *((uint32_t *) &card->rom[i + 8])) +
+                                              *((uint32_t *) &card->rom[i + 16]),
+                                   /* %d   */ *((uint32_t *) &card->rom[i + 12]));
                         res = 1 << (4 + mem_range_32);
                         mem_range_32++;
                     }
@@ -879,18 +934,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         memset(ld->io_len, 0, sizeof(ld->io_len));
                     } else {
                         /* Create logical device. */
-                        ld = (isapnp_device_t *) malloc(sizeof(isapnp_device_t));
-                        memset(ld, 0, sizeof(isapnp_device_t));
-
-                        /* Add to end of list. */
-                        prev_ld = card->first_ld;
-                        if (prev_ld) {
-                            while (prev_ld->next)
-                                prev_ld = prev_ld->next;
-                            prev_ld->next = ld;
-                        } else {
-                            card->first_ld = ld;
-                        }
+                        ld = isapnp_create_ld(card);
                     }
 
                     /* Set and increment logical device number. */

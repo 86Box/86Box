@@ -86,6 +86,7 @@
  *           Copyright 2008-2024 Sarah Walker.
  *           Copyright 2024 Miran Grca.
  */
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -705,6 +706,7 @@ static uint8_t
 pas16_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
+    scsi_bus_t *scsi_bus = NULL;
     uint8_t  ret   = 0xff;
 
     port -= pas16->base;
@@ -783,9 +785,11 @@ pas16_in(uint16_t port, void *priv)
                 ret = t128_read(0x1e00, pas16->scsi);
             break;
         case 0x5c01:
-            if (pas16->has_scsi)
+            if (pas16->has_scsi) {
+                scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
-                ret = (((pas16->scsi->ncr.dma_mode != DMA_IDLE) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+            }
             break;
         case 0x5c03:
             if (pas16->has_scsi)
@@ -1182,10 +1186,11 @@ pas16_scsi_callback(void *priv)
 {
     pas16_t *      pas16 = (pas16_t *) priv;
     t128_t  *      dev   = pas16->scsi;
+    scsi_bus_t *   scsi_bus = &dev->ncr.scsibus;
 
     t128_callback(pas16->scsi);
 
-    if ((dev->ncr.dma_mode != DMA_IDLE) && (dev->status & 0x04)) {
+    if ((scsi_bus->tx_mode != PIO_TX_BUS) && (dev->status & 0x04)) {
         timer_stop(&pas16->scsi_timer);
         pas16->timeout_status &= 0x7f;
     }
@@ -2314,7 +2319,7 @@ pas16_init(const device_t *info)
     pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
-    sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
+    sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
     pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(pas16->mpu, 0, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));

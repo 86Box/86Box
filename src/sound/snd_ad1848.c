@@ -16,7 +16,7 @@
  *
  *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2018-2020 TheCollector1995.
- *           Copyright 2021-2022 RichardG.
+ *           Copyright 2021-2025 RichardG.
  */
 #include <math.h>
 #include <stdint.h>
@@ -33,6 +33,7 @@
 #include <86box/plat_fallthrough.h>
 
 #define CS4231 0x80
+#define CS4232 0x02
 #define CS4236 0x03
 
 static int    ad1848_vols_7bits[128];
@@ -57,10 +58,10 @@ ad1848_setdma(ad1848_t *ad1848, int newdma)
 void
 ad1848_updatevolmask(ad1848_t *ad1848)
 {
-    if ((ad1848->type >= AD1848_TYPE_CS4235) && ((ad1848->xregs[4] & 0x10) || ad1848->wten))
-        ad1848->wave_vol_mask = 0x3f;
-    else
+    if ((ad1848->type == AD1848_TYPE_CS4236B) && !(ad1848->xregs[4] & 0x10) && !ad1848->wten)
         ad1848->wave_vol_mask = 0x7f;
+    else
+        ad1848->wave_vol_mask = 0x3f;
 }
 
 static double
@@ -106,8 +107,8 @@ ad1848_updatefreq(ad1848_t *ad1848)
 {
     double  freq;
 
-    if (ad1848->type >= AD1848_TYPE_CS4235) {
-        if (ad1848->xregs[11] & 0x20) {
+    if (ad1848->type >= AD1848_TYPE_CS4232) {
+        if (ad1848->xregs[11] & 0x20) { /* CS4236B+ only */
             freq = 16934400.0;
             switch (ad1848->xregs[13]) {
                 default:
@@ -182,7 +183,7 @@ ad1848_read(uint16_t addr, void *priv)
 
                 case 18:
                 case 19:
-                    if (ad1848->type >= AD1848_TYPE_CS4235) {
+                    if (ad1848->type >= AD1848_TYPE_CS4236B) {
                         if ((ad1848->xregs[4] & 0x14) == 0x14)               /* FM remapping */
                             ret = ad1848->xregs[ad1848->index - 12];         /* real FM volume on registers 6 and 7 */
                         else if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) /* wavetable remapping */
@@ -192,13 +193,13 @@ ad1848_read(uint16_t addr, void *priv)
 
                 case 20:
                 case 21:
-                    /* Backdoor to the Control/RAM registers on CS4235. */
-                    if ((ad1848->type == AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80))
+                    /* Backdoor to the Control/RAM registers on CS4235+. */
+                    if ((ad1848->type >= AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80))
                         ret = ad1848->cram_read(ad1848->index - 15, ad1848->cram_priv);
                     break;
 
                 case 23:
-                    if ((ad1848->type >= AD1848_TYPE_CS4235) && (ad1848->regs[23] & 0x08)) {
+                    if ((ad1848->type >= AD1848_TYPE_CS4236B) && (ad1848->regs[23] & 0x08)) {
                         if ((ad1848->xindex & 0xfe) == 0x00) /* remapped line volume */
                             ret = ad1848->regs[18 + ad1848->xindex];
                         else
@@ -235,7 +236,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 ad1848->index = val & 0x1f; /* cs4231a extended mode enabled */
             else
                 ad1848->index = val & 0x0f; /* ad1848/cs4248 mode TODO: some variants/clones DO NOT mirror, just ignore the writes? */
-            if (ad1848->type >= AD1848_TYPE_CS4235)
+            if (ad1848->type >= AD1848_TYPE_CS4236B)
                 ad1848->regs[23] &= ~0x08; /* clear XRAE */
             ad1848->trd = val & 0x20;
             ad1848->mce = val & 0x40;
@@ -244,7 +245,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
         case 1:
             switch (ad1848->index) {
                 case 10:
-                    if (ad1848->type < AD1848_TYPE_CS4235)
+                    if (ad1848->type < AD1848_TYPE_CS4232)
                         break;
                     fallthrough;
 
@@ -272,23 +273,24 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     return;
 
                 case 12:
-                    if (ad1848->type != AD1848_TYPE_DEFAULT)
-                        ad1848->regs[12] = ((ad1848->regs[12] & 0x0f) + (val & 0xf0)) | 0x80;
+                    if (ad1848->type >= AD1848_TYPE_CS4248) {
+                        ad1848->regs[12] = 0x80 | (val & 0x70) | (ad1848->regs[12] & 0x0f);
+                        if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235)) {
+                            if (val & 0x40)
+                                ad1848->fmt_mask |= 0x80;
+                            else
+                                ad1848->fmt_mask &= ~0x80;
+                        }
+                    }
                     return;
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
                     break;
 
-                case 17:
-                    /* Enable additional data formats on modes 2 and 3 where supported. */
-                    if ((ad1848->type == AD1848_TYPE_CS4231) || (ad1848->type == AD1848_TYPE_CS4236))
-                        ad1848->fmt_mask = (val & 0x40) ? 0xf0 : 0x70;
-                    break;
-
                 case 18:
                 case 19:
-                    if (ad1848->type >= AD1848_TYPE_CS4235) {
+                    if (ad1848->type >= AD1848_TYPE_CS4236B) {
                         if ((ad1848->xregs[4] & 0x14) == 0x14) {     /* FM remapping */
                             ad1848->xregs[ad1848->index - 12] = val; /* real FM volume on extended registers 6 and 7 */
                             temp                              = 1;
@@ -332,8 +334,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 20:
                 case 21:
-                    /* Backdoor to the Control/RAM registers on CS4235. */
-                    if ((ad1848->type == AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80)) {
+                    /* Backdoor to the Control/RAM registers on CS4235+. */
+                    if ((ad1848->type >= AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80)) {
                         ad1848->cram_write(ad1848->index - 15, val, ad1848->cram_priv);
                         val = ad1848->regs[ad1848->index];
                     }
@@ -344,7 +346,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 23:
-                    if ((ad1848->type >= AD1848_TYPE_CS4235) && ((ad1848->regs[12] & 0x60) == 0x60)) {
+                    if ((ad1848->type >= AD1848_TYPE_CS4236B) && ((ad1848->regs[12] & 0x60) == 0x60)) {
                         if (!(ad1848->regs[23] & 0x08)) { /* existing (not new) XRAE is clear */
                             ad1848->xindex = ((val & 0x04) << 2) | (val >> 4);
                             break;
@@ -401,7 +403,11 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 25:
                     return;
                 case 27:
-                    if (ad1848->type != AD1848_TYPE_DEFAULT)
+                    if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236))
+                        return;
+                    break;
+                case 29:
+                    if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236))
                         return;
                     break;
 
@@ -456,17 +462,13 @@ ad1848_process_mulaw(uint8_t byte)
 {
     byte        = ~byte;
     int temp    = (((byte & 0x0f) << 3) + 0x84);
-    int16_t dec;
     temp <<= ((byte & 0x70) >> 4);
     temp = (byte & 0x80) ? (0x84 - temp) : (temp - 0x84);
     if (temp > 32767)
-        dec = 32767;
+        return 32767;
     else if (temp < -32768)
-        dec = -32768;
-    else
-        dec = (int16_t) temp;
-
-    return dec;
+        return -32768;
+    return (int16_t) temp;
 }
 
 static int16_t
@@ -489,8 +491,7 @@ ad1848_process_alaw(uint8_t byte)
             dec |= 0x108;
             break;
     }
-    dec = (byte & 0x80) ? dec : -dec;
-    return (int16_t) dec;
+    return (int16_t) ((byte & 0x80) ? dec : -dec);
 }
 
 static uint32_t
@@ -704,10 +705,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->regs[8]                   = 0;
     ad1848->regs[9]                   = 0x08;
     ad1848->regs[10] = ad1848->regs[11] = 0;
-    if ((type == AD1848_TYPE_CS4248) || (type == AD1848_TYPE_CS4231) || (type >= AD1848_TYPE_CS4235))
-        ad1848->regs[12] = 0x8a;
-    else
-        ad1848->regs[12] = 0xa;
+    ad1848->regs[12] = (type >= AD1848_TYPE_CS4248) ? 0x8a : 0xa;
     ad1848->regs[13] = 0;
     ad1848->regs[14] = ad1848->regs[15] = 0;
 
@@ -719,27 +717,29 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
         ad1848->regs[25]                    = CS4231;
         ad1848->regs[26]                    = 0x80;
         ad1848->regs[29]                    = 0x80;
-    } else if (type >= AD1848_TYPE_CS4235) {
+    } else if (type >= AD1848_TYPE_CS4232) {
         ad1848->regs[16] = ad1848->regs[17] = 0;
         ad1848->regs[18] = ad1848->regs[19] = 0;
         ad1848->regs[20] = ad1848->regs[21] = 0;
         ad1848->regs[22] = ad1848->regs[23] = 0;
         ad1848->regs[24]                    = 0;
-        ad1848->regs[25]                    = CS4236;
+        ad1848->regs[25]                    = (type == AD1848_TYPE_CS4232) ? CS4232 : CS4236;
         ad1848->regs[26]                    = 0xa0;
         ad1848->regs[27] = ad1848->regs[29] = 0;
         ad1848->regs[30] = ad1848->regs[31] = 0;
 
-        ad1848->xregs[0] = ad1848->xregs[1] = 0xe8;
-        ad1848->xregs[2] = ad1848->xregs[3] = 0xcf;
-        ad1848->xregs[4]                    = 0x84;
-        ad1848->xregs[5]                    = 0;
-        ad1848->xregs[6] = ad1848->xregs[7] = 0x80;
-        ad1848->xregs[8] = ad1848->xregs[9] = 0;
-        ad1848->xregs[10]                   = 0x3f;
-        ad1848->xregs[11]                   = 0xc0;
-        ad1848->xregs[14] = ad1848->xregs[15] = 0;
-        ad1848->xregs[16] = ad1848->xregs[17] = 0;
+        if (type >= AD1848_TYPE_CS4236B) {
+            ad1848->xregs[0] = ad1848->xregs[1] = 0xe8;
+            ad1848->xregs[2] = ad1848->xregs[3] = 0xcf;
+            ad1848->xregs[4]                    = 0x84;
+            ad1848->xregs[5]                    = 0;
+            ad1848->xregs[6] = ad1848->xregs[7] = 0x80;
+            ad1848->xregs[8] = ad1848->xregs[9] = 0;
+            ad1848->xregs[10]                   = 0x3f;
+            ad1848->xregs[11]                   = 0xc0;
+            ad1848->xregs[14] = ad1848->xregs[15] = 0;
+            ad1848->xregs[16] = ad1848->xregs[17] = 0;
+        }
     }
 
     ad1848_updatefreq(ad1848);
@@ -747,7 +747,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->out_l = ad1848->out_r = 0;
     ad1848->fm_vol_l = ad1848->fm_vol_r = 65536;
     ad1848_updatevolmask(ad1848);
-    if (type == AD1848_TYPE_CS4235)
+    if (type >= AD1848_TYPE_CS4235)
         ad1848->fmt_mask = 0x50;
     else
         ad1848->fmt_mask = 0x70;

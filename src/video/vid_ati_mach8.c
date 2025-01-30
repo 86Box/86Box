@@ -2503,6 +2503,96 @@ ati8514_in(uint16_t addr, void *priv)
     return temp;
 }
 
+static void
+ati_render_24bpp(svga_t *svga)
+{
+    mach_t    *mach = (mach_t *) svga->priv;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint32_t *p;
+    uint32_t  dat;
+
+    if ((dev->displine + svga->y_add) < 0)
+        return;
+
+    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || svga->fullchange) {
+        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+        if (dev->firstline_draw == 2000)
+            dev->firstline_draw = dev->displine;
+        dev->lastline_draw = dev->displine;
+
+        if (mach->accel.ext_ge_config & 0x400) { /*BGR, Blue-(23:16), Green-(15:8), Red-(7:0)*/
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
+                p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 3) & dev->vram_mask]);
+                p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 6) & dev->vram_mask]);
+                p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 9) & dev->vram_mask]);
+                p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dev->ma += 12;
+            }
+        } else { /*RGB, Red-(23:16), Green-(15:8), Blue-(7:0)*/
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
+                p[x] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 3) & dev->vram_mask]);
+                p[x + 1] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 6) & dev->vram_mask]);
+                p[x + 2] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 9) & dev->vram_mask]);
+                p[x + 3] = dat & 0xffffff;
+
+                dev->ma += 12;
+            }
+        }
+        dev->ma &= dev->vram_mask;
+    }
+}
+
+static void
+ati_render_32bpp(svga_t *svga)
+{
+    mach_t    *mach = (mach_t *) svga->priv;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if ((dev->displine + svga->y_add) < 0)
+        return;
+
+    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || dev->changedvram[(dev->ma >> 12) + 2] || svga->fullchange) {
+        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+        if (dev->firstline_draw == 2000)
+            dev->firstline_draw = dev->displine;
+        dev->lastline_draw = dev->displine;
+
+        if (mach->accel.ext_ge_config & 0x400) { /*BGR, Blue-(23:16), Green-(15:8), Red-(7:0)*/
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
+                *p++ = ((dat & 0x00ff0000) >> 16) | (dat & 0x0000ff00) | ((dat & 0x000000ff) << 16);
+            }
+        } else { /*RGB, Red-(31:24), Green-(23:16), Blue-(15:8)*/
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
+                *p++ = ((dat & 0xffffff00) >> 8);
+            }
+        }
+        dev->ma += (x * 4);
+        dev->ma &= dev->vram_mask;
+    }
+}
+
 void
 ati8514_recalctimings(svga_t *svga)
 {
@@ -2711,17 +2801,11 @@ mach_recalctimings(svga_t *svga)
                         break;
                     case 24:
                         mach_log("GEConfig24bpp: %03x.\n", mach->accel.ext_ge_config & 0x600);
-                        if (mach->accel.ext_ge_config & 0x400)
-                            svga->render8514 = ibm8514_render_BGR;
-                        else
-                            svga->render8514 = ibm8514_render_24bpp;
+                        svga->render8514 = ati_render_24bpp;
                         break;
                     case 32:
                         mach_log("GEConfig32bpp: %03x.\n", mach->accel.ext_ge_config & 0x600);
-                        if (mach->accel.ext_ge_config & 0x400)
-                            svga->render8514 = ibm8514_render_ABGR8888;
-                        else
-                            svga->render8514 = ibm8514_render_32bpp;
+                        svga->render8514 = ati_render_32bpp;
                         break;
 
                     default:
@@ -3493,14 +3577,17 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                 dev->vendor_mode = 1;
             }
             svga_recalctimings(svga);
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
+
             mach_log("ATI 8514/A: (0x%04x) val=0x%02x, extended 8514/A mode=%02x.\n", port, val, mach->regs[0xb0] & 0x20);
             break;
 
         case 0x32ee:
         case 0x32ef:
             WRITE8(port, mach->local_cntl, val);
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
             break;
 
         case 0x36ee:
@@ -3546,7 +3633,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             mach_log("ATI 8514/A: (0x%04x): ON=%d, val=%04x, hdisp=%d, vdisp=%d.\n", port, mach->accel.clock_sel & 0x01, val, dev->hdisp, dev->vdisp);
             mach_log("Vendor ATI mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
             svga_recalctimings(svga);
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
             break;
 
         case 0x52ee:
@@ -3580,7 +3668,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             if (!mach->pci_bus)
                 mach->linear_base = (mach->memory_aperture & 0xff00) << 12;
 
-            mach32_updatemapping(mach, svga);
+            if ((dev->local & 0xff) >= 0x01)
+                mach32_updatemapping(mach, svga);
             break;
 
         case 0x62ee:
@@ -5771,7 +5860,7 @@ mach_mca_reset(void *priv)
     mach_log("MCA reset.\n");
     dev->on = 0;
     mach_mca_write(0x102, 0, mach);
-    timer_set_callback(&svga->timer, svga_poll);
+    svga_set_poll(svga);
 }
 
 uint8_t

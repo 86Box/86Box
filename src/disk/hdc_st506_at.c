@@ -749,7 +749,7 @@ mfm_init(UNUSED(const device_t *info))
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
             loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
             st506_at_log("WD1003(%d): (%s) geometry %d/%d/%d\n", c, hdd[d].fn,

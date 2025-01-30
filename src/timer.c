@@ -4,6 +4,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 uint64_t TIMER_USEC;
 uint32_t timer_target;
@@ -30,7 +31,8 @@ timer_enable(pc_timer_t *timer)
         timer_disable(timer);
 
     if (timer->next || timer->prev)
-        fatal("timer_enable - timer->next\n");
+        fatal("timer_disable(): Attempting to enable a non-isolated "
+              "timer incorrectly marked as disabled\n");
 
     /*List currently empty - add to head*/
     if (!timer_head) {
@@ -91,7 +93,8 @@ timer_disable(pc_timer_t *timer)
         return;
 
     if (!timer->next && !timer->prev && timer != timer_head)
-        fatal("timer_disable - !timer->next\n");
+        fatal("timer_disable(): Attempting to disable an isolated "
+              "non-head timer incorrectly marked as enabled\n");
 
     timer->flags &= ~TIMER_ENABLED;
     timer->in_callback = 0;
@@ -167,6 +170,9 @@ timer_init(void)
 {
     timer_target = 0ULL;
     tsc          = 0;
+
+    /* Initialise the CPU-independent timer */
+    rivatimer_init();
 
     timer_inited = 1;
 }

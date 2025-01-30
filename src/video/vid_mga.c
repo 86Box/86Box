@@ -5558,6 +5558,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -5670,6 +5671,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -5756,6 +5758,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -5852,6 +5855,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -6521,6 +6525,7 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             mystique->pci_regs[addr] = val;
             if (addr == 0x30)
                 mystique->pci_regs[addr] &= 1;
+
             if (mystique->pci_regs[0x30] & 0x01) {
                 uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
                 mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
@@ -6533,26 +6538,24 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             return;
 
         case 0x40:
-            mystique->pci_regs[addr] = val & 0x3f;
+            mystique->pci_regs[0x40] = val & 0x3f;
             break;
         case 0x41:
-            mystique->pci_regs[addr] = val;
+            mystique->pci_regs[0x41] = val;
             break;
         case 0x42:
-            mystique->pci_regs[addr] = val & 0x1f;
+            mystique->pci_regs[0x42] = val & 0x1f;
             break;
         case 0x43:
-            mystique->pci_regs[addr] = val;
-            if (addr == 0x43) {
-                if (val & 0x40) {
-                    if (mystique->pci_regs[0x30] & 0x01) {
-                        uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                        mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
-                    } else
-                        mem_mapping_disable(&mystique->bios_rom.mapping);
+            mystique->pci_regs[0x43] = val;
+            if (val & 0x40) {
+                if (mystique->pci_regs[0x30] & 0x01) {
+                    uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
+                    mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
                 } else
-                    mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
-            }
+                    mem_mapping_disable(&mystique->bios_rom.mapping);
+            } else
+                mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             break;
 
         case 0x4c:
@@ -6580,17 +6583,17 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             mystique_ctrl_write_b(addr, val, mystique);
             break;
 
-            case 0xf8:
-                mystique->pci_regs[0xf8] = val & 0x7;
-                break;
+        case 0xf8:
+            mystique->pci_regs[0xf8] = val & 0x7;
+            break;
 
-            case 0xf9:
-                mystique->pci_regs[0xf9] = val & 0x3;
-                break;
+        case 0xf9:
+            mystique->pci_regs[0xf9] = val & 0x3;
+            break;
 
-            case 0xfb:
-                mystique->pci_regs[0xfb] = val;
-                break;
+        case 0xfb:
+            mystique->pci_regs[0xfb] = val;
+            break;
 
         default:
             break;
@@ -6677,6 +6680,7 @@ mystique_init(const device_t *info)
         mystique->svga.conv_16to32       = tvp3026_conv_16to32;
         if (mystique->type == MGA_2164W)
             mystique->svga.decode_mask = 0xffffff;
+
         tvp3026_gpio(mystique_tvp3026_gpio_read, mystique_tvp3026_gpio_write, mystique, mystique->svga.ramdac);
     } else {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
@@ -6851,8 +6855,7 @@ static const device_config_t mystique_config[] = {
         .name = "memory",
         .description = "Memory size",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "2 MB",
                 .value = 2
@@ -6865,15 +6868,11 @@ static const device_config_t mystique_config[] = {
                 .description = "8 MB",
                 .value = 8
             },
-            {
-                .description = ""
-            }
+            { .description = "" }
         },
         .default_int = 8
     },
-    {
-        .type = CONFIG_END
-    }
+    { .type = CONFIG_END }
   // clang-format on
 };
 
@@ -6883,8 +6882,7 @@ static const device_config_t millennium_ii_config[] = {
         .name = "memory",
         .description = "Memory size",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "4 MB",
                 .value = 4
@@ -6897,15 +6895,11 @@ static const device_config_t millennium_ii_config[] = {
                 .description = "16 MB",
                 .value = 16
             },
-            {
-                .description = ""
-            }
+            { .description = "" }
         },
         .default_int = 8
     },
-    {
-        .type = CONFIG_END
-    }
+    { .type = CONFIG_END }
   // clang-format on
 };
 

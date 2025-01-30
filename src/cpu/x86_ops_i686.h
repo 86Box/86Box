@@ -18,12 +18,8 @@ opSYSENTER(uint32_t fetchdat)
 {
     int ret = sysenter(fetchdat);
 
-    if (ret <= 1) {
-        CLOCK_CYCLES(20);
-        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
-        PREFETCH_FLUSH();
+    if (ret <= 1)
         CPU_BLOCK_END();
-    }
 
     return ret;
 }
@@ -33,12 +29,8 @@ opSYSEXIT(uint32_t fetchdat)
 {
     int ret = sysexit(fetchdat);
 
-    if (ret <= 1) {
-        CLOCK_CYCLES(20);
-        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
-        PREFETCH_FLUSH();
+    if (ret <= 1)
         CPU_BLOCK_END();
-    }
 
     return ret;
 }
@@ -118,7 +110,8 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
             fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
         }
 
-        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+        // CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+        CLOCK_CYCLES(1);
     } else {
         /* FXSAVE */
         writememw(easeg, cpu_state.eaaddr, i387_get_control_word());
@@ -163,7 +156,7 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
             writememw(easeg, cpu_state.eaaddr + (index * 16) + 40, fp.signExp);
         }
 
-        CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
+        CLOCK_CYCLES(1);
     }
 
     return cpu_state.abrt;
@@ -327,7 +320,8 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
             }
         }
 
-        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+        // CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+        CLOCK_CYCLES(1);
     } else {
         /* FXSAVE */
         if ((twd & 0x0003) != 0x0003)
@@ -372,7 +366,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
         cpu_state.eaaddr = old_eaaddr;
 
-        CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
+        CLOCK_CYCLES(1);
     }
 
     return cpu_state.abrt;
@@ -400,8 +394,7 @@ static int
 opHINT_NOP_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
-    CLOCK_CYCLES((is486) ? 1 : 3);
-    PREFETCH_RUN(3, 1, -1, 0, 0, 0, 0, 0);
+    CLOCK_CYCLES(1);
     return 0;
 }
 
@@ -409,7 +402,6 @@ static int
 opHINT_NOP_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
-    CLOCK_CYCLES((is486) ? 1 : 3);
-    PREFETCH_RUN(3, 1, -1, 0, 0, 0, 0, 0);
+    CLOCK_CYCLES(1);
     return 0;
 }

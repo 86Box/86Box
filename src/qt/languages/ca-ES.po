@@ -376,7 +376,7 @@ msgid "Time synchronization"
 msgstr "Sincronització horària"
 
 msgid "Disabled"
-msgstr "Desactuvat"
+msgstr "Deshabilitat"
 
 msgid "Enabled (local time)"
 msgstr "Activat (hora local)"
@@ -687,8 +687,11 @@ msgstr "La màquina \"%hs\" no està disponible perquè falten ROM al directori 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "La targeta de vídeo \"%hs\" no està disponible perquè falten ROM al directori roms/video. Canvi a una targeta de vídeo disponible."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La targeta de vídeo 2 \"%hs\" no està disponible perquè falten ROM al directori roms/video. Canvi a una targeta de vídeo disponible."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "La targeta de vídeo 2 \"%hs\" no està disponible perquè falten ROM al directori roms/video. Deshabilitant la segona targeta de vídeo."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "El dispositiu \"%hs\" no està disponible perquè falten ROM. Ignorant el dispositiu."
 
 msgid "Machine"
 msgstr "Màquina"
@@ -2120,3 +2123,9 @@ msgstr "Clon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Frabricant"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Expansió de memòria genèrica PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Expansió de memòria genèrica PC/AT"

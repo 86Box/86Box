@@ -56,14 +56,18 @@ std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
     RAWINPUTDEVICE rid[2] = {
-        {.usUsagePage = 0x01,
-         .usUsage     = 0x06,
-         .dwFlags     = RIDEV_NOHOTKEYS,
-         .hwndTarget  = nullptr},
-        { .usUsagePage = 0x01,
-         .usUsage     = 0x02,
-         .dwFlags     = 0,
-         .hwndTarget  = nullptr}
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x06,
+            .dwFlags     = RIDEV_NOHOTKEYS,
+            .hwndTarget  = nullptr
+        },
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x02,
+            .dwFlags     = 0,
+            .hwndTarget  = nullptr
+        }
     };
 
     if (hook_enabled && (RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0])) == FALSE))
@@ -89,14 +93,18 @@ WindowsRawInputFilter::WindowsRawInputFilter(MainWindow *window)
 WindowsRawInputFilter::~WindowsRawInputFilter()
 {
     RAWINPUTDEVICE rid[2] = {
-        {.usUsagePage = 0x01,
-         .usUsage     = 0x06,
-         .dwFlags     = RIDEV_REMOVE,
-         .hwndTarget  = NULL},
-        { .usUsagePage = 0x01,
-         .usUsage     = 0x02,
-         .dwFlags     = RIDEV_REMOVE,
-         .hwndTarget  = NULL}
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x06,
+            .dwFlags     = RIDEV_REMOVE,
+            .hwndTarget  = NULL
+        },
+        {
+             .usUsagePage = 0x01,
+             .usUsage     = 0x02,
+             .dwFlags     = RIDEV_REMOVE,
+             .hwndTarget  = NULL
+        }
     };
 
     if (hook_enabled)
