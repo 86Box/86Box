@@ -147,7 +147,7 @@ cdrom_mount(uint8_t id, char *fn)
     memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
     if ((fn != NULL) && (strlen(fn) >= 1) && (fn[strlen(fn) - 1] == '\\'))
             fn[strlen(fn) - 1] = '/';
-    cdrom_image_open(&(cdrom[id]), fn);
+    image_open(&(cdrom[id]), fn);
     /* Signal media change to the emulated machine. */
     if (cdrom[id].insert)
         cdrom[id].insert(cdrom[id].priv);
