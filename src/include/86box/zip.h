@@ -29,7 +29,7 @@
 
 #define ZIP_250_SECTORS (489532)
 
-#define ZIP_IMAGE_HISTORY 4
+#define ZIP_IMAGE_HISTORY 10
 
 enum {
     ZIP_BUS_DISABLED = 0,

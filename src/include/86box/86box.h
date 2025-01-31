@@ -33,7 +33,7 @@
 #define SCREENSHOT_PATH "screenshots"
 
 /* Recently used images */
-#define MAX_PREV_IMAGES    4
+#define MAX_PREV_IMAGES    10
 #define MAX_IMAGE_PATH_LEN 2048
 
 /* Max UUID Length */

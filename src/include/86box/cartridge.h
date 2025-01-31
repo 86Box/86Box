@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-#define CART_IMAGE_HISTORY    4
+#define CART_IMAGE_HISTORY    10
 
 extern char cart_fns[2][512];
 extern char *cart_image_history[2][CART_IMAGE_HISTORY];
