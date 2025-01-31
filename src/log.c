@@ -36,14 +36,15 @@
 #include <86box/log.h>
 
 typedef struct log_t {
-    char    buff[1024];
-    char    *dev_name;
-    int     seen;
-    int     suppr_seen;
-    char**  cyclic_buff;
-    int32_t cyclic_last_line;
-    int32_t log_cycles;
-    int32_t last_repeat_order;
+    char     buff[1024];
+    char     dev_name[1024];
+    int      seen;
+    int      suppr_seen;
+    /* Cyclical log buffer. */
+    char   **cyclic_buff;
+    int32_t  cyclic_last_line;
+    int32_t  log_cycles;
+    int32_t  last_repeat_order;
 } log_t;
 
 /* File to log output to. */

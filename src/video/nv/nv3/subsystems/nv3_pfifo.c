@@ -433,7 +433,15 @@ void nv3_pfifo_cache0_push()
 
 void nv3_pfifo_cache0_pull()
 {
+    // Do nothing if PFIFO CACHE0 is disabled
+    if (!nv3->pfifo.cache0_settings.puller_control & (1 >> NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED))
+        return; 
 
+    // Do nothing if there is nothing in cache0 to pull
+    if (nv3->pfifo.cache0_settings.put_address == nv3->pfifo.cache0_settings.get_address)
+        return;
+
+    // There is only one entry
 }
 
 void nv3_pfifo_cache1_push()
@@ -443,7 +451,13 @@ void nv3_pfifo_cache1_push()
 
 void nv3_pfifo_cache1_pull()
 {
+    // Do nothing if PFIFO CACHE1 is disabled
+    if (!nv3->pfifo.cache1_settings.puller_control & (1 >> NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED))
+        return; 
 
+    // Do nothing if there is nothing in cache1 to pull
+    if (nv3->pfifo.cache1_settings.put_address == nv3->pfifo.cache1_settings.get_address)
+        return;
 }
 
 bool nv3_pfifo_cache1_is_free()

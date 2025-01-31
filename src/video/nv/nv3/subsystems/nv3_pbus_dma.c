@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          NV3 PBUS DMA: DMA Engine
+ *          NV3 PBUS DMA: DMA & Notifier Engine
  *
  *
  *

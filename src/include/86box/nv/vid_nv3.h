@@ -14,8 +14,8 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   28 January 2025 (STILL WORKING ON IT!!!)
- *
+ *          Last updated:   30 January 2025 (STILL WORKING ON IT!!!)
+ *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
  *          Copyright 2024-2025 Connor Hyde
@@ -43,9 +43,16 @@ extern const device_config_t nv3_config[];
 
 #define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             10              // The amount by which we have to ration out the memory clock because it's not fast enough...
                                                                         // Multiply by this value to get the real clock speed.
+#define NV3_LAST_VALID_GRAPHICS_OBJECT_ID               0x1F
+
+// The class ids are represented with 5 bits in PGRAPH, but 7 bits in PFIFO!
+// What...
+#define NV3_PFIFO_FIRST_VALID_GRAPHICS_OBJECT_ID        0x40
+#define NV3_PFIFO_LAST_VALID_GRAPHICS_OBJECT_ID         0x5F
+
 // Default value for the boot information register.
 // Depends on the chip
-#define NV3_BOOT_REG_REV_A00                            0x00030100
+#define NV3_BOOT_REG_REV_A00                            0x00030100      // todo: format is wrong(?) for nv3a, fix it later
 #define NV3_BOOT_REG_REV_B00                            0x00030110
 #define NV3_BOOT_REG_REV_C00                            0x00030120
 
@@ -72,7 +79,7 @@ extern const device_config_t nv3_config[];
 #define VRAM_SIZE_2MB                                   0x200000 // 2MB
 #define VRAM_SIZE_4MB                                   0x400000 // 4MB
 #define VRAM_SIZE_8MB                                   0x800000 // NV3T only
-
+// There is also 1mb supported by the card but it was never used
 
 // PCI config
 #define NV3_PCI_CFG_VENDOR_ID                           0x0
@@ -194,6 +201,7 @@ extern const device_config_t nv3_config[];
 #define NV3_CIO_END                                     0x3df
 #define NV3_PBUS_START                                  0x1000      // Bus Control Subsystem
 #define NV3_PBUS_INTR                                   0x1100      // Bus Control - Interrupt Status
+
 #define NV3_PBUS_INTR_EN                                0x1140      // Bus Control - Interrupt Enable
 #define NV3_PBUS_PCI_START                              0x1800      // PCI mirror start
 #define NV3_PBUS_PCI_END                                0x18FF      // PCI mirror end
@@ -202,18 +210,25 @@ extern const device_config_t nv3_config[];
 
 #define NV3_PFIFO_DEBUG_0                               0x2080      // PFIFO Debug Register
 #define NV3_PFIFO_CACHE0_ERROR_PENDING                  0
-#define NV3_PFIFO_CACHE1_ERROR_PENDING                  1
+#define NV3_PFIFO_CACHE1_ERROR_PENDING                  4
 
 #define NV3_PFIFO_INTR                                  0x2100      // FIFO - Interrupt Status
 #define NV3_PFIFO_INTR_EN                               0x2140      // FIFO - Interrupt Enable
+
+// PFIFO interrupts
+#define NV3_PFIFO_INTR_CACHE_ERROR                      0
+#define NV3_PFIFO_INTR_RUNOUT                           4
+#define NV3_PFIFO_INTR_RUNOUT_OVERFLOW                  8
+#define NV3_PFIFO_INTR_DMA_PUSHER                       12
+#define NV3_PFIFO_INTR_DMA_PTE                          16
 
 #define NV3_PFIFO_CONFIG_0                              0x2200
 #define NV3_PFIFO_CONFIG_0_DMA_FETCH                    8
 
 #define NV3_PFIFO_CONFIG_RAMHT                          0x2210      // Hashtable for graphics objects config
-#define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS             12
+#define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS             12          // 15:12
 #define NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS_DEFAULT     0x0
-#define NV3_PFIFO_CONFIG_RAMHT_SIZE                     16
+#define NV3_PFIFO_CONFIG_RAMHT_SIZE                     16          // 17:16
 #define NV3_PFIFO_CONFIG_RAMHT_SIZE_4K                  0x0
 #define NV3_PFIFO_CONFIG_RAMHT_SIZE_8K                  0x1
 #define NV3_PFIFO_CONFIG_RAMHT_SIZE_16K                 0x2
@@ -231,8 +246,8 @@ extern const device_config_t nv3_config[];
 
 #define NV3_PFIFO_RUNOUT_STATUS                         0x2400
 #define NV3_PFIFO_RUNOUT_STATUS_RANOUT                  0           // 1 if we fucked up
-#define NV3_PFIFO_RUNOUT_STATUS_EMPTY                4           // 1 if ramro is empty
-#define NV3_PFIFO_RUNOUT_STATUS_FULL               8
+#define NV3_PFIFO_RUNOUT_STATUS_EMPTY                   4           // 1 if ramro is empty
+#define NV3_PFIFO_RUNOUT_STATUS_FULL                    8
 #define NV3_PFIFO_RUNOUT_PUT                            0x2410
 #define NV3_PFIFO_RUNOUT_PUT_ADDRESS                    3           // 9:3 if small ramfc(?) otherwise 12:3
 #define NV3_PFIFO_RUNOUT_GET                            0x2420
@@ -243,17 +258,18 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_SIZE_REV_C                     64
 #define NV3_PFIFO_CACHE1_SIZE_MAX                       NV3_PFIFO_CACHE1_SIZE_REV_C
 #define NV3_PFIFO_CACHE_REASSIGNMENT                    0x2500        
+
 #define NV3_PFIFO_CACHE0_PUSH_ACCESS                    0x3000
 #define NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID                0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
 #define NV3_PFIFO_CACHE0_STATUS                         0x3014
-#define NV3_PFIFO_CACHE0_STATUS_EMPTY                4           // 1 if ramro is empty
-#define NV3_PFIFO_CACHE0_STATUS_FULL               8
+#define NV3_PFIFO_CACHE0_STATUS_EMPTY                   4           // 1 if ramro is empty
+#define NV3_PFIFO_CACHE0_STATUS_FULL                    8
 #define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL                 0x3040
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED         0
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_SUCCESS    4
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_DEVICE          8
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE    4
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD     8
 #define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY            0x3050
 #define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY_BOOL       4           // 1=dirty 0=clean
 #define NV3_PFIFO_CACHE0_GET                            0x3070
@@ -267,8 +283,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
 #define NV3_PFIFO_CACHE1_STATUS                         0x3214
 #define NV3_PFIFO_CACHE1_STATUS_RANOUT                  0           // 1 if we fucked up
-#define NV3_PFIFO_CACHE1_STATUS_EMPTY                4           // 1 if ramro is empty
-#define NV3_PFIFO_CACHE1_STATUS_FULL               8
+#define NV3_PFIFO_CACHE1_STATUS_EMPTY                   4           // 1 if ramro is empty
+#define NV3_PFIFO_CACHE1_STATUS_FULL                    8
 #define NV3_PFIFO_CACHE1_DMA_STATUS                     0x3218
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_0                   0x3220
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
@@ -279,9 +295,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
 #define NV3_PFIFO_CACHE1_PULLER_CONTROL                 0x3240
+//todo: merge stuff
 #define NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED         0
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_SUCCESS    4
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_DEVICE          8
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE    4
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_SOFTWARE_METHOD     8           // 0=software, 1=hardware
 #define NV3_PFIFO_CACHE1_PULLER_STATE1                  0x3250
 #define NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY            4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
@@ -289,6 +306,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_METHOD                         0x3300
 #define NV3_PFIFO_CACHE1_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL              13          // 15:13
+
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
 #define NV3_PRM_INTR                                    0x4100
@@ -684,9 +702,8 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_BANKED_32K_B0000                       0x08
 #define NV3_CRTC_BANKED_32K_B8000                       0x0C
 
-
-
 #define NV3_CRTC_REGISTER_NVIDIA_END                    0x3F
+
 // for 86box 8bit addressing
 // get rid of this asap, replace with 32->8 macros
 #define NV3_RMA_SIGNATURE_MSB                           0x65
@@ -696,12 +713,10 @@ extern const device_config_t nv3_config[];
 
 #define NV3_CRTC_REGISTER_RMA_MODE_MAX                  0x0F
 
-
 /* 
     STRUCTURES FOR THE GPU START HERE
     OBJECT CLASS & RENDERING RELATED STUFF IS IN VID_NV3_CLASSES.H
 */
-
 
 //todo: pixel format
 
@@ -712,12 +727,15 @@ typedef struct nv3_pmc_s
     Holds chip manufacturing information at bootup.
     Current specification (may change later): pre-packed for convenience
 
-    FIB Revision 1, Mask Revision B0, Implementation 1 [NV3], Architecture 3 [NV3], Manufacturer Nvidia, Foundry SGS (seems to have been the most common?)
-    31:28=0000, 27:24=0000, 23:16=0003, 15:8=0001, 7:4=0001, 3:0=0001
-    little endian 00000000 00000011 00000001 00010001   = 0x00300111
+    Revision A: 
+        FIB Revision 1, Mask Revision B0, Implementation 1 [NV3], Architecture 3 [NV3], Manufacturer Nvidia, Foundry SGS (seems to have been the most common?)
+        31:28=0000, 27:24=0000, 23:16=0003, 15:8=0001, 7:4=0001, 3:0=0001
+        little endian 00000000 00000011 00000001 00010001   = 0x00300111#
+    Revision B/c:
+        write this later
     */
     int32_t boot;   
-    int32_t interrupt_status;          // Determines if interrupts are pending for specific subsystems.
+    int32_t interrupt_status;   // Determines if interrupts are pending for specific subsystems.
     int32_t interrupt_enable;   // Determines if interrupts are actually enabled.
     int32_t enable;             // Determines which subsystems are enabled.
 
@@ -776,9 +794,9 @@ typedef struct nv3_pfifo_cache_s
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
     uint8_t channel_id;                 // The DMA channel ID of this cache.
     uint32_t status;
-    uint32_t status_puller;
+    uint32_t puller_control;
     uint32_t control;
-    uint32_t context[8];
+    uint32_t context[NV3_DMA_SUBCHANNELS_PER_CHANNEL];
 
     /* cache1 only 
         do we even need to emulate this?
@@ -1050,23 +1068,9 @@ typedef struct nv3_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv3_ptimer_t;
 
-typedef struct nv3_ramin_name_s
-{
-    union 
-    {
-        uint32_t name;
-
-        struct
-        {
-            uint8_t byte_high;
-            uint8_t byte_mid2;
-            uint8_t byte_mid1;
-            uint8_t byte_low;
-        };
-    };
-
-} nv3_ramin_name_t;
-
+// Object name is just a uint32_t identifier it doesn't need a struct
+// This is howt he cotnext is represented in ramin
+// IN PGRAPH IT IS DIFFERENT! ONLY 5 BITS FOR THE CLASS ID! WHY?
 typedef struct nv3_ramin_context_s
 {
     union 
@@ -1075,11 +1079,11 @@ typedef struct nv3_ramin_context_s
 
         struct
         {
-            
-            uint8_t dma_channel;
-            uint8_t render_object;              //0=sw, 1=hw accelerated render
-            uint8_t class_id;
-            uint8_t ramin_offset;               //find
+            bool reserved : 1;
+            uint8_t channel_id : 7;
+            bool is_rendering : 1;
+            uint8_t class_id : 7;
+            uint16_t ramin_offset; 
         };
 
     };
@@ -1088,7 +1092,7 @@ typedef struct nv3_ramin_context_s
 // Graphics object hashtable for specific DMA [channel, subchannel] pair
 typedef struct nv3_ramin_ramht_subchannel_s
 {
-    nv3_ramin_name_t    name;                      // must be >4096
+    uint32_t           name;                      // must be >4096
 
     // Contextual information.
     // See the above union.
@@ -1193,10 +1197,13 @@ typedef struct nv3_s
 
 } nv3_t;
 
-// device objects
+// device object
 extern nv3_t* nv3;
 
-// NV3 stuff
+/*
+    *FUNCTIONS* for the GPU core start here
+    Functions for PGRAPH objects are in vid_nv3_classes.h
+*/
 
 // Device Core
 void*       nv3_init(const device_t *info);
@@ -1229,8 +1236,8 @@ bool        nv3_ramin_arbitrate_read(uint32_t address, uint32_t* value);       /
 bool        nv3_ramin_arbitrate_write(uint32_t address, uint32_t value);       // Write arbitration so we can read/write to the structures in the first 64k of ramin
 
 // RAMIN functions
-uint32_t    nv3_ramht_hash(nv3_ramin_name_t name, uint32_t channel);
-void        nv3_ramin_find_object(uint32_t name, uint32_t cache_id, uint32_t channel_id, uint32_t subchannel_id);
+uint32_t    nv3_ramht_hash(uint32_t name, uint32_t channel);
+bool        nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_id, uint32_t subchannel_id);
 
 uint32_t    nv3_ramfc_read(uint32_t address);
 void        nv3_ramfc_write(uint32_t address, uint32_t value);
@@ -1310,6 +1317,7 @@ void        nv3_pgraph_vblank_start(svga_t* svga);
 void        nv3_pfifo_init();
 uint32_t    nv3_pfifo_read(uint32_t address);
 void        nv3_pfifo_write(uint32_t address, uint32_t value);
+void        nv3_pfifo_interrupt(uint32_t id, bool fire_now);
 
 // NV3 PFIFO - Caches
 void        nv3_pfifo_cache0_push();

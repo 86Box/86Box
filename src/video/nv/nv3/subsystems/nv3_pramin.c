@@ -23,11 +23,17 @@
 #include <86Box/86box.h>
 #include <86Box/device.h>
 #include <86Box/mem.h>
-#include <86box/pci.h>
+#include <86Box/pci.h>
 #include <86Box/rom.h> // DEPENDENT!!!
 #include <86Box/video.h>
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv3.h>
+#include <86box/nv/classes/vid_nv3_classes.h>
+
+// Functions only used in this translation unit
+#ifndef RELEASE_BUILD
+void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context);
+#endif
 
 // i believe the main loop is to walk the hashtable in RAMIN (last 0.5 MB of VRAM), 
 // find the objects that were submitted from DMA 
@@ -190,6 +196,12 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
 
 }
 
+void nv3_pfifo_interrupt(uint32_t id, bool fire_now)
+{
+    nv3->pfifo.interrupt_status |= (1 << id);
+    nv3_pmc_handle_interrupts(fire_now);
+}
+
 /* 
 RAMIN access arbitration functions
 Arbitrates reads and writes to RAMFC (unused dma context storage), RAMRO (invalid object submission location), RAMHT (hashtable for graphics objectstorage) (RAMAU?) 
@@ -311,6 +323,7 @@ bool nv3_ramin_arbitrate_write(uint32_t address, uint32_t value)
             break;
     }
 
+    // send the addresses to the right part
     if (address >= ramht_start 
     && address <= ramht_end)
     {
@@ -334,7 +347,151 @@ bool nv3_ramin_arbitrate_write(uint32_t address, uint32_t value)
 }
 
 // THIS IS THE MOST IMPORTANT FUNCTION!
-void nv3_ramin_find_object(uint32_t name, uint32_t cache_id, uint32_t channel_id, uint32_t subchannel_id)
+bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_id, uint32_t subchannel_id)
 {  
     // TODO: WRITE IT!!!
+    // Set the number of entries to search based on the ramht size (2*(size+1))
+    // Not a switch statement in case newer gpus have larger ramins
+    uint32_t bucket_entries = 2 * (((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_SIZE) & 0x03) + 1); 
+    
+    // Calculate the address in the hashtable
+    uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
+    uint32_t ramht_cur_address = ramht_base;
+
+    nv_log("NV3: Beginning search for graphics object at RAMHT base=0x%04x, Cache%d, channel=%d, subchannel=%d)", name, cache_num, channel_id, subchannel_id);
+
+    bool found_object = false;
+    
+    // set up some variables
+    uint32_t found_obj_name;
+    nv3_ramin_context_t obj_context_struct;
+
+    for (uint32_t bucket_entry = 0; bucket_entry < bucket_entries; bucket_entry++)
+    {
+        found_obj_name = nv3_ramin_read32(ramht_cur_address, NULL);
+        ramht_cur_address += 0x04;
+        uint32_t obj_context = nv3_ramin_read32(ramht_cur_address, NULL);
+        ramht_cur_address += 0x04;
+        obj_context_struct = *(nv3_ramin_context_t*)&obj_context;
+
+        // see if the object is in the right channel
+        if (found_obj_name == name
+            && obj_context_struct.channel_id == channel_id)
+        {
+            found_object = true;
+            break;
+        }
+    }
+
+    if (!found_object)
+    {
+        if (!cache_num)
+        {
+            nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE0_ERROR_PENDING;
+            nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE;
+
+            //It turns itself off on failure, the drivers turn it back on
+            nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        } 
+        else 
+        {
+            nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE1_ERROR_PENDING;
+            nv3->pfifo.cache1_settings.puller_control |= NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE;
+
+            //It turns itself off on failure, the drivers turn it back on
+            nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED;
+        }
+
+        nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
+
+        return false;
+    }
+
+    // So we did find an object.
+    // Now try to read some of this...
+            
+    // Class ID is 5 bits in all other parts of the gpu but 7 bits here. A move in a direction that didn't pan out?
+    // Represented as 0x40-0x5f? Some other meaning
+
+    // Perform more validation 
+
+    if (obj_context_struct.class_id > NV3_PFIFO_FIRST_VALID_GRAPHICS_OBJECT_ID
+    || obj_context_struct.class_id < NV3_PFIFO_LAST_VALID_GRAPHICS_OBJECT_ID)
+    {
+        fatal("NV3: Invalid graphics object class ID name=0x%04x type=%04x, interpreted by pgraph as: %04x (Contact starfrost)", 
+            name, obj_context_struct.class_id, obj_context_struct.class_id & 0x1F);
+    }   
+    else if (obj_context_struct.channel_id > NV3_DMA_CHANNELS)
+        fatal("NV3: Super fucked up graphics object. Contact starfrost with the error string: DMA Channel ID=%d, it should be 0-8", obj_context_struct.channel_id);
+    
+    // Illegal accesses sent to RAMRO, so ignore here
+    // TODO: SEND THESE TO RAMRO!!!!!
+
+    #ifndef RELEASE_BUILD
+    nv3_debug_ramin_print_context_info(name, obj_context_struct);
+    #endif
+
+    // By definition we can't have a cache error by here so take it off
+    if (!cache_num)
+        nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE;
+    else
+        nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE;
+
+    // Caches store all the subchannels for our current dma channel and basically get stale every context switch
+    // Also we have to check that a osftware object didn't end up in here...
+    
+    bool is_software = false;
+    if (!cache_num)
+        is_software = (nv3->pfifo.cache0_settings.context[subchannel_id] & 0x800000);
+    else 
+        is_software = (nv3->pfifo.cache1_settings.context[subchannel_id] & 0x800000);
+
+    // This isn't an error but it's sent as an interrupt so the drivers can sync
+    if (is_software)
+    {  
+        // handle it as an error 
+        if (!cache_num)
+        {
+            nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
+            nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        }
+        else   
+        {
+            nv3->pfifo.cache1_settings.puller_control |= NV3_PFIFO_CACHE1_PULLER_CONTROL_SOFTWARE_METHOD;
+            nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED;
+        }
+            
+        // It's an error but it isn't lol   
+        nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
+        
+    }
+    else
+    {
+        // obviously turn off the "is software" if it's not
+        if (!cache_num)
+            nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
+        else   
+            nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE1_PULLER_CONTROL_SOFTWARE_METHOD;
+    }
+    
+    // Ok we found it. Lol
+    return true; 
+    
 }
+
+#ifndef RELEASE_BUILD
+// Prints out some informaiton about the object
+void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context)
+{
+    nv_log("NV3: Found object:");
+    nv_log("Name: 0x%04x", name);
+
+    nv_log("Context:");
+    nv_log("DMA Channel %d (0-7 valid)", context.channel_id);
+    nv_log("Class ID: as repreesnted in ramin=%04x, Stupid 5 bit version (the actual id)=0x%04x (%s)", context.class_id, 
+    context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
+    nv_log("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)", context.is_rendering);
+    nv_log("PRAMIN Offset 0x%08x", context.ramin_offset << 4);
+}
+
+#endif

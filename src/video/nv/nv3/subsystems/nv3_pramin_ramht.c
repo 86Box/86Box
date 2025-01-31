@@ -22,7 +22,7 @@
 #include <86Box/86box.h>
 #include <86Box/device.h>
 #include <86Box/mem.h>
-#include <86box/pci.h>
+#include <86Box/pci.h>
 #include <86Box/rom.h> // DEPENDENT!!!
 #include <86Box/video.h>
 #include <86Box/nv/vid_nv.h>
@@ -32,10 +32,14 @@
 It is used to get the offset within RAMHT of a graphics object.
  */
 
-uint32_t nv3_ramht_hash(nv3_ramin_name_t name, uint32_t channel)
+uint32_t nv3_ramht_hash(uint32_t name, uint32_t channel)
 {
-    uint32_t hash = (name.byte_high ^ name.byte_mid2 ^ name.byte_mid1 ^ name.byte_low ^ (uint8_t)channel);
-    nv_log("NV3: Generating RAMHT hash (RAMHT slot=0x%04x (from name 0x%08x for DMA channel 0x%04x)\n)\n", name, channel);
+    // convert the name to an array of bytes
+    uint8_t* hash_bytes = (uint8_t*)name;
+
+    // is this the right endianness?
+    uint32_t hash = (hash_bytes[0] ^ hash_bytes[1] ^ hash_bytes[2] ^ hash_bytes[3] ^ (uint8_t)channel);
+    nv_log("NV3: Generated RAMHT hash 0x%04x (RAMHT slot=0x%04x (from name 0x%08x for DMA channel 0x%04x)\n)\n", hash, name, channel);
     return hash;
 }
 
