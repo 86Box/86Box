@@ -30,7 +30,7 @@
 #include <86Box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
-struct nv3_object_class_00a nv3_lin; 
+struct nv3_object_class_00A nv3_lin; 
 
 void nv3_class_00a_method(uint32_t method_id, nv3_grobj_t grobj)
 {

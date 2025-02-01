@@ -29,7 +29,7 @@
 #include <86Box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
-struct nv3_object_class_00d nv3_m2mf;
+struct nv3_object_class_00D nv3_m2mf;
 
 void nv3_class_00d_method(uint32_t method_id, nv3_grobj_t grobj)
 {

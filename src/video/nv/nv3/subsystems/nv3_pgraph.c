@@ -454,3 +454,8 @@ void nv3_pgraph_vblank_start(svga_t* svga)
 {
     nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_EN_0_VBLANK);
 }
+
+void nv3_pgraph_submit()
+{
+    
+}

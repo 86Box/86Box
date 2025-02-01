@@ -29,7 +29,7 @@
 #include <86Box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
-struct nv3_object_class_01c nv3_image_in_memory;
+struct nv3_object_class_01C nv3_image_in_memory;
 
 void nv3_class_01c_method(uint32_t method_id, nv3_grobj_t grobj)
 {

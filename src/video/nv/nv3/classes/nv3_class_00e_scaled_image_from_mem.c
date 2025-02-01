@@ -29,7 +29,7 @@
 #include <86Box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
-struct nv3_object_class_00e nv3_scaled_image_from_mem;
+struct nv3_object_class_00E nv3_scaled_image_from_mem;
 
 void nv3_class_00e_method(uint32_t method_id, nv3_grobj_t grobj)
 {
