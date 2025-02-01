@@ -48,6 +48,11 @@ typedef struct _gameport_ {
     struct _gameport_          *next;
 } gameport_t;
 
+typedef struct _tmacm_ {
+    struct gameport_t *port1;
+    struct gameport_t *port2;
+} tmacm_t;
+
 typedef struct _joystick_instance_ {
     uint8_t  state;
     g_axis_t axis[4];
@@ -402,25 +407,24 @@ gameport_init(const device_t *info)
 static void *
 tmacm_init(UNUSED(const device_t *info))
 {
-    uint16_t    port = 0x0000;
-    gameport_t *dev  = NULL;
+    uint16_t  port = 0x0000;
+    tmacm_t  *dev  = NULL;
 
-    dev = malloc(sizeof(gameport_t));
-    memset(dev, 0x00, sizeof(gameport_t));
+    dev = calloc(1, sizeof(tmacm_t));
 
     port = (uint16_t) device_get_config_hex16("port1_addr");
     switch (port) {
         case 0x201:
-            dev = gameport_add(&gameport_201_device);
+            dev->port1 = gameport_add(&gameport_201_device);
             break;
         case 0x203:
-            dev = gameport_add(&gameport_203_device);
+            dev->port1 = gameport_add(&gameport_203_device);
             break;
         case 0x205:
-            dev = gameport_add(&gameport_205_device);
+            dev->port1 = gameport_add(&gameport_205_device);
             break;
         case 0x207:
-            dev = gameport_add(&gameport_207_device);
+            dev->port1 = gameport_add(&gameport_207_device);
             break;
         default:
             break;
@@ -429,16 +433,16 @@ tmacm_init(UNUSED(const device_t *info))
     port = (uint16_t) device_get_config_hex16("port2_addr");
     switch (port) {
         case 0x209:
-            dev = gameport_add(&gameport_209_device);
+            dev->port2 = gameport_add(&gameport_209_device);
             break;
         case 0x20b:
-            dev = gameport_add(&gameport_20b_device);
+            dev->port2 = gameport_add(&gameport_20b_device);
             break;
         case 0x20d:
-            dev = gameport_add(&gameport_20d_device);
+            dev->port2 = gameport_add(&gameport_20d_device);
             break;
         case 0x20f:
-            dev = gameport_add(&gameport_20f_device);
+            dev->port2 = gameport_add(&gameport_20f_device);
             break;
         default:
             break;
