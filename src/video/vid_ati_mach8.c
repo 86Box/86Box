@@ -6239,7 +6239,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     if (dev->vram_amount >= 1024)
         mach->config1 |= 0x20;
 
-    mach->config2 = 0x02;
+    mach->config2 = 0x01 | 0x02;
 }
 
 static int
