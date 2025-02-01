@@ -8,8 +8,6 @@
  *
  *          Implementation of a generic Game Port.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
@@ -18,7 +16,7 @@
  *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2021 RichardG.
- *          Copyright 2021-2024 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,6 +32,12 @@
 #include <86box/isapnp.h>
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
+
+device_t game_ports[GAMEPORT_MAX];
+
+typedef struct {
+    const device_t *device;
+} GAMEPORT;
 
 typedef struct g_axis_t {
     pc_timer_t                  timer;
@@ -98,7 +102,7 @@ static const struct {
     { NULL }
 };
 
-static joystick_instance_t *joystick_instance = NULL;
+static joystick_instance_t *joystick_instance[GAMEPORT_MAX] = { NULL, NULL };
 
 static uint8_t gameport_pnp_rom[] = {
     0x09, 0xf8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,          /* BOX0002, dummy checksum (filled in by isapnp_add_card) */
@@ -280,10 +284,10 @@ gameport_update_joystick_type(void)
         gameport_add(standalone_gameport_type);
 
     /* Reset the joystick interface. */
-    if (joystick_instance) {
-        joystick_instance->intf->close(joystick_instance->dat);
-        joystick_instance->intf = joysticks[joystick_type].joystick;
-        joystick_instance->dat  = joystick_instance->intf->init();
+    if (joystick_instance[0]) {
+        joystick_instance[0]->intf->close(joystick_instance[0]->dat);
+        joystick_instance[0]->intf = joysticks[joystick_type].joystick;
+        joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
     }
 }
 
@@ -368,30 +372,30 @@ gameport_init(const device_t *info)
     memset(dev, 0x00, sizeof(gameport_t));
 
     /* Allocate global instance. */
-    if (!joystick_instance && joystick_type) {
-        joystick_instance = malloc(sizeof(joystick_instance_t));
-        memset(joystick_instance, 0x00, sizeof(joystick_instance_t));
+    if (!joystick_instance[0] && joystick_type) {
+        joystick_instance[0] = malloc(sizeof(joystick_instance_t));
+        memset(joystick_instance[0], 0x00, sizeof(joystick_instance_t));
 
-        joystick_instance->axis[0].joystick = joystick_instance;
-        joystick_instance->axis[1].joystick = joystick_instance;
-        joystick_instance->axis[2].joystick = joystick_instance;
-        joystick_instance->axis[3].joystick = joystick_instance;
+        joystick_instance[0]->axis[0].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[1].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[2].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[3].joystick = joystick_instance[0];
 
-        joystick_instance->axis[0].axis_nr = 0;
-        joystick_instance->axis[1].axis_nr = 1;
-        joystick_instance->axis[2].axis_nr = 2;
-        joystick_instance->axis[3].axis_nr = 3;
+        joystick_instance[0]->axis[0].axis_nr = 0;
+        joystick_instance[0]->axis[1].axis_nr = 1;
+        joystick_instance[0]->axis[2].axis_nr = 2;
+        joystick_instance[0]->axis[3].axis_nr = 3;
 
-        timer_add(&joystick_instance->axis[0].timer, timer_over, &joystick_instance->axis[0], 0);
-        timer_add(&joystick_instance->axis[1].timer, timer_over, &joystick_instance->axis[1], 0);
-        timer_add(&joystick_instance->axis[2].timer, timer_over, &joystick_instance->axis[2], 0);
-        timer_add(&joystick_instance->axis[3].timer, timer_over, &joystick_instance->axis[3], 0);
+        timer_add(&joystick_instance[0]->axis[0].timer, timer_over, &joystick_instance[0]->axis[0], 0);
+        timer_add(&joystick_instance[0]->axis[1].timer, timer_over, &joystick_instance[0]->axis[1], 0);
+        timer_add(&joystick_instance[0]->axis[2].timer, timer_over, &joystick_instance[0]->axis[2], 0);
+        timer_add(&joystick_instance[0]->axis[3].timer, timer_over, &joystick_instance[0]->axis[3], 0);
 
-        joystick_instance->intf = joysticks[joystick_type].joystick;
-        joystick_instance->dat  = joystick_instance->intf->init();
+        joystick_instance[0]->intf = joysticks[joystick_type].joystick;
+        joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
     }
 
-    dev->joystick = joystick_instance;
+    dev->joystick = joystick_instance[0];
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
     dev->len = (info->local >> 16) & 0xff;
@@ -460,11 +464,11 @@ gameport_close(void *priv)
     gameport_remap(dev, 0);
 
     /* Free the global instance here, if it wasn't already freed. */
-    if (joystick_instance) {
-        joystick_instance->intf->close(joystick_instance->dat);
+    if (joystick_instance[0]) {
+        joystick_instance[0]->intf->close(joystick_instance[0]->dat);
 
-        free(joystick_instance);
-        joystick_instance = NULL;
+        free(joystick_instance[0]);
+        joystick_instance[0] = NULL;
     }
 
     free(dev);
@@ -733,3 +737,63 @@ const device_t gameport_sio_1io_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+static const GAMEPORT gameports[] = {
+    { &device_none            },
+    { &device_internal        },
+    { &gameport_device        },
+    { &gameport_208_device    },
+    { &gameport_pnp_device    },
+    { &gameport_tm_acm_device },
+    { NULL                    }
+    // clang-format on
+};
+
+/* UI */
+int
+gameport_available(int port)
+{
+    if (gameports[port].device)
+        return (device_available(gameports[port].device));
+
+    return 1;
+}
+
+/* UI */
+const device_t *
+gameports_getdevice(int port)
+{
+    return (gameports[port].device);
+}
+
+/* UI */
+int
+gameport_has_config(int port)
+{
+    if (!gameports[port].device)
+        return 0;
+
+    return (device_has_config(gameports[port].device) ? 1 : 0);
+}
+
+/* UI */
+const char *
+gameport_get_internal_name(int port)
+{
+    return device_get_internal_name(gameports[port].device);
+}
+
+/* UI */
+int
+gameport_get_from_internal_name(const char *str)
+{
+    int c = 0;
+
+    while (gameports[c].device != NULL) {
+        if (!strcmp(gameports[c].device->internal_name, str))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
