@@ -544,7 +544,8 @@ net_slirp_close(void *priv)
 }
 
 const netdrv_t net_slirp_drv = {
-    &net_slirp_in_available,
-    &net_slirp_init,
-    &net_slirp_close
+    .notify_in = &net_slirp_in_available,
+    .init      = &net_slirp_init,
+    .close     = &net_slirp_close,
+	.priv      = NULL
 };

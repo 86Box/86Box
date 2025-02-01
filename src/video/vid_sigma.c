@@ -951,9 +951,7 @@ device_config_t sigma_config[] = {
             }
         },
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -965,7 +963,7 @@ const device_t sigma_device = {
     .init          = sigma_init,
     .close         = sigma_close,
     .reset         = NULL,
-    { .available = sigma_available },
+    .available     = sigma_available,
     .speed_changed = sigma_speed_changed,
     .force_redraw  = NULL,
     .config        = sigma_config

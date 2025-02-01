@@ -6239,7 +6239,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     if (dev->vram_amount >= 1024)
         mach->config1 |= 0x20;
 
-    mach->config2 = 0x02;
+    mach->config2 = 0x01 | 0x02;
 }
 
 static int
@@ -6329,12 +6329,9 @@ static const device_config_t mach8_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t mach32_config[] = {
     {
         .name = "memory",
@@ -6363,12 +6360,9 @@ static const device_config_t mach32_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t mach32_pci_config[] = {
     {
         .name = "ramdac",
@@ -6416,92 +6410,90 @@ static const device_config_t mach32_pci_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t mach8_vga_isa_device = {
-    .name = "ATI Mach8 (ATI Graphics Ultra) (ISA)",
+    .name          = "ATI Mach8 (ATI Graphics Ultra) (ISA)",
     .internal_name = "mach8_vga_isa",
-    .flags = DEVICE_ISA,
-    .local = 1,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach8_vga_available },
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach8_vga_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach8_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach8_config
 };
 
 const device_t mach32_isa_device = {
-    .name = "ATI Mach32 (ISA)",
+    .name          = "ATI Mach32 (ISA)",
     .internal_name = "mach32_isa",
-    .flags = DEVICE_ISA,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_isa_available },
+    .flags         = DEVICE_ISA,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_isa_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_vlb_device = {
-    .name = "ATI Mach32 (VLB)",
+    .name          = "ATI Mach32 (VLB)",
     .internal_name = "mach32_vlb",
-    .flags = DEVICE_VLB,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_vlb_available },
+    .flags         = DEVICE_VLB,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_vlb_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_mca_device = {
-    .name = "ATI Mach32 (MCA)",
+    .name          = "ATI Mach32 (MCA)",
     .internal_name = "mach32_mca",
-    .flags = DEVICE_MCA,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_mca_available },
+    .flags         = DEVICE_MCA,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_mca_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_pci_device = {
-    .name = "ATI Mach32 (PCI)",
+    .name          = "ATI Mach32 (PCI)",
     .internal_name = "mach32_pci",
-    .flags = DEVICE_PCI,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_pci_available },
+    .flags         = DEVICE_PCI,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_pci_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_pci_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_pci_config
 };
 
 const device_t mach32_onboard_pci_device = {
-    .name = "ATI Mach32 (PCI) On-Board",
+    .name          = "ATI Mach32 (PCI) On-Board",
     .internal_name = "mach32_pci_onboard",
-    .flags = DEVICE_PCI,
-    .local = 2 | 0x100,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_PCI,
+    .local         = 2 | 0x100,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_pci_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_pci_config
 };
-

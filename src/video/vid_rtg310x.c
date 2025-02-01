@@ -405,9 +405,7 @@ static const device_config_t rtg3105_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -436,9 +434,7 @@ static const device_config_t rtg3106_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -450,7 +446,7 @@ const device_t realtek_rtg3105_device = {
     .init          = rtg_init,
     .close         = rtg_close,
     .reset         = NULL,
-    { .available = rtg3105_available },
+    .available     = rtg3105_available,
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
     .config        = rtg3105_config
@@ -464,7 +460,7 @@ const device_t realtek_rtg3106_device = {
     .init          = rtg_init,
     .close         = rtg_close,
     .reset         = NULL,
-    { .available = rtg3106_available },
+    .available     = rtg3106_available,
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
     .config        = rtg3106_config

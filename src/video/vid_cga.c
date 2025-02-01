@@ -914,9 +914,7 @@ const device_config_t cga_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -928,7 +926,7 @@ const device_t cga_device = {
     .init          = cga_standalone_init,
     .close         = cga_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config
@@ -942,7 +940,7 @@ const device_t cga_pravetz_device = {
     .init          = cga_pravetz_init,
     .close         = cga_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config

@@ -18,8 +18,8 @@ void
 LOAD_IMMEDIATE_FROM_RAM_16_unaligned(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
 {
     /*Word access that crosses two pages. Perform reads from both pages, shift and combine*/
-    uop_MOVZX_REG_PTR_8(ir, IREG_temp3_W, get_ram_ptr(addr));
-    uop_MOVZX_REG_PTR_8(ir, dest_reg, get_ram_ptr(addr + 1));
+    uop_MOVZX_REG_PTR_8(ir, IREG_temp3_W, get_ram_ptr(addr + 1));
+    uop_MOVZX_REG_PTR_8(ir, dest_reg, get_ram_ptr(addr));
     uop_SHL_IMM(ir, IREG_temp3_W, IREG_temp3_W, 8);
     uop_OR(ir, dest_reg, dest_reg, IREG_temp3_W);
 }
