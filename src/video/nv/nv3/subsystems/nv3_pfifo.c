@@ -411,17 +411,17 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     nv3->pfifo.cache1_settings.dma_tlb_tag = value;
                     break;
                 case NV3_PFIFO_RUNOUT_GET:
-                    uint32_t size = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
+                    uint32_t size_get = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
-                    if (size == 0) //512b
+                    if (size_get == 0) //512b
                         nv3->pfifo.runout_get = ((value & 0x3F) << 3);
                     else 
                         nv3->pfifo.runout_get = ((value & 0x3FF) << 3);
                     break;
                 case NV3_PFIFO_RUNOUT_PUT:
-                    uint32_t size = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
+                    uint32_t size_put = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
-                    if (size == 0) //512b
+                    if (size_put == 0) //512b
                         nv3->pfifo.runout_put = ((value & 0x3F) << 3);
                     else 
                         nv3->pfifo.runout_put = ((value & 0x3FF) << 3);
