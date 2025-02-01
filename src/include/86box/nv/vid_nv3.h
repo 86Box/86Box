@@ -41,7 +41,7 @@ extern const device_config_t nv3_config[];
 #define NV3_DMA_CHANNELS                                8
 #define NV3_DMA_SUBCHANNELS_PER_CHANNEL                 8
 
-#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             10              // The amount by which we have to ration out the memory clock because it's not fast enough...
+#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             1               // The amount by which we have to ration out the memory clock because it's not fast enough...
                                                                         // Multiply by this value to get the real clock speed.
 #define NV3_LAST_VALID_GRAPHICS_OBJECT_ID               0x1F
 
@@ -298,7 +298,7 @@ extern const device_config_t nv3_config[];
 //todo: merge stuff
 #define NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED         0
 #define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE    4
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_SOFTWARE_METHOD     8           // 0=software, 1=hardware
+#define NV3_PFIFO_CACHE1_PULLER_CONTROL_SOFTWARE_METHOD 8           // 0=software, 1=hardware
 #define NV3_PFIFO_CACHE1_PULLER_STATE1                  0x3250
 #define NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY            4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
@@ -792,7 +792,7 @@ typedef struct nv3_pfifo_cache_s
     bool access_enabled;                // Can we even access this cache?
     uint8_t put_address;                // Trigger a DMA into the value you put here.
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
-    uint8_t channel_id;                 // The DMA channel ID of this cache.
+    uint8_t channel;                 // The DMA channel ID of this cache.
     uint32_t status;
     uint32_t puller_control;
     uint32_t control;
@@ -821,7 +821,7 @@ typedef struct nv3_pfifo_cache_s
 
 typedef struct nv3_pfifo_cache_entry_s
 {
-    uint8_t subchannel_id : 3;
+    uint8_t subchannel : 3;
     uint16_t method : 11;               // method id depending on class (offset from entry channel start in ramin)
     uint32_t data;                      // is this the context
 
@@ -845,7 +845,7 @@ typedef struct nv3_pfifo_s
     nv3_pfifo_cache_t cache0_settings;
     nv3_pfifo_cache_t cache1_settings;
 
-    nv3_pfifo_cache_entry_t cache0_entries[1];
+    nv3_pfifo_cache_entry_t cache0_entry;                              // It only has 1 entry
     nv3_pfifo_cache_entry_t cache1_entries[NV3_PFIFO_CACHE1_SIZE_MAX]; // ONLY 32 USED ON REVISION A/B CARDS
 
 
@@ -1080,7 +1080,7 @@ typedef struct nv3_ramin_context_s
         struct
         {
             bool reserved : 1;
-            uint8_t channel_id : 7;
+            uint8_t channel : 7;
             bool is_rendering : 1;
             uint8_t class_id : 7;
             uint16_t ramin_offset; 
@@ -1238,6 +1238,9 @@ bool        nv3_ramin_arbitrate_write(uint32_t address, uint32_t value);       /
 // RAMIN functions
 uint32_t    nv3_ramht_hash(uint32_t name, uint32_t channel);
 bool        nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_id, uint32_t subchannel_id);
+#ifndef RELEASE_BUILD
+void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context);
+#endif
 
 uint32_t    nv3_ramfc_read(uint32_t address);
 void        nv3_ramfc_write(uint32_t address, uint32_t value);

@@ -347,7 +347,7 @@ bool nv3_ramin_arbitrate_write(uint32_t address, uint32_t value)
 }
 
 // THIS IS THE MOST IMPORTANT FUNCTION!
-bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_id, uint32_t subchannel_id)
+bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel, uint32_t subchannel)
 {  
     // TODO: WRITE IT!!!
     // Set the number of entries to search based on the ramht size (2*(size+1))
@@ -358,7 +358,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_i
     uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
     uint32_t ramht_cur_address = ramht_base;
 
-    nv_log("NV3: Beginning search for graphics object at RAMHT base=0x%04x, Cache%d, channel=%d, subchannel=%d)", name, cache_num, channel_id, subchannel_id);
+    nv_log("NV3: Beginning search for graphics object at RAMHT base=0x%04x, Cache%d, channel=%d, subchannel=%d)", name, cache_num, channel, subchannel);
 
     bool found_object = false;
     
@@ -376,7 +376,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_i
 
         // see if the object is in the right channel
         if (found_obj_name == name
-            && obj_context_struct.channel_id == channel_id)
+            && obj_context_struct.channel == channel)
         {
             found_object = true;
             break;
@@ -421,8 +421,8 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_i
         fatal("NV3: Invalid graphics object class ID name=0x%04x type=%04x, interpreted by pgraph as: %04x (Contact starfrost)", 
             name, obj_context_struct.class_id, obj_context_struct.class_id & 0x1F);
     }   
-    else if (obj_context_struct.channel_id > NV3_DMA_CHANNELS)
-        fatal("NV3: Super fucked up graphics object. Contact starfrost with the error string: DMA Channel ID=%d, it should be 0-8", obj_context_struct.channel_id);
+    else if (obj_context_struct.channel > NV3_DMA_CHANNELS)
+        fatal("NV3: Super fucked up graphics object. Contact starfrost with the error string: DMA Channel ID=%d, it should be 0-8", obj_context_struct.channel);
     
     // Illegal accesses sent to RAMRO, so ignore here
     // TODO: SEND THESE TO RAMRO!!!!!
@@ -442,9 +442,9 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_i
     
     bool is_software = false;
     if (!cache_num)
-        is_software = (nv3->pfifo.cache0_settings.context[subchannel_id] & 0x800000);
+        is_software = (nv3->pfifo.cache0_settings.context[subchannel] & 0x800000);
     else 
-        is_software = (nv3->pfifo.cache1_settings.context[subchannel_id] & 0x800000);
+        is_software = (nv3->pfifo.cache1_settings.context[subchannel] & 0x800000);
 
     // This isn't an error but it's sent as an interrupt so the drivers can sync
     if (is_software)
@@ -487,7 +487,7 @@ void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t conte
     nv_log("Name: 0x%04x", name);
 
     nv_log("Context:");
-    nv_log("DMA Channel %d (0-7 valid)", context.channel_id);
+    nv_log("DMA Channel %d (0-7 valid)", context.channel);
     nv_log("Class ID: as repreesnted in ramin=%04x, Stupid 5 bit version (the actual id)=0x%04x (%s)", context.class_id, 
     context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
     nv_log("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)", context.is_rendering);

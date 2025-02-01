@@ -50,7 +50,7 @@ typedef struct nv3_class_ctx_switch_method_s
         uint32_t data;
 
         uint16_t instance;
-        uint8_t channel_id : 6;
+        uint8_t channel : 6;
         uint16_t reserved : 9;
         bool reset_if_volatile; // ????
     } set_notify_ctx_dma;           // Set notifier context for DMA (context switch)
@@ -1085,5 +1085,63 @@ typedef struct nv3_object_class_01C
     uint8_t reserved3[0x1C3F];
 } nv3_image_in_memory_t;
 
+// See envytools. This is where we finally end up after this mess, it allows parameters to be passed to the methods.
+typedef struct nv3_grobj_s
+{
+    uint32_t grobj_0;
+    uint32_t grobj_1;
+    uint32_t grobj_2;
+    uint32_t grobj_3;
+} nv3_grobj_t;
 // TODO: PATCHCORDS!!!! TO LINK ALL OF THIS TOGETHER!!!
 #pragma pack(pop) // return packing to whatever it was before this disaster
+
+// Class methods
+void nv3_generic_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_001_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_002_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_003_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_004_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_005_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_006_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_007_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_008_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_008_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_009_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_00a_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_00b_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_00c_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_00d_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_00e_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_010_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_011_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_012_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_014_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_015_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_017_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_018_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_class_01c_method(uint32_t method_id, nv3_grobj_t grobj);
+
+// This area is used for holding universal representations of the U* registers...
+extern struct nv3_object_class_001 nv3_beta_factor;
+extern struct nv3_object_class_002 nv3_rop;
+extern struct nv3_object_class_003 nv3_chroma_key;
+extern struct nv3_object_class_004 nv3_plane_mask;
+extern struct nv3_object_class_005 nv3_clipping_rectangle;
+extern struct nv3_object_class_006 nv3_pattern;
+extern struct nv3_object_class_007 nv3_triangle;
+extern struct nv3_object_class_008 nv3_point;
+extern struct nv3_object_class_009 nv3_line;
+extern struct nv3_object_class_00a nv3_lin;
+extern struct nv3_object_class_00b nv3_triangle;
+extern struct nv3_object_class_00c nv3_win95_gdi_text;
+extern struct nv3_object_class_00d nv3_m2mf;
+extern struct nv3_object_class_00e nv3_scaled_image_from_memory;
+extern struct nv3_object_class_010 nv3_blit;
+extern struct nv3_object_class_011 nv3_image;
+extern struct nv3_object_class_012 nv3_bitmap;
+extern struct nv3_object_class_014 nv3_transfer2memory;
+extern struct nv3_object_class_015 nv3_stretched_image_from_cpu;
+extern struct nv3_object_class_017 nv3_d3d5_tri;
+extern struct nv3_object_class_018 nv3_point_zeta_buffer;
+extern struct nv3_object_class_01c nv3_image_in_memory;

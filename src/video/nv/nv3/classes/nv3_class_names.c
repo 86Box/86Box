@@ -64,5 +64,4 @@ const char* nv3_class_names[] =
     "NV3 INVALID class 0x1D",
     "NV3 INVALID class 0x1E",
     "NV3 INVALID class 0x1F",
-    
 };

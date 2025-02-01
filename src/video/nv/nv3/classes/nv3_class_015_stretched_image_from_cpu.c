@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          NV3: Methods for class 0x15 (stretched image to memory)
+ *          NV3: Methods for class 0x15 (stretched image from cpu to memory)
  *
  *
  *
@@ -14,3 +14,24 @@
  *
  *          Copyright 2024-2025 Connor Hyde
  */
+
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <86Box/86box.h>
+#include <86Box/device.h>
+#include <86Box/mem.h>
+#include <86box/pci.h>
+#include <86Box/rom.h>
+#include <86Box/video.h>
+#include <86Box/nv/vid_nv.h>
+#include <86Box/nv/vid_nv3.h>
+#include <86box/nv/classes/vid_nv3_classes.h>
+
+struct nv3_object_class_014 nv3_stretched_image_from_cpu; 
+
+void nv3_class_015_method(uint32_t method_id, nv3_grobj_t grobj)
+{
+
+}

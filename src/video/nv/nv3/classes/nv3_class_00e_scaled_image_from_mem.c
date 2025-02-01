@@ -14,3 +14,24 @@
  *
  *          Copyright 2024-2025 Connor Hyde
  */
+
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <86Box/86box.h>
+#include <86Box/device.h>
+#include <86Box/mem.h>
+#include <86box/pci.h>
+#include <86Box/rom.h>
+#include <86Box/video.h>
+#include <86Box/nv/vid_nv.h>
+#include <86Box/nv/vid_nv3.h>
+#include <86box/nv/classes/vid_nv3_classes.h>
+
+struct nv3_object_class_00e nv3_scaled_image_from_mem;
+
+void nv3_class_00e_method(uint32_t method_id, nv3_grobj_t grobj)
+{
+
+}

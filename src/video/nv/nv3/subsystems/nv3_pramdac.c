@@ -49,16 +49,19 @@ void nv3_pramdac_init()
 }
 
 // Polls the pixel clock.
-// This updates the 2D/3D engine PGRAPH
 void nv3_pramdac_pixel_clock_poll(double real_time)
 {
     // TODO: ????
 }
 
 // Polls the memory clock.
+// This updates the 2D/3D engine PGRAPH, PTIMER and more 
 void nv3_pramdac_memory_clock_poll(double real_time)
 {
     nv3_ptimer_tick(real_time);
+
+    nv3_pfifo_cache0_pull();
+    nv3_pfifo_cache1_pull();
     // TODO: UPDATE PGRAPH!
 }
 

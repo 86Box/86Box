@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          NV3: Methods for class 0x05 (Clipping rectangle)
+ *          NV3: Methods shared across multiple classes
  *
  *
  *
@@ -14,6 +14,7 @@
  *
  *          Copyright 2024-2025 Connor Hyde
  */
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -28,9 +29,7 @@
 #include <86Box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
-struct nv3_object_class_005 nv3_clipping_rectangle; 
-
-void nv3_class_005_method(uint32_t method_id, nv3_grobj_t grobj)
+void nv3_generic_method(uint32_t method_id, nv3_grobj_t grobj)
 {
 
 }

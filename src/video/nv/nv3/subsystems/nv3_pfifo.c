@@ -152,10 +152,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = nv3->pfifo.cache1_settings.access_enabled;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
-                    ret = nv3->pfifo.cache0_settings.channel_id;
+                    ret = nv3->pfifo.cache0_settings.channel;
                     break;
                 case NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID:
-                    ret = nv3->pfifo.cache1_settings.channel_id;
+                    ret = nv3->pfifo.cache1_settings.channel;
                     break;
                 case NV3_PFIFO_CACHE0_STATUS:
                     uint32_t ret = 0x00;
@@ -351,10 +351,10 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     nv3->pfifo.cache1_settings.access_enabled = value;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
-                    nv3->pfifo.cache0_settings.channel_id = value;
+                    nv3->pfifo.cache0_settings.channel = value;
                     break;
                 case NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID:
-                    nv3->pfifo.cache1_settings.channel_id = value;
+                    nv3->pfifo.cache1_settings.channel = value;
                     break;
                 // CACHE0_STATUS and CACHE1_STATUS are not writable
                 case NV3_PFIFO_CACHE0_METHOD:
@@ -441,7 +441,38 @@ void nv3_pfifo_cache0_pull()
     if (nv3->pfifo.cache0_settings.put_address == nv3->pfifo.cache0_settings.get_address)
         return;
 
-    // There is only one entry
+    // There is only one entry for cache0 
+    uint16_t current_channel = nv3->pfifo.cache0_settings.channel;
+    uint32_t current_subchannel = nv3->pfifo.cache0_entry.subchannel;
+    uint32_t current_name = nv3->pfifo.cache0_entry.data;
+    uint32_t current_method = nv3->pfifo.cache0_entry.method;
+    
+    // i.e. there is no method in cache0, so we have to find the object.
+    if (!current_method)
+    {
+        if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
+            return; // interrupt was fired, and we went to ramro
+    }
+
+    uint32_t current_context = nv3->pfifo.cache0_settings.context[0]; // only 1 entry for CACHE0 so basically ignore the other context entries?
+
+    // Tell the CPU if we found a software method
+    if (current_context & 0x800000)
+    {
+        nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
+        nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
+    }
+
+    // Is this needed?
+    nv3->pfifo.cache0_settings.get_address ^= 0x04;
+
+    #ifndef RELEASE_BUILD
+    nv_log("NV3: ***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE0 PULLED ****** Contextual information below\n");
+            
+    nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
+    #endif
+
 }
 
 void nv3_pfifo_cache1_push()
@@ -458,6 +489,50 @@ void nv3_pfifo_cache1_pull()
     // Do nothing if there is nothing in cache1 to pull
     if (nv3->pfifo.cache1_settings.put_address == nv3->pfifo.cache1_settings.get_address)
         return;
+
+    // There is only one entry for cache0 
+    uint32_t get_address = nv3->pfifo.cache1_settings.get_address >> 2; // 32 bit aligned probably
+
+    uint16_t current_channel = nv3->pfifo.cache1_settings.channel;
+    uint32_t current_subchannel = nv3->pfifo.cache1_entries[get_address].subchannel;
+    uint32_t current_name = nv3->pfifo.cache1_entries[get_address].data;
+    uint32_t current_method = nv3->pfifo.cache1_entries[get_address].method;
+  
+    // i.e. there is no method in cache0, so we have to find the object.
+    if (!current_method)
+    {
+        if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
+            return; // interrupt was fired, and we went to ramro
+    }
+
+    uint32_t current_context = nv3->pfifo.cache0_settings.context[0]; // only 1 entry for CACHE0 so basically ignore the other context entries?
+
+    // Tell the CPU if we found a software method
+    if (current_context & 0x800000)
+    {
+        nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
+        nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
+    }
+
+    // start by incrementing
+    uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_address) + 1;
+    
+    if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
+        next_get_address &= NV3_PFIFO_CACHE1_SIZE_REV_C;
+    else 
+        next_get_address &= NV3_PFIFO_CACHE1_SIZE_REV_AB;
+
+    // Is this needed?
+    nv3->pfifo.cache0_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
+
+    #ifndef RELEASE_BUILD
+    nv_log("NV3: ***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE1 PULLED ****** Contextual information below\n");
+            
+    nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
+    #endif
+
+    //Todo: finish it
 }
 
 bool nv3_pfifo_cache1_is_free()
