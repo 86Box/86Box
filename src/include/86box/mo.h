@@ -27,7 +27,7 @@
 
 #define MO_TIME  10.0
 
-#define MO_IMAGE_HISTORY 4
+#define MO_IMAGE_HISTORY 10
 
 typedef struct mo_type_t {
     uint32_t sectors;
