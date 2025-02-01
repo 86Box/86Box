@@ -561,7 +561,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
         // Reserved NVIDIA Objects
         oh_shit = true; 
         oh_shit_reason = nv3_runout_reason_reserved_access;
-        new_address |= (nv3_runout_reason_free_count_overrun << NV3_PFIFO_RUNOUT_RAMIN_ERR);
+        new_address |= (nv3_runout_reason_reserved_access << NV3_PFIFO_RUNOUT_RAMIN_ERR);
 
     }
 
