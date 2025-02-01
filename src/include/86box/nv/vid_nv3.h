@@ -208,6 +208,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PBUS_END                                    0x1FFF
 #define NV3_PFIFO_START                                 0x2000      // FIFO for DMA Object Submission (uses hashtable to store the objects)
 
+#define NV3_PFIFO_DELAY_0                               0x2040      // PFIFO Config Register
 #define NV3_PFIFO_DEBUG_0                               0x2080      // PFIFO Debug Register
 #define NV3_PFIFO_CACHE0_ERROR_PENDING                  0
 #define NV3_PFIFO_CACHE1_ERROR_PENDING                  4
@@ -832,13 +833,15 @@ typedef struct nv3_pfifo_s
 {
     uint32_t interrupt_status;          // Interrupt status
     uint32_t interrupt_enable;          // Interrupt enable
+    uint32_t dma_delay_retry;           // DMA Delay/Retry
     uint32_t debug_0;                   // Cache Debug register
+    uint32_t config_0;
     uint32_t ramht_config;              // RAMHT config
     uint32_t ramfc_config;              // RAMFC config
     uint32_t ramro_config;              // RAMRO config
     // Runout stuff
-    uint32_t runout_put;
-    uint32_t runout_get;
+    uint32_t runout_put;                // 8:3 if RAMRO=512b, otherwise 12:3
+    uint32_t runout_get;                // 8:3 if RAMRO=512b, otherwise 12:3
 
     // Cache stuff
     uint32_t cache_reassignment;        // Enable automatic reassignment into CACHE0?

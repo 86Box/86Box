@@ -946,7 +946,10 @@ void nv3_update_mappings()
 //
 void* nv3_init(const device_t *info)
 {
-    nv3->nvbase.log = log_open("NV3");
+    if (device_get_config_int("nv_debug_fulllog"))
+        nv3->nvbase.log = log_open("NV3");
+    else
+        nv3->nvbase.log = log_open_cyclic("NV3");
 
     // Allows nv_log to be used for multiple nvidia devices
     nv_log_set_device(nv3->nvbase.log);    

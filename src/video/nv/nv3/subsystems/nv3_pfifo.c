@@ -35,7 +35,9 @@
 nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_INTR, "PFIFO - Interrupt Status", NULL, NULL},
     { NV3_PFIFO_INTR_EN, "PFIFO - Interrupt Enable", NULL, NULL,},
+    { NV3_PFIFO_DELAY_0, "PFIFO - DMA Delay/Retry Register", NULL, NULL},
     { NV3_PFIFO_DEBUG_0, "PFIFO - Debug 0", NULL, NULL, }, 
+    { NV3_PFIFO_CONFIG_0, "PFIFO - Config 0", NULL, NULL, },
     { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
@@ -64,8 +66,9 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE, "PFIFO - Cache1 DMA Translation Lookaside Buffer - Pagetable Base"},
     { NV3_PFIFO_CACHE1_DMA_TLB_PTE, "PFIFO - Cache1 DMA Status"},
     { NV3_PFIFO_CACHE1_DMA_TLB_TAG, "PFIFO - Cache1 DMA Status"},
-    
-
+    //Runout
+    { NV3_PFIFO_RUNOUT_GET, "PFIFO Runout Get Address [8:3 if 512b, otherwise 12:3]"},
+    { NV3_PFIFO_RUNOUT_PUT, "PFIFO Runout Put Address [8:3 if 512b, otherwise 12:3]"},
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -119,10 +122,15 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_INTR_EN:
                     ret = nv3->pfifo.interrupt_enable;
                     break;
+                case NV3_PFIFO_DELAY_0:
+                    ret = nv3->pfifo.dma_delay_retry;
+                    break;
                 // Debug
                 case NV3_PFIFO_DEBUG_0:
                     ret = nv3->pfifo.debug_0;
                     break;
+                case NV3_PFIFO_CONFIG_0:
+                    ret = nv3->pfifo.config_0;
                 // Some of these may need to become functions.
                 case NV3_PFIFO_CONFIG_RAMFC:
                     ret = nv3->pfifo.ramfc_config;
@@ -223,7 +231,12 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CACHE1_DMA_TLB_TAG:
                     ret = nv3->pfifo.cache1_settings.dma_tlb_tag;
                     break;
-
+                case NV3_PFIFO_RUNOUT_GET:
+                    ret = nv3->pfifo.runout_get;
+                    break;
+                case NV3_PFIFO_RUNOUT_PUT:
+                    ret = nv3->pfifo.runout_put;
+                    break;
                 
             }
         }
@@ -284,6 +297,13 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 case NV3_PFIFO_INTR_EN:
                     nv3->pbus.interrupt_enable = value & 0x00001111;
                     break;
+                case NV3_PFIFO_DELAY_0:
+                    nv3->pfifo.dma_delay_retry = value;
+                    break;
+                case NV3_PFIFO_CONFIG_0:
+                    nv3->pfifo.config_0 = value;
+                    break;
+
                 case NV3_PFIFO_CONFIG_RAMHT:
                     nv3->pfifo.ramht_config = value;
 // This code sucks a bit fix it later
@@ -313,7 +333,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 case NV3_PFIFO_CONFIG_RAMRO:
                     nv3->pfifo.ramro_config = value;
 
-                    uint32_t new_size_ramro = ((value >> 16) & 0x01);
+                    uint32_t new_size_ramro = ((value >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (new_size_ramro == 0)
                         new_size_ramro = 0x200;
@@ -389,6 +409,22 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     break;
                 case NV3_PFIFO_CACHE1_DMA_TLB_TAG:
                     nv3->pfifo.cache1_settings.dma_tlb_tag = value;
+                    break;
+                case NV3_PFIFO_RUNOUT_GET:
+                    uint32_t size = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
+
+                    if (size == 0) //512b
+                        nv3->pfifo.runout_get = ((value & 0x3F) << 3);
+                    else 
+                        nv3->pfifo.runout_get = ((value & 0x3FF) << 3);
+                    break;
+                case NV3_PFIFO_RUNOUT_PUT:
+                    uint32_t size = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
+
+                    if (size == 0) //512b
+                        nv3->pfifo.runout_put = ((value & 0x3F) << 3);
+                    else 
+                        nv3->pfifo.runout_put = ((value & 0x3FF) << 3);
                     break;
             }
         }
