@@ -4734,9 +4734,7 @@ static const device_config_t s3_virge_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -4777,9 +4775,7 @@ static const device_config_t s3_virge_stb_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -4797,9 +4793,7 @@ static const device_config_t s3_virge_357_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -4836,9 +4830,7 @@ static const device_config_t s3_trio3d2x_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -4850,7 +4842,7 @@ const device_t s3_virge_325_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_325_available },
+    .available     = s3_virge_325_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4864,7 +4856,7 @@ const device_t s3_virge_325_onboard_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4878,7 +4870,7 @@ const device_t s3_diamond_stealth_2000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_325_diamond_available },
+    .available     = s3_virge_325_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4892,7 +4884,7 @@ const device_t s3_mirocrystal_3d_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_mirocrystal_3d_available },
+    .available     = s3_mirocrystal_3d_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4906,7 +4898,7 @@ const device_t s3_diamond_stealth_3000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_988_diamond_available },
+    .available     = s3_virge_988_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_stb_config
@@ -4920,7 +4912,7 @@ const device_t s3_stb_velocity_3d_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_988_stb_available },
+    .available     = s3_virge_988_stb_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_stb_config
@@ -4934,7 +4926,7 @@ const device_t s3_virge_375_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_375_available },
+    .available     = s3_virge_375_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4948,7 +4940,7 @@ const device_t s3_virge_375_onboard_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4962,7 +4954,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_375_diamond_available },
+    .available     = s3_virge_375_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4976,7 +4968,7 @@ const device_t s3_virge_385_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_385_available },
+    .available     = s3_virge_385_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4990,7 +4982,7 @@ const device_t s3_virge_357_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_available },
+    .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5004,7 +4996,7 @@ const device_t s3_virge_357_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_available },
+    .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5018,7 +5010,7 @@ const device_t s3_diamond_stealth_4000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_diamond_available },
+    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5032,7 +5024,7 @@ const device_t s3_diamond_stealth_4000_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_diamond_available },
+    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5046,7 +5038,7 @@ const device_t s3_trio3d2x_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_trio3d2x_available },
+    .available     = s3_trio3d2x_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_trio3d2x_config
@@ -5060,7 +5052,7 @@ const device_t s3_trio3d2x_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_trio3d2x_available },
+    .available     = s3_trio3d2x_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_trio3d2x_config

@@ -739,15 +739,15 @@ static const device_config_t threec503_config[] = {
 };
 
 const device_t threec503_device = {
-    .name = "3Com EtherLink II",
+    .name          = "3Com EtherLink II",
     .internal_name = "3c503",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = threec503_nic_init,
-    .close = threec503_nic_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = threec503_nic_init,
+    .close         = threec503_nic_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = threec503_config
+    .force_redraw  = NULL,
+    .config        = threec503_config
 };

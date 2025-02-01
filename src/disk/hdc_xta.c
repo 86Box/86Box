@@ -1170,29 +1170,29 @@ static const device_config_t wdxt150_config[] = {
 };
 
 const device_t xta_wdxt150_device = {
-    .name = "WDXT-150 XTA Fixed Disk Controller",
+    .name          = "WDXT-150 XTA Fixed Disk Controller",
     .internal_name = "xta_wdxt150",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = xta_init,
-    .close = xta_close,
-    .reset = NULL,
-    { .available = NULL /*xta_available*/ },
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = xta_init,
+    .close         = xta_close,
+    .reset         = NULL,
+    .available     = NULL /*xta_available*/,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = wdxt150_config
+    .force_redraw  = NULL,
+    .config        = wdxt150_config
 };
 
 const device_t xta_hd20_device = {
-    .name = "EuroPC HD20 Fixed Disk Controller",
+    .name          = "EuroPC HD20 Fixed Disk Controller",
     .internal_name = "xta_hd20",
-    .flags = DEVICE_ISA,
-    .local = 1,
-    .init = xta_init,
-    .close = xta_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = xta_init,
+    .close         = xta_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

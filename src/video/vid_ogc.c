@@ -666,9 +666,7 @@ const device_config_t ogc_m24_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1,
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -680,7 +678,7 @@ const device_t ogc_m24_device = {
     .init          = ogc_init,
     .close         = ogc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ogc_speed_changed,
     .force_redraw  = NULL,
     .config        = ogc_m24_config
@@ -694,7 +692,7 @@ const device_t ogc_device = {
     .init          = ogc_init,
     .close         = ogc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ogc_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config

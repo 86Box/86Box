@@ -379,9 +379,7 @@ static const device_config_t mda_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -393,7 +391,7 @@ const device_t mda_device = {
     .init          = mda_standalone_init,
     .close         = mda_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = mda_speed_changed,
     .force_redraw  = NULL,
     .config        = mda_config

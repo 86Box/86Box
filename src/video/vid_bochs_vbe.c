@@ -962,9 +962,7 @@ static const device_config_t bochs_vbe_config[] = {
         },
         .default_int = 16
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
@@ -976,7 +974,7 @@ const device_t bochs_svga_device = {
     .init          = bochs_vbe_init,
     .close         = bochs_vbe_close,
     .reset         = bochs_vbe_reset,
-    { .available = bochs_vbe_available },
+    .available = bochs_vbe_available,
     .speed_changed = bochs_vbe_speed_changed,
     .force_redraw  = bochs_vbe_force_redraw,
     .config        = bochs_vbe_config

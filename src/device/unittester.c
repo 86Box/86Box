@@ -115,12 +115,16 @@ static struct unittester_state unittester_defaults = {
 };
 
 static const device_config_t unittester_config[] = {
-    { .name           = "exit_enabled",
-     .description    = "Enable 0x04 \"Exit 86Box\" command",
-     .type           = CONFIG_BINARY,
-     .default_int    = 1,
-     .default_string = "" },
-    { .type = CONFIG_END }
+// clang-format off
+    {
+        .name           = "exit_enabled",
+        .description    = "Enable 0x04 \"Exit 86Box\" command",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .default_string = ""
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
 };
 
 /* Kept separate, as we will be reusing this object */
@@ -628,7 +632,7 @@ const device_t unittester_device = {
     .init          = unittester_init,
     .close         = unittester_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = unittester_config,

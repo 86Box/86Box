@@ -334,15 +334,15 @@ row_init(const device_t *info)
 
 /* NOTE: NOT const, so that we can patch it at init. */
 device_t row_device = {
-    .name = "DRAM Rows",
+    .name          = "DRAM Rows",
     .internal_name = "dram_rows",
-    .flags = DEVICE_AT,
-    .local = 0x0000,
-    .init = row_init,
-    .close = row_close,
-    .reset = row_reset,
-    { .available = NULL },
+    .flags         = DEVICE_AT,
+    .local         = 0x0000,
+    .init          = row_init,
+    .close         = row_close,
+    .reset         = row_reset,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

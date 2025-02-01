@@ -1423,9 +1423,7 @@ static const device_config_t voodoo_config[] = {
         .default_int = 1
     },
 #endif
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1437,7 +1435,7 @@ const device_t voodoo_device = {
     .init          = voodoo_init,
     .close         = voodoo_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = voodoo_speed_changed,
     .force_redraw  = voodoo_force_blit,
     .config        = voodoo_config

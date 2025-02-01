@@ -981,9 +981,7 @@ static const device_config_t et4000_tc6058af_config[] = {
             { .files_no = 0 }
         },
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -1028,9 +1026,7 @@ static const device_config_t et4000_bios_config[] = {
             { .files_no = 0 }
         },
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1059,9 +1055,7 @@ static const device_config_t et4000_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1073,7 +1067,7 @@ const device_t et4000_tc6058af_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_tc6058af_config
@@ -1087,7 +1081,7 @@ const device_t et4000_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_bios_config
@@ -1101,7 +1095,7 @@ const device_t et4000_mca_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_available },
+    .available     = et4000_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1115,7 +1109,7 @@ const device_t et4000k_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000k_available },
+    .available     = et4000k_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1129,7 +1123,7 @@ const device_t et4000k_tg286_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000k_available },
+    .available     = et4000k_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1143,7 +1137,7 @@ const device_t et4000_kasan_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_kasan_available },
+    .available     = et4000_kasan_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config

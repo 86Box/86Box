@@ -6872,7 +6872,7 @@ static const device_config_t mystique_config[] = {
         },
         .default_int = 8
     },
-    { .type = CONFIG_END }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -6899,7 +6899,7 @@ static const device_config_t millennium_ii_config[] = {
         },
         .default_int = 8
     },
-    { .type = CONFIG_END }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -6911,7 +6911,7 @@ const device_t millennium_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = millennium_available },
+    .available     = millennium_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
@@ -6925,7 +6925,7 @@ const device_t mystique_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = mystique_available },
+    .available     = mystique_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
@@ -6939,7 +6939,7 @@ const device_t mystique_220_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = mystique_220_available },
+    .available     = mystique_220_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
@@ -6953,7 +6953,7 @@ const device_t millennium_ii_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = millennium_ii_available },
+    .available     = millennium_ii_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
@@ -6968,7 +6968,7 @@ const device_t productiva_g100_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = matrox_g100_available },
+    .available     = matrox_g100_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
