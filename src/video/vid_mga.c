@@ -427,8 +427,7 @@ enum {
     DMA_STATE_SEC
 };
 
-typedef struct
-{
+typedef struct {
     uint32_t addr_type;
     uint32_t val;
 } fifo_entry_t;
@@ -484,13 +483,11 @@ typedef struct mystique_t {
 
     event_t *wake_fifo_thread, *fifo_not_full_event;
 
-    struct
-    {
+    struct {
         int m, n, p, s;
     } xpixpll[3];
 
-    struct
-    {
+    struct {
         uint8_t funcnt : 7, stylelen,
             dmamod;
 
@@ -521,27 +518,23 @@ typedef struct mystique_t {
 
         uint64_t extended_dr[4];
 
-        struct
-        {
+        struct {
             int sdydxl, scanleft, sdxl, sdy,
                 sdxr;
         } sgn;
     } dwgreg;
 
-    struct
-    {
+    struct {
         uint8_t r, g, b;
     } lut[256];
 
-    struct
-    {
+    struct {
         uint16_t pos_x, pos_y,
             addr;
         uint32_t col[3];
     } cursor;
 
-    struct
-    {
+    struct {
         atomic_int pri_state, sec_state, iload_state, state;
 
         atomic_uint primaddress, primend, secaddress, secend,

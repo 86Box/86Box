@@ -856,18 +856,18 @@ xga_ext_inb(uint16_t addr, void *priv)
     return ret;
 }
 
-#define READ(addr, dat) \
+#define READ(addr, dat)                         \
     dat = xga->vram[(addr) & (xga->vram_mask)];
 
-#define WRITE(addr, dat)                                         \
-    xga->vram[((addr)) & (xga->vram_mask)]                = dat; \
+#define WRITE(addr, dat)                                                                         \
+    xga->vram[((addr)) & (xga->vram_mask)]                = dat;                                 \
     xga->changedvram[(((addr)) & (xga->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;
 
-#define READW(addr, dat) \
+#define READW(addr, dat)                                       \
     dat = *(uint16_t *) &xga->vram[(addr) & (xga->vram_mask)];
 
-#define WRITEW(addr, dat)                                        \
-    *(uint16_t *) &xga->vram[((addr)) & (xga->vram_mask)] = dat; \
+#define WRITEW(addr, dat)                                                                        \
+    *(uint16_t *) &xga->vram[((addr)) & (xga->vram_mask)] = dat;                                 \
     xga->changedvram[(((addr)) & (xga->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;
 
 #define ROP(mix, d, s)                                                                 \
@@ -928,7 +928,7 @@ xga_ext_inb(uint16_t addr, void *priv)
                 d = MIN(s, d);                                                         \
                 break;                                                                 \
             case 0x12:                                                                 \
-                d = MIN(~0, s + d);                                                  \
+                d = MIN(~0, s + d);                                                    \
                 break;                                                                 \
             case 0x13:                                                                 \
                 d = MAX(0, d - s);                                                     \

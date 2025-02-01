@@ -21,8 +21,7 @@
 
 #define MAX_INSTRUCTION_COUNT 50
 
-static struct
-{
+static struct {
     uint32_t pc;
     int      op_ssegs;
     x86seg  *op_ea_seg;

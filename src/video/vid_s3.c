@@ -537,15 +537,15 @@ static void s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3);
 #define READ_PIXTRANS_BYTE_MM \
     temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];
 
-#define READ_PIXTRANS_WORD                                                                                 \
-    if ((s3->bpp == 0) && !s3->color_16bit) {                   \
-        temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];             \
-        temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 1)) & s3->vram_mask] << 8); \
-    } else                                                                                               \
+#define READ_PIXTRANS_WORD                                                                                            \
+    if ((s3->bpp == 0) && !s3->color_16bit) {                                                                         \
+        temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];                        \
+        temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 1)) & s3->vram_mask] << 8);            \
+    } else                                                                                                            \
         temp = vram_w[dword_remap_w(svga, (s3->accel.dest + s3->accel.cx - s3->accel.minus)) & (s3->vram_mask >> 1)];
 
 #define READ_PIXTRANS_LONG                                                                                       \
-    if ((s3->bpp == 0) && !s3->color_16bit) {                         \
+    if ((s3->bpp == 0) && !s3->color_16bit) {                                                                    \
         temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];                   \
         temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 1)) & s3->vram_mask] << 8);       \
         temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 2)) & s3->vram_mask] << 16);      \
@@ -6583,9 +6583,9 @@ polygon_setup(s3_t *s3)
 #define READ(addr, dat)                                                 \
     if (((s3->bpp == 0) && !s3->color_16bit) || (s3->bpp == 2))         \
         dat = svga->vram[dword_remap(svga, addr) & s3->vram_mask];      \
-    else if ((s3->bpp == 1) || s3->color_16bit)   \
+    else if ((s3->bpp == 1) || s3->color_16bit)                         \
         dat = vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]; \
-    else                                                               \
+    else                                                                \
         dat = vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)];
 
 #define MIX_READ                                                                                  \
@@ -6642,11 +6642,11 @@ polygon_setup(s3_t *s3)
         }                                                                                         \
     }
 
-#define MIX                                                                                \
-    {                                                                                      \
-        old_dest_dat = dest_dat;                                                           \
-        MIX_READ                                                                           \
-        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);                 \
+#define MIX                                                            \
+    {                                                                  \
+        old_dest_dat = dest_dat;                                       \
+        MIX_READ                                                       \
+        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask); \
     }
 
 #define ROPMIX_READ(D, P, S)                       \
@@ -7431,14 +7431,14 @@ polygon_setup(s3_t *s3)
     }
 
 #define WRITE(addr, dat)                                                                                                   \
-    if (((s3->bpp == 0) && !s3->color_16bit) || (s3->bpp == 2)) {                   \
-        svga->vram[dword_remap(svga, addr) & s3->vram_mask] = dat;                                          \
+    if (((s3->bpp == 0) && !s3->color_16bit) || (s3->bpp == 2)) {                                                          \
+        svga->vram[dword_remap(svga, addr) & s3->vram_mask] = dat;                                                         \
         svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
-    } else if ((s3->bpp == 1) || s3->color_16bit) {                                                   \
+    } else if ((s3->bpp == 1) || s3->color_16bit) {                                                                        \
         vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]                    = dat;                                 \
         svga->changedvram[(dword_remap_w(svga, addr) & (s3->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
     } else {                                                                                                               \
-        vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)] = dat;                                                \
+        vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)] = dat;                                                    \
         svga->changedvram[(dword_remap_l(svga, addr) & (s3->vram_mask >> 2)) >> 10] = svga->monitor->mon_changeframecount; \
     }
 

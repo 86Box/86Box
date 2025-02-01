@@ -82,8 +82,8 @@ typedef struct {
     rom_t bios_rom;
 
     uint8_t  banking;
-    uint32_t vram_size,
-        vram_mask;
+    uint32_t vram_size;
+    uint32_t vram_mask;
 
     uint8_t  port_22cb_val;
     uint8_t  port_32cb_val;
