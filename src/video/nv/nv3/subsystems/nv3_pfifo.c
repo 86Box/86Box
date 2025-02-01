@@ -576,6 +576,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
             oh_shit_reason = nv3_runout_reason_no_cache_available;
             new_address |= (nv3_runout_reason_no_cache_available << NV3_PFIFO_RUNOUT_RAMIN_ERR);
         }
+
+        nv3_pfifo_context_switch(channel);
     }
 
     // Did we fuck up?
