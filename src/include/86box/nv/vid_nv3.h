@@ -254,6 +254,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_RUNOUT_GET                            0x2420
 #define NV3_PFIFO_RUNOUT_GET_ADDRESS                    3           // 13:3
 
+#define NV3_PFIFO_RUNOUT_RAMIN_ERR                      28
+
 #define NV3_PFIFO_CACHE0_SIZE                           1           // This is for software-injected notified only!
 #define NV3_PFIFO_CACHE1_SIZE_REV_AB                    32
 #define NV3_PFIFO_CACHE1_SIZE_REV_C                     64
@@ -589,6 +591,8 @@ extern const device_config_t nv3_config[];
 
 // easier name
 #define NV3_OBJECT_SUBMIT_START                         NV3_USER_START
+#define NV3_OBJECT_SUBMIT_SUBCHANNEL                    13
+#define NV3_OBJECT_SUBMIT_CHANNEL                       16
 #define NV3_OBJECT_SUBMIT_END                           NV3_USER_END
 
 // also PDFB (Debug Framebuffer?)
@@ -850,11 +854,7 @@ typedef struct nv3_pfifo_s
 
     nv3_pfifo_cache_entry_t cache0_entry;                              // It only has 1 entry
     nv3_pfifo_cache_entry_t cache1_entries[NV3_PFIFO_CACHE1_SIZE_MAX]; // ONLY 32 USED ON REVISION A/B CARDS
-
-
 } nv3_pfifo_t;
-
-// create_object(uint32_t type) here
 
 // RAMDAC
 typedef struct nv3_pramdac_s
@@ -1328,7 +1328,7 @@ void        nv3_pfifo_interrupt(uint32_t id, bool fire_now);
 // NV3 PFIFO - Caches
 void        nv3_pfifo_cache0_push();
 void        nv3_pfifo_cache0_pull();
-void        nv3_pfifo_cache1_push();
+void        nv3_pfifo_cache1_push(uint32_t addr, uint32_t val);
 void        nv3_pfifo_cache1_pull();
 uint32_t    nv3_pfifo_cache1_normal2gray(uint32_t val);
 uint32_t    nv3_pfifo_cache1_gray2normal(uint32_t val);

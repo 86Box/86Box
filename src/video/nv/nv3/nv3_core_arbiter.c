@@ -200,5 +200,3 @@ void        nv3_prmcio_write(uint32_t address, uint32_t value) {};
 uint32_t    nv3_vram_read(uint32_t address) { return 0; };
 void        nv3_vram_write(uint32_t address, uint32_t value) {};
 
-uint32_t    nv3_user_read(uint32_t address) { return 0; };
-void        nv3_user_write(uint32_t address, uint32_t value) {};

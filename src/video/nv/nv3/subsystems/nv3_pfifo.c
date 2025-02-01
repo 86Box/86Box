@@ -462,11 +462,13 @@ uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
     return val;
 }
 
+// Submits graphics objects INTO cache0
 void nv3_pfifo_cache0_push()
 {
-
+    
 }
 
+// Pulls graphics objects OUT of cache0
 void nv3_pfifo_cache0_pull()
 {
     // Do nothing if PFIFO CACHE0 is disabled
@@ -511,11 +513,98 @@ void nv3_pfifo_cache0_pull()
 
 }
 
-void nv3_pfifo_cache1_push()
+void nv3_pfifo_context_switch(uint32_t new_channel)
 {
-
+    /* Send our contexts to RAMFC. Load the new ones from RAMFC. */
 }
 
+// NV_USER writes go here!
+// Pushes graphics objects into cache1
+void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
+{
+    bool oh_shit = false;   // RAMRO needed
+    nv3_ramin_ramro_reason oh_shit_reason = 0x00; // It's all good for now
+
+    // bit 23 of a ramin dword means it's a write...
+    uint32_t new_address = 0;
+
+    uint32_t method_offset = (addr & 0x1FFC); // size of dma object is 0x2000 and some universal methods are implemented at this point, like free
+    
+    // Up to 128 per envytools?
+    uint32_t channel = (addr >> NV3_OBJECT_SUBMIT_CHANNEL) & 0x7F;
+    uint32_t subchannel = (addr >> NV3_OBJECT_SUBMIT_SUBCHANNEL) & 0x07;
+
+    // first make sure there is even any cache available
+    if (!nv3->pfifo.cache1_settings.access_enabled)
+    {
+        oh_shit = true; 
+        oh_shit_reason = nv3_runout_reason_no_cache_available;
+    }
+    
+    // Check if runout is full
+    if (nv3->pfifo.runout_get != nv3->pfifo.runout_put)
+    {
+        oh_shit = true;
+        oh_shit_reason = nv3_runout_reason_cache_ran_out; // ? really ? I guess this means we already ran out..
+        new_address |= (nv3_runout_reason_cache_ran_out << NV3_PFIFO_RUNOUT_RAMIN_ERR);
+    }
+
+    if (!nv3_pfifo_cache1_is_free())
+    {
+        oh_shit = true;
+        oh_shit_reason = nv3_runout_reason_free_count_overrun;
+        new_address |= (nv3_runout_reason_free_count_overrun << NV3_PFIFO_RUNOUT_RAMIN_ERR);
+    }
+
+    if (method_offset > 0 && method_offset <= 0x100)
+    {
+        // Reserved NVIDIA Objects
+        oh_shit = true; 
+        oh_shit_reason = nv3_runout_reason_reserved_access;
+        new_address |= (nv3_runout_reason_free_count_overrun << NV3_PFIFO_RUNOUT_RAMIN_ERR);
+
+    }
+
+    // Now check for context switching
+
+    if (channel != nv3->pfifo.cache1_settings.channel)
+    {
+        if (!nv3->pfifo.cache_reassignment 
+        || (nv3->pfifo.cache0_settings.get_address != nv3->pfifo.cache0_settings.get_address))
+        {
+            oh_shit = true;
+            oh_shit_reason = nv3_runout_reason_no_cache_available;
+            new_address |= (nv3_runout_reason_no_cache_available << NV3_PFIFO_RUNOUT_RAMIN_ERR);
+        }
+    }
+
+    // Did we fuck up?
+    if (oh_shit)
+    {
+        nv_log("NV3: WE ARE FUCKED Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x IMPLEMENT THIS OR DIE!!!", oh_shit_reason, channel, subchannel, method_offset);
+        return;
+    }
+
+    // We didn't. Let's put it in CACHE1
+    uint32_t current_put_address = nv3->pfifo.cache1_settings.put_address >> 2;
+    nv3->pfifo.cache1_entries[current_put_address].subchannel = subchannel;
+    nv3->pfifo.cache1_entries[current_put_address].method = method_offset;
+    nv3->pfifo.cache1_entries[current_put_address].data = val;
+
+    // now we have to recalculate the cache1 put address
+    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address);
+
+    if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
+        next_put_address &= NV3_PFIFO_CACHE1_SIZE_REV_C;
+    else 
+        next_put_address &= NV3_PFIFO_CACHE1_SIZE_REV_AB;
+
+    nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address);
+
+    // Now we're done. Phew!
+}
+
+// Pulls graphics objects OUT of cache1
 void nv3_pfifo_cache1_pull()
 {
     // Do nothing if PFIFO CACHE1 is disabled
