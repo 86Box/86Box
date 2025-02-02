@@ -27,16 +27,20 @@
  *          modern boards even have multiple 'copies' of those registers,
  *          which can be switched very fast, to allow for multitasking.
  *
- * TODO:    The EV159 is supposed to support 16b EMS transfers, but the
+ * TODO:    The EV-159 is supposed to support 16b EMS transfers, but the
  *          EMM.sys driver for it doesn't seem to want to do that..
  *
+ *          EV-125 (It supports backfill)
+ *              https://theretroweb.com/expansioncard/documentation/50250.pdf
  *
+ *          EV-158 (RAM 10000)
+ *              http://web.archive.org/web/19961104093221/http://www.everex.com/supp/techlib/memmem.html
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek <jriwanek@gmail.com>
  *
  *          Copyright 2018      Fred N. van Kempen.
- *          Copyright 2022-2024 Jasmine Iwanek.
+ *          Copyright 2022-2025 Jasmine Iwanek.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -304,16 +308,13 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
 static uint8_t
 ems_in(uint16_t port, void *priv)
 {
-    const emsreg_t *dev           = (emsreg_t *) priv;
-    uint8_t         ret           = 0xff;
-#ifdef ENABLE_ISAMEM_LOG
-    int             vpage;
-#endif
-
+    const emsreg_t *dev   = (emsreg_t *) priv;
+    uint8_t         ret   = 0xff;
     /* Get the viewport page number. */
 #ifdef ENABLE_ISAMEM_LOG
-    vpage = (port / EMS_PGSIZE);
+    int             vpage = (port / EMS_PGSIZE);
 #endif
+
     port &= (EMS_PGSIZE - 1);
 
     switch (port & 0x0001) {
@@ -339,13 +340,11 @@ ems_in(uint16_t port, void *priv)
 static uint8_t
 consecutive_ems_in(uint16_t port, void *priv)
 {
-    const memdev_t *dev = (memdev_t *) priv;
-    uint8_t         ret = 0xff;
-    int             vpage;
-
+    const memdev_t *dev   = (memdev_t *) priv;
+    uint8_t         ret   = 0xff;
     /* Get the viewport page number. */
-    vpage = (port - dev->base_addr[0]);
- 
+    int             vpage = (port - dev->base_addr[0]);
+
     ret = dev->ems[vpage].page;
     if (dev->ems[vpage].enabled)
         ret |= 0x80;
@@ -359,11 +358,10 @@ consecutive_ems_in(uint16_t port, void *priv)
 static void
 ems_out(uint16_t port, uint8_t val, void *priv)
 {
-    emsreg_t *dev           = (emsreg_t *) priv;
-    int       vpage;
-
+    emsreg_t *dev   = (emsreg_t *) priv;
     /* Get the viewport page number. */
-    vpage = (port / EMS_PGSIZE);
+    int       vpage = (port / EMS_PGSIZE);
+
     port &= (EMS_PGSIZE - 1);
 
     switch (port & 0x0001) {
@@ -433,11 +431,9 @@ ems_out(uint16_t port, uint8_t val, void *priv)
 static void
 consecutive_ems_out(uint16_t port, uint8_t val, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
-    int       vpage;
-
+    memdev_t *dev   = (memdev_t *) priv;
     /* Get the viewport page number. */
-    vpage = (port - dev->base_addr[0]);
+    int       vpage = (port - dev->base_addr[0]);
 
     isamem_log("ISAMEM: write(%04x, %02x) to page mapping registers! (page=%d)\n", port, val, vpage);
 
@@ -1030,6 +1026,7 @@ static const device_config_t genericxt_config[] = {
   // clang-format on
 };
 
+// This also nicely accounts for the Everex EV-138
 static const device_t genericxt_device = {
     .name          = "Generic PC/XT Memory Expansion",
     .internal_name = "genericxt",
@@ -1236,6 +1233,7 @@ static const device_config_t genericat_config[] = {
   // clang-format on
 };
 
+// This also nicely accounts for the Everex EV-135
 static const device_t genericat_device = {
     .name          = "Generic PC/AT Memory Expansion",
     .internal_name = "genericat",
