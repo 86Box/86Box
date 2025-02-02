@@ -102,7 +102,7 @@
 #define ISAMEM_BRXT_CARD       13
 #define ISAMEM_BRAT_CARD       14
 #define ISAMEM_EV165A_CARD     15
-#define ISAMEM_LOTECH_CARD     16
+#define ISAMEM_LOTECH_EMS_CARD 16
 
 #define ISAMEM_DEBUG           0
 
@@ -578,7 +578,7 @@ isamem_init(const device_t *info)
                 dev->flags     |= FLAG_FAST;
             break;
 
-        case ISAMEM_LOTECH_CARD: /* Lotech EMS */
+        case ISAMEM_LOTECH_EMS_CARD: /* Lotech EMS */
             /* The Lotech EMS cannot have more than 4096KB per board. */
             ems_max = EMS_LOTECH_MAXSIZE;
             fallthrough;
@@ -800,7 +800,7 @@ isamem_init(const device_t *info)
             mem_mapping_disable(&dev->ems[i].mapping);
 
             /* Set up an I/O port handler. */
-            if (dev->board != ISAMEM_LOTECH_CARD)
+            if (dev->board != ISAMEM_LOTECH_EMS_CARD)
                 io_sethandler(dev->base_addr[0] + (EMS_PGSIZE * i), 2,
                               ems_in, NULL, NULL, ems_out, NULL, NULL, &(dev->ems[i]));
 
@@ -831,7 +831,7 @@ isamem_init(const device_t *info)
             }
         }
 
-        if (dev->board == ISAMEM_LOTECH_CARD)
+        if (dev->board == ISAMEM_LOTECH_EMS_CARD)
             io_sethandler(dev->base_addr[0], 4,
                           consecutive_ems_in, NULL, NULL, consecutive_ems_out, NULL, NULL, dev);
     }
@@ -1856,11 +1856,11 @@ static const device_config_t lotech_config[] = {
 // clang-format on
 };
 
-static const device_t lotech_device = {
+static const device_t lotech_ems_device = {
     .name = "Lo-tech EMS Board",
     .internal_name = "lotechems",
     .flags = DEVICE_ISA,
-    .local = ISAMEM_LOTECH_CARD,
+    .local = ISAMEM_LOTECH_EMS_CARD,
     .init = isamem_init,
     .close = isamem_close,
     .reset = NULL,
@@ -2071,7 +2071,7 @@ static const struct {
 #ifdef USE_ISAMEM_IAB
     { &iab_device          },
 #endif /* USE_ISAMEM_IAB */
-    { &lotech_device       },
+    { &lotech_ems_device   },
     { NULL                 }
     // clang-format on
 };
