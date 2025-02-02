@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   30 January 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   2 February 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -272,11 +272,14 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL                 0x3040
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED         0
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE    4
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD     8
+#define NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD 8
 #define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY            0x3050
 #define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY_BOOL       4           // 1=dirty 0=clean
 #define NV3_PFIFO_CACHE0_GET                            0x3070
 #define NV3_PFIFO_CACHE0_GET_ADDRESS                    2           // 1 bit
+// Current channel context - cache1
+#define NV3_PFIFO_CACHE0_CTX                            0x3080      
+
 #define NV3_PFIFO_CACHE0_METHOD                         0x3100
 #define NV3_PFIFO_CACHE0_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE0_METHOD_SUBCHANNEL              13          // 15:13
@@ -306,6 +309,11 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY            4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
 #define NV3_PFIFO_CACHE1_GET_ADDRESS                    2           // 6:2
+
+// Current channel context - cache1
+#define NV3_PFIFO_CACHE1_CTX_START                      0x3280      
+#define NV3_PFIFO_CACHE1_CTX_END                        0x32F0
+
 #define NV3_PFIFO_CACHE1_METHOD                         0x3300
 #define NV3_PFIFO_CACHE1_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL              13          // 15:13
@@ -797,11 +805,11 @@ typedef struct nv3_pfifo_cache_s
     bool access_enabled;                // Can we even access this cache?
     uint8_t put_address;                // Trigger a DMA into the value you put here.
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
-    uint8_t channel;                 // The DMA channel ID of this cache.
+    uint8_t channel;                    // The DMA channel ID of this cache.
     uint32_t status;
     uint32_t puller_control;
     uint32_t control;
-    uint32_t context[NV3_DMA_SUBCHANNELS_PER_CHANNEL];
+    uint32_t context[NV3_DMA_SUBCHANNELS_PER_CHANNEL];  // Only one of these exists for cache0
 
     /* cache1 only 
         do we even need to emulate this?

@@ -211,7 +211,7 @@ uint32_t nv3_pmc_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
+            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
             nv_log("\n");
     }

@@ -41,6 +41,7 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CONFIG_RAMFC, "PFIFO - RAMIN RAMFC Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
+    { NV3_PFIFO_CACHE_REASSIGNMENT, "PFIFO - Allow Cache Channel Reassignment", NULL, NULL },
     { NV3_PFIFO_CACHE0_PULLER_CONTROL, "PFIFO - Cache0 Puller Control", NULL, NULL},
     { NV3_PFIFO_CACHE1_PULLER_CONTROL, "PFIFO - Cache1 Puller Control"},
     { NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
@@ -231,20 +232,33 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CACHE1_DMA_TLB_TAG:
                     ret = nv3->pfifo.cache1_settings.dma_tlb_tag;
                     break;
+                // Runout
                 case NV3_PFIFO_RUNOUT_GET:
                     ret = nv3->pfifo.runout_get;
                     break;
                 case NV3_PFIFO_RUNOUT_PUT:
                     ret = nv3->pfifo.runout_put;
                     break;
+                /* Cache1 is handled below */
+                case NV3_PFIFO_CACHE0_CTX:
+                    ret = nv3->pfifo.cache0_settings.context[0];
+                    break;
                 
             }
         }
 
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
             nv_log("\n");
+    }
+    /* Handle some special memory areas */
+    else if (address >= NV3_PFIFO_CACHE1_CTX_START && address <= NV3_PFIFO_CACHE1_CTX_END)
+    {
+        uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
+        ret = nv3->pfifo.cache1_settings.context[ctx_entry_id];
+
+        nv_log("PFIFO Cache1 CTX Read Entry=%d Value=0x%04x", ctx_entry_id, ret);
     }
     else
     {
@@ -267,16 +281,11 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
 
     nv_register_t* reg = nv_get_register(address, pfifo_registers, sizeof(pfifo_registers)/sizeof(pfifo_registers[0]));
 
-    nv_log("NV3: PFIFO Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("NV3: PFIFO Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
-
         // on-read function
         if (reg->on_write)
             reg->on_write(value);
@@ -293,9 +302,15 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 case NV3_PFIFO_INTR:
                     nv3->pfifo.interrupt_status &= ~value;
                     nv3_pmc_clear_interrupts();
+
+                    // update the internal cache error state
+                    if (!nv3->pfifo.interrupt_status & NV3_PFIFO_INTR_CACHE_ERROR)
+                        nv3->pfifo.debug_0 &= ~NV3_PFIFO_INTR_CACHE_ERROR;
+
                     break;
                 case NV3_PFIFO_INTR_EN:
-                    nv3->pbus.interrupt_enable = value & 0x00001111;
+                    nv3->pfifo.interrupt_enable = value & 0x00001111;
+                    nv3_pmc_handle_interrupts(true);
                     break;
                 case NV3_PFIFO_DELAY_0:
                     nv3->pfifo.dma_delay_retry = value;
@@ -426,10 +441,26 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     else 
                         nv3->pfifo.runout_put = ((value & 0x3FF) << 3);
                     break;
+                /* Cache1 is handled below */
+                case NV3_PFIFO_CACHE0_CTX:
+                    nv3->pfifo.cache0_settings.context[0] = value;
+                    break;
             }
         }
-    }
 
+        if (reg->friendly_name)
+            nv_log(": %s\n", reg->friendly_name);
+        else   
+            nv_log("\n");
+    }
+    /* Handle some special memory areas */
+    else if (address >= NV3_PFIFO_CACHE1_CTX_START && address <= NV3_PFIFO_CACHE1_CTX_END)
+    {
+        uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
+        nv3->pfifo.cache1_settings.context[ctx_entry_id] = value;
+
+        nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x", ctx_entry_id, value);
+    }
 }
 
 /* 

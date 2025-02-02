@@ -76,14 +76,11 @@ void nv3_ptimer_tick(double real_time)
 
     double current_time = freq_base * ((double)nv3->ptimer.clock_numerator * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)nv3->ptimer.clock_denominator; // *10.0?
 
-    // Logging is suppressed when reading this register because it is read many times
-    // So we only log when we update.
-
     // truncate it 
     nv3->ptimer.time += (uint64_t)current_time;
 
-
-    nv_log("PTIMER time ticked (The value is now 0x%08x)\n", nv3->ptimer.time);
+    // Only log on ptimer alarm. Otherwise, it's too much spam.
+    //nv_log("PTIMER time ticked (The value is now 0x%08x)\n", nv3->ptimer.time);
 
     // Check if the alarm has actually triggered...
     if (nv3->ptimer.time >= nv3->ptimer.alarm)
@@ -153,7 +150,7 @@ uint32_t nv3_ptimer_read(uint32_t address)
         && reg->address != NV3_PTIMER_TIME_1_NSEC)
         {
             if (reg->friendly_name)
-                nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
+            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
             else   
                 nv_log("\n");
         }

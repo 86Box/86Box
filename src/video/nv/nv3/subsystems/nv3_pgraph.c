@@ -140,9 +140,11 @@ uint32_t nv3_pgraph_read(uint32_t address)
                     break;
                 case NV3_PGRAPH_INTR_EN_0:
                     ret = nv3->pgraph.interrupt_enable_0;
+                    nv3_pmc_handle_interrupts(true);
                     break;
                 case NV3_PGRAPH_INTR_EN_1:
                     ret = nv3->pgraph.interrupt_enable_1;
+                    nv3_pmc_handle_interrupts(true);
                     break;
                 // A lot of this is currently a temporary implementation so that we can just debug what the current state looks like
                 // during the driver initialisation process            
@@ -243,7 +245,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s (value = 0x%08x)\n", reg->friendly_name, ret);
+            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
             nv_log("\n");
     }
@@ -457,5 +459,5 @@ void nv3_pgraph_vblank_start(svga_t* svga)
 
 void nv3_pgraph_submit()
 {
-    
+
 }
