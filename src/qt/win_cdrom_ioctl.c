@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <wchar.h>
 #include <86box/cdrom.h>
 #include <86box/log.h>
