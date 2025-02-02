@@ -629,8 +629,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 static void *
 compaq_plasma_init(UNUSED(const device_t *info))
 {
-    compaq_plasma_t *self = malloc(sizeof(compaq_plasma_t));
-    memset(self, 0, sizeof(compaq_plasma_t));
+    compaq_plasma_t *self = calloc(1, sizeof(compaq_plasma_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_plasma);
     if (compaq_machine_type == COMPAQ_PORTABLEIII)

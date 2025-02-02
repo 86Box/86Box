@@ -1046,8 +1046,7 @@ static void *
 scamp_init(UNUSED(const device_t *info))
 {
     uint32_t addr;
-    scamp_t *dev = (scamp_t *) malloc(sizeof(scamp_t));
-    memset(dev, 0x00, sizeof(scamp_t));
+    scamp_t *dev = (scamp_t *) calloc(1, sizeof(scamp_t));
 
     dev->cfg_regs[CFG_ID] = ID_VL82C311;
     dev->cfg_enable       = 1;

@@ -114,8 +114,7 @@ ps2_nvr_init(const device_t *info)
     FILE      *fp = NULL;
     int        c;
 
-    nvr = (ps2_nvr_t *) malloc(sizeof(ps2_nvr_t));
-    memset(nvr, 0x00, sizeof(ps2_nvr_t));
+    nvr = (ps2_nvr_t *) calloc(1, sizeof(ps2_nvr_t));
 
     if (info->local)
         nvr->size = 2048;

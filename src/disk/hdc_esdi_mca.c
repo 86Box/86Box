@@ -1249,10 +1249,9 @@ esdi_init(UNUSED(const device_t *info))
     uint8_t  c;
     uint8_t  i;
 
-    dev = malloc(sizeof(esdi_t));
+    dev = calloc(1, sizeof(esdi_t));
     if (dev == NULL)
         return (NULL);
-    memset(dev, 0x00, sizeof(esdi_t));
 
     /* Mark as unconfigured. */
     dev->irq_status = 0xff;

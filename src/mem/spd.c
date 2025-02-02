@@ -221,8 +221,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
         if (!(slot_mask & (1 << slot)))
             continue; /* slot disabled */
 
-        spd_modules[slot] = (spd_t *) malloc(sizeof(spd_t));
-        memset(spd_modules[slot], 0, sizeof(spd_t));
+        spd_modules[slot] = (spd_t *) calloc(1, sizeof(spd_t));
         spd_modules[slot]->slot = slot;
         spd_modules[slot]->size = rows[row];
 

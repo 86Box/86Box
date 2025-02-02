@@ -771,8 +771,7 @@ lm78_close(void *priv)
 static void *
 lm78_init(const device_t *info)
 {
-    lm78_t *dev = (lm78_t *) malloc(sizeof(lm78_t));
-    memset(dev, 0, sizeof(lm78_t));
+    lm78_t *dev = (lm78_t *) calloc(1, sizeof(lm78_t));
 
     dev->local = info->local;
 

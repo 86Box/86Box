@@ -483,8 +483,7 @@ isamem_init(const device_t *info)
     uint8_t  *ptr;
 
     /* Find our device and create an instance. */
-    dev = (memdev_t *) malloc(sizeof(memdev_t));
-    memset(dev, 0x00, sizeof(memdev_t));
+    dev = (memdev_t *) calloc(1, sizeof(memdev_t));
     dev->name  = info->name;
     dev->board = info->local;
 

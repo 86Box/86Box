@@ -2282,8 +2282,7 @@ kbc_at_init(const device_t *info)
     atkbc_t *dev;
     int max_ports;
 
-    dev = (atkbc_t *) malloc(sizeof(atkbc_t));
-    memset(dev, 0x00, sizeof(atkbc_t));
+    dev = (atkbc_t *) calloc(1, sizeof(atkbc_t));
 
     dev->flags = info->local;
 
@@ -2393,8 +2392,7 @@ kbc_at_init(const device_t *info)
 #endif
 
     for (int i = 0; i < max_ports; i++) {
-        kbc_at_ports[i] = (kbc_at_port_t *) malloc(sizeof(kbc_at_port_t));
-        memset(kbc_at_ports[i], 0x00, sizeof(kbc_at_port_t));
+        kbc_at_ports[i] = (kbc_at_port_t *) calloc(1, sizeof(kbc_at_port_t));
         kbc_at_ports[i]->out_new = -1;
     }
 

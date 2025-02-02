@@ -369,8 +369,7 @@ ali1531_close(void *priv)
 static void *
 ali1531_init(UNUSED(const device_t *info))
 {
-    ali1531_t *dev = (ali1531_t *) malloc(sizeof(ali1531_t));
-    memset(dev, 0, sizeof(ali1531_t));
+    ali1531_t *dev = (ali1531_t *) calloc(1, sizeof(ali1531_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, ali1531_read, ali1531_write, dev, &dev->pci_slot);
 

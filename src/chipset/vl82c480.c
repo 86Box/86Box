@@ -180,8 +180,7 @@ vl82c480_close(void *priv)
 static void *
 vl82c480_init(const device_t *info)
 {
-    vl82c480_t *dev = (vl82c480_t *) malloc(sizeof(vl82c480_t));
-    memset(dev, 0, sizeof(vl82c480_t));
+    vl82c480_t *dev = (vl82c480_t *) calloc(1, sizeof(vl82c480_t));
 
     dev->regs[0x00] = info->local;
     dev->regs[0x01] = 0xff;

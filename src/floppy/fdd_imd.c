@@ -635,8 +635,7 @@ imd_load(int drive, char *fn)
     writeprot[drive] = 0;
 
     /* Allocate a drive block. */
-    dev = (imd_t *) malloc(sizeof(imd_t));
-    memset(dev, 0x00, sizeof(imd_t));
+    dev = (imd_t *) calloc(1, sizeof(imd_t));
 
     dev->fp = plat_fopen(fn, "rb+");
     if (dev->fp == NULL) {

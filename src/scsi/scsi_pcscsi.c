@@ -2204,10 +2204,7 @@ esp_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static void *
 dc390_init(UNUSED(const device_t *info))
 {
-    esp_t *dev;
-
-    dev = malloc(sizeof(esp_t));
-    memset(dev, 0x00, sizeof(esp_t));
+    esp_t *dev = calloc(1, sizeof(esp_t));
 
     dev->bus = scsi_get_bus();
 
@@ -2419,10 +2416,7 @@ ncr53c9x_mca_feedb(void *priv)
 static void *
 ncr53c9x_mca_init(const device_t *info)
 {
-    esp_t *dev;
-
-    dev = malloc(sizeof(esp_t));
-    memset(dev, 0x00, sizeof(esp_t));
+    esp_t *dev = calloc(1, sizeof(esp_t));
 
     dev->bus = scsi_get_bus();
 

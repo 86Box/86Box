@@ -273,7 +273,7 @@ smbus_ali7101_reset(void *priv)
 static void *
 smbus_ali7101_init(const device_t *info)
 {
-    smbus_ali7101_t *dev = (smbus_ali7101_t *) malloc(sizeof(smbus_ali7101_t));
+    smbus_ali7101_t *dev = (smbus_ali7101_t *) calloc(1, sizeof(smbus_ali7101_t));
     memset(dev, 0, sizeof(smbus_ali7101_t));
 
     dev->local = info->local;

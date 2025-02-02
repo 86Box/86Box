@@ -312,8 +312,7 @@ fdc37c6xx_close(void *priv)
 static void *
 fdc37c6xx_init(const device_t *info)
 {
-    fdc37c6xx_t *dev = (fdc37c6xx_t *) malloc(sizeof(fdc37c6xx_t));
-    memset(dev, 0, sizeof(fdc37c6xx_t));
+    fdc37c6xx_t *dev = (fdc37c6xx_t *) calloc(1, sizeof(fdc37c6xx_t));
 
     dev->fdc = device_add(&fdc_at_smc_device);
 

@@ -504,8 +504,7 @@ cmd640_close(void *priv)
 static void *
 cmd640_init(const device_t *info)
 {
-    cmd640_t *dev = (cmd640_t *) malloc(sizeof(cmd640_t));
-    memset(dev, 0x00, sizeof(cmd640_t));
+    cmd640_t *dev = (cmd640_t *) calloc(1, sizeof(cmd640_t));
 
     dev->id = next_id | 0x60;
 

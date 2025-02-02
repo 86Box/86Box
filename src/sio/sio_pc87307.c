@@ -593,8 +593,7 @@ pc87307_close(void *priv)
 static void *
 pc87307_init(const device_t *info)
 {
-    pc87307_t *dev = (pc87307_t *) malloc(sizeof(pc87307_t));
-    memset(dev, 0, sizeof(pc87307_t));
+    pc87307_t *dev = (pc87307_t *) calloc(1, sizeof(pc87307_t));
 
     dev->id = info->local & 0xff;
 

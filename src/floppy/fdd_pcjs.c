@@ -617,8 +617,7 @@ pcjs_load(int drive, char *fn)
     d86f_unregister(drive);
 
     /* Allocate a drive block */
-    dev = (pcjs_t *) malloc(sizeof(pcjs_t));
-    memset(dev, 0x00, sizeof(pcjs_t));
+    dev = (pcjs_t *) calloc(1, sizeof(pcjs_t));
 
     /* Open the image file, read-only */
     dev->fp = plat_fopen(fn, "rb");

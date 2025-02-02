@@ -1627,8 +1627,7 @@ st506_init(const device_t *info)
     int         i;
     int         c;
 
-    dev = (hdc_t *) malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = (hdc_t *) calloc(1, sizeof(hdc_t));
     dev->type = info->local & 255;
 
     /* Set defaults for the controller. */

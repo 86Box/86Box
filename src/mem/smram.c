@@ -245,12 +245,11 @@ smram_add(void)
         return NULL;
     }
 
-    temp_smram = (smram_t *) malloc(sizeof(smram_t));
+    temp_smram = (smram_t *) calloc(1, sizeof(smram_t));
     if (temp_smram == NULL) {
-        fatal("smram_add(): temp_smram malloc failed\n");
+        fatal("smram_add(): temp_smram calloc failed\n");
         return NULL;
     }
-    memset(temp_smram, 0x00, sizeof(smram_t));
     memset(&(temp_smram->mapping), 0x00, sizeof(mem_mapping_t));
 
     /* Add struct to the beginning of the list if necessary.*/

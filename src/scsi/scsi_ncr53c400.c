@@ -632,13 +632,9 @@ ncr53c400_init(const device_t *info)
 {
     const char  *bios_ver = NULL;
     const char  *fn;
-    ncr53c400_t *ncr400;
-    ncr_t       *ncr;
+    ncr53c400_t *ncr400 = calloc(1, sizeof(ncr53c400_t));
+    ncr_t       *ncr    = &ncr400->ncr;
     scsi_bus_t  *scsi_bus;
-
-    ncr400 = malloc(sizeof(ncr53c400_t));
-    memset(ncr400, 0x00, sizeof(ncr53c400_t));
-    ncr = &ncr400->ncr;
 
     ncr400->type = info->local;
 

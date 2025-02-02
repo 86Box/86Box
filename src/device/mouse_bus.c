@@ -614,8 +614,7 @@ bm_init(const device_t *info)
     mouse_t *dev;
     int      hz;
 
-    dev = (mouse_t *) malloc(sizeof(mouse_t));
-    memset(dev, 0x00, sizeof(mouse_t));
+    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
 
     if ((info->local & ~MOUSE_TYPE_ONBOARD) == MOUSE_TYPE_INPORT)
         dev->flags = FLAG_INPORT;

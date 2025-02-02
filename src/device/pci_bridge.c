@@ -491,8 +491,7 @@ pci_bridge_init(const device_t *info)
     uint8_t interrupt_mask;
     uint8_t slot_count;
 
-    pci_bridge_t *dev = (pci_bridge_t *) malloc(sizeof(pci_bridge_t));
-    memset(dev, 0, sizeof(pci_bridge_t));
+    pci_bridge_t *dev = (pci_bridge_t *) calloc(1, sizeof(pci_bridge_t));
 
     dev->local     = info->local;
     dev->bus_index = pci_register_bus();

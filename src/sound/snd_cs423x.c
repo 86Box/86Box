@@ -468,10 +468,9 @@ cs423x_slam_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
                     if (dev->slam_config)
                         cs423x_pnp_config_changed(dev->slam_ld, dev->slam_config, dev);
                     else
-                        dev->slam_config = (isapnp_device_config_t *) malloc(sizeof(isapnp_device_config_t));
+                        dev->slam_config = (isapnp_device_config_t *) calloc(1, sizeof(isapnp_device_config_t));
 
                     /* Start new logical device. */
-                    memset(dev->slam_config, 0, sizeof(isapnp_device_config_t));
                     dev->slam_ld = val;
                     break;
 
@@ -846,8 +845,7 @@ cs423x_reset(void *priv)
 static void *
 cs423x_init(const device_t *info)
 {
-    cs423x_t *dev = malloc(sizeof(cs423x_t));
-    memset(dev, 0, sizeof(cs423x_t));
+    cs423x_t *dev = calloc(1, sizeof(cs423x_t));
 
     /* Initialize model-specific data. */
     dev->type = info->local & 0xff;

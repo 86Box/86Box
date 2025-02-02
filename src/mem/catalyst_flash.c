@@ -192,8 +192,7 @@ catalyst_flash_init(UNUSED(const device_t *info))
     FILE    *fp;
     flash_t *dev;
 
-    dev = malloc(sizeof(flash_t));
-    memset(dev, 0, sizeof(flash_t));
+    dev = calloc(1, sizeof(flash_t));
 
     sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
 

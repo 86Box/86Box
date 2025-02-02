@@ -391,8 +391,7 @@ cmd646_close(void *priv)
 static void *
 cmd646_init(const device_t *info)
 {
-    cmd646_t *dev = (cmd646_t *) malloc(sizeof(cmd646_t));
-    memset(dev, 0x00, sizeof(cmd646_t));
+    cmd646_t *dev = (cmd646_t *) calloc(1, sizeof(cmd646_t));
 
     dev->local = info->local;
 

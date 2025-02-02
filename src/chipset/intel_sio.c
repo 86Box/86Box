@@ -508,8 +508,7 @@ sio_speed_changed(void *priv)
 static void *
 sio_init(const device_t *info)
 {
-    sio_t *dev = (sio_t *) malloc(sizeof(sio_t));
-    memset(dev, 0, sizeof(sio_t));
+    sio_t *dev = (sio_t *) calloc(1, sizeof(sio_t));
 
     pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev, &dev->pci_slot);
 

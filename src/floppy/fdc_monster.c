@@ -13,7 +13,7 @@
  * Authors:  Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *           Miran Grca, <mgrca8@gmail.com>
  *
- *           Copyright 2022-2024 Jasmine Iwanek.
+ *           Copyright 2022-2025 Jasmine Iwanek.
  *           Copyright 2024      Miran Grca.
  */
 #include <stdarg.h>

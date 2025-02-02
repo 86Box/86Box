@@ -219,8 +219,7 @@ opti495_close(void *priv)
 static void *
 opti495_init(const device_t *info)
 {
-    opti495_t *dev = (opti495_t *) malloc(sizeof(opti495_t));
-    memset(dev, 0, sizeof(opti495_t));
+    opti495_t *dev = (opti495_t *) calloc(1, sizeof(opti495_t));
 
     device_add(&port_92_device);
 

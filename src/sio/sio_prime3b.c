@@ -257,8 +257,7 @@ prime3b_close(void *priv)
 static void *
 prime3b_init(const device_t *info)
 {
-    prime3b_t *dev = (prime3b_t *) malloc(sizeof(prime3b_t));
-    memset(dev, 0, sizeof(prime3b_t));
+    prime3b_t *dev = (prime3b_t *) calloc(1, sizeof(prime3b_t));
 
     /* Avoid conflicting with machines that make no use of the Prime3B Internal IDE */
     HAS_IDE_FUNCTIONALITY = info->local;

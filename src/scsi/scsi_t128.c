@@ -472,13 +472,9 @@ t228_feedb(void *priv)
 static void *
 t128_init(const device_t *info)
 {
-    t128_t      *t128;
-    ncr_t       *ncr;
+    t128_t      *t128 = calloc(1, sizeof(t128_t));
+    ncr_t       *ncr  = &t128->ncr;
     scsi_bus_t  *scsi_bus;
-
-    t128 = malloc(sizeof(t128_t));
-    memset(t128, 0x00, sizeof(t128_t));
-    ncr = &t128->ncr;
 
     ncr->bus = scsi_get_bus();
     scsi_bus = &ncr->scsibus;

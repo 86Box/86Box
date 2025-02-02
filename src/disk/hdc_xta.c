@@ -1000,8 +1000,7 @@ xta_init(const device_t *info)
     int         max = XTA_NUM;
 
     /* Allocate and initialize device block. */
-    dev = malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = calloc(1, sizeof(hdc_t));
     dev->type = info->local;
 
     /* Do per-controller-type setup. */

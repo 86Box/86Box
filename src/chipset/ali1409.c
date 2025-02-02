@@ -163,8 +163,7 @@ ali1409_close(void *priv)
 static void *
 ali1409_init(const device_t *info)
 {
-    ali1409_t *dev = (ali1409_t *) malloc(sizeof(ali1409_t));
-    memset(dev, 0, sizeof(ali1409_t));
+    ali1409_t *dev = (ali1409_t *) calloc(1, sizeof(ali1409_t));
 
     dev->cfg_locked = 1;
 

@@ -287,8 +287,7 @@ vt82c686_close(void *priv)
 static void *
 vt82c686_init(UNUSED(const device_t *info))
 {
-    vt82c686_t *dev = (vt82c686_t *) malloc(sizeof(vt82c686_t));
-    memset(dev, 0, sizeof(vt82c686_t));
+    vt82c686_t *dev = (vt82c686_t *) calloc(1, sizeof(vt82c686_t));
 
     dev->fdc     = device_add(&fdc_at_smc_device);
     dev->fdc_dma = 2;

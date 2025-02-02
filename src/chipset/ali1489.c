@@ -470,8 +470,7 @@ ali1489_close(void *priv)
 static void *
 ali1489_init(UNUSED(const device_t *info))
 {
-    ali1489_t *dev = (ali1489_t *) malloc(sizeof(ali1489_t));
-    memset(dev, 0, sizeof(ali1489_t));
+    ali1489_t *dev = (ali1489_t *) calloc(1, sizeof(ali1489_t));
 
     /* M1487/M1489
        22h Index Port

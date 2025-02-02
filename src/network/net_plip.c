@@ -445,8 +445,7 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 static void *
 plip_lpt_init(void *lpt)
 {
-    plip_t *dev = (plip_t *) malloc(sizeof(plip_t));
-    memset(dev, 0, sizeof(plip_t));
+    plip_t *dev = (plip_t *) calloc(1, sizeof(plip_t));
 
     plip_log(1, "PLIP: lpt_init()\n");
 

@@ -444,8 +444,7 @@ w83877f_close(void *priv)
 static void *
 w83877f_init(const device_t *info)
 {
-    w83877f_t *dev = (w83877f_t *) malloc(sizeof(w83877f_t));
-    memset(dev, 0, sizeof(w83877f_t));
+    w83877f_t *dev = (w83877f_t *) calloc(1, sizeof(w83877f_t));
 
     dev->fdc = device_add(&fdc_at_winbond_device);
 
