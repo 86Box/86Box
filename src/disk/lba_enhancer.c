@@ -44,7 +44,7 @@ lba_enhancer_close(void* priv)
 }
 
 void *
-lba_enhancer_init(const device_t *info)
+lba_enhancer_init(UNUSED(const device_t *info))
 {
     lba_enhancer_t *dev = (lba_enhancer_t *) calloc(1, sizeof(lba_enhancer_t));
 

@@ -172,12 +172,12 @@ opLAR(w_a16, fetch_ea_16, 0, 0)
         return cpu_state.abrt;                                                                                              \
     }
 
-                opLSL(w_a16, fetch_ea_16, 0, 0)
-                    opLSL(w_a32, fetch_ea_32, 0, 1)
-                        opLSL(l_a16, fetch_ea_16, 1, 0)
-                            opLSL(l_a32, fetch_ea_32, 1, 1)
+opLSL(w_a16, fetch_ea_16, 0, 0)
+opLSL(w_a32, fetch_ea_32, 0, 1)
+opLSL(l_a16, fetch_ea_16, 1, 0)
+opLSL(l_a32, fetch_ea_32, 1, 1)
 
-                                static int op0F00_common(uint32_t fetchdat, int ea32)
+static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
 {
     int      dpl;
     int      valid;
@@ -359,7 +359,7 @@ op0F00_a32(uint32_t fetchdat)
 }
 
 static int
-op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
+op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
 {
     uint32_t base;
     uint16_t limit;

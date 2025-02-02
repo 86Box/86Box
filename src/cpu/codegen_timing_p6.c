@@ -1845,7 +1845,7 @@ codegen_timing_p6_start(void)
 }
 
 void
-codegen_timing_p6_prefix(uint8_t prefix, uint32_t fetchdat)
+codegen_timing_p6_prefix(uint8_t prefix, UNUSED(uint32_t fetchdat))
 {
     if (prefix != 0x0f)
         decode_timestamp++;
@@ -1855,7 +1855,7 @@ codegen_timing_p6_prefix(uint8_t prefix, uint32_t fetchdat)
 }
 
 void
-codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(uint32_t op_pc))
+codegen_timing_p6_opcode(uint8_t opcode, UNUSED(uint32_t fetchdat), int op_32, UNUSED(uint32_t op_pc))
 {
     const macro_op_t **ins_table;
     const uint64_t    *deps;

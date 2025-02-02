@@ -293,7 +293,7 @@ void pclog_ensure_stdlog_open(void)
  * being logged, and catch repeating entries.
  */
 void
-pclog_ex(const char *fmt, va_list ap)
+pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
 {
 #ifndef RELEASE_BUILD
     char temp[LOG_SIZE_BUFFER];
@@ -330,7 +330,7 @@ pclog_toggle_suppr(void)
 
 /* Log something. We only do this in non-release builds. */
 void
-pclog(const char *fmt, ...)
+pclog(UNUSED(const char *fmt), ...)
 {
 #ifndef RELEASE_BUILD
     va_list ap;

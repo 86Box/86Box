@@ -66,7 +66,6 @@
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 #include <86box/net_ne2000.h>
-#include <86box/bswap.h>
 #include <86box/isapnp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>

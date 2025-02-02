@@ -593,7 +593,7 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
 }
 
 static int
-track_type_is_valid(const cdrom_t *dev, const int type, const int flags, const int audio,
+track_type_is_valid(UNUSED(const cdrom_t *dev), const int type, const int flags, const int audio,
                     const int mode2)
 {
     if (!(flags & 0x70) && (flags & 0xf8)) { /* 0x08/0x80/0x88 are illegal modes */
@@ -1968,7 +1968,7 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 
 /* TODO: Actually implement this properly. */
 void
-cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
+cdrom_get_q(UNUSED(cdrom_t *dev), uint8_t *buf, UNUSED(int *curtoctrk), UNUSED(uint8_t mode))
 {
     memset(buf, 0x00, 10);
 }

@@ -56,7 +56,6 @@
 #include <86box/thread.h>
 #include <86box/timer.h>
 #include <86box/network.h>
-#include <86box/bswap.h>
 #include <86box/plat_unused.h>
 
 /* Maximum number of times we report a link down to the guest (failure to send frame) */

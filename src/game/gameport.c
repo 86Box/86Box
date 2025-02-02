@@ -646,7 +646,7 @@ static const device_config_t tmacm_config[] = {
             { "" }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 

@@ -97,7 +97,7 @@ ioctl_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 }
 
 static int
-ioctl_is_track_pre(const void *local, const uint32_t sector)
+ioctl_is_track_pre(const void *local, UNUSED(const uint32_t sector))
 {
     ioctl_t *ioctl = (ioctl_t *) local;
 
@@ -111,7 +111,7 @@ ioctl_is_track_pre(const void *local, const uint32_t sector)
 }
 
 static int
-ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
+ioctl_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
     ioctl_t *ioctl = (ioctl_t *) local;
 

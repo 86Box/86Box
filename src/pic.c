@@ -245,7 +245,7 @@ pic_update_pending_at(void)
 }
 
 static void
-pic_callback(void *priv)
+pic_callback(UNUSED(void *priv))
 {
     update_pending();
 }

@@ -1133,7 +1133,7 @@ modem_dtr_callback_timer(void *priv)
 }
 
 void
-modem_dtr_callback(serial_t *serial, int status, void *priv)
+modem_dtr_callback(UNUSED(serial_t *serial), int status, void *priv)
 {
     modem_t *dev  = (modem_t *) priv;
     dev->dtrstate = !!status;
@@ -1483,7 +1483,7 @@ modem_cmdpause_timer_callback(void *priv)
 
 /* Initialize the device for use by the user. */
 static void *
-modem_init(const device_t *info)
+modem_init(UNUSED(const device_t *info))
 {
     modem_t    *modem          = (modem_t *) calloc(1, sizeof(modem_t));
     const char *phonebook_file = NULL;

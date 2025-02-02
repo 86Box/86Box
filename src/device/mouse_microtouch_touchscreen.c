@@ -313,7 +313,7 @@ mtouch_process_commands(mouse_microtouch_t *dev)
 }
 
 static void
-mtouch_write(serial_t *serial, void *priv, uint8_t data)
+mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
@@ -495,7 +495,7 @@ mtouch_poll_global(void)
 }
 
 void *
-mtouch_init(const device_t *info)
+mtouch_init(UNUSED(const device_t *info))
 {
     mouse_microtouch_t *dev = calloc(1, sizeof(mouse_microtouch_t));
     

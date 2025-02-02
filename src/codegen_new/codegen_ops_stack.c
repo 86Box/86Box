@@ -16,7 +16,7 @@
 #include "codegen_ops_misc.h"
 
 uint32_t
-ropPUSH_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSH_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -28,7 +28,7 @@ ropPUSH_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t 
     return op_pc;
 }
 uint32_t
-ropPUSH_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSH_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -41,7 +41,7 @@ ropPUSH_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t 
 }
 
 uint32_t
-ropPOP_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPOP_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -57,7 +57,7 @@ ropPOP_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t f
     return op_pc;
 }
 uint32_t
-ropPOP_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPOP_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -74,7 +74,7 @@ ropPOP_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t f
 }
 
 uint32_t
-ropPUSH_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSH_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm = fastreadw(cs + op_pc);
     int      sp_reg;
@@ -88,7 +88,7 @@ ropPUSH_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
     return op_pc + 2;
 }
 uint32_t
-ropPUSH_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSH_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t imm = fastreadl(cs + op_pc);
     int      sp_reg;
@@ -103,7 +103,7 @@ ropPUSH_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
 }
 
 uint32_t
-ropPUSH_imm_16_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSH_imm_16_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm = (int16_t) (int8_t) fastreadb(cs + op_pc);
     int      sp_reg;
@@ -117,7 +117,7 @@ ropPUSH_imm_16_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint
     return op_pc + 1;
 }
 uint32_t
-ropPUSH_imm_32_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSH_imm_32_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t imm = (int32_t) (int8_t) fastreadb(cs + op_pc);
     int      sp_reg;
@@ -197,7 +197,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 }
 
 #define ROP_PUSH_SEG(seg)                                                                                                             \
-    uint32_t ropPUSH_##seg##_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
+    uint32_t ropPUSH_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
     {                                                                                                                                 \
         int sp_reg;                                                                                                                   \
                                                                                                                                       \
@@ -208,7 +208,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                                                                                                                                       \
         return op_pc;                                                                                                                 \
     }                                                                                                                                 \
-    uint32_t ropPUSH_##seg##_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
+    uint32_t ropPUSH_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
     {                                                                                                                                 \
         int sp_reg;                                                                                                                   \
                                                                                                                                       \
@@ -222,7 +222,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     }
 
 #define ROP_POP_SEG(seg, rseg)                                                                                                       \
-    uint32_t ropPOP_##seg##_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
+    uint32_t ropPOP_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
     {                                                                                                                                \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                                \
                                                                                                                                      \
@@ -237,7 +237,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                                                                                                                                      \
         return op_pc;                                                                                                                \
     }                                                                                                                                \
-    uint32_t ropPOP_##seg##_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
+    uint32_t ropPOP_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
     {                                                                                                                                \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                                \
                                                                                                                                      \
@@ -253,6 +253,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         return op_pc;                                                                                                                \
     }
 
+// clang-format off
 ROP_PUSH_SEG(CS)
 ROP_PUSH_SEG(DS)
 ROP_PUSH_SEG(ES)
@@ -263,9 +264,10 @@ ROP_POP_SEG(DS, cpu_state.seg_ds)
 ROP_POP_SEG(ES, cpu_state.seg_es)
 ROP_POP_SEG(FS, cpu_state.seg_fs)
 ROP_POP_SEG(GS, cpu_state.seg_gs)
+// clang-format on
 
 uint32_t
-ropLEAVE_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropLEAVE_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -281,7 +283,7 @@ ropLEAVE_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), u
     return op_pc;
 }
 uint32_t
-ropLEAVE_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropLEAVE_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -298,7 +300,7 @@ ropLEAVE_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), u
 }
 
 uint32_t
-ropPUSHA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSHA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -317,7 +319,7 @@ ropPUSHA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), u
     return op_pc;
 }
 uint32_t
-ropPUSHA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSHA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -337,7 +339,7 @@ ropPUSHA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), u
 }
 
 uint32_t
-ropPOPA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPOPA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -355,7 +357,7 @@ ropPOPA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), ui
     return op_pc;
 }
 uint32_t
-ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -374,7 +376,7 @@ ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), ui
 }
 
 uint32_t
-ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
@@ -390,7 +392,7 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
     return op_pc;
 }
 uint32_t
-ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 

@@ -94,13 +94,13 @@ ssi2001_close(void *priv)
 }
 
 static uint8_t
-entertainer_read(uint16_t addr, void *priv)
+entertainer_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     return 0xa5;
 }
 
 static void
-entertainer_write(uint16_t addr, uint8_t val, void *priv)
+entertainer_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     entertainer_t *entertainer = (entertainer_t *) priv;
     entertainer->regs = val;
@@ -163,15 +163,27 @@ static const device_config_t ssi2001_config[] = {
             { .description = "" }
         }
     },
-    { "gameport", "Enable Game port", CONFIG_BINARY, "",  1 },
-    { "",         "",                                    -1 }
+    {
+        .name = "gameport",
+        .description = "Enable Game port",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 
 static const device_config_t entertainer_config[] = {
     // clang-format off
-    { "gameport", "Enable Game port", CONFIG_BINARY, "",  1 },
-    { "",         "",                                    -1 }
+    {
+        .name = "gameport",
+        .description = "Enable Game port",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 
