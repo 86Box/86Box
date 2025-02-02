@@ -134,9 +134,11 @@ uint32_t nv3_pgraph_read(uint32_t address)
                 //interrupt status and enable regs
                 case NV3_PGRAPH_INTR_0:
                     ret = nv3->pgraph.interrupt_status_0;
+                    nv3_pmc_clear_interrupts();
                     break;
                 case NV3_PGRAPH_INTR_1:
                     ret = nv3->pgraph.interrupt_status_1;
+                    nv3_pmc_clear_interrupts();
                     break;
                 case NV3_PGRAPH_INTR_EN_0:
                     ret = nv3->pgraph.interrupt_enable_0;
@@ -323,7 +325,8 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                 // Only bits divisible by 4 matter
                 // and only bit0-16 is defined in intr_1 
                 case NV3_PGRAPH_INTR_EN_0:
-                    nv3->pgraph.interrupt_enable_0 = value & 0x11111111; 
+                    value |= (1 << NV3_PGRAPH_INTR_EN_0_VBLANK);
+                    nv3->pgraph.interrupt_enable_0 = value & 0x11111111;                     
                     nv3_pmc_handle_interrupts(true);
                     break;
                 case NV3_PGRAPH_INTR_EN_1:

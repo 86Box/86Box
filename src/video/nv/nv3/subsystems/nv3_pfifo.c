@@ -143,10 +143,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = nv3->pfifo.ramro_config;
                     break;
                 case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache0_settings.control;
+                    ret = nv3->pfifo.cache0_settings.puller_control;
                     break;
                 case NV3_PFIFO_CACHE1_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache1_settings.control;
+                    ret = nv3->pfifo.cache1_settings.puller_control;
                     break;
                 case NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY:
                     ret = nv3->pfifo.cache0_settings.context_is_dirty;
@@ -368,10 +368,10 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     break;
                 // Control
                 case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    nv3->pfifo.cache0_settings.control = value; // 8bits meaningful
+                    nv3->pfifo.cache0_settings.puller_control = value; // 8bits meaningful
                     break;
                 case NV3_PFIFO_CACHE1_PULLER_CONTROL:
-                    nv3->pfifo.cache1_settings.control = value; // 8bits meaningful
+                    nv3->pfifo.cache1_settings.puller_control = value; // 8bits meaningful
                     break;
                 case NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY:
                     nv3->pfifo.cache0_settings.context_is_dirty = value;
@@ -648,7 +648,6 @@ void nv3_pfifo_cache1_pull()
     if (nv3->pfifo.cache1_settings.put_address == nv3->pfifo.cache1_settings.get_address)
         return;
 
-    // There is only one entry for cache0 
     uint32_t get_address = nv3->pfifo.cache1_settings.get_address >> 2; // 32 bit aligned probably
 
     uint16_t current_channel = nv3->pfifo.cache1_settings.channel;

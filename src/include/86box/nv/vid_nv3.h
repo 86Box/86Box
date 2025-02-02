@@ -808,7 +808,6 @@ typedef struct nv3_pfifo_cache_s
     uint8_t channel;                    // The DMA channel ID of this cache.
     uint32_t status;
     uint32_t puller_control;
-    uint32_t control;
     uint32_t context[NV3_DMA_SUBCHANNELS_PER_CHANNEL];  // Only one of these exists for cache0
 
     /* cache1 only 
