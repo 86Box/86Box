@@ -30,6 +30,9 @@
 #include <QFont>
 #include <QDialog>
 #include <QMessageBox>
+#include <QFile>
+#include <QTextStream>
+/* CACO AGAIN */
 #include <QPushButton>
 
 #ifdef QT_STATIC
