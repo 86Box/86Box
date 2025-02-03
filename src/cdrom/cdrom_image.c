@@ -1992,7 +1992,8 @@ static const cdrom_ops_t image_ops = {
     image_is_dvd,
     image_has_audio,
     NULL,
-    image_close
+    image_close,
+    NULL
 };
 
 /* Public functions. */

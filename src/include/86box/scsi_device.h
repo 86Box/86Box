@@ -219,7 +219,7 @@
 #define ASC_INV_FIELD_IN_PARAMETER_LIST        0x26
 #define ASC_WRITE_PROTECTED                    0x27
 #define ASC_MEDIUM_MAY_HAVE_CHANGED            0x28
-#define ASC_CAPACITY_DATA_CHANGED              0x2A
+#define ASC_CAPACITY_DATA_CHANGED              0x2a
 #define ASC_INCOMPATIBLE_FORMAT                0x30
 #define ASC_MEDIUM_NOT_PRESENT                 0x3a
 #define ASC_DATA_PHASE_ERROR                   0x4b
