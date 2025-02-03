@@ -172,7 +172,9 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
             }
 
             return true;
-        } else if (msg && msg->message == WM_SETTINGCHANGE && msg->lParam != NULL && wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) {
+        } else if ((msg != nullptr) && (msg->message == WM_SETTINGCHANGE) &&
+                   (((void *) msg->lParam) != nullptr) &&
+                   (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
             if (!windows_is_light_theme()) {
                 QFile f(":qdarkstyle/dark/darkstyle.qss");
 
