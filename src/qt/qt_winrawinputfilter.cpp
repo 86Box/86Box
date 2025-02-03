@@ -34,15 +34,24 @@
 #include "qt_winrawinputfilter.hpp"
 
 #include <QMenuBar>
+#include <QFile>
+#include <QTextStream>
+#include <QApplication>
+#include <QTimer>
 
 #include <atomic>
 
 #include <windows.h>
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/86box.h>
+#include <86box/video.h>
 
 extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 
@@ -50,6 +59,35 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include <memory>
 
 #include "qt_rendererstack.hpp"
+#include "ui_qt_mainwindow.h"
+
+bool windows_is_light_theme() {
+    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
+
+    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
+    auto buffer = std::vector<char>(4);
+    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
+    auto res = RegGetValueW(
+        HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        L"AppsUseLightTheme",
+        RRF_RT_REG_DWORD, // expected value type
+        nullptr,
+        buffer.data(),
+        &cbData);
+
+    if (res != ERROR_SUCCESS) {
+        return 1;
+    }
+
+    // convert bytes written to our buffer to an int, assuming little-endian
+    auto i = int(buffer[3] << 24 |
+        buffer[2] << 16 |
+        buffer[1] << 8 |
+        buffer[0]);
+
+    return i == 1;
+}
 
 extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
@@ -134,6 +172,42 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
             }
 
             return true;
+        } else if (msg && msg->message == WM_SETTINGCHANGE && msg->lParam != NULL && wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) {
+            if (!windows_is_light_theme()) {
+                QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+                if (!f.exists())   {
+                    printf("Unable to set stylesheet, file not found\n");
+                } else   {
+                    f.open(QFile::ReadOnly | QFile::Text);
+                    QTextStream ts(&f);
+                    qApp->setStyleSheet(ts.readAll());
+                }
+                QTimer::singleShot(1000, [this] () {
+                    BOOL DarkMode = TRUE;
+                    DwmSetWindowAttribute((HWND)window->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode)); 
+                    window->ui->stackedWidget->switchRenderer((RendererStack::Renderer) vid_api);
+                    for (int i = 1; i < MONITORS_NUM; i++) {
+                        if (window->renderers[i] && !window->renderers[i]->isHidden())
+                            window->renderers[i]->switchRenderer((RendererStack::Renderer) vid_api);
+                    }
+                });
+            } else {
+                qApp->setStyleSheet("");
+                QTimer::singleShot(1000, [this] () {
+                    BOOL DarkMode = FALSE;
+                    DwmSetWindowAttribute((HWND)window->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
+                });
+            }
+
+            QTimer::singleShot(1000, [this] () {
+                window->resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+                for (int i = 1; i < MONITORS_NUM; i++) {
+                    if (window->renderers[i] && !window->renderers[i]->isHidden()) {
+                        window->resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
+                    }
+                }
+            });
         }
 
         /* Stop processing of Alt-F4 */

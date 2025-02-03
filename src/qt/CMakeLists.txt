@@ -189,6 +189,7 @@ add_library(ui STATIC
     qt_mediahistorymanager.hpp
 
     ../qt_resources.qrc
+    ./qdarkstyle/dark/darkstyle.qrc
 )
 
 if(RTMIDI)

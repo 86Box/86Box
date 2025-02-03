@@ -177,6 +177,7 @@ private:
     friend class ProgSettings;
     friend class RendererCommon;
     friend class RendererStack; // For UI variable access by non-primary renderer windows.
+    friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 };
 
 #endif // QT_MAINWINDOW_HPP
