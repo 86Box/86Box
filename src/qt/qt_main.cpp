@@ -17,8 +17,6 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
-/* CACO AGAIN - MOVE TO THE BOTTOM */
-#include <QPushButton>
 #include <QApplication>
 #include <QSurfaceFormat>
 #include <QDebug>
@@ -32,6 +30,7 @@
 #include <QFont>
 #include <QDialog>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QFile>
 #include <QTextStream>
 
