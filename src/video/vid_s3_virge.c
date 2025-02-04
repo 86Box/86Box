@@ -4692,35 +4692,38 @@ s3_virge_force_redraw(void *priv)
 static const device_config_t s3_virge_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -4729,39 +4732,39 @@ static const device_config_t s3_virge_config[] = {
 static const device_config_t s3_virge_stb_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -4770,16 +4773,24 @@ static const device_config_t s3_virge_stb_config[] = {
 static const device_config_t s3_virge_357_config[] = {
   // clang-format off
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -4788,35 +4799,41 @@ static const device_config_t s3_virge_357_config[] = {
 static const device_config_t s3_trio3d2x_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

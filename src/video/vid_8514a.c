@@ -3976,52 +3976,44 @@ ibm8514_force_redraw(void *priv)
 // clang-format off
 static const device_config_t isa_ext8514_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "extensions",
-        .description = "Vendor",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "IBM",
-                .value = 0
-            },
-            {
-                .description = "ATI",
-                .value = 1
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "extensions",
+        .description    = "Vendor",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM", .value = 0 },
+            { .description = "ATI", .value = 1 },
+            { .description = ""                }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800h", .value = 0xc8000 },
             { .description = "CA00h", .value = 0xca000 },
             { .description = "CC00h", .value = 0xcc000 },
@@ -4034,8 +4026,9 @@ static const device_config_t isa_ext8514_config[] = {
             { .description = "DA00h", .value = 0xda000 },
             { .description = "DC00h", .value = 0xdc000 },
             { .description = "DE00h", .value = 0xde000 },
-            { .description = ""                      }
+            { .description = ""                        }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -4043,75 +4036,66 @@ static const device_config_t isa_ext8514_config[] = {
 // clang-format off
 static const device_config_t mca_ext8514_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "extensions",
-        .description = "Vendor",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "IBM",
-                .value = 0
-            },
-            {
-                .description = "ATI",
-                .value = 1
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "extensions",
+        .description    = "Vendor",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM", .value = 0 },
+            { .description = "ATI", .value = 1 },
+            { .description = ""                }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 // clang-format off
 const device_t gen8514_isa_device = {
-    .name = "IBM 8514/A clone (ISA)",
+    .name          = "IBM 8514/A clone (ISA)",
     .internal_name = "8514_isa",
-    .flags = DEVICE_AT | DEVICE_ISA,
-    .local = 0,
-    .init = ibm8514_init,
-    .close = ibm8514_close,
-    .reset = NULL,
+    .flags         = DEVICE_AT | DEVICE_ISA,
+    .local         = 0,
+    .init          = ibm8514_init,
+    .close         = ibm8514_close,
+    .reset         = NULL,
     .available     = NULL,
     .speed_changed = ibm8514_speed_changed,
-    .force_redraw = ibm8514_force_redraw,
-    .config = isa_ext8514_config
+    .force_redraw  = ibm8514_force_redraw,
+    .config        = isa_ext8514_config
 };
 
 const device_t ibm8514_mca_device = {
-    .name = "IBM 8514/A (MCA)",
+    .name          = "IBM 8514/A (MCA)",
     .internal_name = "8514_mca",
-    .flags = DEVICE_MCA,
-    .local = 0,
-    .init = ibm8514_init,
-    .close = ibm8514_close,
-    .reset = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = ibm8514_init,
+    .close         = ibm8514_close,
+    .reset         = NULL,
     .available     = NULL,
     .speed_changed = ibm8514_speed_changed,
-    .force_redraw = ibm8514_force_redraw,
-    .config = mca_ext8514_config
+    .force_redraw  = ibm8514_force_redraw,
+    .config        = mca_ext8514_config
 };
-
 
 void
 ibm8514_device_add(void)

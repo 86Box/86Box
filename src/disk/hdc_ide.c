@@ -3359,18 +3359,17 @@ const device_t mcide_device = {
     .config        = NULL
 };
 
-
 // clang-format off
 static const device_config_t ide_ter_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = HDC_TERTIARY_IRQ,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = HDC_TERTIARY_IRQ,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Plug and Play", .value = -1 },
             { .description = "IRQ 2",         .value =  2 },
             { .description = "IRQ 3",         .value =  3 },
@@ -3382,21 +3381,22 @@ static const device_config_t ide_ter_config[] = {
             { .description = "IRQ 11",        .value = 11 },
             { .description = "IRQ 12",        .value = 12 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ide_qua_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = HDC_QUATERNARY_IRQ,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = HDC_QUATERNARY_IRQ,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Plug and Play", .value = -1 },
             { .description = "IRQ 2",         .value =  2 },
             { .description = "IRQ 3",         .value =  3 },
@@ -3408,7 +3408,8 @@ static const device_config_t ide_qua_config[] = {
             { .description = "IRQ 11",        .value = 11 },
             { .description = "IRQ 12",        .value = 12 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

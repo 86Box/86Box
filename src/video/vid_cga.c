@@ -809,110 +809,81 @@ cga_speed_changed(void *priv)
 // clang-format off
 const device_config_t cga_config[] = {
     {
-        .name = "display_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = CGA_RGB,
-        .selection = {
-            {
-                .description = "RGB",
-                .value = CGA_RGB
-            },
-            {
-                .description = "Composite",
-                .value = CGA_COMPOSITE
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CGA_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "RGB",       .value = CGA_RGB       },
+            { .description = "Composite", .value = CGA_COMPOSITE },
+            { .description = ""                                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "composite_type",
-        .description = "Composite type",
-        .type = CONFIG_SELECTION,
-        .default_int = COMPOSITE_OLD,
-        .selection = {
-            {
-                .description = "Old",
-                .value = COMPOSITE_OLD
-            },
-            {
-                .description = "New",
-                .value = COMPOSITE_NEW
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "composite_type",
+        .description    = "Composite type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = COMPOSITE_OLD,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Old", .value = COMPOSITE_OLD },
+            { .description = "New", .value = COMPOSITE_NEW },
+            { .description = ""                            }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "rgb_type",
-        .description = "RGB type",
-        .type = CONFIG_SELECTION,
-        .default_int = 5,
-        .selection = {
-            {
-                .description = "Color (generic)",
-                .value = 0
-            },
-            {
-                .description = "Green Monochrome",
-                .value = 1
-            },
-            {
-                .description = "Amber Monochrome",
-                .value = 2
-            },
-            {
-                .description = "Gray Monochrome",
-                .value = 3
-            },
-            {
-                .description = "Color (no brown)",
-                .value = 4
-            },
-            {
-                .description = "Color (IBM 5153)",
-                .value = 5
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "RGB type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Color (generic)",  .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = "Color (no brown)", .value = 4 },
+            { .description = "Color (IBM 5153)", .value = 5 },
+            { .description = ""                             }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "double_type",
-        .description = "Line doubling type",
-        .type = CONFIG_SELECTION,
-        .default_int = DOUBLE_NONE,
-        .selection = {
-            {
-                .description = "None",
-                .value = DOUBLE_NONE
-            },
-            {
-                .description = "Simple doubling",
-                .value = DOUBLE_SIMPLE
-            },
-            {
-                .description = "sRGB interpolation",
-                .value = DOUBLE_INTERPOLATE_SRGB
-            },
-            {
-                .description = "Linear interpolation",
-                .value = DOUBLE_INTERPOLATE_LINEAR
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "double_type",
+        .description    = "Line doubling type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DOUBLE_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",                 .value = DOUBLE_NONE               },
+            { .description = "Simple doubling",      .value = DOUBLE_SIMPLE             },
+            { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
+            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

@@ -41,7 +41,7 @@
 #define XGA2_BIOS_PATH      "roms/video/xga/xga2_v300.bin"
 #define INMOS_XGA_BIOS_PATH "roms/video/xga/InMOS XGA - Fairchild NM27C256Q-150.BIN"
 
-static video_timings_t timing_xga_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
+static video_timings_t timing_xga_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l =  6, .read_b = 5, .read_w = 5, .read_l = 10 };
 static video_timings_t timing_xga_mca = { .type = VIDEO_MCA, .write_b = 4, .write_w = 5, .write_l = 10, .read_b = 5, .read_w = 5, .read_l = 10 };
 
 static void    xga_ext_outb(uint16_t addr, uint8_t val, void *priv);
@@ -3660,24 +3660,19 @@ xga_force_redraw(void *priv)
 static const device_config_t xga_mca_configuration[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "XGA type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "XGA-1",
-                .value = 0
-            },
-            {
-                .description = "XGA-2",
-                .value = 1
-            },
-            { .description = "" }
-        }
+        .name           = "type",
+        .description    = "XGA type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "XGA-1", .value = 0 },
+            { .description = "XGA-2", .value = 1 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -3686,34 +3681,29 @@ static const device_config_t xga_mca_configuration[] = {
 static const device_config_t xga_isa_configuration[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "XGA type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "XGA-1",
-                .value = 0
-            },
-            {
-                .description = "XGA-2",
-                .value = 1
-            },
-            { .description = "" }
-        }
+        .name           = "type",
+        .description    = "XGA type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "XGA-1", .value = 0 },
+            { .description = "XGA-2", .value = 1 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "instance",
-        .description = "Instance",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "instance",
+        .description    = "Instance",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0 (2100h-210Fh)", .value = 0 },
             { .description = "1 (2110h-211Fh)", .value = 1 },
             { .description = "2 (2120h-212Fh)", .value = 2 },
@@ -3722,18 +3712,19 @@ static const device_config_t xga_isa_configuration[] = {
             { .description = "5 (2150h-215Fh)", .value = 5 },
             { .description = "6 (2160h-216Fh)", .value = 6 },
             { .description = "7 (2170h-217Fh)", .value = 7 },
-            { .description = ""                      }
+            { .description = ""                            }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "ext_mem_addr",
-        .description = "MMIO Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x00f0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "ext_mem_addr",
+        .description    = "MMIO Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x00f0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800h", .value = 0x0040 },
             { .description = "CA00h", .value = 0x0050 },
             { .description = "CC00h", .value = 0x0060 },
@@ -3746,23 +3737,25 @@ static const device_config_t xga_isa_configuration[] = {
             { .description = "DA00h", .value = 0x00d0 },
             { .description = "DC00h", .value = 0x00e0 },
             { .description = "DE00h", .value = 0x00f0 },
-            { .description = ""                      }
+            { .description = ""                       }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0 },
-            { .description = "DMA 6", .value = 6 },
-            { .description = "DMA 7", .value = 7 },
-            { .description = ""                  }
+            { .description = "DMA 6",    .value = 6 },
+            { .description = "DMA 7",    .value = 7 },
+            { .description = ""                     }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -3771,39 +3764,35 @@ static const device_config_t xga_isa_configuration[] = {
 static const device_config_t xga_inmos_isa_configuration[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "XGA type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "XGA-1",
-                .value = 0
-            },
-            {
-                .description = "XGA-2",
-                .value = 1
-            },
-            { .description = "" }
-        }
-    },
-    {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Disabled", .value = 0 },
-            { .description = "DMA 6", .value = 6 },
-            { .description = "DMA 7", .value = 7 },
+        .name           = "type",
+        .description    = "XGA type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "XGA-1", .value = 0 },
+            { .description = "XGA-2", .value = 1 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0 },
+            { .description = "DMA 6",    .value = 6 },
+            { .description = "DMA 7",    .value = 7 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

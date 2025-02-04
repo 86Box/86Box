@@ -700,37 +700,32 @@ speed_changed(void *priv)
 static const device_config_t herculesplus_config[] = {
   // clang-format off
     {
-        .name = "rgb_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "Default",
-                .value = 0
-            },
-            {
-                .description = "Green",
-                .value = 1
-            },
-            {
-                .description = "Amber",
-                .value = 2
-            },
-            {
-                .description = "Gray",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Default", .value = 0 },
+            { .description = "Green",   .value = 1 },
+            { .description = "Amber",   .value = 2 },
+            { .description = "Gray",    .value = 3 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "blend",
-        .description = "Blend",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "blend",
+        .description    = "Blend",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

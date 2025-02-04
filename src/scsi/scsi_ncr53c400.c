@@ -778,14 +778,14 @@ corel_ls2000_available(void)
 // clang-format off
 static const device_config_t ncr53c400_mmio_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xD8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xD8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
             { .description = "D000H", .value = 0xd0000 },
@@ -794,36 +794,38 @@ static const device_config_t ncr53c400_mmio_config[] = {
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value = 3 },
-            { .description = "IRQ 5", .value = 5 },
-            { .description = "IRQ 7", .value = 7 },
-            { .description = ""                  }
+            { .description = "IRQ 3", .value =  3 },
+            { .description = "IRQ 5", .value =  5 },
+            { .description = "IRQ 7", .value =  7 },
+            { .description = ""                   }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t rt1000b_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xD8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xD8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
             { .description = "D000H", .value = 0xd0000 },
@@ -832,36 +834,53 @@ static const device_config_t rt1000b_config[] = {
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value = 3 },
-            { .description = "IRQ 5", .value = 5 },
-            { .description = "IRQ 7", .value = 7 },
-            { .description = ""                  }
+            { .description = "IRQ 3", .value =  3 },
+            { .description = "IRQ 5", .value =  5 },
+            { .description = "IRQ 7", .value =  7 },
+            { .description = ""                   }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "v8_10r",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios = {
-            { .name = "Version 8.10R", .internal_name = "v8_10r", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { RT1000B_810R_ROM, "" } },
-            { .name = "Version 8.20R", .internal_name = "v8_20r", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { RT1000B_820R_ROM, "" } },
+            {
+                .name          = "Version 8.10R",
+                .internal_name = "v8_10r",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { RT1000B_810R_ROM, "" }
+            },
+            {
+                .name          = "Version 8.20R",
+                .internal_name = "v8_20r",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { RT1000B_820R_ROM, "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -870,34 +889,35 @@ static const device_config_t rt1000b_config[] = {
 
 static const device_config_t rt1000b_mc_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value = 3 },
-            { .description = "IRQ 5", .value = 5 },
-            { .description = "IRQ 7", .value = 7 },
-            { .description = ""                  }
+            { .description = "IRQ 3", .value =  3 },
+            { .description = "IRQ 5", .value =  5 },
+            { .description = "IRQ 7", .value =  7 },
+            { .description = ""                   }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t t130b_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xD8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xD8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value =       0 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CC00H",    .value = 0xcc000 },
@@ -905,38 +925,41 @@ static const device_config_t t130b_config[] = {
             { .description = "DC00H",    .value = 0xdc000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0350,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0350,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "240H", .value = 0x0240 },
             { .description = "250H", .value = 0x0250 },
             { .description = "340H", .value = 0x0340 },
             { .description = "350H", .value = 0x0350 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value = 3 },
-            { .description = "IRQ 5", .value = 5 },
-            { .description = "IRQ 7", .value = 7 },
-            { .description = ""                  }
+            { .description = "IRQ 3", .value =  3 },
+            { .description = "IRQ 5", .value =  5 },
+            { .description = "IRQ 7", .value =  7 },
+            { .description = ""                   }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

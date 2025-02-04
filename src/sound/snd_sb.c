@@ -4081,211 +4081,165 @@ sb_speed_changed(void *priv)
 // clang-format off
 static const device_config_t sb_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x210",
-                .value = 0x210
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x230",
-                .value = 0x230
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
-    },
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb15_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x210",
-                .value = 0x210
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x230",
-                .value = 0x230
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name = "irq",
         .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "cms",
-        .description = "Enable CMS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "cms",
+        .description    = "Enable CMS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -4294,1064 +4248,888 @@ static const device_config_t sb2_config[] = {
     {
         .name = "base",
         .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            { .description = "" }
-        }
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mixaddr",
-        .description = "Mixer",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Disabled",
-                .value = 0
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            { .description = "" }
-        }
+        .name           = "mixaddr",
+        .description    = "Mixer",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x250",    .value = 0x250 },
+            { .description = "0x260",    .value = 0x260 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "cms",
-        .description = "Enable CMS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "cms",
+        .description    = "Enable CMS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_mcv_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_pro_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_pro_mcv_config[] = {
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_16_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = "0x280",
-                .value = 0x280
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base401",
-        .description = "MPU-401 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x330,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Disabled",
-                .value = 0
-            },
-            {
-                .description = "0x300",
-                .value = 0x300
-            },
-            {
-                .description = "0x330",
-                .value = 0x330
-            },
-            { .description = "" }
-        }
+        .name           = "base401",
+        .description    = "MPU-401 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x330,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x300",    .value = 0x300 },
+            { .description = "0x330",    .value = 0x330 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "Low DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "Low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma16",
-        .description = "High DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 5",
-                .value = 5
-            },
-            {
-                .description = "DMA 6",
-                .value = 6
-            },
-            {
-                .description = "DMA 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "dma16",
+        .description    = "High DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_16_pnp_config[] = {
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_goldfinch_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "1 MB",  .value =  1024 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "4 MB",  .value =  4096 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "16 MB",  .value = 16384 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_32_pnp_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe32_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = "0x280",
-                .value = 0x280
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "emu_base",
-        .description =  "EMU8000 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x620,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x620",
-                .value = 0x620
-            },
-            {
-                .description = "0x640",
-                .value = 0x640
-            },
-            {
-                .description = "0x660",
-                .value = 0x660
-            },
-            {
-                .description = "0x680",
-                .value = 0x680
-            },
-            { .description = ""}
-        }
+        .name           = "emu_base",
+        .description    = "EMU8000 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x620,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x620", .value = 0x620 },
+            { .description = "0x640", .value = 0x640 },
+            { .description = "0x660", .value = 0x660 },
+            { .description = "0x680", .value = 0x680 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base401",
-        .description = "MPU-401 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x330,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Disabled",
-                .value = 0
-            },
-            {
-                .description = "0x300",
-                .value = 0x300
-            },
-            {
-                .description = "0x330",
-                .value = 0x330
-            },
-            { .description = "" }
-        }
+        .name           = "base401",
+        .description    = "MPU-401 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x330,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x300",    .value = 0x300 },
+            { .description = "0x330",    .value = 0x330 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "Low DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "Low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma16",
-        .description = "High DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 5",
-                .value = 5
-            },
-            {
-                .description = "DMA 6",
-                .value = 6
-            },
-            {
-                .description = "DMA 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "dma16",
+        .description    = "High DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 512,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe32_pnp_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 512,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe64_value_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 512,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "12 MB",
-                .value = 12288
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "20 MB",
-                .value = 20480
-            },
-            {
-                .description = "24 MB",
-                .value = 24576
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =   512 },
+            { .description =  "1 MB",  .value =  1024 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "4 MB",  .value =  4096 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "12 MB",  .value = 12288 },
+            { .description = "16 MB",  .value = 16384 },
+            { .description = "20 MB",  .value = 20480 },
+            { .description = "24 MB",  .value = 24576 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe64_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1024,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "12 MB",
-                .value = 12288
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "20 MB",
-                .value = 20480
-            },
-            {
-                .description = "24 MB",
-                .value = 24576
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "1 MB", .value =  1024 },
+            { .description =  "2 MB", .value =  2048 },
+            { .description =  "4 MB", .value =  4096 },
+            { .description =  "8 MB", .value =  8192 },
+            { .description = "12 MB", .value = 12288 },
+            { .description = "16 MB", .value = 16384 },
+            { .description = "20 MB", .value = 20480 },
+            { .description = "24 MB", .value = 24576 },
+            { .description = "28 MB", .value = 28672 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe64_gold_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 4096,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "12 MB",
-                .value = 12288
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "20 MB",
-                .value = 20480
-            },
-            {
-                .description = "24 MB",
-                .value = 24576
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4096,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "4 MB", .value =  4096 },
+            { .description =  "8 MB", .value =  8192 },
+            { .description = "12 MB", .value = 12288 },
+            { .description = "16 MB", .value = 16384 },
+            { .description = "20 MB", .value = 20480 },
+            { .description = "24 MB", .value = 24576 },
+            { .description = "28 MB", .value = 28672 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -5361,120 +5139,80 @@ static const device_config_t ess_688_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x220,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "0x220",
-                .value       = 0x220
-            },
-            {
-                .description = "0x230",
-                .value       = 0x230
-            },
-            {
-                .description = "0x240",
-                .value       = 0x240
-            },
-            {
-                .description = "0x250",
-                .value       = 0x250
-            },
-            { .description = "" }
-        }
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 5,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "IRQ 2",
-                .value       = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value       = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value       = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value       = 10
-            },
-            { .description = "" }
-        }
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "DMA 0",
-                .value       = 0
-            },
-            {
-                .description = "DMA 1",
-                .value       = 1
-            },
-            {
-                .description = "DMA 3",
-                .value       = 3
-            },
-            { .description = "" }
-        }
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x0000,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "Disabled",
-                .value       = 0x0000
-            },
-            {
-                .description = "0x170, IRQ 15",
-                .value       = 0xf170
-            },
-            {
-                .description = "0x1E8, IRQ 11",
-                .value       = 0xb1e8
-            },
-            {
-                .description = "0x168, IRQ 9",
-                .value       = 0x9168
-            },
-            {
-                .description = "0x168, IRQ 10",
-                .value       = 0xa168
-            },
-            { .description = "" }
-        }
+            { .description = "Disabled",      .value = 0x0000 },
+            { .description = "0x170, IRQ 15", .value = 0xf170 },
+            { .description = "0x1E8, IRQ 11", .value = 0xb1e8 },
+            { .description = "0x168, IRQ 9",  .value = 0x9168 },
+            { .description = "0x168, IRQ 10", .value = 0xa168 },
+            { .description = ""                               }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
-        .default_string = "",
-        .default_int    = 1
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -5484,170 +5222,154 @@ static const device_config_t ess_1688_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x220,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "0x220",
-                .value       = 0x220
-            },
-            {
-                .description = "0x230",
-                .value       = 0x230
-            },
-            {
-                .description = "0x240",
-                .value       = 0x240
-            },
-            {
-                .description = "0x250",
-                .value       = 0x250
-            },
-            { .description = "" }
-        }
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 5,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "IRQ 2",
-                .value       = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value       = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value       = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value       = 10
-            },
-            { .description = "" }
-        }
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "DMA 0",
-                .value       = 0
-            },
-            {
-                .description = "DMA 1",
-                .value       = 1
-            },
-            {
-                .description = "DMA 3",
-                .value       = 3
-            },
-            { .description = "" }
-        }
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x0000,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "Disabled",
-                .value       = 0x0000
-            },
-            {
-                .description = "0x170, IRQ 15",
-                .value       = 0xf170
-            },
-            {
-                .description = "0x1E8, IRQ 11",
-                .value       = 0xb1e8
-            },
-            {
-                .description = "0x168, IRQ 9",
-                .value       = 0x9168
-            },
-            {
-                .description = "0x168, IRQ 10",
-                .value       = 0xa168
-            },
-            { .description = "" }
-        }
+            { .description = "Disabled",      .value = 0x0000 },
+            { .description = "0x170, IRQ 15", .value = 0xf170 },
+            { .description = "0x1E8, IRQ 11", .value = 0xb1e8 },
+            { .description = "0x168, IRQ 9",  .value = 0x9168 },
+            { .description = "0x168, IRQ 10", .value = 0xa168 },
+            { .description = ""                               }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ess_688_pnp_config[] = {
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ess_1688_pnp_config[] = {
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 0
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 1
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 0
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

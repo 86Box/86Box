@@ -1531,30 +1531,31 @@ modem_close(void *priv)
 // clang-format off
 static const device_config_t modem_config[] = {
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "baudrate",
-        .description = "Baud Rate",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 115200,
-        .file_filter = NULL,
-        .spinner = { 0 },
-        .selection = {
+        .name           = "baudrate",
+        .description    = "Baud Rate",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 115200,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "115200", .value = 115200 },
             { .description =  "57600", .value =  57600 },
             { .description =  "56000", .value =  56000 },
@@ -1569,32 +1570,44 @@ static const device_config_t modem_config[] = {
             { .description =   "1200", .value =   1200 },
             { .description =    "600", .value =    600 },
             { .description =    "300", .value =    300 },
-        }
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "listen_port",
-        .description = "TCP/IP listening port",
-        .type = CONFIG_SPINNER,
-        .spinner =
-        {
-            .min = 0,
+        .name           = "listen_port",
+        .description    = "TCP/IP listening port",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min =     0,
             .max = 32767
         },
-        .default_int = 0
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "phonebook_file",
-        .description = "Phonebook File",
-        .type = CONFIG_FNAME,
-        .default_string = "",
-        .file_filter = "Text files (*.txt)|*.txt"
+        .name           = "phonebook_file",
+        .description    = "Phonebook File",
+        .type           = CONFIG_FNAME,
+        .default_string = NULL,
+        .file_filter    = "Text files (*.txt)|*.txt",
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "telnet_mode",
-        .description = "Telnet emulation",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "telnet_mode",
+        .description    = "Telnet emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

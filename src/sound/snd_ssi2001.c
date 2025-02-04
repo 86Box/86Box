@@ -136,39 +136,32 @@ entertainer_close(void *priv)
 static const device_config_t ssi2001_config[] = {
     // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x280,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x280",
-                .value = 0x280
-            },
-            {
-                .description = "0x2A0",
-                .value = 0x2A0
-            },
-            {
-                .description = "0x2C0",
-                .value = 0x2C0
-            },
-            {
-                .description = "0x2E0",
-                .value = 0x2E0
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x280,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x2A0", .value = 0x2A0 },
+            { .description = "0x2C0", .value = 0x2C0 },
+            { .description = "0x2E0", .value = 0x2E0 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "gameport",
-        .description = "Enable Game port",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
@@ -177,11 +170,15 @@ static const device_config_t ssi2001_config[] = {
 static const device_config_t entertainer_config[] = {
     // clang-format off
     {
-        .name = "gameport",
-        .description = "Enable Game port",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off

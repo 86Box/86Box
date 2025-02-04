@@ -157,9 +157,9 @@ static const device_config_t compaticard_i_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x3f0,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "0x3f0", .value = 0x3f0 },
@@ -167,7 +167,8 @@ static const device_config_t compaticard_i_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
@@ -179,9 +180,9 @@ static const device_config_t compaticard_ii_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x3f0,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "0x3f0", .value = 0x3f0 },
@@ -189,15 +190,16 @@ static const device_config_t compaticard_ii_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 6,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "IRQ 2", .value = 2 },
@@ -207,22 +209,24 @@ static const device_config_t compaticard_ii_config[] = {
             { .description = "IRQ 6", .value = 6 },
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "dma",
         .description    = "DMA channel",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 2,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "DMA 1", .value = 1 },
             { .description = "DMA 2", .value = 2 },
             { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
@@ -234,9 +238,9 @@ static const device_config_t compaticard_iv_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x3f0,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "0x3f0", .value = 0x3f0 },
@@ -244,15 +248,16 @@ static const device_config_t compaticard_iv_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 6,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "IRQ 2", .value = 2 },
@@ -262,30 +267,32 @@ static const device_config_t compaticard_iv_config[] = {
             { .description = "IRQ 6", .value = 6 },
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "dma",
         .description    = "DMA channel",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 2,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "DMA 1", .value = 1 },
             { .description = "DMA 2", .value = 2 },
             { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "bios_addr",
         .description    = "BIOS Address:",
         .type           = CONFIG_HEX20,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0xce000,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = 0       },
@@ -298,15 +305,20 @@ static const device_config_t compaticard_iv_config[] = {
             { .description = "E800H",    .value = 0xe8000 },
             { .description = "EE00H",    .value = 0xee000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
 #if 0
     {
         .name           = "autoboot_enabled",
         .description    = "Enable Autoboot",
         .type           = CONFIG_BINARY,
-        .default_string = "",
-        .default_int    = 0
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
 #endif
     { .name = "", .description = "", .type = CONFIG_END }

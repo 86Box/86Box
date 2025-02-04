@@ -231,11 +231,15 @@ rtmidi_in_get_dev_name(int num, char *s)
 static const device_config_t system_midi_config[] = {
   // clang-format off
     {
-        .name = "midi",
-        .description = "MIDI Output Device",
-        .type = CONFIG_MIDI_OUT,
-        .default_string = "",
-        .default_int = 0
+        .name           = "midi",
+        .description    = "MIDI Output Device",
+        .type           = CONFIG_MIDI_OUT,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -244,32 +248,48 @@ static const device_config_t system_midi_config[] = {
 static const device_config_t midi_input_config[] = {
   // clang-format off
     {
-        .name = "midi_input",
-        .description = "MIDI Input Device",
-        .type = CONFIG_MIDI_IN,
-        .default_string = "",
-        .default_int = 0
+        .name           = "midi_input",
+        .description    = "MIDI Input Device",
+        .type           = CONFIG_MIDI_IN,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "realtime",
-        .description = "MIDI Real time",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "realtime",
+        .description    = "MIDI Real time",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "thruchan",
-        .description = "MIDI Thru",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "thruchan",
+        .description    = "MIDI Thru",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "clockout",
-        .description = "MIDI Clockout",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "clockout",
+        .description    = "MIDI Clockout",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

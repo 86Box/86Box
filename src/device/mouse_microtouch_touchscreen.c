@@ -549,42 +549,49 @@ mtouch_close(void *priv)
 static const device_config_t mtouch_config[] = {
   // clang-format off
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "identity",
-        .description = "Controller",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = NULL,
-        .spinner = { 0 },
-        .selection = {
-            { .description =  "A3 - SMT2 Serial / SMT3(R)V", .value =   0 },
-            { .description =  "A4 - SMT2 PCBus",             .value =   1 },
-            { .description =  "P5 - TouchPen 4(+)",          .value =   2 },
-            { .description =  "Q1 - SMT3(R) Serial",         .value =   3 }
-        }
+        .name           = "identity",
+        .description    = "Controller",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "A3 - SMT2 Serial / SMT3(R)V", .value = 0 },
+            { .description = "A4 - SMT2 PCBus",             .value = 1 },
+            { .description = "P5 - TouchPen 4(+)",          .value = 2 },
+            { .description = "Q1 - SMT3(R) Serial",         .value = 3 },
+            { .description = ""                                        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "crosshair",
-        .description = "Show Crosshair",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "crosshair",
+        .description    = "Show Crosshair",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

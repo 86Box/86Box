@@ -3178,186 +3178,6 @@ banshee_pci_write(int func, int addr, uint8_t val, void *priv)
     }
 }
 
-// clang-format off
-static const device_config_t banshee_sgram_config[] = {
-    {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = "16 MB",
-                .value = 16
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 16
-    },
-    {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dithersub",
-        .description = "Dither subtraction",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dacfilter",
-        .description = "Screen Filter",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
-    {
-        .name = "render_threads",
-        .description = "Render threads",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1",
-                .value = 1
-            },
-            {
-                .description = "2",
-                .value = 2
-            },
-            {
-                .description = "4",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 2
-    },
-#ifndef NO_CODEGEN
-    {
-        .name = "recompiler",
-        .description = "Dynamic Recompiler",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-#endif
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t banshee_sgram_16mbonly_config[] = {
-    {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dithersub",
-        .description = "Dither subtraction",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dacfilter",
-        .description = "Screen Filter",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
-    {
-        .name = "render_threads",
-        .description = "Render threads",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1",
-                .value = 1
-            },
-            {
-                .description = "2",
-                .value = 2
-            },
-            {
-                .description = "4",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 2
-    },
-#ifndef NO_CODEGEN
-    {
-        .name = "recompiler",
-        .description = "Dynamic Recompiler",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-#endif
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t banshee_sdram_config[] = {
-    {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dithersub",
-        .description = "Dither subtraction",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dacfilter",
-        .description = "Screen Filter",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
-    {
-        .name = "render_threads",
-        .description = "Render threads",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1",
-                .value = 1
-            },
-            {
-                .description = "2",
-                .value = 2
-            },
-            {
-                .description = "4",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 2
-    },
-#ifndef NO_CODEGEN
-    {
-        .name = "recompiler",
-        .description = "Dynamic Recompiler",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-#endif
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-// clang-format on
-
 static void *
 banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int voodoo_type, int agp)
 {
@@ -3748,6 +3568,221 @@ banshee_force_redraw(void *priv)
 
     banshee->svga.fullchange = changeframecount;
 }
+
+// clang-format off
+static const device_config_t banshee_sgram_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 16,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t banshee_sgram_16mbonly_config[] = {
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t banshee_sdram_config[] = {
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
 
 const device_t voodoo_banshee_device = {
     .name          = "3Dfx Voodoo Banshee",

@@ -10543,100 +10543,126 @@ s3_force_redraw(void *priv)
     s3->svga.fullchange = s3->svga.monitor->mon_changeframecount;
 }
 
+// clang-format off
 static const device_config_t s3_orchid_86c911_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 1,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "512 KB", .value = 0 },
             { .description = "1 MB",   .value = 1 },
             { .description = ""                   }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_9fx_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 2,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
              { .description = "1 MB", .value = 1 },
              { .description = "2 MB", .value = 2 },
              /* Trio64 also supports 4 MB, however the Number Nine BIOS does not */
              { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_phoenix_trio32_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 2,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "512 KB", .value = 0 },
             { .description = "1 MB",   .value = 1 },
             { .description = "2 MB",   .value = 2 },
             { .description = ""                   }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_standard_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_968_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = "8 MB", .value = 8 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_standard_config2[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t s3_orchid_86c911_isa_device = {
     .name          = "S3 86c911 ISA (Orchid Fahrenheit 1280)",

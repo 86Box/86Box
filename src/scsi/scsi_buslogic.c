@@ -1780,14 +1780,14 @@ buslogic_init(const device_t *info)
 // clang-format off
 static const device_config_t BT_ISA_Config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x334,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x334,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x330", .value = 0x330 },
             { .description = "0x334", .value = 0x334 },
             { .description = "0x230", .value = 0x230 },
@@ -1796,16 +1796,17 @@ static const device_config_t BT_ISA_Config[] = {
             { .description = "0x134", .value = 0x134 },
             { .description = "",      .value =     0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 11,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 11,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
@@ -1814,48 +1815,55 @@ static const device_config_t BT_ISA_Config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = "", 0                 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
             { .description = "DMA 7", .value = 7 },
             { .description = "",      .value = 0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value =       0 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "D000H",    .value = 0xd0000 },
             { .description = "D800H",    .value = 0xd8000 },
             { .description = "",         .value =       0 }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t BT958D_Config[] = {
     {
-        .name = "bios",
-        .description = "Enable BIOS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

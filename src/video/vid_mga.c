@@ -6845,25 +6845,20 @@ mystique_force_redraw(void *priv)
 static const device_config_t mystique_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            { .description = "" }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
         },
-        .default_int = 8
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -6872,25 +6867,20 @@ static const device_config_t mystique_config[] = {
 static const device_config_t millennium_ii_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = "16 MB",
-                .value = 16
-            },
-            { .description = "" }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "4 MB", .value =  4 },
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
         },
-        .default_int = 8
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

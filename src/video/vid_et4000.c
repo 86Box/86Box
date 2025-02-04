@@ -943,43 +943,51 @@ et4000_kasan_available(void)
 static const device_config_t et4000_tc6058af_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "v1_10",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Version 1.10", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
-            { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { V1_21_BIOS_ROM_PATH, "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Version 1.10",
+                .internal_name = "v1_10",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { TC6058AF_BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Version 1.21",
+                .internal_name = "v1_21",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { V1_21_BIOS_ROM_PATH, "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
@@ -988,43 +996,51 @@ static const device_config_t et4000_tc6058af_config[] = {
 static const device_config_t et4000_bios_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "v8_01",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Version 8.01", .internal_name = "v8_01", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { BIOS_ROM_PATH, "" } },
-            { .name = "Version 8.06", .internal_name = "v8_06", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { V8_06_BIOS_ROM_PATH, "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Version 8.01",
+                .internal_name = "v8_01",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Version 8.06",
+                .internal_name = "v8_06",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { V8_06_BIOS_ROM_PATH, "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1033,27 +1049,20 @@ static const device_config_t et4000_bios_config[] = {
 static const device_config_t et4000_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

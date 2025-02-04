@@ -200,42 +200,23 @@ cms_close(void *priv)
 static const device_config_t cms_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x210",
-                .value = 0x210
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x230",
-                .value = 0x230
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
