@@ -1830,7 +1830,7 @@ static void da2_render_textm3(da2_t* da2)
                 else {
                     // the char code is SBCS (ANK)
                     uint32_t fontbase;
-                    fontbase = DA2_FONTROM_BASESBCS;
+                    fontbase = DA2_GAIJIRAM_SBCS;
                     uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2];// w13xh29 font
                     font <<= 8;
                     font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1];// w13xh29 font
