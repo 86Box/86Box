@@ -46,7 +46,8 @@ bool nv3_is_svga_redirect_address(uint32_t addr)
     || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_COLOR
     || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR
     || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_MONO
-    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO);
+    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO
+    || (addr >= NV3_VGA_DAC_START && addr <= NV3_VGA_DAC_END));
 }
 
 // All MMIO regs are 32-bit i believe internally

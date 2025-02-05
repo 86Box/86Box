@@ -593,6 +593,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PRAMDAC_END                                 0x680FFF
 #define NV3_PDAC_END                                    0x680FFF    // OPTIONAL external DAC
 
+#define NV3_VGA_DAC_START                               0x6813C6
+#define NV3_VGA_DAC_END                                 0x6813C9
 
 #define NV3_USER_START                                  0x800000    // Mapping for the area where objects are submitted into the FIFO (up to 0x880000?)
 #define NV3_USER_END                                    0xFFFFFF
