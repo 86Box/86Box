@@ -113,8 +113,7 @@ cart_image_load(int drive, char *fn)
         (void) !fread(&base, 1, 2, fp);
         base <<= 4;
         fseek(fp, 0x00000200, SEEK_SET);
-        carts[drive].buf = (uint8_t *) malloc(size);
-        memset(carts[drive].buf, 0x00, size);
+        carts[drive].buf = (uint8_t *) calloc(1, size);
         (void) !fread(carts[drive].buf, 1, size, fp);
         fclose(fp);
     } else {
@@ -122,8 +121,7 @@ cart_image_load(int drive, char *fn)
         if (size == 32768)
             base += 0x8000;
         fseek(fp, 0x00000000, SEEK_SET);
-        carts[drive].buf = (uint8_t *) malloc(size);
-        memset(carts[drive].buf, 0x00, size);
+        carts[drive].buf = (uint8_t *) calloc(1, size);
         (void) !fread(carts[drive].buf, 1, size, fp);
         fclose(fp);
     }

@@ -228,8 +228,7 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
 void *
 sn76489_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
-    memset(sn76489, 0, sizeof(sn76489_t));
+    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
 
     sn76489_init(sn76489, 0x00c0, 0x0008, SN76496, 3579545);
 
@@ -239,8 +238,7 @@ sn76489_device_init(UNUSED(const device_t *info))
 void *
 ncr8496_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
-    memset(sn76489, 0, sizeof(sn76489_t));
+    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
 
     sn76489_init(sn76489, 0x00c0, 0x0008, NCR8496, 3579545);
 
@@ -250,8 +248,7 @@ ncr8496_device_init(UNUSED(const device_t *info))
 void *
 tndy_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
-    memset(sn76489, 0, sizeof(sn76489_t));
+    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
 
     uint16_t addr = device_get_config_hex16("base");
 

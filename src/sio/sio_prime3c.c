@@ -296,8 +296,7 @@ prime3c_close(void *priv)
 static void *
 prime3c_init(const device_t *info)
 {
-    prime3c_t *dev = (prime3c_t *) malloc(sizeof(prime3c_t));
-    memset(dev, 0, sizeof(prime3c_t));
+    prime3c_t *dev = (prime3c_t *) calloc(1, sizeof(prime3c_t));
 
     /* Avoid conflicting with machines that make no use of the Prime3C Internal IDE */
     HAS_IDE_FUNCTIONALITY = info->local;

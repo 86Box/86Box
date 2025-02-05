@@ -63,7 +63,6 @@
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 #include <86box/net_wd8003.h>
-#include <86box/bswap.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -651,8 +650,7 @@ wd_init(const device_t *info)
     uint32_t mac;
     wd_t    *dev;
 
-    dev = malloc(sizeof(wd_t));
-    memset(dev, 0x00, sizeof(wd_t));
+    dev = calloc(1, sizeof(wd_t));
     dev->name  = info->name;
     dev->board = info->local;
 

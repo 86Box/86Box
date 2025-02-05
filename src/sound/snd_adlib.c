@@ -103,8 +103,7 @@ adlib_mca_feedb(void *priv)
 void *
 adlib_init(UNUSED(const device_t *info))
 {
-    adlib_t *adlib = malloc(sizeof(adlib_t));
-    memset(adlib, 0, sizeof(adlib_t));
+    adlib_t *adlib = calloc(1, sizeof(adlib_t));
 
     adlib_log("adlib_init\n");
     fm_driver_get(FM_YM3812, &adlib->opl);

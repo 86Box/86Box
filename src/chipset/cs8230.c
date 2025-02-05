@@ -157,8 +157,7 @@ cs8230_close(void *priv)
 static void *
 cs8230_init(UNUSED(const device_t *info))
 {
-    cs8230_t *cs8230 = (cs8230_t *) malloc(sizeof(cs8230_t));
-    memset(cs8230, 0, sizeof(cs8230_t));
+    cs8230_t *cs8230 = (cs8230_t *) calloc(1, sizeof(cs8230_t));
 
     io_sethandler(0x0022, 0x0002, cs8230_read, NULL, NULL, cs8230_write, NULL, NULL, cs8230);
 

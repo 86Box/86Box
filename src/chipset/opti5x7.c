@@ -172,8 +172,7 @@ opti5x7_close(void *priv)
 static void *
 opti5x7_init(const device_t *info)
 {
-    opti5x7_t *dev = (opti5x7_t *) malloc(sizeof(opti5x7_t));
-    memset(dev, 0, sizeof(opti5x7_t));
+    opti5x7_t *dev = (opti5x7_t *) calloc(1, sizeof(opti5x7_t));
 
     dev->is_pci = info->local;
 

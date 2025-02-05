@@ -60,7 +60,6 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
-#include <86box/bswap.h>
 #include <86box/plat_unused.h>
 
 typedef struct threec503_t {
@@ -573,8 +572,7 @@ threec503_nic_init(UNUSED(const device_t *info))
     uint32_t     mac;
     threec503_t *dev;
 
-    dev = malloc(sizeof(threec503_t));
-    memset(dev, 0x00, sizeof(threec503_t));
+    dev = calloc(1, sizeof(threec503_t));
     dev->maclocal[0] = 0x02; /* 02:60:8C (3Com OID) */
     dev->maclocal[1] = 0x60;
     dev->maclocal[2] = 0x8C;

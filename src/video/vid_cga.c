@@ -448,7 +448,7 @@ cga_interpolate_linear(uint8_t co1, uint8_t co2, double fraction)
 }
 
 static color_t
-cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, double fraction)
+cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, UNUSED(double fraction))
 {
     color_t ret;
     uint8_t dt = cga->double_type - DOUBLE_INTERPOLATE_SRGB;

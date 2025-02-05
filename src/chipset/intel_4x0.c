@@ -1608,10 +1608,8 @@ i4x0_close(void *priv)
 static void *
 i4x0_init(const device_t *info)
 {
-    i4x0_t  *dev = (i4x0_t *) malloc(sizeof(i4x0_t));
+    i4x0_t  *dev = (i4x0_t *) calloc(1, sizeof(i4x0_t));
     uint8_t *regs;
-
-    memset(dev, 0, sizeof(i4x0_t));
 
     dev->smram_low  = smram_add();
     dev->smram_high = smram_add();

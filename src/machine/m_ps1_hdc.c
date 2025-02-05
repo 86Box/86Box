@@ -1297,8 +1297,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     int      c;
 
     /* Allocate and initialize device block. */
-    dev = malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = calloc(1, sizeof(hdc_t));
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;

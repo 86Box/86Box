@@ -1,5 +1,5 @@
 static uint32_t
-ropJMP_r8(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropJMP_r8(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fetchdat & 0xff;
 
@@ -12,7 +12,7 @@ ropJMP_r8(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 }
 
 static uint32_t
-ropJMP_r16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropJMP_r16(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint16_t offset = fetchdat & 0xffff;
 
@@ -22,7 +22,7 @@ ropJMP_r16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
 }
 
 static uint32_t
-ropJMP_r32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropJMP_r32(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fastreadl(cs + op_pc);
 
@@ -32,7 +32,7 @@ ropJMP_r32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
 }
 
 static uint32_t
-ropJCXZ(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropJCXZ(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fetchdat & 0xff;
 
@@ -51,7 +51,7 @@ ropJCXZ(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
 }
 
 static uint32_t
-ropLOOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropLOOP(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fetchdat & 0xff;
 
@@ -214,45 +214,51 @@ BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
     }
 }
 
-#define ropBRANCH(name, func, not )                   \
-    static uint32_t                                   \
-    rop##name(uint8_t opcode, uint32_t fetchdat,      \
-              uint32_t op_32, uint32_t op_pc,         \
-              codeblock_t *block)                     \
-    {                                                 \
-        uint32_t offset = fetchdat & 0xff;            \
-                                                      \
-        if (offset & 0x80)                            \
-            offset |= 0xffffff00;                     \
-                                                      \
-        func(1, op_pc, offset, not );                 \
-                                                      \
-        return op_pc + 1;                             \
-    }                                                 \
-    static uint32_t                                   \
-    rop##name##_w(uint8_t  opcode,                    \
-                  uint32_t fetchdat, uint32_t op_32,  \
-                  uint32_t op_pc, codeblock_t *block) \
-    {                                                 \
-        uint32_t offset = fetchdat & 0xffff;          \
-                                                      \
-        if (offset & 0x8000)                          \
-            offset |= 0xffff0000;                     \
-                                                      \
-        func(2, op_pc, offset, not );                 \
-                                                      \
-        return op_pc + 2;                             \
-    }                                                 \
-    static uint32_t                                   \
-    rop##name##_l(uint8_t  opcode,                    \
-                  uint32_t fetchdat, uint32_t op_32,  \
-                  uint32_t op_pc, codeblock_t *block) \
-    {                                                 \
-        uint32_t offset = fastreadl(cs + op_pc);      \
-                                                      \
-        func(4, op_pc, offset, not );                 \
-                                                      \
-        return op_pc + 4;                             \
+#define ropBRANCH(name, func, not )              \
+    static uint32_t                              \
+    rop##name(UNUSED(uint8_t opcode),            \
+              uint32_t fetchdat,                 \
+              UNUSED(uint32_t op_32),            \
+              uint32_t op_pc,                    \
+              UNUSED(codeblock_t *block))        \
+    {                                            \
+        uint32_t offset = fetchdat & 0xff;       \
+                                                 \
+        if (offset & 0x80)                       \
+            offset |= 0xffffff00;                \
+                                                 \
+        func(1, op_pc, offset, not );            \
+                                                 \
+        return op_pc + 1;                        \
+    }                                            \
+    static uint32_t                              \
+    rop##name##_w(UNUSED(uint8_t opcode),        \
+                  uint32_t fetchdat,             \
+                  UNUSED(uint32_t op_32),        \
+                  uint32_t op_pc,                \
+                  UNUSED(codeblock_t *block))    \
+    {                                            \
+        uint32_t offset = fetchdat & 0xffff;     \
+                                                 \
+        if (offset & 0x8000)                     \
+            offset |= 0xffff0000;                \
+                                                 \
+        func(2, op_pc, offset, not );            \
+                                                 \
+        return op_pc + 2;                        \
+    }                                            \
+    static uint32_t                              \
+    rop##name##_l(UNUSED(uint8_t opcode),        \
+                  UNUSED(uint32_t fetchdat),     \
+                  UNUSED(uint32_t op_32),        \
+                  uint32_t op_pc,                \
+                  UNUSED(codeblock_t *block))    \
+    {                                            \
+        uint32_t offset = fastreadl(cs + op_pc); \
+                                                 \
+        func(4, op_pc, offset, not );            \
+                                                 \
+        return op_pc + 4;                        \
     }
 
 // clang-format off

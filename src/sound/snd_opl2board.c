@@ -124,8 +124,7 @@ opl2board_device_mca_feedb(void *priv)
 void *
 opl2board_device_init(UNUSED(const device_t *info))
 {
-    opl2board_device_t *serial = malloc(sizeof(opl2board_device_t));
-    memset(serial, 0, sizeof(opl2board_device_t));
+    opl2board_device_t *serial = calloc(1, sizeof(opl2board_device_t));
 
     opl2board_device_log("opl2board_device_init\n");
     fm_driver_get(FM_OPL2BOARD, &serial->opl);

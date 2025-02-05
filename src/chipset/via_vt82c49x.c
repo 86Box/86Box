@@ -342,8 +342,7 @@ vt82c49x_close(void *priv)
 static void *
 vt82c49x_init(const device_t *info)
 {
-    vt82c49x_t *dev = (vt82c49x_t *) malloc(sizeof(vt82c49x_t));
-    memset(dev, 0x00, sizeof(vt82c49x_t));
+    vt82c49x_t *dev = (vt82c49x_t *) calloc(1, sizeof(vt82c49x_t));
 
     dev->smram_smm  = smram_add();
     dev->smram_low  = smram_add();

@@ -56,7 +56,6 @@
 #include <86box/thread.h>
 #include <86box/timer.h>
 #include <86box/network.h>
-#include <86box/bswap.h>
 #include <86box/plat_unused.h>
 
 /* Maximum number of times we report a link down to the guest (failure to send frame) */
@@ -1080,8 +1079,7 @@ threec501_nic_init(UNUSED(const device_t *info))
     uint32_t     mac;
     threec501_t *dev;
 
-    dev = malloc(sizeof(threec501_t));
-    memset(dev, 0x00, sizeof(threec501_t));
+    dev = calloc(1, sizeof(threec501_t));
     dev->maclocal[0] = 0x02; /* 02:60:8C (3Com OID) */
     dev->maclocal[1] = 0x60;
     dev->maclocal[2] = 0x8C;

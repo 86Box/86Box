@@ -208,8 +208,7 @@ gc100_close(void *priv)
 static void *
 gc100_init(const device_t *info)
 {
-    gc100_t *dev = (gc100_t *) malloc(sizeof(gc100_t));
-    memset(dev, 0, sizeof(gc100_t));
+    gc100_t *dev = (gc100_t *) calloc(1, sizeof(gc100_t));
 
     dev->reg[0x2] = 0xff;
     dev->reg[0x3] = 0x0;

@@ -216,8 +216,7 @@ lm75_close(void *priv)
 static void *
 lm75_init(const device_t *info)
 {
-    lm75_t *dev = (lm75_t *) malloc(sizeof(lm75_t));
-    memset(dev, 0, sizeof(lm75_t));
+    lm75_t *dev = (lm75_t *) calloc(1, sizeof(lm75_t));
 
     dev->local = info->local;
 

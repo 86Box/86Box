@@ -282,8 +282,7 @@ gl518sm_close(void *priv)
 static void *
 gl518sm_init(const device_t *info)
 {
-    gl518sm_t *dev = (gl518sm_t *) malloc(sizeof(gl518sm_t));
-    memset(dev, 0, sizeof(gl518sm_t));
+    gl518sm_t *dev = (gl518sm_t *) calloc(1, sizeof(gl518sm_t));
 
     dev->local = info->local;
 

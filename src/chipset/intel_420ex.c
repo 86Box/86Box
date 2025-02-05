@@ -533,8 +533,7 @@ i420ex_speed_changed(void *priv)
 static void *
 i420ex_init(const device_t *info)
 {
-    i420ex_t *dev = (i420ex_t *) malloc(sizeof(i420ex_t));
-    memset(dev, 0, sizeof(i420ex_t));
+    i420ex_t *dev = (i420ex_t *) calloc(1, sizeof(i420ex_t));
 
     dev->smram = smram_add();
 

@@ -351,8 +351,7 @@ intel_flash_init(const device_t *info)
     flash_t *dev;
     uint8_t  type = info->local & 0xff;
 
-    dev = malloc(sizeof(flash_t));
-    memset(dev, 0, sizeof(flash_t));
+    dev = calloc(1, sizeof(flash_t));
 
     sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
 

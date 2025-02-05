@@ -134,8 +134,7 @@ olivetti_eva_close(void *priv)
 static void *
 olivetti_eva_init(UNUSED(const device_t *info))
 {
-    olivetti_eva_t *dev = (olivetti_eva_t *) malloc(sizeof(olivetti_eva_t));
-    memset(dev, 0, sizeof(olivetti_eva_t));
+    olivetti_eva_t *dev = (olivetti_eva_t *) calloc(1, sizeof(olivetti_eva_t));
 
     /* GA98 registers */
     dev->reg_065 = 0x00;

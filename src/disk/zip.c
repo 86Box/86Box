@@ -2062,7 +2062,7 @@ zip_global_init(void)
 }
 
 static int
-zip_get_max(const ide_t *ide, const int ide_has_dma, const int type)
+zip_get_max(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 
@@ -2086,7 +2086,7 @@ zip_get_max(const ide_t *ide, const int ide_has_dma, const int type)
 }
 
 static int
-zip_get_timings(const ide_t *ide, const int ide_has_dma, const int type)
+zip_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 

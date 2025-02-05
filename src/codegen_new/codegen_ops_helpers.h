@@ -71,7 +71,7 @@ fpu_PUSH(codeblock_t *block, ir_data_t *ir)
 }
 
 static inline void
-CHECK_SEG_LIMITS(codeblock_t *block, ir_data_t *ir, x86seg *seg, int addr_reg, int end_offset)
+CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int addr_reg, int end_offset)
 {
     if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)))
         return;
@@ -85,7 +85,7 @@ CHECK_SEG_LIMITS(codeblock_t *block, ir_data_t *ir, x86seg *seg, int addr_reg, i
 }
 
 static inline void
-LOAD_IMMEDIATE_FROM_RAM_8(codeblock_t *block, ir_data_t *ir, int dest_reg, uint32_t addr)
+LOAD_IMMEDIATE_FROM_RAM_8(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
 {
     uop_MOVZX_REG_PTR_8(ir, dest_reg, get_ram_ptr(addr));
 }

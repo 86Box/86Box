@@ -918,8 +918,7 @@ access_bus_close(void *priv)
 static void *
 access_bus_init(UNUSED(const device_t *info))
 {
-    access_bus_t *dev = (access_bus_t *) malloc(sizeof(access_bus_t));
-    memset(dev, 0, sizeof(access_bus_t));
+    access_bus_t *dev = (access_bus_t *) calloc(1, sizeof(access_bus_t));
 
     return dev;
 }
@@ -950,8 +949,7 @@ static void *
 fdc37c93x_init(const device_t *info)
 {
     int          is_compaq;
-    fdc37c93x_t *dev = (fdc37c93x_t *) malloc(sizeof(fdc37c93x_t));
-    memset(dev, 0, sizeof(fdc37c93x_t));
+    fdc37c93x_t *dev = (fdc37c93x_t *) calloc(1, sizeof(fdc37c93x_t));
 
     dev->fdc = device_add(&fdc_at_smc_device);
 

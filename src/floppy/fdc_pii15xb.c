@@ -97,8 +97,7 @@ pii_init(const device_t *info)
 {
     pii_t *dev;
 
-    dev = (pii_t *) malloc(sizeof(pii_t));
-    memset(dev, 0, sizeof(pii_t));
+    dev = (pii_t *) calloc(1, sizeof(pii_t));
 
     if (BIOS_ADDR != 0)
         rom_init(&dev->bios_rom, DTK_VARIANT, BIOS_ADDR, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);

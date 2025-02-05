@@ -183,8 +183,7 @@ vt82c686_close(void *priv)
 static void *
 vt82c686_init(UNUSED(const device_t *info))
 {
-    vt82c686_t *dev = (vt82c686_t *) malloc(sizeof(vt82c686_t));
-    memset(dev, 0, sizeof(vt82c686_t));
+    vt82c686_t *dev = (vt82c686_t *) calloc(1, sizeof(vt82c686_t));
 
     /* Set default values. Since this hardware monitor has a complex voltage factor system,
        the values struct contains voltage values *before* applying their respective factors. */

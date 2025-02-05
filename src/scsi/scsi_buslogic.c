@@ -1546,8 +1546,7 @@ buslogic_init(const device_t *info)
     dev      = x54x_init(info);
     dev->bus = scsi_get_bus();
 
-    dev->ven_data = malloc(sizeof(buslogic_data_t));
-    memset(dev->ven_data, 0x00, sizeof(buslogic_data_t));
+    dev->ven_data = calloc(1, sizeof(buslogic_data_t));
 
     bl = (buslogic_data_t *) dev->ven_data;
 

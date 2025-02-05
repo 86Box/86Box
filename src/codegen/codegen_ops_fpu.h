@@ -1,5 +1,5 @@
 static uint32_t
-ropFXCH(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFXCH(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
 
@@ -9,7 +9,7 @@ ropFXCH(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
 }
 
 static uint32_t
-ropFLD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFLD(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
 
@@ -19,7 +19,7 @@ ropFLD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codebl
 }
 
 static uint32_t
-ropFST(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFST(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
 
@@ -28,7 +28,7 @@ ropFST(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codebl
     return op_pc;
 }
 static uint32_t
-ropFSTP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSTP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
 
@@ -39,7 +39,7 @@ ropFSTP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
 }
 
 static uint32_t
-ropFLDs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFLDs(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
 
@@ -57,7 +57,7 @@ ropFLDs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc + 1;
 }
 static uint32_t
-ropFLDd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFLDd(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
 
@@ -76,7 +76,7 @@ ropFLDd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
 }
 
 static uint32_t
-ropFILDw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFILDw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
 
@@ -94,7 +94,7 @@ ropFILDw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc + 1;
 }
 static uint32_t
-ropFILDl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFILDl(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
 
@@ -112,7 +112,7 @@ ropFILDl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc + 1;
 }
 static uint32_t
-ropFILDq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFILDq(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
 
@@ -133,7 +133,7 @@ ropFILDq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
 }
 
 static uint32_t
-ropFSTs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSTs(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
     int     host_reg;
@@ -153,7 +153,7 @@ ropFSTs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc + 1;
 }
 static uint32_t
-ropFSTd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSTd(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
     int     host_reg1;
@@ -194,24 +194,28 @@ ropFSTPd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return new_pc;
 }
 
-#define ropFarith(name, size, load, op)                                                                     \
-    static uint32_t                                                                                         \
-    ropF##name##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
-    {                                                                                                       \
-        x86seg *target_seg;                                                                                 \
-                                                                                                            \
-        FP_ENTER();                                                                                         \
-        op_pc--;                                                                                            \
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                \
-                                                                                                            \
-        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                          \
-                                                                                                            \
-        CHECK_SEG_READ(target_seg);                                                                         \
-        load(target_seg);                                                                                   \
-                                                                                                            \
-        op(FPU_##name);                                                                                     \
-                                                                                                            \
-        return op_pc + 1;                                                                                   \
+#define ropFarith(name, size, load, op)                                      \
+    static uint32_t                                                          \
+    ropF##name##size(UNUSED(uint8_t opcode),                                 \
+                     uint32_t fetchdat,                                      \
+                     uint32_t op_32,                                         \
+                     uint32_t op_pc,                                         \
+                     UNUSED(codeblock_t *block))                             \
+    {                                                                        \
+        x86seg *target_seg;                                                  \
+                                                                             \
+        FP_ENTER();                                                          \
+        op_pc--;                                                             \
+        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32); \
+                                                                             \
+        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);           \
+                                                                             \
+        CHECK_SEG_READ(target_seg);                                          \
+        load(target_seg);                                                    \
+                                                                             \
+        op(FPU_##name);                                                      \
+                                                                             \
+        return op_pc + 1;                                                    \
     }
 
 ropFarith(ADD, s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
@@ -239,32 +243,40 @@ ropFarith(MUL, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
 ropFarith(SUB, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
 ropFarith(SUBR, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
 
-#define ropFcompare(name, size, load, op)                                                                                      \
-    static uint32_t                                                                                                            \
-    ropF##name##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)                    \
-    {                                                                                                                          \
-        x86seg *target_seg;                                                                                                    \
-                                                                                                                               \
-        FP_ENTER();                                                                                                            \
-        op_pc--;                                                                                                               \
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                                   \
-                                                                                                                               \
-        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                                             \
-                                                                                                                               \
-        CHECK_SEG_READ(target_seg);                                                                                            \
-        load(target_seg);                                                                                                      \
-                                                                                                                               \
-        op();                                                                                                                  \
-                                                                                                                               \
-        return op_pc + 1;                                                                                                      \
-    }                                                                                                                          \
-    static uint32_t ropF##name##P##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
-    {                                                                                                                          \
-        uint32_t new_pc = ropF##name##size(opcode, fetchdat, op_32, op_pc, block);                                             \
-                                                                                                                               \
-        FP_POP();                                                                                                              \
-                                                                                                                               \
-        return new_pc;                                                                                                         \
+#define ropFcompare(name, size, load, op)                                          \
+    static uint32_t                                                                \
+    ropF##name##size(UNUSED(uint8_t opcode),                                       \
+                     uint32_t fetchdat,                                            \
+                     uint32_t op_32,                                               \
+                     uint32_t op_pc,                                               \
+                     UNUSED(codeblock_t *block))                                   \
+    {                                                                              \
+        x86seg *target_seg;                                                        \
+                                                                                   \
+        FP_ENTER();                                                                \
+        op_pc--;                                                                   \
+        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);       \
+                                                                                   \
+        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                 \
+                                                                                   \
+        CHECK_SEG_READ(target_seg);                                                \
+        load(target_seg);                                                          \
+                                                                                   \
+        op();                                                                      \
+                                                                                   \
+        return op_pc + 1;                                                          \
+    }                                                                              \
+    static uint32_t ropF##name##P##size(uint8_t opcode,                            \
+                                        uint32_t fetchdat,                         \
+                                        uint32_t op_32,                            \
+                                        uint32_t op_pc,                            \
+                                        codeblock_t *block)                        \
+    {                                                                              \
+        uint32_t new_pc = ropF##name##size(opcode, fetchdat, op_32, op_pc, block); \
+                                                                                   \
+        FP_POP();                                                                  \
+                                                                                   \
+        return new_pc;                                                             \
     }
 
 ropFcompare(COM, s, MEM_LOAD_ADDR_EA_L, FP_COMPARE_S);
@@ -348,7 +360,7 @@ ropFSUBs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
 #endif
 
 static uint32_t
-ropFADD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFADD(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_ADD, 0, opcode & 7);
@@ -356,7 +368,7 @@ ropFADD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 static uint32_t
-ropFCOM(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFCOM(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_COMPARE_REG(0, opcode & 7);
@@ -364,7 +376,7 @@ ropFCOM(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 static uint32_t
-ropFDIV(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFDIV(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_DIV, 0, opcode & 7);
@@ -372,7 +384,7 @@ ropFDIV(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 static uint32_t
-ropFDIVR(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFDIVR(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_DIVR, 0, opcode & 7);
@@ -380,7 +392,7 @@ ropFDIVR(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFMUL(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFMUL(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_MUL, 0, opcode & 7);
@@ -388,7 +400,7 @@ ropFMUL(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 static uint32_t
-ropFSUB(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSUB(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_SUB, 0, opcode & 7);
@@ -396,7 +408,7 @@ ropFSUB(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 static uint32_t
-ropFSUBR(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSUBR(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_SUBR, 0, opcode & 7);
@@ -405,7 +417,7 @@ ropFSUBR(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
 }
 
 static uint32_t
-ropFADDr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFADDr(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_ADD, opcode & 7, 0);
@@ -413,7 +425,7 @@ ropFADDr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFDIVr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFDIVr(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_DIV, opcode & 7, 0);
@@ -421,7 +433,7 @@ ropFDIVr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFDIVRr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFDIVRr(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_DIVR, opcode & 7, 0);
@@ -429,7 +441,7 @@ ropFDIVRr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return op_pc;
 }
 static uint32_t
-ropFMULr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFMULr(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_MUL, opcode & 7, 0);
@@ -437,7 +449,7 @@ ropFMULr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFSUBr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSUBr(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_SUB, opcode & 7, 0);
@@ -445,7 +457,7 @@ ropFSUBr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFSUBRr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSUBRr(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_SUBR, opcode & 7, 0);
@@ -454,7 +466,7 @@ ropFSUBRr(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 }
 
 static uint32_t
-ropFADDP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFADDP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_ADD, opcode & 7, 0);
@@ -463,7 +475,7 @@ ropFADDP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFCOMP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFCOMP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_COMPARE_REG(0, opcode & 7);
@@ -472,7 +484,7 @@ ropFCOMP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFDIVP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFDIVP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_DIV, opcode & 7, 0);
@@ -481,7 +493,7 @@ ropFDIVP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFDIVRP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFDIVRP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_DIVR, opcode & 7, 0);
@@ -490,7 +502,7 @@ ropFDIVRP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return op_pc;
 }
 static uint32_t
-ropFMULP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFMULP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_MUL, opcode & 7, 0);
@@ -499,7 +511,7 @@ ropFMULP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFSUBP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSUBP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_SUB, opcode & 7, 0);
@@ -508,7 +520,7 @@ ropFSUBP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc;
 }
 static uint32_t
-ropFSUBRP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSUBRP(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_OP_REG(FPU_SUBR, opcode & 7, 0);
@@ -518,7 +530,7 @@ ropFSUBRP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 }
 
 static uint32_t
-ropFCOMPP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFCOMPP(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_COMPARE_REG(0, 1);
@@ -528,7 +540,7 @@ ropFCOMPP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 }
 
 static uint32_t
-ropFSTSW_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSTSW_AX(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -540,7 +552,7 @@ ropFSTSW_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
 }
 
 static uint32_t
-ropFISTw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFISTw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
     int     host_reg;
@@ -560,7 +572,7 @@ ropFISTw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc + 1;
 }
 static uint32_t
-ropFISTl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFISTl(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
     int     host_reg;
@@ -599,7 +611,7 @@ ropFISTPl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return new_pc;
 }
 static uint32_t
-ropFISTPq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFISTPq(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
     int     host_reg1;
@@ -623,7 +635,7 @@ ropFISTPq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 }
 
 static uint32_t
-ropFLDCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFLDCW(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg;
 
@@ -640,7 +652,7 @@ ropFLDCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc + 1;
 }
 static uint32_t
-ropFSTCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFSTCW(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int     host_reg;
     x86seg *target_seg;
@@ -658,7 +670,7 @@ ropFSTCW(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
 }
 
 static uint32_t
-ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFCHS(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_FCHS();
@@ -666,17 +678,21 @@ ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 
-#define opFLDimm(name, v)                                                                               \
-    static uint32_t                                                                                     \
-    ropFLD##name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
-    {                                                                                                   \
-        static double fp_imm = v;                                                                       \
-        static uint64_t *fptr = (uint64_t *) &fp_imm;                                                   \
-                                                                                                        \
-        FP_ENTER();                                                                                     \
-        FP_LOAD_IMM_Q(*fptr);                                                                           \
-                                                                                                        \
-        return op_pc;                                                                                   \
+#define opFLDimm(name, v)                             \
+    static uint32_t                                   \
+    ropFLD##name(UNUSED(uint8_t opcode),              \
+                 UNUSED(uint32_t fetchdat),           \
+                 UNUSED(uint32_t op_32),              \
+                 uint32_t op_pc,                      \
+                 UNUSED(codeblock_t *block))          \
+    {                                                 \
+        static double fp_imm = v;                     \
+        static uint64_t *fptr = (uint64_t *) &fp_imm; \
+                                                      \
+        FP_ENTER();                                   \
+        FP_LOAD_IMM_Q(*fptr);                         \
+                                                      \
+        return op_pc;                                 \
     }
 
 // clang-format off
@@ -689,7 +705,7 @@ opFLDimm(Z, 0.0)
 // clang-format on
 
 static uint32_t
-ropFLDLN2(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
+ropFLDLN2(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_LOAD_IMM_Q(0x3fe62e42fefa39f0ULL);

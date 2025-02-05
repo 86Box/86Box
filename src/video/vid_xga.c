@@ -19,7 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <86box/bswap.h>
+//#include <86box/bswap.h>
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/machine.h>
@@ -1504,7 +1504,7 @@ xga_bitblt(svga_t *svga)
     uint32_t old_dest_dat;
     uint32_t color_cmp  = xga->accel.color_cmp;
     uint32_t plane_mask = xga->accel.plane_mask;
-    uint32_t patbase    = xga->accel.px_map_base[xga->accel.pat_src];
+    uint32_t patbase;
     uint32_t dstbase    = xga->accel.px_map_base[xga->accel.dst_map];
     uint32_t srcbase    = xga->accel.px_map_base[xga->accel.src_map];
     uint32_t patwidth   = xga->accel.px_map_width[xga->accel.pat_src];
@@ -1632,6 +1632,8 @@ xga_bitblt(svga_t *svga)
             }
         }
     } else if (xga->accel.pat_src >= 1) {
+        patbase    = xga->accel.px_map_base[xga->accel.pat_src];
+
         if (patheight == 7) {
             if (xga->accel.src_map != 1)
                 xga->accel.pattern = 1;
@@ -1741,6 +1743,8 @@ xga_bitblt(svga_t *svga)
                 }
             }
         } else {
+            patbase    = xga->accel.px_map_base[xga->accel.pat_src];
+
             while (xga->accel.y >= 0) {
                 mix = xga_accel_read_pattern_map_pixel(svga, xga->accel.px, xga->accel.py, patbase, patwidth + 1);
 

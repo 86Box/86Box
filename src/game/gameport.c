@@ -366,15 +366,11 @@ gameport_add(const device_t *gameport_type)
 static void *
 gameport_init(const device_t *info)
 {
-    gameport_t *dev = NULL;
-
-    dev = malloc(sizeof(gameport_t));
-    memset(dev, 0x00, sizeof(gameport_t));
+    gameport_t *dev = calloc(1, sizeof(gameport_t));
 
     /* Allocate global instance. */
     if (!joystick_instance[0] && joystick_type) {
-        joystick_instance[0] = malloc(sizeof(joystick_instance_t));
-        memset(joystick_instance[0], 0x00, sizeof(joystick_instance_t));
+        joystick_instance[0] = calloc(1, sizeof(joystick_instance_t));
 
         joystick_instance[0]->axis[0].joystick = joystick_instance[0];
         joystick_instance[0]->axis[1].joystick = joystick_instance[0];
@@ -650,7 +646,7 @@ static const device_config_t tmacm_config[] = {
             { "" }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 

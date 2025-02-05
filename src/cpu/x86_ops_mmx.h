@@ -34,7 +34,7 @@
     x87_set_mmx()
 
 static int
-opEMMS(uint32_t fetchdat)
+opEMMS(UNUSED(uint32_t fetchdat))
 {
     if (!cpu_has_feature(CPU_FEATURE_MMX)) {
         cpu_state.pc = cpu_state.oldpc;

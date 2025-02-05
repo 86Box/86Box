@@ -322,8 +322,7 @@ contaq_82c59x_close(void *priv)
 static void *
 contaq_82c59x_init(const device_t *info)
 {
-    contaq_82c59x_t *dev = (contaq_82c59x_t *) malloc(sizeof(contaq_82c59x_t));
-    memset(dev, 0x00, sizeof(contaq_82c59x_t));
+    contaq_82c59x_t *dev = (contaq_82c59x_t *) calloc(1, sizeof(contaq_82c59x_t));
 
     dev->green = info->local;
 

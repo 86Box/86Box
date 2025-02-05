@@ -299,8 +299,7 @@ ps1_setup(int model)
     ps1_t *ps;
     void  *priv;
 
-    ps = (ps1_t *) malloc(sizeof(ps1_t));
-    memset(ps, 0x00, sizeof(ps1_t));
+    ps = (ps1_t *) calloc(1, sizeof(ps1_t));
     ps->model = model;
 
     io_sethandler(0x0091, 1,

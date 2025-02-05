@@ -323,8 +323,7 @@ pc87332_close(void *priv)
 static void *
 pc87332_init(const device_t *info)
 {
-    pc87332_t *dev = (pc87332_t *) malloc(sizeof(pc87332_t));
-    memset(dev, 0, sizeof(pc87332_t));
+    pc87332_t *dev = (pc87332_t *) calloc(1, sizeof(pc87332_t));
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 

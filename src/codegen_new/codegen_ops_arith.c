@@ -22,7 +22,7 @@ get_cf(ir_data_t *ir, int dest_reg)
 }
 
 uint32_t
-ropADC_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropADC_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -39,7 +39,7 @@ ropADC_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropADC_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropADC_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -274,7 +274,7 @@ ropADC_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 }
 
 uint32_t
-ropADD_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropADD_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -289,7 +289,7 @@ ropADD_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropADD_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropADD_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -511,7 +511,7 @@ ropADD_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 }
 
 uint32_t
-ropCMP_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropCMP_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -526,7 +526,7 @@ ropCMP_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropCMP_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropCMP_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -734,7 +734,7 @@ ropCMP_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 }
 
 uint32_t
-ropSBB_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropSBB_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -751,7 +751,7 @@ ropSBB_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropSBB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropSBB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -988,7 +988,7 @@ ropSBB_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 }
 
 uint32_t
-ropSUB_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropSUB_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -1003,7 +1003,7 @@ ropSUB_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return op_pc + 1;
 }
 uint32_t
-ropSUB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropSUB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -2293,7 +2293,7 @@ rebuild_c(ir_data_t *ir)
 }
 
 uint32_t
-ropINC_r16(UNUSED(UNUSED(codeblock_t *block)), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropINC_r16(UNUSED(UNUSED(codeblock_t *block)), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     rebuild_c(ir);
 
@@ -2307,7 +2307,7 @@ ropINC_r16(UNUSED(UNUSED(codeblock_t *block)), ir_data_t *ir, UNUSED(uint8_t opc
     return op_pc;
 }
 uint32_t
-ropINC_r32(UNUSED(UNUSED(codeblock_t *block)), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropINC_r32(UNUSED(UNUSED(codeblock_t *block)), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     rebuild_c(ir);
 
@@ -2322,7 +2322,7 @@ ropINC_r32(UNUSED(UNUSED(codeblock_t *block)), ir_data_t *ir, UNUSED(uint8_t opc
 }
 
 uint32_t
-ropDEC_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropDEC_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     rebuild_c(ir);
 
@@ -2336,7 +2336,7 @@ ropDEC_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t f
     return op_pc;
 }
 uint32_t
-ropDEC_r32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropDEC_r32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     rebuild_c(ir);
 

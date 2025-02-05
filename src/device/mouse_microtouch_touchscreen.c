@@ -128,8 +128,7 @@ mtouch_initnvr(void *priv)
     FILE *fp;
 
     /* Allocate and initialize the EEPROM. */
-    dev->nvr = (uint8_t *) malloc(NVR_SIZE);
-    memset(dev->nvr, 0x00, NVR_SIZE);
+    dev->nvr = (uint8_t *) calloc(1, NVR_SIZE);
 
     fp = nvr_fopen(dev->nvr_path, "rb");
     if (fp) {
@@ -314,7 +313,7 @@ mtouch_process_commands(mouse_microtouch_t *dev)
 }
 
 static void
-mtouch_write(serial_t *serial, void *priv, uint8_t data)
+mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
@@ -496,7 +495,7 @@ mtouch_poll_global(void)
 }
 
 void *
-mtouch_init(const device_t *info)
+mtouch_init(UNUSED(const device_t *info))
 {
     mouse_microtouch_t *dev = calloc(1, sizeof(mouse_microtouch_t));
     

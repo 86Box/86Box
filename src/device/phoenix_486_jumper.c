@@ -110,8 +110,7 @@ phoenix_486_jumper_close(void *priv)
 static void *
 phoenix_486_jumper_init(const device_t *info)
 {
-    phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) malloc(sizeof(phoenix_486_jumper_t));
-    memset(dev, 0, sizeof(phoenix_486_jumper_t));
+    phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) calloc(1, sizeof(phoenix_486_jumper_t));
 
     dev->type = info->local;
 

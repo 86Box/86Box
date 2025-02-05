@@ -30,6 +30,7 @@
 #include <86box/fdc.h>
 #include <86box/machine.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #    include "codegen.h"

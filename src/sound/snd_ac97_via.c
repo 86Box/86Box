@@ -787,8 +787,7 @@ ac97_via_speed_changed(void *priv)
 static void *
 ac97_via_init(UNUSED(const device_t *info))
 {
-    ac97_via_t *dev = malloc(sizeof(ac97_via_t));
-    memset(dev, 0, sizeof(ac97_via_t));
+    ac97_via_t *dev = calloc(1, sizeof(ac97_via_t));
 
     ac97_via_log("AC97 VIA: init()\n");
 

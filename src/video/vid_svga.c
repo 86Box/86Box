@@ -1467,7 +1467,7 @@ svga_poll(void *priv)
 }
 
 uint32_t
-svga_conv_16to32(struct svga_t *svga, uint16_t color, uint8_t bpp)
+svga_conv_16to32(UNUSED(struct svga_t *svga), uint16_t color, uint8_t bpp)
 {
     return (bpp == 15) ? video_15to32[color] : video_16to32[color];
 }

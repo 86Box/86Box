@@ -68,7 +68,7 @@ pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-pc87306_gpio_read(uint16_t port, void *priv)
+pc87306_gpio_read(uint16_t port, UNUSED(void *priv))
 {
     uint32_t ret = machine_handle_gpio(0, 0xffffffff);
 
@@ -467,8 +467,7 @@ pc87306_close(void *priv)
 static void *
 pc87306_init(UNUSED(const device_t *info))
 {
-    pc87306_t *dev = (pc87306_t *) malloc(sizeof(pc87306_t));
-    memset(dev, 0, sizeof(pc87306_t));
+    pc87306_t *dev = (pc87306_t *) calloc(1, sizeof(pc87306_t));
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 

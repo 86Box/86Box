@@ -1000,8 +1000,7 @@ kbd_init(const device_t *info)
 {
     xtkbd_t *kbd;
 
-    kbd = (xtkbd_t *) malloc(sizeof(xtkbd_t));
-    memset(kbd, 0x00, sizeof(xtkbd_t));
+    kbd = (xtkbd_t *) calloc(1, sizeof(xtkbd_t));
 
     io_sethandler(0x0060, 4,
                   kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);

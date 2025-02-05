@@ -115,7 +115,7 @@ sis_5513_apc_reset(sis_5513_pci_to_isa_t *dev)
 }
 
 static void
-sis_5513_apc_write(uint16_t addr, uint8_t val, void *priv)
+sis_5513_apc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
     uint8_t nvr_index = nvr_get_index(dev->nvr, 0);
@@ -135,7 +135,7 @@ sis_5513_apc_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_5513_apc_read(uint16_t addr, void *priv)
+sis_5513_apc_read(UNUSED(uint16_t addr), void *priv)
 {
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
     uint8_t nvr_index = nvr_get_index(dev->nvr, 0);

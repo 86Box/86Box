@@ -744,8 +744,7 @@ mfm_init(UNUSED(const device_t *info))
     int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
-    mfm = malloc(sizeof(mfm_t));
-    memset(mfm, 0x00, sizeof(mfm_t));
+    mfm = calloc(1, sizeof(mfm_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {

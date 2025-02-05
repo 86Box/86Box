@@ -912,8 +912,7 @@ stpc_init(const device_t *info)
 {
     stpc_log("STPC: init()\n");
 
-    stpc_t *dev = (stpc_t *) malloc(sizeof(stpc_t));
-    memset(dev, 0, sizeof(stpc_t));
+    stpc_t *dev = (stpc_t *) calloc(1, sizeof(stpc_t));
 
     dev->local = info->local;
 
@@ -963,8 +962,7 @@ stpc_serial_init(UNUSED(const device_t *info))
 {
     stpc_log("STPC: serial_init()\n");
 
-    stpc_serial_t *dev = (stpc_serial_t *) malloc(sizeof(stpc_serial_t));
-    memset(dev, 0, sizeof(stpc_serial_t));
+    stpc_serial_t *dev = (stpc_serial_t *) calloc(1, sizeof(stpc_serial_t));
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
@@ -1076,8 +1074,7 @@ stpc_lpt_init(UNUSED(const device_t *info))
 {
     stpc_log("STPC: lpt_init()\n");
 
-    stpc_lpt_t *dev = (stpc_lpt_t *) malloc(sizeof(stpc_lpt_t));
-    memset(dev, 0, sizeof(stpc_lpt_t));
+    stpc_lpt_t *dev = (stpc_lpt_t *) calloc(1, sizeof(stpc_lpt_t));
 
     stpc_lpt_reset(dev);
 

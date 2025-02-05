@@ -1671,7 +1671,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
     - A 16-bit sample always takes two ctr_clock() ticks.
  */
 static uint16_t
-pas16_dma_channel_read(pas16_t *pas16, int channel)
+pas16_dma_channel_read(pas16_t *pas16, UNUSED(int channel))
 {
     int status;
     uint16_t ret;
@@ -2320,8 +2320,7 @@ pas16_init(const device_t *info)
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
-    pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(pas16->mpu, 0, sizeof(mpu_t));
+    pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
 

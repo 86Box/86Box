@@ -845,8 +845,7 @@ sermouse_init(const device_t *info)
     void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
     void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
 
-    dev = (mouse_t *) malloc(sizeof(mouse_t));
-    memset(dev, 0x00, sizeof(mouse_t));
+    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     dev->name = info->name;
     dev->but  = device_get_config_int("buttons");
     dev->rev  = device_get_config_int("revision");

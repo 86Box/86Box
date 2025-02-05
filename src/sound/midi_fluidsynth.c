@@ -262,8 +262,7 @@ fluidsynth_init(UNUSED(const device_t *info))
 
     al_set_midi(data->samplerate, data->buf_size);
 
-    dev = malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    dev = calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = fluidsynth_msg;
     dev->play_sysex = fluidsynth_sysex;

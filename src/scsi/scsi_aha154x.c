@@ -925,8 +925,7 @@ aha_setnvr(x54x_t *dev)
         return;
 
     /* Allocate and initialize the EEPROM. */
-    dev->nvr = (uint8_t *) malloc(NVR_SIZE);
-    memset(dev->nvr, 0x00, NVR_SIZE);
+    dev->nvr = (uint8_t *) calloc(1, NVR_SIZE);
 
     fp = nvr_fopen(dev->nvr_path, "rb");
     if (fp) {

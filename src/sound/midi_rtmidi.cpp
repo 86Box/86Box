@@ -73,8 +73,7 @@ rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
 void *
 rtmidi_output_init(UNUSED(const device_t *info))
 {
-    midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    midi_device_t *dev = (midi_device_t *) calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = rtmidi_play_msg;
     dev->play_sysex = rtmidi_play_sysex;
@@ -156,8 +155,7 @@ rtmidi_input_callback(UNUSED(double timeStamp), std::vector<unsigned char> *mess
 void *
 rtmidi_input_init(UNUSED(const device_t *info))
 {
-    midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    midi_device_t *dev = (midi_device_t *) calloc(1, sizeof(midi_device_t));
 
     try {
         if (!midiin)

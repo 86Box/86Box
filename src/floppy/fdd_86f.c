@@ -2731,8 +2731,7 @@ d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t 
     uint16_t datadam_mfm = 0x4A55;
 
     if (fdd_get_turbo(drive) && (dev->version == 0x0063)) {
-        s = (sector_t *) malloc(sizeof(sector_t));
-        memset(s, 0, sizeof(sector_t));
+        s = (sector_t *) calloc(1, sizeof(sector_t));
         s->c     = id_buf[0];
         s->h     = id_buf[1];
         s->r     = id_buf[2];
@@ -3921,8 +3920,7 @@ d86f_setup(int drive)
     d86f_t *dev;
 
     /* Allocate a drive structure. */
-    dev = (d86f_t *) malloc(sizeof(d86f_t));
-    memset(dev, 0x00, sizeof(d86f_t));
+    dev = (d86f_t *) calloc(1, sizeof(d86f_t));
     dev->state = STATE_IDLE;
 
     dev->last_side_sector[0] = NULL;

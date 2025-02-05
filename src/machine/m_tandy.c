@@ -1359,8 +1359,7 @@ vid_init(tandy_t *dev)
     int       display_type;
     t1kvid_t *vid;
 
-    vid = malloc(sizeof(t1kvid_t));
-    memset(vid, 0x00, sizeof(t1kvid_t));
+    vid = calloc(1, sizeof(t1kvid_t));
     vid->memctrl = -1;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
@@ -1540,8 +1539,7 @@ eep_init(const device_t *info)
     t1keep_t *eep;
     FILE     *fp = NULL;
 
-    eep = (t1keep_t *) malloc(sizeof(t1keep_t));
-    memset(eep, 0x00, sizeof(t1keep_t));
+    eep = (t1keep_t *) calloc(1, sizeof(t1keep_t));
 
     switch (info->local) {
         case TYPE_TANDY1000HX:

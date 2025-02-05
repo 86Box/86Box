@@ -1599,8 +1599,7 @@ ali1543_close(void *priv)
 static void *
 ali1543_init(const device_t *info)
 {
-    ali1543_t *dev = (ali1543_t *) malloc(sizeof(ali1543_t));
-    memset(dev, 0, sizeof(ali1543_t));
+    ali1543_t *dev = (ali1543_t *) calloc(1, sizeof(ali1543_t));
 
     /* Device 02: M1533 Southbridge */
     pci_add_card(PCI_ADD_SOUTHBRIDGE, ali1533_read, ali1533_write, dev, &dev->pci_slot);

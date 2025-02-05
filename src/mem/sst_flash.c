@@ -505,8 +505,7 @@ static void *
 sst_init(const device_t *info)
 {
     FILE  *fp;
-    sst_t *dev = malloc(sizeof(sst_t));
-    memset(dev, 0, sizeof(sst_t));
+    sst_t *dev = calloc(1, sizeof(sst_t));
 
     sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
 

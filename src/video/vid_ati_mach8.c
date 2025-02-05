@@ -291,7 +291,7 @@ mach_pixel_read(mach_t *mach)
 }
 
 static void
-mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, mach_t *mach, ibm8514_t *dev)
+mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, UNUSED(svga_t *svga), mach_t *mach, ibm8514_t *dev)
 {
     int           compare_mode;
     uint16_t      poly_src     = 0;

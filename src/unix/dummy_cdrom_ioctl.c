@@ -40,7 +40,6 @@
 typedef struct ioctl_t {
     cdrom_t                *dev;
     void                   *log;
-    int                     toc_valid;
     void                   *handle;
     char                    path[256];
 } ioctl_t;
@@ -77,8 +76,6 @@ ioctl_open_handle(UNUSED(ioctl_t *ioctl))
 static void
 ioctl_read_toc(ioctl_t *ioctl)
 {
-    if (!ioctl->toc_valid)
-        ioctl->toc_valid = 1;
 }
 
 /* Shared functions. */
@@ -97,7 +94,7 @@ ioctl_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 }
 
 static int
-ioctl_is_track_pre(const void *local, const uint32_t sector)
+ioctl_is_track_pre(const void *local, UNUSED(const uint32_t sector))
 {
     ioctl_t *ioctl = (ioctl_t *) local;
 
@@ -111,7 +108,7 @@ ioctl_is_track_pre(const void *local, const uint32_t sector)
 }
 
 static int
-ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
+ioctl_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
     ioctl_t *ioctl = (ioctl_t *) local;
 
@@ -160,6 +157,12 @@ ioctl_has_audio(UNUSED(const void *local))
 }
 
 static int
+ioctl_is_empty(const void *local)
+{
+    return 1;
+}
+
+static int
 ioctl_ext_medium_changed(UNUSED(void *local))
 {
 #if 0
@@ -186,6 +189,18 @@ ioctl_close(void *local)
     ioctl->log = NULL;
 }
 
+static void
+ioctl_load(const void *local)
+{
+    const ioctl_t *ioctl = (const ioctl_t *) local;
+
+    if (ioctl_open_handle((ioctl_t *) ioctl)) {
+        ioctl_close_handle((ioctl_t *) ioctl);
+
+        ioctl_read_toc((ioctl_t *) ioctl);
+    }
+}
+
 static const cdrom_ops_t ioctl_ops = {
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
@@ -196,8 +211,9 @@ static const cdrom_ops_t ioctl_ops = {
     ioctl_read_dvd_structure,
     ioctl_is_dvd,
     ioctl_has_audio,
-    ioctl_ext_medium_changed,
-    ioctl_close
+    ioctl_is_empty,
+    ioctl_close,
+    ioctl_load
 };
 
 /* Public functions. */
@@ -218,7 +234,6 @@ ioctl_open(cdrom_t *dev, const char *drv)
         ioctl_log(ioctl->log, "Path is %s\n", ioctl->path);
 
         ioctl->dev          = dev;
-        ioctl->toc_valid    = 0;
 
         dev->ops            = &ioctl_ops;
     }

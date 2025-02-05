@@ -89,7 +89,7 @@ acpi_timer_get(acpi_t *dev)
 }
 
 static uint8_t
-acpi_gp_timer_get(acpi_t *dev)
+acpi_gp_timer_get(UNUSED(acpi_t *dev))
 {
     uint64_t clock = acpi_clock_get();
     clock -= acpi_last_clock;

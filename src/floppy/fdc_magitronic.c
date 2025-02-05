@@ -90,8 +90,7 @@ b215_close(void *priv)
 static void *
 b215_init(UNUSED(const device_t *info))
 {
-    b215_t *dev = (b215_t *) malloc(sizeof(b215_t));
-    memset(dev, 0, sizeof(b215_t));
+    b215_t *dev = (b215_t *) calloc(1, sizeof(b215_t));
 
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
