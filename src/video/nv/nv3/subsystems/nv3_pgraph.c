@@ -325,14 +325,12 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                 // Only bits divisible by 4 matter
                 // and only bit0-16 is defined in intr_1 
                 case NV3_PGRAPH_INTR_EN_0:
-                    value |= (1 << NV3_PGRAPH_INTR_EN_0_VBLANK);
                     nv3->pgraph.interrupt_enable_0 = value & 0x11111111;                     
                     nv3_pmc_handle_interrupts(true);
                     break;
                 case NV3_PGRAPH_INTR_EN_1:
                     nv3->pgraph.interrupt_enable_1 = value & 0x00011111; 
                     nv3_pmc_handle_interrupts(true);
-
                     break;
                 // A lot of this is currently a temporary implementation so that we can just debug what the current state looks like
                 // during the driver initialisation process            
