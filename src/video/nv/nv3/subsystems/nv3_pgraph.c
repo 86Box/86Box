@@ -32,7 +32,7 @@
 // Initialise the PGRAPH subsystem.
 void nv3_pgraph_init()
 {
-    nv_log("NV3: Initialising PGRAPH...");
+    nv_log("Initialising PGRAPH...");
     // Set up the vblank interrupt
     nv3->nvbase.svga.vblank_start = nv3_pgraph_vblank_start;
     nv_log("Done!\n");    
@@ -98,7 +98,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
     if (!(nv3->pmc.enable >> NV3_PMC_ENABLE_PGRAPH)
     & NV3_PMC_ENABLE_PGRAPH_ENABLED)
     {
-        nv_log("NV3: Repressing PGRAPH read. The subsystem is disabled according to pmc_enable, returning 0\n");
+        nv_log("Repressing PGRAPH read. The subsystem is disabled according to pmc_enable, returning 0\n");
         return 0x00;
     }
 
@@ -108,7 +108,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
 
     // todo: friendly logging
     
-    nv_log("NV3: PGRAPH Read from 0x%08x", address);
+    nv_log("PGRAPH Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -260,7 +260,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
             // Addresses should be aligned to 4 bytes.
             uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
 
-            nv_log("NV3: PGRAPH Context Cache Read (Entry=%04x Value=%04x)\n", entry, nv3->pgraph.context_cache[entry]);
+            nv_log("PGRAPH Context Cache Read (Entry=%04x Value=%04x)\n", entry, nv3->pgraph.context_cache[entry]);
         }
         else /* Completely unknown */
         {
@@ -276,13 +276,13 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
     if (!(nv3->pmc.enable >> NV3_PMC_ENABLE_PGRAPH)
     & NV3_PMC_ENABLE_PGRAPH_ENABLED)
     {
-        nv_log("NV3: Repressing PGRAPH write. The subsystem is disabled according to pmc_enable\n");
+        nv_log("Repressing PGRAPH write. The subsystem is disabled according to pmc_enable\n");
         return;
     }
 
     nv_register_t* reg = nv_get_register(address, pgraph_registers, sizeof(pgraph_registers)/sizeof(pgraph_registers[0]));
 
-    nv_log("NV3: PGRAPH Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("PGRAPH Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
@@ -439,7 +439,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
             // Addresses should be aligned to 4 bytes.
             uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
 
-            nv_log("NV3: PGRAPH Context Cache Write (Entry=%04x Value=%04x)\n", entry, value);
+            nv_log("PGRAPH Context Cache Write (Entry=%04x Value=%04x)\n", entry, value);
             nv3->pgraph.context_cache[entry] = value;
         }
     }

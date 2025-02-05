@@ -41,7 +41,7 @@ nv_register_t pfb_registers[] = {
 
 void nv3_pfb_init()
 {  
-    nv_log("NV3: Initialising PFB...");
+    nv_log("Initialising PFB...");
 
     // initial configuration:
     // ram              4mb
@@ -67,7 +67,7 @@ uint32_t nv3_pfb_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("NV3: PFB Read from 0x%08x", address);
+    nv_log("PFB Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -106,7 +106,7 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pfb_registers, sizeof(pfb_registers)/sizeof(pfb_registers[0]));
 
-    nv_log("NV3: PFB Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PFB Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
@@ -148,16 +148,16 @@ void nv3_pfb_config0_write(uint32_t val)
     uint32_t new_pfb_vtotal = new_pfb_htotal * (4/3);
 
     uint32_t new_bit_depth = (nv3->pfb.config_0 >> 8) & 0x03;
-    nv_log("NV3: Framebuffer Config Change\n");
-    nv_log("NV3: Horizontal Size=%d pixels\n", new_pfb_htotal); 
-    nv_log("NV3: Vertical Size @ 4:3=%d pixels\n", new_pfb_vtotal); 
+    nv_log("Framebuffer Config Change\n");
+    nv_log("Horizontal Size=%d pixels\n", new_pfb_htotal); 
+    nv_log("Vertical Size @ 4:3=%d pixels\n", new_pfb_vtotal); 
 
     
     if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_8BPP)
-        nv_log("NV3: Bit Depth=8bpp\n");
+        nv_log("Bit Depth=8bpp\n");
     else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_16BPP)
-        nv_log("NV3: Bit Depth=16bpp\n");
+        nv_log("Bit Depth=16bpp\n");
     else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_32BPP)
-        nv_log("NV3: Bit Depth=32bpp\n");
+        nv_log("Bit Depth=32bpp\n");
         
 }

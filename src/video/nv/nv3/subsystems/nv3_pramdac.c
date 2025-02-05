@@ -33,7 +33,7 @@
 
 void nv3_pramdac_init()
 {
-    nv_log("NV3: Initialising PRAMDAC\n");
+    nv_log("Initialising PRAMDAC\n");
 
     // defaults, these come from vbios in reality
     // driver defaults are nonsensical(?), or the algorithm is wrong
@@ -45,7 +45,7 @@ void nv3_pramdac_init()
     nv3_pramdac_set_pixel_clock();
     nv3_pramdac_set_vram_clock();
 
-    nv_log("NV3: Initialising PRAMDAC: Done\n");
+    nv_log("Initialising PRAMDAC: Done\n");
 }
 
 // Polls the pixel clock.
@@ -119,7 +119,7 @@ void nv3_pramdac_set_vram_clock()
 
     double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
 
-    nv_log("NV3: Memory clock = %.2f MHz\n", frequency / 1000000.0f);    
+    nv_log("Memory clock = %.2f MHz\n", frequency / 1000000.0f);    
 
     nv3->nvbase.memory_clock_frequency = frequency;
     
@@ -167,7 +167,7 @@ void nv3_pramdac_set_pixel_clock()
 
     double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
 
-    nv_log("NV3: Pixel clock = %.2f MHz\n", frequency / 1000000.0f);
+    nv_log("Pixel clock = %.2f MHz\n", frequency / 1000000.0f);
 
     nv3->nvbase.pixel_clock_frequency = frequency;
 
@@ -220,7 +220,7 @@ uint32_t nv3_pramdac_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("NV3: PRAMDAC Read from 0x%08x", address);
+    nv_log("PRAMDAC Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -301,7 +301,7 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pramdac_registers, sizeof(pramdac_registers)/sizeof(pramdac_registers[0]));
 
-    nv_log("NV3: PRAMDAC Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PRAMDAC Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)

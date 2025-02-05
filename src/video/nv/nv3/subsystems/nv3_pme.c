@@ -36,7 +36,7 @@ nv_register_t pme_registers[] = {
 
 void nv3_pme_init()
 {  
-    nv_log("NV3: Initialising PME...");
+    nv_log("Initialising PME...");
 
     nv_log("Done\n");
 }
@@ -49,7 +49,7 @@ uint32_t nv3_pme_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("NV3: PME Read from 0x%08x", address);
+    nv_log("PME Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -93,7 +93,7 @@ void nv3_pme_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pme_registers, sizeof(pme_registers)/sizeof(pme_registers[0]));
 
-    nv_log("NV3: PME Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("PME Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)

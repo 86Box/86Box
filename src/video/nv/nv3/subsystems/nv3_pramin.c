@@ -61,7 +61,7 @@ uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
     if (!nv3_ramin_arbitrate_read(addr, &val)) // Oh well
     {
         val = (uint8_t)nv3->nvbase.svga.vram[addr];
-        nv_log("NV3: Read byte from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log("Read byte from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
     }
 
     return (uint8_t)val;
@@ -87,7 +87,7 @@ uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
     if (!nv3_ramin_arbitrate_read(addr, &val))
     {
         val = (uint16_t)vram_16bit[addr];
-        nv_log("NV3: Read word from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log("Read word from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
     }
 
     return val;
@@ -114,7 +114,7 @@ uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
     {
         val = vram_32bit[addr];
 
-        nv_log("NV3: Read dword from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log("Read dword from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
     }
 
     return val;
@@ -139,7 +139,7 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
         nv3->nvbase.svga.vram[addr] = val;
-        nv_log("NV3: Write byte to PRAMIN addr=0x%08x val=0x%02x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log("Write byte to PRAMIN addr=0x%08x val=0x%02x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 
@@ -165,7 +165,7 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
         vram_16bit[addr] = val;
-        nv_log("NV3: Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log("Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 
@@ -191,7 +191,7 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
         vram_32bit[addr] = val;
-        nv_log("NV3: Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log("Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 }
@@ -358,7 +358,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel, 
     uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
     uint32_t ramht_cur_address = ramht_base;
 
-    nv_log("NV3: Beginning search for graphics object at RAMHT base=0x%04x, Cache%d, channel=%d, subchannel=%d)", name, cache_num, channel, subchannel);
+    nv_log("Beginning search for graphics object at RAMHT base=0x%04x, Cache%d, channel=%d, subchannel=%d)", name, cache_num, channel, subchannel);
 
     bool found_object = false;
     
@@ -483,7 +483,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel, 
 // Prints out some informaiton about the object
 void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context)
 {
-    nv_log("NV3: Found object:");
+    nv_log("Found object:");
     nv_log("Name: 0x%04x", name);
 
     nv_log("Context:");

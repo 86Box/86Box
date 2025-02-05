@@ -33,9 +33,20 @@ uint32_t nv3_user_read(uint32_t address)
 {
     uint8_t method_offset = (address & 0x1FFC);
 
-    nv_log("NV3: User Submission Area method_offset=0x%04x OH SHIT!! NOT IMPLEMENTED!!!", method_offset);
+    nv_log("User Submission Area method_offset=0x%04x\n", method_offset);
 
-    // 0x10 is free CACHE1 object, other stuff?
+    // 0x10 is free CACHE1 object
+    // TODO: THERE ARE OTHER STUFF!
+    switch (method_offset)
+    {
+        case NV3_GENERIC_METHOD_IS_PFIFO_FREE:
+            return nv3_pfifo_cache1_is_free();
+        
+    }
+
+    nv_log("IT'S NOT IMPLEMENTED!!!!\n", method_offset);
+
+
     return 0x00;
 }; 
 

@@ -43,7 +43,7 @@ nv_register_t ptimer_registers[] = {
 // ptimer init code
 void nv3_ptimer_init()
 {
-    nv_log("NV3: Initialising PTIMER...");
+    nv_log("Initialising PTIMER...");
 
     nv_log("Done!\n");    
 }
@@ -99,7 +99,7 @@ uint32_t nv3_ptimer_read(uint32_t address)
     if (address != NV3_PTIMER_TIME_0_NSEC
     && address != NV3_PTIMER_TIME_1_NSEC)
     {
-        nv_log("NV3: PTIMER Read from 0x%08x", address);
+        nv_log("PTIMER Read from 0x%08x", address);
     }
 
     uint32_t ret = 0x00;
@@ -167,7 +167,7 @@ void nv3_ptimer_write(uint32_t address, uint32_t value)
     // before doing anything, check the subsystem enablement
     nv_register_t* reg = nv_get_register(address, ptimer_registers, sizeof(ptimer_registers)/sizeof(ptimer_registers[0]));
 
-    nv_log("NV3: PTIMER Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PTIMER Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)

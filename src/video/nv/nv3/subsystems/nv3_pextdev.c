@@ -31,7 +31,7 @@
 
 void nv3_pextdev_init()
 {
-    nv_log("NV3: Initialising PEXTDEV....\n");
+    nv_log("Initialising PEXTDEV....\n");
 
     // Set the chip straps
     // Make these configurable in the future...
@@ -43,7 +43,7 @@ void nv3_pextdev_init()
     // Bus width        128-Bit (some gpus were sold as 64bit for cost reduction)
     // 
 
-    nv_log("NV3: Initialising straps...\n");
+    nv_log("Initialising straps...\n");
 
     nv3->pextdev.straps =
     (NV3_PSTRAPS_AGP2X_DISABLED << NV3_PSTRAPS_AGP2X) |
@@ -62,8 +62,8 @@ void nv3_pextdev_init()
     (NV3_PSTRAPS_BIOS_PRESENT << NV3_PSTRAPS_BIOS) |
     (NV3_PSTRAPS_BUS_SPEED_66MHZ << NV3_PSTRAPS_BUS_SPEED);
 
-    nv_log("NV3: Straps = 0x%04x\n", nv3->pextdev.straps);
-    nv_log("NV3: Initialising PEXTDEV: Done\n");
+    nv_log("Straps = 0x%04x\n", nv3->pextdev.straps);
+    nv_log("Initialising PEXTDEV: Done\n");
 }
 
 //
@@ -89,11 +89,11 @@ uint32_t nv3_pextdev_read(uint32_t address)
     // special consideration for straps
     if (address == NV3_PSTRAPS)
     {
-        nv_log("NV3: Straps Read (current value=0x%08x)\n", nv3->pextdev.straps);
+        nv_log("Straps Read (current value=0x%08x)\n", nv3->pextdev.straps);
     }
     else
     {
-        nv_log("NV3: PEXTDEV Read from 0x%08x", address);
+        nv_log("PEXTDEV Read from 0x%08x", address);
     }
     
     // if the register actually exists
@@ -129,12 +129,12 @@ void nv3_pextdev_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pextdev_registers, sizeof(pextdev_registers)/sizeof(pextdev_registers[0]));
 
-    nv_log("NV3: PEXTDEV Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log("PEXTDEV Write 0x%08x -> 0x%08x\n", value, address);
 
     // special consideration for straps
     if (address == NV3_PSTRAPS)
     {
-        nv_log("NV3: Huh? Tried to write to the straps. Something is wrong...\n", nv3->pextdev.straps);
+        nv_log("Huh? Tried to write to the straps. Something is wrong...\n", nv3->pextdev.straps);
         return;
     }
 

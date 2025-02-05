@@ -77,7 +77,7 @@ nv_register_t pfifo_registers[] = {
 // PFIFO init code
 void nv3_pfifo_init()
 {
-    nv_log("NV3: Initialising PFIFO...");
+    nv_log("Initialising PFIFO...");
 
     nv_log("Done!\n");    
 }
@@ -89,7 +89,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
     if (!(nv3->pmc.enable >> NV3_PMC_ENABLE_PFIFO)
     & NV3_PMC_ENABLE_PFIFO_ENABLED)
     {
-        nv_log("NV3: Repressing PFIFO read. The subsystem is disabled according to pmc_enable, returning 0\n");
+        nv_log("Repressing PFIFO read. The subsystem is disabled according to pmc_enable, returning 0\n");
         return 0x00;
     }
 
@@ -99,7 +99,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
 
     // todo: friendly logging
     
-    nv_log("NV3: PFIFO Read from 0x%08x", address);
+    nv_log("PFIFO Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -297,13 +297,13 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
     if (!(nv3->pmc.enable >> NV3_PMC_ENABLE_PFIFO)
     & NV3_PMC_ENABLE_PFIFO_ENABLED)
     {
-        nv_log("NV3: Repressing PFIFO write. The subsystem is disabled according to pmc_enable\n");
+        nv_log("Repressing PFIFO write. The subsystem is disabled according to pmc_enable\n");
         return;
     }
 
     nv_register_t* reg = nv_get_register(address, pfifo_registers, sizeof(pfifo_registers)/sizeof(pfifo_registers[0]));
 
-    nv_log("NV3: PFIFO Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PFIFO Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
@@ -355,7 +355,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     else if (new_size_ramht == 3)
                         new_size_ramht = 0x8000;  
 
-                    nv_log("NV3: RAMHT Reconfiguration\n"
+                    nv_log("RAMHT Reconfiguration\n"
                     "Base Address in RAMIN: %d\n"
                     "Size: 0x%08x bytes\n", ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << 12, new_size_ramht); 
 #endif
@@ -363,7 +363,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 case NV3_PFIFO_CONFIG_RAMFC:
                     nv3->pfifo.ramfc_config = value;
 
-                    nv_log("NV3: RAMFC Reconfiguration\n"
+                    nv_log("RAMFC Reconfiguration\n"
                     "Base Address in RAMIN: %d\n", ((nv3->pfifo.ramfc_config >> NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS) & 0x7F) << 9); 
                     break;
                 case NV3_PFIFO_CONFIG_RAMRO:
@@ -376,7 +376,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     else if (new_size_ramro == 1)
                         new_size_ramro = 0x2000;
                     
-                    nv_log("NV3: RAMRO Reconfiguration\n"
+                    nv_log("RAMRO Reconfiguration\n"
                     "Base Address in RAMIN: %d\n"
                     "Size: 0x%08x bytes\n", ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS) & 0x7F) << 9, new_size_ramro); 
                     break;
@@ -557,7 +557,7 @@ void nv3_pfifo_cache0_pull()
     nv3->pfifo.cache0_settings.get_address ^= 0x04;
 
     #ifndef RELEASE_BUILD
-    nv_log("NV3: ***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE0 PULLED ****** Contextual information below\n");
+    nv_log("***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE0 PULLED ****** Contextual information below\n");
             
     nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
     #endif
@@ -640,7 +640,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     // Did we fuck up?
     if (oh_shit)
     {
-        nv_log("NV3: WE ARE FUCKED Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x IMPLEMENT THIS OR DIE!!!", oh_shit_reason, channel, subchannel, method_offset);
+        nv_log("WE ARE FUCKED Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x IMPLEMENT THIS OR DIE!!!", oh_shit_reason, channel, subchannel, method_offset);
         return;
     }
 
@@ -710,7 +710,7 @@ void nv3_pfifo_cache1_pull()
     nv3->pfifo.cache0_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
 
     #ifndef RELEASE_BUILD
-    nv_log("NV3: ***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE1 PULLED ****** Contextual information below\n");
+    nv_log("***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE1 PULLED ****** Contextual information below\n");
             
     nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
     #endif

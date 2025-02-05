@@ -32,7 +32,7 @@
 
 void nv3_pmc_init()
 {
-    nv_log("NV3: Initialising PMC....\n");
+    nv_log("Initialising PMC....\n");
 
     if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_A00)
         nv3->pmc.boot = NV3_BOOT_REG_REV_A00;
@@ -43,7 +43,7 @@ void nv3_pmc_init()
 
     nv3->pmc.interrupt_enable = NV3_PMC_INTERRUPT_ENABLE_HARDWARE | NV3_PMC_INTERRUPT_ENABLE_SOFTWARE;
 
-    nv_log("NV3: Initialising PMC: Done\n");
+    nv_log("Initialising PMC: Done\n");
 }
 
 //
@@ -60,7 +60,7 @@ nv_register_t pmc_registers[] = {
 
 uint32_t nv3_pmc_clear_interrupts()
 {
-    nv_log("NV3: Clearing IRQs\n");
+    nv_log("Clearing IRQs\n");
     pci_clear_irq(nv3->nvbase.pci_slot, PCI_INTA, &nv3->nvbase.pci_irq_state);
 }
 
@@ -144,21 +144,21 @@ uint32_t nv3_pmc_handle_interrupts(bool send_now)
         {
             if (nv3->pmc.interrupt_enable & NV3_PMC_INTERRUPT_ENABLE_HARDWARE)
             {
-                nv_log("NV3: Firing hardware-originated interrupt NV3_PMC_INTR_0=0x%08x\n", nv3->pmc.interrupt_status);
+                nv_log("Firing hardware-originated interrupt NV3_PMC_INTR_0=0x%08x\n", nv3->pmc.interrupt_status);
                 pci_set_irq(nv3->nvbase.pci_slot, PCI_INTA, &nv3->nvbase.pci_irq_state);
             }
             else
-                nv_log("NV3: NOT firing hardware-originated interrupt NV3_PMC_INTR_0=0x%08x, BECAUSE HARDWARE INTERRUPTS ARE DISABLED\n", nv3->pmc.interrupt_status);      
+                nv_log("NOT firing hardware-originated interrupt NV3_PMC_INTR_0=0x%08x, BECAUSE HARDWARE INTERRUPTS ARE DISABLED\n", nv3->pmc.interrupt_status);      
         }
         else   
         {
             if (nv3->pmc.interrupt_enable & NV3_PMC_INTERRUPT_ENABLE_SOFTWARE)
             {
-                nv_log("NV3: Firing software-originated interrupt NV3_PMC_INTR_0=0x%08x\n", nv3->pmc.interrupt_status);
+                nv_log("Firing software-originated interrupt NV3_PMC_INTR_0=0x%08x\n", nv3->pmc.interrupt_status);
                 pci_set_irq(nv3->nvbase.pci_slot, PCI_INTA, &nv3->nvbase.pci_irq_state);
             }
             else
-                nv_log("NV3: NOT firing software-originated interrupt NV3_PMC_INTR_0=0x%08x, BECAUSE SOFTWARE INTERRUPTS ARE DISABLED\n", nv3->pmc.interrupt_status); 
+                nv_log("NOT firing software-originated interrupt NV3_PMC_INTR_0=0x%08x, BECAUSE SOFTWARE INTERRUPTS ARE DISABLED\n", nv3->pmc.interrupt_status); 
         }
     }
 
@@ -178,7 +178,7 @@ uint32_t nv3_pmc_read(uint32_t address)
     uint32_t ret = 0x00;
 
     // todo: friendly logging
-    nv_log("NV3: PMC Read from 0x%08x", address);
+    nv_log("PMC Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -227,7 +227,7 @@ void nv3_pmc_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pmc_registers, sizeof(pmc_registers)/sizeof(pmc_registers[0]));
 
-    nv_log("NV3: PMC Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PMC Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists...
     if (reg)

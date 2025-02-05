@@ -1096,6 +1096,9 @@ typedef struct nv3_grobj_s
 // TODO: PATCHCORDS!!!! TO LINK ALL OF THIS TOGETHER!!!
 #pragma pack(pop) // return packing to whatever it was before this disaster
 
+// Method IDs
+#define NV3_GENERIC_METHOD_IS_PFIFO_FREE                0x0010
+
 // Class methods
 void nv3_generic_method(uint32_t method_id, nv3_grobj_t grobj);
 void nv3_class_001_method(uint32_t method_id, nv3_grobj_t grobj);

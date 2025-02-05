@@ -68,7 +68,7 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
 
         ret = nv3_svga_in(real_address, nv3);
 
-        nv_log("NV3: Redirected MMIO read8 to SVGA: addr=0x%04x returned 0x%02x\n", addr, ret);
+        nv_log("Redirected MMIO read8 to SVGA: addr=0x%04x returned 0x%02x\n", addr, ret);
 
         return ret; 
     }
@@ -94,7 +94,7 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
         ret = nv3_svga_in(real_address, nv3)
         | (nv3_svga_in(real_address + 1, nv3) << 8);
         
-        nv_log("NV3: Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
+        nv_log("Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
 
         return ret; 
     }
@@ -121,7 +121,7 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
         | (nv3_svga_in(real_address + 2, nv3) << 16)
         | (nv3_svga_in(real_address + 3, nv3) << 24);
 
-        nv_log("NV3: Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%08x\n", addr, ret);
+        nv_log("Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%08x\n", addr, ret);
 
         return ret; 
     }
@@ -142,7 +142,7 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        nv_log("NV3: Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
+        nv_log("Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
         nv3_svga_out(real_address, val & 0xFF, nv3);
 
         return; 
@@ -168,7 +168,7 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        nv_log("NV3: Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%04x\n", addr, val);
+        nv_log("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%04x\n", addr, val);
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
         
@@ -195,7 +195,7 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        nv_log("NV3: Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%08x\n", addr, val);
+        nv_log("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%08x\n", addr, val);
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
@@ -360,7 +360,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         
     }
 
-    nv_log("NV3: nv3_pci_read func=0x%04x addr=0x%04x ret=0x%04x\n", func, addr, ret);
+    nv_log("nv3_pci_read func=0x%04x addr=0x%04x ret=0x%04x\n", func, addr, ret);
     return ret; 
 }
 
@@ -377,7 +377,7 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
     && addr >= NV3_PCI_CFG_BAR1_L && addr <= NV3_PCI_CFG_BAR1_BYTE2)
         return;
 
-    nv_log("NV3: nv3_pci_write func=0x%04x addr=0x%04x val=0x%04x\n", func, addr, val);
+    nv_log("nv3_pci_write func=0x%04x addr=0x%04x val=0x%04x\n", func, addr, val);
 
     nv3->pci_config.pci_regs[addr] = val;
 
@@ -746,13 +746,13 @@ uint8_t nv3_prom_read(uint32_t address)
     // Does this mirror on real hardware?
     if (rom_address >= real_rom_size)
     {
-        nv_log("NV3: PROM VBIOS Read to INVALID address 0x%05x, returning 0xFF", rom_address);
+        nv_log("PROM VBIOS Read to INVALID address 0x%05x, returning 0xFF", rom_address);
         return 0xFF;
     }
     else
     {
         uint8_t val = nv3->nvbase.vbios.rom[rom_address];
-        nv_log("NV3: PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);
+        nv_log("PROM VBIOS Read 0x%05x <- 0x%05x", val, rom_address);
         return val;
     }
 }
@@ -760,13 +760,13 @@ uint8_t nv3_prom_read(uint32_t address)
 void nv3_prom_write(uint32_t address, uint32_t value)
 {
     uint32_t real_addr = address & 0x1FFFF;
-    nv_log("NV3: What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", address, value);
+    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", address, value);
 }
 
 // Initialise the MMIO mappings
 void nv3_init_mappings_mmio()
 {
-    nv_log("NV3: Initialising 32MB MMIO area\n");
+    nv_log("Initialising 32MB MMIO area\n");
 
     // 0x0 - 1000000: regs
     // 0x1000000-2000000
@@ -806,7 +806,7 @@ void nv3_init_mappings_mmio()
 
 void nv3_init_mappings_svga()
 {
-    nv_log("NV3: Initialising SVGA core memory mapping\n");
+    nv_log("Initialising SVGA core memory mapping\n");
 
     // setup the svga mappings
     mem_mapping_set(&nv3->nvbase.framebuffer_mapping, 0, 0,
@@ -873,7 +873,7 @@ void nv3_update_mappings()
 
     if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND]) & PCI_COMMAND_MEM)
     {
-        nv_log("NV3: The memory was turned off, not much is going to happen.\n");
+        nv_log("The memory was turned off, not much is going to happen.\n");
         return;
     }
 
@@ -885,7 +885,7 @@ void nv3_update_mappings()
 
     // first map bar0
 
-    nv_log("NV3: BAR0 (MMIO Base) = 0x%08x\n", nv3->nvbase.bar0_mmio_base);
+    nv_log("BAR0 (MMIO Base) = 0x%08x\n", nv3->nvbase.bar0_mmio_base);
 
     //mem_mapping_enable(&nv3->nvbase.mmio_mapping); // should have no effect if already enabled
 
@@ -894,7 +894,7 @@ void nv3_update_mappings()
 
     // if this breaks anything, remove it
     // skeptical that 0 is used to disable...
-    nv_log("NV3: BAR1 (Linear Framebuffer / NV_USER Base & RAMIN) = 0x%08x\n", nv3->nvbase.bar1_lfb_base);
+    nv_log("BAR1 (Linear Framebuffer / NV_USER Base & RAMIN) = 0x%08x\n", nv3->nvbase.bar1_lfb_base);
 
     // this is likely mirrored 
     // 4x on 2mb cards
@@ -920,22 +920,22 @@ void nv3_update_mappings()
     switch (nv3->nvbase.svga.gdcreg[0x06] & 0x0c)
     {
         case NV3_CRTC_BANKED_128K_A0000:
-            nv_log("NV3: SVGA Banked Mode = 128K @ A0000h\n");
+            nv_log("SVGA Banked Mode = 128K @ A0000h\n");
             mem_mapping_set_addr(&nv3->nvbase.svga.mapping, 0xA0000, 0x20000); // 128kb @ 0xA0000
             nv3->nvbase.svga.banked_mask = 0x1FFFF;
             break;
         case NV3_CRTC_BANKED_64K_A0000:
-            nv_log("NV3: SVGA Banked Mode = 64K @ A0000h\n");
+            nv_log("SVGA Banked Mode = 64K @ A0000h\n");
             mem_mapping_set_addr(&nv3->nvbase.svga.mapping, 0xA0000, 0x10000); // 64kb @ 0xA0000
             nv3->nvbase.svga.banked_mask = 0xFFFF;
             break;
         case NV3_CRTC_BANKED_32K_B0000:
-            nv_log("NV3: SVGA Banked Mode = 32K @ B0000h\n");
+            nv_log("SVGA Banked Mode = 32K @ B0000h\n");
             mem_mapping_set_addr(&nv3->nvbase.svga.mapping, 0xB0000, 0x8000); // 32kb @ 0xB0000
             nv3->nvbase.svga.banked_mask = 0x7FFF;
             break;
         case NV3_CRTC_BANKED_32K_B8000:
-            nv_log("NV3: SVGA Banked Mode = 32K @ B8000h\n");
+            nv_log("SVGA Banked Mode = 32K @ B8000h\n");
             mem_mapping_set_addr(&nv3->nvbase.svga.mapping, 0xB8000, 0x8000); // 32kb @ 0xB8000
             nv3->nvbase.svga.banked_mask = 0x7FFF;
             break;
@@ -954,7 +954,7 @@ void* nv3_init(const device_t *info)
 
     // Allows nv_log to be used for multiple nvidia devices
     nv_log_set_device(nv3->nvbase.log);    
-    nv_log("NV3: initialising core\n");
+    nv_log("initialising core\n");
 
     // Figure out which vbios the user selected
     const char* vbios_id = device_get_config_bios("vbios");
@@ -975,7 +975,7 @@ void* nv3_init(const device_t *info)
         return NULL;
     }
     else    
-        nv_log("NV3: Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
+        nv_log("Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
     // set the vram amount and gpu revision
     uint32_t vram_amount = device_get_config_int("vram_size");
@@ -984,7 +984,7 @@ void* nv3_init(const device_t *info)
     // set up the bus and start setting up SVGA core
     if (nv3->nvbase.bus_generation == nv_bus_pci)
     {
-        nv_log("NV3: using PCI bus\n");
+        nv_log("using PCI bus\n");
 
         pci_add_card(PCI_ADD_NORMAL, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
@@ -993,7 +993,7 @@ void* nv3_init(const device_t *info)
     }
     else if (nv3->nvbase.bus_generation == nv_bus_agp_1x)
     {
-        nv_log("NV3: using AGP 1X bus\n");
+        nv_log("using AGP 1X bus\n");
 
         pci_add_card(PCI_ADD_AGP, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
@@ -1002,7 +1002,7 @@ void* nv3_init(const device_t *info)
     }
 
     // set vram
-    nv_log("NV3: VRAM=%d bytes\n", nv3->nvbase.svga.vram_max);
+    nv_log("VRAM=%d bytes\n", nv3->nvbase.svga.vram_max);
 
     // init memory mappings
     nv3_init_mappings();
@@ -1012,7 +1012,7 @@ void* nv3_init(const device_t *info)
     nv3->pci_config.pci_regs[PCI_REG_COMMAND] = PCI_COMMAND_IO | PCI_COMMAND_MEM;
 
     // svga is done, so now initialise the real gpu
-    nv_log("NV3: Initialising GPU core...\n");
+    nv_log("Initialising GPU core...\n");
 
     nv3_pextdev_init();             // Initialise Straps
     nv3_pmc_init();                 // Initialise Master Control
@@ -1024,7 +1024,7 @@ void* nv3_init(const device_t *info)
     nv3_ptimer_init();              // Initialise programmable interval timer
     nv3_pvideo_init();              // Initialise video overlay engine
 
-    nv_log("NV3: Initialising I2C...");
+    nv_log("Initialising I2C...");
     nv3->nvbase.i2c = i2c_gpio_init("nv3_i2c");
     nv3->nvbase.ddc = ddc_init(i2c_gpio_get_bus(nv3->nvbase.i2c));
 
