@@ -332,6 +332,15 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                     nv3->pgraph.interrupt_enable_1 = value & 0x00011111; 
                     nv3_pmc_handle_interrupts(true);
                     break;
+                case NV3_PGRAPH_DMA_INTR_0:
+                    nv3->pgraph.interrupt_status_dma &= ~value;
+                    nv3_pmc_clear_interrupts();
+                    break;
+                case NV3_PGRAPH_DMA_INTR_EN_0:
+                    nv3->pgraph.interrupt_enable_dma = value & 0x000111111;
+                    nv_log("Handling PGRAPH_DMA interrupts not implemented");
+                    nv3_pmc_handle_interrupts(true);
+                    break;
                 // A lot of this is currently a temporary implementation so that we can just debug what the current state looks like
                 // during the driver initialisation process            
 

@@ -362,7 +362,15 @@ extern const device_config_t nv3_config[];
 #define NV3_PFB_BOOT_RAM_EXTENSION                      5
 #define NV3_PFB_BOOT_RAM_EXTENSION_NONE                 0x0
 #define NV3_PFB_BOOT_RAM_EXTENSION_8MB                  0x1
+
+#define NV3_PFB_DELAY                                   0x100044
+#define NV3_PFB_GREEN_0                                 0x1000C0
+
 #define NV3_PFB_CONFIG_0                                0x100200    // Framebuffer interface config register 0
+
+// What is this lol
+// ??? Part of the memory timings
+#define NV3_PFB_RTL                                     0x100300
 #define NV3_PFB_CONFIG_0_RESOLUTION                     0
 // 1=40 horiz. resolution
 // i assume it can be divided by some kind of divisor to produce the vertical resolution (e.g. 3/2 or multiply by 2/3) to get the final 
@@ -487,7 +495,12 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_TRAPPED_DATA                         0x4006B8
 #define NV3_PGRAPH_TRAPPED_INSTANCE                     0x4006BC
 
-#define NV3_PGRAPH_DMA_INTR_0                           0x401000    // PGRAPH DMA Interrupt Status
+#define NV3_PGRAPH_DMA_INTR_0                           0x401100    // PGRAPH DMA Interrupt Status
+#define NV3_PGRAPH_DMA_INTR_INSTANCE                    0
+#define NV3_PGRAPH_DMA_INTR_PRESENT                     4
+#define NV3_PGRAPH_DMA_INTR_PROTECTION                  8
+#define NV3_PGRAPH_DMA_INTR_LINEAR                      12
+#define NV3_PGRAPH_DMA_INTR_NOTIFY                      16
 #define NV3_PGRAPH_DMA_INTR_EN_0                        0x401140    // PGRAPH DMA Interrupt Enable 0
 
 // not sure about the class ids
@@ -559,6 +572,13 @@ extern const device_config_t nv3_config[];
 #define NV3_PVIDEO_START                                0x680000    // Video Generation / overlay configuration
 #define NV3_PVIDEO_INTR                                 0x680100
 #define NV3_PVIDEO_INTR_EN                              0x680140
+#define NV3_PVIDEO_FIFO_THRESHOLD                       0x680238
+#define NV3_PVIDEO_FIFO_BURST_LENGTH                    0x68023C
+#define NV3_PVIDEO_OVERLAY                              0x680244
+#define NV3_PVIDEO_OVERLAY_VIDEO_IS_ON                  0
+#define NV3_PVIDEO_OVERLAY_KEY_ENABLED                  4
+#define NV3_PVIDEO_OVERLAY_FORMAT                       8           // 0 = CCIR, 1 = YUY2
+
 #define NV3_PVIDEO_END                                  0x6802FF
 #define NV3_PRAMDAC_START                               0x680300
 
@@ -780,8 +800,11 @@ typedef struct nv3_straps_s
 typedef struct nv3_pfb_s
 {
     uint32_t boot;
-    uint32_t config_0;
+    uint32_t config_0;                  // Framebuffer width, etc.
     uint32_t config_1;
+    uint32_t green;
+    uint32_t delay;
+    uint32_t rtl;                       // Part of the memory timings
 } nv3_pfb_t;
 
 #define NV3_RMA_NUM_REGS        4
@@ -974,6 +997,8 @@ typedef struct nv3_pgraph_s
     uint32_t interrupt_enable_0;          // Interrupt enable 0 
     uint32_t interrupt_status_1;          // Interrupt status 1
     uint32_t interrupt_enable_1;          // Interrupt enable 1
+    uint32_t interrupt_status_dma;        // Interrupt status for DMA
+    uint32_t interrupt_enable_dma;        // Interrupt enable for DMA
 
     uint32_t context_switch;              // TODO: Make this a struct, it's just going to be enormous lol.
     nv3_pgraph_context_control_t context_control;
@@ -986,10 +1011,12 @@ typedef struct nv3_pgraph_s
     uint32_t abs_uclip_xmax;
     uint32_t abs_uclip_ymin;
     uint32_t abs_uclip_ymax;
+    // Canvas stuff
     nv3_position_16_bigy_t src_canvas_min;
     nv3_position_16_bigy_t src_canvas_max;
     nv3_position_16_bigy_t dst_canvas_min;
     nv3_position_16_bigy_t dst_canvas_max;
+    // Pattern stuff
     nv3_color_x3a10g10b10_t pattern_color_0_0;
     uint32_t pattern_color_0_1;                             // only 7:0 relevant
     nv3_color_x3a10g10b10_t pattern_color_1_0;
@@ -1012,8 +1039,6 @@ typedef struct nv3_pgraph_s
     uint32_t trapped_address;
     uint32_t trapped_data;
     uint32_t trapped_instance;
-    uint32_t interrupt_status_dma;
-    uint32_t interrupt_enable_dma;
 } nv3_pgraph_t;
 
 // GPU Manufacturing Configuration (again)
@@ -1172,6 +1197,9 @@ typedef struct nv3_pvideo_s
 {
     uint32_t interrupt_status;          // Interrupt status
     uint32_t interrupt_enable;          // Interrupt enable
+    uint32_t fifo_threshold;            // FIFO threshold
+    uint32_t fifo_burst_size;           // FIFO burst size
+    uint32_t overlay_settings;          // Overlay settings
 } nv3_pvideo_t;
 
 typedef struct nv3_pme_s                // Mediaport

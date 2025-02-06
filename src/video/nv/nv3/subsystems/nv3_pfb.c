@@ -34,8 +34,11 @@ void nv3_pfb_config0_write(uint32_t val);
 
 nv_register_t pfb_registers[] = {
     { NV3_PFB_BOOT, "PFB Boot Config", NULL, NULL},
+    { NV3_PFB_DELAY, "PFB Delay", NULL, NULL},
+    { NV3_PFB_GREEN_0, "PFB Green / Power Saving", NULL, NULL,},
     { NV3_PFB_CONFIG_0, "PFB Framebuffer Config 0", nv3_pfb_config0_read, nv3_pfb_config0_write },
     { NV3_PFB_CONFIG_1, "PFB Framebuffer Config 1", NULL, NULL },
+    { NV3_PFB_RTL, "PFB RTL (Part of memory timings?)", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -86,6 +89,16 @@ uint32_t nv3_pfb_read(uint32_t address)
                 case NV3_PFB_CONFIG_1:
                     ret = nv3->pfb.config_1;
                     break;
+                case NV3_PFB_GREEN_0:
+                    ret = nv3->pfb.green;
+                    break;
+                case NV3_PFB_DELAY:
+                    ret = nv3->pfb.delay;
+                    break;
+                case NV3_PFB_RTL:
+                    ret = nv3->pfb.rtl;
+                    break;
+                
             }
         }
 
@@ -123,9 +136,19 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
         {
             switch (reg->address)
             {
-                                // Config 0 has a read/write function
+                // Config 0 has a read/write function
                 case NV3_PFB_CONFIG_1:              // Config Register 1
                     nv3->pfb.config_1 = value;
+                    break;
+                case NV3_PFB_GREEN_0:
+                    nv3->pfb.green = value;
+                    break;
+                case NV3_PFB_DELAY:
+                    nv3->pfb.delay = value;
+                    break;
+                case NV3_PFB_RTL:
+                    nv3->pfb.rtl = value;
+                    break;
             }
         }
     }
@@ -145,7 +168,7 @@ void nv3_pfb_config0_write(uint32_t val)
 
     uint32_t new_pfb_htotal = (nv3->pfb.config_0 & 0x3F) << 5;
     // i don't think 16:9 is supported
-    uint32_t new_pfb_vtotal = new_pfb_htotal * (4/3);
+    uint32_t new_pfb_vtotal = new_pfb_htotal * (4.0/3.0);
 
     uint32_t new_bit_depth = (nv3->pfb.config_0 >> 8) & 0x03;
     nv_log("Framebuffer Config Change\n");

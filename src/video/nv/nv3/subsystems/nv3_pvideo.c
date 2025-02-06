@@ -32,6 +32,9 @@
 nv_register_t pvideo_registers[] = {
     { NV3_PVIDEO_INTR, "PVIDEO - Interrupt Status", NULL, NULL},
     { NV3_PVIDEO_INTR_EN, "PVIDEO - Interrupt Enable", NULL, NULL,},
+    { NV3_PVIDEO_FIFO_THRESHOLD, "PVIDEO - FIFO Fill Threshold", NULL, NULL},
+    { NV3_PVIDEO_FIFO_BURST_LENGTH, "PVIDEO - FIFO Burst Length (1=32, 2=64, 3=128)", NULL, NULL},
+    { NV3_PVIDEO_OVERLAY, "PVIDEO - Overlay Info (Bit0 = Video On, Bit4 = Key On, Bit8 = Format, 0=CCIR, 1=YUV2)", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -78,6 +81,16 @@ uint32_t nv3_pvideo_read(uint32_t address)
                 case NV3_PVIDEO_INTR_EN:
                     ret = nv3->pvideo.interrupt_enable;
                     break;
+                case NV3_PVIDEO_FIFO_THRESHOLD:
+                    ret = nv3->pvideo.fifo_threshold;
+                    break;
+                case NV3_PVIDEO_FIFO_BURST_LENGTH:
+                    ret = nv3->pvideo.fifo_burst_size & 0x03;
+                    break;
+                case NV3_PVIDEO_OVERLAY:
+                    ret = nv3->pvideo.overlay_settings & 0xFF;
+                    break;
+                
             }
         }
 
@@ -125,6 +138,16 @@ void nv3_pvideo_write(uint32_t address, uint32_t value)
                     break;
                 case NV3_PVIDEO_INTR_EN:
                     nv3->pvideo.interrupt_enable = value & 0x00000001;
+                    break;
+                case NV3_PVIDEO_FIFO_THRESHOLD:
+                    // only bits 6:3 matter
+                    nv3->pvideo.fifo_threshold = ((value >> 3) & 0x0F) << 3;
+                    break;
+                case NV3_PVIDEO_FIFO_BURST_LENGTH:
+                    nv3->pvideo.fifo_burst_size = value & 0x03;
+                    break;
+                case NV3_PVIDEO_OVERLAY:
+                    nv3->pvideo.overlay_settings = value & 0xFF;
                     break;
             }
         }
