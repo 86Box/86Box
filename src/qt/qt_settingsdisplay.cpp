@@ -140,6 +140,12 @@ SettingsDisplay::on_pushButtonConfigureXga_clicked()
 }
 
 void
+SettingsDisplay::on_pushButtonConfigureDa2_clicked()
+{
+    DeviceConfig::ConfigureDevice(&ps55da2_device, 0, qobject_cast<Settings *>(Settings::settings));
+}
+
+void
 SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 {
     if (index < 0) {
@@ -176,6 +182,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     ui->checkBoxDa2->setChecked(da2_standalone_enabled && machineSupportsDa2);
 
     ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
+    ui->pushButtonConfigureDa2->setEnabled(ui->checkBoxDa2->isEnabled() && ui->checkBoxDa2->isChecked());
 
     int c = 2;
 
@@ -248,6 +255,12 @@ void
 SettingsDisplay::on_checkBoxXga_stateChanged(int state)
 {
     ui->pushButtonConfigureXga->setEnabled(state == Qt::Checked);
+}
+
+void
+SettingsDisplay::on_checkBoxDa2_stateChanged(int state)
+{
+    ui->pushButtonConfigureDa2->setEnabled(state == Qt::Checked);
 }
 
 void

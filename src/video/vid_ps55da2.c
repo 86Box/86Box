@@ -37,8 +37,9 @@
 #include <86box/vid_svga_render.h>
 #include "cpu.h"
 
-#define DA2_FONTROM_PATH "roms/video/da2/PS55FNTJ.BIN"
-#define DA2_FONTROM_SIZE 1024*1024
+#define DA2_FONTROM_PATH_JPAN "roms/video/da2/94X1320.BIN"
+#define DA2_FONTROM_PATH_HANT "roms/video/da2/23F2698.BIN"
+#define DA2_FONTROM_SIZE 1536*1024
 #define DA2_FONTROM_BASESBCS 0x98000
 #define DA2_GAIJIRAM_SBCS 0x34000
 #define DA2_GAIJIRAM_SBEX 0x3c000
@@ -54,6 +55,10 @@
 #define DA2_DEBUG_BLTLOG_MAX 256*1024
 #define DA2_DEBUG_BLT_NEVERUSED 0xfefefefe
 #define DA2_DEBUG_BLT_USEDRESET 0xfefefe
+#define DA2_DCONFIG_FONT_JPAN 0 /* for Code page 932 Japanese */
+//#define DA2_DCONFIG_FONT_HANG 1 /* for Code page 934 Hangul */
+//#define DA2_DCONFIG_FONT_HANS 2 /* for Code page 936 Simplified Chinese */
+#define DA2_DCONFIG_FONT_HANT 3 /* for Code page 938 Traditional Chinese */
 
 #define DA2_BLT_CIDLE 0
 #define DA2_BLT_CFILLRECT 1
@@ -100,7 +105,12 @@
 #define  OldLSI    0x20 /* DA-2 or DA-3,5 */
 #define  Mon_ID3   0x10
 #define  FontCard  0x08 /* ? */
-/* IO 3E0/3E1:0Ah Hardware Configuration Value H (imported from OS/2 DDK) */
+/* Page Number Mask : Memory Size? = (110b and 111b): vram size is 512k (256 color mode is not supported). */
+#define  Page_One      0x06         /*  80000h 110b */
+#define  Page_Two      0x05         /* 100000h 101b */
+#define  Page_Four     0x03         /* 200000h 011b */
+
+/* IO 3E0/3E1:0Bh Hardware Configuration Value H (imported from OS/2 DDK) */
 #define  AddPage   0x08 /* ? */
 #define  Mon_ID2   0x04
 #define  Mon_ID1   0x02
@@ -110,10 +120,6 @@
 //#define  StarbuckM     0x09  //1001b x              grayscale
 //#define  Lark_B        0x02  //0010b IBM 9517       color 1040x768
 //#define  Dallas        0x0B  //1011b IBM 8515, 9515 color 1040x740 B palette
-/* Page Number Mask : Memory Size? = (110b and 111b): vram size is 512k (256 color mode is not supported). */
-#define  Page_One      0x06         /*  80000h 110b */
-#define  Page_Two      0x05         /* 100000h 101b */
-#define  Page_Four     0x03         /* 200000h 011b */
 
 /* DA2 Registers (imported from OS/2 DDK) */
 #define AC_REG                  0x3EE
@@ -1045,6 +1051,8 @@ void da2_out(uint16_t addr, uint16_t val, void *p)
         case LF_DATA:
             //da2_log("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->fctladdr, val, cs >> 4, cpu_state.pc);
             if (da2->fctladdr > 0x1f) return;
+            if (da2->fctl[da2->fctladdr & 0x1f] != val)
+                da2_log("fctl changed %x: %x -> %x  %04X:%04X\n", da2->fctladdr & 0x1f, da2->fctl[da2->fctladdr & 0x1f], val, cs >> 4, cpu_state.pc);
             oldval = da2->fctl[da2->fctladdr];
             da2->fctl[da2->fctladdr] = val;
             if (da2->fctladdr == 0 && oldval != val)
@@ -1547,7 +1555,7 @@ Bank 5
 
              (B9580-?;IBMJ 2930-295e?) : Full-width box drawing characters
 
- The signature 80h, 01h must be placed at Bank 0:1AFFEh to run OS/2 J1.3.
+ Some models have the signature 80h, 01h placed at Bank 0:1AFFEh. (it disables hardware text drawing in OS/2 J1.3)
 
 [Gaiji RAM Map (DA2)]
  Bank 0 00000-1FFFFh placed between A0000h-BFFFFh
@@ -2271,8 +2279,9 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
             return da2->mmio.ram[addr];
             break;
         case 0x10://Font ROM
+            //if (addr >= 0x180000) addr -= 0x40000;
             if (addr >= DA2_FONTROM_SIZE) return DA2_INVALIDACCESS8;
-            da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
+            //da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
             return da2->mmio.font[addr];
             break;
         default:
@@ -2307,7 +2316,7 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
 static uint16_t da2_mmio_readw(uint32_t addr, void* p)
 {
     da2_t* da2 = (da2_t*)p;
-    //da2_log("da2_readW: %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
+    da2_log("da2_readW: %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
     if (da2->ioctl[LS_MMIO] & 0x10) {
         return (uint16_t)da2_mmio_read(addr, da2) | (uint16_t)(da2_mmio_read(addr + 1, da2) << 8);
     }
@@ -2962,7 +2971,7 @@ da2_reset(void* priv)
     da2->attrc[LV_CURSOR_CONTROL] = 0x13; /* cursor options */
     da2->attr_palette_enable = 0; /* disable attribute generator */
 
-    /* Set default color palette (Display driver of Win 3.1 won't reset palette) */
+    /* Set default color palette (Windows 3.1 display driver won't reset palette) */
     da2_out(0x3c8, 0, da2);
     for (int i = 0; i < 256; i++) {
         da2_out(0x3c9, ps55_palette_color[i & 0x3F][0], da2);
@@ -2991,7 +3000,17 @@ static void *da2_init()
         da2->cram = malloc(0x1000);
         da2->vram_display_mask = DA2_MASK_CRAM;
         da2->changedvram = malloc(/*(memsize >> 12) << 1*/0x1000000 >> 12);//XX000h
-        da2_loadfont(DA2_FONTROM_PATH, da2);
+
+        int fonttype = device_get_config_int("font");
+        switch(fonttype)
+        {
+            case DA2_DCONFIG_FONT_HANT:
+                da2_loadfont(DA2_FONTROM_PATH_HANT, da2);
+                break;
+            case DA2_DCONFIG_FONT_JPAN:
+                da2_loadfont(DA2_FONTROM_PATH_JPAN, da2);
+                break;
+        }
 
         mca_add(da2_mca_read, da2_mca_write, da2_mca_feedb, da2_mca_reset, da2);
         da2->da2const = (uint64_t)((cpuclock / DA2_PIXELCLOCK) * (float)(1ull << 32));
@@ -3023,7 +3042,7 @@ static void *da2_init()
 }
 static int da2_available()
 {
-        return rom_present(DA2_FONTROM_PATH);
+        return (rom_present(DA2_FONTROM_PATH_HANT) || rom_present(DA2_FONTROM_PATH_JPAN));
 }
 
 void da2_close(void *p)
@@ -3122,6 +3141,32 @@ void da2_force_redraw(void *p)
         da2->fullchange = changeframecount;
 }
 
+static const device_config_t da2_configuration[] = {
+  // clang-format off
+    {
+        .name = "font",
+        .description = "Font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "CP932 (Japanese)",
+                .value = DA2_DCONFIG_FONT_JPAN
+            },
+            {
+                .description = "CP938 (Traditional Chinese)",
+                .value = DA2_DCONFIG_FONT_HANT
+            },
+            { .description = "" }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t ps55da2_device = {
     .name          = "IBM Display Adapter II (MCA)",
     .internal_name = "ps55da2",
@@ -3133,7 +3178,7 @@ const device_t ps55da2_device = {
     { .available = da2_available },
     .speed_changed = da2_speed_changed,
     .force_redraw  = da2_force_redraw,
-    .config        = NULL
+    .config        = da2_configuration
 };
 
 void
