@@ -259,7 +259,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 3: /* Control Indirect Access Register (CS4236B+) */
-            if (dev->type < CRYSTAL_CS4236B)
+            if (dev->type < CRYSTAL_CS4236) /* must be writable on CS4236 for the aforementioned VS440FX BIOS check */
                 return;
             val &= 0x0f;
             break;
@@ -1080,6 +1080,20 @@ const device_t cs4235_onboard_device = {
     .internal_name = "cs4235_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = CRYSTAL_CS4235 | CRYSTAL_NOEEPROM,
+    .init          = cs423x_init,
+    .close         = cs423x_close,
+    .reset         = cs423x_reset,
+    .available     = cs423x_available,
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t cs4236_onboard_device = {
+    .name          = "Crystal CS4236 (On-Board)",
+    .internal_name = "cs4236_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = CRYSTAL_CS4236 | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
