@@ -90,13 +90,13 @@ static const uint8_t slam_init_key[32] = { 0x96, 0x35, 0x9A, 0xCD, 0xE6, 0xF3, 0
                                            0x5E, 0xAF, 0x57, 0x2B, 0x15, 0x8A, 0xC5, 0xE2,
                                            0xF1, 0xF8, 0x7C, 0x3E, 0x9F, 0x4F, 0x27, 0x13,
                                            0x09, 0x84, 0x42, 0xA1, 0xD0, 0x68, 0x34, 0x1A };
-static const uint8_t cs4236b_default[] = {
+static const uint8_t cs4236_default[] = {
     // clang-format off
     /* Chip configuration */
     0x00, 0x03, /* CD-ROM and modem decode */
     0x80, /* misc. config */
     0x80, /* global config */
-    0x0b, /* chip ID */
+    0x0b, /* [code base byte (CS4236B+)] / reserved (CS4236) */
     0x20, 0x04, 0x08, 0x10, 0x80, 0x00, 0x00, /* reserved */
     0x00, /* external decode length */
     0x48, /* reserved */
@@ -104,7 +104,7 @@ static const uint8_t cs4236b_default[] = {
     0x10, 0x03, /* DMA routing */
 
     /* Default PnP data */
-    0x0e, 0x63, 0x42, 0x35, 0xff, 0xff, 0xff, 0xff, 0x00 /* hinted by documentation to be just the header */
+    0x0e, 0x63, 0x42, 0x36, 0xff, 0xff, 0xff, 0xff, 0x00 /* hinted by documentation to be just the header */
     // clang-format on
 };
 
@@ -801,6 +801,47 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 }
 
 static void
+cs423x_load_defaults(cs423x_t *dev, uint8_t *dest)
+{
+    switch (dev->type) {
+        case CRYSTAL_CS4236:
+        case CRYSTAL_CS4236B:
+        case CRYSTAL_CS4237B:
+        case CRYSTAL_CS4238B:
+        case CRYSTAL_CS4235:
+        case CRYSTAL_CS4239:
+            memcpy(dest, cs4236_default, sizeof(cs4236_default));
+            dev->pnp_size = 9; /* header-only PnP ROM size */
+
+            switch (dev->type) {
+                case CRYSTAL_CS4236:
+                    dest[4] = 0x43; /* code base byte */
+                    break;
+
+                case CRYSTAL_CS4236B:
+                    dest[22] = 0x35; /* default PnP ID */
+                    break;
+
+                case CRYSTAL_CS4237B:
+                    dest[22] = 0x37; /* default PnP ID */
+                    break;
+
+                case CRYSTAL_CS4238B:
+                    dest[22] = 0x38; /* default PnP ID */
+                    break;
+
+                case CRYSTAL_CS4235:
+                case CRYSTAL_CS4239:
+                    dest[4]  = 0x05; /* code base byte */
+                    dest[12] = 0x08; /* external decode length */
+                    dest[22] = 0x36; /* default PnP ID - explicitly stated to be the CS4236 non-B one */
+                    break;
+            }
+            break;
+    }
+}
+
+static void
 cs423x_reset(void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
@@ -809,8 +850,7 @@ cs423x_reset(void *priv)
     memset(dev->ram_data, 0, sizeof(dev->ram_data));
 
     /* Load default configuration data to RAM. */
-    memcpy(&dev->ram_data[0x4000], cs4236b_default, sizeof(cs4236b_default));
-    dev->pnp_size = 9;
+    cs423x_load_defaults(dev, &dev->ram_data[0x4000]);
 
     if (dev->eeprom) {
         /* Load EEPROM data to RAM if the magic bytes are present. */
@@ -858,21 +898,22 @@ cs423x_init(const device_t *info)
     dev->type = info->local & 0xff;
     cs423x_log("CS423x: init(%02X)\n", dev->type);
     switch (dev->type) {
+        case CRYSTAL_CS4236:
         case CRYSTAL_CS4236B:
         case CRYSTAL_CS4237B:
         case CRYSTAL_CS4238B:
         case CRYSTAL_CS4235:
         case CRYSTAL_CS4239:
             /* Same WSS codec and EEPROM structure. */
-            dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : AD1848_TYPE_CS4236B;
+            dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : ((dev->type >= CRYSTAL_CS4236B) ? AD1848_TYPE_CS4236B : AD1848_TYPE_CS4236);
             dev->pnp_offset  = 0x4013;
 
-            /* Different Chip Version and ID registers, which shouldn't be reset by ad1848_init. */
+            /* Different Chip Version and ID registers (N/A on CS4236), which shouldn't be reset by ad1848_init. */
             dev->ad1848.xregs[25] = dev->type;
 
             if (!(info->local & CRYSTAL_NOEEPROM)) {
-                /* Copy default configuration data. */
-                memcpy(&dev->eeprom_data[4], cs4236b_default, sizeof(cs4236b_default));
+                /* Start a new EEPROM with the default configuration data. */
+                cs423x_load_defaults(dev, &dev->eeprom_data[4]);
 
                 /* Load PnP resource data ROM. */
                 FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
@@ -883,6 +924,8 @@ cs423x_init(const device_t *info)
                        with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
                     dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
                     fclose(fp);
+                } else {
+                    dev->pnp_size = 0;
                 }
 
                 /* Populate EEPROM header if the PnP ROM was loaded. */
@@ -895,14 +938,12 @@ cs423x_init(const device_t *info)
 
                 /* Patch PnP ROM and set EEPROM file name. */
                 switch (dev->type) {
-                    case CRYSTAL_CS4235:
+                    case CRYSTAL_CS4236:
                         if (dev->pnp_size) {
-                            dev->eeprom_data[8]  = 0x05;
-                            dev->eeprom_data[16] = 0x08;
-                            dev->eeprom_data[26] = 0x25;
-                            dev->eeprom_data[44] = '5';
+                            dev->eeprom_data[26] = 0x36;
+                            dev->eeprom_data[45] = ' ';
                         }
-                        dev->nvr_path        = "cs4235.nvr";
+                        dev->nvr_path = "cs4236.nvr";
                         break;
 
                     case CRYSTAL_CS4236B:
@@ -914,7 +955,7 @@ cs423x_init(const device_t *info)
                             dev->eeprom_data[26] = 0x37;
                             dev->eeprom_data[44] = '7';
                         }
-                        dev->nvr_path        = "cs4237b.nvr";
+                        dev->nvr_path = "cs4237b.nvr";
                         break;
 
                     case CRYSTAL_CS4238B:
@@ -922,7 +963,25 @@ cs423x_init(const device_t *info)
                             dev->eeprom_data[26] = 0x38;
                             dev->eeprom_data[44] = '8';
                         }
-                        dev->nvr_path        = "cs4238b.nvr";
+                        dev->nvr_path = "cs4238b.nvr";
+                        break;
+
+                    case CRYSTAL_CS4235:
+                        if (dev->pnp_size) {
+                            dev->eeprom_data[26] = 0x25;
+                            dev->eeprom_data[44] = '5';
+                            dev->eeprom_data[45] = ' ';
+                        }
+                        dev->nvr_path = "cs4235.nvr";
+                        break;
+
+                    case CRYSTAL_CS4239:
+                        if (dev->pnp_size) {
+                            dev->eeprom_data[26] = 0x29;
+                            dev->eeprom_data[44] = '9';
+                            dev->eeprom_data[45] = ' ';
+                        }
+                        dev->nvr_path = "cs4239.nvr";
                         break;
 
                     default:
@@ -935,7 +994,7 @@ cs423x_init(const device_t *info)
 
             /* Initialize game port. The game port on all B chips only
                responds to 6 I/O ports; the remaining 2 are reserved. */
-            dev->gameport = gameport_add((dev->type == CRYSTAL_CS4235) ? &gameport_pnp_device : &gameport_pnp_6io_device);
+            dev->gameport = gameport_add((dev->ad1848_type == CRYSTAL_CS4236B) ? &gameport_pnp_6io_device : &gameport_pnp_device);
 
             break;
 
