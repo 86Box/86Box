@@ -32,9 +32,9 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_eeprom_nmc93cxx.h>
-#include <86box/bswap.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 #define ROM_PATH_DEC21140            "roms/network/dec21140/BIOS13502.BIN"
 
@@ -1700,7 +1700,7 @@ const device_t dec_tulip_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = tulip_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dec_tulip_21143_config
@@ -1714,7 +1714,7 @@ const device_t dec_tulip_21140_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = tulip_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dec_tulip_21140_config
@@ -1728,7 +1728,7 @@ const device_t dec_tulip_21140_vpc_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = tulip_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dec_tulip_21140_config
@@ -1742,7 +1742,7 @@ const device_t dec_tulip_21040_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = tulip_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dec_tulip_21143_config

@@ -460,7 +460,7 @@ sf_FTST(uint32_t fetchdat)
 }
 
 static int
-sf_FXAM(uint32_t fetchdat)
+sf_FXAM(UNUSED(uint32_t fetchdat))
 {
     floatx80            reg;
     int                 sign;

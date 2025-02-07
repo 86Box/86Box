@@ -386,7 +386,7 @@ ide_atapi_get_period(uint8_t channel)
 }
 
 static void
-ide_irq_update(ide_board_t *dev, int log)
+ide_irq_update(ide_board_t *dev, UNUSED(int log))
 {
     ide_t *ide;
     uint8_t set;
@@ -486,7 +486,7 @@ ide_get_max(const ide_t *ide, const int type)
     int             ret;
 
     if (ide->type == IDE_ATAPI)
-        ret = ide->get_max(!IDE_ATAPI_IS_EARLY && ata_4, type);
+        ret = ide->get_max(ide, !IDE_ATAPI_IS_EARLY && ata_4, type);
     else
         ret = max[ata_4][type];
 
@@ -501,7 +501,7 @@ ide_get_timings(const ide_t *ide, const int type)
     int             ret;
 
     if (ide->type == IDE_ATAPI)
-        ret = ide->get_timings(!IDE_ATAPI_IS_EARLY && ata_4, type);
+        ret = ide->get_timings(ide, !IDE_ATAPI_IS_EARLY && ata_4, type);
     else
         ret = timings[ata_4][type];
 
@@ -643,7 +643,7 @@ ide_identify(ide_t *ide)
     memset(ide->buffer, 0, 512);
 
     if (ide->type == IDE_ATAPI)
-        ide->identify(ide, !IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 && (bm != NULL));
+        ide->identify((const ide_t *) ide, !IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 && (bm != NULL));
     else if (ide->type == IDE_HDD)
         ide_hd_identify(ide);
     else {
@@ -973,7 +973,7 @@ ide_atapi_attach(ide_t *ide)
     ide->type = IDE_ATAPI;
     ide_allocate_buffer(ide);
     ide_set_signature(ide);
-    ide->mdma_mode = (1 << ide->get_max(!IDE_ATAPI_IS_EARLY &&
+    ide->mdma_mode = (1 << ide->get_max((const ide_t *) ide, !IDE_ATAPI_IS_EARLY &&
                       !ide_boards[ide->board]->force_ata3 && (bm != NULL), TYPE_PIO));
     ide->tf->error = 1;
     ide->cfg_spt = ide->cfg_hpc = 0;
@@ -1655,7 +1655,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->sc->callback = 200.0 * IDE_TIME;
 
                     if (ide->type == IDE_HDD) {
-                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                         uint32_t sec_count;
                         double   wait_time;
                         if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
@@ -1697,7 +1697,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     ide->blockcount = 0;
                     /* Turn on the activity indicator *here* so that it gets turned on
                        less times. */
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                     fallthrough;
 
                 case WIN_WRITE:
@@ -1885,7 +1885,7 @@ ide_read_data(ide_t *ide)
                         ide_set_callback(ide, seek_us + xfer_us);
                     }
                 } else
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
             }
         }
     }
@@ -1894,7 +1894,7 @@ ide_read_data(ide_t *ide)
 }
 
 static uint8_t
-ide_status(ide_t *ide, ide_t *ide_other, int ch)
+ide_status(ide_t *ide, UNUSED(ide_t *ide_other), UNUSED(int ch))
 {
     uint8_t ret;
 
@@ -2238,7 +2238,7 @@ ide_callback(void *priv)
 
                 ide_irq_raise(ide);
 
-                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
             }
             break;
 
@@ -2277,7 +2277,7 @@ ide_callback(void *priv)
                         ide->tf->atastat = DRDY_STAT | DSC_STAT;
 
                         ide_irq_raise(ide);
-                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                     } else {
                         /* Bus master DMAS error, abort the command. */
                         ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
@@ -2346,10 +2346,10 @@ ide_callback(void *priv)
                     ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
                     ide->tf->pos     = 0;
                     ide_next_sector(ide);
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2391,7 +2391,7 @@ ide_callback(void *priv)
                             err = UNC_ERR;
 
                         ide_irq_raise(ide);
-                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                     } else {
                         /* Bus master DMA error, abort the command. */
                         ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
@@ -2429,7 +2429,7 @@ ide_callback(void *priv)
                     ide_next_sector(ide);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
+                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2446,7 +2446,7 @@ ide_callback(void *priv)
                 ide->tf->pos     = 0;
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
-                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
             }
             break;
 
@@ -2463,7 +2463,7 @@ ide_callback(void *priv)
                     err = UNC_ERR;
                 ide_irq_raise(ide);
 
-                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
+                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
             }
             break;
 
@@ -2759,7 +2759,7 @@ ide_board_setup(const int board)
 
     c = 0;
     for (d = 0; d < HDD_NUM; d++) {
-        const int is_ide   = (hdd[d].bus == HDD_BUS_IDE);
+        const int is_ide   = (hdd[d].bus_type == HDD_BUS_IDE);
         const int ch       = hdd[d].ide_channel;
 
         const int valid_ch = ((ch >= min_ch) && (ch <= max_ch));
@@ -3207,7 +3207,7 @@ mcide_mca_reset(void *priv)
 }
 
 static void
-mcide_reset(void *priv)
+mcide_reset(UNUSED(void *priv))
 {
     for (uint8_t i = 0; i < 2; i++) {
         if (ide_boards[i] != NULL)
@@ -3269,7 +3269,7 @@ const device_t ide_isa_device = {
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3283,7 +3283,7 @@ const device_t ide_isa_2ch_device = {
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3297,7 +3297,7 @@ const device_t ide_vlb_device = {
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3311,7 +3311,7 @@ const device_t ide_vlb_2ch_device = {
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3325,7 +3325,7 @@ const device_t ide_pci_device = {
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3339,7 +3339,7 @@ const device_t ide_pci_2ch_device = {
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3353,7 +3353,7 @@ const device_t mcide_device = {
     .init          = mcide_init,
     .close         = mcide_close,
     .reset         = mcide_reset,
-    { .available = mcide_available },
+    .available     = mcide_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3422,7 +3422,7 @@ const device_t ide_ter_device = {
     .init          = ide_ter_init,
     .close         = ide_ter_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ide_ter_config
@@ -3436,7 +3436,7 @@ const device_t ide_ter_pnp_device = {
     .init          = ide_ter_init,
     .close         = ide_ter_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -3450,7 +3450,7 @@ const device_t ide_qua_device = {
     .init          = ide_qua_init,
     .close         = ide_qua_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ide_qua_config
@@ -3464,7 +3464,7 @@ const device_t ide_qua_pnp_device = {
     .init          = ide_qua_init,
     .close         = ide_qua_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

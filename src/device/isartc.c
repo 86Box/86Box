@@ -520,8 +520,7 @@ isartc_init(const device_t *info)
     is_at           = is_at || !strcmp(machine_get_internal_name(), "xi8088");
 
     /* Create a device instance. */
-    dev = (rtcdev_t *) malloc(sizeof(rtcdev_t));
-    memset(dev, 0x00, sizeof(rtcdev_t));
+    dev = (rtcdev_t *) calloc(1, sizeof(rtcdev_t));
     dev->name     = info->name;
     dev->board    = info->local;
     dev->irq      = -1;

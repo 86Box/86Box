@@ -35,6 +35,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_unused.h>
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -815,7 +816,7 @@ pop(void)
 }
 
 static void
-access(int num, int bits)
+access(int num, UNUSED(int bits))
 {
     switch (num) {
         case 0:
@@ -1419,7 +1420,7 @@ set_pzs(int bits)
 }
 
 static void
-set_co_mul(int bits, int carry)
+set_co_mul(UNUSED(int bits), int carry)
 {
     set_cf(carry);
     set_of(carry);

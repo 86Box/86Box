@@ -157,8 +157,7 @@ midi_out_device_init(void)
 void
 midi_out_init(midi_device_t *device)
 {
-    midi_out = (midi_t *) malloc(sizeof(midi_t));
-    memset(midi_out, 0, sizeof(midi_t));
+    midi_out = (midi_t *) calloc(1, sizeof(midi_t));
 
     midi_out->m_out_device = device;
 }
@@ -166,8 +165,7 @@ midi_out_init(midi_device_t *device)
 void
 midi_in_init(midi_device_t *device, midi_t **mididev)
 {
-    *mididev = (midi_t *) malloc(sizeof(midi_t));
-    memset(*mididev, 0, sizeof(midi_t));
+    *mididev = (midi_t *) calloc(1, sizeof(midi_t));
 
     (*mididev)->m_in_device = device;
 }
@@ -394,8 +392,7 @@ midi_in_handler(int set, void (*msg)(void *priv, uint8_t *msg, uint32_t len), in
         if ((mih_first != NULL) && (mih_last == NULL))
             fatal("First MIDI IN handler present with no last MIDI IN handler\n");
 
-        temp = (midi_in_handler_t *) malloc(sizeof(midi_in_handler_t));
-        memset(temp, 0, sizeof(midi_in_handler_t));
+        temp = (midi_in_handler_t *) calloc(1, sizeof(midi_in_handler_t));
         temp->msg   = msg;
         temp->sysex = sysex;
         temp->priv  = priv;

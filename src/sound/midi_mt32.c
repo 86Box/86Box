@@ -298,8 +298,7 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 
     al_set_midi(samplerate, buf_size);
 
-    dev = malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    dev = calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = mt32_msg;
     dev->play_sysex = mt32_sysex;

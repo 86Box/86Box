@@ -925,8 +925,7 @@ aha_setnvr(x54x_t *dev)
         return;
 
     /* Allocate and initialize the EEPROM. */
-    dev->nvr = (uint8_t *) malloc(NVR_SIZE);
-    memset(dev->nvr, 0x00, NVR_SIZE);
+    dev->nvr = (uint8_t *) calloc(1, NVR_SIZE);
 
     fp = nvr_fopen(dev->nvr_path, "rb");
     if (fp) {
@@ -1447,7 +1446,7 @@ const device_t aha154xa_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xb_config
@@ -1461,7 +1460,7 @@ const device_t aha154xb_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xb_config
@@ -1475,7 +1474,7 @@ const device_t aha154xc_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154x_config
@@ -1489,7 +1488,7 @@ const device_t aha154xcf_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xcf_config
@@ -1503,7 +1502,7 @@ const device_t aha154xcp_device = {
     .init          = aha_init,
     .close         = aha1542cp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xcp_config
@@ -1517,7 +1516,7 @@ const device_t aha1640_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

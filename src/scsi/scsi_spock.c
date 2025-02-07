@@ -1162,8 +1162,7 @@ spock_mca_reset(void *priv)
 static void *
 spock_init(const device_t *info)
 {
-    spock_t *scsi = malloc(sizeof(spock_t));
-    memset(scsi, 0x00, sizeof(spock_t));
+    spock_t *scsi = calloc(1, sizeof(spock_t));
 
     scsi->bus = scsi_get_bus();
 
@@ -1257,7 +1256,7 @@ const device_t spock_device = {
     .init          = spock_init,
     .close         = spock_close,
     .reset         = NULL,
-    { .available = spock_available },
+    .available     = spock_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = spock_rom_config
@@ -1271,7 +1270,7 @@ const device_t tribble_device = {
     .init          = spock_init,
     .close         = spock_close,
     .reset         = NULL,
-    { .available = spock_available },
+    .available     = spock_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = spock_rom_config

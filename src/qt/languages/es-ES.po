@@ -687,8 +687,11 @@ msgstr "La máquina \"%hs\" no está disponible debido a ROMs faltantes en el di
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "La tarjeta de vídeo \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una tarjeta de vídeo disponible."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La tarjeta de vídeo 2 \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una tarjeta de vídeo disponible."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "La tarjeta de vídeo 2 \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Deshabilitanto la segunda tarjeta de vídeo."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "El dispositivo \"%hs\" no está disponible debido a ROMs faltantes. Ignorando el dispositivo."
 
 msgid "Machine"
 msgstr "Máquina"
@@ -2119,3 +2122,9 @@ msgstr "Clon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Fabricante"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Expansión de Memoria Generica PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Expansión de Memoria Generica PC/AT"

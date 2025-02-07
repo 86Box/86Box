@@ -193,8 +193,7 @@ pssj_get_buffer(int32_t *buffer, int len, void *priv)
 void *
 pssj_init(UNUSED(const device_t *info))
 {
-    pssj_t *pssj = malloc(sizeof(pssj_t));
-    memset(pssj, 0, sizeof(pssj_t));
+    pssj_t *pssj = calloc(1, sizeof(pssj_t));
 
     sn76489_init(&pssj->sn76489, 0x00c0, 0x0004, PSSJ, 3579545);
 
@@ -208,8 +207,7 @@ pssj_init(UNUSED(const device_t *info))
 void *
 pssj_1e0_init(UNUSED(const device_t *info))
 {
-    pssj_t *pssj = malloc(sizeof(pssj_t));
-    memset(pssj, 0, sizeof(pssj_t));
+    pssj_t *pssj = calloc(1, sizeof(pssj_t));
 
     sn76489_init(&pssj->sn76489, 0x01e0, 0x0004, PSSJ, 3579545);
 
@@ -223,8 +221,7 @@ pssj_1e0_init(UNUSED(const device_t *info))
 void *
 pssj_isa_init(UNUSED(const device_t *info))
 {
-    pssj_t *pssj = malloc(sizeof(pssj_t));
-    memset(pssj, 0, sizeof(pssj_t));
+    pssj_t *pssj = calloc(1, sizeof(pssj_t));
 
     uint16_t addr = device_get_config_hex16("base");
 

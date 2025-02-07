@@ -614,8 +614,7 @@ bm_init(const device_t *info)
     mouse_t *dev;
     int      hz;
 
-    dev = (mouse_t *) malloc(sizeof(mouse_t));
-    memset(dev, 0x00, sizeof(mouse_t));
+    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
 
     if ((info->local & ~MOUSE_TYPE_ONBOARD) == MOUSE_TYPE_INPORT)
         dev->flags = FLAG_INPORT;
@@ -812,7 +811,7 @@ const device_t mouse_logibus_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    { .poll = bm_poll },
+    .poll          = bm_poll,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = lt_config
@@ -826,7 +825,7 @@ const device_t mouse_logibus_onboard_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    { .poll = bm_poll },
+    .poll          = bm_poll,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -840,7 +839,7 @@ const device_t mouse_msinport_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    { .poll = bm_poll },
+    .poll          = bm_poll,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ms_config

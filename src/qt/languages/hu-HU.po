@@ -687,8 +687,11 @@ msgstr "A számítógép \"%hs\" nem elérhető a \"roms/machines\" mappából h
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "A videokártya \"%hs\" nem elérhető a \"roms/video\" mappából hiányzó ROM-képek miatt. Ehelyett egy másik kártya kerül futtatásra."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "A videokártya 2 \"%hs\" nem elérhető a \"roms/video\" mappából hiányzó ROM-képek miatt. Ehelyett egy másik kártya kerül futtatásra."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "A videokártya 2 \"%hs\" nem elérhető a \"roms/video\" mappából hiányzó ROM-képek miatt. A második videokártya kerül letiltásra."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Az eszköz \"%hs\" nem elérhető a hiányzó ROM-képek miatt. Az eszköz figyelmen kívül marad."
 
 msgid "Machine"
 msgstr "Számítógép"
@@ -2120,3 +2123,9 @@ msgstr "IBM 8514/A klón (ISA)"
 
 msgid "Vendor"
 msgstr "Gyártó"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Általános PC/XT memóriabővítők"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Általános PC/AT memóriabővítők"

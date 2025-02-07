@@ -210,7 +210,7 @@ static void    tgui_ext_writel(uint32_t addr, uint32_t val, void *priv);
 
 /*Remap address for chain-4/doubleword style layout*/
 static __inline uint32_t
-dword_remap(svga_t *svga, uint32_t in_addr)
+dword_remap(UNUSED(svga_t *svga), uint32_t in_addr)
 {
     return ((in_addr << 2) & 0x3fff0) | ((in_addr >> 14) & 0xc) | (in_addr & ~0x3fffc);
 }
@@ -3382,9 +3382,7 @@ static const device_config_t tgui9440_config[] = {
         },
         .default_int = 2
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t tgui96xx_config[] = {
@@ -3411,9 +3409,7 @@ static const device_config_t tgui96xx_config[] = {
         },
         .default_int = 4
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -3425,7 +3421,7 @@ const device_t tgui9400cxi_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9400cxi_available },
+    .available     = tgui9400cxi_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3439,7 +3435,7 @@ const device_t tgui9440_vlb_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_vlb_available },
+    .available     = tgui9440_vlb_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3453,7 +3449,7 @@ const device_t tgui9440_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_pci_available },
+    .available     = tgui9440_pci_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3467,7 +3463,7 @@ const device_t tgui9440_onboard_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3481,7 +3477,7 @@ const device_t tgui9660_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui96xx_available },
+    .available     = tgui96xx_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config
@@ -3495,7 +3491,7 @@ const device_t tgui9660_onboard_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config
@@ -3509,7 +3505,7 @@ const device_t tgui9680_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui96xx_available },
+    .available     = tgui96xx_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config

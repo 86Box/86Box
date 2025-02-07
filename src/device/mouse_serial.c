@@ -845,8 +845,7 @@ sermouse_init(const device_t *info)
     void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
     void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
 
-    dev = (mouse_t *) malloc(sizeof(mouse_t));
-    memset(dev, 0x00, sizeof(mouse_t));
+    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     dev->name = info->name;
     dev->but  = device_get_config_int("buttons");
     dev->rev  = device_get_config_int("revision");
@@ -1061,7 +1060,7 @@ const device_t mouse_mssystems_device = {
     .init          = sermouse_init,
     .close         = sermouse_close,
     .reset         = NULL,
-    { .poll = sermouse_poll },
+    .poll          = sermouse_poll,
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = msssermouse_config
@@ -1075,7 +1074,7 @@ const device_t mouse_msserial_device = {
     .init          = sermouse_init,
     .close         = sermouse_close,
     .reset         = NULL,
-    { .poll = sermouse_poll },
+    .poll          = sermouse_poll,
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = mssermouse_config
@@ -1089,7 +1088,7 @@ const device_t mouse_ltserial_device = {
     .init          = sermouse_init,
     .close         = sermouse_close,
     .reset         = NULL,
-    { .poll = sermouse_poll },
+    .poll          = sermouse_poll,
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = ltsermouse_config

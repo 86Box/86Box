@@ -682,9 +682,7 @@ const device_config_t nga_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -696,7 +694,7 @@ const device_t nga_device = {
     .init          = nga_init,
     .close         = nga_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = nga_speed_changed,
     .force_redraw  = NULL,
     .config        = nga_config

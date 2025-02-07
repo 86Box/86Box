@@ -357,8 +357,7 @@ smbus_piix4_setclock(smbus_piix4_t *dev, int clock)
 static void *
 smbus_piix4_init(const device_t *info)
 {
-    smbus_piix4_t *dev = (smbus_piix4_t *) malloc(sizeof(smbus_piix4_t));
-    memset(dev, 0, sizeof(smbus_piix4_t));
+    smbus_piix4_t *dev = (smbus_piix4_t *) calloc(1, sizeof(smbus_piix4_t));
 
     dev->local = info->local;
     /* We save the I2C bus handle on dev but use i2c_smbus for all operations because
@@ -392,7 +391,7 @@ const device_t piix4_smbus_device = {
     .init          = smbus_piix4_init,
     .close         = smbus_piix4_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -406,7 +405,7 @@ const device_t via_smbus_device = {
     .init          = smbus_piix4_init,
     .close         = smbus_piix4_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

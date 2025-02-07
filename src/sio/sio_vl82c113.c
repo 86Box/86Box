@@ -24,6 +24,7 @@
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 typedef struct vl82c113_t {
     uint8_t       index;
@@ -128,7 +129,7 @@ vl82c113_close(void *priv)
 }
 
 static void *
-vl82c113_init(const device_t *info)
+vl82c113_init(UNUSED(const device_t *info))
 {
     vl82c113_t *dev  = (vl82c113_t *) calloc(1, sizeof(vl82c113_t));
 
@@ -155,7 +156,7 @@ const device_t vl82c113_device = {
     .init          = vl82c113_init,
     .close         = vl82c113_close,
     .reset         = vl82c113_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -107,8 +107,7 @@ wss_get_music_buffer(int32_t *buffer, int len, void *priv)
 void *
 wss_init(UNUSED(const device_t *info))
 {
-    wss_t *wss = malloc(sizeof(wss_t));
-    memset(wss, 0, sizeof(wss_t));
+    wss_t *wss = calloc(1, sizeof(wss_t));
 
     uint16_t addr    = device_get_config_hex16("base");
     wss->opl_enabled = device_get_config_int("opl");
@@ -209,8 +208,7 @@ ncr_audio_mca_feedb(void *priv)
 void *
 ncr_audio_init(UNUSED(const device_t *info))
 {
-    wss_t *wss = malloc(sizeof(wss_t));
-    memset(wss, 0, sizeof(wss_t));
+    wss_t *wss = calloc(1, sizeof(wss_t));
 
     fm_driver_get(FM_YMF262, &wss->opl);
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);

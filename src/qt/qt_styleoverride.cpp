@@ -19,6 +19,13 @@
 #include <QComboBox>
 #include <QAbstractItemView>
 
+#ifdef Q_OS_WINDOWS
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#endif
+
 int
 StyleOverride::styleHint(
     StyleHint           hint,
@@ -48,6 +55,11 @@ StyleOverride::polish(QWidget *widget)
             widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+#ifdef Q_OS_WINDOWS
+        extern bool windows_is_light_theme();
+        BOOL DarkMode = !windows_is_light_theme();
+        DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
+#endif
     }
 
     if (qobject_cast<QComboBox *>(widget)) {

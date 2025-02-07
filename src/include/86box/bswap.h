@@ -133,12 +133,12 @@ bswap64s(uint64_t *s)
         return endian##_bswap(v, size);                            \
     }                                                              \
                                                                    \
-    static __inline void endian##size##_to_cpus(type *p)           \
+    static __inline void endian##size##_to_cpus(UNUSED(type *p))   \
     {                                                              \
         endian##_bswaps(p, size)                                   \
     }                                                              \
                                                                    \
-    static __inline void cpu_to_##endian##size##s(type *p)         \
+    static __inline void cpu_to_##endian##size##s(UNUSED(type *p)) \
     {                                                              \
         endian##_bswaps(p, size)                                   \
     }                                                              \

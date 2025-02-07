@@ -906,8 +906,7 @@ neat_init(UNUSED(const device_t *info))
     uint8_t j;
 
     /* Create an instance. */
-    dev = (neat_t *) malloc(sizeof(neat_t));
-    memset(dev, 0x00, sizeof(neat_t));
+    dev = (neat_t *) calloc(1, sizeof(neat_t));
 
     /* Get configured I/O address. */
     j              = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
@@ -1124,7 +1123,7 @@ const device_t neat_device = {
     .init          = neat_init,
     .close         = neat_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

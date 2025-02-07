@@ -31,6 +31,8 @@
 #include <QDialog>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QFile>
+#include <QTextStream>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -40,15 +42,6 @@ Q_IMPORT_PLUGIN(QICOPlugin)
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #    endif
-#endif
-
-#ifdef Q_OS_WINDOWS
-#    include "qt_rendererstack.hpp"
-#    include "qt_winrawinputfilter.hpp"
-#    include "qt_winmanagerfilter.hpp"
-#    include <86box/win.h>
-#    include <shobjidl.h>
-#    include <windows.h>
 #endif
 
 extern "C" {
@@ -63,6 +56,15 @@ extern "C" {
 #include <86box/gdbstub.h>
 #include <86box/version.h>
 }
+
+#ifdef Q_OS_WINDOWS
+#    include "qt_rendererstack.hpp"
+#    include "qt_winrawinputfilter.hpp"
+#    include "qt_winmanagerfilter.hpp"
+#    include <86box/win.h>
+#    include <shobjidl.h>
+#    include <windows.h>
+#endif
 
 #include <thread>
 #include <iostream>
@@ -339,6 +341,10 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
+#ifdef Q_OS_WINDOWS
+extern bool windows_is_light_theme();
+#endif
+
 int
 main(int argc, char *argv[])
 {
@@ -353,6 +359,23 @@ main(int argc, char *argv[])
 
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
+
+#ifdef Q_OS_WINDOWS
+    Q_INIT_RESOURCE(darkstyle);
+    QApplication::setAttribute(Qt::AA_NativeWindows);
+
+    if (!windows_is_light_theme()) {
+        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+        if (!f.exists())   {
+            printf("Unable to set stylesheet, file not found\n");
+        } else   {
+            f.open(QFile::ReadOnly | QFile::Text);
+            QTextStream ts(&f);
+            qApp->setStyleSheet(ts.readAll());
+        }
+    }
+#endif
 
     qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);

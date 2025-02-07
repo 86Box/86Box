@@ -410,7 +410,7 @@ uop_gen_reg_src1(uint32_t uop_type, ir_data_t *ir, int src_reg_a)
 }
 
 static inline void
-uop_gen_reg_src1_arg(uint32_t uop_type, ir_data_t *ir, int arg, int src_reg_a)
+uop_gen_reg_src1_arg(uint32_t uop_type, ir_data_t *ir, UNUSED(int arg), int src_reg_a)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
 

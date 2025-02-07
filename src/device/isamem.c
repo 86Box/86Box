@@ -27,16 +27,20 @@
  *          modern boards even have multiple 'copies' of those registers,
  *          which can be switched very fast, to allow for multitasking.
  *
- * TODO:    The EV159 is supposed to support 16b EMS transfers, but the
+ * TODO:    The EV-159 is supposed to support 16b EMS transfers, but the
  *          EMM.sys driver for it doesn't seem to want to do that..
  *
+ *          EV-125 (It supports backfill)
+ *              https://theretroweb.com/expansioncard/documentation/50250.pdf
  *
+ *          EV-158 (RAM 10000)
+ *              http://web.archive.org/web/19961104093221/http://www.everex.com/supp/techlib/memmem.html
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek <jriwanek@gmail.com>
  *
  *          Copyright 2018      Fred N. van Kempen.
- *          Copyright 2022-2024 Jasmine Iwanek.
+ *          Copyright 2022-2025 Jasmine Iwanek.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -102,7 +106,7 @@
 #define ISAMEM_BRXT_CARD       13
 #define ISAMEM_BRAT_CARD       14
 #define ISAMEM_EV165A_CARD     15
-#define ISAMEM_LOTECH_CARD     16
+#define ISAMEM_LOTECH_EMS_CARD 16
 
 #define ISAMEM_DEBUG           0
 
@@ -304,16 +308,13 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
 static uint8_t
 ems_in(uint16_t port, void *priv)
 {
-    const emsreg_t *dev           = (emsreg_t *) priv;
-    uint8_t         ret           = 0xff;
-#ifdef ENABLE_ISAMEM_LOG
-    int             vpage;
-#endif
-
+    const emsreg_t *dev   = (emsreg_t *) priv;
+    uint8_t         ret   = 0xff;
     /* Get the viewport page number. */
 #ifdef ENABLE_ISAMEM_LOG
-    vpage = (port / EMS_PGSIZE);
+    int             vpage = (port / EMS_PGSIZE);
 #endif
+
     port &= (EMS_PGSIZE - 1);
 
     switch (port & 0x0001) {
@@ -339,13 +340,11 @@ ems_in(uint16_t port, void *priv)
 static uint8_t
 consecutive_ems_in(uint16_t port, void *priv)
 {
-    const memdev_t *dev = (memdev_t *) priv;
-    uint8_t         ret = 0xff;
-    int             vpage;
-
+    const memdev_t *dev   = (memdev_t *) priv;
+    uint8_t         ret   = 0xff;
     /* Get the viewport page number. */
-    vpage = (port - dev->base_addr[0]);
- 
+    int             vpage = (port - dev->base_addr[0]);
+
     ret = dev->ems[vpage].page;
     if (dev->ems[vpage].enabled)
         ret |= 0x80;
@@ -359,11 +358,10 @@ consecutive_ems_in(uint16_t port, void *priv)
 static void
 ems_out(uint16_t port, uint8_t val, void *priv)
 {
-    emsreg_t *dev           = (emsreg_t *) priv;
-    int       vpage;
-
+    emsreg_t *dev   = (emsreg_t *) priv;
     /* Get the viewport page number. */
-    vpage = (port / EMS_PGSIZE);
+    int       vpage = (port / EMS_PGSIZE);
+
     port &= (EMS_PGSIZE - 1);
 
     switch (port & 0x0001) {
@@ -433,11 +431,9 @@ ems_out(uint16_t port, uint8_t val, void *priv)
 static void
 consecutive_ems_out(uint16_t port, uint8_t val, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
-    int       vpage;
-
+    memdev_t *dev   = (memdev_t *) priv;
     /* Get the viewport page number. */
-    vpage = (port - dev->base_addr[0]);
+    int       vpage = (port - dev->base_addr[0]);
 
     isamem_log("ISAMEM: write(%04x, %02x) to page mapping registers! (page=%d)\n", port, val, vpage);
 
@@ -483,8 +479,7 @@ isamem_init(const device_t *info)
     uint8_t  *ptr;
 
     /* Find our device and create an instance. */
-    dev = (memdev_t *) malloc(sizeof(memdev_t));
-    memset(dev, 0x00, sizeof(memdev_t));
+    dev = (memdev_t *) calloc(1, sizeof(memdev_t));
     dev->name  = info->name;
     dev->board = info->local;
 
@@ -579,7 +574,7 @@ isamem_init(const device_t *info)
                 dev->flags     |= FLAG_FAST;
             break;
 
-        case ISAMEM_LOTECH_CARD: /* Lotech EMS */
+        case ISAMEM_LOTECH_EMS_CARD: /* Lotech EMS */
             /* The Lotech EMS cannot have more than 4096KB per board. */
             ems_max = EMS_LOTECH_MAXSIZE;
             fallthrough;
@@ -801,7 +796,7 @@ isamem_init(const device_t *info)
             mem_mapping_disable(&dev->ems[i].mapping);
 
             /* Set up an I/O port handler. */
-            if (dev->board != ISAMEM_LOTECH_CARD)
+            if (dev->board != ISAMEM_LOTECH_EMS_CARD)
                 io_sethandler(dev->base_addr[0] + (EMS_PGSIZE * i), 2,
                               ems_in, NULL, NULL, ems_out, NULL, NULL, &(dev->ems[i]));
 
@@ -832,7 +827,7 @@ isamem_init(const device_t *info)
             }
         }
 
-        if (dev->board == ISAMEM_LOTECH_CARD)
+        if (dev->board == ISAMEM_LOTECH_EMS_CARD)
             io_sethandler(dev->base_addr[0], 4,
                           consecutive_ems_in, NULL, NULL, consecutive_ems_out, NULL, NULL, dev);
     }
@@ -895,7 +890,7 @@ static const device_t ibmxt_32k_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ibmxt_32k_config
@@ -943,7 +938,7 @@ static const device_t ibmxt_64k_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ibmxt_64k_config
@@ -991,7 +986,7 @@ static const device_t ibmxt_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ibmxt_config
@@ -1031,6 +1026,7 @@ static const device_config_t genericxt_config[] = {
   // clang-format on
 };
 
+// This also nicely accounts for the Everex EV-138
 static const device_t genericxt_device = {
     .name          = "Generic PC/XT Memory Expansion",
     .internal_name = "genericxt",
@@ -1039,7 +1035,7 @@ static const device_t genericxt_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = genericxt_config
@@ -1087,7 +1083,7 @@ static const device_t msramcard_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = msramcard_config
@@ -1135,7 +1131,7 @@ static const device_t mssystemcard_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mssystemcard_config
@@ -1149,7 +1145,7 @@ static const device_t ibmat_128k_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1197,7 +1193,7 @@ static const device_t ibmat_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ibmat_config
@@ -1237,6 +1233,7 @@ static const device_config_t genericat_config[] = {
   // clang-format on
 };
 
+// This also nicely accounts for the Everex EV-135
 static const device_t genericat_device = {
     .name          = "Generic PC/AT Memory Expansion",
     .internal_name = "genericat",
@@ -1245,7 +1242,7 @@ static const device_t genericat_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = genericat_config
@@ -1293,7 +1290,7 @@ static const device_t p5pak_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = p5pak_config
@@ -1341,7 +1338,7 @@ static const device_t a6pak_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = a6pak_config
@@ -1392,7 +1389,7 @@ static const device_t ems5150_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ems5150_config
@@ -1534,7 +1531,7 @@ static const device_t ev159_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ev159_config
@@ -1629,7 +1626,7 @@ static const device_t ev165a_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ev165a_config
@@ -1693,7 +1690,7 @@ static const device_t brxt_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = brxt_config
@@ -1799,7 +1796,7 @@ static const device_t brat_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = brat_config
@@ -1857,15 +1854,15 @@ static const device_config_t lotech_config[] = {
 // clang-format on
 };
 
-static const device_t lotech_device = {
+static const device_t lotech_ems_device = {
     .name = "Lo-tech EMS Board",
     .internal_name = "lotechems",
     .flags = DEVICE_ISA,
-    .local = ISAMEM_LOTECH_CARD,
+    .local = ISAMEM_LOTECH_EMS_CARD,
     .init = isamem_init,
     .close = isamem_close,
     .reset = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = lotech_config
@@ -1934,7 +1931,7 @@ static const device_t rampage_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = rampage_config
@@ -2033,7 +2030,7 @@ static const device_t iab_device = {
     .init          = isamem_init,
     .close         = isamem_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = iab_config
@@ -2072,7 +2069,7 @@ static const struct {
 #ifdef USE_ISAMEM_IAB
     { &iab_device          },
 #endif /* USE_ISAMEM_IAB */
-    { &lotech_device       },
+    { &lotech_ems_device   },
     { NULL                 }
     // clang-format on
 };

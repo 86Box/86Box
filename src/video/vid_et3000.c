@@ -560,7 +560,7 @@ static const device_config_t et3000_config[] = {
             { .description = ""                           }
         }
     },
-    { .type = CONFIG_END }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -572,7 +572,7 @@ const device_t et3000_isa_device = {
     .init          = et3000_init,
     .close         = et3000_close,
     .reset         = NULL,
-    { .available = et3000_available },
+    .available     = et3000_available,
     .speed_changed = et3000_speed_changed,
     .force_redraw  = et3000_force_redraw,
     .config        = et3000_config

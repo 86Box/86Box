@@ -305,8 +305,7 @@ hasp_read_status(void *priv)
 static void *
 hasp_init(void *lpt, int type)
 {
-    hasp_t *dev = malloc(sizeof(hasp_t));
-    memset(dev, 0, sizeof(hasp_t));
+    hasp_t *dev = calloc(1, sizeof(hasp_t));
 
     hasp_log("HASP: init(%d)\n", type);
 

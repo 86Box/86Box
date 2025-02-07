@@ -19,42 +19,44 @@
 typedef struct scsi_disk_t {
     mode_sense_pages_t ms_pages_saved;
 
-    hard_disk_t *drv;
+    hard_disk_t *      drv;
 #ifdef EMU_IDE_H
-    ide_tf_t *   tf;
+    ide_tf_t *         tf;
 #else
-    void *       tf;
+    void *             tf;
 #endif
 
-    uint8_t *temp_buffer;
-    uint8_t  atapi_cdb[16];
-    uint8_t  current_cdb[16];
-    uint8_t  sense[256];
+    void *             log;
 
-    uint8_t id;
-    uint8_t cur_lun;
-    uint8_t pad0;
-    uint8_t pad1;
+    uint8_t *          temp_buffer;
+    uint8_t            atapi_cdb[16];
+    uint8_t            current_cdb[16];
+    uint8_t            sense[256];
 
-    uint16_t max_transfer_len;
-    uint16_t pad2;
+    uint8_t            id;
+    uint8_t            cur_lun;
+    uint8_t            pad0;
+    uint8_t            pad1;
 
-    int requested_blocks;
-    int packet_status;
-    int total_length;
-    int do_page_save;
-    int unit_attention;
-    int request_pos;
-    int pad6;
-    int pad7;
+    uint16_t           max_transfer_len;
+    uint16_t           pad2;
 
-    uint32_t sector_pos;
-    uint32_t sector_len;
-    uint32_t packet_len;
+    int                requested_blocks;
+    int                packet_status;
+    int                total_length;
+    int                do_page_save;
+    int                unit_attention;
+    int                request_pos;
+    int                pad6;
+    int                pad7;
 
-    double callback;
+    uint32_t           sector_pos;
+    uint32_t           sector_len;
+    uint32_t           packet_len;
 
-    uint8_t  (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
+    double             callback;
+
+    uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 } scsi_disk_t;
 
 extern scsi_disk_t *scsi_disk[HDD_NUM];

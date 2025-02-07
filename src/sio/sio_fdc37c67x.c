@@ -591,8 +591,7 @@ fdc37c67x_close(void *priv)
 static void *
 fdc37c67x_init(const device_t *info)
 {
-    fdc37c67x_t *dev = (fdc37c67x_t *) malloc(sizeof(fdc37c67x_t));
-    memset(dev, 0, sizeof(fdc37c67x_t));
+    fdc37c67x_t *dev = (fdc37c67x_t *) calloc(1, sizeof(fdc37c67x_t));
 
     dev->fdc = device_add(&fdc_at_smc_device);
 
@@ -625,7 +624,7 @@ const device_t fdc37c67x_device = {
     .init          = fdc37c67x_init,
     .close         = fdc37c67x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -1627,8 +1627,7 @@ st506_init(const device_t *info)
     int         i;
     int         c;
 
-    dev = (hdc_t *) malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = (hdc_t *) calloc(1, sizeof(hdc_t));
     dev->type = info->local & 255;
 
     /* Set defaults for the controller. */
@@ -1799,7 +1798,7 @@ st506_init(const device_t *info)
     st506_xt_log("ST506: looking for disks...\n");
 #endif
     for (c = 0, i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
+        if ((hdd[i].bus_type == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
             st506_xt_log("ST506: disk '%s' on channel %i\n",
                          hdd[i].fn, hdd[i].mfm_channel);
             loadhd(dev, hdd[i].mfm_channel, i, hdd[i].fn);
@@ -2258,7 +2257,7 @@ const device_t st506_xt_xebec_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = xebec_available },
+    .available     = xebec_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2272,7 +2271,7 @@ const device_t st506_xt_wdxt_gen_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wdxt_available },
+    .available     = wdxt_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2286,7 +2285,7 @@ const device_t st506_xt_dtc5150x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = dtc5150x_available },
+    .available     = dtc5150x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dtc_config
@@ -2300,7 +2299,7 @@ const device_t st506_xt_st11_m_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = st11_m_available },
+    .available     = st11_m_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = st11_config
@@ -2314,7 +2313,7 @@ const device_t st506_xt_st11_r_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = st11_r_available },
+    .available     = st11_r_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = st11_config
@@ -2328,7 +2327,7 @@ const device_t st506_xt_wd1002a_wx1_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1002a_wx1_available },
+    .available     = wd1002a_wx1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_config
@@ -2342,7 +2341,7 @@ const device_t st506_xt_wd1002a_wx1_nobios_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1002a_wx1_available },
+    .available     = wd1002a_wx1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_nobios_config
@@ -2356,7 +2355,7 @@ const device_t st506_xt_wd1002a_27x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1002a_27x_available },
+    .available     = wd1002a_27x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_rll_config
@@ -2370,7 +2369,7 @@ const device_t st506_xt_wd1004a_wx1_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1004a_wx1_available },
+    .available     = wd1004a_wx1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd1004a_config
@@ -2384,7 +2383,7 @@ const device_t st506_xt_wd1004_27x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1004_27x_available },
+    .available     = wd1004_27x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd1004_rll_config
@@ -2398,7 +2397,7 @@ const device_t st506_xt_wd1004a_27x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1004a_27x_available },
+    .available     = wd1004a_27x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_rll_config
@@ -2412,7 +2411,7 @@ const device_t st506_xt_victor_v86p_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = victor_v86p_available },
+    .available     = victor_v86p_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2426,7 +2425,7 @@ const device_t st506_xt_toshiba_t1200_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

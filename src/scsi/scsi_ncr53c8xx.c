@@ -2530,10 +2530,7 @@ ncr53c8xx_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static void *
 ncr53c8xx_init(const device_t *info)
 {
-    ncr53c8xx_t *dev;
-
-    dev = malloc(sizeof(ncr53c8xx_t));
-    memset(dev, 0x00, sizeof(ncr53c8xx_t));
+    ncr53c8xx_t *dev = calloc(1, sizeof(ncr53c8xx_t));
 
     dev->bus = scsi_get_bus();
 
@@ -2692,7 +2689,7 @@ const device_t ncr53c810_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2706,7 +2703,7 @@ const device_t ncr53c810_onboard_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2720,7 +2717,7 @@ const device_t ncr53c815_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     ncr53c8xx_pci_config
@@ -2734,7 +2731,7 @@ const device_t ncr53c820_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2748,7 +2745,7 @@ const device_t ncr53c825a_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ncr53c8xx_pci_config
@@ -2762,7 +2759,7 @@ const device_t ncr53c860_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ncr53c8xx_pci_config
@@ -2776,7 +2773,7 @@ const device_t ncr53c875_pci_device = {
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ncr53c8xx_pci_config

@@ -178,8 +178,7 @@ serial_passthrough_dev_init(const device_t *info)
 {
     serial_passthrough_t *dev;
 
-    dev = (serial_passthrough_t *) malloc(sizeof(serial_passthrough_t));
-    memset(dev, 0, sizeof(serial_passthrough_t));
+    dev = (serial_passthrough_t *) calloc(1, sizeof(serial_passthrough_t));
     dev->mode = device_get_config_int("mode");
 
     dev->port      = device_get_instance() - 1;
@@ -370,13 +369,13 @@ static const device_config_t serial_passthrough_config[] = {
 // clang-format on
 
 const device_t serial_passthrough_device = {
-    .name  = "Serial Passthrough Device",
-    .flags = 0,
-    .local = 0,
-    .init  = serial_passthrough_dev_init,
-    .close = serial_passthrough_dev_close,
-    .reset = NULL,
-    { .poll = NULL },
+    .name          = "Serial Passthrough Device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = serial_passthrough_dev_init,
+    .close         = serial_passthrough_dev_close,
+    .reset         = NULL,
+    .poll          = NULL,
     .speed_changed = serial_passthrough_speed_changed,
     .force_redraw  = NULL,
     .config        = serial_passthrough_config

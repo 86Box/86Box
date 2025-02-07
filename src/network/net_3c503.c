@@ -60,7 +60,6 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
-#include <86box/bswap.h>
 #include <86box/plat_unused.h>
 
 typedef struct threec503_t {
@@ -573,8 +572,7 @@ threec503_nic_init(UNUSED(const device_t *info))
     uint32_t     mac;
     threec503_t *dev;
 
-    dev = malloc(sizeof(threec503_t));
-    memset(dev, 0x00, sizeof(threec503_t));
+    dev = calloc(1, sizeof(threec503_t));
     dev->maclocal[0] = 0x02; /* 02:60:8C (3Com OID) */
     dev->maclocal[1] = 0x60;
     dev->maclocal[2] = 0x8C;
@@ -739,15 +737,15 @@ static const device_config_t threec503_config[] = {
 };
 
 const device_t threec503_device = {
-    .name = "3Com EtherLink II",
+    .name          = "3Com EtherLink II",
     .internal_name = "3c503",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = threec503_nic_init,
-    .close = threec503_nic_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = threec503_nic_init,
+    .close         = threec503_nic_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = threec503_config
+    .force_redraw  = NULL,
+    .config        = threec503_config
 };

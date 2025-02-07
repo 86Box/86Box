@@ -1066,8 +1066,7 @@ adgold_init(UNUSED(const device_t *info))
     FILE     *fp;
     int       c;
     double    out;
-    adgold_t *adgold = malloc(sizeof(adgold_t));
-    memset(adgold, 0, sizeof(adgold_t));
+    adgold_t *adgold = calloc(1, sizeof(adgold_t));
 
     adgold->dma              = device_get_config_int("dma");
     adgold->irq              = device_get_config_int("irq");

@@ -2645,8 +2645,7 @@ static void es137x_speed_changed(void *priv);
 static void *
 es1370_init(const device_t *info)
 {
-    es137x_t *dev = malloc(sizeof(es137x_t));
-    memset(dev, 0x00, sizeof(es137x_t));
+    es137x_t *dev = calloc(1, sizeof(es137x_t));
     dev->type = info->local;
 
     if (device_get_config_int("receive_input"))
@@ -2689,8 +2688,7 @@ es1370_init(const device_t *info)
 static void *
 es1371_init(const device_t *info)
 {
-    es137x_t *dev = malloc(sizeof(es137x_t));
-    memset(dev, 0x00, sizeof(es137x_t));
+    es137x_t *dev = calloc(1, sizeof(es137x_t));
     dev->type = info->local & 0xffffff00;
 
     if (device_get_config_int("receive_input"))

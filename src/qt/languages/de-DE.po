@@ -687,8 +687,11 @@ msgstr "Das System \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/m
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Die Videokarte \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Die Videokarte 2 \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Das Gerät \"%hs\" ist aufgrund von fehlenden ROMs nicht verfügbar. Es wird ignoriert."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Die Videokarte 2 \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird deaktiviert."
 
 msgid "Machine"
 msgstr "System"
@@ -2123,3 +2126,9 @@ msgstr "IBM 8514/A-Klon (ISA)"
 
 msgid "Vendor"
 msgstr "Hersteller"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generische PC/XT-Speichererweiterung"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generische PC/AT-Speichererweiterung"

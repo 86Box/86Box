@@ -73,8 +73,7 @@ zenith_scratchpad_init(UNUSED(const device_t *info))
 {
     zenith_t *dev;
 
-    dev = (zenith_t *) malloc(sizeof(zenith_t));
-    memset(dev, 0x00, sizeof(zenith_t));
+    dev = (zenith_t *) calloc(1, sizeof(zenith_t));
 
     dev->scratchpad_ram = malloc(0x4000);
 
@@ -103,7 +102,7 @@ static const device_t zenith_scratchpad_device = {
     .init          = zenith_scratchpad_init,
     .close         = zenith_scratchpad_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

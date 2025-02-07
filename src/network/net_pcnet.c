@@ -46,9 +46,9 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
-#include <86box/bswap.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 /* PCI info. */
 #define PCI_VENDID  0x1022 /* AMD */
@@ -2916,8 +2916,7 @@ pcnet_init(const device_t *info)
     int      c;
     uint16_t checksum;
 
-    dev = malloc(sizeof(nic_t));
-    memset(dev, 0x00, sizeof(nic_t));
+    dev = calloc(1, sizeof(nic_t));
     dev->name  = info->name;
     dev->board = info->local & 0xff;
 
@@ -3220,7 +3219,7 @@ const device_t pcnet_am79c960_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_isa_config
@@ -3234,7 +3233,7 @@ const device_t pcnet_am79c960_eb_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_isa_config
@@ -3248,7 +3247,7 @@ const device_t pcnet_am79c960_vlb_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_vlb_config
@@ -3262,7 +3261,7 @@ const device_t pcnet_am79c961_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
@@ -3276,7 +3275,7 @@ const device_t pcnet_am79c970a_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
@@ -3290,7 +3289,7 @@ const device_t pcnet_am79c973_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
@@ -3304,7 +3303,7 @@ const device_t pcnet_am79c973_onboard_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config

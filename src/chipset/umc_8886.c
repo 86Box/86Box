@@ -392,8 +392,7 @@ umc_8886_close(void *priv)
 static void *
 umc_8886_init(const device_t *info)
 {
-    umc_8886_t *dev = (umc_8886_t *) malloc(sizeof(umc_8886_t));
-    memset(dev, 0, sizeof(umc_8886_t));
+    umc_8886_t *dev = (umc_8886_t *) calloc(1, sizeof(umc_8886_t));
 
     /* Device 12: UMC 8886xx */
     pci_add_card(PCI_ADD_SOUTHBRIDGE, umc_8886_read, umc_8886_write, dev, &dev->pci_slot);
@@ -431,7 +430,7 @@ const device_t umc_8886f_device = {
     .init          = umc_8886_init,
     .close         = umc_8886_close,
     .reset         = umc_8886_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -445,7 +444,7 @@ const device_t umc_8886af_device = {
     .init          = umc_8886_init,
     .close         = umc_8886_close,
     .reset         = umc_8886_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -459,7 +458,7 @@ const device_t umc_8886bf_device = {
     .init          = umc_8886_init,
     .close         = umc_8886_close,
     .reset         = umc_8886_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

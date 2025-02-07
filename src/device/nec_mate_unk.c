@@ -30,7 +30,7 @@
 #include <86box/plat_unused.h>
 
 static uint8_t
-nec_mate_unk_read(UNUSED(uint16_t addr), void *priv)
+nec_mate_unk_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     /* Expected by this NEC machine.
 
@@ -49,7 +49,7 @@ nec_mate_unk_close(void *priv)
 }
 
 static void *
-nec_mate_unk_init(const device_t *info)
+nec_mate_unk_init(UNUSED(const device_t *info))
 {
     /* We have to return something non-NULL. */
     uint8_t *dev = (uint8_t *) calloc(1, sizeof(uint8_t));
@@ -68,7 +68,7 @@ const device_t nec_mate_unk_device = {
     .init          = nec_mate_unk_init,
     .close         = nec_mate_unk_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

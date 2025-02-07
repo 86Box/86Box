@@ -577,8 +577,7 @@ ac97_codec_getrate(void *priv, uint8_t reg)
 static void *
 ac97_codec_init(const device_t *info)
 {
-    ac97_codec_t *dev = malloc(sizeof(ac97_codec_t));
-    memset(dev, 0, sizeof(ac97_codec_t));
+    ac97_codec_t *dev = calloc(1, sizeof(ac97_codec_t));
 
     for (; dev->model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0])); dev->model++) {
         if (ac97_codecs[dev->model].device->local == info->local)

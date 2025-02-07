@@ -637,6 +637,7 @@ extern int machine_at_m5pi_init(const machine_t *);
 
 extern int machine_at_excalibur_init(const machine_t *);
 
+extern int machine_at_globalyst330_p5_init(const machine_t *);
 extern int machine_at_p5vl_init(const machine_t *);
 
 extern int machine_at_excaliburpci2_init(const machine_t *);
@@ -745,6 +746,7 @@ extern int machine_at_tomahawk_init(const machine_t *);
 extern int machine_at_ficva502_init(const machine_t *);
 
 extern int machine_at_ficpa2012_init(const machine_t *);
+extern int machine_at_via809ds_init(const machine_t *);
 
 extern int machine_at_r534f_init(const machine_t *);
 extern int machine_at_ms5146_init(const machine_t *);

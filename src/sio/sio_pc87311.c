@@ -269,8 +269,7 @@ pc87311_close(void *priv)
 static void *
 pc87311_init(const device_t *info)
 {
-    pc87311_t *dev = (pc87311_t *) malloc(sizeof(pc87311_t));
-    memset(dev, 0, sizeof(pc87311_t));
+    pc87311_t *dev = (pc87311_t *) calloc(1, sizeof(pc87311_t));
 
     /* Avoid conflicting with machines that make no use of the PC87311 Internal IDE */
     HAS_IDE_FUNCTIONALITY = info->local;
@@ -298,7 +297,7 @@ const device_t pc87311_device = {
     .init          = pc87311_init,
     .close         = pc87311_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -312,7 +311,7 @@ const device_t pc87311_ide_device = {
     .init          = pc87311_init,
     .close         = pc87311_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

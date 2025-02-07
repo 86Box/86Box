@@ -44,7 +44,7 @@ lba_enhancer_close(void* priv)
 }
 
 void *
-lba_enhancer_init(const device_t *info)
+lba_enhancer_init(UNUSED(const device_t *info))
 {
     lba_enhancer_t *dev = (lba_enhancer_t *) calloc(1, sizeof(lba_enhancer_t));
 
@@ -92,7 +92,7 @@ const device_t lba_enhancer_device = {
     .init          = lba_enhancer_init,
     .close         = lba_enhancer_close,
     .reset         = NULL,
-    { .available = lba_enhancer_available },
+    .available     = lba_enhancer_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = lba_enhancer_config

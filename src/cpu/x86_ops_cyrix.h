@@ -212,7 +212,7 @@ opRSTS_a32(uint32_t fetchdat)
 }
 
 static int
-opSMINT(uint32_t fetchdat)
+opSMINT(UNUSED(uint32_t fetchdat))
 {
     if (in_smm)
         fatal("opSMINT\n");
@@ -223,7 +223,7 @@ opSMINT(uint32_t fetchdat)
 }
 
 static int
-opRDSHR_a16(uint32_t fetchdat)
+opRDSHR_a16(UNUSED(uint32_t fetchdat))
 {
     if (in_smm)
         fatal("opRDSHR_a16\n");
@@ -233,7 +233,7 @@ opRDSHR_a16(uint32_t fetchdat)
     return 1;
 }
 static int
-opRDSHR_a32(uint32_t fetchdat)
+opRDSHR_a32(UNUSED(uint32_t fetchdat))
 {
     if (in_smm)
         fatal("opRDSHR_a32\n");
@@ -244,7 +244,7 @@ opRDSHR_a32(uint32_t fetchdat)
 }
 
 static int
-opWRSHR_a16(uint32_t fetchdat)
+opWRSHR_a16(UNUSED(uint32_t fetchdat))
 {
     if (in_smm)
         fatal("opWRSHR_a16\n");
@@ -254,7 +254,7 @@ opWRSHR_a16(uint32_t fetchdat)
     return 1;
 }
 static int
-opWRSHR_a32(uint32_t fetchdat)
+opWRSHR_a32(UNUSED(uint32_t fetchdat))
 {
     if (in_smm)
         fatal("opWRSHR_a32\n");

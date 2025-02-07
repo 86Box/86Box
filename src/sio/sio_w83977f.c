@@ -593,8 +593,7 @@ w83977f_close(void *priv)
 static void *
 w83977f_init(const device_t *info)
 {
-    w83977f_t *dev = (w83977f_t *) malloc(sizeof(w83977f_t));
-    memset(dev, 0, sizeof(w83977f_t));
+    w83977f_t *dev = (w83977f_t *) calloc(1, sizeof(w83977f_t));
 
     dev->type   = info->local & 0x0f;
     dev->hefras = info->local & 0x40;
@@ -624,7 +623,7 @@ const device_t w83977f_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -638,7 +637,7 @@ const device_t w83977f_370_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -652,7 +651,7 @@ const device_t w83977tf_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -666,7 +665,7 @@ const device_t w83977ef_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -680,7 +679,7 @@ const device_t w83977ef_370_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

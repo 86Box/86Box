@@ -13,7 +13,7 @@
  * Authors:  Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *           Miran Grca, <mgrca8@gmail.com>
  *
- *           Copyright 2022-2024 Jasmine Iwanek.
+ *           Copyright 2022-2025 Jasmine Iwanek.
  *           Copyright 2024      Miran Grca.
  */
 #include <stdarg.h>
@@ -286,7 +286,7 @@ const device_t fdc_monster_device = {
     .init          = monster_fdc_init,
     .close         = monster_fdc_close,
     .reset         = NULL,
-    { .available = monster_fdc_available },
+    .available     = monster_fdc_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = monster_fdc_config

@@ -712,7 +712,7 @@ const device_t paradise_pvga1a_pc2086_device = {
     .init          = paradise_pvga1a_pc2086_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -726,7 +726,7 @@ const device_t paradise_pvga1a_pc3086_device = {
     .init          = paradise_pvga1a_pc3086_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -753,9 +753,7 @@ static const device_config_t paradise_pvga1a_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -767,7 +765,7 @@ const device_t paradise_pvga1a_ncr3302_device = {
     .init          = paradise_pvga1a_ncr3302_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_pvga1a_config
@@ -781,7 +779,7 @@ const device_t paradise_pvga1a_device = {
     .init          = paradise_pvga1a_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = paradise_pvga1a_standalone_available },
+    .available     = paradise_pvga1a_standalone_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_pvga1a_config
@@ -795,7 +793,7 @@ const device_t paradise_wd90c11_megapc_device = {
     .init          = paradise_wd90c11_megapc_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -809,7 +807,7 @@ const device_t paradise_wd90c11_device = {
     .init          = paradise_wd90c11_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = paradise_wd90c11_standalone_available },
+    .available     = paradise_wd90c11_standalone_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -840,9 +838,7 @@ static const device_config_t paradise_wd90c30_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -854,7 +850,7 @@ const device_t paradise_wd90c30_device = {
     .init          = paradise_wd90c30_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = paradise_wd90c30_standalone_available },
+    .available     = paradise_wd90c30_standalone_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_wd90c30_config

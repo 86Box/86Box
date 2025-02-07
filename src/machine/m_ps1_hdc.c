@@ -1297,8 +1297,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     int      c;
 
     /* Allocate and initialize device block. */
-    dev = malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = calloc(1, sizeof(hdc_t));
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;
@@ -1311,7 +1310,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     /* Load any disks for this device class. */
     c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
+        if ((hdd[i].bus_type == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
             drive = &dev->drives[hdd[i].xta_channel];
 
             if (!hdd_image_load(i)) {
@@ -1386,7 +1385,7 @@ const device_t ps1_hdc_device = {
     .init          = ps1_hdc_init,
     .close         = ps1_hdc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

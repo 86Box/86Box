@@ -30,6 +30,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/plat_unused.h>
 
 #define DEVICE_COMPATICARD_I  0
 #define DEVICE_COMPATICARD_II 1
@@ -57,7 +58,7 @@ typedef struct compaticard_s {
 } compaticard_t;
 
 static void
-compaticard_out(uint16_t port, uint8_t val, void *priv)
+compaticard_out(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     compaticard_t *dev = (compaticard_t *) priv;
 
@@ -65,7 +66,7 @@ compaticard_out(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-compaticard_in(uint16_t port, void *priv)
+compaticard_in(UNUSED(uint16_t port), void *priv)
 {
     compaticard_t *dev  = (compaticard_t *) priv;
     uint8_t        ret  = (dev->cr_2 &CR_2_MASK);

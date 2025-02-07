@@ -47,7 +47,7 @@
     cycles -= timing_retf_rm;
 
 static int
-opRETF_a16(uint32_t fetchdat)
+opRETF_a16(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -60,7 +60,7 @@ opRETF_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opRETF_a32(uint32_t fetchdat)
+opRETF_a32(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -103,7 +103,7 @@ opRETF_a32_imm(uint32_t fetchdat)
 }
 
 static int
-opIRET_186(uint32_t fetchdat)
+opIRET_186(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -146,7 +146,7 @@ opIRET_186(uint32_t fetchdat)
 }
 
 static int
-opIRET_286(uint32_t fetchdat)
+opIRET_286(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -189,7 +189,7 @@ opIRET_286(uint32_t fetchdat)
 }
 
 static int
-opIRET(uint32_t fetchdat)
+opIRET(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -260,7 +260,7 @@ opIRET(uint32_t fetchdat)
 }
 
 static int
-opIRETD(uint32_t fetchdat)
+opIRETD(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);

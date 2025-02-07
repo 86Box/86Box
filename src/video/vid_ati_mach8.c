@@ -291,7 +291,7 @@ mach_pixel_read(mach_t *mach)
 }
 
 static void
-mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, mach_t *mach, ibm8514_t *dev)
+mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, UNUSED(svga_t *svga), mach_t *mach, ibm8514_t *dev)
 {
     int           compare_mode;
     uint16_t      poly_src     = 0;
@@ -2503,6 +2503,96 @@ ati8514_in(uint16_t addr, void *priv)
     return temp;
 }
 
+static void
+ati_render_24bpp(svga_t *svga)
+{
+    mach_t    *mach = (mach_t *) svga->priv;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint32_t *p;
+    uint32_t  dat;
+
+    if ((dev->displine + svga->y_add) < 0)
+        return;
+
+    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || svga->fullchange) {
+        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+        if (dev->firstline_draw == 2000)
+            dev->firstline_draw = dev->displine;
+        dev->lastline_draw = dev->displine;
+
+        if (mach->accel.ext_ge_config & 0x400) { /*BGR, Blue-(23:16), Green-(15:8), Red-(7:0)*/
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
+                p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 3) & dev->vram_mask]);
+                p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 6) & dev->vram_mask]);
+                p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 9) & dev->vram_mask]);
+                p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dev->ma += 12;
+            }
+        } else { /*RGB, Red-(23:16), Green-(15:8), Blue-(7:0)*/
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
+                p[x] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 3) & dev->vram_mask]);
+                p[x + 1] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 6) & dev->vram_mask]);
+                p[x + 2] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 9) & dev->vram_mask]);
+                p[x + 3] = dat & 0xffffff;
+
+                dev->ma += 12;
+            }
+        }
+        dev->ma &= dev->vram_mask;
+    }
+}
+
+static void
+ati_render_32bpp(svga_t *svga)
+{
+    mach_t    *mach = (mach_t *) svga->priv;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if ((dev->displine + svga->y_add) < 0)
+        return;
+
+    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || dev->changedvram[(dev->ma >> 12) + 2] || svga->fullchange) {
+        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+        if (dev->firstline_draw == 2000)
+            dev->firstline_draw = dev->displine;
+        dev->lastline_draw = dev->displine;
+
+        if (mach->accel.ext_ge_config & 0x400) { /*BGR, Blue-(23:16), Green-(15:8), Red-(7:0)*/
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
+                *p++ = ((dat & 0x00ff0000) >> 16) | (dat & 0x0000ff00) | ((dat & 0x000000ff) << 16);
+            }
+        } else { /*RGB, Red-(31:24), Green-(23:16), Blue-(15:8)*/
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
+                *p++ = ((dat & 0xffffff00) >> 8);
+            }
+        }
+        dev->ma += (x * 4);
+        dev->ma &= dev->vram_mask;
+    }
+}
+
 void
 ati8514_recalctimings(svga_t *svga)
 {
@@ -2711,17 +2801,11 @@ mach_recalctimings(svga_t *svga)
                         break;
                     case 24:
                         mach_log("GEConfig24bpp: %03x.\n", mach->accel.ext_ge_config & 0x600);
-                        if (mach->accel.ext_ge_config & 0x400)
-                            svga->render8514 = ibm8514_render_BGR;
-                        else
-                            svga->render8514 = ibm8514_render_24bpp;
+                        svga->render8514 = ati_render_24bpp;
                         break;
                     case 32:
                         mach_log("GEConfig32bpp: %03x.\n", mach->accel.ext_ge_config & 0x600);
-                        if (mach->accel.ext_ge_config & 0x400)
-                            svga->render8514 = ibm8514_render_ABGR8888;
-                        else
-                            svga->render8514 = ibm8514_render_32bpp;
+                        svga->render8514 = ati_render_32bpp;
                         break;
 
                     default:
@@ -5776,7 +5860,7 @@ mach_mca_reset(void *priv)
     mach_log("MCA reset.\n");
     dev->on = 0;
     mach_mca_write(0x102, 0, mach);
-    timer_set_callback(&svga->timer, svga_poll);
+    svga_set_poll(svga);
 }
 
 uint8_t
@@ -6155,7 +6239,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     if (dev->vram_amount >= 1024)
         mach->config1 |= 0x20;
 
-    mach->config2 = 0x02;
+    mach->config2 = 0x01 | 0x02;
 }
 
 static int
@@ -6245,12 +6329,9 @@ static const device_config_t mach8_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t mach32_config[] = {
     {
         .name = "memory",
@@ -6279,12 +6360,9 @@ static const device_config_t mach32_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t mach32_pci_config[] = {
     {
         .name = "ramdac",
@@ -6332,92 +6410,90 @@ static const device_config_t mach32_pci_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t mach8_vga_isa_device = {
-    .name = "ATI Mach8 (ATI Graphics Ultra) (ISA)",
+    .name          = "ATI Mach8 (ATI Graphics Ultra) (ISA)",
     .internal_name = "mach8_vga_isa",
-    .flags = DEVICE_ISA,
-    .local = 1,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach8_vga_available },
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach8_vga_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach8_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach8_config
 };
 
 const device_t mach32_isa_device = {
-    .name = "ATI Mach32 (ISA)",
+    .name          = "ATI Mach32 (ISA)",
     .internal_name = "mach32_isa",
-    .flags = DEVICE_ISA,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_isa_available },
+    .flags         = DEVICE_ISA,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_isa_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_vlb_device = {
-    .name = "ATI Mach32 (VLB)",
+    .name          = "ATI Mach32 (VLB)",
     .internal_name = "mach32_vlb",
-    .flags = DEVICE_VLB,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_vlb_available },
+    .flags         = DEVICE_VLB,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_vlb_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_mca_device = {
-    .name = "ATI Mach32 (MCA)",
+    .name          = "ATI Mach32 (MCA)",
     .internal_name = "mach32_mca",
-    .flags = DEVICE_MCA,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_mca_available },
+    .flags         = DEVICE_MCA,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_mca_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_pci_device = {
-    .name = "ATI Mach32 (PCI)",
+    .name          = "ATI Mach32 (PCI)",
     .internal_name = "mach32_pci",
-    .flags = DEVICE_PCI,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_pci_available },
+    .flags         = DEVICE_PCI,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_pci_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_pci_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_pci_config
 };
 
 const device_t mach32_onboard_pci_device = {
-    .name = "ATI Mach32 (PCI) On-Board",
+    .name          = "ATI Mach32 (PCI) On-Board",
     .internal_name = "mach32_pci_onboard",
-    .flags = DEVICE_PCI,
-    .local = 2 | 0x100,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_PCI,
+    .local         = 2 | 0x100,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_pci_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_pci_config
 };
-

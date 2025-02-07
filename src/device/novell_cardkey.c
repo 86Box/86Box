@@ -61,7 +61,7 @@ novell_cardkey_read(uint16_t port, void *priv)
     return val ^ 0xFF;
 }
 
-void* novell_cardkey_init(const device_t* info)
+void* novell_cardkey_init(UNUSED(const device_t* info))
 {
     char sernumstr[13] = { '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', 0 };
     int i = 0;
@@ -116,7 +116,7 @@ const device_t novell_keycard_device = {
     .init          = novell_cardkey_init,
     .close         = novell_cardkey_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = keycard_config

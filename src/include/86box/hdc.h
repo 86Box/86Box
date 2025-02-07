@@ -22,11 +22,6 @@
 #define MFM_NUM   2  /* 2 drives per controller supported */
 #define ESDI_NUM  2  /* 2 drives per controller supported */
 #define XTA_NUM   2  /* 2 drives per controller supported */
-#define IDE_NUM   10 /* 8 drives per AT IDE + 2 for XT IDE */
-#define ATAPI_NUM 8  /* 8 drives per AT IDE */
-#define SCSI_NUM  16 /* theoretically the controller can have at \
-                      * least 7 devices, with each device being  \
-                      * able to support 8 units, but hey... */
 
 /* Controller types. */
 #define HDC_NONE     0

@@ -38,6 +38,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/vid_cga.h>
+#include <86box/plat_unused.h>
 
 #define GRID_APPROM_SELECT 0x440
 #define GRID_APPROM_ENABLE 0x405
@@ -263,7 +264,7 @@ static uint8_t grid_io_read(uint16_t port, void *priv) {
 }
 
 static void *
-grid_init(const device_t *info)
+grid_init(UNUSED(const device_t *info))
 {
     grid_t *dev = calloc(1, sizeof(grid_t));
 
@@ -324,7 +325,7 @@ const device_t grid_device = {
     .init          = grid_init,
     .close         = grid_close,
     .reset         = grid_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

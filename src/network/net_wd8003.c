@@ -63,7 +63,6 @@
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 #include <86box/net_wd8003.h>
-#include <86box/bswap.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -651,8 +650,7 @@ wd_init(const device_t *info)
     uint32_t mac;
     wd_t    *dev;
 
-    dev = malloc(sizeof(wd_t));
-    memset(dev, 0x00, sizeof(wd_t));
+    dev = calloc(1, sizeof(wd_t));
     dev->name  = info->name;
     dev->board = info->local;
 
@@ -1084,7 +1082,7 @@ const device_t wd8003e_device = {
     .init          = wd_init,
     .close         = wd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd8003_config
@@ -1098,7 +1096,7 @@ const device_t wd8003eb_device = {
     .init          = wd_init,
     .close         = wd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd8003eb_config
@@ -1112,7 +1110,7 @@ const device_t wd8013ebt_device = {
     .init          = wd_init,
     .close         = wd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd8013_config
@@ -1126,7 +1124,7 @@ const device_t wd8003eta_device = {
     .init          = wd_init,
     .close         = wd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mca_mac_config
@@ -1140,7 +1138,7 @@ const device_t wd8003ea_device = {
     .init          = wd_init,
     .close         = wd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mca_mac_config
@@ -1154,7 +1152,7 @@ const device_t wd8013epa_device = {
     .init          = wd_init,
     .close         = wd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd8013epa_config

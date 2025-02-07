@@ -1434,8 +1434,7 @@ cmi8x38_reset(void *priv)
 static void *
 cmi8x38_init(const device_t *info)
 {
-    cmi8x38_t *dev = malloc(sizeof(cmi8x38_t));
-    memset(dev, 0, sizeof(cmi8x38_t));
+    cmi8x38_t *dev = calloc(1, sizeof(cmi8x38_t));
 
     /* Set the chip type. */
     if ((info->local == CMEDIA_CMI8738_6CH) && !device_get_config_int("six_channel"))

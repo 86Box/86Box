@@ -918,8 +918,7 @@ access_bus_close(void *priv)
 static void *
 access_bus_init(UNUSED(const device_t *info))
 {
-    access_bus_t *dev = (access_bus_t *) malloc(sizeof(access_bus_t));
-    memset(dev, 0, sizeof(access_bus_t));
+    access_bus_t *dev = (access_bus_t *) calloc(1, sizeof(access_bus_t));
 
     return dev;
 }
@@ -932,7 +931,7 @@ static const device_t access_bus_device = {
     .init          = access_bus_init,
     .close         = access_bus_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -950,8 +949,7 @@ static void *
 fdc37c93x_init(const device_t *info)
 {
     int          is_compaq;
-    fdc37c93x_t *dev = (fdc37c93x_t *) malloc(sizeof(fdc37c93x_t));
-    memset(dev, 0, sizeof(fdc37c93x_t));
+    fdc37c93x_t *dev = (fdc37c93x_t *) calloc(1, sizeof(fdc37c93x_t));
 
     dev->fdc = device_add(&fdc_at_smc_device);
 
@@ -1014,7 +1012,7 @@ const device_t fdc37c931apm_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1028,7 +1026,7 @@ const device_t fdc37c931apm_compaq_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1042,7 +1040,7 @@ const device_t fdc37c932_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1056,7 +1054,7 @@ const device_t fdc37c932fr_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1070,7 +1068,7 @@ const device_t fdc37c932qf_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1084,7 +1082,7 @@ const device_t fdc37c935_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1098,7 +1096,7 @@ const device_t fdc37c935_370_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1112,7 +1110,7 @@ const device_t fdc37c935_no_nvr_device = {
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

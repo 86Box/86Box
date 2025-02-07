@@ -1417,7 +1417,7 @@ sb_ct1745_mixer_reset(sb_t *sb)
 }
 
 static void
-ess_base_write(uint16_t addr, uint8_t val, void *priv)
+ess_base_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
@@ -1463,7 +1463,7 @@ ess_base_read(uint16_t addr, void *priv)
 }
 
 static void
-ess_fm_midi_write(uint16_t addr, uint8_t val, void *priv)
+ess_fm_midi_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
@@ -1471,7 +1471,7 @@ ess_fm_midi_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ess_fm_midi_read(uint16_t addr, void *priv)
+ess_fm_midi_read(UNUSED(uint16_t addr), void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
@@ -5913,7 +5913,7 @@ const device_t sb_16_pnp_device = {
     .init          = sb_16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = sb_16_pnp_noide_available },
+    .available     = sb_16_pnp_noide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -6039,7 +6039,7 @@ const device_t sb_awe64_device = {
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_awe64_noide_available },
+    .available     = sb_awe64_noide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_config

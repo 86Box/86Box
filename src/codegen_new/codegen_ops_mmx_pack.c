@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
@@ -16,7 +17,7 @@
 #include "codegen_ops_helpers.h"
 
 #define ropPpack(func)                                                                                                       \
-    uint32_t rop##func(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
+    uint32_t rop##func(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
     {                                                                                                                        \
         int dest_reg = (fetchdat >> 3) & 7;                                                                                  \
                                                                                                                              \
@@ -48,4 +49,4 @@ ropPpack(PUNPCKLDQ)
 ropPpack(PUNPCKHBW)
 ropPpack(PUNPCKHWD)
 ropPpack(PUNPCKHDQ)
-    // clang-format on
+// clang-format on

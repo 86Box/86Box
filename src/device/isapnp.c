@@ -679,7 +679,7 @@ isapnp_write_data(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static void *
 isapnp_init(UNUSED(const device_t *info))
 {
-    isapnp_t *dev = (isapnp_t *) malloc(sizeof(isapnp_t));
+    isapnp_t *dev = (isapnp_t *) calloc(1, sizeof(isapnp_t));
     memset(dev, 0, sizeof(isapnp_t));
 
     io_sethandler(0x279, 1, NULL, NULL, NULL, isapnp_write_addr, NULL, NULL, dev);
@@ -728,8 +728,7 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     if (!dev)
         dev = (isapnp_t *) device_add(&isapnp_device);
 
-    isapnp_card_t *card = (isapnp_card_t *) malloc(sizeof(isapnp_card_t));
-    memset(card, 0, sizeof(isapnp_card_t));
+    isapnp_card_t *card = (isapnp_card_t *) calloc(1, sizeof(isapnp_card_t));
 
     card->enable           = 1;
     card->priv             = priv;
@@ -1231,7 +1230,7 @@ static const device_t isapnp_device = {
     .init          = isapnp_init,
     .close         = isapnp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

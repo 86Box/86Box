@@ -4733,9 +4733,7 @@ static const device_config_t mach64gx_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t mach64vt2_config[] = {
@@ -4758,9 +4756,7 @@ static const device_config_t mach64vt2_config[] = {
             }
         }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -4772,7 +4768,7 @@ const device_t mach64gx_isa_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64gx_isa_available },
+    .available     = mach64gx_isa_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
@@ -4786,7 +4782,7 @@ const device_t mach64gx_vlb_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64gx_vlb_available },
+    .available     = mach64gx_vlb_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
@@ -4800,7 +4796,7 @@ const device_t mach64gx_pci_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64gx_available },
+    .available     = mach64gx_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
@@ -4814,7 +4810,7 @@ const device_t mach64vt2_device = {
     .init          = mach64vt2_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64vt2_available },
+    .available     = mach64vt2_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64vt2_config
