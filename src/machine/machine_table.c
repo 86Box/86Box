@@ -14169,7 +14169,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &s3_virge_325_onboard_pci_device,
-        .snd_device = &cs4236b_device,
+        .snd_device = &cs4236b_onboard_device,
         .net_device = NULL
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the

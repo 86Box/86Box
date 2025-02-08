@@ -818,23 +818,10 @@ cs423x_load_defaults(cs423x_t *dev, uint8_t *dest)
                     dest[4] = 0x43; /* code base byte */
                     break;
 
-                case CRYSTAL_CS4236B:
-                    dest[22] = 0x35; /* default PnP ID */
-                    break;
-
-                case CRYSTAL_CS4237B:
-                    dest[22] = 0x37; /* default PnP ID */
-                    break;
-
-                case CRYSTAL_CS4238B:
-                    dest[22] = 0x38; /* default PnP ID */
-                    break;
-
                 case CRYSTAL_CS4235:
                 case CRYSTAL_CS4239:
                     dest[4]  = 0x05; /* code base byte */
                     dest[12] = 0x08; /* external decode length */
-                    dest[22] = 0x36; /* default PnP ID - explicitly stated to be the CS4236 non-B one */
                     break;
             }
             break;
@@ -904,12 +891,14 @@ cs423x_init(const device_t *info)
         case CRYSTAL_CS4238B:
         case CRYSTAL_CS4235:
         case CRYSTAL_CS4239:
-            /* Same WSS codec and EEPROM structure. */
+            /* Different WSS codec families. */
             dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : ((dev->type >= CRYSTAL_CS4236B) ? AD1848_TYPE_CS4236B : AD1848_TYPE_CS4236);
-            dev->pnp_offset  = 0x4013;
 
             /* Different Chip Version and ID registers (N/A on CS4236), which shouldn't be reset by ad1848_init. */
             dev->ad1848.xregs[25] = dev->type;
+
+            /* Same EEPROM structure. */
+            dev->pnp_offset = 0x4013;
 
             if (!(info->local & CRYSTAL_NOEEPROM)) {
                 /* Start a new EEPROM with the default configuration data. */
@@ -1108,6 +1097,20 @@ const device_t cs4236b_device = {
     .internal_name = "cs4236b",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = CRYSTAL_CS4236B,
+    .init          = cs423x_init,
+    .close         = cs423x_close,
+    .reset         = cs423x_reset,
+    .available     = cs423x_available,
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t cs4236b_onboard_device = {
+    .name          = "Crystal CS4236B",
+    .internal_name = "cs4236b",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = CRYSTAL_CS4236B | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,
