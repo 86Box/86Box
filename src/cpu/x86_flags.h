@@ -741,7 +741,7 @@ setadc8(uint8_t a, uint8_t b)
         cpu_state.flags |= C_FLAG;
     if (!((a ^ b) & 0x80) && ((a ^ c) & 0x80))
         cpu_state.flags |= V_FLAG;
-    if (((a & 0xF) + (b & 0xF)) & 0x10)
+    if (((a & 0xF) + (b & 0xF) + tempc) & 0x10)
         cpu_state.flags |= A_FLAG;
 }
 static __inline void
@@ -755,7 +755,7 @@ setadc16(uint16_t a, uint16_t b)
         cpu_state.flags |= C_FLAG;
     if (!((a ^ b) & 0x8000) && ((a ^ c) & 0x8000))
         cpu_state.flags |= V_FLAG;
-    if (((a & 0xF) + (b & 0xF)) & 0x10)
+    if (((a & 0xF) + (b & 0xF) + tempc) & 0x10)
         cpu_state.flags |= A_FLAG;
 }
 static __inline void
@@ -785,7 +785,7 @@ setsbc8(uint8_t a, uint8_t b)
         cpu_state.flags |= C_FLAG;
     if ((a ^ b) & (a ^ c) & 0x80)
         cpu_state.flags |= V_FLAG;
-    if (((a & 0xF) - (b & 0xF)) & 0x10)
+    if (((a & 0xF) - ((b & 0xF) + tempc)) & 0x10)
         cpu_state.flags |= A_FLAG;
 }
 static __inline void
@@ -800,7 +800,7 @@ setsbc16(uint16_t a, uint16_t b)
         cpu_state.flags |= C_FLAG;
     if ((a ^ b) & (a ^ c) & 0x8000)
         cpu_state.flags |= V_FLAG;
-    if (((a & 0xF) - (b & 0xF)) & 0x10)
+    if (((a & 0xF) - ((b & 0xF) + tempc)) & 0x10)
         cpu_state.flags |= A_FLAG;
 }
 
