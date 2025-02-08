@@ -427,8 +427,7 @@ enum {
     DMA_STATE_SEC
 };
 
-typedef struct
-{
+typedef struct {
     uint32_t addr_type;
     uint32_t val;
 } fifo_entry_t;
@@ -484,13 +483,11 @@ typedef struct mystique_t {
 
     event_t *wake_fifo_thread, *fifo_not_full_event;
 
-    struct
-    {
+    struct {
         int m, n, p, s;
     } xpixpll[3];
 
-    struct
-    {
+    struct {
         uint8_t funcnt : 7, stylelen,
             dmamod;
 
@@ -521,27 +518,23 @@ typedef struct mystique_t {
 
         uint64_t extended_dr[4];
 
-        struct
-        {
+        struct {
             int sdydxl, scanleft, sdxl, sdy,
                 sdxr;
         } sgn;
     } dwgreg;
 
-    struct
-    {
+    struct {
         uint8_t r, g, b;
     } lut[256];
 
-    struct
-    {
+    struct {
         uint16_t pos_x, pos_y,
             addr;
         uint32_t col[3];
     } cursor;
 
-    struct
-    {
+    struct {
         atomic_int pri_state, sec_state, iload_state, state;
 
         atomic_uint primaddress, primend, secaddress, secend,
@@ -6852,25 +6845,20 @@ mystique_force_redraw(void *priv)
 static const device_config_t mystique_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            { .description = "" }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
         },
-        .default_int = 8
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -6879,25 +6867,20 @@ static const device_config_t mystique_config[] = {
 static const device_config_t millennium_ii_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = "16 MB",
-                .value = 16
-            },
-            { .description = "" }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "4 MB", .value =  4 },
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
         },
-        .default_int = 8
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

@@ -1431,92 +1431,67 @@ gus_speed_changed(void *priv)
 static const device_config_t gus_config[] = {
     // clang-format off
     {
-        .name = "type",
-        .description = "GUS type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Classic",
-                .value = GUS_CLASSIC
-        },
+        .name           = "type",
+        .description    = "GUS type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Classic", .value = GUS_CLASSIC },
 #ifdef USE_GUSMAX
-            {
-                .description = "MAX",
-                .value = GUS_MAX
-            },
+            { .description = "MAX",     .value = GUS_MAX     },
 #endif /*USE_GUSMAX */
-            { NULL }
+            { NULL                                           }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "210H",
-                .value = 0x210
-            },
-            {
-                .description = "220H",
-                .value = 0x220
-            },
-            {
-                .description = "230H",
-                .value = 0x230
-            },
-            {
-                .description = "240H",
-                .value = 0x240
-            },
-            {
-                .description = "250H",
-                .value = 0x250
-            },
-            {
-                .description = "260H",
-                .value = 0x260
-            },
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "gus_ram",
-        "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 1
-            },
-            {
-                .description = "1 MB",
-                .value = 2
-            },
-            { NULL }
-        }
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 0 },
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off

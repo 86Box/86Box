@@ -88,18 +88,18 @@ static const joystick_if_t joystick_none = {
 static const struct {
     const joystick_if_t *joystick;
 } joysticks[] = {
-    { &joystick_none },
-    { &joystick_2axis_2button },
-    { &joystick_2axis_4button },
-    { &joystick_2axis_6button },
-    { &joystick_2axis_8button },
-    { &joystick_3axis_2button },
-    { &joystick_3axis_4button },
-    { &joystick_4axis_4button },
+    { &joystick_none               },
+    { &joystick_2axis_2button      },
+    { &joystick_2axis_4button      },
+    { &joystick_2axis_6button      },
+    { &joystick_2axis_8button      },
+    { &joystick_3axis_2button      },
+    { &joystick_3axis_4button      },
+    { &joystick_4axis_4button      },
     { &joystick_ch_flightstick_pro },
-    { &joystick_sw_pad },
-    { &joystick_tm_fcs },
-    { NULL }
+    { &joystick_sw_pad             },
+    { &joystick_tm_fcs             },
+    { NULL                         }
 };
 
 static joystick_instance_t *joystick_instance[GAMEPORT_MAX] = { NULL, NULL };
@@ -613,38 +613,40 @@ const device_t gameport_20f_device = {
 static const device_config_t tmacm_config[] = {
   // clang-format off
     {
-        .name = "port1_addr",
-        .description = "Port 1 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0201,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port1_addr",
+        .description    = "Port 1 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0201,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "201h",     .value = 0x0201 },
             { .description = "203h",     .value = 0x0203 },
             { .description = "205h",     .value = 0x0205 },
             { .description = "207h",     .value = 0x0207 },
             { .description = "Disabled", .value = 0x0000 },
-            { "" }
-        }
+            { .description = ""                          }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "port2_addr",
-        .description = "Port 2 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0209,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port2_addr",
+        .description    = "Port 2 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0209,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "209h",     .value = 0x0209 },
             { .description = "20Bh",     .value = 0x020B },
             { .description = "20Dh",     .value = 0x020D },
             { .description = "20Fh",     .value = 0x020F },
             { .description = "Disabled", .value = 0x0000 },
-            { "" }
-        }
+            { .description = ""                          }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

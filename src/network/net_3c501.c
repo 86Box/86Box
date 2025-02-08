@@ -1154,30 +1154,31 @@ threec501_nic_close(void *priv)
 
 static const device_config_t threec501_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x280", .value = 0x280 },
             { .description = "0x300", .value = 0x300 },
             { .description = "0x310", .value = 0x310 },
             { .description = "0x320", .value = 0x320 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2/9", .value = 9 },
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
@@ -1186,28 +1187,34 @@ static const device_config_t threec501_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
         .name = "dma",
         .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 1", .value = 1 },
             { .description = "DMA 2", .value = 2 },
             { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

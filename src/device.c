@@ -883,7 +883,7 @@ machine_get_config_string(char *str)
     return NULL;
 }
 
-const device_t*
+const device_t *
 device_context_get_device(void)
 {
     return device_current.dev;

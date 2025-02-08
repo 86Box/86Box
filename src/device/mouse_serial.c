@@ -916,41 +916,47 @@ sermouse_init(const device_t *info)
 static const device_config_t msssermouse_config[] = {
   // clang-format off
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "buttons",
-        .description = "Buttons",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 2,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "buttons",
+        .description    = "Buttons",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Two",   .value = 2 },
             { .description = "Three", .value = 3 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "rts_toggle",
-        .description = "RTS toggle",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "rts_toggle",
+        .description    = "RTS toggle",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -959,35 +965,37 @@ static const device_config_t msssermouse_config[] = {
 static const device_config_t mssermouse_config[] = {
   // clang-format off
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "buttons",
-        .description = "Buttons",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 2,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "buttons",
+        .description    = "Buttons",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Two",   .value = 2 },
             { .description = "Three", .value = 3 },
             { .description = "Wheel", .value = 4 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -996,57 +1004,64 @@ static const device_config_t mssermouse_config[] = {
 static const device_config_t ltsermouse_config[] = {
   // clang-format off
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "buttons",
-        .description = "Buttons",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 2,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "buttons",
+        .description    = "Buttons",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Two",   .value = 2 },
             { .description = "Three", .value = 3 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "revision",
-        .description = "Revision",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "revision",
+        .description    = "Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "LOGIMOUSE R7 1.0",  .value = 1 },
             { .description = "LOGIMOUSE R7 2.0",  .value = 2 },
             { .description = "LOGIMOUSE C7 3.0",  .value = 3 },
             { .description = "Logitech MouseMan", .value = 4 },
             { .description = ""                              }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "rts_toggle",
-        .description = "RTS toggle",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "rts_toggle",
+        .description    = "RTS toggle",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

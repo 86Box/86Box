@@ -68,7 +68,7 @@ typedef struct paradise_t {
 } paradise_t;
 
 static video_timings_t timing_paradise_pvga1a = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
-static video_timings_t timing_paradise_wd90c  = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
+static video_timings_t timing_paradise_wd90c  = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l =  6, .read_b = 5, .read_w = 5, .read_l = 10 };
 
 void paradise_remap(paradise_t *paradise);
 
@@ -735,23 +735,19 @@ const device_t paradise_pvga1a_pc3086_device = {
 static const device_config_t paradise_pvga1a_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -816,27 +812,20 @@ const device_t paradise_wd90c11_device = {
 static const device_config_t paradise_wd90c30_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

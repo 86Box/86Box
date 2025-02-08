@@ -382,48 +382,45 @@ colorplus_speed_changed(void *priv)
 static const device_config_t colorplus_config[] = {
   // clang-format off
     {
-        .name = "display_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = CGA_RGB,
-        .selection = {
-            {
-                .description = "RGB",
-                .value = CGA_RGB
-            },
-            {
-                .description = "Composite",
-                .value = CGA_COMPOSITE
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CGA_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "RGB",       .value = CGA_RGB       },
+            { .description = "Composite", .value = CGA_COMPOSITE },
+            { .description = ""                                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "composite_type",
-        .description = "Composite type",
-        .type = CONFIG_SELECTION,
-        .default_int = COMPOSITE_OLD,
-        .selection = {
-            {
-                .description = "Old",
-                .value = COMPOSITE_OLD
-            },
-            {
-                .description = "New",
-                .value = COMPOSITE_NEW
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "composite_type",
+        .description    = "Composite type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = COMPOSITE_OLD,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Old", .value = COMPOSITE_OLD },
+            { .description = "New", .value = COMPOSITE_NEW },
+            { .description = ""                            }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

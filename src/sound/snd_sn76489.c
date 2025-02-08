@@ -268,40 +268,23 @@ sn76489_device_close(void *priv)
 static const device_config_t tndy_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0C0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x0C0",
-                .value = 0x0C0
-            },
-            {
-                .description = "0x0E0",
-                .value = 0x0E0
-            },
-            {
-                .description = "0x1C0",
-                .value = 0x1C0
-            },
-            {
-                .description = "0x1E0",
-                .value = 0x1E0
-            },
-            {
-                .description = "0x2C0",
-                .value = 0x2C0
-            },
-            {
-                .description = "0x2E0",
-                .value = 0x2E0
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0C0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x0C0", .value = 0x0C0 },
+            { .description = "0x0E0", .value = 0x0E0 },
+            { .description = "0x1C0", .value = 0x1C0 },
+            { .description = "0x1E0", .value = 0x1E0 },
+            { .description = "0x2C0", .value = 0x2C0 },
+            { .description = "0x2E0", .value = 0x2E0 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

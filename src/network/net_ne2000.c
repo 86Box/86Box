@@ -1234,14 +1234,14 @@ de220p_available(void)
 // clang-format off
 static const device_config_t ne1000_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x300", .value = 0x300 },
             { .description = "0x320", .value = 0x320 },
@@ -1249,16 +1249,17 @@ static const device_config_t ne1000_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1267,27 +1268,32 @@ static const device_config_t ne1000_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne1000_compat_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x200", .value = 0x200 },
             { .description = "0x220", .value = 0x220 },
@@ -1307,16 +1313,17 @@ static const device_config_t ne1000_compat_config[] = {
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1326,34 +1333,43 @@ static const device_config_t ne1000_compat_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac_oui",
-        .description = "MAC Address OUI",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac_oui",
+        .description    = "MAC Address OUI",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x300", .value = 0x300 },
             { .description = "0x320", .value = 0x320 },
@@ -1361,16 +1377,17 @@ static const device_config_t ne2000_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1379,43 +1396,49 @@ static const device_config_t ne2000_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
         .name = "bios_addr",
         .description = "BIOS Address",
         .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "D000",     .value = 0xD0000 },
             { .description = "D800",     .value = 0xD8000 },
             { .description = "C800",     .value = 0xC8000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_compat_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x200", .value = 0x200 },
             { .description = "0x220", .value = 0x220 },
@@ -1435,16 +1458,17 @@ static const device_config_t ne2000_compat_config[] = {
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 10,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 10,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file - not giving impossible IRQ's
                        such as 6, 8, or 13. */
             { .description = "IRQ 3",  .value =  3 },
@@ -1459,50 +1483,60 @@ static const device_config_t ne2000_compat_config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac_oui",
-        .description = "MAC Address OUI",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac_oui",
+        .description    = "MAC Address OUI",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "D000",     .value = 0xD0000 },
             { .description = "D800",     .value = 0xD8000 },
             { .description = "C800",     .value = 0xC8000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_compat_8bit_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: board docs, https://github.com/skiselev/isa8_eth */
             { .description = "0x200", .value = 0x200 },
             { .description = "0x220", .value = 0x220 },
@@ -1522,16 +1556,17 @@ static const device_config_t ne2000_compat_8bit_config[] = {
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: board docs, https://github.com/skiselev/isa8_eth */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1540,30 +1575,39 @@ static const device_config_t ne2000_compat_8bit_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac_oui",
-        .description = "MAC Address OUI",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac_oui",
+        .description    = "MAC Address OUI",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
 			/* Source: board docs, https://github.com/skiselev/isa8_eth */
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C000",     .value = 0xC0000 },
@@ -1576,6 +1620,7 @@ static const device_config_t ne2000_compat_8bit_config[] = {
             { .description = "DC00",     .value = 0xDC000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -1583,40 +1628,56 @@ static const device_config_t ne2000_compat_8bit_config[] = {
 
 static const device_config_t rtl8019as_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t rtl8029as_config[] = {
     {
-        .name = "bios",
-        .description = "Enable BIOS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t mca_mac_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

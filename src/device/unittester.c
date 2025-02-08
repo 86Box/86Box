@@ -114,19 +114,6 @@ static struct unittester_state unittester_defaults = {
     .cmd_id       = UT_CMD_NOOP,
 };
 
-static const device_config_t unittester_config[] = {
-// clang-format off
-    {
-        .name           = "exit_enabled",
-        .description    = "Enable 0x04 \"Exit 86Box\" command",
-        .type           = CONFIG_BINARY,
-        .default_int    = 1,
-        .default_string = ""
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
-};
-
 /* Kept separate, as we will be reusing this object */
 static bitmap_t *unittester_screen_buffer = NULL;
 
@@ -623,6 +610,23 @@ unittester_close(UNUSED(void *priv))
 
     unittester_log("[UT] 86Box Unit Tester closed\n");
 }
+
+static const device_config_t unittester_config[] = {
+  // clang-format off
+    {
+        .name           = "exit_enabled",
+        .description    = "Enable 0x04 \"Exit 86Box\" command",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .default_string = NULL,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
 
 const device_t unittester_device = {
     .name          = "86Box Unit Tester",

@@ -196,61 +196,65 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     return op_pc + 1;
 }
 
-#define ROP_PUSH_SEG(seg)                                                                                                             \
-    uint32_t ropPUSH_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
-    {                                                                                                                                 \
-        int sp_reg;                                                                                                                   \
-                                                                                                                                      \
-        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                                 \
-        sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);                                                                                         \
-        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_##seg##_seg_W);                                                              \
-        SUB_SP(ir, 2);                                                                                                                \
-                                                                                                                                      \
-        return op_pc;                                                                                                                 \
-    }                                                                                                                                 \
-    uint32_t ropPUSH_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
-    {                                                                                                                                 \
-        int sp_reg;                                                                                                                   \
-                                                                                                                                      \
-        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                                 \
-        sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);                                                                                         \
-        uop_MOVZX(ir, IREG_temp0, IREG_##seg##_seg_W);                                                                                \
-        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_temp0);                                                                      \
-        SUB_SP(ir, 4);                                                                                                                \
-                                                                                                                                      \
-        return op_pc;                                                                                                                 \
+#define ROP_PUSH_SEG(seg)                                                                          \
+    uint32_t ropPUSH_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), \
+                                UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
+    {                                                                                              \
+        int sp_reg;                                                                                \
+                                                                                                   \
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                              \
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);                                                      \
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_##seg##_seg_W);                           \
+        SUB_SP(ir, 2);                                                                             \
+                                                                                                   \
+        return op_pc;                                                                              \
+    }                                                                                              \
+    uint32_t ropPUSH_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), \
+                                UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
+    {                                                                                              \
+        int sp_reg;                                                                                \
+                                                                                                   \
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                              \
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);                                                      \
+        uop_MOVZX(ir, IREG_temp0, IREG_##seg##_seg_W);                                             \
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_temp0);                                   \
+        SUB_SP(ir, 4);                                                                             \
+                                                                                                   \
+        return op_pc;                                                                              \
     }
 
-#define ROP_POP_SEG(seg, rseg)                                                                                                       \
-    uint32_t ropPOP_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
-    {                                                                                                                                \
-        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                                \
-                                                                                                                                     \
-        if (stack32)                                                                                                                 \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);                                                              \
-        else {                                                                                                                       \
-            uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                                                     \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);                                                           \
-        }                                                                                                                            \
-        uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                                                       \
-        ADD_SP(ir, 2);                                                                                                               \
-                                                                                                                                     \
-        return op_pc;                                                                                                                \
-    }                                                                                                                                \
-    uint32_t ropPOP_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
-    {                                                                                                                                \
-        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                                \
-                                                                                                                                     \
-        if (stack32)                                                                                                                 \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);                                                              \
-        else {                                                                                                                       \
-            uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                                                     \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);                                                           \
-        }                                                                                                                            \
-        uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                                                       \
-        ADD_SP(ir, 4);                                                                                                               \
-                                                                                                                                     \
-        return op_pc;                                                                                                                \
+#define ROP_POP_SEG(seg, rseg)                                                                    \
+    uint32_t ropPOP_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), \
+                               UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
+    {                                                                                             \
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
+                                                                                                  \
+        if (stack32)                                                                              \
+            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);                           \
+        else {                                                                                    \
+            uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                  \
+            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);                        \
+        }                                                                                         \
+        uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                    \
+        ADD_SP(ir, 2);                                                                            \
+                                                                                                  \
+        return op_pc;                                                                             \
+    }                                                                                             \
+    uint32_t ropPOP_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), \
+                               UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
+    {                                                                                             \
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
+                                                                                                  \
+        if (stack32)                                                                              \
+            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);                           \
+        else {                                                                                    \
+            uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                  \
+            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);                        \
+        }                                                                                         \
+        uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                    \
+        ADD_SP(ir, 4);                                                                            \
+                                                                                                  \
+        return op_pc;                                                                             \
     }
 
 // clang-format off
