@@ -1144,7 +1144,6 @@ machine_at_486bekp407_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
-    //device_add(&fdc37c665_device);
     device_add(&prime3b_device);
     device_add(&keyboard_at_ami_device);
 
