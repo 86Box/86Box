@@ -1125,7 +1125,33 @@ machine_at_ls486e_init(const machine_t *model)
 
     return ret;
 }
+int
+machine_at_486bekp407_init(const machine_t *model)
+{
+    int ret;
 
+    ret = bios_load_linear("roms/machines/bekp407/bekp407.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_device);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    //device_add(&fdc37c665_device);
+    device_add(&prime3b_device);
+    device_add(&keyboard_at_ami_device);
+
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
 int
 machine_at_4dps_init(const machine_t *model)
 {
