@@ -572,6 +572,7 @@ extern int machine_at_sb486p_init(const machine_t *);
 extern int machine_at_486sp3_init(const machine_t *);
 extern int machine_at_486sp3c_init(const machine_t *);
 extern int machine_at_486sp3g_init(const machine_t *);
+extern int machine_at_486bekp407_init(const machine_t *);
 extern int machine_at_486ap4_init(const machine_t *);
 extern int machine_at_g486vpa_init(const machine_t *);
 extern int machine_at_486vipio2_init(const machine_t *);
