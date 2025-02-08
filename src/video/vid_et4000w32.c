@@ -2943,27 +2943,21 @@ et4000w32p_force_redraw(void *priv)
 static const device_config_t et4000w32p_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 2,
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1
-            },
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -2975,7 +2969,7 @@ const device_t et4000w32_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32_available },
+    .available     = et4000w32_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = NULL
@@ -2989,7 +2983,7 @@ const device_t et4000w32_onboard_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32_available },
+    .available     = et4000w32_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = NULL
@@ -3003,7 +2997,7 @@ const device_t et4000w32i_isa_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32i_isa_available },
+    .available     = et4000w32i_isa_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = NULL
@@ -3017,7 +3011,7 @@ const device_t et4000w32i_vlb_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32i_vlb_available },
+    .available     = et4000w32i_vlb_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3031,7 +3025,7 @@ const device_t et4000w32p_videomagic_revb_vlb_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_videomagic_revb_vlb_available },
+    .available     = et4000w32p_videomagic_revb_vlb_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3045,7 +3039,7 @@ const device_t et4000w32p_videomagic_revb_pci_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_videomagic_revb_vlb_available },
+    .available     = et4000w32p_videomagic_revb_vlb_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3059,7 +3053,7 @@ const device_t et4000w32p_revc_vlb_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_revc_available },
+    .available     = et4000w32p_revc_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3073,7 +3067,7 @@ const device_t et4000w32p_revc_pci_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_revc_available },
+    .available     = et4000w32p_revc_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3087,7 +3081,7 @@ const device_t et4000w32p_noncardex_vlb_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_noncardex_available },
+    .available     = et4000w32p_noncardex_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3101,7 +3095,7 @@ const device_t et4000w32p_noncardex_pci_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_noncardex_available },
+    .available     = et4000w32p_noncardex_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3115,7 +3109,7 @@ const device_t et4000w32p_cardex_vlb_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_cardex_available },
+    .available     = et4000w32p_cardex_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3129,7 +3123,7 @@ const device_t et4000w32p_cardex_pci_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_cardex_available },
+    .available     = et4000w32p_cardex_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3143,7 +3137,7 @@ const device_t et4000w32p_vlb_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_available },
+    .available     = et4000w32p_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
@@ -3157,7 +3151,7 @@ const device_t et4000w32p_pci_device = {
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    { .available = et4000w32p_available },
+    .available     = et4000w32p_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config

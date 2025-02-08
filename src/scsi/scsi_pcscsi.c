@@ -2204,10 +2204,7 @@ esp_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static void *
 dc390_init(UNUSED(const device_t *info))
 {
-    esp_t *dev;
-
-    dev = malloc(sizeof(esp_t));
-    memset(dev, 0x00, sizeof(esp_t));
+    esp_t *dev = calloc(1, sizeof(esp_t));
 
     dev->bus = scsi_get_bus();
 
@@ -2419,10 +2416,7 @@ ncr53c9x_mca_feedb(void *priv)
 static void *
 ncr53c9x_mca_init(const device_t *info)
 {
-    esp_t *dev;
-
-    dev = malloc(sizeof(esp_t));
-    memset(dev, 0x00, sizeof(esp_t));
+    esp_t *dev = calloc(1, sizeof(esp_t));
 
     dev->bus = scsi_get_bus();
 
@@ -2464,11 +2458,15 @@ esp_close(void *priv)
 static const device_config_t bios_enable_config[] = {
   // clang-format off
     {
-        .name = "bios",
-        .description = "Enable BIOS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -2482,7 +2480,7 @@ const device_t dc390_pci_device = {
     .init          = dc390_init,
     .close         = esp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = bios_enable_config
@@ -2496,7 +2494,7 @@ const device_t am53c974_pci_device = {
     .init          = dc390_init,
     .close         = esp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2510,7 +2508,7 @@ const device_t ncr53c90a_mca_device = {
     .init          = ncr53c9x_mca_init,
     .close         = esp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

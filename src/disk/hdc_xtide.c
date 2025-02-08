@@ -132,13 +132,11 @@ xtide_read(uint16_t port, void *priv)
 static void *
 xtide_init(const device_t *info)
 {
-    xtide_t *xtide = malloc(sizeof(xtide_t));
+    xtide_t *xtide = calloc(1, sizeof(xtide_t));
 
-    memset(xtide, 0x00, sizeof(xtide_t));
-
-        rom_init(&xtide->bios_rom,
-                 device_get_bios_file(info, device_get_config_bios("bios"), 0),
-                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    rom_init(&xtide->bios_rom,
+             device_get_bios_file(info, device_get_config_bios("bios"), 0),
+             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     xtide->ide_board = ide_xtide_init();
 
@@ -152,13 +150,11 @@ xtide_init(const device_t *info)
 static void *
 xtide_at_init(const device_t *info)
 {
-    xtide_t *xtide = malloc(sizeof(xtide_t));
+    xtide_t *xtide = calloc(1, sizeof(xtide_t));
 
-    memset(xtide, 0x00, sizeof(xtide_t));
-
-        rom_init(&xtide->bios_rom,
-                 device_get_bios_file(info, device_get_config_bios("bios"), 0),
-                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    rom_init(&xtide->bios_rom,
+             device_get_bios_file(info, device_get_config_bios("bios"), 0),
+             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     device_add(&ide_isa_2ch_device);
 
@@ -168,9 +164,7 @@ xtide_at_init(const device_t *info)
 static void *
 xtide_acculogic_init(UNUSED(const device_t *info))
 {
-    xtide_t *xtide = malloc(sizeof(xtide_t));
-
-    memset(xtide, 0x00, sizeof(xtide_t));
+    xtide_t *xtide = calloc(1, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_PS2,
              0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
@@ -203,9 +197,7 @@ xtide_close(void *priv)
 static void *
 xtide_at_ps2_init(UNUSED(const device_t *info))
 {
-    xtide_t *xtide = malloc(sizeof(xtide_t));
-
-    memset(xtide, 0x00, sizeof(xtide_t));
+    xtide_t *xtide = calloc(1, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_PS2AT,
              0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
@@ -232,18 +224,33 @@ xtide_at_close(void *priv)
 static const device_config_t xtide_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "xt",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Regular XT", .internal_name = "xt", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XT, "" } },
-            { .name = "XT+ (V20/V30/8018x)", .internal_name = "xt_plus", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XTP, "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Regular XT",
+                .internal_name = "xt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_XT, "" }
+            },
+            {
+                .name          = "XT+ (V20/V30/8018x)",
+                .internal_name = "xt_plus",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_XTP, "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -254,18 +261,33 @@ static const device_config_t xtide_config[] = {
 static const device_config_t xtide_at_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "at",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Regular AT", .internal_name = "at", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT, "" } },
-            { .name = "386", .internal_name = "at_386", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT_386, "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Regular AT",
+                .internal_name = "at",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_AT, "" }
+            },
+            {
+                .name          = "386",
+                .internal_name = "at_386",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_AT_386, "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -281,7 +303,7 @@ const device_t xtide_device = {
     .init          = xtide_init,
     .close         = xtide_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = xtide_config
@@ -295,7 +317,7 @@ const device_t xtide_at_device = {
     .init          = xtide_at_init,
     .close         = xtide_at_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = xtide_at_config
@@ -309,7 +331,7 @@ const device_t xtide_acculogic_device = {
     .init          = xtide_acculogic_init,
     .close         = xtide_close,
     .reset         = NULL,
-    { .available = xtide_acculogic_available },
+    .available     = xtide_acculogic_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -323,7 +345,7 @@ const device_t xtide_at_ps2_device = {
     .init          = xtide_at_ps2_init,
     .close         = xtide_at_close,
     .reset         = NULL,
-    { .available = xtide_at_ps2_available },
+    .available     = xtide_at_ps2_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

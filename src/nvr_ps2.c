@@ -114,8 +114,7 @@ ps2_nvr_init(const device_t *info)
     FILE      *fp = NULL;
     int        c;
 
-    nvr = (ps2_nvr_t *) malloc(sizeof(ps2_nvr_t));
-    memset(nvr, 0x00, sizeof(ps2_nvr_t));
+    nvr = (ps2_nvr_t *) calloc(1, sizeof(ps2_nvr_t));
 
     if (info->local)
         nvr->size = 2048;
@@ -170,7 +169,7 @@ const device_t ps2_nvr_device = {
     .init          = ps2_nvr_init,
     .close         = ps2_nvr_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -184,7 +183,7 @@ const device_t ps2_nvr_55ls_device = {
     .init          = ps2_nvr_init,
     .close         = ps2_nvr_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

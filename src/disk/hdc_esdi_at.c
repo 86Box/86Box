@@ -920,12 +920,11 @@ wd1007vse1_init(UNUSED(const device_t *info))
 {
     int c;
 
-    esdi_t *esdi = malloc(sizeof(esdi_t));
-    memset(esdi, 0x00, sizeof(esdi_t));
+    esdi_t *esdi = calloc(1, sizeof(esdi_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
             loadhd(esdi, hdd[d].esdi_channel, d, hdd[d].fn);
 
             if (++c >= ESDI_NUM)
@@ -990,7 +989,7 @@ const device_t esdi_at_wd1007vse1_device = {
     .init          = wd1007vse1_init,
     .close         = wd1007vse1_close,
     .reset         = NULL,
-    { .available = wd1007vse1_available },
+    .available     = wd1007vse1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -1627,8 +1627,7 @@ pipc_reset(void *priv)
 static void *
 pipc_init(const device_t *info)
 {
-    pipc_t *dev = (pipc_t *) malloc(sizeof(pipc_t));
-    memset(dev, 0, sizeof(pipc_t));
+    pipc_t *dev = (pipc_t *) calloc(1, sizeof(pipc_t));
 
     pipc_log("PIPC: init()\n");
 
@@ -1721,7 +1720,7 @@ const device_t via_vt82c586b_device = {
     .init          = pipc_init,
     .close         = pipc_close,
     .reset         = pipc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1735,7 +1734,7 @@ const device_t via_vt82c596a_device = {
     .init          = pipc_init,
     .close         = pipc_close,
     .reset         = pipc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1749,7 +1748,7 @@ const device_t via_vt82c596b_device = {
     .init          = pipc_init,
     .close         = pipc_close,
     .reset         = pipc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1763,7 +1762,7 @@ const device_t via_vt82c686a_device = {
     .init          = pipc_init,
     .close         = pipc_close,
     .reset         = pipc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1777,7 +1776,7 @@ const device_t via_vt82c686b_device = {
     .init          = pipc_init,
     .close         = pipc_close,
     .reset         = pipc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1791,7 +1790,7 @@ const device_t via_vt8231_device = {
     .init          = pipc_init,
     .close         = pipc_close,
     .reset         = pipc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

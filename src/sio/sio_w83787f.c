@@ -443,8 +443,7 @@ w83787f_close(void *priv)
 static void *
 w83787f_init(const device_t *info)
 {
-    w83787f_t *dev = (w83787f_t *) malloc(sizeof(w83787f_t));
-    memset(dev, 0, sizeof(w83787f_t));
+    w83787f_t *dev = (w83787f_t *) calloc(1, sizeof(w83787f_t));
 
     HAS_IDE_FUNCTIONALITY = (info->local & 0x30);
 
@@ -474,7 +473,7 @@ const device_t w83787f_88h_device = {
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -488,7 +487,7 @@ const device_t w83787f_device = {
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -502,7 +501,7 @@ const device_t w83787f_ide_device = {
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -516,7 +515,7 @@ const device_t w83787f_ide_en_device = {
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -530,7 +529,7 @@ const device_t w83787f_ide_sec_device = {
     .init          = w83787f_init,
     .close         = w83787f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

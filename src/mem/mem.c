@@ -3019,8 +3019,8 @@ umc_smram_recalc(uint32_t start, int set)
         umc_page_recalc(c, set);
 }
 
-void
-mem_remap_top_ex(int kb, uint32_t start)
+static void
+mem_remap_top_ex_common(int kb, uint32_t start, int mid)
 {
     uint32_t   c;
     int        offset;
@@ -3123,35 +3123,59 @@ mem_remap_top_ex(int kb, uint32_t start)
             mem_mapping_set_addr(&ram_remapped_mapping2, (start * 1024) + 0x00020000, 0x00020000);
             mem_mapping_set_exec(&ram_remapped_mapping2, ram + 0x000d0000);
 
-            mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
-            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
-            mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
-            mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+            if (mid) {
+                mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
+                mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
+                mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
+                mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+            }
         } else {
             mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
             mem_mapping_set_exec(&ram_remapped_mapping, ram + start_addr);
             mem_mapping_disable(&ram_remapped_mapping2);
 
-            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
-            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
-            mem_mapping_disable(&ram_mid_mapping2);
+            if (mid) {
+                mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+                mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+                mem_mapping_disable(&ram_mid_mapping2);
+            }
         }
     } else {
         mem_mapping_disable(&ram_remapped_mapping);
         mem_mapping_disable(&ram_remapped_mapping2);
 
-        mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
-        mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
-        mem_mapping_disable(&ram_mid_mapping2);
+        if (mid) {
+            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+            mem_mapping_disable(&ram_mid_mapping2);
+        }
     }
 
     flushmmucache();
 }
 
 void
+mem_remap_top_ex(int kb, uint32_t start)
+{
+    mem_remap_top_ex_common(kb, start, 1);
+}
+
+void
+mem_remap_top_ex_nomid(int kb, uint32_t start)
+{
+    mem_remap_top_ex_common(kb, start, 0);
+}
+
+void
 mem_remap_top(int kb)
 {
     mem_remap_top_ex(kb, (mem_size >= 1024) ? mem_size : 1024);
+}
+
+void
+mem_remap_top_nomid(int kb)
+{
+    mem_remap_top_ex_nomid(kb, (mem_size >= 1024) ? mem_size : 1024);
 }
 
 void

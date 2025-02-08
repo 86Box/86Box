@@ -30,6 +30,7 @@
 #include <86box/fdc.h>
 #include <86box/machine.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #    include "codegen.h"
@@ -357,6 +358,8 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
         if (smi_line)
             CPU_BLOCK_END();
+        else if (new_ne)
+            CPU_BLOCK_END();
         else if (trap)
             CPU_BLOCK_END();
         else if (nmi && nmi_enable && nmi_mask)
@@ -366,7 +369,7 @@ exec386_dynarec_int(void)
     }
 
 block_ended:
-    if (!cpu_state.abrt && trap) {
+    if (!cpu_state.abrt && !new_ne && trap) {
 #    ifdef USE_DEBUG_REGS_486
         //pclog("Debug trap 0x%X\n", trap);
         if (trap & 2) dr[6] |= 0x8000;
@@ -386,7 +389,11 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
+#if defined(__linux__) && !defined(__clang__) && defined(USE_NEW_DYNAREC)
+static inline void __attribute__((optimize("O2")))
+#else
 static __inline void
+#endif
 exec386_dynarec_dyn(void)
 {
     uint32_t start_pc  = 0;
@@ -598,6 +605,8 @@ exec386_dynarec_dyn(void)
             if (cpu_init)
                 CPU_BLOCK_END();
 
+            if (new_ne)
+                CPU_BLOCK_END();
             if ((cpu_state.flags & T_FLAG) || (trap == 2))
                 CPU_BLOCK_END();
             if (smi_line)
@@ -622,7 +631,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
             codegen_block_end_recompile(block);
 
         if (x86_was_reset)
@@ -698,6 +707,8 @@ exec386_dynarec_dyn(void)
             if (cpu_init)
                 CPU_BLOCK_END();
 
+            if (new_ne)
+                CPU_BLOCK_END();
             if (cpu_state.flags & T_FLAG)
                 CPU_BLOCK_END();
             if (smi_line)
@@ -722,7 +733,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
             codegen_block_end();
 
         if (x86_was_reset)
@@ -803,6 +814,15 @@ exec386_dynarec(int32_t cycs)
 #    endif
                     }
                 }
+            }
+
+            if (new_ne) {
+#    ifndef USE_NEW_DYNAREC
+                oldcs = CS;
+#    endif
+                cpu_state.oldpc = cpu_state.pc;
+                new_ne = 0;
+                x86_int(16);
             }
 
             if (smi_line)
@@ -973,6 +993,15 @@ block_ended:
 #endif
                     }
                 }
+            } else if (new_ne) {
+                flags_rebuild();
+
+                new_ne = 0;
+#ifndef USE_NEW_DYNAREC
+                oldcs = CS;
+#endif
+                cpu_state.oldpc = cpu_state.pc;
+                x86_int(16);
             } else if (trap) {
                 flags_rebuild();
 #ifdef USE_DEBUG_REGS_486

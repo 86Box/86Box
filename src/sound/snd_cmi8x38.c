@@ -1434,8 +1434,7 @@ cmi8x38_reset(void *priv)
 static void *
 cmi8x38_init(const device_t *info)
 {
-    cmi8x38_t *dev = malloc(sizeof(cmi8x38_t));
-    memset(dev, 0, sizeof(cmi8x38_t));
+    cmi8x38_t *dev = calloc(1, sizeof(cmi8x38_t));
 
     /* Set the chip type. */
     if ((info->local == CMEDIA_CMI8738_6CH) && !device_get_config_int("six_channel"))
@@ -1509,11 +1508,15 @@ cmi8x38_close(void *priv)
 static const device_config_t cmi8x38_config[] = {
   // clang-format off
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1522,18 +1525,26 @@ static const device_config_t cmi8x38_config[] = {
 static const device_config_t cmi8738_config[] = {
   // clang-format off
     {
-        .name = "six_channel",
-        .description = "6CH variant (6-channel)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "six_channel",
+        .description    = "6CH variant (6-channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

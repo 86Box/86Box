@@ -978,7 +978,7 @@ const device_t i8253_device = {
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -992,7 +992,7 @@ const device_t i8253_ext_io_device = {
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1020,7 +1020,7 @@ const device_t i8254_device = {
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1034,7 +1034,7 @@ const device_t i8254_sec_device = {
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1048,7 +1048,7 @@ const device_t i8254_ext_io_device = {
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1062,7 +1062,7 @@ const device_t i8254_ps2_device = {
     .init          = pit_init,
     .close         = pit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pit_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1290,14 +1290,14 @@ pit_set_clock(uint32_t clock)
 }
 
 const pit_intf_t pit_classic_intf = {
-    &pit_read,
-    &pit_write,
-    &pit_ctr_get_count,
-    &pit_ctr_set_gate,
-    &pit_ctr_set_using_timer,
-    &pit_ctr_set_out_func,
-    &pit_ctr_set_load_func,
-    &ctr_clock,
-    &pit_set_pit_const,
-    NULL,
+    .read            = &pit_read,
+    .write           = &pit_write,
+    .get_count       = &pit_ctr_get_count,
+    .set_gate        = &pit_ctr_set_gate,
+    .set_using_timer = &pit_ctr_set_using_timer,
+    .set_out_func    = &pit_ctr_set_out_func,
+    .set_load_func   = &pit_ctr_set_load_func,
+    .ctr_clock       = &ctr_clock,
+    .set_pit_const   = &pit_set_pit_const,
+    .data            = NULL,
 };

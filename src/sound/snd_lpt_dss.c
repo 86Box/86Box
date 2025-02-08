@@ -115,8 +115,7 @@ dss_callback(void *priv)
 static void *
 dss_init(void *lpt)
 {
-    dss_t *dss = malloc(sizeof(dss_t));
-    memset(dss, 0, sizeof(dss_t));
+    dss_t *dss = calloc(1, sizeof(dss_t));
 
     dss->lpt = lpt;
 

@@ -366,13 +366,12 @@ ps_read_status(void *priv)
 static void *
 ps_init(void *lpt)
 {
-    ps_t            *dev;
+    ps_t            *dev = (ps_t *) calloc(1, sizeof(ps_t));
     gsapi_revision_t rev;
 
-    dev = (ps_t *) malloc(sizeof(ps_t));
-    memset(dev, 0x00, sizeof(ps_t));
     dev->ctrl = 0x04;
     dev->lpt  = lpt;
+    dev->pcl  = false;
 
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
@@ -415,11 +414,9 @@ ps_init(void *lpt)
 static void *
 pcl_init(void *lpt)
 {
-    ps_t            *dev;
+    ps_t            *dev = (ps_t *) calloc(1, sizeof(ps_t));
     gsapi_revision_t rev;
 
-    dev = (ps_t *) malloc(sizeof(ps_t));
-    memset(dev, 0x00, sizeof(ps_t));
     dev->ctrl = 0x04;
     dev->lpt  = lpt;
     dev->pcl  = true;

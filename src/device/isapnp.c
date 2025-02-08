@@ -121,6 +121,25 @@ typedef struct {
     isapnp_device_t *current_ld;
 } isapnp_t;
 
+static isapnp_device_t *
+isapnp_create_ld(isapnp_card_t *card)
+{
+    /* Allocate logical device. */
+    isapnp_device_t *ld = calloc(1, sizeof(isapnp_device_t));
+
+    /* Add to the end of the card's logical device list. */
+    isapnp_device_t *prev_ld = card->first_ld;
+    if (prev_ld) {
+        while (prev_ld->next)
+            prev_ld = prev_ld->next;
+        prev_ld->next = ld;
+    } else {
+        card->first_ld = ld;
+    }
+
+    return ld;
+}
+
 static void
 isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
 {
@@ -532,8 +551,12 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                 ld = ld->next;
             }
 
-            if (!ld)
-                isapnp_log("ISAPnP: CSN %02X has no device %02X\n", card->csn, val);
+            if (!ld) {
+                isapnp_log("ISAPnP: CSN %02X has no device %02X, creating one\n", card->csn, val);
+                dev->current_ld_card    = card;
+                dev->current_ld         = isapnp_create_ld(card);
+                dev->current_ld->number = val;
+            }
 
             break;
 
@@ -656,7 +679,7 @@ isapnp_write_data(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static void *
 isapnp_init(UNUSED(const device_t *info))
 {
-    isapnp_t *dev = (isapnp_t *) malloc(sizeof(isapnp_t));
+    isapnp_t *dev = (isapnp_t *) calloc(1, sizeof(isapnp_t));
     memset(dev, 0, sizeof(isapnp_t));
 
     io_sethandler(0x279, 1, NULL, NULL, NULL, isapnp_write_addr, NULL, NULL, dev);
@@ -705,8 +728,7 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     if (!dev)
         dev = (isapnp_t *) device_add(&isapnp_device);
 
-    isapnp_card_t *card = (isapnp_card_t *) malloc(sizeof(isapnp_card_t));
-    memset(card, 0, sizeof(isapnp_card_t));
+    isapnp_card_t *card = (isapnp_card_t *) calloc(1, sizeof(isapnp_card_t));
 
     card->enable           = 1;
     card->priv             = priv;
@@ -763,8 +785,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     uint8_t          mem_range_df    = 0;
     uint8_t          mem_range_32_df = 0;
     uint32_t         len;
-    isapnp_device_t *ld      = NULL;
-    isapnp_device_t *prev_ld = NULL;
+    isapnp_device_t *ld = NULL;
 
     /* Check if this is an existing card which already has logical devices.
        Any new logical devices will be added to the list after existing ones.
@@ -912,18 +933,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         memset(ld->io_len, 0, sizeof(ld->io_len));
                     } else {
                         /* Create logical device. */
-                        ld = (isapnp_device_t *) malloc(sizeof(isapnp_device_t));
-                        memset(ld, 0, sizeof(isapnp_device_t));
-
-                        /* Add to end of list. */
-                        prev_ld = card->first_ld;
-                        if (prev_ld) {
-                            while (prev_ld->next)
-                                prev_ld = prev_ld->next;
-                            prev_ld->next = ld;
-                        } else {
-                            card->first_ld = ld;
-                        }
+                        ld = isapnp_create_ld(card);
                     }
 
                     /* Set and increment logical device number. */
@@ -1220,7 +1230,7 @@ static const device_t isapnp_device = {
     .init          = isapnp_init,
     .close         = isapnp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

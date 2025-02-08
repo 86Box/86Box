@@ -655,8 +655,7 @@ t3100e_recalcattrs(t3100e_t *t3100e)
 void *
 t3100e_init(UNUSED(const device_t *info))
 {
-    t3100e_t *t3100e = malloc(sizeof(t3100e_t));
-    memset(t3100e, 0, sizeof(t3100e_t));
+    t3100e_t *t3100e = calloc(1, sizeof(t3100e_t));
     loadfont("roms/machines/t3100e/t3100e_font.bin", 5);
     cga_init(&t3100e->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
@@ -711,7 +710,7 @@ const device_t t3100e_device = {
     .init          = t3100e_init,
     .close         = t3100e_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = t3100e_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

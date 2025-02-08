@@ -454,8 +454,7 @@ acc3221_close(void *priv)
 static void *
 acc3221_init(UNUSED(const device_t *info))
 {
-    acc3221_t *dev = (acc3221_t *) malloc(sizeof(acc3221_t));
-    memset(dev, 0, sizeof(acc3221_t));
+    acc3221_t *dev = (acc3221_t *) calloc(1, sizeof(acc3221_t));
 
     dev->fdc = device_add(&fdc_at_device);
 
@@ -477,7 +476,7 @@ const device_t acc3221_device = {
     .init          = acc3221_init,
     .close         = acc3221_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

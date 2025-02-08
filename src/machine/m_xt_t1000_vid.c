@@ -651,8 +651,7 @@ t1000_recalcattrs(t1000_t *t1000)
 static void *
 t1000_init(UNUSED(const device_t *info))
 {
-    t1000_t *t1000 = malloc(sizeof(t1000_t));
-    memset(t1000, 0, sizeof(t1000_t));
+    t1000_t *t1000 = calloc(1, sizeof(t1000_t));
     loadfont("roms/machines/t1000/t1000font.bin", 8);
     cga_init(&t1000->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
@@ -741,7 +740,7 @@ const device_t t1000_video_device = {
     .init          = t1000_init,
     .close         = t1000_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = t1000_speed_changed,
     .force_redraw  = NULL,
     .config        = t1000_config
@@ -755,7 +754,7 @@ const device_t t1200_video_device = {
     .init          = t1000_init,
     .close         = t1000_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = t1000_speed_changed,
     .force_redraw  = NULL,
     .config        = t1000_config

@@ -153,7 +153,7 @@ void pc_cas_print_state(const pc_cassette_t *cas);
 void pc_cas_clock(pc_cassette_t *cas, unsigned long cnt);
 void pc_cas_advance(pc_cassette_t *cas);
 
-#define CASSETTE_IMAGE_HISTORY    4
+#define CASSETTE_IMAGE_HISTORY    10
 
 extern pc_cassette_t *cassette;
 

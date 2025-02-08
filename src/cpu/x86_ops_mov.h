@@ -129,7 +129,7 @@ opMOV_SP_imm(uint32_t fetchdat)
 }
 
 static int
-opMOV_EAX_imm(uint32_t fetchdat)
+opMOV_EAX_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -140,7 +140,7 @@ opMOV_EAX_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_EBX_imm(uint32_t fetchdat)
+opMOV_EBX_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -151,7 +151,7 @@ opMOV_EBX_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_ECX_imm(uint32_t fetchdat)
+opMOV_ECX_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -162,7 +162,7 @@ opMOV_ECX_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_EDX_imm(uint32_t fetchdat)
+opMOV_EDX_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -173,7 +173,7 @@ opMOV_EDX_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_ESI_imm(uint32_t fetchdat)
+opMOV_ESI_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -184,7 +184,7 @@ opMOV_ESI_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_EDI_imm(uint32_t fetchdat)
+opMOV_EDI_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -195,7 +195,7 @@ opMOV_EDI_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_EBP_imm(uint32_t fetchdat)
+opMOV_EBP_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -206,7 +206,7 @@ opMOV_EBP_imm(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_ESP_imm(uint32_t fetchdat)
+opMOV_ESP_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ = getlong();
     if (cpu_state.abrt)
@@ -326,7 +326,7 @@ opMOV_AL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_AL_a32(uint32_t fetchdat)
+opMOV_AL_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t  temp;
     uint32_t addr = getlong();
@@ -356,7 +356,7 @@ opMOV_AX_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_AX_a32(uint32_t fetchdat)
+opMOV_AX_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
     uint32_t addr = getlong();
@@ -386,7 +386,7 @@ opMOV_EAX_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOV_EAX_a32(uint32_t fetchdat)
+opMOV_EAX_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
     uint32_t addr = getlong();
@@ -413,7 +413,7 @@ opMOV_a16_AL(uint32_t fetchdat)
     return cpu_state.abrt;
 }
 static int
-opMOV_a32_AL(uint32_t fetchdat)
+opMOV_a32_AL(UNUSED(uint32_t fetchdat))
 {
     uint32_t addr = getlong();
     SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -435,7 +435,7 @@ opMOV_a16_AX(uint32_t fetchdat)
     return cpu_state.abrt;
 }
 static int
-opMOV_a32_AX(uint32_t fetchdat)
+opMOV_a32_AX(UNUSED(uint32_t fetchdat))
 {
     uint32_t addr = getlong();
     if (cpu_state.abrt)
@@ -459,7 +459,7 @@ opMOV_a16_EAX(uint32_t fetchdat)
     return cpu_state.abrt;
 }
 static int
-opMOV_a32_EAX(uint32_t fetchdat)
+opMOV_a32_EAX(UNUSED(uint32_t fetchdat))
 {
     uint32_t addr = getlong();
     if (cpu_state.abrt)
@@ -515,7 +515,7 @@ opLEA_l_a32(uint32_t fetchdat)
 }
 
 static int
-opXLAT_a16(uint32_t fetchdat)
+opXLAT_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t addr = (BX + AL) & 0xFFFF;
     uint8_t  temp;
@@ -530,7 +530,7 @@ opXLAT_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opXLAT_a32(uint32_t fetchdat)
+opXLAT_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t addr = EBX + AL;
     uint8_t  temp;

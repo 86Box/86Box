@@ -8,14 +8,14 @@
  *
  *          Main include file for the application.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
@@ -33,7 +33,7 @@
 #define SCREENSHOT_PATH "screenshots"
 
 /* Recently used images */
-#define MAX_PREV_IMAGES    4
+#define MAX_PREV_IMAGES    10
 #define MAX_IMAGE_PATH_LEN 2048
 
 /* Max UUID Length */
@@ -131,6 +131,7 @@ extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
+extern int      gameport_type[];            /* (C) enable gameports */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */

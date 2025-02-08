@@ -259,8 +259,7 @@ opti895_close(void *priv)
 static void *
 opti895_init(const device_t *info)
 {
-    opti895_t *dev = (opti895_t *) malloc(sizeof(opti895_t));
-    memset(dev, 0, sizeof(opti895_t));
+    opti895_t *dev = (opti895_t *) calloc(1, sizeof(opti895_t));
 
     device_add(&port_92_device);
 
@@ -306,7 +305,7 @@ const device_t opti802g_device = {
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -320,7 +319,7 @@ const device_t opti802g_pci_device = {
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -334,7 +333,7 @@ const device_t opti895_device = {
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -814,6 +814,8 @@ extern int lock_legal_80[8];
 extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
 
+extern int new_ne;
+
 extern int in_lock;
 extern int cpu_override_interpreter;
 

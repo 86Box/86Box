@@ -12,7 +12,7 @@ opFI(uint32_t fetchdat)
 }
 #else
 static int
-opFSTSW_AX(uint32_t fetchdat)
+opFSTSW_AX(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -24,7 +24,7 @@ opFSTSW_AX(uint32_t fetchdat)
 #endif
 
 static int
-opFNOP(uint32_t fetchdat)
+opFNOP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -34,7 +34,7 @@ opFNOP(uint32_t fetchdat)
 }
 
 static int
-opFXTRACT(uint32_t fetchdat)
+opFXTRACT(UNUSED(uint32_t fetchdat))
 {
     x87_conv_t test;
     int64_t    exp80;
@@ -56,7 +56,7 @@ opFXTRACT(uint32_t fetchdat)
 }
 
 static int
-opFCLEX(uint32_t fetchdat)
+opFCLEX(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -67,7 +67,7 @@ opFCLEX(uint32_t fetchdat)
 }
 
 static int
-opFINIT(uint32_t fetchdat)
+opFINIT(UNUSED(uint32_t fetchdat))
 {
     uint64_t *p;
     FP_ENTER();
@@ -208,7 +208,7 @@ FSTOR(void)
     return cpu_state.abrt;
 }
 static int
-opFSTOR_a16(uint32_t fetchdat)
+opFSTOR_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -429,7 +429,7 @@ FSAVE(void)
     return cpu_state.abrt;
 }
 static int
-opFSAVE_a16(uint32_t fetchdat)
+opFSAVE_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -450,7 +450,7 @@ opFSAVE_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTSW_a16(uint32_t fetchdat)
+opFSTSW_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -516,7 +516,7 @@ opFXCH(uint32_t fetchdat)
 }
 
 static int
-opFCHS(uint32_t fetchdat)
+opFCHS(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -528,7 +528,7 @@ opFCHS(uint32_t fetchdat)
 }
 
 static int
-opFABS(uint32_t fetchdat)
+opFABS(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -540,7 +540,7 @@ opFABS(uint32_t fetchdat)
 }
 
 static int
-opFTST(uint32_t fetchdat)
+opFTST(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -555,7 +555,7 @@ opFTST(uint32_t fetchdat)
 }
 
 static int
-opFXAM(uint32_t fetchdat)
+opFXAM(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -579,7 +579,7 @@ opFXAM(uint32_t fetchdat)
 }
 
 static int
-opFLD1(uint32_t fetchdat)
+opFLD1(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -590,7 +590,7 @@ opFLD1(uint32_t fetchdat)
 }
 
 static int
-opFLDL2T(uint32_t fetchdat)
+opFLDL2T(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -601,7 +601,7 @@ opFLDL2T(uint32_t fetchdat)
 }
 
 static int
-opFLDL2E(uint32_t fetchdat)
+opFLDL2E(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -612,7 +612,7 @@ opFLDL2E(uint32_t fetchdat)
 }
 
 static int
-opFLDPI(uint32_t fetchdat)
+opFLDPI(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -623,7 +623,7 @@ opFLDPI(uint32_t fetchdat)
 }
 
 static int
-opFLDEG2(uint32_t fetchdat)
+opFLDEG2(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -634,7 +634,7 @@ opFLDEG2(uint32_t fetchdat)
 }
 
 static int
-opFLDLN2(uint32_t fetchdat)
+opFLDLN2(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -645,7 +645,7 @@ opFLDLN2(uint32_t fetchdat)
 }
 
 static int
-opFLDZ(uint32_t fetchdat)
+opFLDZ(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -657,7 +657,7 @@ opFLDZ(uint32_t fetchdat)
 }
 
 static int
-opF2XM1(uint32_t fetchdat)
+opF2XM1(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -669,7 +669,7 @@ opF2XM1(uint32_t fetchdat)
 }
 
 static int
-opFYL2X(uint32_t fetchdat)
+opFYL2X(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -682,7 +682,7 @@ opFYL2X(uint32_t fetchdat)
 }
 
 static int
-opFYL2XP1(uint32_t fetchdat)
+opFYL2XP1(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -695,7 +695,7 @@ opFYL2XP1(uint32_t fetchdat)
 }
 
 static int
-opFPTAN(uint32_t fetchdat)
+opFPTAN(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -709,7 +709,7 @@ opFPTAN(uint32_t fetchdat)
 }
 
 static int
-opFPATAN(uint32_t fetchdat)
+opFPATAN(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -722,7 +722,7 @@ opFPATAN(uint32_t fetchdat)
 }
 
 static int
-opFDECSTP(uint32_t fetchdat)
+opFDECSTP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -737,7 +737,7 @@ opFDECSTP(uint32_t fetchdat)
 }
 
 static int
-opFINCSTP(uint32_t fetchdat)
+opFINCSTP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -752,7 +752,7 @@ opFINCSTP(uint32_t fetchdat)
 }
 
 static int
-opFPREM(uint32_t fetchdat)
+opFPREM(UNUSED(uint32_t fetchdat))
 {
     int64_t temp64;
     FP_ENTER();
@@ -773,7 +773,7 @@ opFPREM(uint32_t fetchdat)
 }
 
 static int
-opFPREM1(uint32_t fetchdat)
+opFPREM1(UNUSED(uint32_t fetchdat))
 {
     int64_t temp64;
     FP_ENTER();
@@ -794,7 +794,7 @@ opFPREM1(uint32_t fetchdat)
 }
 
 static int
-opFSQRT(uint32_t fetchdat)
+opFSQRT(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -807,7 +807,7 @@ opFSQRT(uint32_t fetchdat)
 
 #ifndef FPU_8087
 static int
-opFSINCOS(uint32_t fetchdat)
+opFSINCOS(UNUSED(uint32_t fetchdat))
 {
     double td;
     FP_ENTER();
@@ -824,7 +824,7 @@ opFSINCOS(uint32_t fetchdat)
 #endif
 
 static int
-opFRNDINT(uint32_t fetchdat)
+opFRNDINT(UNUSED(uint32_t fetchdat))
 {
     double dst0;
 
@@ -839,7 +839,7 @@ opFRNDINT(uint32_t fetchdat)
 }
 
 static int
-opFSCALE(uint32_t fetchdat)
+opFSCALE(UNUSED(uint32_t fetchdat))
 {
     int64_t temp64;
     FP_ENTER();
@@ -855,7 +855,7 @@ opFSCALE(uint32_t fetchdat)
 
 #ifndef FPU_8087
 static int
-opFSIN(uint32_t fetchdat)
+opFSIN(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -868,7 +868,7 @@ opFSIN(uint32_t fetchdat)
 }
 
 static int
-opFCOS(uint32_t fetchdat)
+opFCOS(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -909,7 +909,7 @@ FLDENV(void)
 }
 
 static int
-opFLDENV_a16(uint32_t fetchdat)
+opFLDENV_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -930,7 +930,7 @@ opFLDENV_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFLDCW_a16(uint32_t fetchdat)
+opFLDCW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
     FP_ENTER();
@@ -1011,7 +1011,7 @@ FSTENV(void)
 }
 
 static int
-opFSTENV_a16(uint32_t fetchdat)
+opFSTENV_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -1032,7 +1032,7 @@ opFSTENV_a32(uint32_t fetchdat)
 #endif
 
 static int
-opFSTCW_a16(uint32_t fetchdat)
+opFSTCW_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);

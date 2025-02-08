@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "codegen.h"
 #include "codegen_allocator.h"

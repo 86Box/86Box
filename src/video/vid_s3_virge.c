@@ -2088,127 +2088,127 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
     }
 }
 
-#define READ(addr, val)                                                        \
-    do {                                                                       \
-        switch (bpp) {                                                         \
-            case 0: /*8 bpp*/                                                  \
+#define READ(addr, val)                                                         \
+    do {                                                                        \
+        switch (bpp) {                                                          \
+            case 0: /*8 bpp*/                                                   \
                 val = vram[addr & virge->vram_mask];                            \
-                break;                                                         \
-            case 1: /*16 bpp*/                                                 \
+                break;                                                          \
+            case 1: /*16 bpp*/                                                  \
                 val = *(uint16_t *)&vram[addr & virge->vram_mask];              \
-                break;                                                         \
-            case 2: /*24 bpp*/                                                 \
+                break;                                                          \
+            case 2: /*24 bpp*/                                                  \
                 val = (*(uint32_t *)&vram[addr & virge->vram_mask]) & 0xffffff; \
-                break;                                                         \
-        }                                                                      \
+                break;                                                          \
+        }                                                                       \
     } while (0)
 
 #define Z_READ(addr) *(uint16_t *)&vram[addr & virge->vram_mask]
 
-#define Z_WRITE(addr, val)                                                     \
-    if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))                                 \
+#define Z_WRITE(addr, val)                                \
+    if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))            \
         *(uint16_t *)&vram[addr & virge->vram_mask] = val
 
-#define CLIP(x, y)                                                             \
-    do {                                                                       \
-        if ((virge->s3d.cmd_set & CMD_SET_HC) &&                               \
-            (x < virge->s3d.clip_l || x > virge->s3d.clip_r ||                 \
-             y < virge->s3d.clip_t || y > virge->s3d.clip_b))                  \
-             update = 0;                                                       \
+#define CLIP(x, y)                                             \
+    do {                                                       \
+        if ((virge->s3d.cmd_set & CMD_SET_HC) &&               \
+            (x < virge->s3d.clip_l || x > virge->s3d.clip_r || \
+             y < virge->s3d.clip_t || y > virge->s3d.clip_b))  \
+             update = 0;                                       \
     } while (0)
 
-#define CLIP_3D(x, y)                                                          \
-    do {                                                                       \
-        if ((s3d_tri->cmd_set & CMD_SET_HC) && (x < s3d_tri->clip_l ||         \
-            x > s3d_tri->clip_r || y < s3d_tri->clip_t ||                      \
-            y > s3d_tri->clip_b))                                              \
-            update = 0;                                                        \
+#define CLIP_3D(x, y)                                                  \
+    do {                                                               \
+        if ((s3d_tri->cmd_set & CMD_SET_HC) && (x < s3d_tri->clip_l || \
+            x > s3d_tri->clip_r || y < s3d_tri->clip_t ||              \
+            y > s3d_tri->clip_b))                                      \
+            update = 0;                                                \
         } while (0)
 
-#define Z_CLIP(Zzb, Zs)                                                        \
-    do {                                                                       \
-        if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))                             \
-            switch ((s3d_tri->cmd_set >> 20) & 7) {                            \
-                case 0:                                                        \
-                    update = 0;                                                \
-                    break;                                                     \
-                case 1:                                                        \
-                    if (Zs <= Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 2:                                                        \
-                    if (Zs != Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 3:                                                        \
-                    if (Zs < Zzb)                                              \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 4:                                                        \
-                    if (Zs >= Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                 case 5:                                                       \
-                    if (Zs == Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                     break;                                                    \
-                case 6:                                                        \
-                    if (Zs > Zzb)                                              \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 7:                                                        \
-                    update = 1;                                                \
-                    Zzb = Zs;                                                  \
-                    break;                                                     \
-            }                                                                  \
+#define Z_CLIP(Zzb, Zs)                             \
+    do {                                            \
+        if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))  \
+            switch ((s3d_tri->cmd_set >> 20) & 7) { \
+                case 0:                             \
+                    update = 0;                     \
+                    break;                          \
+                case 1:                             \
+                    if (Zs <= Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 2:                             \
+                    if (Zs != Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 3:                             \
+                    if (Zs < Zzb)                   \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 4:                             \
+                    if (Zs >= Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                 case 5:                            \
+                    if (Zs == Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                     break;                         \
+                case 6:                             \
+                    if (Zs > Zzb)                   \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 7:                             \
+                    update = 1;                     \
+                    Zzb = Zs;                       \
+                    break;                          \
+            }                                       \
         } while (0)
 
-#define MIX()                                                                  \
-    do {                                                                       \
-        int c;                                                                 \
-        for (c = 0; c < 24; c++) {                                             \
-            int d = (dest & (1 << c)) ? 1 : 0;                                 \
-            if (source & (1 << c))                                             \
-                d |= 2;                                                        \
-            if (pattern & (1 << c))                                            \
-                d |= 4;                                                        \
-            if (virge->s3d.rop & (1 << d))                                     \
-                out |= (1 << c);                                               \
-        }                                                                      \
+#define MIX()                                  \
+    do {                                       \
+        int c;                                 \
+        for (c = 0; c < 24; c++) {             \
+            int d = (dest & (1 << c)) ? 1 : 0; \
+            if (source & (1 << c))             \
+                d |= 2;                        \
+            if (pattern & (1 << c))            \
+                d |= 4;                        \
+            if (virge->s3d.rop & (1 << d))     \
+                out |= (1 << c);               \
+        }                                      \
     } while (0)
 
-#define WRITE(addr, val)                                                       \
-    do {                                                                       \
-        switch (bpp) {                                                         \
-            case 0: /*8 bpp*/                                                  \
-                vram[addr & virge->vram_mask] = val;                            \
-                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =      \
-                    changeframecount;                                          \
-                break;                                                         \
-            case 1: /*16 bpp*/                                                 \
-                 *(uint16_t *)&vram[addr & virge->vram_mask] = val;             \
-                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =      \
-                    changeframecount;                                          \
-                break;                                                         \
-            case 2: /*24 bpp*/                                                 \
-                *(uint32_t *)&vram[addr & virge->vram_mask] = (val & 0xffffff) |\
-                    (vram[(addr + 3) & virge->vram_mask] << 24);                \
-                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =      \
-                    changeframecount;                                          \
-                break;                                                         \
-        }                                                                      \
+#define WRITE(addr, val)                                                         \
+    do {                                                                         \
+        switch (bpp) {                                                           \
+            case 0: /*8 bpp*/                                                    \
+                vram[addr & virge->vram_mask] = val;                             \
+                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
+                    changeframecount;                                            \
+                break;                                                           \
+            case 1: /*16 bpp*/                                                   \
+                 *(uint16_t *)&vram[addr & virge->vram_mask] = val;              \
+                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
+                    changeframecount;                                            \
+                break;                                                           \
+            case 2: /*24 bpp*/                                                   \
+                *(uint32_t *)&vram[addr & virge->vram_mask] = (val & 0xffffff) | \
+                    (vram[(addr + 3) & virge->vram_mask] << 24);                 \
+                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
+                    changeframecount;                                            \
+                break;                                                           \
+        }                                                                        \
     } while (0)
 
 static void
@@ -2573,23 +2573,23 @@ skip_line:
         g = ((val & 0x03e0) >> 2) | ((val & 0x03e0) >> 7);  \
         r = ((val & 0x7c00) >> 7) | ((val & 0x7c00) >> 12);
 
-#define RGB24_TO_24(val, r, g, b)                           \
-        b = val & 0xff;                                     \
-        g = (val & 0xff00) >> 8;                            \
+#define RGB24_TO_24(val, r, g, b)  \
+        b = val & 0xff;            \
+        g = (val & 0xff00) >> 8;   \
         r = (val & 0xff0000) >> 16
 
-#define RGB15(r, g, b, dest)                                \
-        if (virge->dithering_enabled) {                     \
-                int add = dither[_y & 3][_x & 3];           \
-                int _r = (r > 248) ? 248 : r + add;         \
-                int _g = (g > 248) ? 248 : g + add;         \
-                int _b = (b > 248) ? 248 : b + add;         \
-                dest = ((_b >> 3) & 0x1f) |                 \
-                       (((_g >> 3) & 0x1f) << 5) |          \
-                       (((_r >> 3) & 0x1f) << 10);          \
-        } else                                              \
-                dest = ((b >> 3) & 0x1f) |                  \
-                       (((g >> 3) & 0x1f) << 5) |           \
+#define RGB15(r, g, b, dest)                        \
+        if (virge->dithering_enabled) {             \
+                int add = dither[_y & 3][_x & 3];   \
+                int _r = (r > 248) ? 248 : r + add; \
+                int _g = (g > 248) ? 248 : g + add; \
+                int _b = (b > 248) ? 248 : b + add; \
+                dest = ((_b >> 3) & 0x1f) |         \
+                       (((_g >> 3) & 0x1f) << 5) |  \
+                       (((_r >> 3) & 0x1f) << 10);  \
+        } else                                      \
+                dest = ((b >> 3) & 0x1f) |          \
+                       (((g >> 3) & 0x1f) << 5) |   \
                        (((r >> 3) & 0x1f) << 10)
 
 #define RGB24(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
@@ -3753,103 +3753,99 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
         svga->hwcursor_latch.addr += 16;
 }
 
-#define DECODE_YCbCr()                       \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 2; c++) {            \
-            uint8_t y1, y2;                  \
-            int8_t  Cr;                      \
-            int8_t  Cb;                      \
-            int     dR;                      \
-            int     dG;                      \
-            int     dB;                      \
-                                             \
-            y1 = src[0];                     \
-            Cr = src[1] - 0x80;              \
-            y2 = src[2];                     \
-            Cb = src[3] - 0x80;              \
-            src += 4;                        \
-                                             \
-            dR = (359 * Cr) >> 8;            \
-            dG = (88 * Cb + 183 * Cr) >> 8;  \
-            dB = (453 * Cb) >> 8;            \
-                                             \
-            r[x_write] = y1 + dR;            \
-            CLAMP(r[x_write]);               \
-            g[x_write] = y1 - dG;            \
-            CLAMP(g[x_write]);               \
-            b[x_write] = y1 + dB;            \
-            CLAMP(b[x_write]);               \
-                                             \
-            r[x_write + 1] = y2 + dR;        \
-            CLAMP(r[x_write + 1]);           \
-            g[x_write + 1] = y2 - dG;        \
-            CLAMP(g[x_write + 1]);           \
-            b[x_write + 1] = y2 + dB;        \
-            CLAMP(b[x_write + 1]);           \
-                                             \
-            x_write = (x_write + 2) & 7;     \
-         }                                   \
+#define DECODE_YCbCr()                      \
+    do {                                    \
+        for (uint8_t c = 0; c < 2; c++) {   \
+            uint8_t y1, y2;                 \
+            int8_t  Cr;                     \
+            int8_t  Cb;                     \
+            int     dR;                     \
+            int     dG;                     \
+            int     dB;                     \
+                                            \
+            y1 = src[0];                    \
+            Cr = src[1] - 0x80;             \
+            y2 = src[2];                    \
+            Cb = src[3] - 0x80;             \
+            src += 4;                       \
+                                            \
+            dR = (359 * Cr) >> 8;           \
+            dG = (88 * Cb + 183 * Cr) >> 8; \
+            dB = (453 * Cb) >> 8;           \
+                                            \
+            r[x_write] = y1 + dR;           \
+            CLAMP(r[x_write]);              \
+            g[x_write] = y1 - dG;           \
+            CLAMP(g[x_write]);              \
+            b[x_write] = y1 + dB;           \
+            CLAMP(b[x_write]);              \
+                                            \
+            r[x_write + 1] = y2 + dR;       \
+            CLAMP(r[x_write + 1]);          \
+            g[x_write + 1] = y2 - dG;       \
+            CLAMP(g[x_write + 1]);          \
+            b[x_write + 1] = y2 + dB;       \
+            CLAMP(b[x_write + 1]);          \
+                                            \
+            x_write = (x_write + 2) & 7;    \
+         }                                  \
     } while (0)
 
 /*Both YUV formats are untested*/
-#define DECODE_YUV211()                      \
-    do {                                     \
-        uint8_t y1, y2, y3, y4;              \
-        int8_t U, V;                         \
-        int dR;                              \
-        int dG;                              \
-        int dB;                              \
-                                             \
-        U = src[0] - 0x80;                   \
-        y1 = (298 * (src[1] - 16)) >> 8;     \
-        y2 = (298 * (src[2] - 16)) >> 8;     \
-        V = src[3] - 0x80;                   \
-        y3 = (298 * (src[4] - 16)) >> 8;     \
-        y4 = (298 * (src[5] - 16)) >> 8;     \
-        src += 6;                            \
-                                             \
-        dR = (309 * V) >> 8;                 \
-        dG = (100 * U + 208 * V) >> 8;       \
-        dB = (516 * U) >> 8;                 \
-                                             \
-        r[x_write] = y1 + dR;                \
-        CLAMP(r[x_write]);                   \
-        g[x_write] = y1 - dG;                \
-        CLAMP(g[x_write]);                   \
-        b[x_write] = y1 + dB;                \
-        CLAMP(b[x_write]);                   \
-                                             \
-        r[x_write + 1] = y2 + dR;            \
-        CLAMP(r[x_write + 1]);               \
-        g[x_write + 1] = y2 - dG;            \
-        CLAMP(g[x_write + 1]);               \
-        b[x_write + 1] = y2 + dB;            \
-        CLAMP(b[x_write + 1]);               \
-                                             \
-        r[x_write + 2] = y3 + dR;            \
-        CLAMP(r[x_write + 2]);               \
-        g[x_write + 2] = y3 - dG;            \
-        CLAMP(g[x_write + 2]);               \
-        b[x_write + 2] = y3 + dB;            \
-        CLAMP(b[x_write + 2]);               \
-                                             \
-        r[x_write + 3] = y4 + dR;            \
-        CLAMP(r[x_write + 3]);               \
-        g[x_write + 3] = y4 - dG;            \
-        CLAMP(g[x_write + 3]);               \
-        b[x_write + 3] = y4 + dB;            \
-        CLAMP(b[x_write + 3]);               \
-                                             \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_YUV211()                  \
+    do {                                 \
+        uint8_t y1, y2, y3, y4;          \
+        int8_t U, V;                     \
+        int dR;                          \
+        int dG;                          \
+        int dB;                          \
+                                         \
+        U = src[0] - 0x80;               \
+        y1 = (298 * (src[1] - 16)) >> 8; \
+        y2 = (298 * (src[2] - 16)) >> 8; \
+        V = src[3] - 0x80;               \
+        y3 = (298 * (src[4] - 16)) >> 8; \
+        y4 = (298 * (src[5] - 16)) >> 8; \
+        src += 6;                        \
+                                         \
+        dR = (309 * V) >> 8;             \
+        dG = (100 * U + 208 * V) >> 8;   \
+        dB = (516 * U) >> 8;             \
+                                         \
+        r[x_write] = y1 + dR;            \
+        CLAMP(r[x_write]);               \
+        g[x_write] = y1 - dG;            \
+        CLAMP(g[x_write]);               \
+        b[x_write] = y1 + dB;            \
+        CLAMP(b[x_write]);               \
+                                         \
+        r[x_write + 1] = y2 + dR;        \
+        CLAMP(r[x_write + 1]);           \
+        g[x_write + 1] = y2 - dG;        \
+        CLAMP(g[x_write + 1]);           \
+        b[x_write + 1] = y2 + dB;        \
+        CLAMP(b[x_write + 1]);           \
+                                         \
+        r[x_write + 2] = y3 + dR;        \
+        CLAMP(r[x_write + 2]);           \
+        g[x_write + 2] = y3 - dG;        \
+        CLAMP(g[x_write + 2]);           \
+        b[x_write + 2] = y3 + dB;        \
+        CLAMP(b[x_write + 2]);           \
+                                         \
+        r[x_write + 3] = y4 + dR;        \
+        CLAMP(r[x_write + 3]);           \
+        g[x_write + 3] = y4 - dG;        \
+        CLAMP(g[x_write + 3]);           \
+        b[x_write + 3] = y4 + dB;        \
+        CLAMP(b[x_write + 3]);           \
+                                         \
+        x_write = (x_write + 4) & 7;     \
     } while (0)
 
 #define DECODE_YUV422()                      \
     do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 2; c++) {            \
+        for (uint8_t c = 0; c < 2; c++) {    \
             uint8_t y1;                      \
             uint8_t y2;                      \
             int8_t  U;                       \
@@ -3886,104 +3882,96 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
         }                                    \
     } while (0)
 
-#define DECODE_RGB555()                      \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            uint16_t dat;                    \
-                                             \
-            dat = *(uint16_t *)src;          \
-            src += 2;                        \
-                                             \
-            r[x_write + c] =                 \
-                ((dat & 0x001f) << 3) |      \
-                ((dat & 0x001f) >> 2);       \
-            g[x_write + c] =                 \
-                ((dat & 0x03e0) >> 2) |      \
-                ((dat & 0x03e0) >> 7);       \
-            b[x_write + c] =                 \
-                ((dat & 0x7c00) >> 7) |      \
-                ((dat & 0x7c00) >> 12);      \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_RGB555()                   \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            uint16_t dat;                 \
+                                          \
+            dat = *(uint16_t *)src;       \
+            src += 2;                     \
+                                          \
+            r[x_write + c] =              \
+                ((dat & 0x001f) << 3) |   \
+                ((dat & 0x001f) >> 2);    \
+            g[x_write + c] =              \
+                ((dat & 0x03e0) >> 2) |   \
+                ((dat & 0x03e0) >> 7);    \
+            b[x_write + c] =              \
+                ((dat & 0x7c00) >> 7) |   \
+                ((dat & 0x7c00) >> 12);   \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define DECODE_RGB565()                      \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            uint16_t dat;                    \
-                                             \
-            dat = *(uint16_t *)src;          \
-            src += 2;                        \
-                                             \
-            r[x_write + c] =                 \
-                ((dat & 0x001f) << 3) |      \
-                ((dat & 0x001f) >> 2);       \
-            g[x_write + c] =                 \
-                ((dat & 0x07e0) >> 3) |      \
-                ((dat & 0x07e0) >> 9);       \
-            b[x_write + c] =                 \
-                ((dat & 0xf800) >> 8) |      \
-                ((dat & 0xf800) >> 13);      \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_RGB565()                   \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            uint16_t dat;                 \
+                                          \
+            dat = *(uint16_t *)src;       \
+            src += 2;                     \
+                                          \
+            r[x_write + c] =              \
+                ((dat & 0x001f) << 3) |   \
+                ((dat & 0x001f) >> 2);    \
+            g[x_write + c] =              \
+                ((dat & 0x07e0) >> 3) |   \
+                ((dat & 0x07e0) >> 9);    \
+            b[x_write + c] =              \
+                ((dat & 0xf800) >> 8) |   \
+                ((dat & 0xf800) >> 13);   \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define DECODE_RGB888()                      \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            r[x_write + c] = src[0];         \
-            g[x_write + c] = src[1];         \
-            b[x_write + c] = src[2];         \
-            src += 3;                        \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_RGB888()                   \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            r[x_write + c] = src[0];      \
+            g[x_write + c] = src[1];      \
+            b[x_write + c] = src[2];      \
+            src += 3;                     \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define DECODE_XRGB8888()                    \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            r[x_write + c] = src[0];         \
-            g[x_write + c] = src[1];         \
-            b[x_write + c] = src[2];         \
-            src += 4;                        \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_XRGB8888()                 \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            r[x_write + c] = src[0];      \
+            g[x_write + c] = src[1];      \
+            b[x_write + c] = src[2];      \
+            src += 4;                     \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define OVERLAY_SAMPLE()                     \
-    do {                                     \
-        switch (virge->streams.sdif) {       \
-            case 1:                          \
-                DECODE_YCbCr();              \
-                break;                       \
-            case 2:                          \
-                DECODE_YUV422();             \
-                break;                       \
-            case 3:                          \
-                DECODE_RGB555();             \
-                break;                       \
-            case 4:                          \
-                DECODE_YUV211();             \
-                break;                       \
-            case 5:                          \
-                DECODE_RGB565();             \
-                break;                       \
-            case 6:                          \
-                DECODE_RGB888();             \
-                break;                       \
-            case 7:                          \
-            default:                         \
-                DECODE_XRGB8888();           \
-                break;                       \
-        }                                    \
+#define OVERLAY_SAMPLE()               \
+    do {                               \
+        switch (virge->streams.sdif) { \
+            case 1:                    \
+                DECODE_YCbCr();        \
+                break;                 \
+            case 2:                    \
+                DECODE_YUV422();       \
+                break;                 \
+            case 3:                    \
+                DECODE_RGB555();       \
+                break;                 \
+            case 4:                    \
+                DECODE_YUV211();       \
+                break;                 \
+            case 5:                    \
+                DECODE_RGB565();       \
+                break;                 \
+            case 6:                    \
+                DECODE_RGB888();       \
+                break;                 \
+            case 7:                    \
+            default:                   \
+                DECODE_XRGB8888();     \
+                break;                 \
+        }                              \
     } while (0)
 
 static void
@@ -4704,141 +4692,150 @@ s3_virge_force_redraw(void *priv)
 static const device_config_t s3_virge_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 static const device_config_t s3_virge_stb_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 static const device_config_t s3_virge_357_config[] = {
   // clang-format off
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 static const device_config_t s3_trio3d2x_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -4850,7 +4847,7 @@ const device_t s3_virge_325_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_325_available },
+    .available     = s3_virge_325_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4864,7 +4861,7 @@ const device_t s3_virge_325_onboard_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4878,7 +4875,7 @@ const device_t s3_diamond_stealth_2000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_325_diamond_available },
+    .available     = s3_virge_325_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4892,7 +4889,7 @@ const device_t s3_mirocrystal_3d_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_mirocrystal_3d_available },
+    .available     = s3_mirocrystal_3d_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4906,7 +4903,7 @@ const device_t s3_diamond_stealth_3000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_988_diamond_available },
+    .available     = s3_virge_988_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_stb_config
@@ -4920,7 +4917,7 @@ const device_t s3_stb_velocity_3d_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_988_stb_available },
+    .available     = s3_virge_988_stb_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_stb_config
@@ -4934,7 +4931,7 @@ const device_t s3_virge_375_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_375_available },
+    .available     = s3_virge_375_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4948,7 +4945,7 @@ const device_t s3_virge_375_onboard_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4962,7 +4959,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_375_diamond_available },
+    .available     = s3_virge_375_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4976,7 +4973,7 @@ const device_t s3_virge_385_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_385_available },
+    .available     = s3_virge_385_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4990,7 +4987,7 @@ const device_t s3_virge_357_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_available },
+    .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5004,7 +5001,7 @@ const device_t s3_virge_357_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_available },
+    .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5018,7 +5015,7 @@ const device_t s3_diamond_stealth_4000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_diamond_available },
+    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5032,7 +5029,7 @@ const device_t s3_diamond_stealth_4000_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_diamond_available },
+    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5046,7 +5043,7 @@ const device_t s3_trio3d2x_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_trio3d2x_available },
+    .available     = s3_trio3d2x_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_trio3d2x_config
@@ -5060,7 +5057,7 @@ const device_t s3_trio3d2x_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_trio3d2x_available },
+    .available     = s3_trio3d2x_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_trio3d2x_config

@@ -2187,14 +2187,14 @@ keyboard_at_close(void *priv)
 static const device_config_t keyboard_at_config[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "Type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "type",
+        .description    = "Type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "AT 84-key",          .value = FLAG_AT  | KBD_84_KEY  },
             { .description = "AT 101/102/106-key", .value = FLAG_AT  | KBD_101_KEY },
             { .description = "AT Korean",          .value = FLAG_AT  | KBD_KOREAN  },
@@ -2203,7 +2203,8 @@ static const device_config_t keyboard_at_config[] = {
             { .description = "PS/2 106-key JIS",   .value = FLAG_PS2 | KBD_JIS     },
             { .description = "PS/2 Korean",        .value = FLAG_PS2 | KBD_KOREAN  },
             { .description = ""                                                    }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name = "", .description = "", .type = CONFIG_END
@@ -2220,7 +2221,7 @@ const device_t keyboard_at_generic_device = {
     .init          = keyboard_at_init,
     .close         = keyboard_at_close,
     .reset         = NULL,
-    { .poll = NULL },
+     .poll         = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = keyboard_at_config

@@ -31,7 +31,8 @@ timer_enable(pc_timer_t *timer)
         timer_disable(timer);
 
     if (timer->next || timer->prev)
-        fatal("timer_enable - timer->next\n");
+        fatal("timer_disable(): Attempting to enable a non-isolated "
+              "timer incorrectly marked as disabled\n");
 
     /*List currently empty - add to head*/
     if (!timer_head) {
@@ -92,7 +93,8 @@ timer_disable(pc_timer_t *timer)
         return;
 
     if (!timer->next && !timer->prev && timer != timer_head)
-        fatal("timer_disable - !timer->next\n");
+        fatal("timer_disable(): Attempting to disable an isolated "
+              "non-head timer incorrectly marked as enabled\n");
 
     timer->flags &= ~TIMER_ENABLED;
     timer->in_callback = 0;

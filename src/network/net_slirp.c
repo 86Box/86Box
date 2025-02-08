@@ -133,7 +133,7 @@ net_slirp_clock_get_ns(UNUSED(void *opaque))
 static void *
 net_slirp_timer_new(SlirpTimerCb cb, void *cb_opaque, UNUSED(void *opaque))
 {
-    pc_timer_t *timer = malloc(sizeof(pc_timer_t));
+    pc_timer_t *timer = calloc(1, sizeof(pc_timer_t));
     timer_add(timer, cb, cb_opaque, 0);
     return timer;
 }
@@ -422,8 +422,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
 
 #ifndef _WIN32
     slirp->pfd_size = 16 * sizeof(struct pollfd);
-    slirp->pfd      = malloc(slirp->pfd_size);
-    memset(slirp->pfd, 0, slirp->pfd_size);
+    slirp->pfd      = calloc(1, slirp->pfd_size);
 #endif
 
     /* Set the IP addresses to use. */
@@ -544,7 +543,8 @@ net_slirp_close(void *priv)
 }
 
 const netdrv_t net_slirp_drv = {
-    &net_slirp_in_available,
-    &net_slirp_init,
-    &net_slirp_close
+    .notify_in = &net_slirp_in_available,
+    .init      = &net_slirp_init,
+    .close     = &net_slirp_close,
+	.priv      = NULL
 };

@@ -615,41 +615,34 @@ speed_changed(void *priv)
 static const device_config_t hercules_config[] = {
   // clang-format off
     {
-        .name = "rgb_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "Default",
-                .value = 0
-            },
-            {
-                .description = "Green",
-                .value = 1
-            },
-            {
-                .description = "Amber",
-                .value = 2
-            },
-            {
-                .description = "Gray",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Default", .value = 0 },
+            { .description = "Green",   .value = 1 },
+            { .description = "Amber",   .value = 2 },
+            { .description = "Gray",    .value = 3 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "blend",
-        .description = "Blend",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "blend",
+        .description    = "Blend",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -661,7 +654,7 @@ const device_t hercules_device = {
     .init          = hercules_init,
     .close         = hercules_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = speed_changed,
     .force_redraw  = NULL,
     .config        = hercules_config

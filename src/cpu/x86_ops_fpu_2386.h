@@ -90,7 +90,7 @@ opESCAPE_df_a32(uint32_t fetchdat)
 }
 
 static int
-opWAIT(uint32_t fetchdat)
+opWAIT(UNUSED(uint32_t fetchdat))
 {
     if ((cr0 & 0xa) == 0xa) {
         x86_int(7);
@@ -99,7 +99,10 @@ opWAIT(uint32_t fetchdat)
 
     if (fpu_softfloat) {
         if (fpu_state.swd & FPU_SW_Summary) {
-            picint(1 << 13);
+            if (cr0 & 0x20)
+                new_ne = 1;
+            else
+                picint(1 << 13);
             return 1;
         }
     }

@@ -99,8 +99,8 @@ typedef union {
                     dst = src1 / (double) src2;         \
                 else {                                  \
                     fpu_log("FPU : divide by zero\n");  \
-                    if (is486 && (cr0 & 0x20))          \
-                        x86_int(16);                    \
+                    if (cr0 & 0x20)                     \
+                        new_ne = 1;                     \
                     else                                \
                         picint(1 << 13);                \
                     return 1;                           \
@@ -542,7 +542,7 @@ op_nofpu_a32(uint32_t fetchdat)
 
 #ifdef FPU_8087
 static int
-FPU_ILLEGAL_a16(uint32_t fetchdat)
+FPU_ILLEGAL_a16(UNUSED(uint32_t fetchdat))
 {
     geteaw();
     wait(timing_rr, 0);

@@ -72,6 +72,7 @@ extern uint8_t *pccache2;
 extern int      optype;
 extern uint32_t pccache;
 
+int      new_ne            = 0;
 int      in_sys            = 0;
 int      unmask_a20_in_smm = 0;
 uint32_t old_rammask       = 0xffffffff;
@@ -1824,7 +1825,7 @@ cpu_386_check_instruction_fault(void)
 }
 
 int
-sysenter(uint32_t fetchdat)
+sysenter(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSENTER called\n");
@@ -1906,7 +1907,7 @@ sysenter(uint32_t fetchdat)
 }
 
 int
-sysexit(uint32_t fetchdat)
+sysexit(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSEXIT called\n");
@@ -1993,7 +1994,7 @@ sysexit(uint32_t fetchdat)
 }
 
 int
-syscall_op(uint32_t fetchdat)
+syscall_op(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSCALL called\n");
@@ -2045,7 +2046,7 @@ syscall_op(uint32_t fetchdat)
 }
 
 int
-sysret(uint32_t fetchdat)
+sysret(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSRET called\n");

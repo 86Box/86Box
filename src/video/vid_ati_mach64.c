@@ -1508,16 +1508,16 @@ mach64_start_line(mach64_t *mach64)
     mach64->accel.op = OP_LINE;
 }
 
-#define READ(addr, dat, width)                                                    \
-    if (width == 0)                                                               \
-        dat = svga->vram[((addr)) & mach64->vram_mask];                           \
-    else if (width == 1)                                                          \
-        dat = *(uint16_t *) &svga->vram[((addr) << 1) & mach64->vram_mask];       \
-    else if (width == 2)                                                          \
-        dat = *(uint32_t *) &svga->vram[((addr) << 2) & mach64->vram_mask];       \
-    else if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                            \
-        dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) &7)) & 1; \
-    else                                                                          \
+#define READ(addr, dat, width)                                                         \
+    if (width == 0)                                                                    \
+        dat = svga->vram[((addr)) & mach64->vram_mask];                                \
+    else if (width == 1)                                                               \
+        dat = *(uint16_t *) &svga->vram[((addr) << 1) & mach64->vram_mask];            \
+    else if (width == 2)                                                               \
+        dat = *(uint32_t *) &svga->vram[((addr) << 2) & mach64->vram_mask];            \
+    else if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                                 \
+        dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> ((addr) &7)) & 1;      \
+    else                                                                               \
         dat = (svga->vram[((addr) >> 3) & mach64->vram_mask] >> (7 - ((addr) &7))) & 1;
 
 #define MIX                                                      \
@@ -1575,29 +1575,29 @@ mach64_start_line(mach64_t *mach64)
             break;                                               \
     }
 
-#define WRITE(addr, width)                                                                  \
-    if (width == 0) {                                                                       \
-        svga->vram[(addr) &mach64->vram_mask]                = dest_dat;                    \
-        svga->changedvram[((addr) &mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;            \
-    } else if (width == 1) {                                                                \
-        *(uint16_t *) &svga->vram[((addr) << 1) & mach64->vram_mask] = dest_dat;            \
-        svga->changedvram[(((addr) << 1) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;    \
-    } else if (width == 2) {                                                                \
-        *(uint32_t *) &svga->vram[((addr) << 2) & mach64->vram_mask] = dest_dat;            \
-        svga->changedvram[(((addr) << 2) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;    \
-    } else {                                                                                \
-        if (dest_dat & 1) {                                                                 \
-            if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                                   \
-                svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << ((addr) &7);          \
-            else                                                                            \
-                svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << (7 - ((addr) &7));    \
-        } else {                                                                            \
-            if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                                   \
-                svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << ((addr) &7));       \
-            else                                                                            \
-                svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << (7 - ((addr) &7))); \
-        }                                                                                   \
-        svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;    \
+#define WRITE(addr, width)                                                                                  \
+    if (width == 0) {                                                                                       \
+        svga->vram[(addr) &mach64->vram_mask]                = dest_dat;                                    \
+        svga->changedvram[((addr) &mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;         \
+    } else if (width == 1) {                                                                                \
+        *(uint16_t *) &svga->vram[((addr) << 1) & mach64->vram_mask] = dest_dat;                            \
+        svga->changedvram[(((addr) << 1) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount; \
+    } else if (width == 2) {                                                                                \
+        *(uint32_t *) &svga->vram[((addr) << 2) & mach64->vram_mask] = dest_dat;                            \
+        svga->changedvram[(((addr) << 2) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount; \
+    } else {                                                                                                \
+        if (dest_dat & 1) {                                                                                 \
+            if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                                                   \
+                svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << ((addr) &7);                          \
+            else                                                                                            \
+                svga->vram[((addr) >> 3) & mach64->vram_mask] |= 1 << (7 - ((addr) &7));                    \
+        } else {                                                                                            \
+            if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                                                   \
+                svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << ((addr) &7));                       \
+            else                                                                                            \
+                svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << (7 - ((addr) &7)));                 \
+        }                                                                                                   \
+        svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount; \
     }
 
 void
@@ -4711,56 +4711,41 @@ mach64_force_redraw(void *priv)
 // clang-format off
 static const device_config_t mach64gx_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1
-            },
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t mach64vt2_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -4772,7 +4757,7 @@ const device_t mach64gx_isa_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64gx_isa_available },
+    .available     = mach64gx_isa_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
@@ -4786,7 +4771,7 @@ const device_t mach64gx_vlb_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64gx_vlb_available },
+    .available     = mach64gx_vlb_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
@@ -4800,7 +4785,7 @@ const device_t mach64gx_pci_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64gx_available },
+    .available     = mach64gx_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
@@ -4814,7 +4799,7 @@ const device_t mach64vt2_device = {
     .init          = mach64vt2_init,
     .close         = mach64_close,
     .reset         = NULL,
-    { .available = mach64vt2_available },
+    .available     = mach64vt2_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64vt2_config

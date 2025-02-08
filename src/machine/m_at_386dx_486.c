@@ -834,7 +834,7 @@ machine_at_mvi486_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti895_device);
+    device_add(&opti495_device);
     device_add(&keyboard_at_device);
     device_add(&pc87311_ide_device);
 

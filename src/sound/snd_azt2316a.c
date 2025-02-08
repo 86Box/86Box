@@ -974,8 +974,7 @@ azt_init(const device_t *info)
     int         loaded_from_eeprom = 0;
     uint16_t    addr_setting;
     uint8_t     read_eeprom[AZTECH_EEPROM_SIZE];
-    azt2316a_t *azt2316a = malloc(sizeof(azt2316a_t));
-    memset(azt2316a, 0, sizeof(azt2316a_t));
+    azt2316a_t *azt2316a = calloc(1, sizeof(azt2316a_t));
 
     azt2316a->type = info->local;
 
@@ -1226,8 +1225,7 @@ azt_init(const device_t *info)
       2x4 to 2x5 -> Mixer interface
       2x6, 2xA, 2xC, 2xE -> DSP chip
       2x8, 2x9, 388 and 389 FM chip (9 voices).*/
-    azt2316a->sb = malloc(sizeof(sb_t));
-    memset(azt2316a->sb, 0, sizeof(sb_t));
+    azt2316a->sb = calloc(1, sizeof(sb_t));
 
     azt2316a->sb->opl_enabled = device_get_config_int("opl");
 
@@ -1259,8 +1257,7 @@ azt_init(const device_t *info)
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
     if (azt2316a->cur_mpu401_enabled) {
-        azt2316a->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-        memset(azt2316a->mpu, 0, sizeof(mpu_t));
+        azt2316a->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         mpu401_init(azt2316a->mpu, azt2316a->cur_mpu401_addr, azt2316a->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
     } else
         azt2316a->mpu = NULL;
@@ -1318,142 +1315,127 @@ azt_speed_changed(void *priv)
 static const device_config_t azt1605_config[] = {
   // clang-format off
     {
-        .name = "codec",
-        .description = "CODEC",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "CS4248",
-                .value = AD1848_TYPE_CS4248
-            },
-            {
-                .description = "CS4231",
-                .value = AD1848_TYPE_CS4231
-            },
+        .name           = "codec",
+        .description    = "CODEC",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = AD1848_TYPE_CS4248,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "CS4248", .value = AD1848_TYPE_CS4248 },
+            { .description = "CS4231", .value = AD1848_TYPE_CS4231 },
+            { .description = ""                                    }
         },
-        .default_int = AD1848_TYPE_CS4248
+        .bios           = { { 0 } }
     },
     {
-        .name = "wss_interrupt_after_config",
-        .description = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
-        .type = CONFIG_BINARY,
-        .default_int = 0
+        .name           = "wss_interrupt_after_config",
+        .description    = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "addr",
-        .description = "SB Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "Use EEPROM setting",
-                .value = 0
-            },
-            {
-                .description = ""
-            }
-        }
-    },
-    {
-        .name = "sb_dma8",
-        .description = "SB low DMA",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
+        .name           = "addr",
+        .description    = "SB Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220",              .value = 0x220 },
+            { .description = "0x240",              .value = 0x240 },
+            { .description = "Use EEPROM setting", .value =     0 },
+            { .description = ""                                   }
         },
-        .default_int = 1
+        .bios           = { { 0 } }
     },
     {
-        .name = "wss_irq",
-        .description = "WSS IRQ",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "IRQ 11",
-                .value = 11
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = ""
-            }
+        .name           = "sb_dma8",
+        .description    = "SB low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
         },
-        .default_int = 10
+        .bios           = { { 0 } }
     },
-        {
-            .name = "wss_dma",
-            .description = "WSS DMA",
-            .type = CONFIG_SELECTION,
-            .selection = {
-                {
-                    .description = "DMA 0",
-                    .value = 0
-                },
-                {
-                    .description = "DMA 1",
-                    .value = 1
-                },
-                {
-                    .description = "DMA 3",
-                    .value = 3
-                },
-                {
-                    .description = ""
-                }
-            },
-            .default_int = 0
+    {
+        .name           = "wss_irq",
+        .description    = "WSS IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 10,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = ""                    }
         },
-    {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "wss_dma",
+        .description    = "WSS DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1462,119 +1444,111 @@ static const device_config_t azt1605_config[] = {
 static const device_config_t azt2316a_config[] = {
   // clang-format off
     {
-        .name = "codec",
-        .description = "CODEC",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "CS4248",
-                .value = AD1848_TYPE_CS4248
-            },
-            {
-                .description = "CS4231",
-                .value = AD1848_TYPE_CS4231
-            },
+        .name           = "codec",
+        .description    = "CODEC",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = AD1848_TYPE_CS4248,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "CS4248", .value = AD1848_TYPE_CS4248 },
+            { .description = "CS4231", .value = AD1848_TYPE_CS4231 },
+            { .description = ""                                    }
         },
-        .default_int = AD1848_TYPE_CS4248
+        .bios           = { { 0 } }
     },
     {
-        .name = "wss_interrupt_after_config",
-        .description = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
-        .type = CONFIG_BINARY,
-        .default_int = 0
+        .name           = "wss_interrupt_after_config",
+        .description    = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "addr",
-        .description = "SB Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "Use EEPROM setting",
-                .value = 0
-            },
-            {
-                .description = ""
-            }
-        }
-    },
-    {
-        .name = "wss_irq",
-        .description = "WSS IRQ",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "IRQ 11",
-                .value = 11
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = ""
-            }
+        .name           = "addr",
+        .description    = "SB Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220",              .value = 0x220 },
+            { .description = "0x240",              .value = 0x240 },
+            { .description = "Use EEPROM setting", .value =     0 },
+            { .description = ""                                   }
         },
-        .default_int = 10
+        .bios           = { { 0 } }
     },
     {
-        .name = "wss_dma",
-        .description = "WSS DMA",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
+        .name           = "wss_irq",
+        .description    = "WSS IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 10,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = ""                    }
         },
-        .default_int = 0
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "wss_dma",
+        .description    = "WSS DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

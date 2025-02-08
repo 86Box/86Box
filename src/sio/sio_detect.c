@@ -65,8 +65,7 @@ sio_detect_close(void *priv)
 static void *
 sio_detect_init(UNUSED(const device_t *info))
 {
-    sio_detect_t *dev = (sio_detect_t *) malloc(sizeof(sio_detect_t));
-    memset(dev, 0, sizeof(sio_detect_t));
+    sio_detect_t *dev = (sio_detect_t *) calloc(1, sizeof(sio_detect_t));
 
     device_add(&fdc_at_smc_device);
 
@@ -110,7 +109,7 @@ const device_t sio_detect_device = {
     .init          = sio_detect_init,
     .close         = sio_detect_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

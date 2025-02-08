@@ -421,11 +421,9 @@ read_status(void *priv)
 static void *
 prnt_init(void *lpt)
 {
-    prnt_t *dev;
-
     /* Initialize a device instance. */
-    dev = (prnt_t *) malloc(sizeof(prnt_t));
-    memset(dev, 0x00, sizeof(prnt_t));
+    prnt_t *dev = (prnt_t *) calloc(1, sizeof(prnt_t));
+
     dev->ctrl = 0x04;
     dev->lpt  = lpt;
 

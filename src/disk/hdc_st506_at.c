@@ -744,12 +744,11 @@ mfm_init(UNUSED(const device_t *info))
     int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
-    mfm = malloc(sizeof(mfm_t));
-    memset(mfm, 0x00, sizeof(mfm_t));
+    mfm = calloc(1, sizeof(mfm_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
             loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
             st506_at_log("WD1003(%d): (%s) geometry %d/%d/%d\n", c, hdd[d].fn,
@@ -801,7 +800,7 @@ const device_t st506_at_wd1003_device = {
     .init          = mfm_init,
     .close         = mfm_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

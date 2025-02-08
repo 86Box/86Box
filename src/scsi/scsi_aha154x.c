@@ -925,8 +925,7 @@ aha_setnvr(x54x_t *dev)
         return;
 
     /* Allocate and initialize the EEPROM. */
-    dev->nvr = (uint8_t *) malloc(NVR_SIZE);
-    memset(dev->nvr, 0x00, NVR_SIZE);
+    dev->nvr = (uint8_t *) calloc(1, NVR_SIZE);
 
     fp = nvr_fopen(dev->nvr_path, "rb");
     if (fp) {
@@ -1159,14 +1158,14 @@ aha_init(const device_t *info)
 // clang-format off
 static const device_config_t aha_154xb_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x334,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x334,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value =     0 },
             { .description = "0x330", .value = 0x330 },
             { .description = "0x334", .value = 0x334 },
@@ -1176,16 +1175,17 @@ static const device_config_t aha_154xb_config[] = {
             { .description = "0x134", .value = 0x134 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 11,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 11,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
@@ -1194,31 +1194,33 @@ static const device_config_t aha_154xb_config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "hostid",
-        .description = "Host ID",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "hostid",
+        .description    = "Host ID",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0", .value = 0 },
             { .description = "1", .value = 1 },
             { .description = "2", .value = 2 },
@@ -1229,16 +1231,17 @@ static const device_config_t aha_154xb_config[] = {
             { .description = "7", .value = 7 },
             { .description = ""              }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value =       0 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "D000H",    .value = 0xd0000 },
@@ -1246,20 +1249,21 @@ static const device_config_t aha_154xb_config[] = {
             { .description = "DC00H",    .value = 0xdc000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t aha_154x_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x334,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x334,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value =     0 },
             { .description = "0x330", .value = 0x330 },
             { .description = "0x334", .value = 0x334 },
@@ -1269,16 +1273,17 @@ static const device_config_t aha_154x_config[] = {
             { .description = "0x134", .value = 0x134 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 11,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 11,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
@@ -1287,52 +1292,55 @@ static const device_config_t aha_154x_config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value =       0 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "D000H",    .value = 0xd0000 },
             { .description = "D800H",    .value = 0xd8000 },
             { .description = "DC00H",    .value = 0xdc000 },
             { .description = ""                           }
-            },
         },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t aha_154xcf_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x334,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x334,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value =     0 },
             { .description = "0x330", .value = 0x330 },
             { .description = "0x334", .value = 0x334 },
@@ -1342,16 +1350,17 @@ static const device_config_t aha_154xcf_config[] = {
             { .description = "0x134", .value = 0x134 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 11,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 11,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
@@ -1360,31 +1369,33 @@ static const device_config_t aha_154xcf_config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value =       0 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CC00H",    .value = 0xcc000 },
@@ -1394,44 +1405,64 @@ static const device_config_t aha_154xcf_config[] = {
             { .description = "DC00H",    .value = 0xdc000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "fdc_addr",
-        .description = "FDC Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "fdc_addr",
+        .description    = "FDC Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = 0                  },
             { .description = "0x3f0", .value = FDC_PRIMARY_ADDR   },
             { .description = "0x370", .value = FDC_SECONDARY_ADDR },
             { .description = ""                                   }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t aha_154xcp_config[] = {
     {
-        .name = "bios_rev",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios_rev",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "v1_02_en",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Version 1.02 (English)", .internal_name = "v1_02_en", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 32768, .files = { "roms/scsi/adaptec/aha1542cp102.bin",
-              "roms/scsi/adaptec/908301-00_f_mcode_17c9.u12", "" } },
-            { .name = "Version 1.02 (German)", .internal_name = "v1_02_de", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 32768, .files = { "roms/scsi/adaptec/buff_1-0_bios.bin",
-              "roms/scsi/adaptec/buff_1-0_mcode.bin", "" } },
-            { .name = "Version 1.03 (English)", .internal_name = "v1_03_en", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 32768, .files = { "roms/scsi/adaptec/aha1542cp103.bin",
-              "roms/scsi/adaptec/908301-00_g_mcode_144c.u12.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Version 1.02 (English)",
+                .internal_name = "v1_02_en",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { "roms/scsi/adaptec/aha1542cp102.bin", "roms/scsi/adaptec/908301-00_f_mcode_17c9.u12", "" }
+            },
+            {
+                .name          = "Version 1.02 (German)",
+                .internal_name = "v1_02_de",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { "roms/scsi/adaptec/buff_1-0_bios.bin", "roms/scsi/adaptec/buff_1-0_mcode.bin", "" }
+            },
+            {
+                .name          = "Version 1.03 (English)",
+                .internal_name = "v1_03_en",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { "roms/scsi/adaptec/aha1542cp103.bin", "roms/scsi/adaptec/908301-00_g_mcode_144c.u12.bin", "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -1447,7 +1478,7 @@ const device_t aha154xa_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xb_config
@@ -1461,7 +1492,7 @@ const device_t aha154xb_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xb_config
@@ -1475,7 +1506,7 @@ const device_t aha154xc_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154x_config
@@ -1489,7 +1520,7 @@ const device_t aha154xcf_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xcf_config
@@ -1503,7 +1534,7 @@ const device_t aha154xcp_device = {
     .init          = aha_init,
     .close         = aha1542cp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha_154xcp_config
@@ -1517,7 +1548,7 @@ const device_t aha1640_device = {
     .init          = aha_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

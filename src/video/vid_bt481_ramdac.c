@@ -26,6 +26,7 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_unused.h>
 
 typedef struct bt481_ramdac_t {
     int     state;
@@ -128,7 +129,7 @@ bt481_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 }
 
 static void *
-bt481_ramdac_init(const device_t *info)
+bt481_ramdac_init(UNUSED(const device_t *info))
 {
     bt481_ramdac_t *ramdac = (bt481_ramdac_t *) malloc(sizeof(bt481_ramdac_t));
     memset(ramdac, 0, sizeof(bt481_ramdac_t));
@@ -153,7 +154,7 @@ const device_t bt481_ramdac_device = {
     .init          = bt481_ramdac_init,
     .close         = bt481_ramdac_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
