@@ -200,10 +200,22 @@ ad1848_read(uint16_t addr, void *priv)
 
                 case 23:
                     if ((ad1848->type >= AD1848_TYPE_CS4236B) && (ad1848->regs[23] & 0x08)) {
-                        if ((ad1848->xindex & 0xfe) == 0x00) /* remapped line volume */
-                            ret = ad1848->regs[18 + ad1848->xindex];
-                        else
-                            ret = ad1848->xregs[ad1848->xindex];
+                        ret = ad1848->xregs[ad1848->xindex];
+                        switch (ad1848->xindex) {
+                            case 0 ... 1:
+                                /* Remapped line volume. */
+                                ret = ad1848->regs[18 + ad1848->xindex];
+                                break;
+
+                            case 26:
+                                /* Backdoor to the Joystick Control register on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235)
+                                    ret = ad1848->cram_read(0, ad1848->cram_priv);
+                                break;
+
+                            default:
+                                break;
+                        }
                     }
                     break;
 
@@ -353,8 +365,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                         }
 
                         switch (ad1848->xindex) {
-                            case 0:
-                            case 1: /* remapped line volume */
+                            case 0 ... 1:
+                                /* Remapped line volume. */
                                 ad1848->regs[18 + ad1848->xindex] = val;
                                 return;
 
@@ -379,6 +391,12 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                             case 25:
                                 return;
+
+                            case 26:
+                                /* Backdoor to the Joystick Control register on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235)
+                                    ad1848->cram_write(0, val, ad1848->cram_priv);
+                                break;
 
                             default:
                                 break;
