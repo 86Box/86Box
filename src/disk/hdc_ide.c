@@ -241,6 +241,7 @@ int    ide_qua_enabled = 0;
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
 
+#define ENABLE_IDE_LOG 1
 #ifdef ENABLE_IDE_LOG
 int ide_do_log = ENABLE_IDE_LOG;
 
@@ -1028,9 +1029,8 @@ ide_atapi_command_bus(ide_t *ide)
 static void
 ide_atapi_callback(ide_t *ide)
 {
-    int out;
-    int ret = 0;
-    ide_bm_t *bm = ide_boards[ide->board]->bm;
+    static int  ret = 0;
+    ide_bm_t   *bm  = ide_boards[ide->board]->bm;
 #ifdef ENABLE_IDE_LOG
     char *phases[7] = { "Idle", "Command", "Data in", "Data out", "Data in DMA", "Data out DMA",
                      "Complete" };
@@ -1056,14 +1056,17 @@ ide_atapi_callback(ide_t *ide)
 
     switch (ide->sc->packet_status) {
         default:
+            ret              = 0;
             break;
 
         case PHASE_IDLE:
+            ret              = 0;
             ide->tf->pos     = 0;
             ide->tf->phase   = 1;
             ide->tf->atastat = READY_STAT | DRQ_STAT | (ide->tf->atastat & ERR_STAT);
             break;
         case PHASE_COMMAND:
+            ret              = 1;
             ide->tf->atastat = BUSY_STAT | (ide->tf->atastat & ERR_STAT);
             if (ide->packet_command) {
                 ide->packet_command(ide->sc, ide->sc->atapi_cdb);
@@ -1073,6 +1076,7 @@ ide_atapi_callback(ide_t *ide)
             break;
         case PHASE_COMPLETE:
         case PHASE_ERROR:
+            ret              = 0;
             ide->tf->atastat = READY_STAT;
             if (ide->sc->packet_status == PHASE_ERROR)
                 ide->tf->atastat       |= ERR_STAT;
@@ -1082,19 +1086,30 @@ ide_atapi_callback(ide_t *ide)
             break;
         case PHASE_DATA_IN:
         case PHASE_DATA_OUT:
+            ret              = 0;
             ide->tf->atastat = READY_STAT | DRQ_STAT | (ide->tf->atastat & ERR_STAT);
             ide->tf->phase   = !(ide->sc->packet_status & 0x01) << 1;
             ide_irq_raise(ide);
             break;
         case PHASE_DATA_IN_DMA:
-        case PHASE_DATA_OUT_DMA:
-            out = (ide->sc->packet_status & 0x01);
-
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
-                ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, out, bm->priv);
-            }
-            /* Else, DMA command without a bus master, ret = 0 (default). */
+                if (ide->sc->block_len == 0)
+                    ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 0, bm->priv);
+                else {
+                    ret = bm->dma(ide->sc->temp_buffer + ide->sc->buffer_pos -
+                                  ide->sc->block_len, ide->sc->block_len,
+                                  0, bm->priv);
+
+                    if (ret == 1) {
+                        if (ide->sc->sector_len == 0)
+                            ret = 3;
+                        else if (ide->read != NULL)
+                            ide->read(ide->sc);
+                    }
+                }
+            } else
+                ret = 0;
 
             switch (ret) {
                 default:
@@ -1103,17 +1118,68 @@ ide_atapi_callback(ide_t *ide)
                     if (ide->bus_master_error)
                         ide->bus_master_error(ide->sc);
                     break;
-                case 1:
-                    if (out && ide->phase_data_out)
-                        (void) ide->phase_data_out(ide->sc);
-                    else if (!out && ide->command_stop)
-                        ide->command_stop(ide->sc);
+                case 2:
+                    ide_atapi_command_bus(ide);
+                    break;
+                case 3:
+                    /* Reached EOT - terminate the command as there's nothing
+                       more to transfer. */
+                    ide->sc->packet_status = PHASE_COMPLETE;
+                    ide->sc->callback      = 0.0;
 
-                    if ((ide->sc->packet_status == PHASE_COMPLETE) && (ide->sc->callback == 0.0))
+                    if (ide->command_stop != NULL)
+                        ide->command_stop(ide->sc);
+                    fallthrough;
+                case 1:
+                    if ((ide->sc->packet_status == PHASE_COMPLETE) &&
+                        (ide->sc->callback == 0.0))
                         ide_atapi_callback(ide);
+                    break;
+            }
+            break;
+        case PHASE_DATA_OUT_DMA:
+            if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
+                (bm != NULL) && bm->dma) {
+                if (ide->sc->block_len == 0)
+                    ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 1, bm->priv);
+                else {
+                    ret = bm->dma(ide->sc->temp_buffer + ide->sc->buffer_pos,
+                                  ide->sc->block_len, 1, bm->priv);
+
+                    if (ret & 1) {
+                        if (ide->write != NULL)
+                            ide->write(ide->sc);
+
+                        if ((ret == 1) && (ide->sc->sector_len == 0))
+                            ret = 3;
+                    }
+                }
+            } else
+                ret = 0;
+
+            switch (ret) {
+                default:
+                    break;
+                case 0:
+                    if (ide->bus_master_error)
+                        ide->bus_master_error(ide->sc);
                     break;
                 case 2:
                     ide_atapi_command_bus(ide);
+                    break;
+                case 3:
+                    /* Reached EOT - terminate the command as there's nothing
+                       more to transfer. */
+                    ide->sc->packet_status = PHASE_COMPLETE;
+                    ide->sc->callback      = 0.0;
+
+                    if (ide->phase_data_out != NULL)
+                        (void) ide->phase_data_out(ide->sc);
+                    fallthrough;
+                case 1:
+                    if ((ide->sc->packet_status == PHASE_COMPLETE) &&
+                        (ide->sc->callback == 0.0))
+                        ide_atapi_callback(ide);
                     break;
             }
             break;
@@ -1134,22 +1200,37 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
         ide_log("%i bytes %s, command done\n", ide->tf->pos, out ? "written" : "read");
 
         ide->tf->pos = dev->request_pos = 0;
-        if (out && ide->phase_data_out)
-            ide->phase_data_out(dev);
-        else if (!out && ide->command_stop)
-            ide->command_stop(dev);
 
-        if ((ide->sc->packet_status == PHASE_COMPLETE) && (ide->sc->callback == 0.0))
-            ide_atapi_callback(ide);
+        if (dev->block_len != 0) {
+            if (out && (ide->write != NULL))
+                ide->write(dev);
+            else if (!out && (dev->sector_len != 0) && (ide->read != NULL))
+                ide->read(dev);
+        }
+
+        if ((dev->block_len == 0) || (dev->sector_len == 0)) {
+            if (out && (ide->phase_data_out != NULL))
+                ide->phase_data_out(dev);
+            else if (!out && (ide->command_stop != NULL))
+                ide->command_stop(dev);
+
+            if ((ide->sc->packet_status == PHASE_COMPLETE) && (ide->sc->callback == 0.0))
+                ide_atapi_callback(ide);
+        }
     } else {
         ide_log("%i bytes %s, %i bytes are still left\n", ide->tf->pos,
                 out ? "written" : "read", dev->packet_len - ide->tf->pos);
 
-        /* If less than (packet length) bytes are remaining, update packet length
-           accordingly. */
+        /*
+           If less than (packet length) bytes are remaining, update packet length
+           accordingly.
+         */
         if ((dev->packet_len - ide->tf->pos) < (dev->max_transfer_len)) {
             dev->max_transfer_len = dev->packet_len - ide->tf->pos;
-            /* Also update the request length so the host knows how many bytes to transfer. */
+            /*
+               Also update the request length so the host knows how many bytes to
+               transfer.
+             */
             ide->tf->request_length = dev->max_transfer_len;
         }
         ide_log("CD-ROM %i: Packet length %i, request length %i\n", dev->id, dev->packet_len,
@@ -1157,10 +1238,20 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 
         dev->packet_status = PHASE_DATA_IN | out;
 
+        if (dev->block_len != 0) {
+            if (out && (ide->write != NULL))
+                ide->write(dev);
+            else if (!out && (dev->sector_len != 0) && (ide->read != NULL))
+                ide->read(dev);
+        }
+
         ide->tf->atastat = BSY_STAT;
         ide->tf->phase  = 1;
-        ide_atapi_callback(ide);
-        ide_set_callback(ide, 0.0);
+
+        if ((dev->block_len == 0) || (dev->sector_len == 0)) {
+            ide_atapi_callback(ide);
+            ide_set_callback(ide, 0.0);
+        }
 
         dev->request_pos = 0;
     }
@@ -1179,19 +1270,26 @@ ide_atapi_packet_read(ide_t *ide)
 
         bufferw = (uint16_t *) dev->temp_buffer;
 
-        /* Make sure we return a 0 and don't attempt to read from the buffer if
+        /*
+           Make sure we return a 0 and don't attempt to read from the buffer if
            we're transferring bytes beyond it, which can happen when issuing media
            access commands with an allocated length below minimum request length
-           (which is 1 sector = 2048 bytes). */
+           (which is 1 sector = 2048 bytes).
+         */
         ret = (ide->tf->pos < dev->packet_len) ? bufferw[ide->tf->pos >> 1] : 0;
         ide->tf->pos += 2;
 
         dev->request_pos += 2;
 
-        if ((dev->request_pos >= dev->max_transfer_len) || (ide->tf->pos >= dev->packet_len)) {
+        if ((dev->request_pos >= dev->max_transfer_len) ||
+            (ide->tf->pos >= dev->packet_len)) {
             /* Time for a DRQ. */
             ide_atapi_pio_request(ide, 0);
-        }
+        } else if ((dev->block_len != 0) &&
+                   (dev->sector_len != 0) &&
+                   ((dev->request_pos % dev->block_len) == 0) &&
+                   (ide->read != NULL))
+            ide->read(dev);
     }
 
     return ret;
@@ -1221,10 +1319,14 @@ ide_atapi_packet_write(ide_t *ide, const uint16_t val)
         dev->request_pos += 2;
 
         if (dev->packet_status == PHASE_DATA_OUT) {
-            if ((dev->request_pos >= dev->max_transfer_len) || (ide->tf->pos >= dev->packet_len)) {
+            if ((dev->request_pos >= dev->max_transfer_len) ||
+                (ide->tf->pos >= dev->packet_len)) {
                 /* Time for a DRQ. */
                 ide_atapi_pio_request(ide, 1);
-            }
+            } else if ((dev->block_len != 0) &&
+                       ((dev->request_pos % dev->block_len) == 0) &&
+                       (ide->write != NULL))
+                ide->write(dev);
         } else if (dev->packet_status == PHASE_IDLE) {
             if (ide->tf->pos >= 12) {
                 ide->tf->pos       = 0;
@@ -1287,7 +1389,7 @@ ide_writew(uint16_t addr, uint16_t val, void *priv)
     ide = ide_drives[ch];
 
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-    ide_log("ide_writew(%04X, %04X, %08X)\n", addr, val, priv);
+    ide_log("[%04X:%08X] ide_writew(%04X, %04X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 #endif
 
     addr &= 0x7;
@@ -1321,7 +1423,7 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
     ide = ide_drives[ch];
 
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-    ide_log("ide_writel(%04X, %08X, %08X)\n", addr, val, priv);
+    ide_log("[%04X:%08X] ide_writel(%04X, %08X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 #endif
 
     addr &= 0x7;
@@ -1371,9 +1473,9 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
     ide       = ide_drives[ch];
     ide_other = ide_drives[ch ^ 1];
 
-    ide_log("ide_write_devctl(%04X, %02X, %08X)\n", addr, val, priv);
+    ide_log("[%04X:%08X] ide_write_devctl(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
-    if ((ide->type == IDE_NONE) && (ide_other->type == IDE_NONE))
+    if ((addr & 0x0001) || ((ide->type == IDE_NONE) && (ide_other->type == IDE_NONE)))
         return;
 
     dev->diag = 0;
@@ -1481,7 +1583,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
     ide       = ide_drives[ch];
     ide_other = ide_drives[ch ^ 1];
 
-    ide_log("ide_writeb(%04X, %02X, %08X)\n", addr, val, priv);
+    ide_log("[%04X:%08X] ide_writeb(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
     addr &= 0x7;
 
@@ -1831,7 +1933,7 @@ ide_read_data(ide_t *ide)
     const uint16_t *idebufferw = ide->buffer;
     uint16_t ret = 0x0000;
 
-#if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
+#if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 3)
     ide_log("ide_read_data(): ch = %i, board = %i, type = %i\n", ide->channel,
             ide->board, ide->type);
 #endif
@@ -2010,7 +2112,7 @@ ide_readb(uint16_t addr, void *priv)
             break;
     }
 
-    ide_log("ide_readb(%04X, %08X) = %02X\n", addr, priv, ret);
+    ide_log("[%04X:%08X] ide_readb(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
 
     return ret;
 }
@@ -2022,12 +2124,14 @@ ide_read_alt_status(UNUSED(const uint16_t addr), void *priv)
 
     const int     ch  = dev->cur_dev;
     ide_t *       ide = ide_drives[ch];
+    uint8_t       ret = 0xff;
 
     /* Per the Seagate ATA-3 specification:
        Reading the alternate status does *NOT* clear the IRQ. */
-    const uint8_t ret = ide_status(ide, ide_drives[ch ^ 1], ch);
+    if (!(addr & 0x0001))
+        ret = ide_status(ide, ide_drives[ch ^ 1], ch);
 
-    ide_log("ide_read_alt_status(%04X, %08X) = %02X\n", addr, priv, ret);
+    ide_log("[%04X:%08X] ide_read_alt_status(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
 
     return ret;
 }
@@ -2053,7 +2157,7 @@ ide_readw(uint16_t addr, void *priv)
     }
 
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-    ide_log("ide_readw(%04X, %08X) = %04X\n", addr, priv, ret);
+    ide_log("[%04X:%08X] ide_readw(%04X, %08X) = %04X\n", CS, cpu_state.pc, addr, priv, ret);
 #endif
     return ret;
 }
@@ -2084,7 +2188,7 @@ ide_readl(uint16_t addr, void *priv)
     }
 
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-    ide_log("ide_readl(%04X, %08X) = %04X\n", addr, priv, ret);
+    ide_log("[%04X:%08X] ide_readl(%04X, %08X) = %04X\n", CS, cpu_state.pc, addr, priv, ret);
 #endif
     return ret;
 }
@@ -2270,7 +2374,7 @@ ide_callback(void *priv)
                         ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
                         ide_set_callback(ide, 6.0 * IDE_TIME);
                         return;
-                    } else if (ret == 1) {
+                    } else if (ret & 1) {
                         /* DMA successful */
                         ide_log("IDE %i: DMA read successful\n", ide->channel);
 
@@ -2379,7 +2483,7 @@ ide_callback(void *priv)
                         ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
                         ide_set_callback(ide, 6.0 * IDE_TIME);
                         return;
-                    } else if (ret == 1) {
+                    } else if (ret & 1) {
                         /* DMA successful */
                         ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide),
                                               ide->sector_pos, ide->sector_buffer);
@@ -2637,7 +2741,7 @@ ide_handlers(uint8_t board, int set)
         }
 
         if (ide_boards[board]->base[1]) {
-            io_handler(set, ide_boards[board]->base[1], 1,
+            io_handler(set, ide_boards[board]->base[1], 2,
                        ide_read_alt_status, NULL, NULL,
                        ide_write_devctl, NULL, NULL,
                        ide_boards[board]);

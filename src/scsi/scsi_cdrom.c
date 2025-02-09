@@ -15,6 +15,7 @@
  */
 #include <inttypes.h>
 #include <math.h>
+#define ENABLE_SCSI_CDROM_LOG 2
 #ifdef ENABLE_SCSI_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -110,6 +111,7 @@ uint8_t scsi_cdrom_command_flags[0x100] = {
     [0xbd]          = IMPLEMENTED,
     [0xbe ... 0xbf] = IMPLEMENTED | CHECK_READY,
     [0xc0 ... 0xcd] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0xd5]          = IMPLEMENTED | CHECK_READY,
     [0xd8 ... 0xde] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xe0 ... 0xe1] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xe3 ... 0xe9] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
@@ -303,15 +305,14 @@ scsi_cdrom_init(scsi_cdrom_t *dev)
             dev->tf->status = 0;
         dev->tf->pos         = 0;
         dev->packet_status   = PHASE_NONE;
-        scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
+        scsi_cdrom_sense_key = scsi_cdrom_asc =
+        scsi_cdrom_ascq = dev->unit_attention = 0;
         scsi_cdrom_info      = 0x00000000;
         dev->drv->cd_status &= ~CD_STATUS_TRANSITION;
         dev->drv->cur_speed  = dev->drv->real_speed;
         scsi_cdrom_mode_sense_load(dev);
 
-        const char *vendor = cdrom_get_vendor(dev->drv->type);
-
-        if ((dev->drv->bus_type == CDROM_BUS_SCSI) && !strcmp(vendor, "PIONEER"))
+        if ((dev->drv->bus_type == CDROM_BUS_SCSI) && dev->drv->is_pioneer)
             scsi_cdrom_drive_status_load(dev);
     }
 }
@@ -339,7 +340,7 @@ scsi_cdrom_get_channel(void *priv, const int channel)
     uint32_t ret = channel + 1;
 
     if (dev != NULL)
-        ret = dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE][channel ? 10 : 8];
+        ret = dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE][channel ? 10 : 8] & 0x0f;
 
     return ret;
 }
@@ -530,7 +531,8 @@ scsi_cdrom_mode_sense(const scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos,
                                 buf[pos++] = ((dev->drv->cur_speed * 176) & 0xff);
                             else
                                 buf[pos++] = ((dev->drv->cur_speed * 176) >> 8);
-                        } else if (dev->is_sony && (i == GPMODE_CDROM_AUDIO_PAGE_SONY) &&
+                        } else if (dev->drv->is_sony &&
+                                   (i == GPMODE_CDROM_AUDIO_PAGE_SONY) &&
                                    (j >= 6) && (j <= 13))
                             buf[pos++] = scsi_cdrom_mode_sense_read(dev, pgctl,
                                                                     GPMODE_CDROM_AUDIO_PAGE, 2 + j);
@@ -559,13 +561,21 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, const int block_len
        matches the block length.
      */
     switch (dev->current_cdb[0]) {
+        case 0xbc:
+            if (!dev->drv->is_early) {
+                dev->packet_len   = len;
+                break;
+            }
+            fallthrough;
         case 0x08:
         case 0x28:
         case 0xa8:
+        case 0xb8:
         case 0xb9:
         case 0xbe:
+        case 0xd5:
             /* Round it to the nearest (block length) bytes. */
-            if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
+            if (dev->current_cdb[0] >= 0xb8) {
                 /*
                    READ CD MSF and READ CD: Round the request length to the sector size - the
                    device must ensure that a media access comand does not DRQ in the middle
@@ -601,10 +611,11 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, const int block_len
                     break;
                 }
             }
+            dev->requested_blocks = 1;
             fallthrough;
 
         default:
-            dev->packet_len = len;
+            dev->packet_len   = len;
             break;
     }
     /*
@@ -649,15 +660,9 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 }
 
 static void
-scsi_cdrom_command_common(scsi_cdrom_t *dev)
+scsi_cdrom_set_period(scsi_cdrom_t *dev)
 {
     const uint8_t cmd        = dev->current_cdb[0];
-
-    /* MAP: BUSY_STAT, no DRQ, phase 1. */
-    dev->tf->status    = BUSY_STAT;
-    dev->tf->phase     = 1;
-    dev->tf->pos       = 0;
-    dev->callback      = 0;
 
     scsi_cdrom_log(dev->log, "Current speed: %ix\n", dev->drv->cur_speed);
 
@@ -667,97 +672,56 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
         double  bytes_per_second;
         double  period;
 
-        switch (cmd) {
-            case GPCMD_REZERO_UNIT:
-            case 0x0b:
-            case 0x2b:
-                /* Seek time is in us. */
-                period = cdrom_seek_time(dev->drv);
-                scsi_cdrom_log(dev->log, "Seek period: %" PRIu64 " us\n",
-                               (uint64_t) period);
-                dev->callback += period;
+        if (dev->was_cached != -1) {
+            if (dev->was_cached) {
+                dev->callback += 512.0;
                 scsi_cdrom_set_callback(dev);
                 return;
-            case 0x43:
-                dev->drv->seek_diff = dev->drv->seek_pos + 150;
-                dev->drv->seek_pos  = 0;
-                fallthrough;
-            case 0x08:
-            case 0x28:
-            case 0x42: case 0x44:
-            case 0xa8:
-                /* Seek time is in us. */
-                period = cdrom_seek_time(dev->drv);
-                scsi_cdrom_log(dev->log, "Seek period: %" PRIu64 " us\n",
-                               (uint64_t) period);
-                scsi_cdrom_log(dev->log, "Seek period: %" PRIu64 " us, speed: %"
-                               PRIu64 " bytes per second, should be: %"
-                               PRIu64 " bytes per second\n",
-                               (uint64_t) period, (uint64_t) (1000000.0 / period),
-                               (uint64_t) (176400.0 * (double) dev->drv->cur_speed));
-                dev->callback += period;
-                fallthrough;
-            case 0x25:
-            // case 0x42 ... 0x44:
-            case 0x51 ... 0x52:
-            case 0xad:
-            case 0xb8 ... 0xb9:
-            case 0xbe:
-                if (dev->current_cdb[0] == 0x42)
-                    dev->callback += 40.0;
-                /* Account for seek time. */
-                /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
-                /*
-                   TODO: This is a bit of a lie - the actual period is closer to
-                         75 * 2448 bytes per second, because the subchannel data
-                         has to be read as well.
-                 */
-                bytes_per_second = 176400.0;
-                bytes_per_second *= (double) dev->drv->cur_speed;
-                break;
-            case 0xc0 ... 0xc3:
-            case 0xc6 ... 0xc7:
-            case 0xdd ... 0xde:
-                if (dev->ven_cmd_is_data[cmd]) {
-                    if (dev->current_cdb[0] == 0xc2)
-                        dev->callback += 40.0;
-                    /* Account for seek time. */
-                    /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
-                    bytes_per_second = 176400.0;
-                    bytes_per_second *= (double) dev->drv->cur_speed;
-                    break;
-                }
-                fallthrough;
-            default:
-                bytes_per_second = scsi_cdrom_bus_speed(dev);
-                if (bytes_per_second == 0.0) {
-                    dev->callback = -1; /* Speed depends on SCSI controller */
-                    return;
-                }
-                break;
+            }
+
+            /* Seek time is in us. */
+            period = cdrom_seek_time(dev->drv);
+            scsi_cdrom_log(dev->log, "Seek period: %" PRIu64 " us\n",
+                           (uint64_t) period);
+            dev->callback += period;
+
+            /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
+            bytes_per_second = 176400.0;
+            bytes_per_second *= (double) dev->drv->cur_speed;
+        } else {
+            bytes_per_second = scsi_cdrom_bus_speed(dev);
+            if (bytes_per_second == 0.0) {
+                dev->callback = -1; /* Speed depends on SCSI controller */
+                return;
+            }
         }
 
         period = 1000000.0 / bytes_per_second;
         scsi_cdrom_log(dev->log, "Byte transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
-        switch (cmd) {
-            default:
-                period = period * (double) (dev->packet_len);
-                break;
-            case 0x42: case 0x44:
-                /* READ SUBCHANNEL or READ HEADER - period of 1 entire sector. */
-                period = period * 2352.0;
-                break;
-            case 0x43:
-                /* READ TOC - period of 175 entire frames. */
-                period = period * 150.0 * 2352.0;
-                break;
+        if (dev->was_cached == -1)
+            period *= (double) dev->packet_len;
+        else {
+            period *= ((double) dev->requested_blocks) * 2352.0;
+            pclog("[%02X] Calculated period for %i * 2352 bytes\n", cmd, dev->requested_blocks);
         }
         scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
         dev->callback += period;
     }
     scsi_cdrom_set_callback(dev);
+}
+
+static void
+scsi_cdrom_command_common(scsi_cdrom_t *dev)
+{
+    /* MAP: BUSY_STAT, no DRQ, phase 1. */
+    dev->tf->status    = BUSY_STAT;
+    dev->tf->phase     = 1;
+    dev->tf->pos       = 0;
+    dev->callback      = 0;
+
+    scsi_cdrom_set_period(dev);
 }
 
 static void
@@ -977,7 +941,7 @@ scsi_cdrom_invalid_lun(scsi_cdrom_t *dev, const uint8_t lun)
 static void
 scsi_cdrom_illegal_opcode(scsi_cdrom_t *dev, const uint8_t opcode)
 {
-    scsi_cdrom_log(dev->log, "Illegal opcode\n");
+    scsi_cdrom_log(dev->log, "Illegal opcode: %02X\n", opcode);
     scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
     scsi_cdrom_asc       = ASC_ILLEGAL_OPCODE;
     scsi_cdrom_ascq      = 0;
@@ -988,7 +952,7 @@ scsi_cdrom_illegal_opcode(scsi_cdrom_t *dev, const uint8_t opcode)
 static void
 scsi_cdrom_lba_out_of_range(scsi_cdrom_t *dev)
 {
-    scsi_cdrom_log(dev->log, "LBA out of range\n");
+    scsi_cdrom_log(dev->log, "LBA out of range: %08X\n", dev->sector_pos);
     scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
     scsi_cdrom_asc       = ASC_LBA_OUT_OF_RANGE;
     scsi_cdrom_ascq      = 0;
@@ -1073,7 +1037,7 @@ scsi_cdrom_illegal_mode(scsi_cdrom_t *dev)
 
 static int
 scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int flags,
-                     int32_t *len, const int vendor_type)
+                     const int vendor_type)
 {
     int      temp_len = 0;
     int      ret      = 0;
@@ -1081,69 +1045,60 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
     if (dev->drv->cd_status == CD_STATUS_EMPTY)
         scsi_cdrom_not_ready(dev);
     else {
-        const uint32_t cdsize   = dev->drv->cdrom_capacity;
-
-        if (dev->sector_pos >= cdsize) {
-            scsi_cdrom_log(dev->log, "Trying to read from beyond the end of "
-                           "disc (%i >= %i)\n", dev->sector_pos, cdsize);
+        if (dev->sector_pos > dev->drv->cdrom_capacity) {
             scsi_cdrom_lba_out_of_range(dev);
             ret = -1;
         } else {
-            int      data_pos = 0;
+            ret = cdrom_readsector_raw(dev->drv, dev->buffer + dev->buffer_pos,
+                                       dev->sector_pos, msf, type,
+                                       flags, &temp_len, vendor_type);
 
-            dev->old_len = 0;
-            *len         = 0;
+            if (ret < 0)
+                scsi_cdrom_circ_error(dev);
+            else if (ret == 0)
+                scsi_cdrom_illegal_mode(dev);
+            else {
+                if (dev->block_len == 0xffffffff)
+                    dev->block_len = temp_len;
 
-            ret = 1;
+                dev->sector_pos++;
+                dev->drv->seek_pos = dev->sector_pos;
 
-            for (int i = 0; i < dev->requested_blocks; i++) {
-                ret = cdrom_readsector_raw(dev->drv, dev->buffer + data_pos,
-                                           dev->sector_pos + i, msf, type,
-                                           flags, &temp_len, vendor_type);
+                dev->sector_len--;
 
-                data_pos += temp_len;
-                dev->old_len += temp_len;
-
-                *len += temp_len;
-
-                if (ret == 0) {
-                    scsi_cdrom_illegal_mode(dev);
-                    break;
-                }
-
-                if (ret < 0) {
-                    scsi_cdrom_circ_error(dev);
-                    break;
-                }
+                pclog("Sector read to buffer position %08X\n", dev->buffer_pos);
+                dev->buffer_pos += temp_len;
             }
         }
     }
+
+    if ((ret < 1) || (dev->sector_len == 0))
+        dev->wait = 0;
 
     return ret;
 }
 
 static int
-scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, const int vendor_type)
+scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
 {
     int ret   = 1;
     int msf   = 0;
     int type  = dev->sector_type;
     int flags = dev->sector_flags;
 
-    /* Any of these commands stop the audio playing. */
-    cdrom_stop(dev->drv);
-
     switch (dev->current_cdb[0]) {
         case GPCMD_READ_CD_MSF_OLD:
         case GPCMD_READ_CD_MSF:
             msf = 1;
             fallthrough;
+        case GPCMD_PLAY_CD:
         case GPCMD_READ_CD_OLD:
         case GPCMD_READ_CD:
             type  = (dev->current_cdb[1] >> 2) & 7;
             flags = dev->current_cdb[9] | (((uint32_t) dev->current_cdb[10]) << 8);
             break;
         case GPCMD_READ_HEADER:
+        case GPCMD_READ_HEADER_SONY:
             type  = 0x00;
             flags = 0x20;
             break;
@@ -1164,16 +1119,10 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, const int vendor_type)
         scsi_cdrom_log(dev->log, "Reading %i blocks starting from %i...\n",
                        dev->requested_blocks, dev->sector_pos);
 
-        ret = scsi_cdrom_read_data(dev, msf, type, flags, len, vendor_type);
+        ret = scsi_cdrom_read_data(dev, msf, type, flags, dev->vendor_type);
 
-        scsi_cdrom_log(dev->log, "Read %i bytes of blocks (ret = %i)...\n", *len, ret);
-    }
-
-    if ((ret > 0) && (dev->current_cdb[0] != GPCMD_READ_HEADER)) {
-        dev->sector_pos += dev->requested_blocks;
-        dev->drv->seek_pos = dev->sector_pos;
-
-        dev->sector_len -= dev->requested_blocks;
+        scsi_cdrom_log(dev->log, "Read %i bytes of blocks (ret = %i)...\n",
+                       dev->block_len, ret);
     }
 
     return ret;
@@ -1214,7 +1163,7 @@ scsi_command_check_ready(const scsi_cdrom_t *dev, const uint8_t *cdb)
                            check for ready status but they do on Y vendor.
                            Quite confusing I know.
          */
-        if (!dev->is_sony || (cdb[0] != 0xc0))
+        if (!dev->drv->is_sony || (cdb[0] != 0xc0))
             ret = 1;
     } else if ((cdb[0] == GPCMD_READ_DVD_STRUCTURE) && (cdb[7] < 0xc0))
         ret = 1;
@@ -1317,12 +1266,6 @@ skip_ready_check:
     if (cdb[0] != GPCMD_REQUEST_SENSE)
         scsi_cdrom_sense_clear(dev, cdb[0]);
 
-    /* Next it's time for NOT READY. */
-    if (ready)
-        dev->media_status = dev->unit_attention ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
-    else
-        dev->media_status = MEC_MEDIA_REMOVAL;
-
     if (!ready && scsi_command_check_ready(dev, cdb)) {
         scsi_cdrom_log(dev->log, "Not ready (%02X)\n", cdb[0]);
         scsi_cdrom_not_ready(dev);
@@ -1336,6 +1279,7 @@ skip_ready_check:
 static void
 scsi_cdrom_rezero(scsi_cdrom_t *dev)
 {
+    dev->drv->seek_diff = ABS(dev->sector_pos);
     dev->sector_pos = dev->sector_len = 0;
     cdrom_seek(dev->drv, 0, 0);
 }
@@ -1388,6 +1332,10 @@ scsi_cdrom_update_sector_flags(scsi_cdrom_t *dev)
             dev->sector_type  = 0x00;
             dev->sector_flags = 0x02f8;
             break;
+        case 2646:
+            dev->sector_type  = 0x00;
+            dev->sector_flags = 0x00fa;
+            break;
     }
 
     return ret;
@@ -1412,9 +1360,11 @@ scsi_cdrom_reset(scsi_common_t *sc)
         dev->drv->sector_size   = 2048;
         (void) scsi_cdrom_update_sector_flags(dev);
 
-        scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
-        scsi_cdrom_info      = 0x00000000;
-        dev->drv->cd_status &= ~CD_STATUS_TRANSITION;
+        scsi_cdrom_sense_key    = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
+        scsi_cdrom_info         = 0x00000000;
+        dev->drv->cd_status    &= ~CD_STATUS_TRANSITION;
+        dev->drv->cached_sector = -1;
+        dev->toc_cached         = 0;
     }
 }
 
@@ -1498,6 +1448,8 @@ scsi_cdrom_stop(const scsi_common_t *sc)
     const scsi_cdrom_t *dev = (const scsi_cdrom_t *) sc;
 
     cdrom_stop(dev->drv);
+
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
 }
 
 static void
@@ -1536,6 +1488,7 @@ scsi_cdrom_command_chinon(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen))
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_stop(sc);
             cdrom_eject(dev->id);
+            dev->toc_cached = 0;
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
             break;
@@ -1551,16 +1504,66 @@ scsi_cdrom_command_chinon(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen))
     return cmd_stat;
 }
 
+static void
+scsi_cdrom_cache_toc(scsi_cdrom_t *dev)
+{
+    if (!dev->toc_cached) {
+        dev->toc_cached         = 1;
+        dev->drv->seek_diff     = dev->drv->seek_pos + 150;
+        dev->sector_pos         = -150;
+        dev->drv->seek_pos      = -150;
+        dev->requested_blocks   = 150;
+        dev->drv->cached_sector = -1;
+    }
+}
+
+static void
+scsi_cdrom_one_sector_seek(scsi_cdrom_t *dev)
+{
+    if (!dev->was_cached) {
+        dev->drv->seek_diff   = 0;
+        dev->requested_blocks = 1;
+    }
+}
+
+static void
+scsi_cdrom_media_access_complete(scsi_cdrom_t *dev, const int ret)
+{
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
+    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+    dev->callback      = 20.0 * CDROM_TIME;
+    scsi_cdrom_set_callback(dev);
+}
+
+static void
+scsi_cdrom_read(scsi_common_t *sc)
+{
+    scsi_cdrom_t *dev   = (scsi_cdrom_t *) sc;
+    const int ret       = scsi_cdrom_read_blocks(dev);
+
+    dev->drv->seek_diff = 0;
+
+    if (ret > 0) {
+        if (dev->packet_status != PHASE_COMPLETE) {
+            ui_sb_update_icon(SB_CDROM | dev->id, 1);
+
+            scsi_cdrom_set_period(dev);
+        } else
+            ui_sb_update_icon(SB_CDROM | dev->id, 0);
+    } else
+        scsi_cdrom_media_access_complete(dev, ret);
+}
+
 static uint8_t
 scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
 {
     scsi_cdrom_t *dev                    = (scsi_cdrom_t *) sc;
-    int           msf;
+    int           ret                    = 1;
     uint8_t       cmd_stat               = 0x00;
+    int           msf;
     int           len;
     int           max_len;
-    int           alloc_length;
-    int           real_pos;
 
     switch (cdb[0]) {
         default:
@@ -1575,7 +1578,9 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_READ_TOC_SONY:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-            msf              = dev->drv->sony_msf;
+            dev->was_cached = dev->toc_cached;
+
+            msf             = dev->drv->sony_msf;
 
             max_len = cdb[7];
             max_len <<= 8;
@@ -1592,6 +1597,8 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
                     /* If the returned length is -1, this means cdrom_read_toc_sony() has encountered an error. */
                     scsi_cdrom_invalid_field(dev, dev->drv->inv_field);
                 else {
+                    scsi_cdrom_cache_toc(dev);
+
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);
                     scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 }
@@ -1601,6 +1608,7 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_READ_SUBCHANNEL_SONY:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = (dev->drv->cached_sector != -1);
 
             max_len = cdb[7];
             max_len <<= 8;
@@ -1615,6 +1623,7 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 memset(dev->buffer, 0, 9);
                 len = 9;
                 cdrom_get_current_subchannel_sony(dev->drv, dev->buffer, msf);
+                scsi_cdrom_one_sector_seek(dev);
                 len = MIN(len, max_len);
                 scsi_cdrom_set_buf_len(dev, BufLen, &len);
                 scsi_cdrom_data_command_finish(dev, len, len, len, 0);
@@ -1631,23 +1640,54 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
         case GPCMD_READ_HEADER_SONY:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
-            alloc_length = ((cdb[7] << 8) | cdb[8]);
-            scsi_cdrom_buf_alloc(dev, 4);
+            len                   = (cdb[7] << 8) | cdb[8];
+            dev->sector_len       = 1;
+            dev->sector_pos       = (cdb[2] << 24) | (cdb[3] << 16) |
+                                    (cdb[4] << 8) | cdb[5];
+            dev->was_cached       = (dev->drv->cached_sector == dev->sector_pos);
+            scsi_cdrom_log(dev->log, "READ HEADER SONY: Length: %i, LBA: %i\n",
+                           dev->sector_len, dev->sector_pos);
 
-            dev->sector_len = 1;
-            dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-            real_pos        = cdrom_lba_to_msf_accurate(dev->sector_pos);
-            dev->buffer[0]  = ((real_pos >> 16) & 0xff);
-            dev->buffer[1]  = ((real_pos >> 8) & 0xff);
-            dev->buffer[2]  = real_pos & 0xff;
-            dev->buffer[3]  = 1; /*2048 bytes user data*/
+            if (len > 0) {
+                max_len               = 1;
+                dev->requested_blocks = 1;
 
-            len = 4;
-            len = MIN(len, alloc_length);
+                dev->packet_len       = len;
+                scsi_cdrom_buf_alloc(dev, 2352);
 
-            scsi_cdrom_set_buf_len(dev, BufLen, &len);
+                scsi_cdrom_one_sector_seek(dev);
 
-            scsi_cdrom_data_command_finish(dev, len, len, len, 0);
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                dev->vendor_type      = 0x00;
+
+                dev->buffer_pos       = 0x00000000;
+
+                ret = scsi_cdrom_read_blocks(dev);
+
+                if (ret > 0) {
+                    len = MIN(4, len);
+
+                    scsi_cdrom_set_buf_len(dev, BufLen, &len);
+
+                    scsi_cdrom_data_command_finish(dev, len, len,
+                                                   len, 0);
+
+                    ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
             cmd_stat = 0x01;
             break;
 
@@ -1702,7 +1742,11 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
                     scsi_cdrom_illegal_mode(dev);
                 else {
                     /* In this case, len is unused so just pass a fixed value of 1 intead. */
-                    const int ret = cdrom_audio_play(dev->drv, pos, 1, msf);
+                    const int ret         = cdrom_audio_play(dev->drv, pos, 1, msf);
+                    dev->requested_blocks = 0;
+
+                    dev->drv->seek_diff   = ABS(dev->sector_pos - dev->drv->seek_pos);
+                    dev->sector_pos       = dev->drv->seek_pos;
 
                     if (ret)
                         scsi_cdrom_command_complete(dev);
@@ -1746,6 +1790,7 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 scsi_cdrom_set_buf_len(dev, BufLen, &len);
                 scsi_cdrom_data_command_finish(dev, len, len, len, 1);
             }
+            cmd_stat = 0x01;
             break;
     }
 
@@ -1874,12 +1919,16 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_AUDIO_TRACK_SEARCH_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            dev->was_cached = 0;
+
             if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DVD))
                 scsi_cdrom_illegal_mode(dev);
             else {
-                pos                = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-                ret                = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
-                dev->drv->audio_op = (cdb[1] & 1) ? 0x03 : 0x02;
+                pos                 = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                ret                 = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
+
+                dev->drv->seek_diff = ABS(dev->sector_pos - dev->drv->seek_pos);
+                dev->sector_pos     = dev->drv->seek_pos;
 
                 if (ret)
                     scsi_cdrom_command_complete(dev);
@@ -1909,7 +1958,6 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
         case GPCMD_STILL_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             cdrom_audio_pause_resume(dev->drv, 0x00);
-            dev->drv->audio_op = 0x01;
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
             break;
@@ -1924,12 +1972,14 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_stop(sc);
             cdrom_eject(dev->id);
+            dev->toc_cached = 0;
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
             break;
 
         case GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = (dev->drv->cached_sector == -1);
 
             alloc_length = cdb[1] & 0x1f;
             len          = 10;
@@ -1958,6 +2008,8 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_READ_DISC_INFORMATION_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
+
             /*
                NEC manual claims 4 bytes but the Linux kernel
                (namely sr_vendor.c) actually states otherwise.
@@ -1967,6 +2019,8 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
             ret = cdrom_read_disc_info_toc(dev->drv, dev->buffer, cdb[2], cdb[1] & 3);
             len = 22;
             if (ret) {
+                scsi_cdrom_cache_toc(dev);
+
                 scsi_cdrom_set_buf_len(dev, BufLen, &len);
                 scsi_cdrom_data_command_finish(dev, len, len, len, 0);
             } else
@@ -1998,12 +2052,15 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_stop(sc);
             cdrom_eject(dev->id);
+            dev->toc_cached = 0;
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
             break;
 
         case GPCMD_READ_TOC_PIONEER:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
+
             scsi_cdrom_buf_alloc(dev, 4);
 
             if (dev->drv->ops == NULL)
@@ -2013,6 +2070,8 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 len = 4;
 
                 if (ret) {
+                    scsi_cdrom_cache_toc(dev);
+
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);
                     scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 } else
@@ -2023,6 +2082,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_READ_SUBCODEQ_PIONEER:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = (dev->drv->cached_sector != -1);
 
             alloc_length = cdb[1] & 0x1f;
             len          = 9;
@@ -2041,6 +2101,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
                 memset(dev->buffer, 0, len);
                 cdrom_get_current_subcodeq(dev->drv, &dev->buffer[1]);
+                scsi_cdrom_one_sector_seek(dev);
                 scsi_cdrom_log(dev->log, "Audio Status = %02x\n", dev->buffer[0]);
 
                 scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
@@ -2051,14 +2112,17 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_AUDIO_TRACK_SEARCH_PIONEER:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            dev->was_cached = 0;
+
             if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DVD))
                 ret = 0;
             else {
                 pos                = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                 ret                = cdrom_audio_track_search_pioneer(dev->drv, pos, cdb[1] & 1);
-
-                dev->drv->audio_op = (cdb[1] & 1) ? 0x03 : 0x02;
             }
+
+            dev->drv->seek_diff = ABS(dev->sector_pos - dev->drv->seek_pos);
+            dev->sector_pos     = dev->drv->seek_pos;
 
             if (ret)
                 scsi_cdrom_command_complete(dev);
@@ -2178,13 +2242,17 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            dev->was_cached = 0;
+
             if ((dev->drv->image_path[0] == 0x00) || (dev->drv->cd_status <= CD_STATUS_DVD)) {
                 scsi_cdrom_illegal_mode(dev);
                 break;
             }
-            pos                = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-            ret                = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
-            dev->drv->audio_op = (cdb[1] & 1) ? 0x03 : 0x02;
+            pos                 = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            ret                 = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
+
+            dev->drv->seek_diff = ABS(dev->sector_pos - dev->drv->seek_pos);
+            dev->sector_pos     = dev->drv->seek_pos;
 
             if (ret)
                 scsi_cdrom_command_complete(dev);
@@ -2213,7 +2281,6 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
         case GPCMD_STILL_TOSHIBA:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             cdrom_audio_pause_resume(dev->drv, 0x00);
-            dev->drv->audio_op = 0x01;
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
             break;
@@ -2228,12 +2295,14 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_stop(sc);
             cdrom_eject(dev->id);
+            dev->toc_cached = 0;
             scsi_cdrom_command_complete(dev);
             cmd_stat = 0x01;
             break;
 
         case GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = (dev->drv->cached_sector != -1);
 
             alloc_length = cdb[1] & 0x1f;
             len          = 10;
@@ -2252,6 +2321,7 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
                 memset(dev->buffer, 0, len);
                 dev->buffer[0] = cdrom_get_current_subcodeq_playstatus(dev->drv, &dev->buffer[1]);
+                scsi_cdrom_one_sector_seek(dev);
                 scsi_cdrom_log(dev->log, "Audio Status = %02x\n", dev->buffer[0]);
 
                 scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
@@ -2262,6 +2332,8 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_READ_DISC_INFORMATION_TOSHIBA:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
+
             scsi_cdrom_buf_alloc(dev, 4);
 
             if (dev->drv->ops == NULL)
@@ -2270,11 +2342,32 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 ret = cdrom_read_disc_info_toc(dev->drv, dev->buffer, cdb[2], cdb[1] & 3);
                 len = 4;
                 if (ret) {
+                    scsi_cdrom_cache_toc(dev);
+
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);
                     scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 } else
                     scsi_cdrom_invalid_field(dev, dev->drv->inv_field);
             }
+            cmd_stat = 0x01;
+            break;
+
+        case GPCMD_READ_CDROM_MODE_TOSHIBA:
+            scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = (dev->drv->cached_sector != -1);
+
+            scsi_cdrom_buf_alloc(dev, 1);
+
+            alloc_length    = 1;
+
+            len             = alloc_length;
+            dev->buffer[0]  = cdrom_get_current_mode(dev->drv);
+
+            scsi_cdrom_one_sector_seek(dev);
+
+            scsi_cdrom_set_buf_len(dev, BufLen, &len);
+            scsi_cdrom_data_command_finish(dev, len, len, len, 0);
+
             cmd_stat = 0x01;
             break;
     }
@@ -2306,6 +2399,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
     int           toc_format;
     int32_t      *BufLen;
 
+    dev->was_cached  = -1;
+
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
         BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
         dev->tf->status &= ~ERR_STAT;
@@ -2316,6 +2411,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
     dev->packet_len  = 0;
     dev->request_pos = 0;
+
+    dev->block_len   = 0;
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -2331,8 +2428,9 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                        cdb[8], cdb[9], cdb[10], cdb[11]);
 #endif
 
-    msf             = cdb[1] & 2;
-    dev->sector_len = 0;
+    msf                   = cdb[1] & 2;
+    dev->sector_len       = 0;
+    dev->requested_blocks = 0;
 
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 
@@ -2348,17 +2446,22 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
         scsi_cdrom_sense_clear(dev, cdb[0]);
     }
 
-    if ((dev->ven_cmd == NULL) || (dev->ven_cmd(sc, cdb, BufLen) == 0x00))  switch (dev->current_cdb[0]) {
+    if ((dev->ven_cmd == NULL) ||
+        (dev->ven_cmd(sc, cdb, BufLen) == 0x00))  switch (dev->current_cdb[0]) {
         case GPCMD_TEST_UNIT_READY:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_command_complete(dev);
             break;
 
         case GPCMD_REZERO_UNIT:
+            pclog("Rezero unit\n");
+            dev->was_cached                   = 0;
             scsi_cdrom_stop(sc);
-            dev->sector_pos = dev->sector_len = 0;
+            dev->requested_blocks             = 0;
             dev->drv->seek_diff               = dev->drv->seek_pos;
             cdrom_seek(dev->drv, 0, 0);
+            dev->sector_pos                   = dev->drv->seek_pos;
+            dev->drv->cached_sector           = -1;
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             break;
 
@@ -2386,7 +2489,9 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_SCAN_PIONEER:
         case GPCMD_AUDIO_SCAN:
+            pclog("Audio scan\n");
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            dev->was_cached = 0;
 
             if ((dev->drv->image_path[0] == 0x00) ||
                 (dev->drv->cd_status <= CD_STATUS_DVD)) {
@@ -2395,7 +2500,10 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             }
 
             pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-            ret = cdrom_audio_scan(dev->drv, pos, 0);
+            ret = cdrom_audio_scan(dev->drv, pos);
+
+            dev->drv->seek_diff   = ABS(dev->sector_pos - dev->drv->seek_pos);
+            dev->sector_pos       = dev->drv->seek_pos;
 
             if (ret)
                 scsi_cdrom_command_complete(dev);
@@ -2419,6 +2527,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_READ_TOC_PMA_ATIP:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
 
             max_len = cdb[7];
             max_len <<= 8;
@@ -2427,6 +2536,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             scsi_cdrom_buf_alloc(dev, 65536);
 
             toc_format = cdb[2] & 0xf;
+            pclog("READ TOC format %1X\n", toc_format);
 
             if (toc_format == 0)
                 toc_format = (cdb[9] >> 6) & 3;
@@ -2439,6 +2549,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 if (len == -1)
                     scsi_cdrom_invalid_field(dev, dev->drv->inv_field);
                 else {
+                    scsi_cdrom_cache_toc(dev);
+
                     scsi_cdrom_set_buf_len(dev, BufLen, &len);
                     scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 }
@@ -2446,6 +2558,16 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 scsi_cdrom_invalid_field(dev, toc_format);
             break;
 
+        case GPCMD_PLAY_CD:
+            /*
+               According to the ATAPI specification, this was actually READ CD
+               on early drives.
+             */
+            if (!dev->drv->is_early) {
+                scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
+                break;
+            }
+            fallthrough;
         case GPCMD_READ_6:
         case GPCMD_READ_10:
         case GPCMD_READ_12:
@@ -2454,9 +2576,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_READ_CD:
         case GPCMD_READ_CD_MSF:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-            alloc_length = dev->drv->sector_size;
+            dev->was_cached = 0;
 
-            switch (cdb[0]) {
+            alloc_length    = dev->drv->sector_size;
+
+            switch (dev->current_cdb[0]) {
                 case GPCMD_READ_6:
                     dev->sector_len = cdb[4];
                     /*
@@ -2491,6 +2615,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 case GPCMD_READ_CD_MSF:
                     msf = 1;
                     fallthrough;
+                case GPCMD_PLAY_CD:
                 case GPCMD_READ_CD_OLD:
                 case GPCMD_READ_CD:
                     alloc_length    = 2856;
@@ -2535,22 +2660,30 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
                     dev->drv->seek_pos  = dev->sector_pos;                   
 
-                    if (dev->use_cdb_9 && ((cdb[0] == GPCMD_READ_10) ||
-                        (cdb[0] == GPCMD_READ_12)))
-                        ret = scsi_cdrom_read_blocks(dev, &alloc_length,
-                                                     cdb[9] & 0xc0);
+                    /* Any of these commands stop the audio playing. */
+                    cdrom_stop(dev->drv);
+
+                    if (dev->use_cdb_9 &&
+                        ((dev->current_cdb[0] == GPCMD_READ_10) ||
+                         (dev->current_cdb[0] == GPCMD_READ_12)))
+                        dev->vendor_type  = cdb[9] & 0xc0;
                     else
-                        ret = scsi_cdrom_read_blocks(dev, &alloc_length, 0);
+                        dev->vendor_type  = 0x00;
+
+                    dev->block_len      = 0xffffffff;
+                    dev->buffer_pos     = 0x00000000;
+
+                    ret                 = scsi_cdrom_read_blocks(dev);
+                    alloc_length        = dev->requested_blocks * dev->block_len;
 
                     if (ret > 0) {
-                        dev->requested_blocks = max_len;
                         dev->packet_len       = alloc_length;
 
                         scsi_cdrom_set_buf_len(dev, BufLen,
                                                (int32_t *) &dev->packet_len);
 
                         scsi_cdrom_data_command_finish(dev, alloc_length,
-                                                       alloc_length / dev->requested_blocks,
+                                                       dev->block_len,
                                                        alloc_length, 0);
 
                         if (dev->packet_status != PHASE_COMPLETE)
@@ -2575,11 +2708,14 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_READ_HEADER:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-            alloc_length = 2352;
 
-            len             = (cdb[7] << 8) | cdb[8];
-            dev->sector_len = 1;
-            dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            alloc_length          = 2352;
+
+            len                   = (cdb[7] << 8) | cdb[8];
+            dev->sector_len       = 1;
+            dev->sector_pos       = (cdb[2] << 24) | (cdb[3] << 16) |
+                                    (cdb[4] << 8) | cdb[5];
+            dev->was_cached       = (dev->drv->cached_sector == dev->sector_pos);
             scsi_cdrom_log(dev->log, "READ HEADER: Length: %i, LBA: %i\n",
                            dev->sector_len, dev->sector_pos);
 
@@ -2590,10 +2726,15 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->packet_len       = len;
                 scsi_cdrom_buf_alloc(dev, 2352);
 
-                dev->drv->seek_diff   = ABS((int) (pos - dev->sector_pos));
-                dev->drv->seek_pos    = dev->sector_pos;
+                scsi_cdrom_one_sector_seek(dev);
 
-                ret = scsi_cdrom_read_blocks(dev, &alloc_length, 0);
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                dev->vendor_type      = 0x00;
+
+                dev->buffer_pos       = 0x00000000;
+                ret = scsi_cdrom_read_blocks(dev);
 
                 if (ret > 0) {
                     uint8_t header[4] = { 0 };
@@ -2650,7 +2791,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             else
                 block_desc = !((cdb[1] >> 3) & 1);
 
-            if (cdb[0] == GPCMD_MODE_SENSE_6) {
+            if (dev->current_cdb[0] == GPCMD_MODE_SENSE_6) {
                 len = cdb[4];
                 scsi_cdrom_buf_alloc(dev, 256);
             } else {
@@ -2681,7 +2822,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 else
                     max_len = 3; /* Audio or mixed-mode CD. */
 
-                if (cdb[0] == GPCMD_MODE_SENSE_6) {
+                if (dev->current_cdb[0] == GPCMD_MODE_SENSE_6) {
                     len            = scsi_cdrom_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
                     len            = MIN(len, alloc_length);
                     dev->buffer[0] = len - 1;
@@ -2714,7 +2855,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_MODE_SELECT_10:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
-            if (cdb[0] == GPCMD_MODE_SELECT_6) {
+            if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
                 len = cdb[4];
                 scsi_cdrom_buf_alloc(dev, 256);
             } else {
@@ -2919,7 +3060,10 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     gesn_event_header->notification_class |= GESN_MEDIA;
 
                     /* Bits 7-4 = Reserved, Bits 4-1 = Media Status. */
-                    dev->buffer[4] = dev->media_status;
+                    if (dev->drv->cd_status == CD_STATUS_EMPTY)
+                        dev->buffer[4] = MEC_MEDIA_REMOVAL;
+                    else
+                        dev->buffer[4] = dev->unit_attention ? MEC_NEW_MEDIA : MEC_NO_CHANGE;
                     /* Power Status (1 = Active). */
                     dev->buffer[5] = 1;
                     dev->buffer[6] = 0;
@@ -2947,6 +3091,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_READ_DISC_INFORMATION:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
 
             max_len = cdb[7];
             max_len <<= 8;
@@ -2958,6 +3103,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
             len = MIN(34, max_len);
 
+            scsi_cdrom_cache_toc(dev);
+
             scsi_cdrom_set_buf_len(dev, BufLen, &len);
 
             scsi_cdrom_data_command_finish(dev, len, len, len, 0);
@@ -2965,6 +3112,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_READ_TRACK_INFORMATION:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
 
             max_len = cdb[7];
             max_len <<= 8;
@@ -2983,6 +3131,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->buffer[1] = (max_len - 2) & 0xff;
                 }
 
+                scsi_cdrom_cache_toc(dev);
+
                 scsi_cdrom_set_buf_len(dev, BufLen, &len);
                 scsi_cdrom_data_command_finish(dev, len, len, max_len, 0);
             } else
@@ -2999,21 +3149,25 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
             len = 0;
 
-            switch (cdb[0]) {
+            switch (dev->current_cdb[0]) {
                 case GPCMD_PLAY_AUDIO_10:
                     msf = 0;
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[7] << 8) | cdb[8];
+                    pclog("Play audio (10)\n");
                     break;
                 case GPCMD_PLAY_AUDIO_12:
                     msf = 0;
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+                    pclog("Play audio (12)\n");
                     break;
                 case GPCMD_PLAY_AUDIO_MSF:
                     msf = 1;
                     pos = (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 16) | (cdb[7] << 8) | cdb[8];
+                    pclog("Play audio MSF: %2i:%02i.%02i-%2i:%02i.%02i\n",
+                          cdb[3], cdb[4], cdb[5], cdb[6], cdb[7], cdb[8]);
                     break;
                 case GPCMD_PLAY_AUDIO_TRACK_INDEX:
                     msf = 2;
@@ -3022,16 +3176,19 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         len = cdb[7];
                     } else
                         ret = 0;
+                    pclog("Play audio track index\n");
                     break;
                 case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10:
                     msf = 0x100 | cdb[6];
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[7] << 8) | cdb[8];
+                    pclog("Play audio track relative (10)\n");
                     break;
                 case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12:
                     msf = 0x100 | cdb[10];
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+                    pclog("Play audio track relative (12)\n");
                     break;
 
                 default:
@@ -3039,9 +3196,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             }
 
             if (ret && (dev->drv->image_path[0] != 0x00) &&
-                (dev->drv->cd_status > CD_STATUS_DVD))
-                ret = cdrom_audio_play(dev->drv, pos, len, msf);
-            else
+                (dev->drv->cd_status > CD_STATUS_DVD)) {
+                ret                   = cdrom_audio_play(dev->drv, pos, len, msf);
+
+                dev->sector_pos       = dev->drv->seek_pos;
+            } else
                 ret = 0;
 
             if (ret)
@@ -3052,13 +3211,14 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_READ_SUBCHANNEL:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = (dev->drv->cached_sector != -1);
 
             max_len = cdb[7];
             max_len <<= 8;
             max_len |= cdb[8];
             msf = (cdb[1] >> 1) & 1;
 
-            scsi_cdrom_buf_alloc(dev, 32);
+            scsi_cdrom_buf_alloc(dev, 128);
 
             scsi_cdrom_log(dev->log, "Getting page %i (%s)\n", cdb[3],
                            msf ? "MSF" : "LBA");
@@ -3090,23 +3250,23 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
                 len = alloc_length;
 
-                memset(dev->buffer, 0, 24);
-                pos                = 0x00;
-                dev->buffer[pos++] = 0x00;
-                dev->buffer[pos++] = 0x00;    /* Audio status */
-                dev->buffer[pos++] = 0x00;
-                dev->buffer[pos++] = 0x00;    /* Subchannel length */
-                dev->buffer[pos++] = cdb[3];    /* Format code */
+                memset(dev->buffer, 0x00, 128);
 
-                if (alloc_length != 4) {
+                if (alloc_length > 4) {
+                    dev->buffer[4] = cdb[3];    /* Format code */
                     cdrom_get_current_subchannel(dev->drv, &dev->buffer[4], msf);
 
-                    dev->buffer[2] = alloc_length - 4;
+                    alloc_length = MIN(max_len, alloc_length);
+
+                    dev->buffer[3] = (alloc_length - 4) & 0xff;
+                    dev->buffer[4] = cdb[3];    /* Format code */
                 }
 
                 dev->buffer[1] = cdrom_get_current_status(dev->drv);
 
-                scsi_cdrom_log(dev->log, "Audio Status = %02x\n", dev->buffer[1]);
+                scsi_cdrom_log(dev->log, "Audio status: %02X\n", dev->buffer[1]);
+
+                scsi_cdrom_one_sector_seek(dev);
 
                 len = MIN(len, max_len);
                 scsi_cdrom_set_buf_len(dev, BufLen, &len);
@@ -3119,7 +3279,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
             alloc_length = (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-
             scsi_cdrom_buf_alloc(dev, alloc_length);
 
             if ((cdb[7] < 0xc0) && (dev->drv->cd_status != CD_STATUS_DVD))
@@ -3168,10 +3327,13 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                        This makes no sense under emulation as this would do
                        absolutely nothing, so just break.
                      */
+                    dev->toc_cached = 0;
+                    scsi_cdrom_cache_toc(dev);
                     break;
                 case 2: /* Eject the disc if possible. */
                     scsi_cdrom_stop(sc);
                     cdrom_eject(dev->id);
+                    dev->toc_cached = 0;
                     break;
                 case 3: /* Load the disc (close tray). */
                     cdrom_reload(dev->id);
@@ -3267,7 +3429,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 if (dev->drv->bus_type == CDROM_BUS_SCSI) {
                     dev->buffer[3] = cdrom_get_scsi_std(dev->drv->type);
 
-                    if (!strcmp(cdrom_get_vendor(dev->drv->type), "TOSHIBA"))
+                    if (dev->drv->is_toshiba)
                         /* Linked Command and Relative Addressing supported */
                         dev->buffer[7] = 0x88;
                 } else {
@@ -3287,7 +3449,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 ide_padstr8(dev->buffer + 32,  4,
                             cdrom_get_revision(dev->drv->type));    /* Revision */
 
-                if (cdrom_has_date(dev->drv->type)) {
+                if (dev->drv->is_pioneer) {
                     dev->buffer[36] = 0x20;
                     ide_padstr8(dev->buffer + 37, 10, "1991/01/01");                      /* Date */
                 }
@@ -3321,15 +3483,16 @@ atapi_out:
         case GPCMD_PAUSE_RESUME:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             cdrom_audio_pause_resume(dev->drv, cdb[8] & 0x01);
-            dev->drv->audio_op = (cdb[8] & 0x01) ? 0x03 : 0x01;
             scsi_cdrom_command_complete(dev);
             break;
 
         case GPCMD_SEEK_6:
         case GPCMD_SEEK_10:
+            pclog("Seek\n");
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            dev->was_cached = 0;
 
-            switch (cdb[0]) {
+            switch (dev->current_cdb[0]) {
                 case GPCMD_SEEK_6:
                     pos = (cdb[2] << 8) | cdb[3];
                     break;
@@ -3346,16 +3509,20 @@ atapi_out:
             /* Stop the audio playing. */
             cdrom_stop(dev->drv);
 
-            if (dev->use_cdb_9 && (cdb[0] == GPCMD_SEEK_10))
+            if (dev->use_cdb_9 && (dev->current_cdb[0] == GPCMD_SEEK_10))
                 cdrom_seek(dev->drv, pos, cdb[9] & 0xc0);
             else
                 cdrom_seek(dev->drv, pos, 0);
+
+            dev->sector_pos         = dev->drv->seek_pos;
+            dev->drv->cached_sector = -1;
 
             scsi_cdrom_command_complete(dev);
             break;
 
         case GPCMD_READ_CDROM_CAPACITY:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+            dev->was_cached = dev->toc_cached;
 
             scsi_cdrom_buf_alloc(dev, 8);
 
@@ -3370,6 +3537,8 @@ atapi_out:
 
             scsi_cdrom_log(dev->log, "CD-ROM Capacity: %08X\n",
                            dev->drv->cdrom_capacity - 1);
+
+            scsi_cdrom_cache_toc(dev);
             scsi_cdrom_set_buf_len(dev, BufLen, &len);
 
             scsi_cdrom_data_command_finish(dev, len, len, len, 0);
@@ -3388,7 +3557,7 @@ atapi_out:
             break;
 
         default:
-            scsi_cdrom_illegal_opcode(dev, cdb[0]);
+            scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
             break;
     }
 
@@ -3486,7 +3655,7 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 
                 pos += 2;
 
-                if (dev->is_sony && (page == 0x08) && (page_len == 0x02))
+                if (dev->drv->is_sony && (page == 0x08) && (page_len == 0x02))
                     dev->drv->sony_msf = dev->buffer[pos] & 0x01;
 
                 if (!(dev->ms_page_flags & (1LL << ((uint64_t) page)))) {
@@ -3496,7 +3665,9 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
                     for (i = 0; i < page_len; i++) {
                         uint8_t pg = page;
 
-                        if (dev->is_sony && (page == GPMODE_CDROM_AUDIO_PAGE_SONY) && (i >= 6) && (i <= 13))
+                        if (dev->drv->is_sony &&
+                            (page == GPMODE_CDROM_AUDIO_PAGE_SONY) &&
+                            (i >= 6) && (i <= 13))
                             pg = GPMODE_CDROM_AUDIO_PAGE;
 
                         ch      = dev->ms_pages_changeable.pages[pg][i + 2];
@@ -3532,7 +3703,7 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
             }
             break;
         case 0xc9:
-            if (dev->is_sony) {
+            if (dev->drv->is_sony) {
                 for (i = 0; i < 18; i++) {
                     if ((i >= 8) && (i <= 15))
                         dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE][i] =
@@ -3687,12 +3858,15 @@ scsi_cdrom_drive_reset(const int c)
     dev->id  = c;
     dev->drv = drv;
 
-    dev->cur_lun = SCSI_LUN_USE_CDB;
+    dev->cur_lun       = SCSI_LUN_USE_CDB;
 
-    drv->insert      = scsi_cdrom_insert;
-    drv->get_volume  = scsi_cdrom_get_volume;
-    drv->get_channel = scsi_cdrom_get_channel;
-    drv->close       = scsi_cdrom_close;
+    dev->toc_cached    = 0;
+    drv->cached_sector = -1;
+
+    drv->insert        = scsi_cdrom_insert;
+    drv->get_volume    = scsi_cdrom_get_volume;
+    drv->get_channel   = scsi_cdrom_get_channel;
+    drv->close         = scsi_cdrom_close;
 
     drv->sector_size = 2048;
     (void) scsi_cdrom_update_sector_flags(dev);
@@ -3702,22 +3876,19 @@ scsi_cdrom_drive_reset(const int c)
 
         dev->ven_cmd               = NULL;
         memset(dev->ven_cmd_is_data, 0x00, sizeof(dev->ven_cmd_is_data));
-        dev->is_sony               = 0;
         dev->use_cdb_9             = 0;
         dev->ms_page_flags         = scsi_cdrom_ms_page_flags_scsi;
         dev->ms_pages_default      = scsi_cdrom_ms_pages_default_scsi;
         dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_scsi;
 
-        if (!strcmp(vendor, "CHINON"))
+        if (dev->drv->is_chinon)
             dev->ven_cmd               = scsi_cdrom_command_chinon;
-        else if (!strcmp(vendor, "DEC") || !strcmp(vendor, "ShinaKen") ||
-                 !strcmp(vendor, "SONY") || !strcmp(vendor, "TEXEL")) {
+        else if (dev->drv->is_sony) {
             dev->ven_cmd               = scsi_cdrom_command_dec_sony_texel;
             dev->ven_cmd_is_data[0xc0] = 1;
             dev->ven_cmd_is_data[0xc1] = 1;
             dev->ven_cmd_is_data[0xc2] = 1;
             dev->ven_cmd_is_data[0xc3] = 1;
-            dev->is_sony               = 1;
             dev->ms_page_flags         = scsi_cdrom_ms_page_flags_sony_scsi;
             dev->ms_pages_default      = scsi_cdrom_ms_pages_default_sony_scsi;
             dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_sony_scsi;
@@ -3727,12 +3898,12 @@ scsi_cdrom_drive_reset(const int c)
             dev->ven_cmd               = scsi_cdrom_command_nec;
             dev->ven_cmd_is_data[0xdd] = 1;
             dev->ven_cmd_is_data[0xde] = 1;
-        } else if (!strcmp(vendor, "PIONEER")) {
+        } else if (dev->drv->is_pioneer) {
             dev->ven_cmd               = scsi_cdrom_command_pioneer;
             dev->ven_cmd_is_data[0xc1] = 1;
             dev->ven_cmd_is_data[0xc2] = 1;
             dev->ven_cmd_is_data[0xc3] = 1;
-        } else if (!strcmp(vendor, "TOSHIBA")) {
+        } else if (dev->drv->is_toshiba) {
             dev->ven_cmd               = scsi_cdrom_command_toshiba;
             dev->ven_cmd_is_data[0xc6] = 1;
             dev->ven_cmd_is_data[0xc7] = 1;
@@ -3768,7 +3939,6 @@ scsi_cdrom_drive_reset(const int c)
         if (id) {
             dev->ven_cmd               = NULL;
             memset(dev->ven_cmd_is_data, 0x00, sizeof(dev->ven_cmd_is_data));
-            dev->is_sony               = 0;
             dev->use_cdb_9             = 0;
             dev->ms_page_flags         = scsi_cdrom_ms_page_flags;
             dev->ms_pages_default      = scsi_cdrom_ms_pages_default;
@@ -3786,6 +3956,8 @@ scsi_cdrom_drive_reset(const int c)
             id->phase_data_out         = scsi_cdrom_phase_data_out;
             id->command_stop           = scsi_cdrom_command_stop;
             id->bus_master_error       = scsi_cdrom_bus_master_error;
+            id->read                   = scsi_cdrom_read;
+            id->write                  = NULL;
             id->interrupt_drq          = dev->drv->is_early;
 
             valid = 1;

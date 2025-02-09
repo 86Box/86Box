@@ -91,6 +91,20 @@ ioctl_open_handle(ioctl_t *ioctl)
     ioctl_log(ioctl->log, "handle=%p, error=%x\n",
               ioctl->handle, (unsigned int) GetLastError());
 
+    if (ioctl->handle != INVALID_HANDLE_VALUE) {
+        CDROM_SET_SPEED set_speed = { 0 };
+
+        set_speed.RequestType     = CdromSetSpeed;
+        set_speed.ReadSpeed       = 0xffff;
+        set_speed.WriteSpeed      = 0xffff;
+        set_speed.RotationControl = CdromDefaultRotation;
+
+        (void) DeviceIoControl(ioctl->handle, IOCTL_CDROM_SET_SPEED,
+                               &set_speed, sizeof(set_speed),
+                               NULL, 0,
+                               0, NULL);
+    }
+
     return (ioctl->handle != INVALID_HANDLE_VALUE);
 }
 

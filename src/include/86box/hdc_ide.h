@@ -133,6 +133,8 @@ typedef struct ide_s {
     uint8_t (*phase_data_out)(scsi_common_t *sc);
     void    (*command_stop)(scsi_common_t *sc);
     void    (*bus_master_error)(scsi_common_t *sc);
+    void    (*read)(scsi_common_t *sc);
+    void    (*write)(scsi_common_t *sc);
 #else
     void *  get_max;
     void *  get_timings;

@@ -375,7 +375,7 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             } else if (dev->eot) {
                 sff_log("Regular EOT\n");
                 dev->status &= ~3;
-                return 1; /* We have regularly reached EOT - clear status and break. */
+                return 3; /* We have regularly reached EOT - clear status and break. */
             } else {
                 /* We have more to transfer and there are blocks left, get next block. */
                 sff_bus_master_next_addr(dev);

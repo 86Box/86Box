@@ -65,6 +65,7 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include "ui_qt_mainwindow.h"
 
 bool windows_is_light_theme() {
+    return 0;
     // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
 
     // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian

@@ -118,16 +118,6 @@ enum {
 #define BIOS_INTERLEAVED_INVERT          8
 #define BIOS_HIGH_BIT_INVERT             16
 
-#define device_common_config_t                      \
-    const char                     *name;           \
-    const char                     *description;    \
-    int                             type;           \
-    const char                     *default_string; \
-    int                             default_int;    \
-    const char                     *file_filter;    \
-    const device_config_spinner_t   spinner;        \
-    const device_config_selection_t selection[32]
-
 typedef struct device_config_selection_t {
     const char *description;
     int         value;
@@ -139,10 +129,6 @@ typedef struct device_config_spinner_t {
     int16_t step;
 } device_config_spinner_t;
 
-typedef struct _device_dep_config_ {
-    device_common_config_t;
-} device_dep_config_t;
-
 typedef struct device_config_bios_t {
     const char *name;
     const char *internal_name;
@@ -153,15 +139,18 @@ typedef struct device_config_bios_t {
     void       *dev1;
     void       *dev2;
     const char *files[9];
-    /* Configuration options that depend on the device variant.
-       To prevent excessive nesting, there is no CONFIG_BIOS
-       option a dep_config struct  */
-    const device_dep_config_t *dep_config;
 } device_config_bios_t;
 
 typedef struct _device_config_ {
-    device_common_config_t;
-    const device_config_bios_t      bios[32];
+    const char                      *name;
+    const char                      *description;
+    int                              type;
+    const char                      *default_string;
+    int                              default_int;
+    const char                      *file_filter;
+    const device_config_spinner_t    spinner;
+    const device_config_selection_t  selection[32];
+    const device_config_bios_t       bios[32];
 } device_config_t;
 
 typedef struct _device_ {
