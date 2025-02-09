@@ -692,6 +692,10 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
                 dev->regs[4] &= ~0x40;            
         }
 
+        /* Update X18 bits. */
+        if (dev->type >= CRYSTAL_CS4235)
+            dev->ad1848.xregs[18] = (dev->ad1848.xregs[18] & ~0x3e) | (dev->ram_data[0x400b] & 0x3e);
+
         /* Inform WSS codec of the changes. */
         ad1848_updatevolmask(&dev->ad1848);
     }

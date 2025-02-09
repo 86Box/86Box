@@ -303,30 +303,35 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 18:
                 case 19:
                     if (ad1848->type >= AD1848_TYPE_CS4236B) {
-                        if ((ad1848->xregs[4] & 0x14) == 0x14) {     /* FM remapping */
-                            ad1848->xregs[ad1848->index - 12] = val; /* real FM volume on extended registers 6 and 7 */
-                            temp                              = 1;
+                        if (ad1848->type >= AD1848_TYPE_CS4235) {
+                            if (ad1848->xregs[18] & 0x20)              /* AUX1 remapping */
+                                ad1848->regs[ad1848->index & 3] = val; /* also controls AUX1 on registers 2 and 3 */
+                        } else {
+                            if ((ad1848->xregs[4] & 0x14) == 0x14) {          /* FM remapping */
+                                ad1848->xregs[6 | (ad1848->index & 1)] = val; /* real FM volume on extended registers 6 and 7 */
+                                temp                                   = 1;
 
-                            if (ad1848->index == 18) {
-                                if (val & 0x80)
-                                    ad1848->fm_vol_l = 0;
-                                else
-                                    ad1848->fm_vol_l = ad1848_vols_7bits[val & 0x3f];
-                            } else {
-                                if (val & 0x80)
-                                    ad1848->fm_vol_r = 0;
-                                else
-                                    ad1848->fm_vol_r = ad1848_vols_7bits[val & 0x3f];
+                                if (ad1848->index == 18) {
+                                    if (val & 0x80)
+                                        ad1848->fm_vol_l = 0;
+                                    else
+                                        ad1848->fm_vol_l = ad1848_vols_7bits[val & 0x3f];
+                                } else {
+                                    if (val & 0x80)
+                                        ad1848->fm_vol_r = 0;
+                                    else
+                                        ad1848->fm_vol_r = ad1848_vols_7bits[val & 0x3f];
+                                }
                             }
-                        }
-                        if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) { /* wavetable remapping */
-                            ad1848->xregs[ad1848->index - 2] = val;       /* real wavetable volume on extended registers 16 and 17 */
-                            temp                             = 1;
-                        }
+                            if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) {  /* wavetable remapping */
+                                ad1848->xregs[16 | (ad1848->index & 1)] = val; /* real wavetable volume on extended registers 16 and 17 */
+                                temp                                    = 1;
+                            }
 
-                        /* Stop here if any remapping is enabled. */
-                        if (temp)
-                            return;
+                            /* Stop here if any remapping is enabled. */
+                            if (temp)
+                                return;
+                        }
 
                         /* HACK: the Windows 9x driver's "Synth" control writes to this
                            register with no remapping, even if internal FM is enabled. */
@@ -366,9 +371,11 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                         switch (ad1848->xindex) {
                             case 0 ... 1:
-                                /* Remapped line volume. */
-                                ad1848->regs[18 + ad1848->xindex] = val;
-                                return;
+                                if (ad1848->type < AD1848_TYPE_CS4235) {
+                                    /* Remapped line volume. */
+                                    ad1848->regs[18 | ad1848->xindex] = val;
+                                }
+                                break;
 
                             case 6:
                                 if (val & 0x80)
@@ -747,7 +754,8 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
         ad1848->regs[30] = ad1848->regs[31] = 0;
 
         if (type >= AD1848_TYPE_CS4236B) {
-            ad1848->xregs[0] = ad1848->xregs[1] = 0xe8;
+            if (type < AD1848_TYPE_CS4235)
+                ad1848->xregs[0] = ad1848->xregs[1] = 0xe8;
             ad1848->xregs[2] = ad1848->xregs[3] = 0xcf;
             ad1848->xregs[4]                    = 0x84;
             ad1848->xregs[5]                    = 0;
