@@ -167,6 +167,7 @@ ad1848_read(uint16_t addr, void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
     uint8_t   ret    = 0xff;
+    uint8_t   temp   = 0;
 
     switch (addr & 3) {
         case 0: /* Index */
@@ -207,10 +208,22 @@ ad1848_read(uint16_t addr, void *priv)
                                 ret = ad1848->regs[18 + ad1848->xindex];
                                 break;
 
-                            case 26:
-                                /* Backdoor to the Joystick Control register on CS4235+. */
+                            case 23 ... 24:
+                            case 29:
+                                /* Backdoor to control indirect registers on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235) {
+                                    temp = ad1848->cram_read(3, ad1848->cram_priv);
+                                    ad1848->cram_write(3, (ad1848->xindex == 23) ? 2 : ((ad1848->xindex == 24) ? 8 : 9), ad1848->cram_priv);
+                                    ret = ad1848->cram_read(4, ad1848->cram_priv);
+                                    ad1848->cram_write(3, temp, ad1848->cram_priv);
+                                }
+                                break;
+
+                            case 26 ... 28:
+                            case 30:
+                                /* Backdoor to control registers on CS4235+. */
                                 if (ad1848->type >= AD1848_TYPE_CS4235)
-                                    ret = ad1848->cram_read(0, ad1848->cram_priv);
+                                    ret = ad1848->cram_read((ad1848->xindex == 30) ? 7 : (ad1848->xindex - 26), ad1848->cram_priv);
                                 break;
 
                             default:
@@ -396,13 +409,25 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                                 updatefreq = 1;
                                 break;
 
+                            case 23 ... 24:
+                            case 29:
+                                /* Backdoor to control indirect registers on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235) {
+                                    temp = ad1848->cram_read(3, ad1848->cram_priv);
+                                    ad1848->cram_write(3, (ad1848->xindex == 23) ? 2 : ((ad1848->xindex == 24) ? 8 : 9), ad1848->cram_priv);
+                                    ad1848->cram_write(4, val, ad1848->cram_priv);
+                                    ad1848->cram_write(3, temp, ad1848->cram_priv);
+                                }
+                                break;
+
                             case 25:
                                 return;
 
-                            case 26:
-                                /* Backdoor to the Joystick Control register on CS4235+. */
+                            case 26 ... 28:
+                            case 30:
+                                /* Backdoor to control registers on CS4235+. */
                                 if (ad1848->type >= AD1848_TYPE_CS4235)
-                                    ad1848->cram_write(0, val, ad1848->cram_priv);
+                                    ad1848->cram_write((ad1848->xindex == 30) ? 7 : (ad1848->xindex - 26), val, ad1848->cram_priv);
                                 break;
 
                             default:
