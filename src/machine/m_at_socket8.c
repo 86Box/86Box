@@ -256,6 +256,9 @@ machine_at_vs440fx_init(const machine_t *model)
 
     device_add(&intel_flash_bxt_ami_device);
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
     return ret;
 }
 
@@ -289,6 +292,9 @@ machine_at_gw2kvenus_init(const machine_t *model)
     device_add(&pc87307_device);
 
     device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
