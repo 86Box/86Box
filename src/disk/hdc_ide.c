@@ -2903,6 +2903,25 @@ ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 }
 
 static void *
+ide_sec_init(const device_t *info)
+{
+    /* Don't claim this channel again if it was already claimed. */
+    if (ide_boards[1])
+        return (NULL);
+
+    ide_board_init(1, HDC_SECONDARY_IRQ, HDC_SECONDARY_BASE, HDC_SECONDARY_SIDE, info->local, info->flags);
+
+    return (ide_boards[1]);
+}
+
+/* Close a standalone IDE unit. */
+static void
+ide_sec_close(UNUSED(void *priv))
+{
+    ide_board_close(1);
+}
+
+static void *
 ide_ter_init(const device_t *info)
 {
     /* Don't claim this channel again if it was already claimed. */
@@ -3274,6 +3293,20 @@ const device_t ide_isa_device = {
     .config        = NULL
 };
 
+const device_t ide_isa_sec_device = {
+    .name          = "ISA PC/AT IDE Controller (Secondary)",
+    .internal_name = "ide_isa_sec",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ide_isa_2ch_device = {
     .name          = "ISA PC/AT IDE Controller (Dual-Channel)",
     .internal_name = "ide_isa_2ch",
@@ -3302,6 +3335,20 @@ const device_t ide_vlb_device = {
     .config        = NULL
 };
 
+const device_t ide_vlb_sec_device = {
+    .name          = "VLB IDE Controller (Secondary)",
+    .internal_name = "ide_vlb_sec",
+    .flags         = DEVICE_VLB | DEVICE_AT,
+    .local         = 2,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ide_vlb_2ch_device = {
     .name          = "VLB IDE Controller (Dual-Channel)",
     .internal_name = "ide_vlb_2ch",
@@ -3319,6 +3366,20 @@ const device_t ide_vlb_2ch_device = {
 const device_t ide_pci_device = {
     .name          = "PCI IDE Controller",
     .internal_name = "ide_pci",
+    .flags         = DEVICE_PCI | DEVICE_AT,
+    .local         = 4,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_pci_sec_device = {
+    .name          = "PCI IDE Controller (Secondary)",
+    .internal_name = "ide_pci_sec",
     .flags         = DEVICE_PCI | DEVICE_AT,
     .local         = 4,
     .init          = ide_init,
