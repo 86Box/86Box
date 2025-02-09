@@ -654,9 +654,10 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
            Disable the PnP key disabling mechanism until someone figures something out. */
 #if 0
         isapnp_enable_card(dev->pnp_card, ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable) ? ISAPNP_CARD_NO_KEY : ISAPNP_CARD_ENABLE);
-#endif
+#else
         if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
             pclog("CS423x: Attempted to disable PnP key\n");
+#endif
     }
 
     /* Update some register bits based on the config data in RAM if requested. */
@@ -684,17 +685,19 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
         else
             dev->ad1848.xregs[4] &= ~0x10;
 
-        /* Update VCEN. */
         if (dev->type == CRYSTAL_CS4236) {
+            /* Update VCEN. */
             if (dev->ram_data[0x4002] & 0x04)
                 dev->regs[4] |= 0x40;
             else
                 dev->regs[4] &= ~0x40;            
         }
 
-        /* Update X18 bits. */
-        if (dev->type >= CRYSTAL_CS4235)
+        if (dev->type >= CRYSTAL_CS4235) {
+            /* Update X18 and X19 values. */
             dev->ad1848.xregs[18] = (dev->ad1848.xregs[18] & ~0x3e) | (dev->ram_data[0x400b] & 0x3e);
+            dev->ad1848.xregs[19] = dev->ram_data[0x4005];
+        }
 
         /* Inform WSS codec of the changes. */
         ad1848_updatevolmask(&dev->ad1848);
@@ -898,7 +901,7 @@ cs423x_init(const device_t *info)
             /* Different WSS codec families. */
             dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : ((dev->type >= CRYSTAL_CS4236B) ? AD1848_TYPE_CS4236B : AD1848_TYPE_CS4236);
 
-            /* Different Chip Version and ID registers (N/A on CS4236), which shouldn't be reset by ad1848_init. */
+            /* Different Chip Version and ID values (N/A on CS4236), which shouldn't be reset by ad1848_init. */
             dev->ad1848.xregs[25] = dev->type;
 
             /* Same EEPROM structure. */
