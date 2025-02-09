@@ -17,6 +17,7 @@
 #
 
 add_library(dev OBJECT
+    access_bus.c
     bugger.c
     cartridge.c
     cassette.c
