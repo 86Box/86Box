@@ -14,7 +14,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -322,7 +322,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda_init(mda);
 
-    lpt3_init(0x3BC);
+    lpt3_setup(LPT_MDA_ADDR);
 
     return mda;
 }

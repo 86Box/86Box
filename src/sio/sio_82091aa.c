@@ -78,7 +78,7 @@ lpt1_handler(i82091aa_t *dev)
     }
 
     if ((dev->regs[0x20] & 0x01) && lpt_port)
-        lpt1_init(lpt_port);
+        lpt1_setup(lpt_port);
 
     lpt1_irq((dev->regs[0x20] & 0x08) ? LPT1_IRQ : LPT2_IRQ);
 }

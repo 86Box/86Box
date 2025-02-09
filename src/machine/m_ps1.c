@@ -146,13 +146,13 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_init(LPT_MDA_ADDR);
+                            lpt1_setup(LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_init(LPT1_ADDR);
+                            lpt1_setup(LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_init(LPT2_ADDR);
+                            lpt1_setup(LPT2_ADDR);
                             break;
 
                         default:
@@ -316,7 +316,7 @@ ps1_setup(int model)
     ps->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     mem_remap_top(384);
 

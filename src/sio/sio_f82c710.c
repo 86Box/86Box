@@ -104,7 +104,7 @@ f82c710_update_ports(upc_t *dev, int set)
 
     if (dev->regs[0] & 8) {
         lpt_addr = dev->regs[6] * 4;
-        lpt1_init(lpt_addr);
+        lpt1_setup(lpt_addr);
         if ((lpt_addr == LPT1_ADDR) || (lpt_addr == LPT_MDA_ADDR))
             lpt1_irq(LPT1_IRQ);
         else if (lpt_addr == LPT2_ADDR)
@@ -215,7 +215,7 @@ f82c606_update_ports(upc_t *dev, int set)
     }
 
     if (dev->regs[0] & 8) {
-        lpt1_init(((uint16_t) dev->regs[6]) << 2);
+        lpt1_setup(((uint16_t) dev->regs[6]) << 2);
         lpt1_irq(lpt1_int);
         f82c710_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
     }

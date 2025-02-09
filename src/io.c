@@ -15,7 +15,7 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -145,6 +145,8 @@ io_sethandler_common(uint16_t base, int size,
         q->next = NULL;
 
         io_last[base + c] = q;
+
+        q = NULL;
     }
 }
 
