@@ -51,7 +51,6 @@ extern const device_t esdi_ps2_device;           /* esdi_mca */
 
 extern const device_t ide_isa_device;         /* isa_ide */
 extern const device_t ide_isa_2ch_device;     /* isa_ide_2ch */
-extern const device_t ide_isa_2ch_opt_device; /* isa_ide_2ch_opt */
 extern const device_t ide_vlb_device;         /* vlb_ide */
 extern const device_t ide_vlb_2ch_device;     /* vlb_ide_2ch */
 extern const device_t ide_pci_device;         /* pci_ide */
