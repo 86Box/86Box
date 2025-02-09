@@ -61,7 +61,7 @@ uint32_t nv3_pme_read(uint32_t address)
         {   
             // Interrupt state:
             // Bit 0 - Image Notifier
-            // Bit 4 - Vertical Blank Interfal Notifier
+            // Bit 4 - Vertical Blank Interval Notifier
             // Bit 8 - Video Notifier
             // Bit 12 - Audio Notifier
             // Bit 16 - VMI Notifer
@@ -128,4 +128,4 @@ void nv3_pme_write(uint32_t address, uint32_t value)
         }
 
     }
-    }
+}

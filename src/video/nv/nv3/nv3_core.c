@@ -952,8 +952,10 @@ void* nv3_init(const device_t *info)
     else
         nv3->nvbase.log = log_open_cyclic("NV3");
 
+#ifdef ENABLE_NV_LOG
     // Allows nv_log to be used for multiple nvidia devices
-    nv_log_set_device(nv3->nvbase.log);    
+    nv_log_set_device(nv3->nvbase.log); 
+#endif   
     nv_log("initialising core\n");
 
     // Figure out which vbios the user selected

@@ -1,0 +1,29 @@
+NV3 DMA Engine
+(DirectDraw Driver) 
+
+Initially set CACHES, CACHE1_PULL0, CACHE1_PULL1, CACHE1_DMA0 to 1
+
+Same for other areas
+
+CACHE1_PUSH1 contains CHID
+
+If it's different:
+
+If RmFifoFlushContext failed: Do nothing
+
+Set PULL0, PUSH0, Caches to 1, return false
+
+
+If it's not:
+DMA TLB PTE seems to be 1 for direct programming, maybe RM does it differently
+Tag=FFFFFFFF
+CACHE1_DMA1 - Number of bytes to send
+CACHE1_DMA2 - Get offset 
+CACHE1_DMA3 - Bus address space (Area BAR0 mapped to? Or bar1?)
+
+TO START:
+To set up DMA for for Cache1 Puller: CACHE1_PULL0 -> 1, changes to 0 when done
+To set up DMA Cache1 Push: CACHE1_PULL0 -> 1, changes to 0 when done
+Set CACHES to 1
+
+GO: Set DMA0 to 1

@@ -131,6 +131,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
                     break;
                 case NV3_PGRAPH_DEBUG_3:
                     ret = nv3->pgraph.debug_3;
+                    break;
                 //interrupt status and enable regs
                 case NV3_PGRAPH_INTR_0:
                     ret = nv3->pgraph.interrupt_status_0;

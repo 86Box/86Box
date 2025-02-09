@@ -232,10 +232,6 @@ void nv3_pmc_write(uint32_t address, uint32_t value)
     // if the register actually exists...
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
 
         // ... call its on-write function
         if (reg->on_write)
@@ -266,5 +262,11 @@ void nv3_pmc_write(uint32_t address, uint32_t value)
                     break;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log(": %s\n", reg->friendly_name);
+        else   
+            nv_log("\n");
+
     }
 }

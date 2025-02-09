@@ -443,10 +443,72 @@ extern const device_config_t nv3_config[];
 #define NV3_PME_END                                     0x200FFF
 #define NV3_PGRAPH_START                                0x400000    // Scene graph for 2d/3d rendering...the most important part
 // PGRAPH Core
+
+// For these debug registers, 0=Disabled, 1=Enabled
+
+// Debug 0: General
 #define NV3_PGRAPH_DEBUG_0                              0x400080
+#define NV3_PGRAPH_DEBUG_0_STATE_IN_RESET               0
+#define NV3_PGRAPH_DEBUG_0_AP_PIPE_IN_RESET             1
+#define NV3_PGRAPH_DEBUG_0_CACHE_IN_RESET               2
+#define NV3_PGRAPH_DEBUG_0_3D_PIPE_IN_RESET             3
+#define NV3_PGRAPH_DEBUG_0_BULK_READS                   4
+#define NV3_PGRAPH_DEBUG_0_TILING                       16
+#define NV3_PGRAPH_DEBUG_0_WRITE_ONLY_ROPS_2D           20
+#define NV3_PGRAPH_DEBUG_0_WRITE_ONLY_ROPS_3D           21
+#define NV3_PGRAPH_DEBUG_0_DRAWDIR_AUT                  24
+#define NV3_PGRAPH_DEBUG_0_DRAWDIR_Y                    25
+#define NV3_PGRAPH_DEBUG_0_ALPHA_ABORT                  28
+
+// Debug 1: Registers
 #define NV3_PGRAPH_DEBUG_1                              0x400084
+#define NV3_PGRAPH_DEBUG_1_VOLATILE_RESET_LAST          0
+#define NV3_PGRAPH_DEBUG_1_DMA_ACTIVITY_CANCEL          4
+#define NV3_PGRAPH_DEBUG_1_TURBO3D_2X                   8
+#define NV3_PGRAPH_DEBUG_1_TURBO3D_4X                   9
+#define NV3_PGRAPH_DEBUG_1_TRIANGLE_OPS                 12
+#define NV3_PGRAPH_DEBUG_1_TRIANGLE_CLIP_OPS            13
+#define NV3_PGRAPH_DEBUG_1_INSTANCE                     16
+#define NV3_PGRAPH_DEBUG_1_CONTEXT                      20
+#define NV3_PGRAPH_DEBUG_1_CACHE_FLUSH                  24
+#define NV3_PGRAPH_DEBUG_1_ZCLAMP                       28
+
+// Debug 2: 3D Pipeline
 #define NV3_PGRAPH_DEBUG_2                              0x400088
+#define NV3_PGRAPH_DEBUG_2_AVOID_READMODIFYWRITE_BLEND  0
+#define NV3_PGRAPH_DEBUG_2_DPWR_FIFO                    8
+#define NV3_PGRAPH_DEBUG_2_BILINEAR_FILTERING_3D        12
+#define NV3_PGRAPH_DEBUG_2_ANISOTROPIC_FILTERING_3D     13
+#define NV3_PGRAPH_DEBUG_2_FOG                          14
+#define NV3_PGRAPH_DEBUG_2_LIGHTING                     15 // Not sure what this does, maybe hardware t&l was planned
+#define NV3_PGRAPH_DEBUG_2_BILINEAR_FILTERING_2D        16
+#define NV3_PGRAPH_DEBUG_2_ANISOTROPIC_FILTERING_2D     17
+#define NV3_PGRAPH_DEBUG_2_D3D_COALESCE                 20 // coalesce reads/writes for d3d class 0x17
+#define NV3_PGRAPH_DEBUG_2_D3D_COALESCE_POINT_ZETA      22 // class 0x18 coalesce
+#define NV3_PGRAPH_DEBUG_2_PREFETCH                     24
+#define NV3_PGRAPH_DEBUG_2_VOLATILE_RESET               28
+
+// Debug 3: Zeta & Alpha Buffer 
 #define NV3_PGRAPH_DEBUG_3                              0x40008C
+#define NV3_PGRAPH_DEBUG_3_CULLING                      0
+#define NV3_PGRAPH_DEBUG_3_FAST_DATA_D3D                4
+#define NV3_PGRAPH_DEBUG_3_FAST_DATA_STRETCH            5
+#define NV3_PGRAPH_DEBUG_3_ZFLUSH                       7
+#define NV3_PGRAPH_DEBUG_3_AUTOZFLUSH_POINT_ZETA        8
+#define NV3_PGRAPH_DEBUG_3_AUTOZFLUSH_D3D               9
+#define NV3_PGRAPH_DEBUG_3_SLOT_CONFLICT_POINT_ZETA     10          // Slot conflict handling for POINT_ZETA (class 0x18)
+#define NV3_PGRAPH_DEBUG_3_SLOT_CONFLICT_D3D            11          // Slot conflict handling for D3D5_TRI (class 0x17)
+#define NV3_PGRAPH_DEBUG_3_EARLY_ZABORT                 12
+#define NV3_PGRAPH_DEBUG_3_TRIANGLE_END_FLUSH           13
+#define NV3_PGRAPH_DEBUG_3_ZFIFO_NOOP                   14          // ???
+#define NV3_PGRAPH_DEBUG_3_DITHER                       15
+#define NV3_PGRAPH_DEBUG_3_FORCE_COLOR_BUFFER_READ      16
+#define NV3_PGRAPH_DEBUG_3_FORCE_ZETA_BUFFER_READ       17
+#define NV3_PGRAPH_DEBUG_3_DATA_CHECK                   20
+#define NV3_PGRAPH_DEBUG_3_DATA_CHECK_FAIL              21
+#define NV3_PGRAPH_DEBUG_3_FORMAT_CHECK                 22
+#define NV3_PGRAPH_DEBUG_3_ALPHA_CHECK                  24
+
 #define NV3_PGRAPH_INTR_0                               0x400100
 #define NV3_PGRAPH_INTR_1                               0x400104
 #define NV3_PGRAPH_INTR_EN_0                            0x400140    // Interrupt Control for PGRAPH #1
