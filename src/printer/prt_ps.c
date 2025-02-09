@@ -26,8 +26,8 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/lpt.h>
 #include <86box/timer.h>
+#include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>

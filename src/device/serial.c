@@ -15,7 +15,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
@@ -780,6 +780,20 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     if (addr != 0x0000)
         io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
     dev->irq = irq;
+}
+
+void
+serial_irq(serial_t *dev, const uint8_t irq)
+{
+    if (dev == NULL)
+        return;
+
+    if (com_ports[dev->inst].enabled)
+        dev->irq = irq;
+    else
+        dev->irq = 0xff;
+
+    serial_log("Port %i IRQ = %02X\n", dev->inst, irq);
 }
 
 static void

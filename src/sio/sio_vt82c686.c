@@ -86,7 +86,7 @@ vt82c686_lpt_handler(vt82c686_t *dev)
     lpt1_remove();
 
     if (((dev->regs[0x02] & 0x03) != 0x03) && !(dev->regs[0x0f] & 0x11) && (io_base >= 0x100) && (io_base <= io_mask))
-        lpt1_init(io_base);
+        lpt1_setup(io_base);
 
     if (dev->lpt_irq) {
         lpt1_irq(dev->lpt_irq);

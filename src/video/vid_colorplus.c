@@ -14,7 +14,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -357,7 +357,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
     mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, colorplus);
     io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
 
-    lpt3_init(0x3BC);
+    lpt3_setup(LPT_MDA_ADDR);
 
     return colorplus;
 }

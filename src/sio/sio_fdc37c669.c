@@ -107,7 +107,7 @@ fdc37c669_lpt_handler(fdc37c669_t *dev)
 
     lpt_port_remove(dev->id);
     if ((dev->regs[0x01] & 0x04) && (dev->regs[0x23] >= 0x40))
-        lpt_port_init(dev->id, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
+        lpt_port_setup(dev->id, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
 }
 
 static void

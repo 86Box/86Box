@@ -294,7 +294,7 @@ it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 it86x1f_log("IT86x1F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_init(config->io[0].base);
+                lpt1_setup(config->io[0].base);
             } else {
                 it86x1f_log("IT86x1F: LPT disabled\n");
             }

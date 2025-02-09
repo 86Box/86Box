@@ -82,6 +82,8 @@
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/keyboard.h>
+#include <86box/machine.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
 #include <86box/port_92.h>
