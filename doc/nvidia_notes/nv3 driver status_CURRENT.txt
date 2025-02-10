@@ -1,4 +1,0 @@
-Failure condition:
-	Failed check, causes fifoService call in fifo service init in RM, FifoState STATE_LOAD
-
-	CHECK NVSTARTIO! DEBUG TOMORROW

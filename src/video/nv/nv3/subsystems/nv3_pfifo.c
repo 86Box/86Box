@@ -185,7 +185,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
 
                     // Check if Cache1 (0x7C bytes in size depending on gpu?) is full
                     // Based on how the drivers do it
-                    if (!nv3_pfifo_cache1_is_free())
+                    if (!nv3_pfifo_cache1_num_free_spaces())
                         ret |= 1 << NV3_PFIFO_CACHE1_STATUS_FULL;
                     
                     if (nv3->pfifo.runout_put != nv3->pfifo.runout_get)
@@ -605,7 +605,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
         new_address |= (nv3_runout_reason_cache_ran_out << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
 
-    if (!nv3_pfifo_cache1_is_free())
+    if (!nv3_pfifo_cache1_num_free_spaces())
     {
         oh_shit = true;
         oh_shit_reason = nv3_runout_reason_free_count_overrun;
@@ -718,7 +718,8 @@ void nv3_pfifo_cache1_pull()
     //Todo: finish it
 }
 
-bool nv3_pfifo_cache1_is_free()
+// THIS IS PER SUBCHANNEL!
+uint32_t nv3_pfifo_cache1_num_free_spaces()
 {
     // convert to gray code
     uint32_t real_get_address = nv3_pfifo_cache1_normal2gray(nv3->pfifo.cache1_settings.get_address);

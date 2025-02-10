@@ -1431,7 +1431,7 @@ void        nv3_pfifo_cache1_push(uint32_t addr, uint32_t val);
 void        nv3_pfifo_cache1_pull();
 uint32_t    nv3_pfifo_cache1_normal2gray(uint32_t val);
 uint32_t    nv3_pfifo_cache1_gray2normal(uint32_t val);
-bool        nv3_pfifo_cache1_is_free();
+uint32_t    nv3_pfifo_cache1_num_free_spaces();
 
 // NV3 PFB
 void        nv3_pfb_init();

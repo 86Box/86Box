@@ -40,7 +40,7 @@ uint32_t nv3_user_read(uint32_t address)
     switch (method_offset)
     {
         case NV3_GENERIC_METHOD_IS_PFIFO_FREE:
-            return nv3_pfifo_cache1_is_free();
+            return nv3_pfifo_cache1_num_free_spaces();
         
     }
 
