@@ -157,7 +157,10 @@ xtide_at_init(const device_t *info)
              device_get_bios_file(info, device_get_config_bios("bios"), 0),
              0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
-    device_add(&ide_isa_2ch_device);
+    if (info->local == 1)
+        device_add(&ide_isa_2ch_device);
+    else
+        device_add(&ide_isa_device);
 
     return xtide;
 }
@@ -203,7 +206,10 @@ xtide_at_ps2_init(UNUSED(const device_t *info))
     rom_init(&xtide->bios_rom, ROM_PATH_PS2AT,
              0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
-    device_add(&ide_isa_2ch_device);
+    if (info->local == 1)
+        device_add(&ide_isa_2ch_device);
+    else
+        device_add(&ide_isa_device);
 
     return xtide;
 }
@@ -311,10 +317,24 @@ const device_t xtide_device = {
 };
 
 const device_t xtide_at_device = {
+    .name          = "PC/AT XTIDE (Primary Only)",
+    .internal_name = "xtide_at_1ch",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = xtide_at_init,
+    .close         = xtide_at_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = xtide_at_config
+};
+
+const device_t xtide_at_2ch_device = {
     .name          = "PC/AT XTIDE",
     .internal_name = "xtide_at",
     .flags         = DEVICE_ISA16,
-    .local         = 0,
+    .local         = 1,
     .init          = xtide_at_init,
     .close         = xtide_at_close,
     .reset         = NULL,
@@ -339,10 +359,24 @@ const device_t xtide_acculogic_device = {
 };
 
 const device_t xtide_at_ps2_device = {
+    .name          = "PS/2 AT XTIDE (1.1.5) (Primary Only)",
+    .internal_name = "xtide_at_ps2_1ch",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = xtide_at_ps2_init,
+    .close         = xtide_at_close,
+    .reset         = NULL,
+    .available     = xtide_at_ps2_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t xtide_at_ps2_2ch_device = {
     .name          = "PS/2 AT XTIDE (1.1.5)",
     .internal_name = "xtide_at_ps2",
     .flags         = DEVICE_ISA16,
-    .local         = 0,
+    .local         = 1,
     .init          = xtide_at_ps2_init,
     .close         = xtide_at_close,
     .reset         = NULL,
