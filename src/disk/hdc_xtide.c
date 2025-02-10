@@ -41,6 +41,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/timer.h>
+#include <86box/nvr.h>
 #include <86box/device.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -58,6 +59,7 @@ typedef struct xtide_t {
     void   *ide_board;
     uint8_t data_high;
     rom_t   bios_rom;
+    char    nvr_path[64];
 } xtide_t;
 
 static void
@@ -145,6 +147,18 @@ xtide_init(const device_t *info)
                   xtide_read, NULL, NULL,
                   xtide_write, NULL, NULL, xtide);
 
+    uint8_t rom_writes_enabled = device_get_config_int("rom_writes_enabled");
+
+    if (rom_writes_enabled) {
+        mem_mapping_set_write_handler(&xtide->bios_rom.mapping, rom_write, rom_writew, rom_writel);
+        sprintf(xtide->nvr_path, "xtide_%i.nvr", device_get_instance());
+        FILE *fp = nvr_fopen(xtide->nvr_path, "rb");
+        if (fp != NULL) {
+            fread(xtide->bios_rom.rom, 1, 0x2000, fp);
+            fclose(fp);
+        }
+    }
+
     return xtide;
 }
 
@@ -192,6 +206,14 @@ static void
 xtide_close(void *priv)
 {
     xtide_t *xtide = (xtide_t *) priv;
+
+    if (xtide->nvr_path[0] != 0x00) {
+        FILE *fp = nvr_fopen(xtide->nvr_path, "wb");
+        if (fp != NULL) {
+            fwrite(xtide->bios_rom.rom, 1, 0x2000, fp);
+            fclose(fp);
+        }
+    }
 
     free(xtide);
 
@@ -273,6 +295,17 @@ static const device_config_t xtide_config[] = {
             { .description = "3F0H", .value = 0x3f0 },
             { NULL                                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rom_writes_enabled",
+        .description    = "Enable BIOS extension ROM Writes",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
