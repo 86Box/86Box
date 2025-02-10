@@ -611,7 +611,9 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, const int block_len
                     break;
                 }
             }
-            dev->requested_blocks = 1;
+
+            if (dev->drv->bus_type != CDROM_BUS_SCSI)
+                dev->requested_blocks = 1;
             fallthrough;
 
         default:
@@ -1044,11 +1046,12 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
 
     if (dev->drv->cd_status == CD_STATUS_EMPTY)
         scsi_cdrom_not_ready(dev);
-    else {
-        if (dev->sector_pos > dev->drv->cdrom_capacity) {
-            scsi_cdrom_lba_out_of_range(dev);
-            ret = -1;
-        } else {
+    else if (dev->sector_pos > dev->drv->cdrom_capacity) {
+        scsi_cdrom_lba_out_of_range(dev);
+        ret = -1;
+    } else {
+        ret = 1;
+        for (int i = 0; (i < dev->requested_blocks) && (ret > 0); i++) {
             ret = cdrom_readsector_raw(dev->drv, dev->buffer + dev->buffer_pos,
                                        dev->sector_pos, msf, type,
                                        flags, &temp_len, vendor_type);
