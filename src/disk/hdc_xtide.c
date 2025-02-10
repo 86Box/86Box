@@ -137,11 +137,11 @@ xtide_init(const device_t *info)
 
     rom_init(&xtide->bios_rom,
              device_get_bios_file(info, device_get_config_bios("bios"), 0),
-             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+             device_get_config_hex20("bios_addr"), 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     xtide->ide_board = ide_xtide_init();
 
-    io_sethandler(0x0300, 16,
+    io_sethandler(device_get_config_hex16("base"), 16,
                   xtide_read, NULL, NULL,
                   xtide_write, NULL, NULL, xtide);
 
@@ -228,8 +228,93 @@ xtide_at_close(void *priv)
     free(xtide);
 }
 
+// clang-format off
 static const device_config_t xtide_config[] = {
-    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "200H", .value = 0x200 },
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { .description = "270H", .value = 0x270 },
+            { .description = "280H", .value = 0x280 },
+            { .description = "290H", .value = 0x290 },
+            { .description = "2A0H", .value = 0x2a0 },
+            { .description = "2B0H", .value = 0x2b0 },
+            { .description = "2C0H", .value = 0x2c0 },
+            { .description = "2D0H", .value = 0x2d0 },
+            { .description = "2E0H", .value = 0x2e0 },
+            { .description = "2F0H", .value = 0x2f0 },
+            { .description = "300H", .value = 0x300 },
+            { .description = "310H", .value = 0x310 },
+            { .description = "320H", .value = 0x320 },
+            { .description = "330H", .value = 0x330 },
+            { .description = "340H", .value = 0x340 },
+            { .description = "350H", .value = 0x350 },
+            { .description = "360H", .value = 0x360 },
+            { .description = "370H", .value = 0x370 },
+            { .description = "380H", .value = 0x380 },
+            { .description = "390H", .value = 0x390 },
+            { .description = "3A0H", .value = 0x3a0 },
+            { .description = "3B0H", .value = 0x3b0 },
+            { .description = "3C0H", .value = 0x3c0 },
+            { .description = "3D0H", .value = 0x3d0 },
+            { .description = "3E0H", .value = 0x3e0 },
+            { .description = "3F0H", .value = 0x3f0 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xd0000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0x00000 },
+#if 0
+            // Supported on XT IDE Deluxe By Monotech
+            { .description = "C000H",    .value = 0xc0000 },
+            { .description = "C200H",    .value = 0xc2000 },
+            { .description = "C400H",    .value = 0xc4000 },
+            { .description = "C600H",    .value = 0xc6000 },
+#endif
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "CA00H",    .value = 0xca000 },
+            { .description = "CC00H",    .value = 0xcc000 },
+            { .description = "CE00H",    .value = 0xce000 },
+            { .description = "D000H",    .value = 0xd0000 },
+            { .description = "D200H",    .value = 0xd2000 },
+            { .description = "D400H",    .value = 0xd4000 },
+            { .description = "D600H",    .value = 0xd6000 },
+            { .description = "D800H",    .value = 0xd8000 },
+            { .description = "DA00H",    .value = 0xda000 },
+            { .description = "DC00H",    .value = 0xdc000 },
+            { .description = "DE00H",    .value = 0xde000 },
+#if 0
+            // Supported on VCFed rev 2
+            { .description = "E000H",    .value = 0xe0000 },
+            { .description = "E400H",    .value = 0xe4000 },
+            { .description = "E800H",    .value = 0xe8000 },
+            { .description = "EC00H",    .value = 0xec000 },
+#endif
+            { .description = ""                           }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "bios",
         .description    = "BIOS Revision",
@@ -262,11 +347,9 @@ static const device_config_t xtide_config[] = {
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
 };
 
 static const device_config_t xtide_at_config[] = {
-    // clang-format off
     {
         .name           = "bios",
         .description    = "BIOS Revision",
@@ -299,8 +382,8 @@ static const device_config_t xtide_at_config[] = {
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
 };
+// clang-format on
 
 const device_t xtide_device = {
     .name          = "PC/XT XTIDE",
