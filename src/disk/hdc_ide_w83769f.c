@@ -10,7 +10,7 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2020 Miran Grca.
+ *          Copyright 2020-2025 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -353,8 +353,7 @@ w83769f_close(void *priv)
 static void *
 w83769f_init(const device_t *info)
 {
-    w83769f_t *dev = (w83769f_t *) malloc(sizeof(w83769f_t));
-    memset(dev, 0x00, sizeof(w83769f_t));
+    w83769f_t *dev = (w83769f_t *) calloc(1, sizeof(w83769f_t));
 
     dev->id = next_id | 0x60;
 
@@ -410,7 +409,7 @@ const device_t ide_w83769f_vlb_device = {
     .init          = w83769f_init,
     .close         = w83769f_close,
     .reset         = w83769f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -424,7 +423,7 @@ const device_t ide_w83769f_vlb_34_device = {
     .init          = w83769f_init,
     .close         = w83769f_close,
     .reset         = w83769f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -438,7 +437,7 @@ const device_t ide_w83769f_pci_device = {
     .init          = w83769f_init,
     .close         = w83769f_close,
     .reset         = w83769f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -452,9 +451,22 @@ const device_t ide_w83769f_pci_34_device = {
     .init          = w83769f_init,
     .close         = w83769f_close,
     .reset         = w83769f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
+const device_t ide_w83769f_pci_single_channel_device = {
+    .name          = "Winbond W83769F PCI (Single Channel)",
+    .internal_name = "ide_w83769f_pci_single_channel",
+    .flags         = DEVICE_PCI,
+    .local         = 0x200b4,
+    .init          = w83769f_init,
+    .close         = w83769f_close,
+    .reset         = w83769f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};

@@ -390,8 +390,11 @@ msgstr "Dynamický prekladač"
 msgid "Video:"
 msgstr "Grafika:"
 
-msgid "Voodoo Graphics"
-msgstr "Použiť grafický akcelerátor Voodoo"
+msgid "Video #2:"
+msgstr "Grafika 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Grafický akcelerátor Voodoo 1 alebo 2"
 
 msgid "IBM 8514/A Graphics"
 msgstr "Grafika IBM 8514/A"
@@ -684,6 +687,12 @@ msgstr "Počítač \"%hs\" ie je dostupný, pretože chýba obraz jeho pamäte R
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Video adaptér \"%hs\" nie je dostupný, pretože chýba obraz jeho pamäte ROM v zložke \"roms/video\". Konfigurácia sa prepne na iný dostupný adaptér."
 
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Video adaptér 2 \"%hs\" nie je dostupný, pretože chýba obraz jeho pamäte ROM v zložke \"roms/video\". Druhá grafická karta sa zakáže."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Zariadenie \"%hs\" nie je dostupné, pretože chýba obraz jeho pamäte ROM. Zariadenie sa ignoruje."
+
 msgid "Machine"
 msgstr "Počítač"
 
@@ -762,17 +771,26 @@ msgstr "Neboli nájdené žiadne PCap zariadenia"
 msgid "Invalid PCap device"
 msgstr "Neplatné PCap zariadenie"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "Štandardný 2tlačidlový joystick"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "2-osový, 2-tlačidlový joystick"
 
-msgid "Standard 4-button joystick"
-msgstr "Štandardný 4tlačidlový joystick"
+msgid "2-axis, 4-button joystick"
+msgstr "2-osový, 4-tlačidlový joystick"
 
-msgid "Standard 6-button joystick"
-msgstr "Štandardný 6tlačidlový joystick"
+msgid "2-axis, 6-button joystick"
+msgstr "2-osový, 6-tlačidlový joystick"
 
-msgid "Standard 8-button joystick"
-msgstr "Štandardný 8tlačidlový joystick"
+msgid "2-axis, 8-button joystick"
+msgstr "2-osový, 8-tlačidlový joystick"
+
+msgid "3-axis, 2-button joystick"
+msgstr "3-osový, 2-tlačidlový joystick"
+
+msgid "3-axis, 4-button joystick"
+msgstr "3-osový, 4-tlačidlový joystick"
+
+msgid "4-axis, 4-button joystick"
+msgstr "4-osový, 4-tlačidlový joystick"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -807,6 +825,9 @@ msgstr "Naozaj chcete ukončiť 86Box?"
 msgid "Unable to initialize Ghostscript"
 msgstr "Nastala chyba pri inicializácii knižnice Ghostscript"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "Nastala chyba pri inicializácii knižnice GhostPCL"
+
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
@@ -816,8 +837,8 @@ msgstr "Obrazy MO"
 msgid "Welcome to 86Box!"
 msgstr "Vitajte v programe 86Box!"
 
-msgid "Internal controller"
-msgstr "Vstavaný radič"
+msgid "Internal device"
+msgstr "Vstavané zariadenie"
 
 msgid "Exit"
 msgstr "Ukončiť"
@@ -841,7 +862,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulátor starých počítačov\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nZverejnené pod licenciou GNU General Public License verzie 2 alebo novšej. Pozri súbor LICENSE pre viac informácií."
+msgstr "Emulátor starých počítačov\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nS predchádzajúcimi hlavnými príspevkami od Sarah Walker, leilei, JohnElliott, greatpsycho a ďalších.\n\nZverejnené pod licenciou GNU General Public License verzie 2 alebo novšej. Pozri súbor LICENSE pre viac informácií."
 
 msgid "Hardware not available"
 msgstr "Hardvér nie je dostupný"
@@ -854,6 +875,9 @@ msgstr "Neplatná konfigurácia"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "%1 je potrebná pre automatický prevod PostScript dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PostScriptovú tlačiareň budú uložené ako PostScript (.ps) súbory."
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Lnaugage (.pcl) files."
+msgstr "%1 je potrebná pre automatický prevod PCL dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PCLovú tlačiareň budú uložené ako Printer Command Language (.pcl) súbory."
 
 msgid "Entering fullscreen mode"
 msgstr "Vstup do režimu celej obrazovky"
@@ -999,6 +1023,27 @@ msgstr "Prepísať"
 msgid "Don't overwrite"
 msgstr "Neprepisovať"
 
+msgid "Raw image"
+msgstr "Surový obraz"
+
+msgid "HDI image"
+msgstr "HDI obraz"
+
+msgid "HDX image"
+msgstr "HDX obraz"
+
+msgid "Fixed-size VHD"
+msgstr "VHD s pevnou veľkosťou"
+
+msgid "Dynamic-size VHD"
+msgstr "VHD s dynamickou veľkosťou"
+
+msgid "Differencing VHD"
+msgstr "Rozdielový VHD"
+
+msgid "(N/A)"
+msgstr "(Žiadne)"
+
 msgid "Raw image (.img)"
 msgstr "Surový obraz (.img)"
 
@@ -1056,23 +1101,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1.2 MB"
@@ -1172,3 +1217,915 @@ msgstr "WinBox už nie je podporovaný"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "Vývoj správcu WinBox sa zastavil v roku 2022 z dôvodu nedostatku správcov. Keďže naše úsilie smerujeme k ešte lepšiemu systému 86Box, rozhodli sme sa, že správca WinBox už nebude podporovaný.\n\nProstredníctvom WinBoxu nebudú poskytované žiadne ďalšie aktualizácie a v prípade, že ho budete naďalej používať s novšími verziami programu 86Box, môžete sa stretnúť s nesprávnym správaním. Všetky hlásenia o chybách týkajúce sa správania WinBoxu budú uzavreté ako neplatné.\n\nNa stránke 86box.net nájdete zoznam iných správcov, ktoré môžete používať."
+
+msgid "Generate"
+msgstr "Generovať"
+
+msgid "Joystick configuration"
+msgstr "Konfigurácia joysticku"
+
+msgid "Device"
+msgstr "Zariadenie"
+
+msgid "%1 (X axis)"
+msgstr "%1 (os X)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (os Y)"
+
+msgid "MCA devices"
+msgstr "Zariadenia MCA"
+
+msgid "List of MCA devices:"
+msgstr "Zoznam zariadení MCA:"
+
+msgid "Tablet tool"
+msgstr "Nástroj pre tablety"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt (OpenGL &ES)"
+
+msgid "About Qt"
+msgstr "O Qt"
+
+msgid "MCA devices..."
+msgstr "Zariadenia MCA..."
+
+msgid "Show non-primary monitors"
+msgstr "Zobrazenie iných ako primárnych monitorov"
+
+msgid "Open screenshots folder..."
+msgstr "Otvorte priečinok so snímkami obrazovky..."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Použitie režimu roztiahnutia na celú obrazovku pri maximalizácii"
+
+msgid "Cursor/Puck"
+msgstr "Kurzor/Puck"
+
+msgid "Pen"
+msgstr "Pero"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "Hostiteľská jednotka CD/DVD (%1:)"
+
+msgid "&Connected"
+msgstr "&Connected"
+
+msgid "Clear image history"
+msgstr "Vymazanie histórie obrázkov"
+
+msgid "Create..."
+msgstr "Vytvorte..."
+
+msgid "previous image"
+msgstr "predchádzajúca snímka"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Hostiteľská jednotka CD/DVD (%1)"
+
+msgid "Unknown Bus"
+msgstr "Neznáma zbernica"
+
+msgid "Null Driver"
+msgstr "Nulový ovládač"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "Chyba pri otváraní \"%1\": %2"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "Chyba kompilácie vertex shadera v súbore \"%1\""
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "Chyba kompilácie fragment shadera v súbore \"%1\""
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "Chyba pri prepojení shader programu v súbore \"%1\""
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "Možnosti vykresľovania OpenGL 3.0"
+
+msgid "Render behavior"
+msgstr "Správanie pri vykresľovaní"
+
+msgid "Use target framerate:"
+msgstr "Použite cieľovú snímkovú frekvenciu:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Okamžite vykresliť každú snímku v synchronizácii s emulovaným displejom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Toto je odporúčaná možnosť, ak používané shadery nevyužívajú frametime pre animované efekty.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "Synchronizovať s obrazom"
+
+msgid "Shaders"
+msgstr "Shadery"
+
+msgid "Remove"
+msgstr "Odstránenie stránky"
+
+msgid "No shader selected"
+msgstr "Nie je vybraný žiadny tieňovač"
+
+msgid "Browse..."
+msgstr "Prehľadávať..."
+
+msgid "Shader error"
+msgstr "Chyba shadera"
+
+msgid "Could not load shaders."
+msgstr "Nepodarilo sa načítať shadery."
+
+msgid "More information in details."
+msgstr "Viac informácií v detailoch."
+
+msgid "Couldn't create OpenGL context."
+msgstr "Nepodarilo sa vytvoriť kontext OpenGL."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "Nepodarilo sa prepnúť na kontext OpenGL."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "Vyžaduje sa verzia OpenGL 3.0 alebo vyššia. Aktuálna verzia je %1.%2"
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "Inicializácia OpenGL zlyhala. Chyba %1."
+
+msgid "Error initializing OpenGL"
+msgstr "Chyba pri inicializácii OpenGL"
+
+msgid "Falling back to software rendering.\n"
+msgstr "Návrat k softvérovému vykresľovaniu.\n"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "Alokácia pamäte pre rozbaľovaciu vyrovnávaciu pamäť zlyhala.\n"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri výbere multimediálnych obrazov (CD-ROM, disketa atď.) sa dialógové okno otvorenia spustí v rovnakom adresári ako konfiguračný súbor 86Box. Toto nastavenie bude mať pravdepodobne význam len v systéme MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "This machine might have been moved or copied."
+msgstr "Tento stroj mohol byť premiestnený alebo skopírovaný."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "Aby sa zabezpečila správna funkčnosť siete, 86Box potrebuje vedieť, či bol tento počítač presunutý alebo skopírovaný.\n\nAk si nie ste istí, vyberte možnosť \"Skopíroval som ho."
+
+msgid "I Moved It"
+msgstr "Presunul som ho"
+
+msgid "I Copied It"
+msgstr "Skopíroval som ho"
+
+msgid "86Box Monitor #"
+msgstr "86Box Monitor "
+
+msgid "No MCA devices."
+msgstr "Žiadne zariadenia MCA."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "Network Card #1"
+msgstr "Sieťová karta 1"
+
+msgid "Network Card #2"
+msgstr "Sieťová karta 2"
+
+msgid "Network Card #3"
+msgstr "Sieťová karta 3"
+
+msgid "Network Card #4"
+msgstr "Sieťová karta 4"
+
+msgid "Mode"
+msgstr "Režim"
+
+msgid "Interface"
+msgstr "Rozhranie"
+
+msgid "Adapter"
+msgstr "Adaptér"
+
+msgid "VDE Socket"
+msgstr "Zásuvka VDE"
+
+msgid "86Box Unit Tester"
+msgstr "86Box Unit Tester"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Kľúčová karta Novell NetWare 2.x"
+
+msgid "Serial port passthrough 1"
+msgstr "Priechod sériového portu 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Priechod sériového portu 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Priechod sériového portu 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Priechod cez sériový port 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "Vision Systems LBA Enhancer"
+
+msgid "Renderer options..."
+msgstr "Možnosti vykresľovača..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Zbernicová myš Logitech/Microsoft"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Zbernicová myš Microsoft (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Zbernicová myš Mouse Systems"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Sériová myš Microsoft"
+
+msgid "Logitech Serial Mouse"
+msgstr "Sériová myš Logitech"
+
+msgid "PS/2 Mouse"
+msgstr "Myš PS/2"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (sériová)"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] Štandardný modem kompatibilný s Hayesom"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Emulácia Roland MT-32"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Emulácia Roland MT-32 (nová)"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Emulácia Roland CM-32L"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Emulácia Roland CM-32LN"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "Dcérska doska OPL4-ML"
+
+msgid "System MIDI"
+msgstr "Systém MIDI"
+
+msgid "MIDI Input Device"
+msgstr "Vstupné zariadenie MIDI"
+
+msgid "BIOS Address"
+msgstr "Adresa BIOS"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "Povolenie zápisu do pamäte ROM s rozšírením BIOS"
+
+msgid "Address"
+msgstr "Adresa"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "BIOS Revision"
+msgstr "Revízia systému BIOS"
+
+msgid "Translate 26 -> 17"
+msgstr "Preložiť 26 -> 17"
+
+msgid "Language"
+msgstr "Jazyk"
+
+msgid "Enable backlight"
+msgstr "Povolenie podsvietenia"
+
+msgid "Invert colors"
+msgstr "Invertovanie farieb"
+
+msgid "BIOS size"
+msgstr "Veľkosť systému BIOS"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "Mapa C0000-C7FFF ako UMB"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "Mapa C8000-CFFFF ako UMB"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "Mapa D0000-D7FFF ako UMB"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "Mapa D8000-DFFFF ako UMB"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "Mapa E0000-E7FFF ako UMB"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "Mapa E8000-EFFFF ako UMB"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "Prepojka JS9 (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "Výstupné zariadenie MIDI"
+
+msgid "MIDI Real time"
+msgstr "MIDI v reálnom čase"
+
+msgid "MIDI Thru"
+msgstr "Priechodnosť vstupu MIDI"
+
+msgid "MIDI Clockout"
+msgstr "Výstup hodín MIDI"
+
+msgid "SoundFont"
+msgstr "SoundFont"
+
+msgid "Output Gain"
+msgstr "Zosilnenie výstupu"
+
+msgid "Chorus"
+msgstr "Zbor"
+
+msgid "Chorus Voices"
+msgstr "Hlasy zboru"
+
+msgid "Chorus Level"
+msgstr "Úroveň zboru"
+
+msgid "Chorus Speed"
+msgstr "Rýchlosť zboru"
+
+msgid "Chorus Depth"
+msgstr "Hĺbka zboru"
+
+msgid "Chorus Waveform"
+msgstr "Priebeh zboru"
+
+msgid "Reverb"
+msgstr "Dozvuk"
+
+msgid "Reverb Room Size"
+msgstr "Veľkosť dozvukovej miestnosti"
+
+msgid "Reverb Damping"
+msgstr "Tlmenie dozvuku"
+
+msgid "Reverb Width"
+msgstr "Šírka dozvuku"
+
+msgid "Reverb Level"
+msgstr "Úroveň dozvuku"
+
+msgid "Interpolation Method"
+msgstr "Metóda interpolácie"
+
+msgid "Reverb Output Gain"
+msgstr "Zosilnenie výstupu dozvuku"
+
+msgid "Reversed stereo"
+msgstr "Obrátené stereo"
+
+msgid "Nice ramp"
+msgstr "Pekná rampa"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "Tlačidlá"
+
+msgid "Serial Port"
+msgstr "Sériový port"
+
+msgid "RTS toggle"
+msgstr "Prepínač RTS"
+
+msgid "Revision"
+msgstr "Revízia"
+
+msgid "Controller"
+msgstr "Ovládač"
+
+msgid "Show Crosshair"
+msgstr "Zobrazenie kríža"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "Adresa MAC"
+
+msgid "MAC Address OUI"
+msgstr "Adresa MAC OUI"
+
+msgid "Enable BIOS"
+msgstr "Povolenie systému BIOS"
+
+msgid "Baud Rate"
+msgstr "Prenosová rýchlosť"
+
+msgid "TCP/IP listening port"
+msgstr "Počúvajúci port TCP/IP"
+
+msgid "Phonebook File"
+msgstr "Súbor telefónneho zoznamu"
+
+msgid "Telnet emulation"
+msgstr "Emulácia siete Telnet"
+
+msgid "RAM Address"
+msgstr "Adresa pamäte RAM"
+
+msgid "RAM size"
+msgstr "Veľkosť pamäte RAM"
+
+msgid "Initial RAM size"
+msgstr "Počiatočná veľkosť pamäte RAM"
+
+msgid "Serial Number"
+msgstr "Sériové číslo"
+
+msgid "Host ID"
+msgstr "ID hostiteľa"
+
+msgid "FDC Address"
+msgstr "Adresa FDC"
+
+msgid "MPU-401 Address"
+msgstr "Adresa MPU-401"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401 IRQ"
+
+msgid "Receive MIDI input"
+msgstr "Príjem vstupu MIDI"
+
+msgid "Low DMA"
+msgstr "Nízka hodnota DMA"
+
+msgid "Enable Game port"
+msgstr "Povolenie herného portu"
+
+msgid "Surround module"
+msgstr "Surround modul"
+
+msgid "CODEC"
+msgstr "CODEC"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "Zvýšenie prerušenia CODEC pri nastavení CODEC (potrebné v niektorých ovládačoch)"
+
+msgid "SB Address"
+msgstr "Adresa SB"
+
+msgid "WSS IRQ"
+msgstr "WSS IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS DMA"
+
+msgid "Enable OPL"
+msgstr "Povolenie OPL"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "Príjem vstupu MIDI (MPU-401)"
+
+msgid "SB low DMA"
+msgstr "SB low DMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "Variant 6CH (6-kanálový)"
+
+msgid "Enable CMS"
+msgstr "Povolenie CMS"
+
+msgid "Mixer"
+msgstr "Mixér"
+
+msgid "High DMA"
+msgstr "Vysoký DMA"
+
+msgid "Control PC speaker"
+msgstr "Ovládací reproduktor PC"
+
+msgid "Memory size"
+msgstr "Veľkosť pamäte"
+
+msgid "EMU8000 Address"
+msgstr "Adresa EMU8000"
+
+msgid "IDE Controller"
+msgstr "Radič IDE"
+
+msgid "Codec"
+msgstr "Kodek"
+
+msgid "GUS type"
+msgstr "Typ GUS"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "Povolenie príkazu 0x04 \"Ukončiť 86Box\""
+
+msgid "Display type"
+msgstr "Typ displeja"
+
+msgid "Composite type"
+msgstr "Kompozitný typ"
+
+msgid "RGB type"
+msgstr "Typ RGB"
+
+msgid "Line doubling type"
+msgstr "Typ zdvojenia linky"
+
+msgid "Snow emulation"
+msgstr "Emulácia snehu"
+
+msgid "Monitor type"
+msgstr "Typ monitora"
+
+msgid "Character set"
+msgstr "Súbor znakov"
+
+msgid "XGA type"
+msgstr "Typ XGA"
+
+msgid "Instance"
+msgstr "Inštancia"
+
+msgid "MMIO Address"
+msgstr "Adresa MMIO"
+
+msgid "RAMDAC type"
+msgstr "Typ RAMDAC"
+
+msgid "Blend"
+msgstr "Zmes"
+
+msgid "Bilinear filtering"
+msgstr "Bilineárne filtrovanie"
+
+msgid "Dithering"
+msgstr "Dithering"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "Povolenie NMI pre emuláciu CGA"
+
+msgid "Voodoo type"
+msgstr "Typ Voodoo"
+
+msgid "Framebuffer memory size"
+msgstr "Veľkosť pamäte Framebuffer"
+
+msgid "Texture memory size"
+msgstr "Veľkosť pamäte textúr"
+
+msgid "Dither subtraction"
+msgstr "Odčítanie ditheru"
+
+msgid "Screen Filter"
+msgstr "Filter obrazovky"
+
+msgid "Render threads"
+msgstr "Vlákna vykresľovania"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "Počiatočná adresa"
+
+msgid "Contiguous Size"
+msgstr "Súvislá veľkosť"
+
+msgid "I/O Width"
+msgstr "Šírka I/O"
+
+msgid "Transfer Speed"
+msgstr "Rýchlosť prenosu"
+
+msgid "EMS mode"
+msgstr "Režim EMS"
+
+msgid "Address for > 2 MB"
+msgstr "Adresa pre > 2 MB"
+
+msgid "Frame Address"
+msgstr "Adresa rámu"
+
+msgid "USA"
+msgstr "Spojené štáty"
+
+msgid "Danish"
+msgstr "Dánsky"
+
+msgid "Always at selected speed"
+msgstr "Vždy pri zvolenej rýchlosti"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "Nastavenie BIOS + klávesové skratky (vypnuté počas POST)"
+
+msgid "64 kB starting from F0000"
+msgstr "64 kB od F0000"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "128 kB od E0000 (adresa MSB invertovaná, najprv posledných 64 kB)"
+
+msgid "Sine"
+msgstr "Sinusový"
+
+msgid "Triangle"
+msgstr "Trojuholníkový"
+
+msgid "Linear"
+msgstr "Lineárna"
+
+msgid "4th Order"
+msgstr "4. rádu"
+
+msgid "7th Order"
+msgstr "7. rádu"
+
+msgid "Non-timed (original)"
+msgstr "Bez časovača (originál)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (bez prepojky na JMP2)"
+
+msgid "Two"
+msgstr "Dve stránky"
+
+msgid "Three"
+msgstr "Tri"
+
+msgid "Wheel"
+msgstr "Koleso"
+
+msgid "Five + Wheel"
+msgstr "Päť + koleso"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 sériová / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) sériová"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "Zakázať BIOS"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr "8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (stereo)"
+
+msgid "Classic"
+msgstr "Klasické"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "Kompozitný"
+
+msgid "Old"
+msgstr "Staré"
+
+msgid "New"
+msgstr "Nový"
+
+msgid "Color (generic)"
+msgstr "Farebný (všeobecný)"
+
+msgid "Green Monochrome"
+msgstr "Zelený jednofarebný"
+
+msgid "Amber Monochrome"
+msgstr "Oranžový jednofarebný"
+
+msgid "Gray Monochrome"
+msgstr "Šedý jednofarebný"
+
+msgid "Color (no brown)"
+msgstr "Farebný (bez hnedej)"
+
+msgid "Color (IBM 5153)"
+msgstr "Farebný (IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "Jednoduché zdvojenie"
+
+msgid "sRGB interpolation"
+msgstr "Interpolácia sRGB"
+
+msgid "Linear interpolation"
+msgstr "Lineárna interpolácia"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "Jednofarebný (5151/MDA) (biely)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "Jednofarebný (5151/MDA) (zelený)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "Jednofarebný (5151/MDA) (oranžový)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "Farebný 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "Farebný 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "Rozšírený farebný - normálny režim (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "Rozšírený farebný - rozšírený režim (5154/ECD)"
+
+msgid "Green"
+msgstr "Zelený"
+
+msgid "Amber"
+msgstr "Oranžový"
+
+msgid "Gray"
+msgstr "Šedý"
+
+msgid "Color"
+msgstr "Farebný"
+
+msgid "U.S. English"
+msgstr "Americká angličtina"
+
+msgid "Scandinavian"
+msgstr "Škandinávske"
+
+msgid "Other languages"
+msgstr "Ostatné jazyky"
+
+msgid "Bochs latest"
+msgstr "Bochs najnovšie"
+
+msgid "Mono Non-Interlaced"
+msgstr "Mono bez prelínania"
+
+msgid "Color Interlaced"
+msgstr "Farebné prelínanie"
+
+msgid "Color Non-Interlaced"
+msgstr "Farba bez prelínania"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "Grafický akcelerátor 3dfx Voodoo"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 zariadenia TMU)"
+
+msgid "8-bit"
+msgstr "8-bitové"
+
+msgid "16-bit"
+msgstr "16-bitové"
+
+msgid "Standard (150ns)"
+msgstr "Štandardné (150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "Vysoká rýchlosť (120ns)"
+
+msgid "Enabled"
+msgstr "Povolené"
+
+msgid "Standard"
+msgstr "Štandard"
+
+msgid "High-Speed"
+msgstr "Vysokorýchlostný"
+
+msgid "Stereo LPT DAC"
+msgstr "Stereofónny prevodník LPT DAC"
+
+msgid "Generic Text Printer"
+msgstr "Generická textová tlačiareň"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Generická ihličková tlačiareň ESC/P"
+
+msgid "Generic PostScript Printer"
+msgstr "Generická tlačiareň PostScript"
+
+msgid "Generic PCL5e Printer"
+msgstr "Generická tlačiareň PCL5e"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Internetový protokol paralelnej linky"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Ochranný kľúč pre Savage Quest"
+
+msgid "Serial Passthrough Device"
+msgstr "Zariadenie priechodu sériového portu"
+
+msgid "Passthrough Mode"
+msgstr "Režim priechodu"
+
+msgid "Host Serial Device"
+msgstr "Hostiteľské sériové zariadenie"
+
+msgid "Name of pipe"
+msgstr "Názov potrubia"
+
+msgid "Data bits"
+msgstr "Dátové bity"
+
+msgid "Stop bits"
+msgstr "Stop bity"
+
+msgid "Baud Rate of Passthrough"
+msgstr "Prenosová rýchlosť priechodu"
+
+msgid "Named Pipe (Server)"
+msgstr "Pomenované potrubie (server)"
+
+msgid "Host Serial Passthrough"
+msgstr "Priechod sériového portu hostiteľa"
+
+msgid "Eject %s"
+msgstr "Vystrihnúť %s"
+
+msgid "&Unmute"
+msgstr "&Roztíšiť"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Vysoký vplyv na výkon"
+
+msgid "RAM Disk (max. speed)"
+msgstr "Disk RAM (max. rýchlosť)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "Klon IBM 8514/A (ISA)"
+
+msgid "Vendor"
+msgstr "Výrobca"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Všeobecné rozšírenie pamäte PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Všeobecné rozšírenie pamäte PC/AT"

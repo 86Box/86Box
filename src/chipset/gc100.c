@@ -208,8 +208,7 @@ gc100_close(void *priv)
 static void *
 gc100_init(const device_t *info)
 {
-    gc100_t *dev = (gc100_t *) malloc(sizeof(gc100_t));
-    memset(dev, 0, sizeof(gc100_t));
+    gc100_t *dev = (gc100_t *) calloc(1, sizeof(gc100_t));
 
     dev->reg[0x2] = 0xff;
     dev->reg[0x3] = 0x0;
@@ -238,7 +237,7 @@ const device_t gc100_device = {
     .init          = gc100_init,
     .close         = gc100_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -252,7 +251,7 @@ const device_t gc100a_device = {
     .init          = gc100_init,
     .close         = gc100_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

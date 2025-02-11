@@ -1249,10 +1249,9 @@ esdi_init(UNUSED(const device_t *info))
     uint8_t  c;
     uint8_t  i;
 
-    dev = malloc(sizeof(esdi_t));
+    dev = calloc(1, sizeof(esdi_t));
     if (dev == NULL)
         return (NULL);
-    memset(dev, 0x00, sizeof(esdi_t));
 
     /* Mark as unconfigured. */
     dev->irq_status = 0xff;
@@ -1265,7 +1264,7 @@ esdi_init(UNUSED(const device_t *info))
     dev->drives[0].present = dev->drives[1].present = 0;
 
     for (c = 0, i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_ESDI) && (hdd[i].esdi_channel < ESDI_NUM)) {
+        if ((hdd[i].bus_type == HDD_BUS_ESDI) && (hdd[i].esdi_channel < ESDI_NUM)) {
             /* This is an ESDI drive. */
             drive = &dev->drives[hdd[i].esdi_channel];
 
@@ -1342,7 +1341,7 @@ const device_t esdi_ps2_device = {
     .init          = esdi_init,
     .close         = esdi_close,
     .reset         = NULL,
-    { .available = esdi_available },
+    .available     = esdi_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

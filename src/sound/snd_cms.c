@@ -95,15 +95,15 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
     int    chip = (addr & 2) >> 1;
 
     switch (addr & 0xf) {
-        case 1:
+        case 0x1: /* SAA #1 Register Select Port */
             cms->addrs[0] = val & 31;
             break;
-        case 3:
+        case 0x3: /* SAA #2 Register Select Port */
             cms->addrs[1] = val & 31;
             break;
 
-        case 0:
-        case 2:
+        case 0x0: /* SAA #1 Data Port */
+        case 0x2: /* SAA #2 Data Port */
             cms_update(cms);
             cms->regs[chip][cms->addrs[chip] & 31] = val;
             switch (cms->addrs[chip] & 31) {
@@ -145,8 +145,9 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             break;
-        case 0x6:
-        case 0x7:
+
+        case 0x6: /* GameBlaster Write Port */
+        case 0x7: /* GameBlaster Write Port */
             cms->latched_data = val;
             break;
 
@@ -161,14 +162,14 @@ cms_read(uint16_t addr, void *priv)
     const cms_t *cms = (cms_t *) priv;
 
     switch (addr & 0xf) {
-        case 0x1:
+        case 0x1: /* SAA #1 Register Select Port */
             return cms->addrs[0];
-        case 0x3:
+        case 0x3: /* SAA #2 Register Select Port */
             return cms->addrs[1];
-        case 0x4:
+        case 0x4: /* GameBlaster Read port (Always returns 0x7F) */
             return 0x7f;
-        case 0xa:
-        case 0xb:
+        case 0xa: /* GameBlaster Read Port */
+        case 0xb: /* GameBlaster Read Port */
             return cms->latched_data;
 
         default:
@@ -180,8 +181,7 @@ cms_read(uint16_t addr, void *priv)
 void *
 cms_init(UNUSED(const device_t *info))
 {
-    cms_t *cms = malloc(sizeof(cms_t));
-    memset(cms, 0, sizeof(cms_t));
+    cms_t *cms = calloc(1, sizeof(cms_t));
 
     uint16_t addr = device_get_config_hex16("base");
     io_sethandler(addr, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
@@ -200,42 +200,23 @@ cms_close(void *priv)
 static const device_config_t cms_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x210",
-                .value = 0x210
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x230",
-                .value = 0x230
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -249,7 +230,7 @@ const device_t cms_device = {
     .init          = cms_init,
     .close         = cms_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = cms_config

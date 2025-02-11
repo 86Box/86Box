@@ -55,7 +55,7 @@ call_long(uintptr_t func)
 }
 
 static __inline void
-load_param_1_32(codeblock_t *block, uint32_t param)
+load_param_1_32(UNUSED(codeblock_t *block), uint32_t param)
 {
 #if _WIN64
     addbyte(0xb9); /*MOVL $fetchdat,%ecx*/
@@ -93,7 +93,7 @@ static __inline void load_param_1_64(codeblock_t *block, uint64_t param)
 #endif
 
 static __inline void
-load_param_2_32(codeblock_t *block, uint32_t param)
+load_param_2_32(UNUSED(codeblock_t *block), uint32_t param)
 {
 #if _WIN64
     addbyte(0xba); /*MOVL $fetchdat,%edx*/
@@ -118,7 +118,7 @@ load_param_2_reg_32(int reg)
 #endif
 }
 static __inline void
-load_param_2_64(codeblock_t *block, uint64_t param)
+load_param_2_64(UNUSED(codeblock_t *block), uint64_t param)
 {
     addbyte(0x48);
 #if _WIN64
@@ -1492,7 +1492,7 @@ MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
     /*done:*/
 }
 static __inline void
-MEM_STORE_ADDR_EA_Q(x86seg *seg, int host_reg, int host_reg2)
+MEM_STORE_ADDR_EA_Q(x86seg *seg, int host_reg, UNUSED(int host_reg2))
 {
     if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
         addbyte(0x31); /*XOR ECX, ECX*/
@@ -3926,7 +3926,7 @@ FP_LOAD_REG(int reg)
     return REG_EBX;
 }
 static __inline void
-FP_LOAD_REG_D(int reg, int *host_reg1, int *host_reg2)
+FP_LOAD_REG_D(int reg, int *host_reg1, UNUSED(int *host_reg2))
 {
     addbyte(0x8b); /*MOV EBX, TOP*/
     addbyte(0x5d);
@@ -4086,7 +4086,7 @@ FP_LOAD_REG_INT(int reg)
     return REG_EBX;
 }
 static __inline void
-FP_LOAD_REG_INT_Q(int reg, int *host_reg1, int *host_reg2)
+FP_LOAD_REG_INT_Q(int reg, int *host_reg1, UNUSED(int *host_reg2))
 {
     addbyte(0x89); /*MOV EBX, EAX*/
     addbyte(0xc3);
@@ -4693,7 +4693,7 @@ LOAD_MMX_D(int guest_reg)
     return host_reg;
 }
 static __inline void
-LOAD_MMX_Q(int guest_reg, int *host_reg1, int *host_reg2)
+LOAD_MMX_Q(int guest_reg, int *host_reg1, UNUSED(int *host_reg2))
 {
     int host_reg = REG_EBX;
 
@@ -4725,7 +4725,7 @@ LOAD_MMX_Q_MMX(int guest_reg)
 }
 
 static __inline int
-LOAD_INT_TO_MMX(int src_reg1, int src_reg2)
+LOAD_INT_TO_MMX(int src_reg1, UNUSED(int src_reg2))
 {
     int dst_reg                   = find_host_xmm_reg();
     host_reg_xmm_mapping[dst_reg] = 100;
@@ -4758,7 +4758,7 @@ STORE_MMX_LQ(int guest_reg, int host_reg1)
     addbyte((uint8_t) cpu_state_offset(MM[guest_reg].l[0]));
 }
 static __inline void
-STORE_MMX_Q(int guest_reg, int host_reg1, int host_reg2)
+STORE_MMX_Q(int guest_reg, int host_reg1, UNUSED(int host_reg2))
 {
     if (host_reg1 & 8)
         addbyte(0x4c);

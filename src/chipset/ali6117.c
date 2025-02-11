@@ -466,8 +466,7 @@ ali6117_init(const device_t *info)
 
     ali6117_log("ALI6117: init()\n");
 
-    ali6117_t *dev = (ali6117_t *) malloc(sizeof(ali6117_t));
-    memset(dev, 0, sizeof(ali6117_t));
+    ali6117_t *dev = (ali6117_t *) calloc(1, sizeof(ali6117_t));
 
     dev->local = info->local;
 
@@ -499,7 +498,7 @@ const device_t ali1217_device = {
     .init          = ali6117_init,
     .close         = ali6117_close,
     .reset         = ali6117_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -513,7 +512,7 @@ const device_t ali6117d_device = {
     .init          = ali6117_init,
     .close         = ali6117_close,
     .reset         = ali6117_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -196,7 +196,7 @@ msgid "Enable &Discord integration"
 msgstr "Omogući integraciju sa programom &Discord"
 
 msgid "Sound &gain..."
-msgstr "&Pojačanje zvuka..."
+msgstr "&Pojačavanje zvuka..."
 
 msgid "Begin trace\tCtrl+T"
 msgstr "Z&apočni praćenje\tCtrl+T"
@@ -390,8 +390,11 @@ msgstr "Dinamički rekompilator"
 msgid "Video:"
 msgstr "Video:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo grafika"
+msgid "Video #2:"
+msgstr "Video 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo 1 ili 2 grafika"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A grafika"
@@ -637,7 +640,7 @@ msgid "Fatal error"
 msgstr "Fatalna greška"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - ZASTAO"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
@@ -683,6 +686,12 @@ msgstr "Sistem \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Video kartica \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
+
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Video kartica 2 \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Isključivanje druge video karice."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Uređaj \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi. Ignoriranje uređaja."
 
 msgid "Machine"
 msgstr "Sistem"
@@ -762,17 +771,26 @@ msgstr "Nema PCap uređaja"
 msgid "Invalid PCap device"
 msgstr "Nevažeći PCap uređaj"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "Standardna palica za igru s 2 tipke"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "Palica za igru s 2 osi, 2 tipke"
 
-msgid "Standard 4-button joystick"
-msgstr "Standardna palica za igru s 4 tipke"
+msgid "2-axis, 4-button joystick"
+msgstr "Palica za igru s 2 osi, 4 tipke"
 
-msgid "Standard 6-button joystick"
-msgstr "Standardna palica za igru s 6 tipke"
+msgid "2-axis, 6-button joystick"
+msgstr "Palica za igru s 2 osi, 6 tipke"
 
-msgid "Standard 8-button joystick"
-msgstr "Standardna palica za igru s 8 tipke"
+msgid "2-axis, 8-button joystick"
+msgstr "Palica za igru s 2 osi, 8 tipke"
+
+msgid "3-axis, 2-button joystick(s)"
+msgstr "Palica za igru s 3 osi, 2 tipke"
+
+msgid "3-axis, 4-button joystick"
+msgstr "Palica za igru s 3 osi, 4 tipke"
+
+msgid "4-axis, 4-button joystick"
+msgstr "Palica za igru s 4 osi, 4 tipke"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -807,6 +825,9 @@ msgstr "Jeste li sigurni da želite zatvoriti 86Box?"
 msgid "Unable to initialize Ghostscript"
 msgstr "Nije moguće inicijalizirati GhostScript"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "Nije moguće inicijalizirati GhostPCL"
+
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
@@ -816,8 +837,8 @@ msgstr "MO slike"
 msgid "Welcome to 86Box!"
 msgstr "Dobrodošli u 86Box!"
 
-msgid "Internal controller"
-msgstr "Uunutarnji kontroler"
+msgid "Internal device"
+msgstr "Uunutarnji uređaj"
 
 msgid "Exit"
 msgstr "Izlazi"
@@ -841,7 +862,7 @@ msgid "86Box v"
 msgstr "86Box verzija "
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulator starih računala\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i drugi.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
+msgstr "Emulator starih računala\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i drugi.\n\nS prethodnim osnovnim doprinosima Sarah Walker, Leilei, JohnElliott, greatpsycho i drugih.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
 
 msgid "Hardware not available"
 msgstr "Hardver nije dostupan"
@@ -854,6 +875,9 @@ msgstr "Nevažeća konfiguracija"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "%1 je potrebno za automatsku konverziju PostScript datoteke u PDF datoteke.\n\nSvi dokumenti poslani na generički PostScript pisač bit će spremljeni kao PostScript (.ps) datoteke."
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1 je potrebno za automatsku konverziju PCL datoteke u PDF datoteke.\n\nSvi dokumenti poslani na generički PCL pisač bit će spremljeni kao Printer Command Language (.pcl) datoteke."
 
 msgid "Entering fullscreen mode"
 msgstr "Ulazim u cijelozaslonski način"
@@ -999,6 +1023,27 @@ msgstr "Prepiši"
 msgid "Don't overwrite"
 msgstr "Ne prepiši"
 
+msgid "Raw image"
+msgstr "Slika neobrađenih podataka"
+
+msgid "HDI image"
+msgstr "HDI slika"
+
+msgid "HDX image"
+msgstr "HDX slika"
+
+msgid "Fixed-size VHD"
+msgstr "VHD fiksne veličine"
+
+msgid "Dynamic-size VHD"
+msgstr "VHD dinamičke veličine"
+
+msgid "Differencing VHD"
+msgstr "Različiti VHD"
+
+msgid "(N/A)"
+msgstr "(Bez)"
+
 msgid "Raw image (.img)"
 msgstr "Slika neobrađenih podataka (.img)"
 
@@ -1056,23 +1101,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1,2 MB"
@@ -1168,7 +1213,919 @@ msgid "&Auto-pause on focus loss"
 msgstr "&Automatska pauza pri gubitku fokusa"
 
 msgid "WinBox is no longer supported"
-msgstr "WinBox is no longer supported"
+msgstr "WinBox seviše ne podržava"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Razvoj menadžera WinBox zaustavio se 2022. zbog nedostatka održavača. Dok usmjeravamo svoje napore, da 86Box bude još bolji, odlučili smo se, da više ne podržavmo Winbox kao menadžer.\n\nDaljnja ažuriranja neće bit više osigurana putem WinBox-a i možete naići na pogrešno ponašanje ako ga nastavite koristiti s novijim verzijama 86Box-a. Sva izvješća o pogreškama u vezi s ponašanjem WinBox-a bit će zatvorena kao nevaljana.\n\nZa popis drugih menadžera koje možete koristiti, idite na 86box.net."
+
+msgid "Generate"
+msgstr "Generiraj"
+
+msgid "Joystick configuration"
+msgstr "Konfiguracija palice za igru"
+
+msgid "Device"
+msgstr "Uređaj"
+
+msgid "%1 (X axis)"
+msgstr "%1 (os X)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (os Y)"
+
+msgid "MCA devices"
+msgstr "Uređaji MCA"
+
+msgid "List of MCA devices:"
+msgstr "Spisak uređaja MCA:"
+
+msgid "Tablet tool"
+msgstr "Alat za tablet"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt (OpenGL &ES)"
+
+msgid "About Qt"
+msgstr "O programu Qt"
+
+msgid "MCA devices..."
+msgstr "Uređaji MCA ..."
+
+msgid "Show non-primary monitors"
+msgstr "Prikaži neprimarne monitore"
+
+msgid "Open screenshots folder..."
+msgstr "Otvori mapu snimaka zaslona..."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Primijeni način cijelozaslonskog rastezanja u maksimiziranom načinu"
+
+msgid "Cursor/Puck"
+msgstr "Kursor/Pak"
+
+msgid "Pen"
+msgstr "Olovka"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "CD/DVD pogon nositelja (%1:)"
+
+msgid "&Connected"
+msgstr "&Povezan"
+
+msgid "Clear image history"
+msgstr "Očisti povijest slika"
+
+msgid "Create..."
+msgstr "Stvori..."
+
+msgid "previous image"
+msgstr "prethodna slika"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "CD/DVD pogon nositelja (%1)"
+
+msgid "Unknown Bus"
+msgstr "Nepoznata sabirnica"
+
+msgid "Null Driver"
+msgstr "Nulti upravljački program"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "Nije moguće otvoriti \"%1\": %2"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "Nije moguće sastaviti vertex shader u datoteci \"%1\""
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "Nije moguće sastaviti framgent shader u datoteci \"%1\""
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "Nije moguće povezati program shader u datoteci \"%1\""
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "Opcije renderera OpenGL 3.0"
+
+msgid "Render behavior"
+msgstr "Ponašanje rendera"
+
+msgid "Use target framerate:"
+msgstr "Koristi ciljni broj okvira u sekundi:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Odmah napravi svaki okvir, sinkronizirano s emuliranim zaslonom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Ovo je preporučena opcija, ako korišćeni shader ne koristi vreme okvira za animirane efekte.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "Sinkroniziraj s videom"
+
+msgid "Shaders"
+msgstr "Shaderi"
+
+msgid "Remove"
+msgstr "Ukloni"
+
+msgid "No shader selected"
+msgstr "Bez odabranog shadera"
+
+msgid "Browse..."
+msgstr "Pregledajte..."
+
+msgid "Shader error"
+msgstr "Greška shadera"
+
+msgid "Could not load shaders."
+msgstr "Nije moguće učitati shadere."
+
+msgid "More information in details."
+msgstr "Više informacija u detaljima."
+
+msgid "Couldn't create OpenGL context."
+msgstr "Nije moguće stvoriti kontekst OpenGL."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "Nije se moguće prebaciti na kontekst OpenGL."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "Potrebna je OpenGL verzija 3.0 ili više. Trenutna verzija je %1. %2"
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "Nije moguće inicijalizirati OpenGL. Greška %1."
+
+msgid "Error initializing OpenGL"
+msgstr "Nije moguće inicijalizirati OpenGL"
+
+msgid "Falling back to software rendering.\n"
+msgstr "Vraća se na softverski renderer.\n"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "Nije moguće idodijeliti memoriju za međuspremnik za raspakiranje.\n"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Prilikom odabira medijskih slika (CD-ROM, diskete itd.), otvoreni dijalog zopočet će u istom direktoriju kao i konfiguracijska datoteka 86Box-a. Razlika će vjerojatno biti primjetna samo na macOS-u.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "This machine might have been moved or copied."
+msgstr "Ovaj je sistem mogao biti premješten ili kopiran."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "Kako bi se osigurala pravilna funkcionalnost mreže, 86Box mora znati, je li ovaj sistem bio premješten ili kopiran.\n\nAko niste sigurni, odaberite \"Kopirao sam ga\"."
+
+msgid "I Moved It"
+msgstr "Premjestio sam ga"
+
+msgid "I Copied It"
+msgstr "Kopirao sam ga"
+
+msgid "86Box Monitor #"
+msgstr "Monitor 86Box-a "
+
+msgid "No MCA devices."
+msgstr "Nema uređaja MCA."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "Network Card #1"
+msgstr "Mrežna kartica 1"
+
+msgid "Network Card #2"
+msgstr "Mrežna kartica 2"
+
+msgid "Network Card #3"
+msgstr "Mrežna kartica 3"
+
+msgid "Network Card #4"
+msgstr "Mrežna kartica 4"
+
+msgid "Mode"
+msgstr "Način"
+
+msgid "Interface"
+msgstr "Sučelje"
+
+msgid "Adapter"
+msgstr "Adapter"
+
+msgid "VDE Socket"
+msgstr "VDE utičnica"
+
+msgid "86Box Unit Tester"
+msgstr "Jedinični ispitivač 86Box-a"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Kjučna kartica za Novell Netware 2.x"
+
+msgid "Serial port passthrough 1"
+msgstr "Prolaz serijskih vrata 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Prolaz serijskih vrata 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Prolaz serijskih vrata 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Prolaz serijskih vrata 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "Vision Systems LBA Enhancer"
+
+msgid "Renderer options..."
+msgstr "Opcije rendera..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Sabirnički miš Logitech/Microsoft"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Sabirnički miš Microsoft (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Serijski miš Mouse Systems"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Serijski miš Microsoft"
+
+msgid "Logitech Serial Mouse"
+msgstr "Serijski miš Logitech"
+
+msgid "PS/2 Mouse"
+msgstr "Miš PS/2"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (serijski)"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] Standardni modem, usklađen s standardom Hayesom"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Emulacija Rolanda MT-32"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Emulacija Rolanda MT-32 (novog)"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Emulacija Rolanda CM-32L"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Emulacija Rolanda CM-32LN"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "Kartica kćerka OPL4-ML"
+
+msgid "System MIDI"
+msgstr "Sistemski MIDI"
+
+msgid "MIDI Input Device"
+msgstr "Ulazni uređaj MIDI"
+
+msgid "BIOS Address"
+msgstr "Adresa BIOS-a"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "Omogući pisanje u ROM proširenja BIOS-a"
+
+msgid "Address"
+msgstr "Adresa"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "BIOS Revision"
+msgstr "Revizija BIOS-a"
+
+msgid "Translate 26 -> 17"
+msgstr "Prevedi 26 -> 17"
+
+msgid "Language"
+msgstr "Jezik"
+
+msgid "Enable backlight"
+msgstr "Omogući pozadinsko osvjetljenje"
+
+msgid "Invert colors"
+msgstr "Invertiraj boje"
+
+msgid "BIOS size"
+msgstr "Veličina BIOS-a"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "Mapiraj C0000-C7FFF kao UMB"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "Mapiraj C8000-CFFFF kao UMB"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "Mapiraj D0000-D7FFF kao UMB"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "Mapiraj D8000-DFFFF kao UMB"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "Mapiraj E0000-E7FFF kao UMB"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "Mapiraj E8000-EFFFF kao UMB"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "Džemper JS9 (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "Izlazni uređaj MIDI"
+
+msgid "MIDI Real time"
+msgstr "MIDI u realnom vremenu"
+
+msgid "MIDI Thru"
+msgstr "Prolaz ulaza MIDI"
+
+msgid "MIDI Clockout"
+msgstr "Taktovit MIDI"
+
+msgid "SoundFont"
+msgstr "SoundFont"
+
+msgid "Output Gain"
+msgstr "Pojačavanje izlaza"
+
+msgid "Chorus"
+msgstr "Zbor"
+
+msgid "Chorus Voices"
+msgstr "Glasovi zbora"
+
+msgid "Chorus Level"
+msgstr "Nivo zbora"
+
+msgid "Chorus Speed"
+msgstr "Brzina zbora"
+
+msgid "Chorus Depth"
+msgstr "Dubina zbora"
+
+msgid "Chorus Waveform"
+msgstr "Valni oblik zbora"
+
+msgid "Reverb"
+msgstr "Odjek"
+
+msgid "Reverb Room Size"
+msgstr "Veličina sobe odjeka"
+
+msgid "Reverb Damping"
+msgstr "Prigušivanje odjeka"
+
+msgid "Reverb Width"
+msgstr "Širina odjeka"
+
+msgid "Reverb Level"
+msgstr "Nivo odjeka"
+
+msgid "Interpolation Method"
+msgstr "Metoda interpolacije"
+
+msgid "Reverb Output Gain"
+msgstr "Pojačavanje izlaza odjeka"
+
+msgid "Reversed stereo"
+msgstr "Obrnuti stereo"
+
+msgid "Nice ramp"
+msgstr "Lijepa rampa"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "Gumbi"
+
+msgid "Serial Port"
+msgstr "Serijska vrata"
+
+msgid "RTS toggle"
+msgstr "Prebacivanje RTS"
+
+msgid "Revision"
+msgstr "Revizija"
+
+msgid "Controller"
+msgstr "Kontroler"
+
+msgid "Show Crosshair"
+msgstr "Pokaži nišanski kursor"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "Adresa MAC"
+
+msgid "MAC Address OUI"
+msgstr "OUI adrese MAC"
+
+msgid "Enable BIOS"
+msgstr "Omogući BIOS"
+
+msgid "Baud Rate"
+msgstr "Baudova brzina"
+
+msgid "TCP/IP listening port"
+msgstr "Port za slušanje TCP/IP"
+
+msgid "Phonebook File"
+msgstr "Datoteka telefonskog imenika"
+
+msgid "Telnet emulation"
+msgstr "Emulacija Telneta"
+
+msgid "RAM Address"
+msgstr "Adresa RAM-a"
+
+msgid "RAM size"
+msgstr "Veličina RAM-a"
+
+msgid "Initial RAM size"
+msgstr "Početna veličina RAM-a"
+
+msgid "Serial Number"
+msgstr "Serijski broj"
+
+msgid "Host ID"
+msgstr "ID nositelja"
+
+msgid "FDC Address"
+msgstr "Adresa FDC-a"
+
+msgid "MPU-401 Address"
+msgstr "Adresa MPU-401-a"
+
+msgid "MPU-401 IRQ"
+msgstr "IRQ MPU-401-a"
+
+msgid "Receive MIDI input"
+msgstr "Primaj ulaz MIDI"
+
+msgid "Low DMA"
+msgstr "Niski DMA"
+
+msgid "Enable Game port"
+msgstr "Omogoći vrata za igru"
+
+msgid "Surround module"
+msgstr "Modul Surround"
+
+msgid "CODEC"
+msgstr "CODEC"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "Podigni prekid CODEC na postavljanju CODEC-a (potrebno nekim upravljačkim programima)"
+
+msgid "SB Address"
+msgstr "Adresa SB-a"
+
+msgid "WSS IRQ"
+msgstr "IRQ WSS-a"
+
+msgid "WSS DMA"
+msgstr "DMA WSS-a"
+
+msgid "Enable OPL"
+msgstr "Omogući OPL"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "Primaj ulaz MIDI (MPU-401)"
+
+msgid "SB low DMA"
+msgstr "Niski DMA SB-a"
+
+msgid "6CH variant (6-channel)"
+msgstr "Varianta 6CH (6 kanala)"
+
+msgid "Enable CMS"
+msgstr "Omogući CMS"
+
+msgid "Mixer"
+msgstr "Mikser"
+
+msgid "High DMA"
+msgstr "Visoki DMA"
+
+msgid "Control PC speaker"
+msgstr "Kontroliraj zvučnik računala"
+
+msgid "Memory size"
+msgstr "Veličina memorije"
+
+msgid "EMU8000 Address"
+msgstr "Adresa EMU8000-a"
+
+msgid "IDE Controller"
+msgstr "Kontroler IDE"
+
+msgid "Codec"
+msgstr "Kodek"
+
+msgid "GUS type"
+msgstr "Vrsta GUS-a"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "Omogući naredbu 0x04 \"Izlazi iz 86Box-a\""
+
+msgid "Display type"
+msgstr "Vrsta zaslona"
+
+msgid "Composite type"
+msgstr "Vrsta kompozitnog zaslona"
+
+msgid "RGB type"
+msgstr "Vrsta zaslona RGB"
+
+msgid "Line doubling type"
+msgstr "Vrsta udvostručenja linija"
+
+msgid "Snow emulation"
+msgstr "Emulacija snijega"
+
+msgid "Monitor type"
+msgstr "Vrsta monitora"
+
+msgid "Character set"
+msgstr "Set znakova"
+
+msgid "XGA type"
+msgstr "Vrsta kartice XGA"
+
+msgid "Instance"
+msgstr "Primjer"
+
+msgid "MMIO Address"
+msgstr "Adresa MMIO-a"
+
+msgid "RAMDAC type"
+msgstr "Vrsta RAMDAC-a"
+
+msgid "Blend"
+msgstr "Miješaj"
+
+msgid "Bilinear filtering"
+msgstr "Bilinearno filtriranje"
+
+msgid "Dithering"
+msgstr "Podrhtavanje"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "Omogući NMI za emulaciju CGA"
+
+msgid "Voodoo type"
+msgstr "Vrsta kartice Voodoo"
+
+msgid "Framebuffer memory size"
+msgstr "Veličina memorije za framebuffer"
+
+msgid "Texture memory size"
+msgstr "Veličina memorije za teksturu"
+
+msgid "Dither subtraction"
+msgstr "Oduzivanje podrhtaja"
+
+msgid "Screen Filter"
+msgstr "Filtar zaslona"
+
+msgid "Render threads"
+msgstr "Niti za render"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "Početna adresa"
+
+msgid "Contiguous Size"
+msgstr "Susjedna veličina"
+
+msgid "I/O Width"
+msgstr "Širina I/O"
+
+msgid "Transfer Speed"
+msgstr "Brzina prijenosa"
+
+msgid "EMS mode"
+msgstr "Načina EMS"
+
+msgid "Address for > 2 MB"
+msgstr "Adresa za > 2 MB"
+
+msgid "Frame Address"
+msgstr "Adresa za frame"
+
+msgid "USA"
+msgstr "SAD"
+
+msgid "Danish"
+msgstr "Danski"
+
+msgid "Always at selected speed"
+msgstr "Uvijek na odabranoj brzini"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "Konfiguracija BIOS-a + Tipkovni prečaci (onemogućeni tekom POST-a)"
+
+msgid "64 kB starting from F0000"
+msgstr "64 kB od F0000"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "128 kB od E0000 (MSB adrese invertiran, poslednjih 64KB prvo)"
+
+msgid "Sine"
+msgstr "Sinusni"
+
+msgid "Triangle"
+msgstr "Trokutni"
+
+msgid "Linear"
+msgstr "Linearna"
+
+msgid "4th Order"
+msgstr "4. reda"
+
+msgid "7th Order"
+msgstr "7. reda"
+
+msgid "Non-timed (original)"
+msgstr "Bez tajmera (originalni)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (JMP2 prazan)"
+
+msgid "Two"
+msgstr "Dva"
+
+msgid "Three"
+msgstr "Tri"
+
+msgid "Wheel"
+msgstr "Kotač"
+
+msgid "Five + Wheel"
+msgstr "Pet + kotač"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 serijski / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) serijski"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "Onemogući BIOS"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr " 8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (stereo)"
+
+msgid "Classic"
+msgstr "Klasičan"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "Kompozitni"
+
+msgid "Old"
+msgstr "Stara"
+
+msgid "New"
+msgstr "Nova"
+
+msgid "Color (generic)"
+msgstr "Bojni (generični)"
+
+msgid "Green Monochrome"
+msgstr "Crno-bijeli zeleni"
+
+msgid "Amber Monochrome"
+msgstr "Crno-bijeli jantarni"
+
+msgid "Gray Monochrome"
+msgstr "Crno-biljeli sivi"
+
+msgid "Color (no brown)"
+msgstr "Bojni (bez smeđe)"
+
+msgid "Color (IBM 5153)"
+msgstr "Bojni (IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "Jednostavno udvostručenje"
+
+msgid "sRGB interpolation"
+msgstr "Interpolacija sRGB"
+
+msgid "Linear interpolation"
+msgstr "Linearna interpolacija"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "Crno-biljeli (5151/MDA) (bijeli)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "Crno-biljeli (5151/MDA) (zeleni)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "Crno-biljeli (5151/MDA) (jantarni)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "Bojni 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "Bojni 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "Bojni pojačani - normalni način (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "Bojni pojačani - pojačani način (5154/ECD)"
+
+msgid "Green"
+msgstr "Zelena"
+
+msgid "Amber"
+msgstr "Jantarna"
+
+msgid "Gray"
+msgstr "Siva"
+
+msgid "Color"
+msgstr "Bojna"
+
+msgid "U.S. English"
+msgstr "Američki engleski"
+
+msgid "Scandinavian"
+msgstr "Skandinavski"
+
+msgid "Other languages"
+msgstr "Ostali jezici"
+
+msgid "Bochs latest"
+msgstr "Bochs poslednji"
+
+msgid "Mono Non-Interlaced"
+msgstr "Crno-biljeli bez preplitanja"
+
+msgid "Color Interlaced"
+msgstr "Bojni s preplitanjem"
+
+msgid "Color Non-Interlaced"
+msgstr "Bojni bez preplitanja"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3dfx Voodoo grafika"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 jednote TMU)"
+
+msgid "8-bit"
+msgstr "8-bitna"
+
+msgid "16-bit"
+msgstr "16-bitna"
+
+msgid "Standard (150ns)"
+msgstr "Standardna (150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "Visoka brzina (120ns)"
+
+msgid "Enabled"
+msgstr "Omogoći"
+
+msgid "Standard"
+msgstr "Standardna"
+
+msgid "High-Speed"
+msgstr "Visoka brzina"
+
+msgid "Stereo LPT DAC"
+msgstr "Stereo DAC za LPT"
+
+msgid "Generic Text Printer"
+msgstr "Generični tekstovni pisač"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Generični pisač matrični ESC/P"
+
+msgid "Generic PostScript Printer"
+msgstr "Generični pisač PostScript"
+
+msgid "Generic PCL5e Printer"
+msgstr "Generični pisač PCL5e"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Internet protokol za paralelnu liniju"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Zaštitni uređaj za Savage Quest"
+
+msgid "Serial Passthrough Device"
+msgstr "Uređaj prolaza serijskih vrata"
+
+msgid "Passthrough Mode"
+msgstr "Način prolaza"
+
+msgid "Host Serial Device"
+msgstr "Serijska vrata nositelja"
+
+msgid "Name of pipe"
+msgstr "Ime voda"
+
+msgid "Data bits"
+msgstr "Bitovi podataka"
+
+msgid "Stop bits"
+msgstr "Stop bitovi"
+
+msgid "Baud Rate of Passthrough"
+msgstr "Baudova brzina prolaza"
+
+msgid "Named Pipe (Server)"
+msgstr "Imenovani vod (server)"
+
+msgid "Host Serial Passthrough"
+msgstr "Prolaz serijskih vrata nositelja"
+
+msgid "Eject %s"
+msgstr "Izbaci %s"
+
+msgid "&Unmute"
+msgstr "&Uključi zvuk"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Visoki učinak na brzinu izvršavanja"
+
+msgid "RAM Disk (max. speed)"
+msgstr "Disk RAM (najviša brzina)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "Klon IBM 8514/A (ISA)"
+
+msgid "Vendor"
+msgstr "Proizvođać"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generičko proširenje memorije PC/XT"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generičko proširenje memorije PC/AT"

@@ -24,10 +24,10 @@
 #define RESID_BRANCH_HINTS true
 
 // Compiler specifics.
+#ifndef _MSC_VER
 #define HAVE_BUILTIN_EXPECT true
-
-#ifndef M_PI
-#  define M_PI    3.14159265358979323846
+#else
+#define HAVE_BUILTIN_EXPECT false
 #endif
 
 // Branch prediction macros, lifted off the Linux kernel.
@@ -42,6 +42,8 @@
 namespace reSIDfp {
 
 typedef enum { MOS6581=1, MOS8580 } ChipModel;
+
+typedef enum { AVERAGE=1, WEAK, STRONG } CombinedWaveforms;
 
 typedef enum { DECIMATE=1, RESAMPLE } SamplingMethod;
 }

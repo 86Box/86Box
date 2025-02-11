@@ -17,6 +17,7 @@
  *          Copyright 2015-2020 Andrew Jenner.
  *          Copyright 2016-2020 Miran Grca.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -244,7 +245,7 @@ pic_update_pending_at(void)
 }
 
 static void
-pic_callback(void *priv)
+pic_callback(UNUSED(void *priv))
 {
     update_pending();
 }
@@ -496,7 +497,7 @@ pic_read(uint16_t addr, void *priv)
            simply read whatever is currently on the data bus. */
     }
 
-    pic_log("pic_read(%04X, %08X) = %02X\n", addr, priv, dev->data_bus);
+    pic_log("pic_read(%04X) = %02X\n", addr, dev->data_bus);
 
     return dev->data_bus;
 }

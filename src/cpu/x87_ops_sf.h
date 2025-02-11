@@ -235,7 +235,7 @@ fpu_load_environment(void)
 }
 
 static int
-sf_FLDCW_a16(uint32_t fetchdat)
+sf_FLDCW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
 
@@ -288,7 +288,7 @@ sf_FLDCW_a32(uint32_t fetchdat)
 #endif
 
 static int
-sf_FNSTCW_a16(uint32_t fetchdat)
+sf_FNSTCW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t cwd = i387_get_control_word();
 
@@ -317,7 +317,7 @@ sf_FNSTCW_a32(uint32_t fetchdat)
 #endif
 
 static int
-sf_FNSTSW_a16(uint32_t fetchdat)
+sf_FNSTSW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t swd = i387_get_status_word();
 
@@ -359,7 +359,7 @@ sf_FI(uint32_t fetchdat)
 }
 #else
 static int
-sf_FNSTSW_AX(uint32_t fetchdat)
+sf_FNSTSW_AX(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -371,7 +371,7 @@ sf_FNSTSW_AX(uint32_t fetchdat)
 #endif
 
 static int
-sf_FRSTOR_a16(uint32_t fetchdat)
+sf_FRSTOR_a16(UNUSED(uint32_t fetchdat))
 {
     floatx80 tmp;
     int      offset;
@@ -414,7 +414,7 @@ sf_FRSTOR_a32(uint32_t fetchdat)
 #endif
 
 static int
-sf_FNSAVE_a16(uint32_t fetchdat)
+sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
 {
     floatx80 stn;
     int      offset;
@@ -488,7 +488,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
 #endif
 
 static int
-sf_FNCLEX(uint32_t fetchdat)
+sf_FNCLEX(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -499,7 +499,7 @@ sf_FNCLEX(uint32_t fetchdat)
 }
 
 static int
-sf_FNINIT(uint32_t fetchdat)
+sf_FNINIT(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
@@ -525,7 +525,7 @@ sf_FNINIT(uint32_t fetchdat)
 }
 
 static int
-sf_FLDENV_a16(uint32_t fetchdat)
+sf_FLDENV_a16(UNUSED(uint32_t fetchdat))
 {
     int tag;
 
@@ -572,7 +572,7 @@ sf_FLDENV_a32(uint32_t fetchdat)
 #endif
 
 static int
-sf_FNSTENV_a16(uint32_t fetchdat)
+sf_FNSTENV_a16(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     fetch_ea_16(fetchdat);
@@ -605,7 +605,7 @@ sf_FNSTENV_a32(uint32_t fetchdat)
 #endif
 
 static int
-sf_FNOP(uint32_t fetchdat)
+sf_FNOP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     FPU_check_pending_exceptions();

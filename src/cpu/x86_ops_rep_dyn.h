@@ -1,5 +1,5 @@
 #define REP_OPS(size, CNT_REG, SRC_REG, DEST_REG)                                                                 \
-    static int opREP_INSB_##size(uint32_t fetchdat)                                                               \
+    static int opREP_INSB_##size(UNUSED(uint32_t fetchdat))                                                       \
     {                                                                                                             \
         addr64 = 0x00000000;                                                                                      \
                                                                                                                   \
@@ -32,7 +32,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_INSW_##size(uint32_t fetchdat)                                                               \
+    static int opREP_INSW_##size(UNUSED(uint32_t fetchdat))                                                       \
     {                                                                                                             \
         addr64a[0] = addr64a[1] = 0x00000000;                                                                     \
                                                                                                                   \
@@ -65,7 +65,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_INSL_##size(uint32_t fetchdat)                                                               \
+    static int opREP_INSL_##size(UNUSED(uint32_t fetchdat))                                                       \
     {                                                                                                             \
         addr64a[0] = addr64a[1] = addr64a[2] = addr64a[3] = 0x00000000;                                           \
                                                                                                                   \
@@ -99,7 +99,7 @@
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
                                                                                                                   \
-    static int opREP_OUTSB_##size(uint32_t fetchdat)                                                              \
+    static int opREP_OUTSB_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         if (CNT_REG > 0) {                                                                                        \
             uint8_t temp;                                                                                         \
@@ -124,7 +124,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_OUTSW_##size(uint32_t fetchdat)                                                              \
+    static int opREP_OUTSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         if (CNT_REG > 0) {                                                                                        \
             uint16_t temp;                                                                                        \
@@ -149,7 +149,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_OUTSL_##size(uint32_t fetchdat)                                                              \
+    static int opREP_OUTSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         if (CNT_REG > 0) {                                                                                        \
             uint32_t temp;                                                                                        \
@@ -175,7 +175,7 @@
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
                                                                                                                   \
-    static int opREP_MOVSB_##size(uint32_t fetchdat)                                                              \
+    static int opREP_MOVSB_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         addr64 = addr64_2 = 0x00000000;                                                                           \
@@ -223,7 +223,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_MOVSW_##size(uint32_t fetchdat)                                                              \
+    static int opREP_MOVSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         addr64a[0] = addr64a[1] = 0x00000000;                                                                     \
@@ -272,7 +272,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_MOVSL_##size(uint32_t fetchdat)                                                              \
+    static int opREP_MOVSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         addr64a[0] = addr64a[1] = addr64a[2] = addr64a[3] = 0x00000000;                                           \
@@ -322,7 +322,7 @@
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
                                                                                                                   \
-    static int opREP_STOSB_##size(uint32_t fetchdat)                                                              \
+    static int opREP_STOSB_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         if (trap)                                                                                                 \
@@ -350,7 +350,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_STOSW_##size(uint32_t fetchdat)                                                              \
+    static int opREP_STOSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         if (trap)                                                                                                 \
@@ -378,7 +378,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_STOSL_##size(uint32_t fetchdat)                                                              \
+    static int opREP_STOSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         if (trap)                                                                                                 \
@@ -407,7 +407,7 @@
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
                                                                                                                   \
-    static int opREP_LODSB_##size(uint32_t fetchdat)                                                              \
+    static int opREP_LODSB_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         if (trap)                                                                                                 \
@@ -435,7 +435,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_LODSW_##size(uint32_t fetchdat)                                                              \
+    static int opREP_LODSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         if (trap)                                                                                                 \
@@ -463,7 +463,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_LODSL_##size(uint32_t fetchdat)                                                              \
+    static int opREP_LODSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
         if (trap)                                                                                                 \
@@ -495,7 +495,7 @@
 #define CHEK_READ(a, b, c)
 
 #define REP_OPS_CMPS_SCAS(size, CNT_REG, SRC_REG, DEST_REG, FV)                                                   \
-    static int opREP_CMPSB_##size(uint32_t fetchdat)                                                              \
+    static int opREP_CMPSB_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int tempz;                                                                                                \
                                                                                                                   \
@@ -545,7 +545,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_CMPSW_##size(uint32_t fetchdat)                                                              \
+    static int opREP_CMPSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int tempz;                                                                                                \
                                                                                                                   \
@@ -596,7 +596,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_CMPSL_##size(uint32_t fetchdat)                                                              \
+    static int opREP_CMPSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int tempz;                                                                                                \
                                                                                                                   \
@@ -648,7 +648,7 @@
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
                                                                                                                   \
-    static int opREP_SCASB_##size(uint32_t fetchdat)                                                              \
+    static int opREP_SCASB_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int tempz;                                                                                                \
         int cycles_end = cycles - 1000;                                                                           \
@@ -680,7 +680,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_SCASW_##size(uint32_t fetchdat)                                                              \
+    static int opREP_SCASW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int tempz;                                                                                                \
         int cycles_end = cycles - 1000;                                                                           \
@@ -712,7 +712,7 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_SCASL_##size(uint32_t fetchdat)                                                              \
+    static int opREP_SCASL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
         int tempz;                                                                                                \
         int cycles_end = cycles - 1000;                                                                           \

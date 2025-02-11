@@ -41,20 +41,23 @@
 #define FDC_FLAG_PCJR           0x01    /* PCjr */
 #define FDC_FLAG_DISKCHG_ACTLOW 0x02    /* Amstrad, PS/1, PS/2 ISA */
 #define FDC_FLAG_AT             0x04    /* AT+, PS/x */
-#define FDC_FLAG_PS1            0x08    /* PS/1, PS/2 ISA */
-#define FDC_FLAG_SUPERIO        0x10    /* Super I/O chips */
-#define FDC_FLAG_START_RWC_1    0x20    /* W83877F, W83977F */
-#define FDC_FLAG_MORE_TRACKS    0x40    /* W83877F, W83977F, PC87306, PC87309 */
-#define FDC_FLAG_NSC            0x80    /* PC87306, PC87309 */
-#define FDC_FLAG_TOSHIBA        0x100   /* T1000, T1200 */
-#define FDC_FLAG_AMSTRAD        0x200   /* Non-AT Amstrad machines */
-#define FDC_FLAG_UMC            0x400   /* UMC UM8398 */
-#define FDC_FLAG_ALI            0x800   /* ALi M512x / M1543C */
-#define FDC_FLAG_NO_DSR_RESET   0x1000  /* Has no DSR reset */
-#define FDC_FLAG_NEC            0x2000  /* Is NEC upd765-compatible */
-#define FDC_FLAG_SEC            0x10000 /* Is Secondary */
-#define FDC_FLAG_TER            0x20000 /* Is Tertiary */
-#define FDC_FLAG_QUA            0x40000 /* Is Quaternary */
+#define FDC_FLAG_PS2            0x08    /* PS/1, PS/2 ISA */
+#define FDC_FLAG_PS2_MCA        0x10    /* PS/2 MCA */
+#define FDC_FLAG_SUPERIO        0x20    /* Super I/O chips */
+#define FDC_FLAG_START_RWC_1    0x40    /* W83877F, W83977F */
+#define FDC_FLAG_MORE_TRACKS    0x80    /* W83877F, W83977F, PC87306, PC87309 */
+#define FDC_FLAG_NSC            0x100   /* PC87306, PC87309 */
+#define FDC_FLAG_TOSHIBA        0x200   /* T1000, T1200 */
+#define FDC_FLAG_AMSTRAD        0x400   /* Non-AT Amstrad machines */
+#define FDC_FLAG_UMC            0x800   /* UMC UM8398 */
+#define FDC_FLAG_ALI            0x1000  /* ALi M512x / M1543C */
+#define FDC_FLAG_NO_DSR_RESET   0x2000  /* Has no DSR reset */
+#define FDC_FLAG_DENSEL_INVERT  0x4000  /* Invert DENSEL polarity */
+#define FDC_FLAG_FINTR          0x8000  /* Raise FINTR on data command finish */
+#define FDC_FLAG_NEC            0x10000 /* Is NEC upd765-compatible */
+#define FDC_FLAG_SEC            0x20000 /* Is Secondary */
+#define FDC_FLAG_TER            0x40000 /* Is Tertiary */
+#define FDC_FLAG_QUA            0x80000 /* Is Quaternary */
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -244,20 +247,20 @@ extern const device_t fdc_xt_qua_device;
 extern const device_t fdc_xt_t1x00_device;
 extern const device_t fdc_xt_tandy_device;
 extern const device_t fdc_xt_amstrad_device;
+extern const device_t fdc_xt_umc_um8398_device;
 extern const device_t fdc_pcjr_device;
 extern const device_t fdc_at_device;
 extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
-extern const device_t fdc_at_ps1_device;
-extern const device_t fdc_at_ps1_2121_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
 extern const device_t fdc_at_nsc_device;
-extern const device_t fdc_dp8473_device;
-extern const device_t fdc_um8398_device;
+extern const device_t fdc_at_nsc_dp8473_device;
+extern const device_t fdc_ps2_device;
+extern const device_t fdc_ps2_mca_device;
 #endif
 
 #endif /*EMU_FDC_H*/

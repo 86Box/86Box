@@ -35,6 +35,8 @@
  *   USA.
  */
 
+#ifndef __NetBSD__
+
 #ifndef BSWAP_H
 #define BSWAP_H
 
@@ -131,12 +133,12 @@ bswap64s(uint64_t *s)
         return endian##_bswap(v, size);                            \
     }                                                              \
                                                                    \
-    static __inline void endian##size##_to_cpus(type *p)           \
+    static __inline void endian##size##_to_cpus(UNUSED(type *p))   \
     {                                                              \
         endian##_bswaps(p, size)                                   \
     }                                                              \
                                                                    \
-    static __inline void cpu_to_##endian##size##s(type *p)         \
+    static __inline void cpu_to_##endian##size##s(UNUSED(type *p)) \
     {                                                              \
         endian##_bswaps(p, size)                                   \
     }                                                              \
@@ -239,3 +241,5 @@ cpu_to_be32wu(uint32_t *p, uint32_t v)
 #undef be_bswaps
 
 #endif /*BSWAP_H*/
+
+#endif

@@ -1,7 +1,7 @@
 #define sf_FPU(name, optype, a_size, load_var, rw, use_var, is_nan, cycle_postfix)                                                                 \
     static int sf_FADD##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -31,7 +31,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FDIV##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -61,7 +61,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FDIVR##name##_a##a_size(uint32_t fetchdat)                                                                                       \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -91,7 +91,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FMUL##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -121,7 +121,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FSUB##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -151,7 +151,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FSUBR##name##_a##a_size(uint32_t fetchdat)                                                                                       \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \

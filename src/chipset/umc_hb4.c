@@ -450,8 +450,7 @@ ims8848_read(uint16_t addr, void *priv)
 static void *
 hb4_init(UNUSED(const device_t *info))
 {
-    hb4_t *dev = (hb4_t *) malloc(sizeof(hb4_t));
-    memset(dev, 0, sizeof(hb4_t));
+    hb4_t *dev = (hb4_t *) calloc(1, sizeof(hb4_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev, &dev->pci_slot); /* Device 10: UMC 8881x */
 
@@ -477,7 +476,7 @@ const device_t umc_hb4_device = {
     .init          = hb4_init,
     .close         = hb4_close,
     .reset         = hb4_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

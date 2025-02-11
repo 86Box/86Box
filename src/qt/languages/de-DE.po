@@ -16,7 +16,7 @@ msgid "&Right CTRL is left ALT"
 msgstr "&Die rechte Strg-Taste ist die Linke Alt-Taste"
 
 msgid "&Hard Reset..."
-msgstr "&Hard-Reset..."
+msgstr "&Kaltstart..."
 
 msgid "&Ctrl+Alt+Del\tCtrl+F12"
 msgstr "&Strg+Alt+Entf\tStrg+F12"
@@ -100,10 +100,10 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Filter method"
-msgstr "Filteringmethode"
+msgstr "Filterungsmethode"
 
 msgid "&Nearest"
-msgstr "&Nächst"
+msgstr "&Nächster Nachbar"
 
 msgid "&Linear"
 msgstr "&Linear"
@@ -115,10 +115,10 @@ msgid "&Fullscreen\tCtrl+Alt+PgUp"
 msgstr "&Vollbild\tStrg+Alt+Bild auf"
 
 msgid "Fullscreen &stretch mode"
-msgstr "&Stretching-Modus im Vollbildmodus"
+msgstr "&Vollbild-Skalierungsmodus"
 
 msgid "&Full screen stretch"
-msgstr "&Vollbild-Stretching"
+msgstr "&Vollbild-Streckung"
 
 msgid "&4:3"
 msgstr "&4:3-Seitenverhältnis erzwingen"
@@ -169,10 +169,10 @@ msgid "&Average"
 msgstr "&Durchschnittsmethode"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Overscan für CGA/PCjr/Tandy/E&GA/(S)VGA-Displays"
+msgstr "Overscan für CGA/PCjr/Tandy/E&GA/(S)VGA-Monitore"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Kontrast für &monochrome Displays ändern"
+msgstr "Kontrast für &monochrome Monitore ändern"
 
 msgid "&Media"
 msgstr "&Medien"
@@ -193,7 +193,7 @@ msgid "&Preferences..."
 msgstr "&Einstellungen..."
 
 msgid "Enable &Discord integration"
-msgstr "&Discord-Integration aktivieren"
+msgstr "&Discord-Integration einschalten"
 
 msgid "Sound &gain..."
 msgstr "&Klangverstärkung..."
@@ -214,13 +214,13 @@ msgid "&About 86Box..."
 msgstr "&Über 86Box..."
 
 msgid "&New image..."
-msgstr "&Neues Image..."
+msgstr "&Neues Abbild..."
 
 msgid "&Existing image..."
-msgstr "&Bestehendes Image..."
+msgstr "&Bestehendes Abbild..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Bestehendes Image (&schreibgeschützt)..."
+msgstr "Bestehendes Abbild (&schreibgeschützt)..."
 
 msgid "&Record"
 msgstr "&Aufnehmen"
@@ -238,7 +238,7 @@ msgid "E&ject"
 msgstr "A&uswerfen"
 
 msgid "&Image..."
-msgstr "&Cartridgeimage..."
+msgstr "&Cartridgeabbild..."
 
 msgid "E&xport to 86F..."
 msgstr "&In das 86F-Format e&xportieren..."
@@ -250,7 +250,7 @@ msgid "E&mpty"
 msgstr "L&eer"
 
 msgid "&Reload previous image"
-msgstr "&Voriges Image neu laden"
+msgstr "&Voriges Abbild neu laden"
 
 msgid "&Folder..."
 msgstr "&Verzeichnis..."
@@ -292,7 +292,7 @@ msgid "Sound Gain"
 msgstr "Klangverstärkung"
 
 msgid "New Image"
-msgstr "Neues Image"
+msgstr "Neues Abbild"
 
 msgid "Settings"
 msgstr "Optionen"
@@ -325,7 +325,7 @@ msgid "File name:"
 msgstr "Dateiname:"
 
 msgid "Disk size:"
-msgstr "Plattengröße:"
+msgstr "Datenträgergröße:"
 
 msgid "RPM mode:"
 msgstr "Drehzahlmodus:"
@@ -355,7 +355,7 @@ msgid "CPU type:"
 msgstr "CPU-Typ:"
 
 msgid "Speed:"
-msgstr "Takt:"
+msgstr "Geschwindigkeit:"
 
 msgid "Frequency:"
 msgstr "Frequenz:"
@@ -376,13 +376,13 @@ msgid "Time synchronization"
 msgstr "Zeitsynchronisierung"
 
 msgid "Disabled"
-msgstr "Deaktiviert"
+msgstr "Ausgeschaltet"
 
 msgid "Enabled (local time)"
-msgstr "Aktiviert (Lokale Uhrzeit)"
+msgstr "Eingeschaltet (Lokale Uhrzeit)"
 
 msgid "Enabled (UTC)"
-msgstr "Aktiviert (UTC)"
+msgstr "Eingeschaltet (UTC)"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamischer Recompiler"
@@ -390,8 +390,11 @@ msgstr "Dynamischer Recompiler"
 msgid "Video:"
 msgstr "Videokarte:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo-Grafik"
+msgid "Video #2:"
+msgstr "Videokarte 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo 1 oder 2 Grafik"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A-Grafik"
@@ -430,13 +433,13 @@ msgid "Sound card #4:"
 msgstr "Soundkarte 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out-Gerät:"
+msgstr "MIDI Ausgabegerät:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In-Gerät:"
+msgstr "MIDI Eingabegerät:"
 
 msgid "Standalone MPU-401"
-msgstr "Standalone-MPU-401-Gerät"
+msgstr "Eigenständiges-MPU-401-Gerät"
 
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32-Wiedergabe benutzen"
@@ -577,7 +580,7 @@ msgid "Type:"
 msgstr "Typ:"
 
 msgid "Image Format:"
-msgstr "Imageformat:"
+msgstr "Abbildformat:"
 
 msgid "Block Size:"
 msgstr "Blockgröße:"
@@ -637,10 +640,10 @@ msgid "Fatal error"
 msgstr "Fataler Fehler"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - PAUSIERT"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
+msgstr "Strg+Alt+Bild ab, zur Rückkehr in den Fenstermodus."
 
 msgid "Speed"
 msgstr "Geschwindigkeit"
@@ -649,7 +652,7 @@ msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
 msgid "ZIP images"
-msgstr "ZIP-Images"
+msgstr "ZIP-Abbilder"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">download</a>, laden ein ROM-Set herunter und extrahieren dies in das \"roms\"-Verzeichnis."
@@ -664,25 +667,31 @@ msgid "Turbo"
 msgstr "Turbo"
 
 msgid "On"
-msgstr "An"
+msgstr "Ein"
 
 msgid "Off"
 msgstr "Aus"
 
 msgid "All images"
-msgstr "Alle Images"
+msgstr "Alle Abbilder"
 
 msgid "Basic sector images"
-msgstr "Basissektorimages"
+msgstr "Basissektorabbilder"
 
 msgid "Surface images"
-msgstr "Oberflächenimages"
+msgstr "Oberflächenabbilder"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Das System \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf ein verfügbares System gewechselt."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Die Videokarte \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
+
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Das Gerät \"%hs\" ist aufgrund von fehlenden ROMs nicht verfügbar. Es wird ignoriert."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Die Videokarte 2 \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird deaktiviert."
 
 msgid "Machine"
 msgstr "System"
@@ -694,13 +703,13 @@ msgid "Input devices"
 msgstr "Eingabegeräte"
 
 msgid "Sound"
-msgstr "Multimedia"
+msgstr "Sound"
 
 msgid "Network"
 msgstr "Netzwerk"
 
 msgid "Ports (COM & LPT)"
-msgstr "Anschlüsse (COM & LPT)"
+msgstr "Anschlüsse (COM + LPT)"
 
 msgid "Storage controllers"
 msgstr "Speichercontroller"
@@ -709,7 +718,7 @@ msgid "Hard disks"
 msgstr "Festplatten"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Disketten- & CD-ROM-Laufwerke"
+msgstr "Disketten- + CD-ROM-Laufwerke"
 
 msgid "Other removable devices"
 msgstr "Andere Wechsellaufwerke"
@@ -718,13 +727,13 @@ msgid "Other peripherals"
 msgstr "Andere Peripheriegeräte"
 
 msgid "Click to capture mouse"
-msgstr "Zum Einfangen des Mauszeigers bitte klicken"
+msgstr "Klicken zum Einfangen des Mauszeigers"
 
 msgid "Press %1 to release mouse"
-msgstr "Bitte %1 zur Mausfreigabe drücken"
+msgstr "Drücke %1 zur Mausfreigabe"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "Bitte %1 oder die mittlere Maustaste zur Mausfreigabe drücken"
+msgstr "Drücke %1 oder die mittlere Maustaste zur Mausfreigabe"
 
 msgid "Ctrl+End"
 msgstr "Strg+Ende"
@@ -765,17 +774,26 @@ msgstr "Keine PCap-Geräte gefunden"
 msgid "Invalid PCap device"
 msgstr "Ungültiges PCap-Gerät"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "Standard 2-Tasten-Joystick(s)"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "2-Achsen-, 2-Tasten-Joystick(s)"
 
-msgid "Standard 4-button joystick"
-msgstr "Standard 4-Tasten-Joystick"
+msgid "2-axis, 4-button joystick"
+msgstr "2-Achsen-, 4-Tasten-Joystick"
 
-msgid "Standard 6-button joystick"
-msgstr "Standard 6-Tasten-Joystick"
+msgid "2-axis, 6-button joystick"
+msgstr "2-Achsen-, 6-Tasten-Joystick"
 
-msgid "Standard 8-button joystick"
-msgstr "Standard 8-Tasten-Joystick"
+msgid "2-axis, 8-button joystick"
+msgstr "2-Achsen-, 8-Tasten-Joystick"
+
+msgid "3-axis, 2-button joystick"
+msgstr "3-Achsen-, 2-Tasten-Joystick"
+
+msgid "3-axis, 4-button joystick"
+msgstr "3-Achsen-, 4-Tasten-Joystick"
+
+msgid "4-axis, 4-button joystick"
+msgstr "4-Achsen-, 4-Tasten-Joystick"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -796,13 +814,13 @@ msgid "Floppy %i (%s): %ls"
 msgstr "Diskette %i (%s): %ls"
 
 msgid "Advanced sector images"
-msgstr "Fortgeschrittene Sektorimages"
+msgstr "Fortgeschrittene Sektorabbilder"
 
 msgid "Flux images"
-msgstr "Fluximages"
+msgstr "Fluxabbilder"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Sind Sie sich sicher, dass Sie einen Hard-Reset für das emulierte System durchführen wollen?"
+msgstr "Sind Sie sich sicher, dass Sie einen Kaltstart für das emulierte System durchführen wollen?"
 
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Sind Sie sich sicher, dass Sie 86Box beenden wollen?"
@@ -810,17 +828,20 @@ msgstr "Sind Sie sich sicher, dass Sie 86Box beenden wollen?"
 msgid "Unable to initialize Ghostscript"
 msgstr "Ghostscript konnte nicht initialisiert werden"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "GhostPCL konnte nicht initialisiert werden"
+
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
 msgid "MO images"
-msgstr "MO-Images"
+msgstr "MO-Abbilder"
 
 msgid "Welcome to 86Box!"
 msgstr "Willkommen bei 86Box!"
 
-msgid "Internal controller"
-msgstr "Interner Controller"
+msgid "Internal device"
+msgstr "Interne Gerät"
 
 msgid "Exit"
 msgstr "Beenden"
@@ -829,10 +850,10 @@ msgid "No ROMs found"
 msgstr "Keine ROMs gefunden"
 
 msgid "Do you want to save the settings?"
-msgstr "Möchten Sie die Einstellungen speichern?"
+msgstr "Sollen die Einstellungen gespeichert werden?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Dies wird zu einem Hard-Reset des emulierten Systems führen."
+msgstr "Dies wird zu einem Kaltstart des emulierten Systems führen."
 
 msgid "Save"
 msgstr "Speichern"
@@ -844,19 +865,22 @@ msgid "86Box v"
 msgstr "86Box Version "
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne sowie andere.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
+msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne sowie andere.\n\nMit früheren Kernbeiträgen von Sarah Walker, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
 
 msgid "Hardware not available"
-msgstr "Hardware nicht verfügbar"
+msgstr "Diese Hardware ist nicht verfügbar"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Bitte stellen Sie sicher, dass %1 installiert ist und sie eine %1-kompatible Netzwerkverbindung nutzen."
+msgstr "Überprüfe, dass %1 installiert ist, und eine %1-kompatible Netzwerkverbindung genutzt wird."
 
 msgid "Invalid configuration"
 msgstr "Ungültige Konfiguration"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 wird zur automatischen Konversion von PostScript-Dateien in das PDF-Format benötigt.\n\nSämtliche an den generischen PostScript-Drucker gesendete Dateien werden als PostScript (.ps)-Dateien gesichert."
+msgstr "%1 wird zur automatischen Konvertierung von PostScript-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PostScript-Drucker gesendete Dateien werden als PostScript (*.ps) Dateien gesichert."
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1 wird zur automatischen Konvertierung von PCL-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PCL-Drucker gesendete Dateien werden als Printer Command Language (*.pcl) Dateien gesichert."
 
 msgid "Entering fullscreen mode"
 msgstr "Vollbildmodus wird aktiviert"
@@ -874,7 +898,7 @@ msgid "Don't reset"
 msgstr "Nicht zurücksetzen"
 
 msgid "CD-ROM images"
-msgstr "CD-ROM-Images"
+msgstr "CD-ROM-Abbilder"
 
 msgid "%1 Device Configuration"
 msgstr "%1-Gerätekonfiguration"
@@ -889,10 +913,10 @@ msgid "OpenGL options"
 msgstr "OpenGL-Optionen"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Sie laden gerade eine nicht unterstützte Konfiguration"
+msgstr "Zur Zeit wird eine nicht unterstützte Konfiguration geladen"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit dem ausgewählten System inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"invalid\" geschlossen werden."
+msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit dem ausgewählten System inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"ungültig\" geschlossen werden."
 
 msgid "Continue"
 msgstr "Fortfahren"
@@ -901,19 +925,19 @@ msgid "Cassette: %s"
 msgstr "Kassette: %s"
 
 msgid "Cassette images"
-msgstr "Kassettenimages"
+msgstr "Kassettenabbilder"
 
 msgid "Cartridge %i: %ls"
 msgstr "Cartridge %i: %ls"
 
 msgid "Cartridge images"
-msgstr "Cartridgeimages"
+msgstr "Cartridgeabbilder"
 
 msgid "Error initializing renderer"
-msgstr "Fehler bei der Rendererinitialisierung"
+msgstr "Fehler bei der Initialisierung des Renderer"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
+msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Benutze einen anderen Renderer."
 
 msgid "Resume execution"
 msgstr "Fortsetzen"
@@ -928,16 +952,16 @@ msgid "Press Ctrl+Alt+Esc"
 msgstr "Strg+Alt+Esc drücken"
 
 msgid "Hard reset"
-msgstr "Hard-Reset"
+msgstr "Kaltstart"
 
 msgid "ACPI shutdown"
-msgstr "ACPI-basiertes Herunterfahren"
+msgstr "ACPI basiertes Herunterfahren"
 
 msgid "Hard disk (%1)"
 msgstr "Festplatte (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL- oder ESDI CD-ROM-Laufwerke hat es niemals gegeben"
+msgstr "MFM/RLL- oder ESDI CD-ROM-Laufwerke existieren nicht"
 
 msgid "Custom..."
 msgstr "Angepasst..."
@@ -952,13 +976,13 @@ msgid "Add Existing Hard Disk"
 msgstr "Bestehende Festplatte hinzufügen"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI-Diskimages können nicht größer als 4 GB groß sein."
+msgstr "HDI-Abbilder können nicht größer als 4 GB groß sein."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Festplattenimages können nicht größer als 127 GB groß sein."
+msgstr "Festplattenabbilder können nicht größer als 127 GB groß sein."
 
 msgid "Hard disk images"
-msgstr "Festplattenimages"
+msgstr "Festplattenabbilder"
 
 msgid "Unable to read file"
 msgstr "Die Datei konnte nicht gelesen werden"
@@ -967,34 +991,34 @@ msgid "Unable to write file"
 msgstr "Die Datei konnte nicht beschrieben werden"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- oder HDX-Images mit einer Sektorgröße größer als 512 kB werden nicht unterstützt."
+msgstr "HDI- oder HDX-Abbilder mit einer Sektorgröße größer als 512 kB werden nicht unterstützt."
 
 msgid "Disk image file already exists"
-msgstr "Die Festplattenimagedatei existiert bereits"
+msgstr "Das Festplattenabbild existiert bereits"
 
 msgid "Please specify a valid file name."
-msgstr "Bitte geben Sie einen gültigen Dateinamen ein."
+msgstr "Gültiger Dateinamen eingeben."
 
 msgid "Disk image created"
-msgstr "Disk-Image wurde erstellt"
+msgstr "Disk-Abbild wurde erstellt"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Bitte stellen Sie sicher, dass die Datei existiert und lesbar ist."
+msgstr "Stell sicher, dass die Datei existiert und lesbar ist."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Bitte stellen Sie sicher, dass die Datei in ein Verzeichnis mit Schreibberechtigungen gespeichert wird."
+msgstr "Stell sicher, dass die Datei in ein Verzeichnis mit Schreibberechtigungen gespeichert wird."
 
 msgid "Disk image too large"
-msgstr "Festplattenimage ist zu groß"
+msgstr "Das Festplattenabbild ist zu groß"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "Bitte denken Sie an das Partitionieren und Formatieren des neu erstellten Laufwerks."
+msgstr "Stellen Sie sicher, dass das neu erstellte Laufwerk partitioniert und formatiert wird."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "Die ausgewählte Datei wird überschrieben. Möchten Sie diese Datei nutzen?"
+msgstr "Die ausgewählte Datei wird überschrieben. Soll diese Datei genutzen werden?"
 
 msgid "Unsupported disk image"
-msgstr "Nicht unterstütztes Festplattenimage"
+msgstr "Nicht unterstütztes Festplattenabbild"
 
 msgid "Overwrite"
 msgstr "Überschreiben"
@@ -1002,14 +1026,35 @@ msgstr "Überschreiben"
 msgid "Don't overwrite"
 msgstr "Nicht überschreiben"
 
+msgid "Raw image"
+msgstr "Rohdatenabbilder"
+
+msgid "HDI image"
+msgstr "HDI-Abbild"
+
+msgid "HDX image"
+msgstr "HDX-Abbild"
+
+msgid "Fixed-size VHD"
+msgstr "VHD mit fester Größe"
+
+msgid "Dynamic-size VHD"
+msgstr "VHD mit dynamischer Größe"
+
+msgid "Differencing VHD"
+msgstr "Differenzierende VHD"
+
+msgid "(N/A)"
+msgstr "(Kein)"
+
 msgid "Raw image (.img)"
-msgstr "Rohdatenimages (.img)"
+msgstr "Rohdatenabbild (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI-Images (.hdi)"
+msgstr "HDI-Abbild (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX-Images (.hdx)"
+msgstr "HDX-Abbild (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "VHD mit fester Größe (.vhd)"
@@ -1033,7 +1078,7 @@ msgid "Select the parent VHD"
 msgstr "Eltern-VHD-Datei bitte auswählen"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Dies bedeutet, dass das Elternimage nach der Erstellung des differenzierenden Images erzeugt wurde.\n\nDies kann auch passieren, falls die Image-Dateien verschoben oder kopiert wurden. Ebenso kann auch dies durch einen Bug im Programm, welches das Image erstellt hat, passieren.\n\nMöchten Sie die Zeitstempel korrigieren?"
+msgstr "Dies bedeutet, dass das Elternabbild nach der Erstellung des differenzierenden Abbild erzeugt wurde.\n\nDies kann auch passieren, falls die Abbild-Dateien verschoben oder kopiert wurden. Ebenso kann auch dies durch einen Bug im Programm, welches das Abbild erstellt hat, passieren.\n\nSoll der Zeitstempel korrigiert werden?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Die Zeitstempel der Eltern- und der Kindesplatte stimmen nicht überein"
@@ -1059,32 +1104,32 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
-msgstr "1,2 MB"
+msgstr "1.2 MB"
 
 msgid "1.25 MB"
-msgstr "1,25 MB"
+msgstr "1.25 MB"
 
 msgid "1.44 MB"
-msgstr "1,44 MB"
+msgstr "1.44 MB"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (1024 Cluster)"
@@ -1093,40 +1138,40 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (2048 Cluster)"
 
 msgid "2.88 MB"
-msgstr "2,88 MB"
+msgstr "2.88 MB"
 
 msgid "ZIP 100"
-msgstr "ZIP 100"
+msgstr "ZIP-DRIVE 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3,5-Zoll 128 MB (ISO 10090)"
+msgstr "3.5-Zoll 128 MB (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3,5-Zoll 230 MB (ISO 13963)"
+msgstr "3.5-Zoll 230 MB (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3,5-Zoll 540 MB (ISO 15498)"
+msgstr "3.5-Zoll 540 MB (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3,5-Zoll 640 MB (ISO 15498)"
+msgstr "3.5-Zoll 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3,5-Zoll 1,3 GB (GigaMO)"
+msgstr "3.5-Zoll 1,3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3,5-Zoll 2,3 GB (GigaMO 2)"
+msgstr "3.5-Zoll 2,3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5,25-Zoll 600 MB"
+msgstr "5.25-Zoll 600 MB"
 
 msgid "5.25\" 650 MB"
-msgstr "5,25-Zoll 650 MB"
+msgstr "5.25-Zoll 650 MB"
 
 msgid "5.25\" 1 GB"
 msgstr "5,25-Zoll 1 GB"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5,25-Zoll 1,3 GB"
+msgstr "5.25-Zoll 1,3 GB"
 
 msgid "Perfect RPM"
 msgstr "Perfekte Drehzahl"
@@ -1135,7 +1180,7 @@ msgid "1% below perfect RPM"
 msgstr "1% unterhalb der perfekten Drehzahl"
 
 msgid "1.5% below perfect RPM"
-msgstr "1,5% unterhalb der perfekten Drehzahl"
+msgstr "1.5% unterhalb der perfekten Drehzahl"
 
 msgid "2% below perfect RPM"
 msgstr "2% unterhalb der perfekten Drehzahl"
@@ -1171,7 +1216,919 @@ msgid "&Auto-pause on focus loss"
 msgstr "&Auto-Pause bei Fokusverlust"
 
 msgid "WinBox is no longer supported"
-msgstr "WinBox wird nicht mehr unterstützt"
+msgstr "Der WinBox Manager wird nicht mehr unterstützt"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "Die Entwicklung des WinBox-Managers wurde im Jahr 2022 eingestellt, da es an Betreuern mangelte. Da wir unsere Bemühungen darauf richten, 86Box noch besser zu machen, haben wir uns entschlossen, WinBox nicht mehr als Manager zu unterstützen.\n\nEs werden keine weiteren Updates für WinBox zur Verfügung gestellt, und es kann zu fehlerhaftem Verhalten kommen, wenn Sie WinBox weiterhin mit neueren Versionen von 86Box verwenden. Alle Fehlerberichte, die sich auf das Verhalten von WinBox beziehen, werden als ungültig geschlossen.\n\nAuf 86box.net finden Sie eine Liste anderer Manager, die Sie verwenden können."
+msgstr "Die Entwicklung des WinBox-Managers wurde im Jahr 2022 eingestellt, da es an Betreuern mangelte. Da wir unsere Bemühungen darauf richten, 86Box noch besser zu machen, haben wir uns entschlossen, WinBox nicht mehr als Manager zu unterstützen.\n\nEs werden keine weiteren Updates für WinBox zur Verfügung gestellt, und es kann zu fehlerhaftem Verhalten kommen, wenn WinBox weiterhin mit neueren Versionen von 86Box verwendet wird. Alle Fehlerberichte, die sich auf das Verhalten von WinBox beziehen, werden als ungültig geschlossen.\n\nAuf 86box.net ist eine Liste anderer Manager zu finden, die verwendet werden können."
+
+msgid "Generate"
+msgstr "Erzeugen"
+
+msgid "Joystick configuration"
+msgstr "Joystick-Konfiguration"
+
+msgid "Device"
+msgstr "Gerät"
+
+msgid "%1 (X axis)"
+msgstr "%1 (X-Achse)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (Y-Achse)"
+
+msgid "MCA devices"
+msgstr "MCA-Geräte"
+
+msgid "List of MCA devices:"
+msgstr "Liste die MCA-Geräte:"
+
+msgid "Tablet tool"
+msgstr "Tablet-Werkzeug"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt (OpenGL &ES)"
+
+msgid "About Qt"
+msgstr "Über Qt"
+
+msgid "MCA devices..."
+msgstr "MCA-Geräte..."
+
+msgid "Show non-primary monitors"
+msgstr "Nicht-primäre Monitore anzeigen"
+
+msgid "Open screenshots folder..."
+msgstr "Ordner „screenshots“ öffnen..."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Vollbild-Streckmodus aktivieren, wenn das Fenster maximiert ist"
+
+msgid "Cursor/Puck"
+msgstr "Mauszeiger/Puck"
+
+msgid "Pen"
+msgstr "Stift"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "Host-CD/DVD-Laufwerk (%1:)"
+
+msgid "&Connected"
+msgstr "&Verbunden"
+
+msgid "Clear image history"
+msgstr "Abbildverlauf löschen"
+
+msgid "Create..."
+msgstr "Erstellen..."
+
+msgid "previous image"
+msgstr "Vorheriges Abbild"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Host-CD/DVD-Laufwerk (%1)"
+
+msgid "Unknown Bus"
+msgstr "Unbekannter Bus"
+
+msgid "Null Driver"
+msgstr "Nulltreiber"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "Fehler beim Öffnen \"%1\": %2"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "Fehler beim Kompilieren des Vertex-Shaders in der Datei \"%1\""
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "Fehler beim Kompilieren des Fragment-Shaders in der Datei \"%1\""
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "Fehler beim Linken des Shader-Programms in der Datei \"%1\""
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "OpenGL 3.0 Renderer-Optionen"
+
+msgid "Render behavior"
+msgstr "Rendering-Verhalten"
+
+msgid "Use target framerate:"
+msgstr "Zielbildwiederholrate verwenden:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Jedes Bild sofort rendern, synchron mit der emulierten Monitor.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Dies ist die empfohlene Option, wenn die verwendeten Shader die Bildzeit für animierte Effekte nicht nutzen.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "Mit Videoausgabe synchronisieren"
+
+msgid "Shaders"
+msgstr "Shader"
+
+msgid "Remove"
+msgstr "Entfernen"
+
+msgid "No shader selected"
+msgstr "Kein Shader ausgewählt"
+
+msgid "Browse..."
+msgstr "Durchsuchen..."
+
+msgid "Shader error"
+msgstr "Shader-Fehler"
+
+msgid "Could not load shaders."
+msgstr "Shader konnten nicht geladen werden."
+
+msgid "More information in details."
+msgstr "Weitere Informationen im Einzelnen."
+
+msgid "Couldn't create OpenGL context."
+msgstr "OpenGL-Kontext konnte nicht erstellt werden."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "Konnte nicht in den OpenGL-Kontext wechseln."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "OpenGL-Version 3.0 oder höher ist erforderlich. Die aktuelle Version ist %1.%2"
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "OpenGL-Initialisierung fehlgeschlagen. Fehler %1."
+
+msgid "Error initializing OpenGL"
+msgstr "Fehler beim Initialisieren von OpenGL"
+
+msgid "Falling back to software rendering.\n"
+msgstr "Rückgriff auf Software-Rendering.\n"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "Nicht genug Speicher zum Entpacken.\n"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bei der Auswahl von Medien-Abbildern (CD-ROM, Diskette usw.) wird der Öffnungsdialog im selben Verzeichnis wie die 86Box-Konfigurationsdatei gestartet. Diese Einstellung macht wahrscheinlich nur unter macOS einen Unterschied.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "This machine might have been moved or copied."
+msgstr "Dieses System wurde möglicherweise verschoben oder kopiert."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "Um eine ordnungsgemäße Netzwerkfunktionalität zu gewährleisten, muss 86Box wissen, ob dieses System verschoben oder kopiert wurde. \n\nWählen Sie \"Ich habe es kopiert\", wenn Sie sich nicht sicher sind."
+
+msgid "I Moved It"
+msgstr "Ich habe es verschoben"
+
+msgid "I Copied It"
+msgstr "Ich habe es kopiert"
+
+msgid "86Box Monitor #"
+msgstr "86Box Monitor "
+
+msgid "No MCA devices."
+msgstr "Keine MCA-Geräte."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "Network Card #1"
+msgstr "Netzwerkkarte 1"
+
+msgid "Network Card #2"
+msgstr "Netzwerkkarte 2"
+
+msgid "Network Card #3"
+msgstr "Netzwerkkarte 3"
+
+msgid "Network Card #4"
+msgstr "Netzwerkkarte 4"
+
+msgid "Mode"
+msgstr "Modus"
+
+msgid "Interface"
+msgstr "Schnittstelle"
+
+msgid "Adapter"
+msgstr "Adapter"
+
+msgid "VDE Socket"
+msgstr "VDE Port"
+
+msgid "86Box Unit Tester"
+msgstr "86Box-Gerätetester"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Novell NetWare 2.x Schlüsselkarte"
+
+msgid "Serial port passthrough 1"
+msgstr "Durchreichung der Serielle Schnittstelle 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Durchreichung der Serielle Schnittstelle 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Durchreichung der Serielle Schnittstelle 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Durchreichung der Serielle Schnittstelle 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "Vision Systems LBA Enhancer"
+
+msgid "Renderer options..."
+msgstr "Renderer-Optionen..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Logitech/Microsoft Bus-Maus"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Microsoft Bus-Maus (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Mouse Systems Serielle Maus"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Microsoft Serielle Maus"
+
+msgid "Logitech Serial Mouse"
+msgstr "Logitech Serielle Maus"
+
+msgid "PS/2 Mouse"
+msgstr "PS/2-Maus"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (Seriell)"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] Standard Hayes-kompatibles Modem"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Roland MT-32-Emulation"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Roland MT-32 (Neu)-Emulation"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Roland CM-32L-Emulation"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Roland CM-32LN-Emulation"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "OPL4-ML-Tochterplatine"
+
+msgid "System MIDI"
+msgstr "System MIDI"
+
+msgid "MIDI Input Device"
+msgstr "MIDI-Eingabegerät"
+
+msgid "BIOS Address"
+msgstr "BIOS-Adresse"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "Schreiben in BIOS Erweiterungs ROMs zulassen"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "BIOS Revision"
+msgstr "BIOS-Revision"
+
+msgid "Translate 26 -> 17"
+msgstr "Übersetzen 26 -> 17"
+
+msgid "Language"
+msgstr "Sprache"
+
+msgid "Enable backlight"
+msgstr "Hintergrundbeleuchtung einschalten"
+
+msgid "Invert colors"
+msgstr "Farben invertieren"
+
+msgid "BIOS size"
+msgstr "BIOS-Größe"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "C0000-C7FFF als UMB zuordnen"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "C8000-CFFFF als UMB zuordnen"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "D0000-D7FFF als UMB zuordnen"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "D8000-DFFFF als UMB zuordnen"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "E0000-E7FFF als UMB zuordnen"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "E8000-EFFFF als UMB zuordnen"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "JS9 Steckbrücke (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "MIDI-Ausgabegerät"
+
+msgid "MIDI Real time"
+msgstr "MIDI in Echtzeit"
+
+msgid "MIDI Thru"
+msgstr "MIDI-Durchgang"
+
+msgid "MIDI Clockout"
+msgstr "MIDI-Taktausgabe"
+
+msgid "SoundFont"
+msgstr "SoundFont"
+
+msgid "Output Gain"
+msgstr "Ausgangsverstärkung"
+
+msgid "Chorus"
+msgstr "Chor"
+
+msgid "Chorus Voices"
+msgstr "Chorstimmen"
+
+msgid "Chorus Level"
+msgstr "Chorpegel"
+
+msgid "Chorus Speed"
+msgstr "Chorgeschwindigkeit"
+
+msgid "Chorus Depth"
+msgstr "Chortiefe"
+
+msgid "Chorus Waveform"
+msgstr "Chor-Wellenform"
+
+msgid "Reverb"
+msgstr "Nachhall"
+
+msgid "Reverb Room Size"
+msgstr "Größe des Nachhallraums"
+
+msgid "Reverb Damping"
+msgstr "Nachhalldämpfung"
+
+msgid "Reverb Width"
+msgstr "Nachhall-Breite"
+
+msgid "Reverb Level"
+msgstr "Nachhall-Pegel"
+
+msgid "Interpolation Method"
+msgstr "Interpolationsmethode"
+
+msgid "Reverb Output Gain"
+msgstr "Nachhall-Ausgangsverstärkung"
+
+msgid "Reversed stereo"
+msgstr "Umgekehrtes Stereo"
+
+msgid "Nice ramp"
+msgstr "Schöne Rampe"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "Tasten"
+
+msgid "Serial Port"
+msgstr "Serielle Schnittstelle"
+
+msgid "RTS toggle"
+msgstr "RTS-Umschaltung"
+
+msgid "Revision"
+msgstr "Revision"
+
+msgid "Controller"
+msgstr "Controller"
+
+msgid "Show Crosshair"
+msgstr "Fadenkreuz anzeigen"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "MAC-Adresse"
+
+msgid "MAC Address OUI"
+msgstr "OUI der MAC-Adresse"
+
+msgid "Enable BIOS"
+msgstr "BIOS einschalten"
+
+msgid "Baud Rate"
+msgstr "Baudrate"
+
+msgid "TCP/IP listening port"
+msgstr "TCP/IP-Warteport"
+
+msgid "Phonebook File"
+msgstr "Telefonbuch-Datei"
+
+msgid "Telnet emulation"
+msgstr "Telnet-Emulation"
+
+msgid "RAM Address"
+msgstr "RAM-Adresse"
+
+msgid "RAM size"
+msgstr "RAM-Größe"
+
+msgid "Initial RAM size"
+msgstr "Ursprüngliche RAM-Größe"
+
+msgid "Serial Number"
+msgstr "Seriennummer"
+
+msgid "Host ID"
+msgstr "Host-ID"
+
+msgid "FDC Address"
+msgstr "FDC-Adresse"
+
+msgid "MPU-401 Address"
+msgstr "MPU-401-Adresse"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401-RQ"
+
+msgid "Receive MIDI input"
+msgstr "MIDI-Eingang empfangen"
+
+msgid "Low DMA"
+msgstr "Niedrige DMA"
+
+msgid "Enable Game port"
+msgstr "Game-Port einschalten"
+
+msgid "Surround module"
+msgstr "Surround-Modul"
+
+msgid "CODEC"
+msgstr "CODEC"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "CODEC-Interrupt bei CODEC-Einrichtung auslösen (wird von einigen Treibern benötigt)"
+
+msgid "SB Address"
+msgstr "SB-Adresse"
+
+msgid "WSS IRQ"
+msgstr "WSS-IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS-DMA"
+
+msgid "Enable OPL"
+msgstr "OPL einschalten"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "MIDI-Eingang empfangen (MPU-401)"
+
+msgid "SB low DMA"
+msgstr "Niedrige SB-DMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "6CH-Variante (6-Kanal)"
+
+msgid "Enable CMS"
+msgstr "CMS einschalten"
+
+msgid "Mixer"
+msgstr "Mixer"
+
+msgid "High DMA"
+msgstr "Hohe DMA"
+
+msgid "Control PC speaker"
+msgstr "PC-Lautsprecher steuern"
+
+msgid "Memory size"
+msgstr "Speichergröße"
+
+msgid "EMU8000 Address"
+msgstr "EMU8000-Adresse"
+
+msgid "IDE Controller"
+msgstr "IDE-Controller"
+
+msgid "Codec"
+msgstr "Codec"
+
+msgid "GUS type"
+msgstr "GUS-Typ"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "Befehl 0x04 \"86Box beenden\" einschalten"
+
+msgid "Display type"
+msgstr "Anzeigetyp"
+
+msgid "Composite type"
+msgstr "Composite-Anzeigetyp"
+
+msgid "RGB type"
+msgstr "RGB-Anzeigetyp"
+
+msgid "Line doubling type"
+msgstr "Typ der Zeilenverdopplung"
+
+msgid "Snow emulation"
+msgstr "Schnee-Emulation"
+
+msgid "Monitor type"
+msgstr "Monitor-Typ"
+
+msgid "Character set"
+msgstr "Zeichensatz"
+
+msgid "XGA type"
+msgstr "XGA-Typ"
+
+msgid "Instance"
+msgstr "Instanz"
+
+msgid "MMIO Address"
+msgstr "MMIO-Adresse"
+
+msgid "RAMDAC type"
+msgstr "RAMDAC-Typ"
+
+msgid "Blend"
+msgstr "Mischung"
+
+msgid "Bilinear filtering"
+msgstr "Bilineare Filterung"
+
+msgid "Dithering"
+msgstr "Dithering"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "NMI für CGA-Emulation einschalten"
+
+msgid "Voodoo type"
+msgstr "Voodoo-typ"
+
+msgid "Framebuffer memory size"
+msgstr "Größe des Framebufferspeichers"
+
+msgid "Texture memory size"
+msgstr "Größe des Texturspeichers"
+
+msgid "Dither subtraction"
+msgstr "Dither-Subtraktion"
+
+msgid "Screen Filter"
+msgstr "Bildschirm-Filter"
+
+msgid "Render threads"
+msgstr "Render-Threads"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "Startadresse"
+
+msgid "Contiguous Size"
+msgstr "Zusammenhängende Größe"
+
+msgid "I/O Width"
+msgstr "E/A-Breite"
+
+msgid "Transfer Speed"
+msgstr "Übertragungsgeschwindigkeit"
+
+msgid "EMS mode"
+msgstr "EMS-Modus"
+
+msgid "Address for > 2 MB"
+msgstr "Adresse für > 2 MB"
+
+msgid "Frame Address"
+msgstr "Rahmenadresse"
+
+msgid "USA"
+msgstr "USA"
+
+msgid "Danish"
+msgstr "Dänisch"
+
+msgid "Always at selected speed"
+msgstr "Immer mit der gewählten Geschwindigkeit"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "BIOS-Einstellung + Hotkeys (aus während POST)"
+
+msgid "64 kB starting from F0000"
+msgstr "64 kB ab F0000"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "128 kB ab E0000 (MSB der Adresse invertiert, letzte 64KB zuerst)"
+
+msgid "Sine"
+msgstr "Sinus"
+
+msgid "Triangle"
+msgstr "Dreieck"
+
+msgid "Linear"
+msgstr "Lineare"
+
+msgid "4th Order"
+msgstr "4. Ordnung"
+
+msgid "7th Order"
+msgstr "7. Ordnung"
+
+msgid "Non-timed (original)"
+msgstr "Nicht zeitgesteuert (Original)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (JMP2 nicht bestückt)"
+
+msgid "Two"
+msgstr "Zwei"
+
+msgid "Three"
+msgstr "Drei"
+
+msgid "Wheel"
+msgstr "Rad"
+
+msgid "Five + Wheel"
+msgstr "Fünf + Rad"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 Seriell / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) Seriell"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "BIOS ausschalten"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr " 8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (Stereo)"
+
+msgid "Classic"
+msgstr "Klassisch"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "Composite"
+
+msgid "Old"
+msgstr "Alt"
+
+msgid "New"
+msgstr "Neu"
+
+msgid "Color (generic)"
+msgstr "Farbe (generisch)"
+
+msgid "Green Monochrome"
+msgstr "Grünes Monochrom"
+
+msgid "Amber Monochrome"
+msgstr "Bernsteinfarbenes Monochrom"
+
+msgid "Gray Monochrome"
+msgstr "Graues Monochrom"
+
+msgid "Color (no brown)"
+msgstr "Farbe (kein Braun)"
+
+msgid "Color (IBM 5153)"
+msgstr "Farbe (IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "Einfache Verdoppelung"
+
+msgid "sRGB interpolation"
+msgstr "sRGB-Interpolation"
+
+msgid "Linear interpolation"
+msgstr "Lineare Interpolation"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "Monochrom (5151/MDA) (weiß)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "Monochrom (5151/MDA) (grün)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "Monochrom (5151/MDA) (bernsteinfarben)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "Farbe 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "Farbe 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "Erweiterte Farbe - Normaler Modus (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "Erweiterte Farbe - Erweiterter Modus (5154/ECD)"
+
+msgid "Green"
+msgstr "Grün"
+
+msgid "Amber"
+msgstr "Bernsteinfarben"
+
+msgid "Gray"
+msgstr "Graues"
+
+msgid "Color"
+msgstr "Farbe"
+
+msgid "U.S. English"
+msgstr "Amerikanisches Englisch"
+
+msgid "Scandinavian"
+msgstr "Skandinavisch"
+
+msgid "Other languages"
+msgstr "Andere Sprachen"
+
+msgid "Bochs latest"
+msgstr "Bochs neueste"
+
+msgid "Mono Non-Interlaced"
+msgstr "Monochrom (Kein Zeilensprungverfahren)"
+
+msgid "Color Interlaced"
+msgstr "Farbe (Mit Zeilensprungverfahren)"
+
+msgid "Color Non-Interlaced"
+msgstr "Farbe (Kein Zeilensprungverfahren)"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo Grafik"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
+
+msgid "8-bit"
+msgstr "8-Bit"
+
+msgid "16-bit"
+msgstr "16-Bit"
+
+msgid "Standard (150ns)"
+msgstr "Standard (150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "Höchstgeschwindigkeit (120ns)"
+
+msgid "Enabled"
+msgstr "Eingeschaltet"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "High-Speed"
+msgstr "Höchstgeschwindigkeit"
+
+msgid "Stereo LPT DAC"
+msgstr "Stereo-LPT-DAC"
+
+msgid "Generic Text Printer"
+msgstr "Generischer Textdrucker"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Allgemeiner ESC/P-Nadel-Drucker"
+
+msgid "Generic PostScript Printer"
+msgstr "Generischer PostScript-Drucker"
+
+msgid "Generic PCL5e Printer"
+msgstr "Generischer PCL5e-Drucker"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Parallel Line Internet Protokoll"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Kopierschutz-Dongle für Savage Quest"
+
+msgid "Serial Passthrough Device"
+msgstr "Gerät der Durchreichung der Serielle Schnittstelle"
+
+msgid "Passthrough Mode"
+msgstr "Modus der Durchreichung"
+
+msgid "Host Serial Device"
+msgstr "Host Serielles Gerät"
+
+msgid "Name of pipe"
+msgstr "Name der Pipe"
+
+msgid "Data bits"
+msgstr "Datenbits"
+
+msgid "Stop bits"
+msgstr "Stoppbits"
+
+msgid "Baud Rate of Passthrough"
+msgstr "Baudrate der Durchreichung"
+
+msgid "Named Pipe (Server)"
+msgstr "Benanntes Pipe (Server)"
+
+msgid "Host Serial Passthrough"
+msgstr "Durchreichung der seriellen Schnittstelle des Hosts"
+
+msgid "Eject %s"
+msgstr "Auswerfen %s"
+
+msgid "&Unmute"
+msgstr "&Ton einschalten"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat-FPU"
+
+msgid "High performance impact"
+msgstr "Hohe Auswirkung auf die Leistung"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM-Diskette (maximale Geschwindigkeit)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A-Klon (ISA)"
+
+msgid "Vendor"
+msgstr "Hersteller"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generische PC/XT-Speichererweiterung"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generische PC/AT-Speichererweiterung"

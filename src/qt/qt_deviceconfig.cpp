@@ -124,11 +124,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
         return;
 
     while (config->type != -1) {
-        const int   config_type = config->type & CONFIG_TYPE_MASK;
-        const char *temp        = tr(config->description).toUtf8().data();
-        char        tdesc[512]  = { 0 };
-
-        strcpy(tdesc, temp);
+        const int config_type = config->type & CONFIG_TYPE_MASK;
 
         /* Ignore options of the wrong class. */
         if (!!(config->type & CONFIG_DEP) != is_dep)
@@ -172,7 +168,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 auto *cbox  = new QCheckBox();
                 cbox->setObjectName(config->name);
                 cbox->setChecked(value > 0);
-                this->ui->formLayout->addRow(tdesc, cbox);
+                this->ui->formLayout->addRow(tr(config->description), cbox);
                 break;
             }
 #ifdef USE_RTMIDI
@@ -187,11 +183,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     char midiName[512] = { 0 };
                     rtmidi_out_get_dev_name(i, midiName);
 
-                    Models::AddEntry(model, tr(midiName), i);
+                    Models::AddEntry(model, midiName, i);
                     if (i == value)
                         currentIndex = i;
                 }
-                this->ui->formLayout->addRow(tdesc, cbox);
+                this->ui->formLayout->addRow(tr(config->description), cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -206,11 +202,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     char midiName[512] = { 0 };
                     rtmidi_in_get_dev_name(i, midiName);
 
-                    Models::AddEntry(model, tr(midiName), i);
+                    Models::AddEntry(model, midiName, i);
                     if (i == value)
                         currentIndex = i;
                 }
-                this->ui->formLayout->addRow(tdesc, cbox);
+                this->ui->formLayout->addRow(tr(config->description), cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -225,17 +221,15 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 cbox->setMaxVisibleItems(30);
                 auto *model        = cbox->model();
                 int   currentIndex = -1;
+
                 for (auto *sel = config->selection; (sel != nullptr) && (sel->description != nullptr) &&
                                                     (strlen(sel->description) > 0); ++sel) {
-                    const char *temp2      = tr(sel->description).toUtf8().data();
-                    char        sdesc[512] = { 0 };
-                    strcpy(sdesc, temp2);
-                    int         row        = Models::AddEntry(model, sdesc, sel->value);
+                    int row = Models::AddEntry(model, tr(sel->description), sel->value);
 
                     if (sel->value == value)
                         currentIndex = row;
                 }
-                this->ui->formLayout->addRow(tdesc, cbox);
+                this->ui->formLayout->addRow(tr(config->description), cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -254,16 +248,13 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     for (int d = 0; d < bios->files_no; d++)
                         p += !!rom_present(const_cast<char *>(bios->files[d]));
                     if (p == bios->files_no) {
-                        const char *temp2      = tr(bios->name).toUtf8().data();
-                        char        bname[512] = { 0 };
-                        strcpy(bname, temp2);
-                        const int   row   = Models::AddEntry(model, bname, q);
+                        const int row = Models::AddEntry(model, tr(bios->name), q);
                         if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                             currentIndex = row;
                     }
                     q++;
                 }
-                this->ui->formLayout->addRow(tdesc, cbox);
+                this->ui->formLayout->addRow(tr(config->description), cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -276,7 +267,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 if (config->spinner.step > 0)
                     spinBox->setSingleStep(config->spinner.step);
                 spinBox->setValue(value);
-                this->ui->formLayout->addRow(tdesc, spinBox);
+                this->ui->formLayout->addRow(tr(config->description), spinBox);
                 break;
             }
             case CONFIG_FNAME:
@@ -286,7 +277,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 fileField->setFileName(selected);
                 fileField->setFilter(QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter,
                                                                                                 "|"))));
-                this->ui->formLayout->addRow(tdesc, fileField);
+                this->ui->formLayout->addRow(tr(config->description), fileField);
                 break;
             }
             case CONFIG_STRING:
@@ -295,7 +286,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 lineEdit->setObjectName(config->name);
                 lineEdit->setCursor(Qt::IBeamCursor);
                 lineEdit->setText(selected);
-                this->ui->formLayout->addRow(tdesc, lineEdit);
+                this->ui->formLayout->addRow(tr(config->description), lineEdit);
                 break;
             }
             case CONFIG_SERPORT:
@@ -314,7 +305,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         currentIndex = row;
                 }
 
-                this->ui->formLayout->addRow(tdesc, cbox);
+                this->ui->formLayout->addRow(tr(config->description), cbox);
                 cbox->setCurrentIndex(currentIndex);
                 break;
             }
@@ -346,7 +337,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 });
                 hboxLayout->addWidget(lineEdit);
                 hboxLayout->addWidget(generateButton);
-                this->ui->formLayout->addRow(tdesc, hboxLayout);
+                this->ui->formLayout->addRow(tr(config->description), hboxLayout);
                 break;
             }
         }
@@ -358,15 +349,15 @@ void
 DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *settings)
 {
     DeviceConfig dc(settings);
-    dc.setWindowTitle(QString(tr("%1 Device Configuration")).arg(device->name));
+    dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
 
-    const auto device_label       = new QLabel(device->name);
+    const auto device_label = new QLabel(tr(device->name));
     device_label->setAlignment(Qt::AlignCenter);
     dc.ui->formLayout->addRow(device_label);
-    const auto line               = new QFrame;
+    const auto line = new QFrame;
     line->setFrameShape(QFrame::HLine);
     line->setFrameShadow(QFrame::Sunken);
     dc.ui->formLayout->addRow(line);
@@ -466,12 +457,12 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     if (QStringLiteral("none") == internalName)
         return tr("None");
     else if (QStringLiteral("internal") == internalName)
-        return tr("Internal controller");
+        return tr("Internal device");
     else if (device == nullptr)
         return "";
     else {
         char temp[512];
         device_get_name(device, bus, temp);
-        return tr(temp, nullptr, 512);
+        return tr((const char *) temp);
     }
 }

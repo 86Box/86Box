@@ -166,12 +166,12 @@ static chips_69000_t *reset_state = NULL;
 /* TODO: Probe timings on real hardware. */
 static video_timings_t timing_chips = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
 
-uint8_t chips_69000_readb_linear(uint32_t addr, void *p);
-uint16_t chips_69000_readw_linear(uint32_t addr, void *p);
-uint32_t chips_69000_readl_linear(uint32_t addr, void *p);
-void chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *p);
-void chips_69000_writew_linear(uint32_t addr, uint16_t val, void *p);
-void chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p);
+uint8_t chips_69000_readb_linear(uint32_t addr, void *priv);
+uint16_t chips_69000_readw_linear(uint32_t addr, void *priv);
+uint32_t chips_69000_readl_linear(uint32_t addr, void *priv);
+void chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *priv);
+void chips_69000_writew_linear(uint32_t addr, uint16_t val, void *priv);
+void chips_69000_writel_linear(uint32_t addr, uint32_t val, void *priv);
 
 /* Multimedia handling. */
 uint8_t
@@ -1643,9 +1643,9 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
 }
 
 void
-chips_69000_out(uint16_t addr, uint8_t val, void *p)
+chips_69000_out(uint16_t addr, uint8_t val, void *priv)
 {
-    chips_69000_t  *chips  = (chips_69000_t *) p;
+    chips_69000_t  *chips  = (chips_69000_t *) priv;
     svga_t *svga = &chips->svga;
     uint8_t old, index;
 
@@ -1750,9 +1750,9 @@ chips_69000_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-chips_69000_in(uint16_t addr, void *p)
+chips_69000_in(uint16_t addr, void *priv)
 {
-    chips_69000_t  *chips  = (chips_69000_t *) p;
+    chips_69000_t  *chips  = (chips_69000_t *) priv;
     svga_t *svga = &chips->svga;
     uint8_t temp = 0, index;
 
@@ -1828,9 +1828,9 @@ chips_69000_in(uint16_t addr, void *p)
 }
 
 static uint8_t
-chips_69000_pci_read(int func, int addr, void *p)
+chips_69000_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    chips_69000_t *chips = (chips_69000_t *) p;
+    chips_69000_t *chips = (chips_69000_t *) priv;
 
     {
         switch (addr) {
@@ -1885,9 +1885,9 @@ chips_69000_pci_read(int func, int addr, void *p)
 }
 
 static void
-chips_69000_pci_write(int func, int addr, uint8_t val, void *p)
+chips_69000_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    chips_69000_t *chips = (chips_69000_t *) p;
+    chips_69000_t *chips = (chips_69000_t *) priv;
 
     {
         switch (addr) {
@@ -2193,71 +2193,71 @@ chips_69000_writel_mmio(uint32_t addr, uint32_t val, chips_69000_t* chips)
 }
 
 uint8_t
-chips_69000_readb_linear(uint32_t addr, void *p)
+chips_69000_readb_linear(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_readb_mmio(addr, chips);
 
-    return svga_readb_linear(addr & 0x1FFFFF, p);
+    return svga_readb_linear(addr & 0x1FFFFF, priv);
 }
 
 uint16_t
-chips_69000_readw_linear(uint32_t addr, void *p)
+chips_69000_readw_linear(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x800000) {
         if (addr & 0x400000)
             return bswap16(chips_69000_readw_mmio(addr, chips));
 
-        return bswap16(svga_readw_linear(addr & 0x1FFFFF, p));
+        return bswap16(svga_readw_linear(addr & 0x1FFFFF, priv));
     }
 
     if (addr & 0x400000)
         return chips_69000_readw_mmio(addr, chips);
 
-    return svga_readw_linear(addr & 0x1FFFFF, p);
+    return svga_readw_linear(addr & 0x1FFFFF, priv);
 }
 
 uint32_t
-chips_69000_readl_linear(uint32_t addr, void *p)
+chips_69000_readl_linear(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x800000) {
         if (addr & 0x400000)
             return bswap32(chips_69000_readl_mmio(addr, chips));
 
-        return bswap32(svga_readl_linear(addr & 0x1FFFFF, p));
+        return bswap32(svga_readl_linear(addr & 0x1FFFFF, priv));
     }
 
     if (addr & 0x400000)
         return chips_69000_readl_mmio(addr, chips);
 
-    return svga_readl_linear(addr & 0x1FFFFF, p);
+    return svga_readl_linear(addr & 0x1FFFFF, priv);
 }
 
 void
-chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *p)
+chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x400000)
         return chips_69000_writeb_mmio(addr, val, chips);
 
-    svga_writeb_linear(addr & 0x1FFFFF, val, p);
+    svga_writeb_linear(addr & 0x1FFFFF, val, priv);
 }
 
 void
-chips_69000_writew_linear(uint32_t addr, uint16_t val, void *p)
+chips_69000_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x800000)
@@ -2266,13 +2266,13 @@ chips_69000_writew_linear(uint32_t addr, uint16_t val, void *p)
     if (addr & 0x400000)
         return chips_69000_writew_mmio(addr, val, chips);
 
-    svga_writew_linear(addr & 0x1FFFFF, val, p);
+    svga_writew_linear(addr & 0x1FFFFF, val, priv);
 }
 
 void
-chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p)
+chips_69000_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
 
     if (addr & 0x800000)
@@ -2281,7 +2281,7 @@ chips_69000_writel_linear(uint32_t addr, uint32_t val, void *p)
     if (addr & 0x400000)
         return chips_69000_writel_mmio(addr, val, chips);
 
-    svga_writel_linear(addr & 0x1FFFFF, val, p);
+    svga_writel_linear(addr & 0x1FFFFF, val, priv);
 }
 
 void
@@ -2526,9 +2526,9 @@ chips_69000_available(void)
 }
 
 void
-chips_69000_close(void *p)
+chips_69000_close(void *priv)
 {
-    chips_69000_t *chips = (chips_69000_t *) p;
+    chips_69000_t *chips = (chips_69000_t *) priv;
 
     chips->quit = 1;
 //    thread_set_event(chips->fifo_event);
@@ -2544,17 +2544,17 @@ chips_69000_close(void *p)
 }
 
 void
-chips_69000_speed_changed(void *p)
+chips_69000_speed_changed(void *priv)
 {
-    chips_69000_t *chips = (chips_69000_t *) p;
+    chips_69000_t *chips = (chips_69000_t *) priv;
 
     svga_recalctimings(&chips->svga);
 }
 
 void
-chips_69000_force_redraw(void *p)
+chips_69000_force_redraw(void *priv)
 {
-    chips_69000_t *chips = (chips_69000_t *) p;
+    chips_69000_t *chips = (chips_69000_t *) priv;
 
     chips->svga.fullchange = chips->svga.monitor->mon_changeframecount;
 }
@@ -2567,7 +2567,7 @@ const device_t chips_69000_device = {
     .init          = chips_69000_init,
     .close         = chips_69000_close,
     .reset         = chips_69000_reset,
-    { .available = chips_69000_available },
+    .available     = chips_69000_available,
     .speed_changed = chips_69000_speed_changed,
     .force_redraw  = chips_69000_force_redraw,
     .config        = NULL
@@ -2581,7 +2581,7 @@ const device_t chips_69000_onboard_device = {
     .init          = chips_69000_init,
     .close         = chips_69000_close,
     .reset         = chips_69000_reset,
-    { .available = chips_69000_available },
+    .available     = chips_69000_available,
     .speed_changed = chips_69000_speed_changed,
     .force_redraw  = chips_69000_force_redraw,
     .config        = NULL

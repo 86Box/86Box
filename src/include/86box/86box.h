@@ -8,14 +8,14 @@
  *
  *          Main include file for the application.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
@@ -33,7 +33,7 @@
 #define SCREENSHOT_PATH "screenshots"
 
 /* Recently used images */
-#define MAX_PREV_IMAGES    4
+#define MAX_PREV_IMAGES    10
 #define MAX_IMAGE_PATH_LEN 2048
 
 /* Max UUID Length */
@@ -131,6 +131,7 @@ extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
+extern int      gameport_type[];            /* (C) enable gameports */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
@@ -165,6 +166,7 @@ extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 #endif
 extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
+extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 
 /* Keyboard variables for future key combination redefinition. */
 extern uint16_t key_prefix_1_1;
@@ -186,12 +188,17 @@ extern int config_changed; /* config has changed */
 
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
-extern void pclog_ex(const char *fmt, va_list);
-extern void fatal_ex(const char *fmt, va_list);
+extern void pclog_ex(const char *fmt, va_list ap);
+extern void fatal_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
+#ifdef _MSC_VER
+extern void pclog(const char *fmt, ...);
+extern void fatal(const char *fmt, ...);
+#else
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+#endif
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);

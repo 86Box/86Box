@@ -13,7 +13,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_HDC_H
@@ -22,11 +22,6 @@
 #define MFM_NUM   2  /* 2 drives per controller supported */
 #define ESDI_NUM  2  /* 2 drives per controller supported */
 #define XTA_NUM   2  /* 2 drives per controller supported */
-#define IDE_NUM   10 /* 8 drives per AT IDE + 2 for XT IDE */
-#define ATAPI_NUM 8  /* 8 drives per AT IDE */
-#define SCSI_NUM  16 /* theoretically the controller can have at \
-                      * least 7 devices, with each device being  \
-                      * able to support 8 units, but hey... */
 
 /* Controller types. */
 #define HDC_NONE     0
@@ -55,11 +50,13 @@ extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
 
 extern const device_t ide_isa_device;         /* isa_ide */
+extern const device_t ide_isa_sec_device;     /* isa_ide sec*/
 extern const device_t ide_isa_2ch_device;     /* isa_ide_2ch */
-extern const device_t ide_isa_2ch_opt_device; /* isa_ide_2ch_opt */
 extern const device_t ide_vlb_device;         /* vlb_ide */
+extern const device_t ide_vlb_sec_device;     /* vlb_ide sec */
 extern const device_t ide_vlb_2ch_device;     /* vlb_ide_2ch */
 extern const device_t ide_pci_device;         /* pci_ide */
+extern const device_t ide_pci_sec_device;     /* pci_ide sec */
 extern const device_t ide_pci_2ch_device;     /* pci_ide_2ch */
 
 extern const device_t ide_ali1489_device;                       /* ALi M1489 */
@@ -89,6 +86,7 @@ extern const device_t ide_w83769f_vlb_device;                   /* Winbond W8376
 extern const device_t ide_w83769f_vlb_34_device;                /* Winbond W83769F VLB (Port 34h) */
 extern const device_t ide_w83769f_pci_device;                   /* Winbond W83769F PCI */
 extern const device_t ide_w83769f_pci_34_device;                /* Winbond W83769F PCI (Port 34h) */
+extern const device_t ide_w83769f_pci_single_channel_device;    /* Winbond W83769F PCI (Only primary channel) */
 
 extern const device_t ide_ter_device;
 extern const device_t ide_ter_pnp_device;

@@ -168,7 +168,7 @@ w83877f_lpt_handler(w83877f_t *dev)
 
     lpt1_remove();
     if (!(dev->regs[4] & 0x80) && (dev->regs[0x23] & 0xc0))
-        lpt1_init(make_port(dev, 0x23));
+        lpt1_setup(make_port(dev, 0x23));
 
     lpt_irq = 0xff;
 
@@ -444,8 +444,7 @@ w83877f_close(void *priv)
 static void *
 w83877f_init(const device_t *info)
 {
-    w83877f_t *dev = (w83877f_t *) malloc(sizeof(w83877f_t));
-    memset(dev, 0, sizeof(w83877f_t));
+    w83877f_t *dev = (w83877f_t *) calloc(1, sizeof(w83877f_t));
 
     dev->fdc = device_add(&fdc_at_winbond_device);
 
@@ -467,7 +466,7 @@ const device_t w83877f_device = {
     .init          = w83877f_init,
     .close         = w83877f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -481,7 +480,7 @@ const device_t w83877f_president_device = {
     .init          = w83877f_init,
     .close         = w83877f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -495,7 +494,7 @@ const device_t w83877tf_device = {
     .init          = w83877f_init,
     .close         = w83877f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -509,7 +508,7 @@ const device_t w83877tf_acorp_device = {
     .init          = w83877f_init,
     .close         = w83877f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

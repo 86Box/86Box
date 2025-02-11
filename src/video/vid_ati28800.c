@@ -744,61 +744,43 @@ ati28800_force_redraw(void *priv)
 // clang-format off
 static const device_config_t ati28800_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 #ifdef USE_XL24
 static const device_config_t ati28800_wonderxl_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 #endif /* USE_XL24 */
 // clang-format on
@@ -811,7 +793,7 @@ const device_t ati28800_device = {
     .init          = ati28800_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = ati28800_available },
+    .available     = ati28800_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = ati28800_config
@@ -825,7 +807,7 @@ const device_t ati28800k_device = {
     .init          = ati28800k_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = ati28800k_available },
+    .available     = ati28800k_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = ati28800_config
@@ -839,7 +821,7 @@ const device_t ati28800k_spc4620p_device = {
     .init          = ati28800k_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = NULL
@@ -853,7 +835,7 @@ const device_t ati28800k_spc6033p_device = {
     .init          = ati28800k_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = NULL
@@ -867,7 +849,7 @@ const device_t compaq_ati28800_device = {
     .init          = ati28800_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = compaq_ati28800_available },
+    .available     = compaq_ati28800_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = ati28800_config
@@ -881,7 +863,7 @@ const device_t ati28800_wonder1024d_xl_plus_device = {
     .init          = ati28800_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = ati28800_wonder1024d_xl_plus_available },
+    .available     = ati28800_wonder1024d_xl_plus_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = NULL
@@ -896,7 +878,7 @@ const device_t ati28800_wonderxl24_device = {
     .init          = ati28800_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    { .available = ati28800_wonderxl24_available },
+    .available     = ati28800_wonderxl24_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
     .config        = ati28800_wonderxl_config

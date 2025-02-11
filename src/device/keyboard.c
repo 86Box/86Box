@@ -29,25 +29,17 @@
 
 #include "cpu.h"
 
-int keyboard_scan;
+uint16_t     scancode_map[768] = { 0 };
 
-#ifdef _WIN32
-/* Windows: F8+F12 */
+int          keyboard_scan;
+
+/* F8+F12 */
 uint16_t key_prefix_1_1 = 0x042;     /* F8 */
 uint16_t key_prefix_1_2 = 0x000;     /* Invalid */
 uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
 uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
 uint16_t key_uncapture_1 = 0x058;    /* F12 */
 uint16_t key_uncapture_2 = 0x000;    /* Invalid */
-#else
-/* WxWidgets cannot do two regular keys.. CTRL+END */
-uint16_t key_prefix_1_1 = 0x01d;     /* Left Ctrl */
-uint16_t key_prefix_1_2 = 0x11d;     /* Right Ctrl */
-uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
-uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
-uint16_t key_uncapture_1 = 0x04f;    /* Numpad End */
-uint16_t key_uncapture_2 = 0x14f;    /* End */
-#endif
 
 void (*keyboard_send)(uint16_t val);
 
@@ -385,4 +377,23 @@ keyboard_ismsexit(void)
     else
         return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
                 (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
+}
+
+/* This is so we can disambiguate scan codes that would otherwise conflict and get
+   passed on incorrectly. */
+uint16_t
+convert_scan_code(uint16_t scan_code)
+{
+    if ((scan_code & 0xff00) == 0xe000)
+        scan_code = (scan_code & 0xff) | 0x0100;
+
+    if (scan_code == 0xE11D)
+        scan_code = 0x0100;
+    /* E0 00 is sent by some USB keyboards for their special keys, as it is an
+       invalid scan code (it has no untranslated set 2 equivalent), we mark it
+       appropriately so it does not get passed through. */
+    else if ((scan_code > 0x01FF) || (scan_code == 0x0100))
+        scan_code = 0xFFFF;
+
+    return scan_code;
 }

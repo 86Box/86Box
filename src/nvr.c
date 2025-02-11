@@ -326,14 +326,15 @@ nvr_time_sync(void)
 
 /* Get current time from internal clock. */
 void
-nvr_time_get(struct tm *tm)
+nvr_time_get(void *priv)
 {
-    uint8_t  dom;
-    uint8_t  mon;
-    uint8_t  sum;
-    uint8_t  wd;
-    uint16_t cent;
-    uint16_t yr;
+    struct tm *tm   = (struct tm *) priv;
+    uint8_t    dom;
+    uint8_t    mon;
+    uint8_t    sum;
+    uint8_t    wd;
+    uint16_t   cent;
+    uint16_t   yr;
 
     tm->tm_sec  = intclk.tm_sec;
     tm->tm_min  = intclk.tm_min;
@@ -352,8 +353,10 @@ nvr_time_get(struct tm *tm)
 
 /* Set internal clock time. */
 void
-nvr_time_set(struct tm *tm)
+nvr_time_set(void *priv)
 {
+    struct tm *tm   = (struct tm *) priv;
+
     intclk.tm_sec  = tm->tm_sec;
     intclk.tm_min  = tm->tm_min;
     intclk.tm_hour = tm->tm_hour;

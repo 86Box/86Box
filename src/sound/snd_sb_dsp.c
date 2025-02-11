@@ -77,13 +77,33 @@ static int sb_commands[256] = {
     -1, -1,  0,  0, -1, -1, -1, -1, -1,  1,  2, -1, -1, -1, -1,  0
 };
 
+#if 0
+// Currently unused, here for reference if ever needed
+char     sb202_copyright[] = "COPYRIGHT(C) CREATIVE TECHNOLOGY PTE. LTD. (1991) "
+#endif
 char     sb16_copyright[]  = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
-uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40c, 0x40d, 0x410 };
+uint16_t sb_dsp_versions[] = {
+    0,     /* Pad */
+    0,     /* SADLIB      - No DSP */
+    0x105, /* SB_DSP_105      - SB1/1.5, DSP v1.05 */
+    0x200, /* SB_DSP_200      - SB1.5/2, DSP v2.00 */
+    0x201, /* SB_DSP_201      - SB1.5/2, DSP v2.01 - needed for high-speed DMA */
+    0x202, /* SB_DSP_202      - SB2, DSP v2.02 */
+    0x300, /* SB_PRO_DSP_300  - SB Pro, DSP v3.00 */
+    0x302, /* SBPRO2_DSP_302 - SB Pro 2, DSP v3.02 + OPL3 */
+    0x404, /* SB16_DSP_404        - DSP v4.04 + OPL3 */
+    0x405, /* SB16_405        - DSP v4.05 + OPL3 */
+    0x406, /* SB16_406        - DSP v4.06 + OPL3 */
+    0x40b, /* SB16_411        - DSP v4.11 + OPL3 */
+    0x40c, /* SBAWE32         - DSP v4.12 + OPL3 */
+    0x40d, /* SBAWE32PNP      - DSP v4.13 + OPL3 */
+    0x410  /* SBAWE64         - DSP v4.16 + OPL3 */
+};
 
 /*These tables were 'borrowed' from DOSBox*/
 int8_t scaleMap4[64] = {
-    0,  1,  2,  3,  4,  5,  6,  7,  0,  -1, -2,  -3,   -4,  -5,  -6,  -7,
-    1,  3,  5,  7,  9, 11, 13, 15, -1,  -3, -5,  -7,   -9, -11, -13, -15,
+    0,  1,  2,  3,  4,  5,  6,  7,  0,  -1,  -2,  -3,  -4,  -5,  -6,  -7,
+    1,  3,  5,  7,  9, 11, 13, 15, -1,  -3,  -5,  -7,  -9, -11, -13, -15,
     2,  6, 10, 14, 18, 22, 26, 30, -2,  -6, -10, -14, -18, -22, -26, -30,
     4, 12, 20, 28, 36, 44, 52, 60, -4, -12, -20, -28, -36, -44, -52, -60
 };
@@ -525,7 +545,7 @@ sb_doreset(sb_dsp_t *dsp)
         sb_commands[8] = 1;
         sb_commands[9] = 1;
     } else {
-        if (dsp->sb_type >= SB16)
+        if (dsp->sb_type >= SB16_DSP_404)
             sb_commands[8] = 1;
         else
             sb_commands[8] = -1;
@@ -1206,7 +1226,7 @@ sb_exec_command(sb_dsp_t *dsp)
 
     /* Update 8051 ram with the current DSP command.
        See https://github.com/joncampbell123/dosbox-x/issues/1044 */
-    if (dsp->sb_type >= SB16) {
+    if (dsp->sb_type >= SB16_DSP_404) {
         dsp->sb_8051_ram[0x20] = dsp->sb_command;
     }
 
@@ -1232,15 +1252,15 @@ sb_exec_command(sb_dsp_t *dsp)
 
     switch (dsp->sb_command) {
         case 0x01: /* ???? */
-            if (dsp->sb_type >= SB16)
+            if (dsp->sb_type >= SB16_DSP_404)
                 dsp->asp_data_len = dsp->sb_data[0] + (dsp->sb_data[1] << 8) + 1;
             break;
         case 0x03: /* ASP status */
-            if (dsp->sb_type >= SB16)
+            if (dsp->sb_type >= SB16_DSP_404)
                 sb_add_data(dsp, 0);
             break;
         case 0x04: /* ASP set mode register */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_asp_mode = dsp->sb_data[0];
                 if (dsp->sb_asp_mode & 4)
                     dsp->sb_asp_ram_index = 0;
@@ -1248,7 +1268,7 @@ sb_exec_command(sb_dsp_t *dsp)
             } /* else DSP Status (Obsolete) */
             break;
         case 0x05: /* ASP set codec parameter */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 sb_dsp_log("SB16 ASP unknown codec params %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
             }
             break;
@@ -1278,9 +1298,9 @@ sb_exec_command(sb_dsp_t *dsp)
                     sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
                 break;
             }
-            if (dsp->sb_type == SBAWE64) /* AWE64 has no ASP or a socket for it */
+            if (dsp->sb_type == SBAWE64_DSP_416) /* AWE64 has no ASP or a socket for it */
                 sb_add_data(dsp, 0xFF);
-            else if (dsp->sb_type >= SB16)
+            else if (dsp->sb_type >= SB16_DSP_404)
                 sb_add_data(dsp, 0x18);
             break;
         case 0x09: /* AZTECH mode set */
@@ -1296,7 +1316,7 @@ sb_exec_command(sb_dsp_t *dsp)
             }
             break;
         case 0x0E: /* ASP set register */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_asp_regs[dsp->sb_data[0]] = dsp->sb_data[1];
 
                 if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory write */
@@ -1315,7 +1335,7 @@ sb_exec_command(sb_dsp_t *dsp)
             }
             break;
         case 0x0F: /* ASP get register */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory read */
                     if (dsp->sb_asp_mode & 8)
                         dsp->sb_asp_ram_index = 0;
@@ -1359,11 +1379,11 @@ sb_exec_command(sb_dsp_t *dsp)
             }
             break;
         case 0x1C: /* 8-bit autoinit DMA output */
-            if (dsp->sb_type >= SB15)
+            if (dsp->sb_type >= SB_DSP_200)
                 sb_start_dma(dsp, 1, 1, 0, dsp->sb_8_autolen);
             break;
         case 0x1F: /* 2-bit ADPCM autoinit output */
-            if (dsp->sb_type >= SB15) {
+            if (dsp->sb_type >= SB_DSP_200) {
                 sb_start_dma(dsp, 1, 1, ADPCM_2, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
@@ -1388,7 +1408,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x28: /* Direct ADC, 8-bit (Burst) */
             break;
         case 0x2C: /* 8-bit autoinit DMA input */
-            if (dsp->sb_type >= SB15)
+            if (dsp->sb_type >= SB_DSP_200)
                 sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             break;
         case 0x30: /* MIDI Polling mode input */
@@ -1405,7 +1425,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x33: /* MIDI Read Timestamp Interrupt */
             break;
         case 0x34: /* MIDI In poll  */
-            if (dsp->sb_type < SB2)
+            if (dsp->sb_type < SB_DSP_200)
                 break;
             sb_dsp_log("MIDI poll in\n");
             dsp->midi_in_poll = 1;
@@ -1413,7 +1433,7 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->uart_irq     = 0;
             break;
         case 0x35: /* MIDI In irq */
-            if (dsp->sb_type < SB2)
+            if (dsp->sb_type < SB_DSP_200)
                 break;
             sb_dsp_log("MIDI irq in\n");
             dsp->midi_in_poll = 0;
@@ -1432,7 +1452,7 @@ sb_exec_command(sb_dsp_t *dsp)
             temp                          = 256 - dsp->sb_data[0];
             temp                          = 1000000 / temp;
             sb_dsp_log("Sample rate - %ihz (%f)\n", temp, dsp->sblatcho);
-            if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16))
+            if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16_DSP_404))
                 recalc_sb16_filter(0, temp);
             dsp->sb_freq = temp;
             if (IS_ESS(dsp)) {
@@ -1441,7 +1461,7 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x41: /* Set output sampling rate */
         case 0x42: /* Set input sampling rate */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sblatcho = (double) ((double) TIMER_USEC * (1000000.0 / (double) (dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
                 sb_dsp_log("Sample rate - %ihz (%f)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
                 temp          = dsp->sb_freq;
@@ -1459,7 +1479,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x47: /* Continue Auto-Initialize DMA, 16-bit */
             break;
         case 0x48: /* Set DSP block transfer size */
-            dsp->sb_8_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
+            if (dsp->sb_type >= SB_DSP_200)
+                dsp->sb_8_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
             break;
         case 0x65: /* 4-bit ESPCM output with reference */
         case 0x64: /* 4-bit ESPCM output */
@@ -1534,7 +1555,7 @@ sb_exec_command(sb_dsp_t *dsp)
             }
             break;
         case 0x7D: /* 4-bit ADPCM autoinit output */
-            if (dsp->sb_type >= SB15) {
+            if (dsp->sb_type >= SB_DSP_200) {
                 sb_start_dma(dsp, 1, 1, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
@@ -1542,7 +1563,7 @@ sb_exec_command(sb_dsp_t *dsp)
             }
             break;
         case 0x7F: /* 2.6-bit ADPCM autoinit output */
-            if (dsp->sb_type >= SB15) {
+            if (dsp->sb_type >= SB_DSP_200) {
                 sb_start_dma(dsp, 1, 1, ADPCM_26, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
                 dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
@@ -1555,24 +1576,24 @@ sb_exec_command(sb_dsp_t *dsp)
                 timer_set_delay_u64(&dsp->output_timer, (uint64_t) trunc(dsp->sblatcho));
             break;
         case 0x90: /* High speed 8-bit autoinit DMA output */
-            if (dsp->sb_type >= SB2)
+            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
                 sb_start_dma(dsp, 1, 1, 0, dsp->sb_8_autolen);
             break;
         case 0x91: /* High speed 8-bit single cycle DMA output */
-            if (dsp->sb_type >= SB2)
+            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
                 sb_start_dma(dsp, 1, 0, 0, dsp->sb_8_autolen);
             break;
         case 0x98: /* High speed 8-bit autoinit DMA input */
-            if (dsp->sb_type >= SB2)
+            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
                 sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_8_autolen);
             break;
         case 0x99: /* High speed 8-bit single cycle DMA input */
-            if (dsp->sb_type >= SB2)
+            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
                 sb_start_dma_i(dsp, 1, 0, 0, dsp->sb_8_autolen);
             break;
         case 0xA0: /* Set input mode to mono */
         case 0xA8: /* Set input mode to stereo */
-            if ((dsp->sb_type < SB2) || (dsp->sb_type > SBPRO2))
+            if ((dsp->sb_type < SBPRO_DSP_300) || (dsp->sb_type > SBPRO2_DSP_302))
                 break;
             /* TODO: Implement. 3.xx-only command. */
             break;
@@ -1584,7 +1605,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xB5:
         case 0xB6:
         case 0xB7: /* 16-bit DMA output */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 sb_start_dma(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0],
                              dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
@@ -1598,7 +1619,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xBD:
         case 0xBE:
         case 0xBF: /* 16-bit DMA input */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 sb_start_dma_i(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0],
                                dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
@@ -1612,7 +1633,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xC5:
         case 0xC6:
         case 0xC7: /* 8-bit DMA output */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 sb_start_dma(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0],
                              dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_8_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
@@ -1626,7 +1647,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xCD:
         case 0xCE:
         case 0xCF: /* 8-bit DMA input */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 sb_start_dma_i(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0],
                                dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_8_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
@@ -1638,20 +1659,20 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0xD1: /* Speaker on */
             if (IS_NOT_ESS(dsp)) {
-                if (dsp->sb_type < SB15) {
+                if (dsp->sb_type < SB_DSP_200) {
                     dsp->sb_8_pause = 1;
                     sb_stop_dma(dsp);
-                } else if (dsp->sb_type < SB16)
+                } else if (dsp->sb_type < SB16_DSP_404)
                     dsp->muted = 0;
             }
             dsp->sb_speaker = 1;
             break;
         case 0xD3: /* Speaker off */
             if (IS_NOT_ESS(dsp)) {
-                if (dsp->sb_type < SB15) {
+                if (dsp->sb_type < SB_DSP_201) {
                     dsp->sb_8_pause = 1;
                     sb_stop_dma(dsp);
-                } else if (dsp->sb_type < SB16)
+                } else if (dsp->sb_type < SB16_DSP_404)
                     dsp->muted = 1;
             }
             dsp->sb_speaker = 0;
@@ -1661,32 +1682,38 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_resume_dma(dsp, 1);
             break;
         case 0xD5: /* Pause 16-bit DMA */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_16_pause = 1;
                 sb_stop_dma(dsp);
             }
             break;
         case 0xD6: /* Continue 16-bit DMA */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_16_pause = 0;
                 sb_resume_dma(dsp, 1);
             }
             break;
         case 0xD8: /* Get speaker status */
-            sb_add_data(dsp, dsp->sb_speaker ? 0xff : 0);
+            if (dsp->sb_type >= SB_DSP_200)
+                sb_add_data(dsp, dsp->sb_speaker ? 0xff : 0);
             break;
         case 0xD9: /* Exit 16-bit auto-init mode */
-            if (dsp->sb_type >= SB16)
+            if (dsp->sb_type >= SB16_DSP_404)
                 dsp->sb_16_autoinit = 0;
             break;
         case 0xDA: /* Exit 8-bit auto-init mode */
-            dsp->sb_8_autoinit = 0;
+            if (dsp->sb_type >= SB_DSP_200)
+                dsp->sb_8_autoinit = 0;
             break;
         case 0xE0: /* DSP identification */
             sb_add_data(dsp, ~dsp->sb_data[0]);
             break;
         case 0xE1: /* Get DSP version */
             if (IS_ESS(dsp)) {
+                /*
+                   0x03 0x01 (Sound Blaster Pro compatibility) confirmed by both the
+                   ES1888 datasheet and the probing of the real ES688 and ES1688 cards.
+                 */
                 sb_add_data(dsp, 0x3);
                 sb_add_data(dsp, 0x1);
                 break;
@@ -1717,14 +1744,17 @@ sb_exec_command(sb_dsp_t *dsp)
                 sb_add_data(dsp, dsp->sbe2);
             break;
         case 0xE3: /* DSP copyright */
-            if (dsp->sb_type >= SB16) {
+            if (dsp->sb_type >= SB16_DSP_404) {
                 c = 0;
                 while (sb16_copyright[c])
                     sb_add_data(dsp, sb16_copyright[c++]);
                 sb_add_data(dsp, 0);
-            } else if (IS_ESS(dsp)) {
-                sb_add_data(dsp, 0);
-            }
+            } /* else if (IS_ESS(dsp))
+                sb_add_data(dsp, 0); */
+            /*
+               TODO: What ESS card returns 0x00 here? Probing of the real ES688 and ES1688 cards
+                     revealed that they in fact return nothing on this command.
+             */
             break;
         case 0xE4: /* Write test register */
             dsp->sb_test = dsp->sb_data[0];
@@ -1736,12 +1766,26 @@ sb_exec_command(sb_dsp_t *dsp)
                         break;
                     case SB_SUBTYPE_ESS_ES688:
                         sb_add_data(dsp, 0x68);
-                        sb_add_data(dsp, 0x80 | 0x04);
+                        /*
+                           80h:     ESSCFG fails to detect the AudioDrive;
+                           81h-83h: ES??88, Windows 3.1 driver expects MPU-401 and gives a legacy mixer error;
+                           84h:     ES688, Windows 3.1 driver expects MPU-401, returned by DOSBox-X;
+                           85h-87h: ES688, Windows 3.1 driver does not expect MPU-401:
+                                    85h: Returned by MSDOS622's real ESS688,
+                                    86h: Returned by Dizzy's real ES688.
+                           We return 86h if MPU is absent, 84h otherwise, who knows what the actual
+                           PnP ES688 returns here.
+                         */
+                        sb_add_data(dsp, 0x80 | ((dsp->mpu != NULL) ? 0x04 : 0x06));
                         break;
                     case SB_SUBTYPE_ESS_ES1688:
-                        // Determined via Windows driver debugging.
                         sb_add_data(dsp, 0x68);
-                        sb_add_data(dsp, 0x80 | 0x09);
+                        /*
+                           89h:     ES1688, returned by DOSBox-X, determined via Windows driver
+                                    debugging;
+                           8Bh:     ES1688, returned by both MSDOS622's and Dizzy's real ES1688's.
+                         */
+                        sb_add_data(dsp, 0x80 | 0x0b);
                         break;
                 }
             }
@@ -1761,15 +1805,15 @@ sb_exec_command(sb_dsp_t *dsp)
                 timer_set_delay_u64(&dsp->irq16_timer, (10ULL * TIMER_USEC));
             break;
         case 0xF8:
-            if (dsp->sb_type < SB16)
+            if (dsp->sb_type < SB16_DSP_404)
                 sb_add_data(dsp, 0);
             break;
         case 0xF9: /* SB16 8051 RAM read */
-            if (dsp->sb_type >= SB16)
+            if (dsp->sb_type >= SB16_DSP_404)
                 sb_add_data(dsp, dsp->sb_8051_ram[dsp->sb_data[0]]);
             break;
         case 0xFA: /* SB16 8051 RAM write */
-            if (dsp->sb_type >= SB16)
+            if (dsp->sb_type >= SB16_DSP_404)
                 dsp->sb_8051_ram[dsp->sb_data[0]] = dsp->sb_data[1];
             break;
         case 0xFF: /* No, that's not how you program auto-init DMA */
@@ -1779,11 +1823,24 @@ sb_exec_command(sb_dsp_t *dsp)
              * http://the.earth.li/~tfm/oldpage/sb_dsp.html
              * http://www.synchrondata.com/pheaven/www/area19.htm
              * http://www.dcee.net/Files/Programm/Sound/
-             *  0E3h           DSP Copyright                                       SBPro2???
-             *  0F0h           Sine Generator                                      SB
-             *  0F1h           DSP Auxiliary Status (Obsolete)                     SB-Pro2
-             *  0F2h           IRQ Request, 8-bit                                  SB
+             * https://github.com/schlae/sb-firmware/blob/master/sbv202.asm
+             *  008h           Halt (Infinate Loop)                                SB2???
+             *  018h           DMA playback with auto init DMA.                    SB2???
+             *  028h           Auto-init direct ADC                                SB2???
+             *  036h           (Timestamp)                                         SB???
+             *  037h           (Timestamp)                                         SB???
+             *  050h           Stops playback of SRAM samples                      SB???
+             *  051h           Plays back samples stored in SRAM.                  SB???
+             *  058h           Load data into SRAM                                 SB???
+             *  059h           Fetches the samples and then immediately plays them back.    SB???
+             *  078h           Auto-init DMA ADPCM                                 SB2???
+             *  07Ah           2.6-bit ADPCM                                       SB???
+             *  0E3h           DSP Copyright                                       SBPro2??? (SBPRO2_DSP_302)
+             *  0F0h           Sine Generator                                      SB        (SB_DSP_105, DSP20x)
+             *  0F1h           DSP Auxiliary Status (Obsolete)                     SB-Pro2   (DSP20x, SBPRO2_DSP_302)
+             *  0F2h           IRQ Request, 8-bit                                  SB        (SB_DSP_105, DSP20x)
              *  0F3h           IRQ Request, 16-bit                                 SB16
+             *  0F4h           Perform ROM checksum                                SB        (SB_DSP_105, DSP20x)
              *  0FBh           DSP Status                                          SB16
              *  0FCh           DSP Auxiliary Status                                SB16
              *  0FDh           DSP Command Status                                  SB16
@@ -1796,7 +1853,7 @@ sb_exec_command(sb_dsp_t *dsp)
 
     /* Update 8051 ram with the last DSP command.
        See https://github.com/joncampbell123/dosbox-x/issues/1044 */
-    if (dsp->sb_type >= SB16)
+    if (dsp->sb_type >= SB16_DSP_404)
         dsp->sb_8051_ram[0x30] = dsp->sb_command;
 }
 
@@ -1815,31 +1872,31 @@ sb_do_reset(sb_dsp_t *dsp, const uint8_t v)
 }
 
 void
-sb_write(uint16_t a, uint8_t v, void *priv)
+sb_write(uint16_t addr, uint8_t val, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
-    sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, a, v);
+    sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, addr, val);
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16) && (IS_NOT_ESS(dsp) || ((a & 0xF) != 0xE)))
-        a &= 0xfffe;
+    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xE)))
+        addr &= 0xfffe;
 
-    switch (a & 0xF) {
+    switch (addr & 0xF) {
         case 6: /* Reset */
-            sb_do_reset(dsp, v);
+            sb_do_reset(dsp, val);
 
-            if (!(v & 2) && (dsp->espcm_fifo_reset & 2)) {
+            if (!(val & 2) && (dsp->espcm_fifo_reset & 2)) {
                 fifo_reset(dsp->espcm_fifo);
             }
-            dsp->espcm_fifo_reset = v;
+            dsp->espcm_fifo_reset = val;
             dsp->uart_midi        = 0;
             dsp->uart_irq         = 0;
             dsp->onebyte_midi     = 0;
             return;
         case 0xC: /* Command/data write */
             if (dsp->uart_midi || dsp->onebyte_midi) {
-                midi_raw_out_byte(v);
+                midi_raw_out_byte(val);
                 dsp->onebyte_midi = 0;
                 return;
             }
@@ -1852,8 +1909,8 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                 return;
             }
             if (dsp->sb_data_stat == -1) {
-                dsp->sb_command = v;
-                if (v == 0x01)
+                dsp->sb_command = val;
+                if (val == 0x01)
                     sb_add_data(dsp, 0);
                 dsp->sb_data_stat++;
                 if (IS_AZTECH(dsp)) {
@@ -1880,7 +1937,7 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                     }
                 }
             } else {
-                dsp->sb_data[dsp->sb_data_stat++] = v;
+                dsp->sb_data[dsp->sb_data_stat++] = val;
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
                 sb_exec_command(dsp);
@@ -1899,23 +1956,31 @@ sb_write(uint16_t a, uint8_t v, void *priv)
 }
 
 uint8_t
-sb_read(uint16_t a, void *priv)
+sb_read(uint16_t addr, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
     uint8_t   ret = 0x00;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16) && (IS_NOT_ESS(dsp) || ((a & 0xF) != 0xF)))
+    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xF)))
         /* Exception: ESS AudioDrive does not alias port base+0xf */
-            a &= 0xfffe;
+            addr &= 0xfffe;
 
-    switch (a & 0xf) {
+    switch (addr & 0xf) {
         case 0x6:
             if (IS_ESS(dsp)) {
                 ret = (dsp->espcm_fifo_reset & 0x03) | 0x08 | (dsp->activity & 0xe0);
                 dsp->activity |= 0xe0;
             } else
                 ret = 0xff;
+            break;
+        case 0x7:
+        case 0xB:
+            /*
+               These two ports are tested for random noise by OS/2 Warp 4.0, so
+               return 0xff to get through said test.
+             */
+            ret = 0xff;
             break;
         case 0xA: /* Read data */
             if (dsp->mpu && dsp->uart_midi)
@@ -1939,7 +2004,7 @@ sb_read(uint16_t a, void *priv)
             if (dsp->state == DSP_S_RESET_WAIT)
                 dsp->state = DSP_S_NORMAL;
             if ((dsp->state == DSP_S_NORMAL) || IS_ESS(dsp)) {
-                if (dsp->sb_8_enable || dsp->sb_type >= SB16)
+                if (dsp->sb_8_enable || dsp->sb_type >= SB16_DSP_404)
                     dsp->busy_count = (dsp->busy_count + 1) & 3;
                 else
                     dsp->busy_count = 0;
@@ -1964,7 +2029,7 @@ sb_read(uint16_t a, void *priv)
                         ret = 0x80;
                     } else {
                         sb_dsp_log("SB Write Data Creative read 0xff\n");
-                        if ((dsp->sb_type >= SB2) && (dsp->sb_type < SB16) && IS_NOT_ESS(dsp))
+                        if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404) && IS_NOT_ESS(dsp))
                             ret = 0xaa;
                         else
                             ret = 0xff;
@@ -1974,7 +2039,7 @@ sb_read(uint16_t a, void *priv)
                     ret = 0x00;
                 } else {
                     sb_dsp_log("SB Write Data Creative read 0x7f\n");
-                    if ((dsp->sb_type >= SB2) && (dsp->sb_type < SB16) && IS_NOT_ESS(dsp))
+                    if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404) && IS_NOT_ESS(dsp))
                         ret = 0x2a;
                     else
                         ret = 0x7f;
@@ -1998,7 +2063,7 @@ sb_read(uint16_t a, void *priv)
                 ret = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x80;
             } else {
                 sb_dsp_log("SB Read Data Creative read %02X\n", (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x7f : 0xff);
-                if ((dsp->sb_type < SB16) && IS_NOT_ESS(dsp))
+                if ((dsp->sb_type < SB16_DSP_404) && IS_NOT_ESS(dsp))
                     ret = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x2a : 0xaa;
                 else
                     ret = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x7f : 0xff;
@@ -2109,11 +2174,11 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     /* Default values. Use sb_dsp_setxxx() methods to change. */
     dsp->sb_irqnum    = 7;
     dsp->sb_8_dmanum  = 1;
-    if (type >= SB16)
+    if (type >= SB16_DSP_404)
         dsp->sb_16_dmanum = 5;
     else
         dsp->sb_16_dmanum = 0xff;
-    if ((type >= SB16) || IS_ESS(dsp))
+    if ((type >= SB16_DSP_404) || IS_ESS(dsp))
         dsp->sb_16_8_dmanum = 0x1;
     dsp->mpu          = NULL;
 
@@ -2145,7 +2210,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
            a set frequency command is sent. */
         recalc_sb16_filter(0, 3200 * 2);
     }
-    if (IS_ESS(dsp) || (dsp->sb_type >= SBPRO2)) {
+    if (IS_ESS(dsp) || (dsp->sb_type >= SBPRO2_DSP_302)) {
         /* OPL3 or dual OPL2 is stereo. */
         if (dsp->sb_has_real_opl)
             recalc_opl_filter(FREQ_49716 * 2);

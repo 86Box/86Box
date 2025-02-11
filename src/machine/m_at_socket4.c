@@ -126,7 +126,6 @@ machine_at_p5mp3_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -351,6 +350,67 @@ machine_at_pb520r_init(const machine_t *model)
     device_add(&sio_zb_device);
     device_add(&i82091aa_ide_device);
     device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_m5pi_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted("roms/machines/m5pi/M5PI10R.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x0f, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430lx_device);	
+    device_add(&sio_zb_device);	
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&ide_w83769f_pci_single_channel_device);	
+    device_add(&fdc37c665_ide_sec_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_globalyst330_p5_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/globalyst330_p5/MiTAC_PB5500C_v1.02_120794_ATT.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0,  0,  0,  0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1,  2,  3,  4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      5,  6,  7,  8);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      9,  10, 11, 12);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      13, 14, 15, 16);
+
+    device_add(&opti5x7_pci_device);
+    device_add(&opti822_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }

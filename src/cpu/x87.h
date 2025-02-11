@@ -228,12 +228,10 @@ FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 #define FPU_check_pending_exceptions()        \
     do {                                      \
         if (fpu_state.swd & FPU_SW_Summary) { \
-            if (cr0 & 0x20) {                 \
-                x86_int(16);                  \
-                return 1;                     \
-            } else {                          \
+            if (cr0 & 0x20)                   \
+                new_ne = 1;                   \
+            else                              \
                 picint(1 << 13);              \
-                return 1;                     \
-            }                                 \
+            return 1;                         \
         }                                     \
     } while (0)

@@ -681,8 +681,7 @@ img_load(int drive, char *fn)
     writeprot[drive] = 0;
 
     /* Allocate a drive block. */
-    dev = (img_t *) malloc(sizeof(img_t));
-    memset(dev, 0x00, sizeof(img_t));
+    dev = (img_t *) calloc(1, sizeof(img_t));
 
     dev->fp = plat_fopen(fn, "rb+");
     if (dev->fp == NULL) {
@@ -1075,9 +1074,14 @@ jump_if_fdf:
             dev->sectors = 19;
             dev->tracks  = 80;
         } else if (size <= 1638400) { /*HD 1024 sector*/
+#ifdef SYNTH_FORMAT
             dev->sectors     = 10;
-            dev->tracks      = 80;
             dev->sector_size = 3;
+#else
+            /* Prefer 20 512-byte sectors per track, used by the OpenStep 4.0 Pre-Release 1 boot disk. */
+            dev->sectors     = 20;
+#endif
+            dev->tracks      = 80;
         } else if (size <= 1720320) { /*DMF (Windows 95) */
             dev->sectors = 21;
             dev->tracks  = 80;
@@ -1088,9 +1092,14 @@ jump_if_fdf:
             dev->sectors = 21;
             dev->tracks  = 82;
         } else if (size <= 1802240) { /*HD 1024 sector*/
-            dev->sectors     = 22;
-            dev->tracks      = 80;
+#ifdef SYNTH_FORMAT
+            dev->sectors     = 11;
             dev->sector_size = 3;
+#else
+            /* Prefer 22 512-byte sectors per track. */
+            dev->sectors     = 22;
+#endif
+            dev->tracks      = 80;
         } else if (size == 1884160) { /*XDF (OS/2 Warp)*/
             dev->sectors = 23;
             dev->tracks  = 80;
@@ -1110,12 +1119,12 @@ jump_if_fdf:
             dev->sectors = 42;
             dev->tracks  = 80;
 #if 0
-        } else if (size <= 3440640) { /*HD 1024 sector*/
+        } else if (size <= 3440640) { /*ED 1024 sector*/
             dev->sectors = 21;
             dev->tracks = 80;
             dev->sector_size = 3;
 #endif
-        } else if (size <= 3604480) { /*HD 1024 sector*/
+        } else if (size <= 3604480) { /*ED 1024 sector*/
             dev->sectors     = 22;
             dev->tracks      = 80;
             dev->sector_size = 3;

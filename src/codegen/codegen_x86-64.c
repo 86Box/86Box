@@ -7,6 +7,7 @@
 #    include <stdlib.h>
 #    define HAVE_STDARG_H
 #    include <86box/86box.h>
+#    include <86box/plat.h>
 #    include "cpu.h"
 #    include "x86.h"
 #    include "x86_flags.h"
@@ -24,14 +25,6 @@
 #    include "codegen_accumulate.h"
 #    include "codegen_ops.h"
 #    include "codegen_ops_x86-64.h"
-
-#    if defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
-#        include <sys/mman.h>
-#        include <unistd.h>
-#    endif
-#    if _WIN64
-#        include <windows.h>
-#    endif
 
 int      codegen_flat_ds;
 int      codegen_flat_ss;
@@ -68,13 +61,7 @@ static int      last_ssegs;
 void
 codegen_init(void)
 {
-#    if _WIN64
-    codeblock = VirtualAlloc(NULL, BLOCK_SIZE * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-#    elif defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
-    codeblock = mmap(NULL, BLOCK_SIZE * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
-#    else
-    codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
-#    endif
+    codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 1);
     codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
@@ -138,7 +125,7 @@ add_to_block_list(codeblock_t *block)
 }
 
 static void
-remove_from_block_list(codeblock_t *block, uint32_t pc)
+remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
 {
     if (!block->page_mask)
         return;

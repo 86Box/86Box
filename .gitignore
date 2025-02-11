@@ -62,3 +62,6 @@ CMakeLists.txt.user
 
 # clangd
 .cache
+
+# Jetbrains CLion
+.idea

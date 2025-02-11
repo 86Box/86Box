@@ -13,10 +13,12 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2025      Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +38,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -53,6 +54,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/nvr.h>
 #include <86box/gameport.h>
+#include <86box/ibm_5161.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/rom.h>
@@ -149,19 +151,80 @@ machine_at_ps2_ide_init(const machine_t *model)
     device_add(&ide_isa_device);
 }
 
+static const device_config_t ibmat_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ibm5170_111585",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "62X082x (11/15/85)", .internal_name = "ibm5170_111585", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47.BIN", "" } },
+
+            { .name = "61X9266 (11/15/85) (Alt)", .internal_name = "ibm5170_111585_alt", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27_61X9266.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47_61X9265.BIN", "" } },
+
+            { .name = "648009x (06/10/85)", .internal_name = "ibm5170_061085", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_10JUN85_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JUN85_U47.BIN", "" } },
+
+            { .name = "618102x (01/10/84)", .internal_name = "ibm5170_011084", .bios_type = BIOS_NORMAL,
+              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_10JAN84_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JAN84_U47.BIN", "" } },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmat_device = {
+    .name          = " IBM AT Devices",
+    .internal_name = "ibmat_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmat_config
+};
+
 int
 machine_at_ibm_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    uint8_t     enable_5161;
+    const char *fn[2];
 
-    ret = bios_load_interleaved("roms/machines/ibmat/62x0820.u27",
-                                "roms/machines/ibmat/62x0821.u47",
-                                0x000f0000, 65536, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    fn[0]        = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    fn[1]        = device_get_bios_file(model->device, device_get_config_bios("bios"), 1);
+    ret          = bios_load_interleaved(fn[0], fn[1], 0x000f0000, 65536, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
     machine_at_ibm_common_init(model);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }
@@ -218,10 +281,41 @@ machine_at_ibmatpx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ibmxt286_config[] = {
+    // clang-format off
+    {
+        .name = "enable_5161",
+        .description = "IBM 5161 Expansion Unit",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibmxt286_device = {
+    .name          = "IBM XT Model 286 Devices",
+    .internal_name = "ibmxt286_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt286_config
+};
+
 int
 machine_at_ibmxt286_init(const machine_t *model)
 {
-    int ret;
+    int     ret;
+    uint8_t enable_5161;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    device_context_restore();
 
     ret = bios_load_interleaved("roms/machines/ibmxt286/bios_5162_21apr86_u34_78x7460_27256.bin",
                                 "roms/machines/ibmxt286/bios_5162_21apr86_u35_78x7461_27256.bin",
@@ -231,6 +325,9 @@ machine_at_ibmxt286_init(const machine_t *model)
         return ret;
 
     machine_at_ibm_common_init(model);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
 
     return ret;
 }

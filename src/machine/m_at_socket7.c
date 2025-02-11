@@ -58,10 +58,6 @@ machine_at_acerv35n_init(const machine_t *model)
         return ret;
 
     machine_at_common_init_ex(model, 2);
-    /* Yes, it's called amstrad_mega_pc_nvr_device, but it's basically the
-       standard AT NVR, just initialized to 0x00's (perhaps that should be the
-       default behavior?). */
-    device_add(&amstrad_megapc_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -825,6 +821,39 @@ machine_at_i430vx_init(const machine_t *model)
 }
 
 int
+machine_at_gw2kte_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/gw2kte/1008CY1T.BIO",
+                                     "roms/machines/gw2kte/1008CY1T.BI1",
+                                     "roms/machines/gw2kte/1008CY1T.BI2",
+                                     "roms/machines/gw2kte/1008CY1T.BI3",
+                                     "roms/machines/gw2kte/1008CY1T.RCV",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&fdc37c932fr_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
 machine_at_ma23c_init(const machine_t *model)
 {
     int ret;
@@ -1237,6 +1266,38 @@ machine_at_ficpa2012_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    return ret;
+}
+
+int
+machine_at_via809ds_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/via809ds/v30422sg.rom",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3); /* assumed */
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_vp3_device);
+    device_add(&via_vt82c586b_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c669_device);
+    device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;

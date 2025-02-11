@@ -62,14 +62,14 @@ tm_fcs_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
-    if (JOYSTICK_PRESENT(0)) {
-        if (joystick_state[0].button[0])
+    if (JOYSTICK_PRESENT(0, 0)) {
+        if (joystick_state[0][0].button[0])
             ret &= ~0x10;
-        if (joystick_state[0].button[1])
+        if (joystick_state[0][0].button[1])
             ret &= ~0x20;
-        if (joystick_state[0].button[2])
+        if (joystick_state[0][0].button[2])
             ret &= ~0x40;
-        if (joystick_state[0].button[3])
+        if (joystick_state[0][0].button[3])
             ret &= ~0x80;
     }
 
@@ -85,26 +85,26 @@ tm_fcs_write(UNUSED(void *priv))
 static int
 tm_fcs_read_axis(UNUSED(void *priv), int axis)
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     switch (axis) {
         case 0:
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
             return 0;
         case 3:
-            if (joystick_state[0].pov[0] == -1)
+            if (joystick_state[0][0].pov[0] == -1)
                 return 32767;
-            if (joystick_state[0].pov[0] > 315 || joystick_state[0].pov[0] < 45)
+            if (joystick_state[0][0].pov[0] > 315 || joystick_state[0][0].pov[0] < 45)
                 return -32768;
-            if (joystick_state[0].pov[0] >= 45 && joystick_state[0].pov[0] < 135)
+            if (joystick_state[0][0].pov[0] >= 45 && joystick_state[0][0].pov[0] < 135)
                 return -16384;
-            if (joystick_state[0].pov[0] >= 135 && joystick_state[0].pov[0] < 225)
+            if (joystick_state[0][0].pov[0] >= 135 && joystick_state[0][0].pov[0] < 225)
                 return 0;
-            if (joystick_state[0].pov[0] >= 225 && joystick_state[0].pov[0] < 315)
+            if (joystick_state[0][0].pov[0] >= 225 && joystick_state[0][0].pov[0] < 315)
                 return 16384;
             return 0;
         default:

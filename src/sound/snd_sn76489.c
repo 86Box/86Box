@@ -228,8 +228,7 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
 void *
 sn76489_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
-    memset(sn76489, 0, sizeof(sn76489_t));
+    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
 
     sn76489_init(sn76489, 0x00c0, 0x0008, SN76496, 3579545);
 
@@ -239,8 +238,7 @@ sn76489_device_init(UNUSED(const device_t *info))
 void *
 ncr8496_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
-    memset(sn76489, 0, sizeof(sn76489_t));
+    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
 
     sn76489_init(sn76489, 0x00c0, 0x0008, NCR8496, 3579545);
 
@@ -250,8 +248,7 @@ ncr8496_device_init(UNUSED(const device_t *info))
 void *
 tndy_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
-    memset(sn76489, 0, sizeof(sn76489_t));
+    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
 
     uint16_t addr = device_get_config_hex16("base");
 
@@ -271,40 +268,23 @@ sn76489_device_close(void *priv)
 static const device_config_t tndy_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0C0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x0C0",
-                .value = 0x0C0
-            },
-            {
-                .description = "0x0E0",
-                .value = 0x0E0
-            },
-            {
-                .description = "0x1C0",
-                .value = 0x1C0
-            },
-            {
-                .description = "0x1E0",
-                .value = 0x1E0
-            },
-            {
-                .description = "0x2C0",
-                .value = 0x2C0
-            },
-            {
-                .description = "0x2E0",
-                .value = 0x2E0
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0C0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x0C0", .value = 0x0C0 },
+            { .description = "0x0E0", .value = 0x0E0 },
+            { .description = "0x1C0", .value = 0x1C0 },
+            { .description = "0x1E0", .value = 0x1E0 },
+            { .description = "0x2C0", .value = 0x2C0 },
+            { .description = "0x2E0", .value = 0x2E0 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -318,7 +298,7 @@ const device_t sn76489_device = {
     .init          = sn76489_device_init,
     .close         = sn76489_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -332,7 +312,7 @@ const device_t ncr8496_device = {
     .init          = ncr8496_device_init,
     .close         = sn76489_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -346,7 +326,7 @@ const device_t tndy_device = {
     .init          = tndy_device_init,
     .close         = sn76489_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = tndy_config

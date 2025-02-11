@@ -189,6 +189,7 @@ add_library(ui STATIC
     qt_mediahistorymanager.hpp
 
     ../qt_resources.qrc
+    ./qdarkstyle/dark/darkstyle.qrc
 )
 
 if(RTMIDI)
@@ -203,6 +204,7 @@ if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC 86Box-qt.rc)
     target_sources(plat PRIVATE win_dynld.c)
+    target_link_libraries(86Box dwmapi)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -454,10 +456,55 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
         endif()
     endif()
 endif()
+
+option(EMBED_QTBASE_TRANSLATIONS "Embed the base Qt translations into the executable" ON)
+
+if (EMBED_QTBASE_TRANSLATIONS)
+    # Get the Qt translations directory
+    get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_MAJOR}::qmake IMPORTED_LOCATION)
+    execute_process(COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_TRANSLATIONS OUTPUT_VARIABLE QT_TRANSLATIONS_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+
 set(QM_FILES)
 file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
 foreach(po_file ${po_files})
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
+
+    if (EMBED_QTBASE_TRANSLATIONS)
+        # Get the language and country
+        string(REGEX MATCH "^[a-z]+" PO_LANGUAGE ${PO_FILE_NAME})
+        string(REGEX MATCH "[A-Z]+$" PO_COUNTRY ${PO_FILE_NAME})
+
+        # Find the base Qt translation for the language and country
+        set(qt_translation_file_dest "qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+        if (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+            set(qt_translation_file "qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+        # Fall back to just the language if country isn't found
+        elseif (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${PO_LANGUAGE}.qm")
+            set(qt_translation_file "qtbase_${PO_LANGUAGE}.qm")
+        # If the translation is still not found, try the legacy Qt one
+        elseif (EXISTS "${QT_TRANSLATIONS_DIR}/qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+            set(qt_translation_file "qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
+        # Fall back to just the language again
+        elseif (EXISTS "${QT_TRANSLATIONS_DIR}/qt_${PO_LANGUAGE}.qm")
+            set(qt_translation_file "qt_${PO_LANGUAGE}.qm")
+        else()
+            unset(qt_translation_file)
+        endif()
+
+        # Copy the translation file to the build directory
+        if (qt_translation_file)
+            file(COPY "${QT_TRANSLATIONS_DIR}/${qt_translation_file}" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+            if (NOT (qt_translation_file STREQUAL qt_translation_file_dest))
+                # Rename the file for consistency
+                file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file}" "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
+            endif()
+            # Add the file to the translations list
+            string(APPEND QT_TRANSLATIONS_LIST "        <file>${qt_translation_file_dest}</file>\n")
+            list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
+        endif()
+    endif()
+
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
                        COMMAND "$<TARGET_FILE:Qt${QT_MAJOR}::lconvert>" -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -465,5 +512,6 @@ foreach(po_file ${po_files})
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")
     list(APPEND QM_FILES "${po_file}")
 endforeach()
-configure_file(qt_translations.qrc ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
+configure_file(qt_translations.qrc.in ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)
 target_sources(ui PRIVATE ${QM_FILES} ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)

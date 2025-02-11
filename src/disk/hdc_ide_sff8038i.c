@@ -475,19 +475,22 @@ sff_reset(void *priv)
 #endif
 
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
+        if ((hdd[i].bus_type == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
             scsi_disk_reset((scsi_common_t *) hdd[i].priv);
     }
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
-        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
+        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) &&
+            cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
     for (uint8_t i = 0; i < ZIP_NUM; i++) {
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
+        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) &&
+            zip_drives[i].priv)
             zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
     for (uint8_t i = 0; i < MO_NUM; i++) {
-        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) &&
+            mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
@@ -575,8 +578,7 @@ sff_close(void *priv)
 static void *
 sff_init(UNUSED(const device_t *info))
 {
-    sff8038i_t *dev = (sff8038i_t *) malloc(sizeof(sff8038i_t));
-    memset(dev, 0, sizeof(sff8038i_t));
+    sff8038i_t *dev = (sff8038i_t *) calloc(1, sizeof(sff8038i_t));
 
     /* Make sure to only add IDE once. */
     if (next_id == 0)
@@ -608,7 +610,7 @@ const device_t sff8038i_device = {
     .init          = sff_init,
     .close         = sff_close,
     .reset         = sff_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

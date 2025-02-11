@@ -46,9 +46,9 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
-#include <86box/bswap.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 /* PCI info. */
 #define PCI_VENDID  0x1022 /* AMD */
@@ -2481,36 +2481,58 @@ pcnet_readl(uint16_t addr, void *priv)
 static void
 pcnet_mmio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 1);
 }
 
 static void
 pcnet_mmio_writew(uint32_t addr, uint16_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 1, val >> 8);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 2);
 }
 
 static void
 pcnet_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
+    if (!(addr & 0x10)) {
+        pcnet_aprom_writeb((nic_t *) priv, addr, val);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 1, val >> 8);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 2, val >> 16);
+        pcnet_aprom_writeb((nic_t *) priv, addr + 3, val >> 24);
+        return;
+    }
     pcnet_write((nic_t *) priv, addr, val, 4);
 }
 
 static uint8_t
 pcnet_mmio_readb(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr);
     return (pcnet_read((nic_t *) priv, addr, 1));
 }
 
 static uint16_t
 pcnet_mmio_readw(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr) | (pcnet_aprom_readb((nic_t *) priv, addr + 1) << 8);
     return (pcnet_read((nic_t *) priv, addr, 2));
 }
 
 static uint32_t
 pcnet_mmio_readl(uint32_t addr, void *priv)
 {
+    if (!(addr & 0x10))
+        return pcnet_aprom_readb((nic_t *) priv, addr) | (pcnet_aprom_readb((nic_t *) priv, addr + 1) << 8) | (pcnet_aprom_readb((nic_t *) priv, addr + 2) << 16) | (pcnet_aprom_readb((nic_t *) priv, addr + 3) << 24);
     return (pcnet_read((nic_t *) priv, addr, 4));
 }
 
@@ -2607,7 +2629,7 @@ pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             /* Then let's set the PCI regs. */
             pcnet_pci_bar[0].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            pcnet_pci_bar[0].addr &= 0xff00;
+            pcnet_pci_bar[0].addr &= 0xffe0;
             dev->PCIBase = pcnet_pci_bar[0].addr;
             /* Log the new base. */
             pcnet_log(4, "%s: New I/O base is %04X\n", dev->name, dev->PCIBase);
@@ -2685,7 +2707,7 @@ pcnet_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return 1; /*I/O space*/
+            return pcnet_pci_bar[0].addr_regs[0] | 1; /*I/O space*/
         case 0x11:
             return pcnet_pci_bar[0].addr_regs[1];
         case 0x12:
@@ -2894,8 +2916,7 @@ pcnet_init(const device_t *info)
     int      c;
     uint16_t checksum;
 
-    dev = malloc(sizeof(nic_t));
-    memset(dev, 0x00, sizeof(nic_t));
+    dev = calloc(1, sizeof(nic_t));
     dev->name  = info->name;
     dev->board = info->local & 0xff;
 
@@ -3067,62 +3088,68 @@ pcnet_close(void *priv)
 // clang-format off
 static const device_config_t pcnet_pci_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t pcnet_isa_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x300", .value = 0x300 },
             { .description = "0x320", .value = 0x320 },
             { .description = "0x340", .value = 0x340 },
             { .description = "0x360", .value = 0x360 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "IRQ 3", .value = 3 },
-            { .description = "IRQ 4", .value = 4 },
-            { .description = "IRQ 5", .value = 5 },
-            { .description = "IRQ 7", .value = 7 },
-            { .description = "IRQ 9", .value = 9 },
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 4",  .value =  4 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
             { .description = "IRQ 12", .value = 12 },
             { .description = "IRQ 15", .value = 15 },
-            { .description = ""                  }
+            { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 0", .value = 0 },
             { .description = "DMA 3", .value = 3 },
             { .description = "DMA 5", .value = 5 },
@@ -3130,61 +3157,72 @@ static const device_config_t pcnet_isa_config[] = {
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t pcnet_vlb_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x300", .value = 0x300 },
             { .description = "0x320", .value = 0x320 },
             { .description = "0x340", .value = 0x340 },
             { .description = "0x360", .value = 0x360 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
         .selection = {
-            { .description = "IRQ 3", .value = 3 },
-            { .description = "IRQ 4", .value = 4 },
-            { .description = "IRQ 5", .value = 5 },
-            { .description = "IRQ 7", .value = 7 },
-            { .description = "IRQ 9", .value = 9 },
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 4",  .value =  4 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
             { .description = "IRQ 12", .value = 12 },
             { .description = "IRQ 15", .value = 15 },
-            { .description = ""                  }
+            { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
         .default_string = "",
-        .default_int = -1
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -3198,7 +3236,7 @@ const device_t pcnet_am79c960_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_isa_config
@@ -3212,7 +3250,7 @@ const device_t pcnet_am79c960_eb_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_isa_config
@@ -3226,7 +3264,7 @@ const device_t pcnet_am79c960_vlb_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_vlb_config
@@ -3240,7 +3278,7 @@ const device_t pcnet_am79c961_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
@@ -3254,7 +3292,7 @@ const device_t pcnet_am79c970a_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
@@ -3268,7 +3306,7 @@ const device_t pcnet_am79c973_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
@@ -3282,7 +3320,7 @@ const device_t pcnet_am79c973_onboard_device = {
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config

@@ -37,6 +37,7 @@
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
 /* Lock/Unlock Procedures */
@@ -541,16 +542,16 @@ wd76c10_ser_par_cs_recalc(wd76c10_t *dev)
     lpt1_remove();
     switch ((dev->ser_par_cs >> 9) & 0x03) {
         case 1:
-            lpt1_init(0x3bc);
-            lpt1_irq(7);
+            lpt1_setup(LPT_MDA_ADDR);
+            lpt1_irq(LPT1_IRQ);
             break;
         case 2:
-            lpt1_init(0x378);
-            lpt1_irq(7);
+            lpt1_setup(LPT1_ADDR);
+            lpt1_irq(LPT1_IRQ);
             break;
         case 3:
-            lpt1_init(0x278);
-            lpt1_irq(7);
+            lpt1_setup(LPT2_ADDR);
+            lpt1_irq(LPT1_IRQ);
             break;
     }
 }
@@ -879,12 +880,12 @@ wd76c10_reset(void *priv)
 
 
 static void *
-wd76c10_init(const device_t *info)
+wd76c10_init(UNUSED(const device_t *info))
 {
     wd76c10_t *dev = (wd76c10_t *) calloc(1, sizeof(wd76c10_t));
     uint32_t total_mem = mem_size << 10;
     uint32_t accum_mem = 0x00000000;
-    ram_bank_t *rb;
+    ram_bank_t *rb = NULL;
 
     /* Calculate the physical RAM banks. */
     for (uint8_t i = 0; i < 4; i++) {
@@ -1022,7 +1023,7 @@ const device_t wd76c10_device = {
     .init          = wd76c10_init,
     .close         = wd76c10_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

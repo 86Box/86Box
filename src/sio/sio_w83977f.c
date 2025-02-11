@@ -112,14 +112,14 @@ w83977f_lpt_handler(w83977f_t *dev)
         lpt2_remove();
 
         if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-            lpt2_init(io_base);
+            lpt2_setup(io_base);
 
         lpt2_irq(dev->dev_regs[1][0x40] & 0x0f);
     } else {
         lpt1_remove();
 
         if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-            lpt1_init(io_base);
+            lpt1_setup(io_base);
 
         lpt1_irq(dev->dev_regs[1][0x40] & 0x0f);
     }
@@ -593,8 +593,7 @@ w83977f_close(void *priv)
 static void *
 w83977f_init(const device_t *info)
 {
-    w83977f_t *dev = (w83977f_t *) malloc(sizeof(w83977f_t));
-    memset(dev, 0, sizeof(w83977f_t));
+    w83977f_t *dev = (w83977f_t *) calloc(1, sizeof(w83977f_t));
 
     dev->type   = info->local & 0x0f;
     dev->hefras = info->local & 0x40;
@@ -624,7 +623,7 @@ const device_t w83977f_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -638,7 +637,7 @@ const device_t w83977f_370_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -652,7 +651,7 @@ const device_t w83977tf_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -666,7 +665,7 @@ const device_t w83977ef_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -680,7 +679,7 @@ const device_t w83977ef_370_device = {
     .init          = w83977f_init,
     .close         = w83977f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

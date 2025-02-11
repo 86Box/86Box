@@ -112,8 +112,7 @@ typedef struct tgui_t {
     uint8_t int_line;
     uint8_t pci_regs[256];
 
-    struct
-    {
+    struct {
         int16_t  src_x, src_y;
         int16_t  src_x_clip, src_y_clip;
         int16_t  dst_x, dst_y;
@@ -210,7 +209,7 @@ static void    tgui_ext_writel(uint32_t addr, uint32_t val, void *priv);
 
 /*Remap address for chain-4/doubleword style layout*/
 static __inline uint32_t
-dword_remap(svga_t *svga, uint32_t in_addr)
+dword_remap(UNUSED(svga_t *svga), uint32_t in_addr)
 {
     return ((in_addr << 2) & 0x3fff0) | ((in_addr >> 14) & 0xc) | (in_addr & ~0x3fffc);
 }
@@ -350,7 +349,9 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
             if (tgui->ramdac_state == 4) {
                 tgui->ramdac_state = 0;
                 tgui->ramdac_ctrl  = val;
-                //pclog("TGUI ramdac ctrl=%02x.\n", (tgui->ramdac_ctrl >> 4) & 0x0f);
+#if 0
+                pclog("TGUI ramdac ctrl=%02x.\n", (tgui->ramdac_ctrl >> 4) & 0x0f);
+#endif
                 svga_recalctimings(svga);
                 return;
             }
@@ -718,7 +719,9 @@ tgui_recalctimings(svga_t *svga)
     if (((svga->crtc[0x29] & 0x30) && (svga->bpp >= 15)) || !svga->rowoffset)
         svga->rowoffset |= 0x100;
 
-    //pclog("BPP=%d, DataWidth=%02x, CRTC29 bit 4-5=%02x, pixbusmode=%02x, rowoffset=%02x, doublerowoffset=%x.\n", svga->bpp, svga->crtc[0x2a] & 0x40, svga->crtc[0x29] & 0x30, svga->crtc[0x38], svga->rowoffset, svga->gdcreg[0x2f] & 4);
+#if 0
+    pclog("BPP=%d, DataWidth=%02x, CRTC29 bit 4-5=%02x, pixbusmode=%02x, rowoffset=%02x, doublerowoffset=%x.\n", svga->bpp, svga->crtc[0x2a] & 0x40, svga->crtc[0x29] & 0x30, svga->crtc[0x38], svga->rowoffset, svga->gdcreg[0x2f] & 4);
+#endif
 
     if ((svga->crtc[0x1e] & 0xA0) == 0xA0)
         svga->ma_latch |= 0x10000;
@@ -1468,15 +1471,15 @@ enum {
         }                                     \
     } while (0)
 
-#define WRITE(addr, dat)                                                               \
-    if (tgui->accel.bpp == 0) {                                                        \
-        svga->vram[(addr) &tgui->vram_mask]                   = dat;                   \
+#define WRITE(addr, dat)                                                                                  \
+    if (tgui->accel.bpp == 0) {                                                                           \
+        svga->vram[(addr) &tgui->vram_mask]                   = dat;                                      \
         svga->changedvram[((addr) & (tgui->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;      \
-    } else if (tgui->accel.bpp == 1) {                                                 \
-        vram_w[(addr) & (tgui->vram_mask >> 1)]                    = dat;              \
+    } else if (tgui->accel.bpp == 1) {                                                                    \
+        vram_w[(addr) & (tgui->vram_mask >> 1)]                    = dat;                                 \
         svga->changedvram[((addr) & (tgui->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
-    } else {                                                                           \
-        vram_l[(addr) & (tgui->vram_mask >> 2)]                    = dat;              \
+    } else {                                                                                              \
+        vram_l[(addr) & (tgui->vram_mask >> 2)]                    = dat;                                 \
         svga->changedvram[((addr) & (tgui->vram_mask >> 2)) >> 10] = svga->monitor->mon_changeframecount; \
     }
 
@@ -2115,7 +2118,9 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x2123:
             tgui->accel.ger22 = (tgui->accel.ger22 & 0xff) | (val << 8);
-            //pclog("Pitch IO23: val = %02x, rowoffset = %x.\n", tgui->accel.ger22, svga->crtc[0x13]);
+#if 0
+            pclog("Pitch IO23: val = %02x, rowoffset = %x.\n", tgui->accel.ger22, svga->crtc[0x13]);
+#endif
             switch (svga->bpp) {
                 case 8:
                 case 24:
@@ -3364,56 +3369,41 @@ tgui_force_redraw(void *priv)
 // clang-format off
 static const device_config_t tgui9440_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1
-            },
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = ""
-            }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
         },
-        .default_int = 2
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t tgui96xx_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1
-            },
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
         },
-        .default_int = 4
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -3425,7 +3415,7 @@ const device_t tgui9400cxi_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9400cxi_available },
+    .available     = tgui9400cxi_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3439,7 +3429,7 @@ const device_t tgui9440_vlb_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_vlb_available },
+    .available     = tgui9440_vlb_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3453,7 +3443,7 @@ const device_t tgui9440_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_pci_available },
+    .available     = tgui9440_pci_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3467,7 +3457,7 @@ const device_t tgui9440_onboard_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3481,7 +3471,7 @@ const device_t tgui9660_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui96xx_available },
+    .available     = tgui96xx_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config
@@ -3495,7 +3485,7 @@ const device_t tgui9660_onboard_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config
@@ -3509,7 +3499,7 @@ const device_t tgui9680_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui96xx_available },
+    .available     = tgui96xx_available,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui96xx_config

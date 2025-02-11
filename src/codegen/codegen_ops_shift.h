@@ -43,7 +43,7 @@
     }
 
 static uint32_t
-ropC0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropC0(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     count;
@@ -57,7 +57,7 @@ ropC0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblo
     return op_pc + 2;
 }
 static uint32_t
-ropC1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropC1_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     count;
@@ -71,7 +71,7 @@ ropC1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc + 2;
 }
 static uint32_t
-ropC1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropC1_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     count;
@@ -86,7 +86,7 @@ ropC1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
 }
 
 static uint32_t
-ropD0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropD0(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     count      = 1;
@@ -100,7 +100,7 @@ ropD0(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblo
     return op_pc + 1;
 }
 static uint32_t
-ropD1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropD1_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     count      = 1;
@@ -114,7 +114,7 @@ ropD1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc + 1;
 }
 static uint32_t
-ropD1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropD1_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     count      = 1;

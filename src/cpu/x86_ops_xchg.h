@@ -116,7 +116,7 @@ opXCHG_l_a32(uint32_t fetchdat)
 }
 
 static int
-opXCHG_AX_BX(uint32_t fetchdat)
+opXCHG_AX_BX(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = BX;
@@ -126,7 +126,7 @@ opXCHG_AX_BX(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_AX_CX(uint32_t fetchdat)
+opXCHG_AX_CX(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = CX;
@@ -136,7 +136,7 @@ opXCHG_AX_CX(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_AX_DX(uint32_t fetchdat)
+opXCHG_AX_DX(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = DX;
@@ -146,7 +146,7 @@ opXCHG_AX_DX(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_AX_SI(uint32_t fetchdat)
+opXCHG_AX_SI(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = SI;
@@ -156,7 +156,7 @@ opXCHG_AX_SI(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_AX_DI(uint32_t fetchdat)
+opXCHG_AX_DI(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = DI;
@@ -166,7 +166,7 @@ opXCHG_AX_DI(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_AX_BP(uint32_t fetchdat)
+opXCHG_AX_BP(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = BP;
@@ -176,7 +176,7 @@ opXCHG_AX_BP(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_AX_SP(uint32_t fetchdat)
+opXCHG_AX_SP(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp = AX;
     AX            = SP;
@@ -187,7 +187,7 @@ opXCHG_AX_SP(uint32_t fetchdat)
 }
 
 static int
-opXCHG_EAX_EBX(uint32_t fetchdat)
+opXCHG_EAX_EBX(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = EBX;
@@ -197,7 +197,7 @@ opXCHG_EAX_EBX(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_EAX_ECX(uint32_t fetchdat)
+opXCHG_EAX_ECX(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = ECX;
@@ -207,7 +207,7 @@ opXCHG_EAX_ECX(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_EAX_EDX(uint32_t fetchdat)
+opXCHG_EAX_EDX(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = EDX;
@@ -217,7 +217,7 @@ opXCHG_EAX_EDX(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_EAX_ESI(uint32_t fetchdat)
+opXCHG_EAX_ESI(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = ESI;
@@ -227,7 +227,7 @@ opXCHG_EAX_ESI(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_EAX_EDI(uint32_t fetchdat)
+opXCHG_EAX_EDI(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = EDI;
@@ -237,7 +237,7 @@ opXCHG_EAX_EDI(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_EAX_EBP(uint32_t fetchdat)
+opXCHG_EAX_EBP(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = EBP;
@@ -247,7 +247,7 @@ opXCHG_EAX_EBP(uint32_t fetchdat)
     return 0;
 }
 static int
-opXCHG_EAX_ESP(uint32_t fetchdat)
+opXCHG_EAX_ESP(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = EAX;
     EAX           = ESP;
@@ -258,7 +258,7 @@ opXCHG_EAX_ESP(uint32_t fetchdat)
 }
 
 #define opBSWAP(reg)                                                                                      \
-    static int opBSWAP_##reg(uint32_t fetchdat)                                                           \
+    static int opBSWAP_##reg(UNUSED(uint32_t fetchdat))                                                   \
     {                                                                                                     \
         reg = (reg >> 24) | ((reg >> 8) & 0xff00) | ((reg << 8) & 0xff0000) | ((reg << 24) & 0xff000000); \
         CLOCK_CYCLES(1);                                                                                  \
@@ -275,4 +275,4 @@ opBSWAP(ESI)
 opBSWAP(EDI)
 opBSWAP(EBP)
 opBSWAP(ESP)
-    // clang-format on
+// clang-format on

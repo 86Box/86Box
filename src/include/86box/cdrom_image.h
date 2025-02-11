@@ -6,35 +6,33 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          CD-ROM image file handling module header, translated to C
- *          from cdrom_dosbox.h.
+ *          CD-ROM image file handling module header.
  *
- * Authors: RichardG,
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          RichardG, <richardg867@gmail.com>
+ *          Cacodemon345
  *
- *          Copyright 2016-2022 RichardG.
- *          Copyright 2016-2022 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2016-2025 RichardG.
+ *          Copyright 2024-2025 Cacodemon345.
  */
 #ifndef CDROM_IMAGE_H
 #define CDROM_IMAGE_H
 
-/* this header file lists the functions provided by
-   various platform specific cdrom-ioctl files */
+/* Track file struct. */
+typedef struct track_file_t {
+    int (*read)(void *priv, uint8_t *buffer, uint64_t seek, size_t count);
+    uint64_t (*get_length)(void *priv);
+    void (*close)(void *priv);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    char  fn[260];
+    FILE *fp;
+    void *priv;
+    void *log;
 
-extern int  image_open(uint8_t id, wchar_t *fn);
-extern void image_reset(uint8_t id);
+    int motorola;
+} track_file_t;
 
-extern void image_close(uint8_t id);
-
-void        update_status_bar_icon_state(int tag, int state);
-extern void cdrom_set_null_handler(uint8_t id);
-
-#ifdef __cplusplus
-}
-#endif
+extern void *        image_open(cdrom_t *dev, const char *path);
 
 #endif /*CDROM_IMAGE_H*/

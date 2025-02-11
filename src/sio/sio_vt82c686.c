@@ -86,7 +86,7 @@ vt82c686_lpt_handler(vt82c686_t *dev)
     lpt1_remove();
 
     if (((dev->regs[0x02] & 0x03) != 0x03) && !(dev->regs[0x0f] & 0x11) && (io_base >= 0x100) && (io_base <= io_mask))
-        lpt1_init(io_base);
+        lpt1_setup(io_base);
 
     if (dev->lpt_irq) {
         lpt1_irq(dev->lpt_irq);
@@ -287,8 +287,7 @@ vt82c686_close(void *priv)
 static void *
 vt82c686_init(UNUSED(const device_t *info))
 {
-    vt82c686_t *dev = (vt82c686_t *) malloc(sizeof(vt82c686_t));
-    memset(dev, 0, sizeof(vt82c686_t));
+    vt82c686_t *dev = (vt82c686_t *) calloc(1, sizeof(vt82c686_t));
 
     dev->fdc     = device_add(&fdc_at_smc_device);
     dev->fdc_dma = 2;
@@ -311,7 +310,7 @@ const device_t via_vt82c686_sio_device = {
     .init          = vt82c686_init,
     .close         = vt82c686_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

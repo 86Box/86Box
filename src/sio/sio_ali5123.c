@@ -93,7 +93,7 @@ ali5123_lpt_handler(ali5123_t *dev)
     if (global_enable && local_enable) {
         ld_port = make_port(dev, 3) & 0xFFFC;
         if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
-            lpt1_init(ld_port);
+            lpt1_setup(ld_port);
     }
     lpt1_irq(lpt_irq);
 }
@@ -133,8 +133,10 @@ ali5123_serial_handler(ali5123_t *dev, int uart)
 }
 
 static void
-ali5123_reset(ali5123_t *dev)
+ali5123_reset(void *priv)
 {
+    ali5123_t *dev = (ali5123_t *) priv;
+
     memset(dev->regs, 0, 48);
 
     dev->regs[0x20] = 0x43;
@@ -463,8 +465,7 @@ ali5123_close(void *priv)
 static void *
 ali5123_init(const device_t *info)
 {
-    ali5123_t *dev = (ali5123_t *) malloc(sizeof(ali5123_t));
-    memset(dev, 0, sizeof(ali5123_t));
+    ali5123_t *dev = (ali5123_t *) calloc(1, sizeof(ali5123_t));
 
     dev->fdc = device_add(&fdc_at_ali_device);
 
@@ -491,8 +492,8 @@ const device_t ali5123_device = {
     .local         = 0x40,
     .init          = ali5123_init,
     .close         = ali5123_close,
-    .reset         = NULL,
-    { .available = NULL },
+    .reset         = ali5123_reset,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -64,8 +64,14 @@ if(OPENAL)
 
     if(TARGET OpenAL::OpenAL)
         target_link_libraries(86Box OpenAL::OpenAL)
+        if(WIN32 AND STATIC_BUILD)
+            target_link_libraries(OpenAL::OpenAL INTERFACE avrt)
+        endif()
     else()
         target_link_libraries(86Box ${OPENAL_LIBRARY})
+        if(WIN32 AND STATIC_BUILD)
+            target_link_libraries(${OPENAL_LIBRARY} INTERFACE avrt)
+        endif()
     endif()
 
     include_directories(${OPENAL_INCLUDE_DIR})
@@ -163,6 +169,28 @@ endif()
 if(OPL4ML)
     target_compile_definitions(snd PRIVATE USE_OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
+endif()
+ 
+find_package(PkgConfig )
+pkg_check_modules(SERIALPORT  libserialport)
+
+if(SERIALPORT_FOUND OR DEFINED LIBSERIALPORT_ROOT)
+    add_compile_definitions(USE_LIBSERIALPORT=1)
+
+    if(APPLE)
+        include_directories(${LIBSERIALPORT_ROOT}/include)
+        target_link_libraries(86Box ${LIBSERIALPORT_ROOT}/lib/libserialport.dylib)
+    elseif(WIN32)
+        include_directories(${SERIALPORT_INCLUDE_DIRS})
+        target_link_libraries(86Box ${SERIALPORT_LIBRARIES} SetupAPI)
+    else()
+        include_directories(${SERIALPORT_INCLUDE_DIRS})
+        target_link_libraries(86Box ${SERIALPORT_LIBRARIES})
+    endif()
+    target_sources(snd PRIVATE
+    snd_opl2board.c
+    snd_opl_opl2board.cpp
+)
 endif()
 
 add_subdirectory(resid-fp)

@@ -524,7 +524,8 @@ MediaMenu::cdromMute(int i)
 void
 MediaMenu::cdromMount(int i, const QString &filename)
 {
-    QByteArray fn = filename.toUtf8().data();
+    QByteArray fn        = filename.toUtf8().data();
+    int        was_empty = cdrom_is_empty(i);
 
     cdrom_exit(i);
 
@@ -536,14 +537,16 @@ MediaMenu::cdromMount(int i, const QString &filename)
     if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '\\'))
         fn.data()[strlen(fn.data()) - 1] = '/';
 #endif
-    if ((fn.data() != nullptr) && fn.contains("ioctl://"))
-        cdrom_ioctl_open(&(cdrom[i]), fn.data());
-    else
-        cdrom_image_open(&(cdrom[i]), fn.data());
+    cdrom_load(&(cdrom[i]), fn.data(), 1);
 
     /* Signal media change to the emulated machine. */
-    if (cdrom[i].insert)
+    if (cdrom[i].insert) {
         cdrom[i].insert(cdrom[i].priv);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            cdrom[i].insert(cdrom[i].priv);
+    }
 
     if (strlen(cdrom[i].image_path) > 0)
         ui_sb_update_icon_state(SB_CDROM | i, 0);
@@ -800,14 +803,21 @@ MediaMenu::zipSelectImage(int i, bool wp)
 void
 MediaMenu::zipMount(int i, const QString &filename, bool wp)
 {
-    const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
+    const auto dev       = static_cast<zip_t *>(zip_drives[i].priv);
+    int        was_empty = zip_is_empty(i);
 
     zip_disk_close(dev);
     zip_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
-        zip_load(dev, filenameBytes.data());
+        zip_load(dev, filenameBytes.data(), 1);
+
+        /* Signal media change to the emulated machine. */
         zip_insert(dev);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            zip_insert(dev);
     }
     mhm.addImageToHistory(i, ui::MediaType::Zip, zip_drives[i].prev_image_path, zip_drives[i].image_path);
 
@@ -929,14 +939,21 @@ MediaMenu::moSelectImage(int i, bool wp)
 void
 MediaMenu::moMount(int i, const QString &filename, bool wp)
 {
-    const auto dev = static_cast<mo_t *>(mo_drives[i].priv);
+    const auto dev       = static_cast<mo_t *>(mo_drives[i].priv);
+    int        was_empty = mo_is_empty(i);
 
     mo_disk_close(dev);
     mo_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
-        mo_load(dev, filenameBytes.data());
+        mo_load(dev, filenameBytes.data(), 1);
+
+        /* Signal media change to the emulated machine. */
         mo_insert(dev);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            mo_insert(dev);
     }
     mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 

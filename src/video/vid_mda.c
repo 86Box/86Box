@@ -14,7 +14,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -322,7 +322,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda_init(mda);
 
-    lpt3_init(0x3BC);
+    lpt3_setup(LPT_MDA_ADDR);
 
     return mda;
 }
@@ -353,35 +353,23 @@ mda_speed_changed(void *priv)
 static const device_config_t mda_config[] = {
   // clang-format off
     {
-        .name = "rgb_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "Default",
-                .value = 0
-            },
-            {
-                .description = "Green",
-                .value = 1
-            },
-            {
-                .description = "Amber",
-                .value = 2
-            },
-            {
-                .description = "Gray",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Default", .value = 0 },
+            { .description = "Green",   .value = 1 },
+            { .description = "Amber",   .value = 2 },
+            { .description = "Gray",    .value = 3 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -393,7 +381,7 @@ const device_t mda_device = {
     .init          = mda_standalone_init,
     .close         = mda_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = mda_speed_changed,
     .force_redraw  = NULL,
     .config        = mda_config
