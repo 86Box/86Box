@@ -60,6 +60,7 @@
 //#define DA2_DCONFIG_FONT_HANS 2 /* for Code page 936 Simplified Chinese */
 #define DA2_DCONFIG_FONT_HANT 3 /* for Code page 938 Traditional Chinese */
 #define DA2_DCONFIG_MONTYPE_COLOR 0x0A
+#define DA2_DCONFIG_MONTYPE_8515 0x0B
 #define DA2_DCONFIG_MONTYPE_MONO 0x09
 
 #define DA2_BLT_CIDLE 0
@@ -104,9 +105,7 @@
     | EFD8h      | Display Adapter /J          |       |       | X     | X        | X    |
 */
 /* IO 3E0/3E1:0Ah Hardware Configuration Value L (imported from OS/2 DDK) */
-//2501
-//2500 mono
-#define  OldLSI    0x20 /* DA-2 or DA-3,5 */
+#define  OldLSI    0x20 /* 1 = DA-2, 0 = DA-3 */
 //#define  Mon_ID3   0x10
 #define  FontCard  0x08 /* ? */
 /* Page Number Mask : Memory Size? = (110b and 111b): vram size is 512k (256 color mode is not supported). */
@@ -122,8 +121,8 @@
 /* Monitor ID (imported from OS/2 DDK 1.2) */
 //#define  StarbuckC     0x0A  //1 010b IBM 8514, 9518 color 1040x768
 //#define  StarbuckM     0x09  //1 001b IBM 8507, 8604 grayscale
-//#define  Lark_B        0x02  //0 010b IBM 9517       color 1040x768 but 4pp
-//#define  Dallas        0x0B  //1 011b IBM 8515, 9515 color 1040x740 B palette
+//#define  Lark_B        0x02  //0 010b IBM 9517       color 1040x768 but 4bpp
+//#define  Dallas        0x0B  //1 011b IBM 8515, 9515 color 1040x740 palette B
 
 /* DA2 Registers (imported from OS/2 DDK) */
 #define AC_REG                  0x3EE
@@ -277,8 +276,6 @@ typedef struct da2_t
     int fctladdr;
     int crtcaddr;
 
-    uint8_t miscout;
-
     uint32_t decode_mask;
     uint32_t vram_max;
     uint32_t vram_mask;
@@ -319,8 +316,6 @@ typedef struct da2_t
     pc_timer_t timer;
     uint64_t da2const;
 
-    //uint8_t scrblank;
-
     int dispon;
     int hdisp_on;
 
@@ -346,7 +341,6 @@ typedef struct da2_t
     uint8_t *changedvram;
     /* (vram size - 1) >> 3 = 0x1FFFF */
     uint32_t vram_display_mask;
-    uint32_t banked_mask;
 
     //uint32_t write_bank, read_bank;
 
@@ -364,16 +358,9 @@ typedef struct da2_t
         int enable;
         mem_mapping_t mapping;
         uint8_t ram[256 * 1024];
-        uint8_t font[DA2_FONTROM_SIZE];
+        uint8_t *font;
     } mmio;
 
-    //mem_mapping_t linear_mapping;
-        
-    //uint32_t bank[2];
-    //uint32_t mask;
-        
-    //int type;
-        
     struct {
         int bitshift_destr;
         int raster_op;
@@ -2295,7 +2282,8 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
             return da2->mmio.ram[addr];
             break;
         case 0x10://Font ROM
-            //if (addr >= 0x180000) addr -= 0x40000;
+            if (addr >= 0x1a0000) return DA2_INVALIDACCESS8;
+            if (addr >= 0x180000) addr -= 0x40000;
             if (addr >= DA2_FONTROM_SIZE) return DA2_INVALIDACCESS8;
             //da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
             return da2->mmio.font[addr];
@@ -2975,8 +2963,8 @@ da2_reset(void* priv)
     da2->pos_regs[0] = DA2_POSID_L; /* Adapter Identification Byte (Low byte) */
     da2->pos_regs[1] = DA2_POSID_H; /* Adapter Identification Byte (High byte) */
     da2->pos_regs[2] = 0x40;   /* Bit 7-5: 010=Mono, 100=Color, Bit 0 : Card Enable (they are changed by system software) */
-    da2->ioctl[LS_CONFIG1] = OldLSI | Page_Two; /* Configuration 1 : DA - 2, 1024 KB */
-    da2->ioctl[LS_CONFIG1] |= ((da2->monitorid & 0x8 ) << 2); /* Configuration 1 : Monitor ID 3 */
+    da2->ioctl[LS_CONFIG1] = OldLSI | Page_Two; /* Configuration 1 : DA-II, 1024 KB */
+    da2->ioctl[LS_CONFIG1] |= ((da2->monitorid & 0x8 ) << 1); /* Configuration 1 : Monitor ID 3 */
     da2->ioctl[LS_CONFIG2] = (da2->monitorid & 0x7); /* Configuration 2: Monitor ID 0-2 */
     da2->fctl[0] = 0x2b; /* 3E3h:0 */
     da2->fctl[LF_MMIO_MODE] = 0xb0; /* 3E3h:0bh */
@@ -3019,7 +3007,8 @@ static void *da2_init()
         da2->changedvram = malloc(/*(memsize >> 12) << 1*/0x1000000 >> 12);//XX000h
         da2->monitorid = device_get_config_int("montype"); /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
-        int fonttype = device_get_config_int("font");
+        int fonttype = device_get_config_int("charset");
+        da2->mmio.font= malloc(DA2_FONTROM_SIZE);
         switch(fonttype)
         {
             case DA2_DCONFIG_FONT_HANT:
@@ -3142,6 +3131,7 @@ void da2_close(void *p)
         free(da2->cram);
         free(da2->vram);
         free(da2->changedvram);
+        free(da2->mmio.font);
         free(da2);
 }
 
@@ -3162,17 +3152,17 @@ void da2_force_redraw(void *p)
 static const device_config_t da2_configuration[] = {
   // clang-format off
     {
-        .name = "font",
+        .name = "charset",
         .description = "Charset",
         .type = CONFIG_SELECTION,
         .default_int = DA2_DCONFIG_FONT_JPAN,
         .selection = {
             {
-                .description = "CP932 (Japanese)",
+                .description = "932 (Japanese)",
                 .value = DA2_DCONFIG_FONT_JPAN
             },
             {
-                .description = "CP938 (Traditional Chinese)",
+                .description = "938 (Traditional Chinese)",
                 .value = DA2_DCONFIG_FONT_HANT
             },
             { .description = "" }
@@ -3187,6 +3177,10 @@ static const device_config_t da2_configuration[] = {
             {
                 .description = "Color",
                 .value = DA2_DCONFIG_MONTYPE_COLOR
+            },
+            {
+                .description = "IBM 8515",
+                .value = DA2_DCONFIG_MONTYPE_8515
             },
             {
                 .description = "Grayscale",
