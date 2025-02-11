@@ -63,22 +63,23 @@ lba_enhancer_available(void)
 // clang-format off
 static const device_config_t lba_enhancer_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "C800H",    .value = 0xc8000 },
-            { .description = "CC00H",    .value = 0xcc000 },
-            { .description = "D000H",    .value = 0xd0000 },
-            { .description = "D400H",    .value = 0xd4000 },
-            { .description = "D800H",    .value = 0xd8000 },
-            { .description = "DC00H",    .value = 0xdc000 },
-            { .description = ""                           }
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

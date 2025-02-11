@@ -224,18 +224,33 @@ xtide_at_close(void *priv)
 static const device_config_t xtide_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "xt",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Regular XT", .internal_name = "xt", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XT, "" } },
-            { .name = "XT+ (V20/V30/8018x)", .internal_name = "xt_plus", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_XTP, "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Regular XT",
+                .internal_name = "xt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_XT, "" }
+            },
+            {
+                .name          = "XT+ (V20/V30/8018x)",
+                .internal_name = "xt_plus",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_XTP, "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -246,18 +261,33 @@ static const device_config_t xtide_config[] = {
 static const device_config_t xtide_at_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
         .default_string = "at",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Regular AT", .internal_name = "at", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT, "" } },
-            { .name = "386", .internal_name = "at_386", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { ROM_PATH_AT_386, "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Regular AT",
+                .internal_name = "at",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_AT, "" }
+            },
+            {
+                .name          = "386",
+                .internal_name = "at_386",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_AT_386, "" }
+            },
             { .files_no = 0 }
         },
     },

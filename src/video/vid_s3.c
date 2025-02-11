@@ -537,15 +537,15 @@ static void s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3);
 #define READ_PIXTRANS_BYTE_MM \
     temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];
 
-#define READ_PIXTRANS_WORD                                                                                 \
-    if ((s3->bpp == 0) && !s3->color_16bit) {                   \
-        temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];             \
-        temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 1)) & s3->vram_mask] << 8); \
-    } else                                                                                               \
+#define READ_PIXTRANS_WORD                                                                                            \
+    if ((s3->bpp == 0) && !s3->color_16bit) {                                                                         \
+        temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];                        \
+        temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 1)) & s3->vram_mask] << 8);            \
+    } else                                                                                                            \
         temp = vram_w[dword_remap_w(svga, (s3->accel.dest + s3->accel.cx - s3->accel.minus)) & (s3->vram_mask >> 1)];
 
 #define READ_PIXTRANS_LONG                                                                                       \
-    if ((s3->bpp == 0) && !s3->color_16bit) {                         \
+    if ((s3->bpp == 0) && !s3->color_16bit) {                                                                    \
         temp = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx)) & s3->vram_mask];                   \
         temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 1)) & s3->vram_mask] << 8);       \
         temp |= (svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx + 2)) & s3->vram_mask] << 16);      \
@@ -6583,9 +6583,9 @@ polygon_setup(s3_t *s3)
 #define READ(addr, dat)                                                 \
     if (((s3->bpp == 0) && !s3->color_16bit) || (s3->bpp == 2))         \
         dat = svga->vram[dword_remap(svga, addr) & s3->vram_mask];      \
-    else if ((s3->bpp == 1) || s3->color_16bit)   \
+    else if ((s3->bpp == 1) || s3->color_16bit)                         \
         dat = vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]; \
-    else                                                               \
+    else                                                                \
         dat = vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)];
 
 #define MIX_READ                                                                                  \
@@ -6642,11 +6642,11 @@ polygon_setup(s3_t *s3)
         }                                                                                         \
     }
 
-#define MIX                                                                                \
-    {                                                                                      \
-        old_dest_dat = dest_dat;                                                           \
-        MIX_READ                                                                           \
-        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);                 \
+#define MIX                                                            \
+    {                                                                  \
+        old_dest_dat = dest_dat;                                       \
+        MIX_READ                                                       \
+        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask); \
     }
 
 #define ROPMIX_READ(D, P, S)                       \
@@ -7431,14 +7431,14 @@ polygon_setup(s3_t *s3)
     }
 
 #define WRITE(addr, dat)                                                                                                   \
-    if (((s3->bpp == 0) && !s3->color_16bit) || (s3->bpp == 2)) {                   \
-        svga->vram[dword_remap(svga, addr) & s3->vram_mask] = dat;                                          \
+    if (((s3->bpp == 0) && !s3->color_16bit) || (s3->bpp == 2)) {                                                          \
+        svga->vram[dword_remap(svga, addr) & s3->vram_mask] = dat;                                                         \
         svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
-    } else if ((s3->bpp == 1) || s3->color_16bit) {                                                   \
+    } else if ((s3->bpp == 1) || s3->color_16bit) {                                                                        \
         vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]                    = dat;                                 \
         svga->changedvram[(dword_remap_w(svga, addr) & (s3->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
     } else {                                                                                                               \
-        vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)] = dat;                                                \
+        vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)] = dat;                                                    \
         svga->changedvram[(dword_remap_l(svga, addr) & (s3->vram_mask >> 2)) >> 10] = svga->monitor->mon_changeframecount; \
     }
 
@@ -10543,100 +10543,126 @@ s3_force_redraw(void *priv)
     s3->svga.fullchange = s3->svga.monitor->mon_changeframecount;
 }
 
+// clang-format off
 static const device_config_t s3_orchid_86c911_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 1,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "512 KB", .value = 0 },
             { .description = "1 MB",   .value = 1 },
             { .description = ""                   }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_9fx_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 2,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
              { .description = "1 MB", .value = 1 },
              { .description = "2 MB", .value = 2 },
              /* Trio64 also supports 4 MB, however the Number Nine BIOS does not */
              { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_phoenix_trio32_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 2,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "512 KB", .value = 0 },
             { .description = "1 MB",   .value = 1 },
             { .description = "2 MB",   .value = 2 },
             { .description = ""                   }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_standard_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_968_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = "8 MB", .value = 8 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t s3_standard_config2[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection   = {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t s3_orchid_86c911_isa_device = {
     .name          = "S3 86c911 ISA (Orchid Fahrenheit 1280)",

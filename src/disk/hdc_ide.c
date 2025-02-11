@@ -2903,6 +2903,25 @@ ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 }
 
 static void *
+ide_sec_init(const device_t *info)
+{
+    /* Don't claim this channel again if it was already claimed. */
+    if (ide_boards[1])
+        return (NULL);
+
+    ide_board_init(1, HDC_SECONDARY_IRQ, HDC_SECONDARY_BASE, HDC_SECONDARY_SIDE, info->local, info->flags);
+
+    return (ide_boards[1]);
+}
+
+/* Close a standalone IDE unit. */
+static void
+ide_sec_close(UNUSED(void *priv))
+{
+    ide_board_close(1);
+}
+
+static void *
 ide_ter_init(const device_t *info)
 {
     /* Don't claim this channel again if it was already claimed. */
@@ -2920,9 +2939,8 @@ ide_ter_init(const device_t *info)
         if (irq == -1)
             isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom),
                             ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
-    } else {
+    } else
         ide_board_init(2, irq, HDC_TERTIARY_BASE, HDC_TERTIARY_SIDE, 0, 0);
-    }
 
     return (ide_boards[2]);
 }
@@ -3004,10 +3022,10 @@ ide_init(const device_t *info)
 
     switch (info->local) {
         case 0 ... 5:
-            ide_board_init(0, 14, 0x1f0, 0x3f6, info->local, info->flags);
+            ide_board_init(0, HDC_PRIMARY_IRQ, HDC_PRIMARY_BASE, HDC_PRIMARY_SIDE, info->local, info->flags);
 
             if (info->local & 1)
-                ide_board_init(1, 15, 0x170, 0x376, info->local, info->flags);
+                ide_board_init(1, HDC_SECONDARY_IRQ, HDC_SECONDARY_BASE, HDC_SECONDARY_SIDE, info->local, info->flags);
             break;
 
         default:
@@ -3122,8 +3140,8 @@ static void
 mcide_mca_write(const int port, const uint8_t val, void *priv)
 {
     mcide_t *dev      = (mcide_t *) priv;
-    uint16_t bases[4] = { 0x01f0, 0x0170, 0x01e8, 0x0168 };
-    int irqs[4]       = { 10, 11, 14, 15 };
+    uint16_t bases[4] = { HDC_PRIMARY_BASE, HDC_SECONDARY_BASE, HDC_TERTIARY_BASE, HDC_QUATERNARY_BASE };
+    int irqs[4]       = { HDC_QUATERNARY_IRQ, HDC_TERTIARY_IRQ, HDC_PRIMARY_IRQ, HDC_SECONDARY_IRQ };
 
     if ((port >= 0x102) && (dev->pos_regs[port & 7] != val)) {
         ide_log("IDE: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
@@ -3275,6 +3293,20 @@ const device_t ide_isa_device = {
     .config        = NULL
 };
 
+const device_t ide_isa_sec_device = {
+    .name          = "ISA PC/AT IDE Controller (Secondary)",
+    .internal_name = "ide_isa_sec",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = ide_sec_init,
+    .close         = ide_sec_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ide_isa_2ch_device = {
     .name          = "ISA PC/AT IDE Controller (Dual-Channel)",
     .internal_name = "ide_isa_2ch",
@@ -3296,6 +3328,20 @@ const device_t ide_vlb_device = {
     .local         = 2,
     .init          = ide_init,
     .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_vlb_sec_device = {
+    .name          = "VLB IDE Controller (Secondary)",
+    .internal_name = "ide_vlb_sec",
+    .flags         = DEVICE_VLB | DEVICE_AT,
+    .local         = 2,
+    .init          = ide_sec_init,
+    .close         = ide_sec_close,
     .reset         = ide_reset,
     .available     = NULL,
     .speed_changed = NULL,
@@ -3331,6 +3377,20 @@ const device_t ide_pci_device = {
     .config        = NULL
 };
 
+const device_t ide_pci_sec_device = {
+    .name          = "PCI IDE Controller (Secondary)",
+    .internal_name = "ide_pci_sec",
+    .flags         = DEVICE_PCI | DEVICE_AT,
+    .local         = 4,
+    .init          = ide_sec_init,
+    .close         = ide_sec_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ide_pci_2ch_device = {
     .name          = "PCI IDE Controller (Dual-Channel)",
     .internal_name = "ide_pci_2ch",
@@ -3359,18 +3419,17 @@ const device_t mcide_device = {
     .config        = NULL
 };
 
-
 // clang-format off
 static const device_config_t ide_ter_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = HDC_TERTIARY_IRQ,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = HDC_TERTIARY_IRQ,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Plug and Play", .value = -1 },
             { .description = "IRQ 2",         .value =  2 },
             { .description = "IRQ 3",         .value =  3 },
@@ -3382,21 +3441,22 @@ static const device_config_t ide_ter_config[] = {
             { .description = "IRQ 11",        .value = 11 },
             { .description = "IRQ 12",        .value = 12 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ide_qua_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = HDC_QUATERNARY_IRQ,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = HDC_QUATERNARY_IRQ,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Plug and Play", .value = -1 },
             { .description = "IRQ 2",         .value =  2 },
             { .description = "IRQ 3",         .value =  3 },
@@ -3408,7 +3468,8 @@ static const device_config_t ide_qua_config[] = {
             { .description = "IRQ 11",        .value = 11 },
             { .description = "IRQ 12",        .value = 12 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

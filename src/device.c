@@ -158,6 +158,13 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     void     *priv     = NULL;
     int16_t   c;
 
+    /*
+       IMPORTANT: This is needed to gracefully handle machine
+                  device addition if the relevant device is NULL.
+     */
+    if (dev == NULL)
+        return NULL;
+
     if (!device_available(dev)) {
         wchar_t temp[512] = { 0 };
         swprintf(temp, sizeof_w(temp),
@@ -883,7 +890,7 @@ machine_get_config_string(char *str)
     return NULL;
 }
 
-const device_t*
+const device_t *
 device_context_get_device(void)
 {
     return device_current.dev;

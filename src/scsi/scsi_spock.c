@@ -1231,18 +1231,19 @@ spock_available(void)
 static const device_config_t spock_rom_config[] = {
   // clang-format off
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "1991 BIOS (>1GB)", .value = 1 },
             { .description = "1990 BIOS",        .value = 0 },
             { .description = ""                             }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

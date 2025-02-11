@@ -1721,32 +1721,40 @@ ht216_force_redraw(void *priv)
 // clang-format off
 static const device_config_t v7_vga_1024i_config[] = {
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection   = {
-            { .description = "256 KB", .value       = 256 },
-            { .description = "512 KB", .value       = 512 },
-            { .description = ""                           }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ht216_32_standalone_config[] = {
     {
-        .name        = "monitor_type",
-        .description = "Monitor type",
-        .type        = CONFIG_SELECTION,
-        .default_int = 0x18,
-        .selection   = {
+        .name           = "monitor_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0x18,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Mono Interlaced",      .value = 0x00 },
             { .description = "Mono Non-Interlaced",  .value = 0x08 },
             { .description = "Color Interlaced",     .value = 0x10 },
             { .description = "Color Non-Interlaced", .value = 0x18 },
-            { .description = "" }
-        }
+            { .description = ""                                    }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

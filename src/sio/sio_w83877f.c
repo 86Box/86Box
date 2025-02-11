@@ -168,7 +168,7 @@ w83877f_lpt_handler(w83877f_t *dev)
 
     lpt1_remove();
     if (!(dev->regs[4] & 0x80) && (dev->regs[0x23] & 0xc0))
-        lpt1_init(make_port(dev, 0x23));
+        lpt1_setup(make_port(dev, 0x23));
 
     lpt_irq = 0xff;
 

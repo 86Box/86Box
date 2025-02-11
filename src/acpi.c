@@ -2473,10 +2473,9 @@ acpi_init(const device_t *info)
 {
     acpi_t *dev;
 
-    dev = (acpi_t *) malloc(sizeof(acpi_t));
+    dev = (acpi_t *) calloc(1, sizeof(acpi_t));
     if (dev == NULL)
         return NULL;
-    memset(dev, 0x00, sizeof(acpi_t));
 
     cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
     dev->vendor = info->local;

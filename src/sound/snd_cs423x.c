@@ -606,8 +606,8 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
     ad1848_update(&dev->ad1848);
 
-    /* Don't output anything if the analog section is powered down. */
-    if (!(dev->indirect_regs[2] & 0xa4) && !(dev->indirect_regs[9] & 0x04)) {
+    /* Don't output anything if the analog section or DAC is powered down. */
+    if (!(dev->regs[2] & 0xb4) && !(dev->indirect_regs[9] & 0x04)) {
         for (int c = 0; c < len * 2; c += 2) {
             buffer[c] += dev->ad1848.buffer[c] / 2;
             buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
@@ -626,8 +626,9 @@ cs423x_get_music_buffer(int32_t *buffer, int len, void *priv)
     if (dev->opl_wss) {
         const int32_t *opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
 
-        /* Don't output anything if the analog section or DAC2 (CS4235+) is powered down. */
-        if (!(dev->indirect_regs[2] & 0xa4) && !(dev->indirect_regs[9] & 0x06)) {
+        /* Don't output anything if the analog section, DAC (DAC2 instead on CS4235+) or FM synth is powered down. */
+        uint8_t bpd_mask = (dev->type >= CRYSTAL_CS4235) ? 0xb1 : 0xb5;
+        if (!(dev->regs[2] & bpd_mask) && !(dev->indirect_regs[9] & 0x06)) {
             for (int c = 0; c < len * 2; c += 2) {
                 buffer[c] += (opl_buf[c] * dev->ad1848.fm_vol_l) >> 16;
                 buffer[c + 1] += (opl_buf[c + 1] * dev->ad1848.fm_vol_r) >> 16;
@@ -654,9 +655,10 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
            Disable the PnP key disabling mechanism until someone figures something out. */
 #if 0
         isapnp_enable_card(dev->pnp_card, ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable) ? ISAPNP_CARD_NO_KEY : ISAPNP_CARD_ENABLE);
-#endif
+#else
         if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
             pclog("CS423x: Attempted to disable PnP key\n");
+#endif
     }
 
     /* Update some register bits based on the config data in RAM if requested. */
@@ -684,12 +686,18 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
         else
             dev->ad1848.xregs[4] &= ~0x10;
 
-        /* Update VCEN. */
         if (dev->type == CRYSTAL_CS4236) {
+            /* Update VCEN. */
             if (dev->ram_data[0x4002] & 0x04)
                 dev->regs[4] |= 0x40;
             else
                 dev->regs[4] &= ~0x40;            
+        }
+
+        if (dev->type >= CRYSTAL_CS4235) {
+            /* Update X18 and X19 values. */
+            dev->ad1848.xregs[18] = (dev->ad1848.xregs[18] & ~0x3e) | (dev->ram_data[0x400b] & 0x3e);
+            dev->ad1848.xregs[19] = dev->ram_data[0x4005];
         }
 
         /* Inform WSS codec of the changes. */
@@ -818,23 +826,10 @@ cs423x_load_defaults(cs423x_t *dev, uint8_t *dest)
                     dest[4] = 0x43; /* code base byte */
                     break;
 
-                case CRYSTAL_CS4236B:
-                    dest[22] = 0x35; /* default PnP ID */
-                    break;
-
-                case CRYSTAL_CS4237B:
-                    dest[22] = 0x37; /* default PnP ID */
-                    break;
-
-                case CRYSTAL_CS4238B:
-                    dest[22] = 0x38; /* default PnP ID */
-                    break;
-
                 case CRYSTAL_CS4235:
                 case CRYSTAL_CS4239:
                     dest[4]  = 0x05; /* code base byte */
                     dest[12] = 0x08; /* external decode length */
-                    dest[22] = 0x36; /* default PnP ID - explicitly stated to be the CS4236 non-B one */
                     break;
             }
             break;
@@ -904,12 +899,14 @@ cs423x_init(const device_t *info)
         case CRYSTAL_CS4238B:
         case CRYSTAL_CS4235:
         case CRYSTAL_CS4239:
-            /* Same WSS codec and EEPROM structure. */
+            /* Different WSS codec families. */
             dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : ((dev->type >= CRYSTAL_CS4236B) ? AD1848_TYPE_CS4236B : AD1848_TYPE_CS4236);
-            dev->pnp_offset  = 0x4013;
 
-            /* Different Chip Version and ID registers (N/A on CS4236), which shouldn't be reset by ad1848_init. */
+            /* Different Chip Version and ID values (N/A on CS4236), which shouldn't be reset by ad1848_init. */
             dev->ad1848.xregs[25] = dev->type;
+
+            /* Same EEPROM structure. */
+            dev->pnp_offset = 0x4013;
 
             if (!(info->local & CRYSTAL_NOEEPROM)) {
                 /* Start a new EEPROM with the default configuration data. */
@@ -1108,6 +1105,20 @@ const device_t cs4236b_device = {
     .internal_name = "cs4236b",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = CRYSTAL_CS4236B,
+    .init          = cs423x_init,
+    .close         = cs423x_close,
+    .reset         = cs423x_reset,
+    .available     = cs423x_available,
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t cs4236b_onboard_device = {
+    .name          = "Crystal CS4236B",
+    .internal_name = "cs4236b",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = CRYSTAL_CS4236B | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
     .reset         = cs423x_reset,

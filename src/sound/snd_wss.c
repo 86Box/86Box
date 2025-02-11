@@ -245,39 +245,32 @@ wss_speed_changed(void *priv)
 static const device_config_t wss_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x530,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x530",
-                .value = 0x530
-            },
-            {
-                .description = "0x604",
-                .value = 0x604
-            },
-            {
-                .description = "0xe80",
-                .value = 0xe80
-            },
-            {
-                .description = "0xf40",
-                .value = 0xf40
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x530,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x530", .value = 0x530 },
+            { .description = "0x604", .value = 0x604 },
+            { .description = "0xe80", .value = 0xe80 },
+            { .description = "0xf40", .value = 0xf40 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

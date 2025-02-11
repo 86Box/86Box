@@ -1590,70 +1590,41 @@ ega_speed_changed(void *priv)
 static const device_config_t ega_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 256,
-        .selection = {
-            {
-                .description = "32 KB",
-                .value = 32
-            },
-            {
-                .description = "64 KB",
-                .value = 64
-            },
-            {
-                .description = "128 KB",
-                .value = 128
-            },
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 256,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "32 KB", .value =  32 },
+            { .description =  "64 KB", .value =  64 },
+            { .description = "128 KB", .value = 128 },
+            { .description = "256 KB", .value = 256 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "monitor_type",
-        .description = "Monitor type",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "Monochrome (5151/MDA) (white)",
-                .value = 0x0B | (DISPLAY_WHITE << 4)
-            },
-            {
-                .description = "Monochrome (5151/MDA) (green)",
-                .value = 0x0B | (DISPLAY_GREEN << 4)
-            },
-            {
-                .description = "Monochrome (5151/MDA) (amber)",
-                .value = 0x0B | (DISPLAY_AMBER << 4)
-            },
-            {
-                .description = "Color 40x25 (5153/CGA)",
-                .value = 0x06
-            },
-            {
-                .description = "Color 80x25 (5153/CGA)",
-                .value = 0x07
-            },
-            {
-                .description = "Enhanced Color - Normal Mode (5154/ECD)",
-                .value = 0x08
-            },
-            {
-                .description = "Enhanced Color - Enhanced Mode (5154/ECD)",
-                .value = 0x09
-            },
-            {
-                .description = ""
-            }
+        .name           = "monitor_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 9,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Monochrome (5151/MDA) (white)",             .value = 0x0B | (DISPLAY_WHITE << 4) },
+            { .description = "Monochrome (5151/MDA) (green)",             .value = 0x0B | (DISPLAY_GREEN << 4) },
+            { .description = "Monochrome (5151/MDA) (amber)",             .value = 0x0B | (DISPLAY_AMBER << 4) },
+            { .description = "Color 40x25 (5153/CGA)",                    .value = 0x06                        },
+            { .description = "Color 80x25 (5153/CGA)",                    .value = 0x07                        },
+            { .description = "Enhanced Color - Normal Mode (5154/ECD)",   .value = 0x08                        },
+            { .description = "Enhanced Color - Enhanced Mode (5154/ECD)", .value = 0x09                        },
+            { .description = ""                                                                                }
         },
-        .default_int = 9
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

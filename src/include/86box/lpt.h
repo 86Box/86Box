@@ -31,33 +31,33 @@ typedef struct lpt_device_t {
 } lpt_device_t;
 
 extern void lpt_init(void);
-extern void lpt_port_init(int i, uint16_t port);
+extern void lpt_port_setup(int i, uint16_t port);
 extern void lpt_port_irq(int i, uint8_t irq);
 extern void lpt_port_remove(int i);
 extern void lpt1_remove_ams(void);
 
-#define lpt1_init(a)  lpt_port_init(0, a)
+#define lpt1_setup(a) lpt_port_setup(0, a)
 #define lpt1_irq(a)   lpt_port_irq(0, a)
 #define lpt1_remove() lpt_port_remove(0)
 
-#define lpt2_init(a)  lpt_port_init(1, a)
+#define lpt2_setup(a) lpt_port_setup(1, a)
 #define lpt2_irq(a)   lpt_port_irq(1, a)
 #define lpt2_remove() lpt_port_remove(1)
 
-#define lpt3_init(a)  lpt_port_init(2, a)
+#define lpt3_setup(a) lpt_port_setup(2, a)
 #define lpt3_irq(a)   lpt_port_irq(2, a)
 #define lpt3_remove() lpt_port_remove(2)
 
-#define lpt4_init(a)  lpt_port_init(3, a)
+#define lpt4_setup(a) lpt_port_setup(3, a)
 #define lpt4_irq(a)   lpt_port_irq(3, a)
 #define lpt4_remove() lpt_port_remove(3)
 
 #if 0
-#define lpt5_init(a)  lpt_port_init(4, a)
+#define lpt5_setup(a) lpt_port_setup(4, a)
 #define lpt5_irq(a)   lpt_port_irq(4, a)
 #define lpt5_remove() lpt_port_remove(4)
 
-#define lpt6_init(a)  lpt_port_init(5, a)
+#define lpt6_setup(a) lpt_port_setup(5, a)
 #define lpt6_irq(a)   lpt_port_irq(5, a)
 #define lpt6_remove() lpt_port_remove(5)
 #endif

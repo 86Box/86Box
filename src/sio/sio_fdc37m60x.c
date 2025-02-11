@@ -216,7 +216,7 @@ fdc37m60x_lpt_handler(fdc37m60x_t *dev)
     lpt1_remove();
 
     if (ENABLED(3) || (POWER_CONTROL & 0x08)) {
-        lpt1_init(BASE_ADDRESS(3));
+        lpt1_setup(BASE_ADDRESS(3));
         lpt1_irq(IRQ(3) & 0xf);
         fdc37m60x_log("SMC60x-LPT: BASE %04x IRQ %d\n", BASE_ADDRESS(3), IRQ(3) & 0xf);
     }

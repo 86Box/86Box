@@ -112,14 +112,14 @@ w83977f_lpt_handler(w83977f_t *dev)
         lpt2_remove();
 
         if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-            lpt2_init(io_base);
+            lpt2_setup(io_base);
 
         lpt2_irq(dev->dev_regs[1][0x40] & 0x0f);
     } else {
         lpt1_remove();
 
         if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-            lpt1_init(io_base);
+            lpt1_setup(io_base);
 
         lpt1_irq(dev->dev_regs[1][0x40] & 0x0f);
     }

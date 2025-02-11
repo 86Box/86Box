@@ -106,7 +106,7 @@ lpt1_handler(pc87310_t *dev)
     }
 
     if (lpt_port)
-        lpt1_init(lpt_port);
+        lpt1_setup(lpt_port);
 
     lpt1_irq(lpt_irq);
 }

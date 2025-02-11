@@ -550,15 +550,19 @@ et3000_available(void)
 static const device_config_t et3000_config[] = {
   // clang-format off
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection   = {
-            { .description = "256 KB", .value       = 256 },
-            { .description = "512 KB", .value       = 512 },
-            { .description = ""                           }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

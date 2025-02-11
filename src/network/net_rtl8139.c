@@ -3315,11 +3315,15 @@ nic_close(void *priv)
 // clang-format off
 static const device_config_t rtl8139c_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
