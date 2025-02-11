@@ -55,10 +55,10 @@
 #define DA2_DEBUG_BLTLOG_MAX 256*1024
 #define DA2_DEBUG_BLT_NEVERUSED 0xfefefefe
 #define DA2_DEBUG_BLT_USEDRESET 0xfefefe
-#define DA2_DCONFIG_FONT_JPAN 0 /* for Code page 932 Japanese */
-//#define DA2_DCONFIG_FONT_HANG 1 /* for Code page 934 Hangul */
-//#define DA2_DCONFIG_FONT_HANS 2 /* for Code page 936 Simplified Chinese */
-#define DA2_DCONFIG_FONT_HANT 3 /* for Code page 938 Traditional Chinese */
+#define DA2_DCONFIG_CHARSET_JPAN 0 /* for Code page 932 Japanese */
+//#define DA2_DCONFIG_CHARSET_HANG 1 /* for Code page 934 Hangul */
+//#define DA2_DCONFIG_CHARSET_HANS 2 /* for Code page 936 Simplified Chinese */
+#define DA2_DCONFIG_CHARSET_HANT 3 /* for Code page 938 Traditional Chinese */
 #define DA2_DCONFIG_MONTYPE_COLOR 0x0A
 #define DA2_DCONFIG_MONTYPE_8515 0x0B
 #define DA2_DCONFIG_MONTYPE_MONO 0x09
@@ -359,6 +359,7 @@ typedef struct da2_t
         mem_mapping_t mapping;
         uint8_t ram[256 * 1024];
         uint8_t *font;
+        int charset;
     } mmio;
 
     struct {
@@ -2282,8 +2283,11 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
             return da2->mmio.ram[addr];
             break;
         case 0x10://Font ROM
-            if (addr >= 0x1a0000) return DA2_INVALIDACCESS8;
-            if (addr >= 0x180000) addr -= 0x40000;
+            if (da2->mmio.charset == DA2_DCONFIG_CHARSET_HANT) {
+                if (addr >= 0x1a0000) return DA2_INVALIDACCESS8;
+                if (addr >= 0x180000) addr -= 0x40000; /* The bank 12 (180000h-19ffffh) is beyond the available ROM address range,
+                                                            but the Chinese font sub card actually has this alias, and is used by DOS T5.0. */
+            }
             if (addr >= DA2_FONTROM_SIZE) return DA2_INVALIDACCESS8;
             //da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
             return da2->mmio.font[addr];
@@ -3007,14 +3011,14 @@ static void *da2_init()
         da2->changedvram = malloc(/*(memsize >> 12) << 1*/0x1000000 >> 12);//XX000h
         da2->monitorid = device_get_config_int("montype"); /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
-        int fonttype = device_get_config_int("charset");
+        da2->mmio.charset = device_get_config_int("charset");
         da2->mmio.font= malloc(DA2_FONTROM_SIZE);
-        switch(fonttype)
+        switch(da2->mmio.charset)
         {
-            case DA2_DCONFIG_FONT_HANT:
+            case DA2_DCONFIG_CHARSET_HANT:
                 da2_loadfont(DA2_FONTROM_PATH_HANT, da2);
                 break;
-            case DA2_DCONFIG_FONT_JPAN:
+            case DA2_DCONFIG_CHARSET_JPAN:
                 da2_loadfont(DA2_FONTROM_PATH_JPAN, da2);
                 break;
         }
@@ -3155,15 +3159,15 @@ static const device_config_t da2_configuration[] = {
         .name = "charset",
         .description = "Charset",
         .type = CONFIG_SELECTION,
-        .default_int = DA2_DCONFIG_FONT_JPAN,
+        .default_int = DA2_DCONFIG_CHARSET_JPAN,
         .selection = {
             {
                 .description = "932 (Japanese)",
-                .value = DA2_DCONFIG_FONT_JPAN
+                .value = DA2_DCONFIG_CHARSET_JPAN
             },
             {
                 .description = "938 (Traditional Chinese)",
-                .value = DA2_DCONFIG_FONT_HANT
+                .value = DA2_DCONFIG_CHARSET_HANT
             },
             { .description = "" }
         }
