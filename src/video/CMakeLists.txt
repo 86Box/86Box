@@ -80,6 +80,7 @@ add_library(vid OBJECT
     vid_att2xc498_ramdac.c
     vid_xga.c
     vid_bochs_vbe.c
+
     nv/nv_base.c nv/nv_rivatimer.c
     
     nv/nv3/nv3_core.c 
@@ -123,6 +124,7 @@ add_library(vid OBJECT
     nv/nv3/classes/nv3_class_017_d3d5_tri_zeta_buffer.c
     nv/nv3/classes/nv3_class_018_point_zeta_buffer.c
     nv/nv3/classes/nv3_class_01c_image_in_memory.c
+    
     )
 
 if(G100)

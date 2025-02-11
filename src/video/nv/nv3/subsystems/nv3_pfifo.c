@@ -612,7 +612,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
         new_address |= (nv3_runout_reason_free_count_overrun << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
 
-    if (method_offset > 0 && method_offset <= 0x100)
+    // 0x0 is used for the context
+    if (method_offset > 0 && method_offset < 0x100)
     {
         // Reserved NVIDIA Objects
         oh_shit = true; 
@@ -651,7 +652,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     nv3->pfifo.cache1_entries[current_put_address].data = val;
 
     // now we have to recalculate the cache1 put address
-    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address);
+    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address) + 1;
 
     if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
         next_put_address &= NV3_PFIFO_CACHE1_SIZE_REV_C;
