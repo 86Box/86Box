@@ -1024,7 +1024,7 @@ static const device_config_t genericxt_config[] = {
         .file_filter    = NULL,
         .spinner        = {
             .min  =   0,
-            .max  = 624,
+            .max  = 640,
             .step =  16
         },
         .selection      = { { 0 } },
