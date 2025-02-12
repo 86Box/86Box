@@ -542,11 +542,12 @@ then
 			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 		fi
 
-		# Patch openal-soft to use 1.23.1 on all targets instead of 1.24.1 on >=10.15 only,
+		# Patch openal-soft to use 1.23.1 on all targets instead of 1.24.2 on >=10.13 only,
 		# to prevent a symlink mismatch from having different versions on x86_64 and arm64.
 		# See: https://github.com/macports/macports-ports/commit/9b4903fc9c76769d476079e404c9a3b8a225f8aa
+		#      https://github.com/macports/macports-ports/commit/788deb64dc0695e8d04afb32ed904947f2a7591b
 		openal_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/audio/openal-soft/Portfile"
-		sudo sed -i -e 's/if {${os.platform} ne "darwin" || ${os.major} >= 19}/if {0}/g' "$openal_portfile"
+		sudo sed -i -e 's/if {${os.platform} ne "darwin" ||/if {0 \&\&/g' "$openal_portfile"
 
 		# Patch wget to remove libproxy support, as it depends on shared-mime-info which
 		# fails to build for a 10.13 target, which we have to do despite wget only being
