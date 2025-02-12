@@ -11,8 +11,7 @@
  *          Note: These uint32_ts are basically object methods that are being submitted
  *          They have different names so the user can use them more easily but different versions of the same class can be distinguished
  *          ALL of these structures HAVE(?) to be a size of exactly 0x2000 bytes because that's what the hashtable expects and they need to actually map into the vram address space
- *          (they are converted to pointers).
- *          directly to the PHYSICAL PGRAPH REGISTERS while sitting in RAMHT!!!!.
+ *          (they are converted to pointers). In the case of NV3, these map directly to the PHYSICAL PGRAPH REGISTERS while sitting in RAMHT!!!!.
  *
  *          Also, these class IDs don't relate to the internal architecture of the GPU.
  *          Effectively, the NVIDIA drivers are faking shit. There are only 16 classes but the drivers recognise many more. See nv3_object_classes_driver.txt for the list of  
@@ -1065,8 +1064,7 @@ typedef enum nv3_object_class_01C_pixel_format_e
     // 16-bits (Y16) - Planar YUV 16 bits (Y value only), 2 bits of indexed colour too?
     nv3_m2mt_pixel_format_le_y16_p2 = 0x1010101,
 
-    /* 1 unused bit, 555 15-bit format, p2(?)
-    */
+    /* 1 unused bit, 555 15-bit format, p2(?) */
     nv3_m2mt_pixel_format_x1r5g5b5_p2 = 0x1000000,
 
     // X8G8B8R8, 24-bit colour (or 24-bit colour with alpha)

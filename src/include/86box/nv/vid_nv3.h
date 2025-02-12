@@ -22,7 +22,7 @@
  */
 
 #pragma once
-#include <86Box/nv/classes/vid_nv3_classes.h>
+#include <86box/nv/classes/vid_nv3_classes.h>
 
 // The GPU base structure
 extern const device_config_t nv3_config[];

@@ -21,11 +21,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <86Box/86box.h>
+#include <86box/86box.h>
 #ifndef RELEASE_BUILD
-#include <86Box/device.h>
+#include <86box/device.h>
 #endif
-#include <86Box/log.h>
+#include <86box/log.h>
 
 
 // Common logging

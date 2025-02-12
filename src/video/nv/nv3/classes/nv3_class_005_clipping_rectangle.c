@@ -18,14 +18,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <86Box/86box.h>
-#include <86Box/device.h>
-#include <86Box/mem.h>
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/mem.h>
 #include <86box/pci.h>
-#include <86Box/rom.h>
-#include <86Box/video.h>
-#include <86Box/nv/vid_nv.h>
-#include <86Box/nv/vid_nv3.h>
+#include <86box/rom.h>
+#include <86box/video.h>
+#include <86box/nv/vid_nv.h>
+#include <86box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
 struct nv3_object_class_005 nv3_clipping_rectangle; 
