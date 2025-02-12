@@ -616,14 +616,12 @@ const device_t scsi_t128_device = {
     .config        = t128_config
 };
 
-
 const device_t scsi_t228_device = {
     .name          = "Trantor T228",
     .internal_name = "t228",
     .flags         = DEVICE_MCA,
     .local         = 0,
     .init          = t128_init,
-    .close         = t128_close,
     .close         = t128_close,
     .reset         = NULL,
     .available     = t128_available,
