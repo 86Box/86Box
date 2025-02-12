@@ -696,7 +696,7 @@ static const device_config_t pb450_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "PCI 1.0A", .internal_name = "pci10a", .bios_type = BIOS_NORMAL, 
+            { .name = "PCI 1.0A", .internal_name = "pb450" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
             { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },

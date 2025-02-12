@@ -102,9 +102,9 @@ lm78_log(const char *fmt, ...)
 void
 lm78_nvram(lm78_t *dev, uint8_t save)
 {
-    size_t l        = strlen(machine_get_internal_name_ex(machine)) + 14;
+    size_t l        = strlen(machine_get_nvr_name_ex(machine)) + 14;
     char  *nvr_path = (char *) malloc(l);
-    sprintf(nvr_path, "%s_as99127f.nvr", machine_get_internal_name_ex(machine));
+    sprintf(nvr_path, "%s_as99127f.nvr", machine_get_nvr_name_ex(machine));
 
     FILE *fp = nvr_fopen(nvr_path, save ? "wb" : "rb");
     if (fp) {

@@ -353,7 +353,7 @@ intel_flash_init(const device_t *info)
 
     dev = calloc(1, sizeof(flash_t));
 
-    sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
+    sprintf(flash_path, "%s.bin", machine_get_nvr_name_ex(machine));
 
     dev->flags = info->local & 0xff;
 

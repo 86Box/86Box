@@ -161,9 +161,9 @@ nvr_init(nvr_t *nvr)
     int c;
 
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_internal_name()) + 5;
+    c       = strlen(machine_get_nvr_name()) + 5;
     nvr->fn = (char *) malloc(c + 1);
-    sprintf(nvr->fn, "%s.nvr", machine_get_internal_name());
+    sprintf(nvr->fn, "%s.nvr", machine_get_nvr_name());
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));

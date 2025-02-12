@@ -16565,3 +16565,26 @@ machine_is_sony(void)
 {
     return (!strcmp(machines[machine].internal_name, "pcv90"));
 }
+
+const char *
+machine_get_nvr_name_ex(int m)
+{
+    const char     *ret = machines[m].internal_name;
+    const device_t *dev = machine_get_device(m);
+
+    if (dev != NULL) {
+        device_context(dev);
+        const char *bios = device_get_config_string("bios");
+        if ((bios != NULL) && (strcmp(bios, "") != 0))
+            ret = bios;
+        device_context_restore();
+    }
+
+    return ret;
+}
+
+const char *
+machine_get_nvr_name(void)
+{
+    return machine_get_nvr_name_ex(machine);
+}
