@@ -165,10 +165,8 @@ typedef struct _device_ {
     };
     void (*close)(void *priv);
     void (*reset)(void *priv);
-    union {
-        int (*available)(void);
-        int (*poll)(void *priv);
-    };
+    int  (*available)(void);
+    int  (*poll)(void *priv);
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
 

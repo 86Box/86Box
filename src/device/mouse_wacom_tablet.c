@@ -662,8 +662,10 @@ wacom_init(const device_t *info)
     if (dev->tablet_type->type == WACOM_TYPE_IV) {
         wacom_reset_artpad(dev);
         wacom_process_settings_dword(dev, 0xE2018000);
-    }
-    else wacom_reset(dev);
+    } else
+        wacom_reset(dev);
+
+    mouse_set_poll(wacom_poll, dev);
 
     return dev;
 }
@@ -721,7 +723,7 @@ const device_t mouse_wacom_device = {
     .init          = wacom_init,
     .close         = wacom_close,
     .reset         = NULL,
-    .poll          = wacom_poll,
+    .available     = NULL,
     .speed_changed = wacom_speed_changed,
     .force_redraw  = NULL,
     .config        = wacom_config
@@ -735,7 +737,7 @@ const device_t mouse_wacom_artpad_device = {
     .init          = wacom_init,
     .close         = wacom_close,
     .reset         = NULL,
-    .poll          = wacom_poll,
+    .available     = NULL,
     .speed_changed = wacom_speed_changed,
     .force_redraw  = NULL,
     .config        = wacom_config

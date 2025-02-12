@@ -525,6 +525,7 @@ mtouch_init(UNUSED(const device_t *info))
     
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
+    mouse_set_poll(mtouch_poll, dev);
     mouse_set_poll_ex(mtouch_poll_global);
     mtouch_inst = dev;
     
@@ -605,7 +606,7 @@ const device_t mouse_mtouch_device = {
     .init          = mtouch_init,
     .close         = mtouch_close,
     .reset         = NULL,
-    .poll          = mtouch_poll,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mtouch_config
