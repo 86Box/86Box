@@ -361,6 +361,7 @@ extern int         machine_available(int m);
 extern const char *machine_getname(void);
 extern const char *machine_getname_ex(int m);
 extern const char *machine_get_internal_name(void);
+extern const char *machine_get_nvr_name(void);
 extern int         machine_get_machine_from_internal_name(const char *s);
 extern void        machine_init(void);
 #ifdef EMU_DEVICE_H
@@ -373,6 +374,7 @@ extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
 #endif
 extern const char *machine_get_internal_name_ex(int m);
+extern const char *machine_get_nvr_name_ex(int m);
 extern int         machine_get_nvrmask(int m);
 extern int         machine_has_flags(int m, int flags);
 extern int         machine_has_bus(int m, int bus_flags);

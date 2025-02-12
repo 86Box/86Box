@@ -457,7 +457,7 @@ delete_nvr_file(uint8_t flash)
     int c;
 
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_internal_name()) + 5;
+    c       = strlen(machine_get_nvr_name()) + 5;
     fn      = (char *) malloc(c + 1);
 
     if (fn == NULL)
@@ -465,9 +465,9 @@ delete_nvr_file(uint8_t flash)
               flash ? "BIOS flash" : "CMOS");
 
     if (flash)
-        sprintf(fn, "%s.bin", machine_get_internal_name());
+        sprintf(fn, "%s.bin", machine_get_nvr_name());
     else
-        sprintf(fn, "%s.nvr", machine_get_internal_name());
+        sprintf(fn, "%s.nvr", machine_get_nvr_name());
 
     remove(nvr_path(fn));
 
