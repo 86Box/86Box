@@ -3672,12 +3672,17 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 
                 pos += 2;
 
+                /* Ignore any page codes with zero length. */
+                if (page_len == 0)
+                    continue;
+
                 if (dev->drv->is_sony && (page == 0x08) && (page_len == 0x02))
                     dev->drv->sony_msf = dev->buffer[pos] & 0x01;
 
                 if (!(dev->ms_page_flags & (1LL << ((uint64_t) page)))) {
                     scsi_cdrom_log(dev->log, "Unimplemented page %02X\n", page);
                     error |= 1;
+                    break;
                 } else {
                     for (i = 0; i < page_len; i++) {
                         uint8_t pg = page;
@@ -3698,9 +3703,13 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
                                                "%02X on page %02X\n", i + 2, page);
                                 scsi_cdrom_invalid_field_pl(dev, val);
                                 error |= 1;
+                                break;
                             }
                         }
                     }
+
+                    if (error)
+                        break;
                 }
 
                 pos += page_len;
@@ -3716,6 +3725,7 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 
             if (error) {
                 scsi_cdrom_buf_free(dev);
+                scsi_cdrom_command_stop((scsi_common_t *) dev);
                 return 0;
             }
             break;
