@@ -484,21 +484,6 @@ device_has_config(const device_t *dev)
     return (c > 0) ? 1 : 0;
 }
 
-int
-device_poll(const device_t *dev)
-{
-    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
-        if (devices[c] != NULL) {
-            if (devices[c] == dev) {
-                if (devices[c]->poll)
-                    return (devices[c]->poll(device_priv[c]));
-            }
-        }
-    }
-
-    return 0;
-}
-
 void
 device_get_name(const device_t *dev, int bus, char *name)
 {
