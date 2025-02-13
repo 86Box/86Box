@@ -1119,6 +1119,10 @@ pc_send_cae(void)
 /*
    Currently available API:
 
+   extern void     resetx86(void);
+   extern void     softresetx86(void);
+   extern void     hardresetx86(void);
+
    extern void     biu_set_bus_cycle(int bus_cycle);
    extern void     biu_set_bus_state(int bus_state);
    extern void     biu_set_bus_next_state(int bus_next_state);
