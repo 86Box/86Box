@@ -712,7 +712,7 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
                              (dev->packet_len  / dev->block_len));
 
             period *= ((double) num) * 2352.0;
-            pclog("[%02X] Calculated period for %i * 2352 bytes\n", cmd, num);
+            // pclog("[%02X] Calculated period for %i * 2352 bytes\n", cmd, num);
         }
         scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
