@@ -166,7 +166,6 @@ typedef struct _device_ {
     void (*close)(void *priv);
     void (*reset)(void *priv);
     int  (*available)(void);
-    int  (*poll)(void *priv);
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
 
@@ -203,7 +202,6 @@ extern void  device_reset_all(uint32_t match_flags);
 extern void *device_find_first_priv(uint32_t match_flags);
 extern void *device_get_priv(const device_t *dev);
 extern int   device_available(const device_t *dev);
-extern int   device_poll(const device_t *dev);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
 extern void  device_get_name(const device_t *dev, int bus, char *name);
