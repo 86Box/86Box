@@ -484,21 +484,6 @@ device_has_config(const device_t *dev)
     return (c > 0) ? 1 : 0;
 }
 
-int
-device_poll(const device_t *dev)
-{
-    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
-        if (devices[c] != NULL) {
-            if (devices[c] == dev) {
-                if (devices[c]->poll)
-                    return (devices[c]->poll(device_priv[c]));
-            }
-        }
-    }
-
-    return 0;
-}
-
 void
 device_get_name(const device_t *dev, int bus, char *name)
 {
@@ -637,16 +622,24 @@ device_get_instance(void)
 const char *
 device_get_config_string(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    const char *ret = "";
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_string((char *) device_current.name, (char *) str, (char *) cfg->default_string));
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-        cfg++;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                const char *s = (config_get_string((char *) device_current.name,
+                                 (char *) str, (char *) cfg->default_string));
+                ret = (s == NULL) ? "" : s;
+                break;
+            }
+
+            cfg++;
+        }
     }
 
-    return (NULL);
+    return ret;
 }
 
 int
@@ -870,24 +863,29 @@ machine_get_config_int(char *str)
     return 0;
 }
 
-char *
+const char *
 machine_get_config_string(char *str)
 {
-    const device_t        *dev = machine_get_device(machine);
-    const device_config_t *cfg;
+    const device_t *dev = machine_get_device(machine);
+    const char     *ret = "";
 
-    if (dev == NULL)
-        return 0;
+    if (dev != NULL) {
+        const device_config_t *cfg;
 
-    cfg = dev->config;
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_string((char *) dev->name, str, (char *) cfg->default_string));
+        cfg = dev->config;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                const char *s = config_get_string((char *) dev->name, str,
+                                                  (char *) cfg->default_string);
+                ret = (s == NULL) ? "" : s;
+                break;
+            }
 
-        cfg++;
+            cfg++;
+        }
     }
 
-    return NULL;
+    return ret;
 }
 
 const device_t *
