@@ -1119,12 +1119,22 @@ pc_send_cae(void)
 /*
    Currently available API:
 
+   extern void     biu_set_bus_cycle(int bus_cycle);
+   extern void     biu_set_bus_state(int bus_state);
+   extern void     biu_set_bus_next_state(int bus_next_state);
+   extern void     biu_set_cycle_t1(void);
+   extern void     biu_set_next_cycle(void);
+   extern int      biu_get_bus_cycle(void);
+   extern int      biu_get_bus_state(void);
+   extern int      biu_get_bus_next_state(void);
    extern void     prefetch_queue_set_pos(int pos);
    extern void     prefetch_queue_set_ip(uint16_t ip);
-   extern void     prefetch_queue_set_prefetching(int p);
+   extern void     prefetch_queue_set_in(uint16_t in);
+   extern void     prefetch_queue_set_suspended(int p);
    extern int      prefetch_queue_get_pos(void);
    extern uint16_t prefetch_queue_get_ip(void);
-   extern int      prefetch_queue_get_prefetching(void);
+   extern uint16_t prefetch_queue_get_in(void);
+   extern int      prefetch_queue_get_suspended(void);
    extern int      prefetch_queue_get_size(void);
  */
 static void

@@ -821,12 +821,51 @@ extern int cpu_override_interpreter;
 
 extern int is_lock_legal(uint32_t fetchdat);
 
+extern void     biu_set_bus_cycle(int bus_cycle);
+extern void     biu_set_bus_state(int bus_state);
+extern void     biu_set_bus_next_state(int bus_next_state);
+extern void     biu_set_cycle_t1(void);
+extern void     biu_set_next_cycle(void);
+extern int      biu_get_bus_cycle(void);
+extern int      biu_get_bus_state(void);
+extern int      biu_get_bus_next_state(void);
 extern void     prefetch_queue_set_pos(int pos);
 extern void     prefetch_queue_set_ip(uint16_t ip);
+extern void     prefetch_queue_set_in(uint16_t in);
 extern void     prefetch_queue_set_prefetching(int p);
 extern int      prefetch_queue_get_pos(void);
 extern uint16_t prefetch_queue_get_ip(void);
+extern uint16_t prefetch_queue_get_in(void);
 extern int      prefetch_queue_get_prefetching(void);
 extern int      prefetch_queue_get_size(void);
+
+#define prefetch_queue_set_suspended(s) prefetch_queue_set_prefetching(!s)
+#define prefetch_queue_get_suspended !prefetch_queue_get_prefetching
+
+enum {
+    BUS_T1 = 0,
+    BUS_T2,
+    BUS_T3,
+    BUS_T4
+};
+
+enum {
+    BIU_STATE_IDLE,
+    BIU_STATE_SUSP,
+    BIU_STATE_DELAY,
+    BIU_STATE_RESUME,
+    BIU_STATE_WAIT,
+    BIU_STATE_PF,
+    BIU_STATE_EU
+};
+
+enum {
+    DMA_STATE_IDLE,
+    DMA_STATE_TIMER,
+    DMA_STATE_DREQ,
+    DMA_STATE_HRQ,
+    DMA_STATE_HLDA,
+    DMA_STATE_OPERATING
+};
 
 #endif /*EMU_CPU_H*/

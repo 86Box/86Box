@@ -85,32 +85,6 @@ static int         dma_wait_states       = 0;
 #define BUS_CYCLE_T1    biu_cycles = 0
 #define BUS_CYCLE_NEXT  biu_cycles = (biu_cycles + 1) & 3
 
-enum {
-    BUS_T1 = 0,
-    BUS_T2,
-    BUS_T3,
-    BUS_T4
-};
-
-enum {
-    BIU_STATE_IDLE,
-    BIU_STATE_SUSP,
-    BIU_STATE_DELAY,
-    BIU_STATE_RESUME,
-    BIU_STATE_WAIT,
-    BIU_STATE_PF,
-    BIU_STATE_EU
-};
-
-enum {
-    DMA_STATE_IDLE,
-    DMA_STATE_TIMER,
-    DMA_STATE_DREQ,
-    DMA_STATE_HRQ,
-    DMA_STATE_HLDA,
-    DMA_STATE_OPERATING
-};
-
 /* DEBUG stuff. */
 const char *lpBiuStates[7] = { "Ti   ", "Ti S ", "Ti D ", "Ti R ", "Tw   ", "T%i PF", "T%i EU" };
 
@@ -131,6 +105,108 @@ x808x_biu_log(const char *fmt, ...)
 #else
 #    define x808x_biu_log(fmt, ...)
 #endif
+
+void
+biu_set_bus_cycle(int bus_cycle)
+{
+    biu_cycles = bus_cycle;
+}
+
+void
+biu_set_bus_state(int bus_state)
+{
+    biu_state = bus_state;
+}
+
+void
+biu_set_bus_next_state(int bus_next_state)
+{
+    biu_state = bus_next_state;
+}
+
+void
+biu_set_cycle_t1(void)
+{
+    BUS_CYCLE_T1;
+}
+
+void
+biu_set_next_cycle(void)
+{
+    BUS_CYCLE_NEXT;
+}
+
+int
+biu_get_bus_cycle(void)
+{
+    return BUS_CYCLE;
+}
+
+int
+biu_get_bus_state(void)
+{
+    return biu_state;
+}
+
+int
+biu_get_bus_next_state(void)
+{
+    return biu_next_state;
+}
+
+void
+prefetch_queue_set_pos(int pos)
+{
+    pfq_pos = pos;
+}
+
+void
+prefetch_queue_set_ip(uint16_t ip)
+{
+    pfq_ip = ip;
+}
+
+void
+prefetch_queue_set_in(uint16_t in)
+{
+    pfq_ip = in;
+}
+
+void
+prefetch_queue_set_prefetching(int p)
+{
+    fetch_suspended = !p;
+}
+
+int
+prefetch_queue_get_pos(void)
+{
+    return pfq_pos;
+}
+
+uint16_t
+prefetch_queue_get_ip(void)
+{
+    return pfq_ip;
+}
+
+uint16_t
+prefetch_queue_get_in(void)
+{
+    return pfq_in;
+}
+
+int
+prefetch_queue_get_prefetching(void)
+{
+    return !fetch_suspended;
+}
+
+int
+prefetch_queue_get_size(void)
+{
+    return pfq_size;
+}
 
 static void pfq_add(void);
 
