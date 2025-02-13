@@ -1119,6 +1119,10 @@ pc_send_cae(void)
 /*
    Currently available API:
 
+   extern void     resetx86(void);
+   extern void     softresetx86(void);
+   extern void     hardresetx86(void);
+
    extern void     prefetch_queue_set_pos(int pos);
    extern void     prefetch_queue_set_ip(uint16_t ip);
    extern void     prefetch_queue_set_prefetching(int p);
