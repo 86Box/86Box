@@ -1533,33 +1533,31 @@ The IBM 5550 character mode addresses video memory between E0000h and E0FFFh.
  DOS Bunsho Program transfers 1/2 and 1/4 fonts fron the font ROM to the Extended SBCS.
  This bit is not used for DBCS, but some apps set it as that column is right half of DBCS.
 
-[Font ROM Map (DA2)]
-The Font ROM is accessed via 128 KB memory window located on A0000-BFFFFh.
-I don't know how much data the actual Font ROM has.
-Here information, I researched it by disassembling J-DOS.
+[Font ROM Map (DA2, Japanese)]
+The Font ROM can be accessed via 128 KB memory window located at A0000-BFFFFh.
 
-Bank 0
+ Bank 0
  4800-  *
-Bank 1, 2, 3
-  *  -  *
-Bank 4
-  *  -0DB6Fh ( 4800-8DB6Fh;IBMJ 100-1F7Dh) : JIS X 0208 DBCS (24 x 24)
-10000-16D1Fh (90000-96D1Fh;IBMJ 2000-2183h) : IBM Extended Characters
-18000-1BFCFh (98000-9BFCFh;around IBMJ 21C7-22AAh) : JIS X 0201 SBCS (13 x 30)
-1C000-1FFFFh (9C000-9FFFFh;around IBMJ 22AA-238Eh) : Codepage 437 characters (13 x 30)
-Bank 5
-00000-0C68Fh (A0000-AC68Fh;around IBMJ 238E-2650h) : Gaiji (24 x 24)
-
-  *  -0D09Fh (9FD20-AD09Fh;IBMJ 2384-2673h) : Gaiji 752 chs (maybe blank)
-10000-13FFFh (B0000-B3FFFh;around IBMJ 271C-27FFh) : Extended SBCS (13 x 30)
-
-14000-147FFh (B4000-B46FFh;IBMJ 2800-2818h) : Half-width box drawing characters (7 lines * 4 parts * 64 bytes) used by DOS Bunsho
-16000-17FFFh (B6000-B7FFFh;around IBMJ h) : Codepage 850 characters (13 x 30)
-18000-1A3FFh (B8000-BA3FFh;around IBMJ h) : Shape Icons? (32 x 32)
-
-             (B9580-?;IBMJ 2930-295e?) : Full-width box drawing characters
+ Bank 1, 2, 3
+   *  -  *
+ Bank 4
+   *  -0DB6Fh ( 4800-8DB6Fh) : JIS X 0208 DBCS (24 x 24) (IBMJ code: 100-1F7Dh)
+ 10000-16D1Fh (90000-96D1Fh) : IBM Extended Characters (IBMJ code: 2ADC-2C5Fh)
+ 18000-1BFCFh (98000-9BFCFh) : JIS X 0201 SBCS (13 x 30)
+ 1C000-1FFFFh (9C000-9FFFFh) : Codepage 437 characters (13 x 30)
+ Bank 5
+ 00000-0C68Fh (A0000-AC68Fh) : Gaiji used by DOS Bunsho
+ 10000-13FFFh (B0000-B3FFFh) : Extended SBCS (13 x 30)
+ 14000-1477Fh (B4000-B477Fh) : Half-width box drawing characters used by DOS Bunsho
+ 16000-17FFFh (B6000-B7FFFh) : Codepage 850 characters (13 x 30)
+ 18000-1A3FFh (B8000-BA3FFh) : CAD control icons and box drawing characters (32 x 32)
 
  Some models have the signature 80h, 01h placed at Bank 0:1AFFEh. (it disables hardware text drawing in OS/2 J1.3)
+
+[Font ROM Map (DA3, Traditional Chinese)]
+ Bank 0 - 11 : Valid Font ROM data
+ Bank 12 : Alias of bank 11 (At least, DOS T5.0 uses this on purpose.)
+ Bank 13 : All addresses return 0xFF
 
 [Gaiji RAM Map (DA2)]
  Bank 0 00000-1FFFFh placed between A0000h-BFFFFh
