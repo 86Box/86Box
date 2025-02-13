@@ -100,10 +100,10 @@ d86f_handler_t d86f_handler[FDD_NUM];
 
 static const struct
 {
-    char *ext;
-    void (*load)(int drive, char *fn);
-    void (*close)(int drive);
-    int size;
+    const char *ext;
+    void        (*load)(int drive, char *fn);
+    void        (*close)(int drive);
+    int         size;
 } loaders[] = {
     { "001",  img_load,  img_close,  -1},
     { "002",  img_load,  img_close,  -1},

@@ -210,6 +210,7 @@ int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether
 int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
                                                                          loss */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
+int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
@@ -457,7 +458,7 @@ delete_nvr_file(uint8_t flash)
     int c;
 
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_internal_name()) + 5;
+    c       = strlen(machine_get_nvr_name()) + 5;
     fn      = (char *) malloc(c + 1);
 
     if (fn == NULL)
@@ -465,9 +466,9 @@ delete_nvr_file(uint8_t flash)
               flash ? "BIOS flash" : "CMOS");
 
     if (flash)
-        sprintf(fn, "%s.bin", machine_get_internal_name());
+        sprintf(fn, "%s.bin", machine_get_nvr_name());
     else
-        sprintf(fn, "%s.nvr", machine_get_internal_name());
+        sprintf(fn, "%s.nvr", machine_get_nvr_name());
 
     remove(nvr_path(fn));
 
@@ -585,6 +586,7 @@ usage:
 #ifndef USE_SDL_UI
             printf("-S or --settings        - show only the settings dialog\n");
 #endif
+            printf("-T or --testmode        - test mode: execute the test mode entry point on init/hard reset\n");
             printf("-V or --vmname name     - overrides the name of the running VM\n");
             printf("-W or --nohook          - disables keyboard hook (compatibility-only outside Windows)\n");
             printf("-X or --clear what      - clears the 'what' (cmos/flash/both)\n");
@@ -656,6 +658,8 @@ usage:
         } else if (!strcasecmp(argv[c], "--settings") || !strcasecmp(argv[c], "-S")) {
             settings_only = 1;
 #endif
+        } else if (!strcasecmp(argv[c], "--testmode") || !strcasecmp(argv[c], "-T")) {
+            test_mode = 1;
         } else if (!strcasecmp(argv[c], "--noconfirm") || !strcasecmp(argv[c], "-N")) {
             confirm_exit_cmdl = 0;
         } else if (!strcasecmp(argv[c], "--missing") || !strcasecmp(argv[c], "-M")) {
@@ -1112,6 +1116,27 @@ pc_send_cae(void)
     pc_send_ca(1);
 }
 
+/*
+   Currently available API:
+
+   extern void     resetx86(void);
+   extern void     softresetx86(void);
+   extern void     hardresetx86(void);
+
+   extern void     prefetch_queue_set_pos(int pos);
+   extern void     prefetch_queue_set_ip(uint16_t ip);
+   extern void     prefetch_queue_set_prefetching(int p);
+   extern int      prefetch_queue_get_pos(void);
+   extern uint16_t prefetch_queue_get_ip(void);
+   extern int      prefetch_queue_get_prefetching(void);
+   extern int      prefetch_queue_get_size(void);
+ */
+static void
+pc_test_mode_entry_point(void)
+{
+    pclog("Test mode entry point\n=====================\n");
+}
+
 void
 pc_reset_hard_close(void)
 {
@@ -1312,6 +1337,9 @@ pc_reset_hard_init(void)
 #endif
 
     update_mouse_msg();
+
+    if (test_mode)
+        pc_test_mode_entry_point();
 
     ui_hard_reset_completed();
 }

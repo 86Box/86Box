@@ -909,6 +909,8 @@ sermouse_init(const device_t *info)
     /* Tell them how many buttons we have. */
     mouse_set_buttons(dev->but);
 
+    mouse_set_poll(sermouse_poll, dev);
+
     /* Return our private data to the I/O layer. */
     return dev;
 }
@@ -1075,7 +1077,7 @@ const device_t mouse_mssystems_device = {
     .init          = sermouse_init,
     .close         = sermouse_close,
     .reset         = NULL,
-    .poll          = sermouse_poll,
+    .available     = NULL,
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = msssermouse_config
@@ -1089,7 +1091,7 @@ const device_t mouse_msserial_device = {
     .init          = sermouse_init,
     .close         = sermouse_close,
     .reset         = NULL,
-    .poll          = sermouse_poll,
+    .available     = NULL,
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = mssermouse_config
@@ -1103,7 +1105,7 @@ const device_t mouse_ltserial_device = {
     .init          = sermouse_init,
     .close         = sermouse_close,
     .reset         = NULL,
-    .poll          = sermouse_poll,
+    .available     = NULL,
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = ltsermouse_config

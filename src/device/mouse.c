@@ -61,7 +61,7 @@ static const device_t mouse_none_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .poll = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -75,7 +75,7 @@ static const device_t mouse_internal_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .poll = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -111,7 +111,6 @@ static atomic_int      mouse_buttons;
 static int             mouse_delta_b;
 static int             mouse_old_b;
 
-static const device_t *mouse_curr;
 static void           *mouse_priv;
 static int             mouse_nbut;
 static int             mouse_raw;
@@ -537,17 +536,10 @@ mouse_get_abs_coords(double *x_abs, double *y_abs)
 void
 mouse_process(void)
 {
-    if (mouse_curr == NULL)
-        return;
-
     if ((mouse_input_mode >= 1) && mouse_poll_ex)
         mouse_poll_ex();
-    else if ((mouse_input_mode == 0) && ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL))) {
-        if (mouse_curr->poll != NULL)
-            mouse_curr->poll(mouse_priv);
-        else
-            mouse_dev_poll(mouse_priv);
-    }
+    else if ((mouse_input_mode == 0) && (mouse_dev_poll != NULL))
+        mouse_dev_poll(mouse_priv);
 }
 
 void
@@ -559,9 +551,6 @@ mouse_set_poll_ex(void (*poll_ex)(void))
 void
 mouse_set_poll(int (*func)(void *), void *arg)
 {
-    if (mouse_type != MOUSE_TYPE_INTERNAL)
-        return;
-
     mouse_dev_poll = func;
     mouse_priv     = arg;
 }
@@ -629,7 +618,7 @@ mouse_set_raw(int raw)
 void
 mouse_reset(void)
 {
-    if (mouse_curr != NULL)
+    if (mouse_priv != NULL)
         return; /* Mouse already initialized. */
 
     mouse_log("MOUSE: reset(type=%d, '%s')\n",
@@ -651,19 +640,13 @@ mouse_reset(void)
     sample_rate = 100.0;
     timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
 
-    mouse_curr = mouse_devices[mouse_type].device;
-
-    if ((mouse_type > 1) && (mouse_curr != NULL))
-        mouse_priv = device_add(mouse_curr);
+    if ((mouse_type > 1) && (mouse_devices[mouse_type].device != NULL))
+        mouse_priv = device_add(mouse_devices[mouse_type].device);
 }
 
 void
 mouse_close(void)
 {
-    if (mouse_curr == NULL)
-        return;
-
-    mouse_curr     = NULL;
     mouse_priv     = NULL;
     mouse_nbut     = 0;
     mouse_dev_poll = NULL;
@@ -680,7 +663,6 @@ mouse_init(void)
     mouse_clear_buttons();
 
     mouse_type     = MOUSE_TYPE_NONE;
-    mouse_curr     = NULL;
     mouse_priv     = NULL;
     mouse_nbut     = 0;
     mouse_dev_poll = NULL;
