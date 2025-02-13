@@ -431,8 +431,6 @@ read_toc_normal(const cdrom_t *dev, unsigned char *b,
 
     cdrom_log(dev->log, "read_toc_normal(%016" PRIXPTR ", %016" PRIXPTR ", %02X, %i, %i)\n",
               (uintptr_t) dev, (uintptr_t) b, start_track, msf, sony);
-    pclog("read_toc_normal(%016" PRIXPTR ", %016" PRIXPTR ", %02X, %i, %i)\n",
-          (uintptr_t) dev, (uintptr_t) b, start_track, msf, sony);
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
 
@@ -1848,9 +1846,9 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                 b[10] = (dat >> 8) & 0xff;
                 b[11] = dat & 0xff;
             }
-            pclog("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
-                  b[ 0], b[ 1], b[ 2], b[ 3], b[ 4], b[ 5], b[ 6], b[ 7],
-                  b[ 8], b[ 9], b[10], b[11]);
+            // pclog("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                  // b[ 0], b[ 1], b[ 2], b[ 3], b[ 4], b[ 5], b[ 6], b[ 7],
+                  // b[ 8], b[ 9], b[10], b[11]);
             if (b[0] != 0x00)
                 break;
             base += 12;
@@ -3074,7 +3072,9 @@ cdrom_reload(const uint8_t id)
 {
     cdrom_t   *dev       = &cdrom[id];
 
-    if ((strcmp(dev->image_path, dev->prev_image_path) == 0) || (strlen(dev->prev_image_path) == 0) || (strlen(dev->image_path) > 0)) {
+    if ((strcmp(dev->image_path, dev->prev_image_path) == 0) ||
+        (strlen(dev->prev_image_path) == 0) ||
+        (strlen(dev->image_path) > 0)) {
         /* Switch from empty to empty. Do nothing. */
         return;
     }

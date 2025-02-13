@@ -43,7 +43,6 @@ typedef struct ioctl_t {
     void                   *log;
     int                     is_dvd;
     int                     has_audio;
-    int32_t                 tracks_num;
     int                     blocks_num;
     uint8_t                 cur_rti[65536];
     HANDLE                  handle;
@@ -107,13 +106,13 @@ ioctl_open_handle(ioctl_t *ioctl)
 }
 
 static int
-ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf)
+ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf, int32_t *tracks_num)
 {
     long                     size            = 0;
     PCDROM_TOC_FULL_TOC_DATA cur_full_toc    = NULL;
     CDROM_READ_TOC_EX        cur_read_toc_ex = { 0 };
 
-    ioctl->tracks_num = 0;
+    *tracks_num = 0;
     memset(toc_buf, 0x00, 65536);
 
     cur_full_toc = (PCDROM_TOC_FULL_TOC_DATA) calloc(1, 65536);
@@ -132,7 +131,7 @@ ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf)
     if (temp != 0) {
         const int length = ((cur_full_toc->Length[0] << 8) | cur_full_toc->Length[1]) + 2;
         memcpy(toc_buf, cur_full_toc, length);
-        ioctl->tracks_num = (length - 4) / 8;
+        *tracks_num = (length - 4) / 8;
     }
 
     free(cur_full_toc);
@@ -141,9 +140,9 @@ ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf)
     PCDROM_TOC toc = (PCDROM_TOC) toc_buf;
 
     ioctl_log(ioctl->log, "%i tracks: %02X %02X %02X %02X\n",
-              ioctl->tracks_num, toc_buf[0], toc_buf[1], toc_buf[2], toc_buf[3]);
+              *tracks_num, toc_buf[0], toc_buf[1], toc_buf[2], toc_buf[3]);
 
-    for (int i = 0; i < ioctl->tracks_num; i++) {
+    for (int i = 0; i < *tracks_num; i++) {
         const uint8_t *t  = (const uint8_t *) &toc->TrackData[i];
         ioctl_log(ioctl->log, "Track %03i: %02X %02X %02X %02X %02X %02X %02X %02X\n",
                   i, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
@@ -185,7 +184,7 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
         ioctl_log(ioctl->log, "status = %i\n", status);
     }
 
-    if ((status == 0) && (ioctl->tracks_num >= 1)) {
+    if (status == 0) {
         /*
            This is needed because in some circumstances (eg. a DVD .MDS
            mounted in Daemon Tools), reading the raw TOC fails but
@@ -193,48 +192,54 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
            raw TOC from the cooked TOC.
          */
         uint8_t           cur_toc[65536] = { 0 };
+        int32_t           tracks_num     = 0;
 
         const CDROM_TOC * toc            = (const CDROM_TOC *) cur_toc;
-        const TRACK_DATA *ct             = &(toc->TrackData[ioctl->tracks_num - 1]);
 
-        ioctl_read_normal_toc(ioctl, cur_toc);
+        status                           = ioctl_read_normal_toc(ioctl, cur_toc, &tracks_num);
 
-        rti[0].adr_ctl = ((ct->Adr & 0xf) << 4) | (ct->Control & 0xf);
-        rti[0].point   = 0xa0;
-        rti[0].pm      = toc->FirstTrack;
+        const TRACK_DATA *ct             = &(toc->TrackData[tracks_num - 1]);
 
-        rti[1].adr_ctl = rti[0].adr_ctl;
-        rti[1].point   = 0xa1;
-        rti[1].pm      = toc->LastTrack;
+        if ((status > 0) && (tracks_num >= 1)) {
+            rti[0].adr_ctl = ((ct->Adr & 0xf) << 4) | (ct->Control & 0xf);
+            rti[0].point   = 0xa0;
+            rti[0].pm      = toc->FirstTrack;
 
-        rti[2].adr_ctl = rti[0].adr_ctl;
-        rti[2].point   = 0xa2;
-        rti[2].pm      = ct->Address[1];
-        rti[2].ps      = ct->Address[2];
-        rti[2].pf      = ct->Address[3];
+            rti[1].adr_ctl = rti[0].adr_ctl;
+            rti[1].point   = 0xa1;
+            rti[1].pm      = toc->LastTrack;
 
-        ioctl->blocks_num = 3;
+            rti[2].adr_ctl = rti[0].adr_ctl;
+            rti[2].point   = 0xa2;
+            rti[2].pm      = ct->Address[1];
+            rti[2].ps      = ct->Address[2];
+            rti[2].pf      = ct->Address[3];
 
-        for (int i = 0; i < (ioctl->tracks_num - 1); i++) {
-            raw_track_info_t *crt = &(rti[ioctl->blocks_num]);
+            ioctl->blocks_num = 3;
 
-            ct           = &(toc->TrackData[i]);
+            for (int i = 0; i < (tracks_num - 1); i++) {
+                raw_track_info_t *crt = &(rti[ioctl->blocks_num]);
 
-            crt->adr_ctl = ((ct->Adr & 0xf) << 4) | (ct->Control & 0xf);
-            crt->point   = ct->TrackNumber;
-            crt->pm      = ct->Address[1];
-            crt->ps      = ct->Address[2];
-            crt->pf      = ct->Address[3];
+                ct           = &(toc->TrackData[i]);
 
-            ioctl->blocks_num++;
-        }
+                crt->adr_ctl = ((ct->Adr & 0xf) << 4) | (ct->Control & 0xf);
+                crt->point   = ct->TrackNumber;
+                crt->pm      = ct->Address[1];
+                crt->ps      = ct->Address[2];
+                crt->pf      = ct->Address[3];
+
+                ioctl->blocks_num++;
+            }
+        } else if (status > 0)
+           /* Announce that we've had a failure. */
+           status = 0;
     } else if (status != 0) {
         ioctl->blocks_num = (((cur_full_toc->Length[0] << 8) |
                               cur_full_toc->Length[1]) - 2) / 11;
         memcpy(ioctl->cur_rti, cur_full_toc->Descriptors, ioctl->blocks_num * 11);
     }
 
-    if (ioctl->blocks_num)  for (int i = 0; i < ioctl->tracks_num; i++) {
+    if (ioctl->blocks_num)  for (int i = 0; i < ioctl->blocks_num; i++) {
         const raw_track_info_t *crt = &(rti[i]);
 
         if ((crt->point >= 1) && (crt->point <= 99) && !(crt->adr_ctl & 0x04)) {
