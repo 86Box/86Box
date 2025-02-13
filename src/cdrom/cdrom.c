@@ -2873,7 +2873,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 
         if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
             dev->cd_status      = CD_STATUS_EMPTY;
-        if (dev->ops->is_dvd(dev->local))
+        else if (dev->ops->is_dvd(dev->local))
             dev->cd_status      = CD_STATUS_DVD;
         else
             dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :

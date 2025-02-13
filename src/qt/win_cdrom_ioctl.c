@@ -124,7 +124,7 @@ ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf)
     cur_read_toc_ex.SessionTrack = 1;
 
     const int temp = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX,
-                                     &cur_read_toc_ex, 65535,
+                                     &cur_read_toc_ex, sizeof(CDROM_READ_TOC_EX),
                                      cur_full_toc, 65535,
                                      (LPDWORD) &size, NULL);
     ioctl_log(ioctl->log, "temp = %i\n", temp);
@@ -179,7 +179,7 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
 
     if (!ioctl->is_dvd) {
         status = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX,
-                                 &cur_read_toc_ex, 65535,
+                                 &cur_read_toc_ex, sizeof(CDROM_READ_TOC_EX),
                                  cur_full_toc, 65535,
                                  (LPDWORD) &size, NULL);
         ioctl_log(ioctl->log, "status = %i\n", status);
@@ -259,12 +259,6 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
 #endif
 
     free(cur_full_toc);
-}
-
-static void
-ioctl_read_toc(ioctl_t *ioctl)
-{
-    ioctl_read_raw_toc(ioctl);
 }
 
 static int
@@ -761,13 +755,13 @@ ioctl_load(const void *local)
 {
     const ioctl_t *ioctl = (const ioctl_t *) local;
 
-    if (ioctl_open_handle((ioctl_t *) ioctl)) {
-        long size;
-        DeviceIoControl(ioctl->handle, IOCTL_STORAGE_LOAD_MEDIA,
-                        NULL, 0, NULL, 0,
-                        (LPDWORD) &size, NULL);
+    if ((ioctl->handle != NULL) || ioctl_open_handle((ioctl_t *) ioctl)) {
+        long size = 0;
+        (void) DeviceIoControl(ioctl->handle, IOCTL_STORAGE_LOAD_MEDIA,
+                               NULL, 0, NULL, 0,
+                               (LPDWORD) &size, NULL);
 
-        ioctl_read_toc((ioctl_t *) ioctl);
+        ioctl_read_raw_toc((ioctl_t *) ioctl);
     }
 }
 
