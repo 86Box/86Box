@@ -15,7 +15,6 @@
  */
 #include <inttypes.h>
 #include <math.h>
-#define ENABLE_SCSI_CDROM_LOG 2
 #ifdef ENABLE_SCSI_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -704,8 +703,11 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         if (dev->was_cached == -1)
             period *= (double) dev->packet_len;
         else {
-            period *= ((double) dev->requested_blocks) * 2352.0;
-            pclog("[%02X] Calculated period for %i * 2352 bytes\n", cmd, dev->requested_blocks);
+            const int num = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
+                            dev->requested_blocks : 1;
+
+            period *= ((double) num) * 2352.0;
+            pclog("[%02X] Calculated period for %i * 2352 bytes\n", cmd, num);
         }
         scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
@@ -1041,8 +1043,10 @@ static int
 scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int flags,
                      const int vendor_type)
 {
-    int      temp_len = 0;
-    int      ret      = 0;
+    int       temp_len = 0;
+    int       ret      = 0;
+    const int num      = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
+                         dev->requested_blocks : 1;
 
     if (dev->drv->cd_status == CD_STATUS_EMPTY)
         scsi_cdrom_not_ready(dev);
@@ -1051,7 +1055,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
         ret = -1;
     } else {
         ret = 1;
-        for (int i = 0; (i < dev->requested_blocks) && (ret > 0); i++) {
+        for (int i = 0; (i < num) && (ret > 0); i++) {
             ret = cdrom_readsector_raw(dev->drv, dev->buffer + dev->buffer_pos,
                                        dev->sector_pos, msf, type,
                                        flags, &temp_len, vendor_type);

@@ -2822,9 +2822,7 @@ cdrom_update_status(cdrom_t *dev)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
 
-    if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
-        dev->cd_status      = CD_STATUS_EMPTY;
-    else if (dev->ops->is_dvd(dev->local))
+    if (dev->ops->is_dvd(dev->local))
         dev->cd_status      = CD_STATUS_DVD;
     else
         dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
@@ -3048,7 +3046,7 @@ cdrom_is_empty(const uint8_t id)
     int            ret = 0;
 
     /* This entire block should be in cdrom.c/cdrom_eject(dev*) ... */
-    if (strlen(dev->image_path) == 0)
+    if ((strlen(dev->image_path) == 0) || (dev->cd_status == CD_STATUS_EMPTY))
         /* Switch from empty to empty. Do nothing. */
         ret = 1;
 

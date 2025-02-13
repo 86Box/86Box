@@ -124,12 +124,10 @@ ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf)
     ioctl->cur_read_toc_ex.Msf          = 1;
     ioctl->cur_read_toc_ex.SessionTrack = 1;
 
-    ioctl_open_handle(ioctl);
     const int temp = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX,
                                      &ioctl->cur_read_toc_ex, 65535,
                                cur_full_toc, 65535,
                                      (LPDWORD) &size, NULL);
-    ioctl_close_handle(ioctl);
     ioctl_log(ioctl->log, "temp = %i\n", temp);
 
     if (temp != 0) {
@@ -178,12 +176,10 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
     ioctl->cur_read_toc_ex.Msf          = 1;
     ioctl->cur_read_toc_ex.SessionTrack = 1;
 
-    ioctl_open_handle(ioctl);
     const int status = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX,
                                        &ioctl->cur_read_toc_ex, 65535,
                                        cur_full_toc, 65535,
                                        (LPDWORD) &size, NULL);
-    ioctl_close_handle(ioctl);
     ioctl_log(ioctl->log, "status = %i\n", status);
 
     if ((status == 0) && (ioctl->tracks_num >= 1)) {
@@ -384,8 +380,6 @@ ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
     int                          ret;
     SCSI_PASS_THROUGH_DIRECT_BUF req;
 
-    ioctl_open_handle((ioctl_t *) ioctl);
-
     if (ioctl->is_dvd) {
         int                          track;
 
@@ -517,8 +511,6 @@ ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
              for (int j = 7; j >= 0; j--)
                   buffer[2352 + (i * 8) + j] = ((buffer[sc_offs + i] >> (7 - j)) & 0x01) << 6;
 
-    ioctl_close_handle((ioctl_t *) ioctl);
-
     return ret;
 }
 
@@ -587,8 +579,6 @@ ioctl_read_dvd_structure(const void *local, const uint8_t layer, const uint8_t f
     const int                    len     = 2052;
     SCSI_PASS_THROUGH_DIRECT_BUF req;
 
-    ioctl_open_handle((ioctl_t *) ioctl);
-
     memset(&req, 0x00, sizeof(SCSI_PASS_THROUGH_DIRECT_BUF));
     req.spt.Length                = sizeof(SCSI_PASS_THROUGH_DIRECT);
     req.spt.PathId                = 0;
@@ -650,8 +640,6 @@ ioctl_read_dvd_structure(const void *local, const uint8_t layer, const uint8_t f
     } else
         ret = ret ? (req.spt.DataTransferLength >= len) : 0;
 
-    ioctl_close_handle((ioctl_t *) ioctl);
-
     return ret;
 }
 
@@ -683,8 +671,6 @@ ioctl_is_empty(const void *local)
     const ioctl_t *              ioctl   = (const ioctl_t *) local;
     unsigned long int            unused  = 0;
     SCSI_PASS_THROUGH_DIRECT_BUF req;
-
-    ioctl_open_handle((ioctl_t *) ioctl);
 
     memset(&req, 0x00, sizeof(SCSI_PASS_THROUGH_DIRECT_BUF));
     req.spt.Length                = sizeof(SCSI_PASS_THROUGH_DIRECT);
@@ -745,8 +731,6 @@ ioctl_is_empty(const void *local)
     } else
         ret = 0;
 
-    ioctl_close_handle((ioctl_t *) ioctl);
-
     return ret;
 }
 
@@ -774,7 +758,6 @@ ioctl_load(const void *local)
         DeviceIoControl(ioctl->handle, IOCTL_STORAGE_LOAD_MEDIA,
                         NULL, 0, NULL, 0,
                         (LPDWORD) &size, NULL);
-        ioctl_close_handle((ioctl_t *) ioctl);
 
         ioctl_read_toc((ioctl_t *) ioctl);
     }
