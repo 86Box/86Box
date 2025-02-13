@@ -1092,7 +1092,7 @@ ide_atapi_callback(ide_t *ide)
             ide_irq_raise(ide);
             break;
         case PHASE_DATA_IN_DMA:
-            pclog("Reading block %i... ", ide->sc->sector_len + 1);
+            // pclog("Reading block %i... ", ide->sc->sector_len + 1);
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
                 if (ide->sc->block_len == 0)
@@ -1116,16 +1116,16 @@ ide_atapi_callback(ide_t *ide)
                 default:
                     break;
                 case 0:
-                    pclog("ERROR\n");
+                    // pclog("ERROR\n");
                     if (ide->bus_master_error)
                         ide->bus_master_error(ide->sc);
                     break;
                 case 2:
-                    pclog("WAIT\n");
+                    // pclog("WAIT\n");
                     ide_atapi_command_bus(ide);
                     break;
                 case 3:
-                    pclog("DONE\n");
+                    // pclog("DONE\n");
                     /* Reached EOT - terminate the command as there's nothing
                        more to transfer. */
                     ide->sc->packet_status = PHASE_COMPLETE;
@@ -1135,7 +1135,7 @@ ide_atapi_callback(ide_t *ide)
                         ide->command_stop(ide->sc);
                     fallthrough;
                 case 1:
-                    pclog("NEXT\n");
+                    // pclog("NEXT\n");
                     if ((ide->sc->packet_status == PHASE_COMPLETE) &&
                         (ide->sc->callback == 0.0))
                         ide_atapi_callback(ide);
