@@ -26,8 +26,8 @@
 #define MACHINE_BUS_NONE      0x00000000 /* sys has no bus */
 /* Feature flags for BUS'es. */
 #define MACHINE_BUS_CASSETTE  0x00000001 /* sys has cassette port */
-#define MACHINE_BUS_ISA       0x00000002 /* sys has ISA bus */
-#define MACHINE_BUS_SIDECAR   0x00000004 /* sys has PCjr sidecar bus */
+#define MACHINE_BUS_SIDECAR   0x00000002 /* sys has PCjr sidecar bus */
+#define MACHINE_BUS_ISA       0x00000004 /* sys has ISA bus */
 #define MACHINE_BUS_XT_KBD    0x00000008 /* sys has an XT keyboard port */
 #define MACHINE_BUS_CBUS      0x00000010 /* sys has C-BUS bus */
 #define MACHINE_BUS_ISA16     0x00000020 /* sys has ISA16 bus - PC/AT architecture */
