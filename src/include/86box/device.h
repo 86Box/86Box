@@ -99,7 +99,7 @@ enum {
     DEVICE_USB       = 0x40000,    /* requires the USB bus */
     DEVICE_AGP       = 0x80000,    /* requires the AGP bus */
     DEVICE_AC97      = 0x100000,   /* requires the AC'97 bus */
-    DEVICE_BUS       = 0xffffff,   /* requires a machine bus */
+    DEVICE_BUS       = 0x1fffff,   /* requires a machine bus */
 
     DEVICE_COM       = 0x200000,   /* requires a serial port */
     DEVICE_LPT       = 0x400000,   /* requires a parallel port */
