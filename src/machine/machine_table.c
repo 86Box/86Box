@@ -8257,8 +8257,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
@@ -8337,8 +8337,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 261120,
@@ -8539,8 +8539,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI | MACHINE_BUS_PS2_LATCH,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
@@ -9198,8 +9198,8 @@ const machine_t machines[] = {
             .min_multi = MACHINE_MULTIPLIER_FIXED,
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
-        .flags = MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 196608,
@@ -16507,19 +16507,39 @@ machine_get_nvrmask(int m)
 int
 machine_has_flags(int m, int flags)
 {
-    return (machines[m].flags & flags);
+    int ret = machines[m].flags & flags;
+
+    /* Can't have PS/2 ports with an AT KBC. */
+    if ((flags & MACHINE_PS2_KBC) &&
+        (machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_PS2_KBC;
+
+    return ret;
 }
 
 int
 machine_has_bus(int m, int bus_flags)
 {
-    return (machines[m].bus_flags & bus_flags);
+    int ret = machines[m].bus_flags & bus_flags;
+
+    /* TODO: Move the KBD flags to the machine table! */
+    if ((bus_flags & MACHINE_BUS_XT_KBD) &&
+        !(machines[m].bus_flags & MACHINE_BUS_ISA16) &&
+        !(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_BUS_XT_KBD;
+
+    if ((bus_flags & MACHINE_BUS_AT_KBD) &&
+        (IS_AT(m)) &&
+        !(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_BUS_AT_KBD;
+
+    return ret;
 }
 
 int
 machine_has_cartridge(int m)
 {
-    return (machine_has_bus(m, MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 int
