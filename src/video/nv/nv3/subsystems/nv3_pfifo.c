@@ -504,10 +504,9 @@ uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
     // shift right until we have our normla number again
     while (mask)
     {
-        // NT4 drivers v1.29
-        mask >>= 1; 
+        // NT4 drivers v1.29 do this the other way around??
         val ^= mask;
-        
+        mask >>= 1; 
     }
 
     return val;
@@ -588,7 +587,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     
     // Up to 128 per envytools?
     uint32_t channel = (addr >> NV3_OBJECT_SUBMIT_CHANNEL) & 0x7F;
-    uint32_t subchannel = (addr >> NV3_OBJECT_SUBMIT_SUBCHANNEL) & 0x07;
+    uint32_t subchannel = (addr >> NV3_OBJECT_SUBMIT_SUBCHANNEL) & (NV3_DMA_CHANNELS - 1);
 
     // first make sure there is even any cache available
     if (!nv3->pfifo.cache1_settings.access_enabled)
@@ -661,6 +660,9 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
 
     nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address);
 
+    nv_log("Submitted object [PIO]: Channel %d, Subchannel %d, Method ID 0x%04x (Put Address is now %d)\n",
+         channel, subchannel, method_offset, nv3->pfifo.cache1_settings.put_address);
+   
     // Now we're done. Phew!
 }
 
@@ -689,7 +691,7 @@ void nv3_pfifo_cache1_pull()
             return; // interrupt was fired, and we went to ramro
     }
 
-    uint32_t current_context = nv3->pfifo.cache0_settings.context[0]; // only 1 entry for CACHE0 so basically ignore the other context entries?
+    uint32_t current_context = nv3->pfifo.cache0_settings.context[current_subchannel]; // only 1 entry for CACHE0 so basically ignore the other context entries?
 
     // Tell the CPU if we found a software method
     if (current_context & 0x800000)
@@ -711,7 +713,7 @@ void nv3_pfifo_cache1_pull()
     nv3->pfifo.cache0_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
 
     #ifndef RELEASE_BUILD
-    nv_log("***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE1 PULLED ****** Contextual information below\n");
+    nv_log("***** OBJECT PULLED, SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - ****** Contextual information below\n");
             
     nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
     #endif

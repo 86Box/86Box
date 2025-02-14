@@ -66,10 +66,10 @@ DrvEnableSurface
 							RmLoadState			SUCCESS			01:53 10/02/2025
 						NV3EnableCursor				SUCCESS			01:54 10/02/2025
 						NV3WaitUntilFinished			SUCCESS			Passing 02:23 10/02/2025
-			EngDeviceIoControl IOCTL 0x230408
-			EngDeviceIoControl IOCTL 0x232024
-			NvAllocHardware	
-			bCreateStdPatches(?)
+			EngDeviceIoControl IOCTL 0x230408				SUCCESS			02:26 10/02/2025
+			EngDeviceIoControl IOCTL 0x232024				SUCCESS			02:26 10/02/2025				
+			NvAllocHardware							SUCCESS			02:29 10/02/2025
+			bCreateStdPatches(?)						FAILURE			02:31 10/02/2025
 			CHECK - NV4
 			vDestroyStdPatches(?)
 			NV3_WaitForOneVerticalRefresh

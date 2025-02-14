@@ -1038,16 +1038,32 @@ typedef struct nv3_object_class_017
     nv3_d3d5_alpha_control_t alpha_control;
 
     uint8_t reserved3[0xCE4];
-    nv3_d3d5_coordinate_t coordinate_points[128];           // The points wer are rendering.
+    nv3_d3d5_coordinate_t coordinate_points[128];           // The points we are rendering.
     /* No placeholder needed, it really is that long. */
 } nv3_d3d5_accelerated_triangle_with_zeta_buffer_t;
 
-/* 0x19, 0x1A, 0x1B don't exist */
+
+// Color and Zeta Buffer algorithm 
+typedef struct nv3_zeta_buffer_s
+{
+    nv3_color_argb_32_t color;
+    uint32_t zeta;                                            // 16 bits z, 8 bits stenciul
+} nv3_zeta_buffer_t;
 
 typedef struct nv3_object_class_018
-{
-
+{  
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;
+    uint8_t reserved[0x100];
+    uint32_t set_notify;
+    uint8_t reserved2[0x1FC];
+    nv3_d3d5_control_out_t control_out; 
+    nv3_d3d5_alpha_control_t alpha_control;
+    uint8_t reserved3[0x4F0];
+    nv3_position_16_t point;
+    nv3_zeta_buffer_t zeta[8];
 } nv3_point_with_zeta_buffer_t;
+
+/* 0x19, 0x1A, 0x1B don't exist */
 
 /* WHY IS THE FORMAT DIFFERENT TO THE REST OF THE GPU? 
    They are making it look like a bitfield but it's hex?

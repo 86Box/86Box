@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   5 February 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   13 February 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -868,6 +868,25 @@ typedef struct nv3_pfb_s
     uint32_t delay;
     uint32_t rtl;                       // Part of the memory timings
 } nv3_pfb_t;
+
+//
+// DMA & Notifier Engine
+//
+
+// Not a notification status, because it's a 16-bit enum
+// C23 fixes this
+#define NV3_NOTIFICATION_STATUS_DONE_OK         0x0
+#define NV3_NOTIFICATION_STATUS_IN_PROGRESS     0xFF
+#define NV3_NOTIFICATION_STATUS_ERROR           0x100
+
+// Core notification structure
+typedef struct nv3_notification_s
+{
+    uint64_t nanoseconds;
+    uint32_t info32;
+    uint16_t info16;
+    uint16_t status;
+} nv3_notification_t;
 
 #define NV3_RMA_NUM_REGS        4
 // Access the GPU from real-mode
