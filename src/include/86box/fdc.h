@@ -52,7 +52,7 @@
 #define FDC_FLAG_ALI            0x800   /* ALi M512x / M1543C */
 #define FDC_FLAG_NO_DSR_RESET   0x1000  /* Has no DSR reset */
 #define FDC_FLAG_NEC            0x2000  /* Is NEC upd765-compatible */
-#define FDC_FLAG_PS55           0x4000  /* PS/55 */
+#define FDC_FLAG_PS2           0x4000  /* PS/2, PS/55 */
 #define FDC_FLAG_SEC            0x10000 /* Is Secondary */
 #define FDC_FLAG_TER            0x20000 /* Is Tertiary */
 #define FDC_FLAG_QUA            0x40000 /* Is Quaternary */
@@ -253,7 +253,7 @@ extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
 extern const device_t fdc_at_ps1_device;
 extern const device_t fdc_at_ps1_2121_device;
-extern const device_t fdc_at_ps55_device;
+extern const device_t fdc_at_ps2_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
