@@ -373,7 +373,7 @@ smbus_sis5595_close(void *priv)
 const device_t sis5595_smbus_device = {
     .name          = "SiS 5595-compatible SMBus Host Controller",
     .internal_name = "sis5595_smbus",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = smbus_sis5595_init,
     .close         = smbus_sis5595_close,

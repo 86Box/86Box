@@ -490,7 +490,7 @@ device_get_name(const device_t *dev, int bus, char *name)
     const char *sbus = NULL;
     const char *fbus;
     char       *tname;
-    char        pbus[11] = { 0 };
+    char        pbus[12] = { 0 };
 
     if (dev == NULL)
         return;
@@ -498,9 +498,9 @@ device_get_name(const device_t *dev, int bus, char *name)
     name[0] = 0x00;
 
     if (bus) {
-        if ((dev->flags & (DEVICE_PCJR | DEVICE_ISA)) ==
-            (DEVICE_PCJR | DEVICE_ISA))
-            sbus = "ISA/PCJR";
+        if ((dev->flags & (DEVICE_SIDECAR | DEVICE_ISA)) ==
+            (DEVICE_SIDECAR | DEVICE_ISA))
+            sbus = "ISA/Sidecar";
         else if (dev->flags & DEVICE_SIDECAR)
             sbus = "Sidecar";
         else if (dev->flags & DEVICE_XT_KBC)
@@ -519,6 +519,8 @@ device_get_name(const device_t *dev, int bus, char *name)
             sbus = "PCMCIA";
         else if (dev->flags & DEVICE_MCA)
             sbus = "MCA";
+        else if (dev->flags & DEVICE_MCA32)
+            sbus = "MCA32";
         else if (dev->flags & DEVICE_HIL)
             sbus = "HP HIL";
         else if (dev->flags & DEVICE_EISA)

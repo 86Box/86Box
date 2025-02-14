@@ -1528,7 +1528,11 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->translate_address         = NULL;
     svga->ksc5601_english_font_type = 0;
 
-    if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
+    /* TODO: Move DEVICE_MCA to 16-bit once the device flags have been appropriately corrected. */
+    if ((info->flags & DEVICE_MCA) || (info->flags & DEVICE_MCA32) ||
+        (info->flags & DEVICE_EISA) || (info->flags & DEVICE_AT32) ||
+        (info->flags & DEVICE_OLB) || (info->flags & DEVICE_VLB) ||
+        (info->flags & DEVICE_PCI) || (info->flags & DEVICE_AGP)) {
         svga->read = svga_read;
         svga->readw = svga_readw;
         svga->readl = svga_readl;
@@ -1539,7 +1543,8 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                         svga_read, svga_readw, svga_readl,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
-    } else if ((info->flags & DEVICE_ISA) && (info->flags & DEVICE_AT)) {
+    /* The chances of ever seeing a C-BUS (S)VGA card are approximately zero, but you never know. */
+    } else if ((info->flags & DEVICE_CBUS) || (info->flags & DEVICE_ISA16)) {
         svga->read = svga_read;
         svga->readw = svga_readw;
         svga->readl = NULL;

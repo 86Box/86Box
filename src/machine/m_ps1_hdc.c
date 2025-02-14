@@ -1380,7 +1380,7 @@ ps1_hdc_close(void *priv)
 const device_t ps1_hdc_device = {
     .name          = "PS/1 2011 Fixed Disk Controller",
     .internal_name = "ps1_hdc",
-    .flags         = DEVICE_ISA | DEVICE_PS2,
+    .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = ps1_hdc_init,
     .close         = ps1_hdc_close,
