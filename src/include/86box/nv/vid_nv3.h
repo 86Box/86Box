@@ -618,6 +618,17 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_CLASS1C_MEM2IMAGE_START              0x5C0000    // class 55, 56, 62, 63?
 #define NV3_PGRAPH_CLASS1C_MEM2IMAGE_END                0x5C1FFF    
 
+/* 
+    OBJECT METHODS
+*/
+
+// Global stuff
+#define NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE             0x0         // I'm going insane at 00:48 14/02/2025
+#define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x100       // Set object ctx for dma...see nv3_dma_context_t structure
+#define NV3_SET_NOTIFY                                  0x104
+
+#define NV3_W95TXT_COLORA                               0x3FC       // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
+
 #define NV3_PGRAPH_REGISTER_END                         0x401FFF    // end of pgraph registers
 #define NV3_PGRAPH_REAL_END                             0x5C1FFF
 
@@ -724,9 +735,6 @@ extern const device_config_t nv3_config[];
 
 // not done
 
-// Master Control
-
-
 // CRTC/CIO (0x3b0-0x3df)
 
 #define NV3_CRTC_DATA_OUT                               0x3C0
@@ -809,6 +817,8 @@ extern const device_config_t nv3_config[];
 #define NV3_RMA_SIGNATURE_LSB                           0x2B
 
 #define NV3_CRTC_REGISTER_RMA_MODE_MAX                  0x0F
+
+
 
 /* 
     STRUCTURES FOR THE GPU START HERE
@@ -1358,9 +1368,9 @@ bool        nv3_ramin_arbitrate_write(uint32_t address, uint32_t value);       /
 
 // RAMIN functions
 uint32_t    nv3_ramht_hash(uint32_t name, uint32_t channel);
-bool        nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel_id, uint32_t subchannel_id);
+bool        nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel_id, uint8_t subchannel_id);
 #ifndef RELEASE_BUILD
-void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context);
+void        nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context);
 #endif
 
 uint32_t    nv3_ramfc_read(uint32_t address);

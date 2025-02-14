@@ -500,13 +500,13 @@ Back to sanity
 uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
 {
     uint32_t mask = val >> 1;
-    
+
     // shift right until we have our normla number again
     while (mask)
     {
-        // NT4 drivers v1.29 do this the other way around??
-        val ^= mask;
+        // Algorithm from NT4 drivers, version 1.29
         mask >>= 1; 
+        val ^= mask;
     }
 
     return val;
@@ -530,11 +530,11 @@ void nv3_pfifo_cache0_pull()
         return;
 
     // There is only one entry for cache0 
-    uint16_t current_channel = nv3->pfifo.cache0_settings.channel;
-    uint32_t current_subchannel = nv3->pfifo.cache0_entry.subchannel;
+    uint8_t current_channel = nv3->pfifo.cache0_settings.channel;
+    uint8_t current_subchannel = nv3->pfifo.cache0_entry.subchannel;
     uint32_t current_name = nv3->pfifo.cache0_entry.data;
-    uint32_t current_method = nv3->pfifo.cache0_entry.method;
-    
+    uint16_t current_method = nv3->pfifo.cache0_entry.method;
+
     // i.e. there is no method in cache0, so we have to find the object.
     if (!current_method)
     {
@@ -543,6 +543,7 @@ void nv3_pfifo_cache0_pull()
     }
 
     uint32_t current_context = nv3->pfifo.cache0_settings.context[0]; // only 1 entry for CACHE0 so basically ignore the other context entries?
+    uint8_t class_id = ((nv3_ramin_context_t*)&current_context)->class_id;
 
     // Tell the CPU if we found a software method
     if (current_context & 0x800000)
@@ -594,6 +595,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     {
         oh_shit = true; 
         oh_shit_reason = nv3_runout_reason_no_cache_available;
+        new_address |= (nv3_runout_reason_no_cache_available << NV3_PFIFO_RUNOUT_RAMIN_ERR);
+
     }
     
     // Check if runout is full
@@ -627,7 +630,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     {
         // Cache reassignment required
         if (!nv3->pfifo.cache_reassignment 
-        || (nv3->pfifo.cache0_settings.get_address != nv3->pfifo.cache0_settings.get_address))
+        || (nv3->pfifo.cache1_settings.get_address != nv3->pfifo.cache1_settings.get_address))
         {
             oh_shit = true;
             oh_shit_reason = nv3_runout_reason_no_cache_available;
@@ -654,13 +657,13 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address) + 1;
 
     if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
-        next_put_address &= NV3_PFIFO_CACHE1_SIZE_REV_C;
+        next_put_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
     else 
-        next_put_address &= NV3_PFIFO_CACHE1_SIZE_REV_AB;
+        next_put_address &= (NV3_PFIFO_CACHE1_SIZE_REV_AB - 1);
 
-    nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address);
+    nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address) << 2;
 
-    nv_log("Submitted object [PIO]: Channel %d, Subchannel %d, Method ID 0x%04x (Put Address is now %d)\n",
+    nv_log("Submitted object [PIO]: Channel %d.%d, Method ID 0x%04x (Put Address is now %d)\n",
          channel, subchannel, method_offset, nv3->pfifo.cache1_settings.put_address);
    
     // Now we're done. Phew!
@@ -679,25 +682,27 @@ void nv3_pfifo_cache1_pull()
 
     uint32_t get_address = nv3->pfifo.cache1_settings.get_address >> 2; // 32 bit aligned probably
 
-    uint16_t current_channel = nv3->pfifo.cache1_settings.channel;
-    uint32_t current_subchannel = nv3->pfifo.cache1_entries[get_address].subchannel;
+    uint8_t current_channel = nv3->pfifo.cache1_settings.channel;
+    uint8_t current_subchannel = nv3->pfifo.cache1_entries[get_address].subchannel;
     uint32_t current_name = nv3->pfifo.cache1_entries[get_address].data;
-    uint32_t current_method = nv3->pfifo.cache1_entries[get_address].method;
+    uint16_t current_method = nv3->pfifo.cache1_entries[get_address].method;
   
-    // i.e. there is no method in cache0, so we have to find the object.
+    // i.e. there is no method in cache1, so we have to find the object.
     if (!current_method)
     {
         if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
             return; // interrupt was fired, and we went to ramro
     }
 
-    uint32_t current_context = nv3->pfifo.cache0_settings.context[current_subchannel]; // only 1 entry for CACHE0 so basically ignore the other context entries?
+    uint32_t current_context = nv3->pfifo.cache1_settings.context[current_subchannel]; // get the current subchannel
+
+    uint8_t class_id = ((nv3_ramin_context_t*)&current_context)->class_id;
 
     // Tell the CPU if we found a software method
     if (current_context & 0x800000)
     {
-        nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
-        nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        nv3->pfifo.cache1_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
+        nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
     }
 
@@ -705,12 +710,12 @@ void nv3_pfifo_cache1_pull()
     uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_address) + 1;
     
     if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
-        next_get_address &= NV3_PFIFO_CACHE1_SIZE_REV_C;
+        next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
     else 
-        next_get_address &= NV3_PFIFO_CACHE1_SIZE_REV_AB;
+        next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_AB - 1);
 
     // Is this needed?
-    nv3->pfifo.cache0_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
+    nv3->pfifo.cache1_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
 
     #ifndef RELEASE_BUILD
     nv_log("***** OBJECT PULLED, SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - ****** Contextual information below\n");

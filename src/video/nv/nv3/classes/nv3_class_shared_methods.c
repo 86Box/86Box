@@ -33,3 +33,8 @@ void nv3_generic_method(uint32_t method_id, nv3_grobj_t grobj)
 {
 
 }
+
+void nv3_notify()
+{
+    
+}

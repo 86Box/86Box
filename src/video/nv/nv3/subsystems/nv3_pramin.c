@@ -347,7 +347,7 @@ bool nv3_ramin_arbitrate_write(uint32_t address, uint32_t value)
 }
 
 // THIS IS THE MOST IMPORTANT FUNCTION!
-bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint32_t channel, uint32_t subchannel)
+bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, uint8_t subchannel)
 {  
     // TODO: WRITE IT!!!
     // Set the number of entries to search based on the ramht size (2*(size+1))
