@@ -1239,7 +1239,7 @@ cdrom_get_from_name(const char *s)
             wchar_t tempmsg[2048];
             sprintf(n, "WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
             swprintf(tempmsg, sizeof_w(tempmsg), L"%hs", n);
-            pclog(n);
+            pclog("%s", n);
             ui_msgbox_header(MBX_INFO,
                              plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
                              tempmsg);
@@ -1571,7 +1571,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
 
                 dev->seek_pos = pos2;
                 break;
-            } case 0x80:
+            } case 0x80: {
                 track_info_t ti;
 
                 pos2 = (pos2 >> 24) & 0xff;
@@ -1586,7 +1586,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
                     cdrom_stop(dev);
                 }
                 break;
-            default:
+            } default:
                 break;
         }
 
@@ -1689,7 +1689,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type)
                 pos2 = MSFtoLBA(m, s, f) - 150;
                 dev->cd_end = pos2;
                 break;
-            } case 0x80:
+            } case 0x80: {
                 track_info_t ti;
 
                 pos2 = (pos2 >> 24) & 0xff;
@@ -1704,7 +1704,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type)
                     cdrom_stop(dev);
                 }
                 break;
-            case 0xc0:
+            } case 0xc0:
                 if (pos == 0xffffffff) {
                     cdrom_log(dev->log, "Playing from current position\n");
                     pos2 = dev->cd_end;
