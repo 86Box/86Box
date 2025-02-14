@@ -797,7 +797,7 @@ device_is_valid(const device_t *device, int mch)
 {
     int ret = 1;
 
-    if (device != NULL)
+    if ((device != NULL) && ((device->flags & DEVICE_BUS) != 0))
         ret = machine_has_bus(mch, device->flags & DEVICE_BUS);
 
     return ret;
