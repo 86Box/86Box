@@ -336,7 +336,7 @@ row_init(const device_t *info)
 device_t row_device = {
     .name          = "DRAM Rows",
     .internal_name = "dram_rows",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x0000,
     .init          = row_init,
     .close         = row_close,

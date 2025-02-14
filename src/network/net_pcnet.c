@@ -2922,7 +2922,7 @@ pcnet_init(const device_t *info)
 
     dev->is_pci = !!(info->flags & DEVICE_PCI);
     dev->is_vlb = !!(info->flags & DEVICE_VLB);
-    dev->is_isa = !!(info->flags & (DEVICE_ISA | DEVICE_AT));
+    dev->is_isa = !!(info->flags & (DEVICE_ISA16));
 
     if (dev->is_pci || dev->is_vlb)
         dev->transfer_size = 4;
@@ -3231,7 +3231,7 @@ static const device_config_t pcnet_vlb_config[] = {
 const device_t pcnet_am79c960_device = {
     .name          = "AMD PCnet-ISA",
     .internal_name = "pcnetisa",
-    .flags         = DEVICE_AT | DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = DEV_AM79C960,
     .init          = pcnet_init,
     .close         = pcnet_close,
@@ -3245,7 +3245,7 @@ const device_t pcnet_am79c960_device = {
 const device_t pcnet_am79c960_eb_device = {
     .name          = "Racal Interlan EtherBlaster",
     .internal_name = "pcnetracal",
-    .flags         = DEVICE_AT | DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = DEV_AM79C960_EB,
     .init          = pcnet_init,
     .close         = pcnet_close,
@@ -3273,7 +3273,7 @@ const device_t pcnet_am79c960_vlb_device = {
 const device_t pcnet_am79c961_device = {
     .name          = "AMD PCnet-ISA+",
     .internal_name = "pcnetisaplus",
-    .flags         = DEVICE_AT | DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = DEV_AM79C961,
     .init          = pcnet_init,
     .close         = pcnet_close,

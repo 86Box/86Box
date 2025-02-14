@@ -86,19 +86,20 @@ enum {
     DEVICE_ISA16     = 0x20,       /* requires an AT-compatible system */
     DEVICE_AT_KBC    = 0x40,       /* requires an AT-compatible keyboard controller */
     DEVICE_MCA       = 0x80,       /* requires the MCA bus */
-    DEVICE_PS2_KBC   = 0x100,      /* requires a PS/1 or PS/2 system */
-    DEVICE_PCMCIA    = 0x200,      /* requires the PCMCIA bus */
-    DEVICE_HIL       = 0x400,      /* requires the HP HIL bus */
-    DEVICE_EISA      = 0x800,      /* requires the EISA bus */
-    DEVICE_AT32      = 0x1000,     /* requires the Mylex AT/32 local bus */
-    DEVICE_OLB       = 0x2000,     /* requires the OPTi local bus */
-    DEVICE_VLB       = 0x4000,     /* requires the VLB bus */
-    DEVICE_PCI       = 0x8000,     /* requires the PCI bus */
-    DEVICE_CARDBUS   = 0x10000,    /* requires the CardBus bus */
-    DEVICE_USB       = 0x20000,    /* requires the USB bus */
-    DEVICE_AGP       = 0x40000,    /* requires the AGP bus */
-    DEVICE_AC97      = 0x80000,    /* requires the AC'97 bus */
-    DEVICE_BUS       = 0xfffff,    /* requires a machine bus */
+    DEVICE_MCA32     = 0x100,      /* requires the MCA bus */
+    DEVICE_PS2_KBC   = 0x200,      /* requires a PS/1 or PS/2 system */
+    DEVICE_PCMCIA    = 0x400,      /* requires the PCMCIA bus */
+    DEVICE_HIL       = 0x800,      /* requires the HP HIL bus */
+    DEVICE_EISA      = 0x1000,     /* requires the EISA bus */
+    DEVICE_AT32      = 0x2000,     /* requires the Mylex AT/32 local bus */
+    DEVICE_OLB       = 0x4000,     /* requires the OPTi local bus */
+    DEVICE_VLB       = 0x8000,     /* requires the VLB bus */
+    DEVICE_PCI       = 0x10000,    /* requires the PCI bus */
+    DEVICE_CARDBUS   = 0x20000,    /* requires the CardBus bus */
+    DEVICE_USB       = 0x40000,    /* requires the USB bus */
+    DEVICE_AGP       = 0x80000,    /* requires the AGP bus */
+    DEVICE_AC97      = 0x100000,   /* requires the AC'97 bus */
+    DEVICE_BUS       = 0xffffff,   /* requires a machine bus */
 
     DEVICE_COM       = 0x100000,   /* requires a serial port */
     DEVICE_LPT       = 0x200000,   /* requires a parallel port */
@@ -111,11 +112,6 @@ enum {
 
     DEVICE_ALL       = 0xffffffff  /* match all devices */
 };
-
-/* TODO: Remove this once all the devices' flags have been updated. */
-#define DEVICE_AT   DEVICE_ISA16
-#define DEVICE_PCJR DEVICE_SIDECAR
-#define DEVICE_PS2  DEVICE_PS2_KBC
 
 #define BIOS_NORMAL                      0
 #define BIOS_INTERLEAVED                 1
