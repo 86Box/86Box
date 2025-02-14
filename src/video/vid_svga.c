@@ -1543,6 +1543,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                         svga_read, svga_readw, svga_readl,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
+    /* The chances of ever seeing a C-BUS (S)VGA card are approximately zero, but you never know. */
     } else if ((info->flags & DEVICE_ISA) && (info->flags & DEVICE_ISA16)) {
         svga->read = svga_read;
         svga->readw = svga_readw;
