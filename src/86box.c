@@ -1062,7 +1062,7 @@ pc_init_modules(void)
 void
 pc_send_ca(uint16_t sc)
 {
-    /* Use R-Alt because 5576-002 keyboard assigns L-Alt as  */
+    /* Use R-Alt because PS/55 DOS assigns L-Alt as Kanji */
     keyboard_input(1, 0x1D); /* Ctrl key pressed */
     keyboard_input(1, 0x138); /* R-Alt key pressed */
     keyboard_input(1, sc);
