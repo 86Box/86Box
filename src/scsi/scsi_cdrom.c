@@ -91,7 +91,7 @@ uint8_t scsi_cdrom_command_flags[0x100] = {
              eventually becomes ready, make the condition go away.
      */
     [0x43 ... 0x45] = IMPLEMENTED | CHECK_READY,
-    [0x46]            IMPLEMENTED | ALLOW_UA,
+    [0x46]          = IMPLEMENTED | ALLOW_UA,
     [0x47 ... 0x49] = IMPLEMENTED | CHECK_READY,
     [0x4a]          = IMPLEMENTED | ALLOW_UA,
     [0x4b]          = IMPLEMENTED | CHECK_READY,
@@ -664,7 +664,7 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 static void
 scsi_cdrom_set_period(scsi_cdrom_t *dev)
 {
-    const uint8_t cmd        = dev->current_cdb[0];
+    // const uint8_t cmd        = dev->current_cdb[0];
 
     scsi_cdrom_log(dev->log, "Current speed: %ix\n", dev->drv->cur_speed);
 
