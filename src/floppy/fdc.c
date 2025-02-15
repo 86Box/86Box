@@ -722,7 +722,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 if ((val & 4) && !(fdc->dor & 4))
                     fdc_soft_reset(fdc);
                 /* We can now simplify this since each motor now spins separately. */
-                for (i = 0; i < FDD_NUM; i++) {
+                for (int i = 0; i < FDD_NUM; i++) {
                     drive_num = real_drive(fdc, i);
                     if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
                         val &= ~(0x10 << drive_num);
@@ -1280,25 +1280,6 @@ fdc_read(uint16_t addr, void *priv)
                 if (fdc->step)                     /* STEP */
                     ret |= 0x20;
                 if (!fdd_get_type(1))              /* -Drive 2 Installed */
-                    ret |= 0x40;
-                if (fdc->fintr || fdc->reset_stat) /* INTR */
-                    ret |= 0x80;
-            }
-            else if (fdc->flags & FDC_FLAG_PS2) {
-                /* Status Register A (PS/2, PS/55) */
-                /* | INT PEND | nDRV2 | STEP | nTRK0 | HDSEL | nIDX | nWP | DIR | */
-                ret = 0x04;
-                if (!fdc->seek_dir) /* DIRECTION */
-                    ret |= 0x01;
-                if (!writeprot[drive]) /* nWRITEPROT */
-                    ret |= 0x02;
-                if (fdd_get_head(drive)) /* HDSEL */
-                    ret |= 0x08;
-                if (!fdd_track0(drive)) /* nTRK0 */
-                    ret |= 0x10;
-                if (fdc->step) /* STEP */
-                    ret |= 0x20;
-                if (!fdd_get_type(1)) /* -Drive 2 Installed */
                     ret |= 0x40;
                 if (fdc->fintr || fdc->reset_stat) /* INTR */
                     ret |= 0x80;

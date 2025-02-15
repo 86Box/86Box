@@ -780,13 +780,13 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
             switch ((val >> 5) & 3)
             {
             case 0:
-                lpt1_init(LPT_MDA_ADDR);
+                lpt1_setup(LPT_MDA_ADDR);
                 break;
             case 1:
-                lpt1_init(LPT1_ADDR);
+                lpt1_setup(LPT1_ADDR);
                 break;
             case 2:
-                lpt1_init(LPT2_ADDR);
+                lpt1_setup(LPT2_ADDR);
                 break;
             default:
                 break;
