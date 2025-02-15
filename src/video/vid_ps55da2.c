@@ -6,11 +6,11 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          IBM PS/55 Display Adapter II emulation.
+ *          IBM PS/55 Display Adapter II (and its successors) emulation.
  *
  * Authors: Akamaki.
  *
- *          Copyright 2024 Akamaki.
+ *          Copyright 2024-2025 Akamaki.
  */
 
 #include <stdarg.h>
@@ -58,6 +58,8 @@
 #define DA2_DCONFIG_CHARSET_JPAN 0 /* for Code page 932 Japanese */
 //#define DA2_DCONFIG_CHARSET_HANG 1 /* for Code page 934 Hangul */
 //#define DA2_DCONFIG_CHARSET_HANS 2 /* for Code page 936 Simplified Chinese */
+/* These ROMs are currently not found.
+   At least, IBM-J released a Korean and PRC version of PS/55 for each market. */
 #define DA2_DCONFIG_CHARSET_HANT 3 /* for Code page 938 Traditional Chinese */
 #define DA2_DCONFIG_MONTYPE_COLOR 0x0A
 #define DA2_DCONFIG_MONTYPE_8515 0x0B
@@ -108,21 +110,23 @@
 #define  OldLSI    0x20 /* 1 = DA-2, 0 = DA-3 */
 //#define  Mon_ID3   0x10
 #define  FontCard  0x08 /* ? */
-/* Page Number Mask : Memory Size? = (110b and 111b): vram size is 512k (256 color mode is not supported). */
 #define  Page_One      0x06         /*  80000h 110b */
 #define  Page_Two      0x05         /* 100000h 101b */
 #define  Page_Four     0x03         /* 200000h 011b */
+/* Page Number Mask : Memory Size? = (110b and 111b): vram size is 512k (256 color mode unsupported). */
 
 /* IO 3E0/3E1:0Bh Hardware Configuration Value H (imported from OS/2 DDK) */
 #define  AddPage   0x08 /* ? */
 //#define  Mon_ID2   0x04
 //#define  Mon_ID1   0x02
 //#define  Mon_ID0   0x01
-/* Monitor ID (imported from OS/2 DDK 1.2) */
-//#define  StarbuckC     0x0A  //1 010b IBM 8514, 9518 color 1040x768
-//#define  StarbuckM     0x09  //1 001b IBM 8507, 8604 grayscale
-//#define  Lark_B        0x02  //0 010b IBM 9517       color 1040x768 but 4bpp
-//#define  Dallas        0x0B  //1 011b IBM 8515, 9515 color 1040x740 palette B
+
+/* Monitor ID (imported from OS/2 DDK 1.2) 
+#define  StarbuckC     0x0A  // 1 010b IBM 8514, 9518 color 1040x768
+#define  StarbuckM     0x09  // 1 001b IBM 8507, 8604 grayscale
+#define  Lark_B        0x02  // 0 010b IBM 9517       color 1040x768 but 4bpp
+#define  Dallas        0x0B  // 1 011b IBM 8515, 9515 color 1040x740 another palette
+*/
 
 /* DA2 Registers (imported from OS/2 DDK) */
 #define AC_REG                  0x3EE
@@ -467,9 +471,9 @@ void DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel
 void DA2_DrawColorWithBitmask(uint32_t destaddr, uint8_t color, uint16_t mask, da2_t* da2)
 {
     pixel32 srcpx;
-    //fill data with input color
+    /* fill data with input color */
     for (int i = 0; i < 8; i++)
-        srcpx.p8[i] = (color & (1 << i)) ? 0xffffffff : 0;//read in word
+        srcpx.p8[i] = (color & (1 << i)) ? 0xffffffff : 0;/* read in word */
 
     DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
 }
@@ -494,7 +498,6 @@ Param   Desc
 2B      Tile Addr
 33      Size W
 35      Size H
-
 */
 void DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, da2_t* da2)
 {
@@ -505,7 +508,7 @@ void DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t 
         srcpx.p8[i] = DA2_readvram_s((srcaddr + 24) | i, da2)
         | (DA2_readvram_s((srcaddr + 16) | i, da2) << 8)
         | (DA2_readvram_s((srcaddr + 8) | i, da2) << 16)
-            | (DA2_readvram_s((srcaddr + 0) | i, da2) << 24);//read in word
+            | (DA2_readvram_s((srcaddr + 0) | i, da2) << 24);
 
     DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
 }
@@ -520,7 +523,7 @@ void DA2_PutcharWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, 
         srcpx.p8[i] = ((uint32_t)da2->mmio.font[srcaddr] << 24)
         | ((uint32_t)da2->mmio.font[srcaddr + 1] << 16)
         | ((uint32_t)da2->mmio.font[srcaddr + 2] << 8)
-        | ((uint32_t)da2->mmio.font[srcaddr + 3] << 0);//read in word
+        | ((uint32_t)da2->mmio.font[srcaddr + 3] << 0);
 
     DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
 }
@@ -666,8 +669,8 @@ void da2_bitblt_load(da2_t* da2)
         da2->bitblt.debug_reg_ip++;
         if (da2->bitblt.debug_reg_ip >= DA2_DEBUG_BLTLOG_MAX) da2->bitblt.debug_reg_ip = 0;
 #endif
-        da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x3] >> 4) & 0x0f);//set bit shift
-        da2->bitblt.raster_op = da2->bitblt.reg[0x0b] & 0x03;//01 AND, 03 XOR
+        da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x3] >> 4) & 0x0f);/* set bit shift */
+        da2->bitblt.raster_op = da2->bitblt.reg[0x0b] & 0x03;/* 01 AND, 03 XOR */
         da2_log("bitblt execute 05: %x, rop: %x CS:PC=%4x:%4x\n", da2->bitblt.reg[0x5], da2->bitblt.reg[0x0b], CS, cpu_state.pc);
         for (int i = 0; i <= 0xb; i++)
             da2_log("%02x ", da2->gdcreg[i]);
@@ -678,7 +681,7 @@ void da2_bitblt_load(da2_t* da2)
         da2->bitblt.size_y = da2->bitblt.reg[0x35];
         da2->bitblt.destpitch = da2->bitblt.reg[0x21];
         da2->bitblt.srcpitch = da2->bitblt.reg[0x22];
-        if (da2->bitblt.reg[0x2F] == 0x90) //destaddr -= 2, length += 1;
+        if (da2->bitblt.reg[0x2F] == 0x90) /* destaddr -= 2, length += 1; */
         {
             da2->bitblt.destaddr -= 2;
             da2->bitblt.size_x += 1;
@@ -693,7 +696,7 @@ void da2_bitblt_load(da2_t* da2)
         da2->bitblt.exec = DA2_BLT_CDONE;
         timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
 
-        if (da2->bitblt.reg[0x2f] < 0x80)//MS Paint 3.1 will cause hang up in 256 color mode
+        if (da2->bitblt.reg[0x2f] < 0x80) /* MS Paint 3.1 will cause hang up in 256 color mode */
         {
             da2_log("bitblt not executed 2f:%x\n", da2->bitblt.reg[0x2f]);
             da2->bitblt.exec = DA2_BLT_CDONE;
@@ -701,7 +704,7 @@ void da2_bitblt_load(da2_t* da2)
         else if (da2->bitblt.reg[0x10] == 0xbc04) { /* Put char used by OS/2 (i'm not sure what the condition is) */
             da2->bitblt.exec = DA2_BLT_CPUTCHAR;
             /* Todo: addressing */
-            //if (da2->bitblt.reg[0x2F] == 0x90) //destaddr -= 2, length += 1;
+            //if (da2->bitblt.reg[0x2F] == 0x90) /* destaddr -= 2, length += 1; */
             //{
             //    da2->bitblt.destaddr += 2;
             //    da2->bitblt.size_x -= 1;
@@ -738,14 +741,16 @@ void da2_bitblt_load(da2_t* da2)
                 da2->bitblt.size_x, da2->bitblt.size_y, sjis_h, sjis_l);
 #endif
         }
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {/* Fill a rectangle(or draw a line) */
+        /* Fill a rectangle(or draw a line) */
+        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {
             da2_log("fillrect x=%d, y=%d, w=%d, h=%d, c=%d, 2f=%x, rowcount=%x\n",
                 da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                 da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.reg[0x0], da2->bitblt.reg[0x2F], da2->rowoffset * 2);
             da2->bitblt.exec = DA2_BLT_CFILLRECT;
             da2->bitblt.destaddr += 2;
         }
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x0040 && da2->bitblt.reg[0x3D] == 0x40) {/* Tiling a rectangle ??(transfer tile data multiple times) os/2 only */
+        /* Tiling a rectangle ??(transfer tile data multiple times) os/2 only */
+        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x0040 && da2->bitblt.reg[0x3D] == 0x40) {
             da2->bitblt.exec = DA2_BLT_CFILLTILE;
             da2->bitblt.destaddr += 2;
             da2->bitblt.srcaddr = da2->bitblt.reg[0x2B];
@@ -756,7 +761,8 @@ void da2_bitblt_load(da2_t* da2)
                 da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                 da2->bitblt.size_x, da2->bitblt.size_y);
         }
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x40) {/* Tiling a rectangle (transfer tile data multiple times) */
+        /* Tiling a rectangle (transfer tile data multiple times) */
+        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x40) {
             da2->bitblt.exec = DA2_BLT_CFILLTILE;
             da2->bitblt.destaddr += 2;
             da2->bitblt.srcaddr = da2->bitblt.reg[0x2B];
@@ -767,7 +773,8 @@ void da2_bitblt_load(da2_t* da2)
                 da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                 da2->bitblt.size_x, da2->bitblt.size_y);
         }
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x00) {/* Block transfer (range copy) */
+        /* Block transfer (range copy) */
+        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x00) {
             da2->bitblt.exec = DA2_BLT_CCOPYF;
             da2->bitblt.srcaddr = da2->bitblt.reg[0x2A];
             da2->bitblt.destaddr += 2;
@@ -777,7 +784,8 @@ void da2_bitblt_load(da2_t* da2)
                 da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                 da2->bitblt.size_x, da2->bitblt.size_y);
         }
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1140 && da2->bitblt.reg[0x3D] == 0x00) {/* Block copy but reversed direction */
+        /* Block copy but reversed direction */
+        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1140 && da2->bitblt.reg[0x3D] == 0x00) {
             da2->bitblt.exec = DA2_BLT_CCOPYR;
             da2->bitblt.srcaddr = da2->bitblt.reg[0x2A];
             da2->bitblt.destaddr -= 2;
@@ -1245,7 +1253,7 @@ uint16_t da2_in(uint16_t addr, void *p)
             temp = da2->ioctladdr;
             break;
         case LS_DATA:
-            //da2->ioctl[3] = 0x80;//3E1h:3 bit 7 color monitor, bit 3 busy(GC) bit 0 busy (IO?)
+            //da2->ioctl[3] = 0x80; /* 3E1h:3 bit 7 color monitor, bit 3 busy(GC) bit 0 busy (IO?) */
             if (da2->ioctladdr > 0xf) return DA2_INVALIDACCESS8;
             temp = da2->ioctl[da2->ioctladdr];
             if (da2->ioctladdr == LS_STATUS) { /* Status register */
@@ -1304,7 +1312,7 @@ uint16_t da2_in(uint16_t addr, void *p)
             temp = da2->attraddr | da2->attr_palette_enable;
             break;
         case 0x3E9:
-            if (da2->attraddr == LV_RAS_STATUS_VIDEO) /* this may equiv to 3ba / 3da Input Status Register 1 */
+            if (da2->attraddr == LV_RAS_STATUS_VIDEO) /* this maybe equivalent to 3ba / 3da Input Status Register 1 */
             {
                 if (da2->cgastat & 0x01)
                     da2->cgastat &= ~0x30;
@@ -1587,23 +1595,23 @@ The Font ROM can be accessed via 128 KB memory window located at A0000-BFFFFh.
 uint32_t getfont_ps55dbcs(int32_t code, int32_t line, void* p) {
     da2_t* da2 = (da2_t*)p;
     uint32_t font = 0;
-    int32_t fline = line - 2;//Start line of drawing character (line >= 1 AND line < 24 + 1 )
-    if (code >= 0x8000 && code <= 0x8183) code -= 0x6000;//shift for IBM extended characters (I don't know how the real card works.)
+    int32_t fline = line - 2;/* Start line of drawing character (line >= 1 AND line < 24 + 1 ) */
+    if (code >= 0x8000 && code <= 0x8183) code -= 0x6000;//shift for IBM extended characters (I don't know how the real card works.) */
     if (code < DA2_FONTROM_SIZE / 72 && fline >= 0 && fline < 24) {
-        font = da2->mmio.font[code * 72 + fline * 3];				//1111 1111
-        font <<= 8;													//1111 1111 0000 0000
-        font |= da2->mmio.font[code * 72 + fline * 3 + 1] & 0xf0;	//1111 1111 2222 0000
-        font >>= 1;													//0111 1111 1222 2000
-        font <<= 4;													//0111 1111 1222 2000 0000
-        font |= da2->mmio.font[code * 72 + fline * 3 + 1] & 0x0f;	//0111 1111 1222 2000 2222
-        font <<= 8;													//0111 1111 1222 2000 2222 0000 0000
-        font |= da2->mmio.font[code * 72 + fline * 3 + 2];			//0111 1111 1222 2000 2222 3333 3333
-        font <<= 4;													//0111 1111 1222 2000 2222 3333 3333 0000
-        //font >>= 1;//put blank at column 1 (and 26)
+        font = da2->mmio.font[code * 72 + fline * 3];				/* 1111 1111 */
+        font <<= 8;													/* 1111 1111 0000 0000 */
+        font |= da2->mmio.font[code * 72 + fline * 3 + 1] & 0xf0;	/* 1111 1111 2222 0000 */
+        font >>= 1;													/* 0111 1111 1222 2000 */
+        font <<= 4;													/* 0111 1111 1222 2000 0000 */
+        font |= da2->mmio.font[code * 72 + fline * 3 + 1] & 0x0f;	/* 0111 1111 1222 2000 2222 */
+        font <<= 8;													/* 0111 1111 1222 2000 2222 0000 0000 */
+        font |= da2->mmio.font[code * 72 + fline * 3 + 2];			/* 0111 1111 1222 2000 2222 3333 3333 */
+        font <<= 4;													/* 0111 1111 1222 2000 2222 3333 3333 0000 */
+        /* font >>= 1;//put blank at column 1 (and 26) */
     }
     else if (code >= 0xb000 && code <= 0xb75f)
     {
-        //convert code->address in gaiji memory
+        /* convert code->address in gaiji memory */
         code -= 0xb000;
         code *= 0x80;
         //code += 0xf800;
@@ -1631,11 +1639,11 @@ uint8_t IRGBtoBGRI(uint8_t attr)
 /* Get the foreground color from the attribute byte */
 uint8_t getPS55ForeColor(uint8_t attr, da2_t* da2)
 {
-    uint8_t foreground = ~attr & 0x08;// 0000 1000
-    foreground <<= 2; //0010 0000
-    foreground |= ~attr & 0xc0;// 1110 0000
-    foreground >>= 4;//0000 1110
-    if (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x40) foreground |= 0x01;//bright color palette
+    uint8_t foreground = ~attr & 0x08;// 0000 1000 */
+    foreground <<= 2; /* 0010 0000 */
+    foreground |= ~attr & 0xc0;/*  1110 0000 */
+    foreground >>= 4;/* 0000 1110 */
+    if (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x40) foreground |= 0x01;/* bright color palette */
     return foreground;
 }
 
@@ -1675,104 +1683,104 @@ static void da2_render_text(da2_t* da2)
             chr = da2->cram[(da2->ma) & da2->vram_display_mask];
             attr = da2->cram[((da2->ma) + 1) & da2->vram_display_mask];
             //if(chr!=0x20) da2_log("chr: %x, attr: %x    ", chr, attr);
-            if (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80)//IO 3E8h, Index 1Dh
-            {//--Parse attribute byte in color mode--
-                bg = 0;//bg color is always black (the only way to change background color is programming PAL)
+            if (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80)/* IO 3E8h, Index 1Dh */
+            {/* --Parse attribute byte in color mode-- */
+                bg = 0;/* bg color is always black (the only way to change background color is programming PAL) */
                 fg = getPS55ForeColor(attr, da2);
-                if (attr & 0x04) {//reverse 0000 0100
+                if (attr & 0x04) {/* reverse 0000 0100 */
                     bg = fg;
                     fg = 0;
                 }
             }
             else
-            {//--Parse attribute byte in monochrome mode--
-                if (attr & 0x08) fg = 3;//Highlight 0000 1000
+            {/* --Parse attribute byte in monochrome mode-- */
+                if (attr & 0x08) fg = 3;/* Highlight 0000 1000 */
                 else fg = 2;
-                bg = 0;//Background is always color #0 (default is black)
-                if (!(~attr & 0xCC))//Invisible 11xx 11xx -> 00xx 00xx 
+                bg = 0;/* Background is always color #0 (default is black) */
+                if (!(~attr & 0xCC))/* Invisible 11xx 11xx -> 00xx 00xx  */
                 {
                     fg = bg;
-                    attr &= 0x33;//disable blinkking, underscore, highlight and reverse
+                    attr &= 0x33;/* disable blinkking, underscore, highlight and reverse */
                 }
-                if (attr & 0x04) {//reverse 0000 0100
+                if (attr & 0x04) {/* reverse 0000 0100 */
                     bg = fg;
                     fg = 0;
                 }
-                // Blinking 1000 0000
+                /* Blinking 1000 0000 */
                 fg = ((da2->blink & 0x20) || (!(attr & 0x80))) ? fg : bg;
                 //if(chr!=0x20) da2_log("chr: %x, %x, %x, %x, %x    ", chr, attr, fg, da2->egapal[fg], da2->pallook[da2->egapal[fg]]);
             }
-            //Draw character
-            for (uint32_t n = 0; n < 13; n++) p[n] = da2->pallook[da2->egapal[bg]];//draw blank
-            // SBCS or DBCS left half
+            /* Draw character */
+            for (uint32_t n = 0; n < 13; n++) p[n] = da2->pallook[da2->egapal[bg]];/* draw blank */
+            /*  SBCS or DBCS left half */
             if (chr_wide == 0) {
                 if (attr & 0x01) chr_wide = 1;
                 //chr_wide = 0;
-                // Stay drawing If the char code is DBCS and not at last column.
+                /* Stay drawing If the char code is DBCS and not at last column. */
                 if (chr_wide) {
-                    //Get high DBCS code from the next video address
+                    /* Get high DBCS code from the next video address */
                     chr_dbcs = da2->cram[((da2->ma) + 2) & da2->vram_display_mask];
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
-                    // Get the font pattern
+                    /* Get the font pattern */
                     uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
-                    // Draw 13 dots
+                    /* Draw 13 dots */
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x80000000) ? fg : bg]];
                         font <<= 1;
                     }
                 }
                 else {
-                    // the char code is SBCS (ANK)
+                    /* the char code is SBCS (ANK) */
                     uint32_t fontbase;
-                    if (attr & 0x02)//second map of SBCS font
+                    if (attr & 0x02)/* second map of SBCS font */
                         fontbase = DA2_GAIJIRAM_SBEX;
                     else
                         fontbase = DA2_GAIJIRAM_SBCS;
-                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2];// w13xh29 font
+                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2];/* w13xh29 font */
                     font <<= 8;
-                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1];// w13xh29 font
+                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1];/* w13xh29 font */
                     //if(chr!=0x20) da2_log("ma: %x, sc: %x, chr: %x, font: %x    ", da2->ma, da2->sc, chr, font);
-                    // Draw 13 dots
+                    /* Draw 13 dots */
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
                         font <<= 1;
                     }
                 }
             }
-            // right half of DBCS
+            /* right half of DBCS */
             else
             {
                 uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
-                // Draw 13 dots
+                /* Draw 13 dots */
                 for (uint32_t n = 0; n < 13; n++) {
                     p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
                     font <<= 1;
                 }
                 chr_wide = 0;
             }
-            //Line 28 (Underscore) Note: Draw this first to display blink + vertical + underline correctly.
-            if (da2->sc == 27 && attr & 0x40 && ~da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) {//Underscore only in monochrome mode
+            /* Line 28 (Underscore) Note: Draw this first to display blink + vertical + underline correctly. */
+            if (da2->sc == 27 && attr & 0x40 && ~da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) {/* Underscore only in monochrome mode */
                 for (uint32_t n = 0; n < 13; n++)
-                    p[n] = da2->pallook[da2->egapal[fg]];//under line (white)
+                    p[n] = da2->pallook[da2->egapal[fg]];/* under line (white) */
             }
-            //Column 1 (Vertical Line)
+            /* Column 1 (Vertical Line) */
             if (attr & 0x10) {
-                p[0] = da2->pallook[da2->egapal[(da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]];//vertical line (white)
+                p[0] = da2->pallook[da2->egapal[(da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]];/* vertical line (white) */
             }
-            if (da2->sc == 0 && attr & 0x20 && ~da2->attrc[LV_PAS_STATUS_CNTRL]) {//HGrid
+            if (da2->sc == 0 && attr & 0x20 && ~da2->attrc[LV_PAS_STATUS_CNTRL]) {/* HGrid */
                 for (uint32_t n = 0; n < 13; n++)
-                    p[n] = da2->pallook[da2->egapal[(da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]];//horizontal line (white)
+                    p[n] = da2->pallook[da2->egapal[(da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]];/* horizontal line (white) */
             }
-            //Drawing text cursor
+            /* Drawing text cursor */
             drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
             if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END])
             {
                 int cursorwidth = (da2->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
-                int cursorcolor = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2;//Choose color 2 if mode 8
+                int cursorcolor = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2;/* Choose color 2 if mode 8 */
                 fg = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? getPS55ForeColor(attr, da2) : ((attr & 0x08) ? 3 : 2);
                 bg = 0;
-                if (attr & 0x04) {//Color 0 if reverse
+                if (attr & 0x04) {/* Color 0 if reverse */
                     bg = fg;
                     fg = 0;
                 }
@@ -1820,32 +1828,32 @@ static void da2_render_textm3(da2_t* da2)
             fg = attr & 0xf;
             fg = IRGBtoBGRI(fg);
             bg = IRGBtoBGRI(bg);
-            //Draw character
-            for (uint32_t n = 0; n < 13; n++) p[n] = da2->pallook[da2->egapal[bg]];//draw blank
-            // SBCS or DBCS left half
+            /* Draw character */
+            for (uint32_t n = 0; n < 13; n++) p[n] = da2->pallook[da2->egapal[bg]];/* draw blank */
+            /* BCS or DBCS left half */
             if (chr_wide == 0) {
                 if (extattr & 0x01) chr_wide = 1;
-                // Stay drawing if the char code is DBCS and not at last column.
+                /* Stay drawing if the char code is DBCS and not at last column. */
                 if (chr_wide) {
-                    //Get high DBCS code from the next video address
+                    /* Get high DBCS code from the next video address */
                     chr_dbcs = da2->vram[(0x18000 + (da2->ma) + 2) & da2->vram_mask];
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
-                    // Get the font pattern
+                    /* Get the font pattern */
                     uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
-                    // Draw 13 dots
+                    /* Draw 13 dots */
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x80000000) ? fg : bg]];
                         font <<= 1;
                     }
                 }
                 else {
-                    // the char code is SBCS (ANK)
+                    /* the char code is SBCS (ANK) */
                     uint32_t fontbase;
                     fontbase = DA2_GAIJIRAM_SBCS;
-                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2];// w13xh29 font
+                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2];/* w13xh29 font */
                     font <<= 8;
-                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1];// w13xh29 font
+                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1];/* w13xh29 font */
                     //if(chr!=0x20) da2_log("ma: %x, sc: %x, chr: %x, font: %x    ", da2->ma, da2->sc, chr, font);
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
@@ -1853,26 +1861,25 @@ static void da2_render_textm3(da2_t* da2)
                     }
                 }
             }
-            // right half of DBCS
+            /* right half of DBCS */
             else
             {
                 uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
-                // Draw 13 dots
+                /* Draw 13 dots */
                 for (uint32_t n = 0; n < 13; n++) {
                     p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
                     font <<= 1;
                 }
                 chr_wide = 0;
             }
-            //Drawing text cursor
             drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
             if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END])
             {
                 //int cursorwidth = (da2->crtc[0x1f] & 0x20 ? 26 : 13);
-                //int cursorcolor = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[0x1a]) : 2;//Choose color 2 if mode 8
+                //int cursorcolor = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[0x1a]) : 2;/* Choose color 2 if mode 8 */
                 //fg = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? getPS55ForeColor(attr, da2) : (attr & 0x08) ? 3 : 2;
                 //bg = 0;
-                //if (attr & 0x04) {//Color 0 if reverse
+                //if (attr & 0x04) {/* Color 0 if reverse */
                 //    bg = fg;
                 //    fg = 0;
                 //}
@@ -1891,7 +1898,7 @@ void da2_render_color_4bpp(da2_t* da2)
 {
     int changed_offset = da2->ma >> 12;
     //da2_log("ma %x cf %x\n", da2->ma, changed_offset);
-    da2->plane_mask &= 0x0f;//safety
+    da2->plane_mask &= 0x0f; /*safety */
 
     if (da2->changedvram[changed_offset] || da2->changedvram[changed_offset + 1] || da2->fullchange)
     {
@@ -1904,12 +1911,12 @@ void da2_render_color_4bpp(da2_t* da2)
         da2->lastline_draw = da2->displine;
     //da2_log("d %X\n", da2->ma);
 
-        for (x = 0; x <= da2->hdisp; x += 8)//hdisp = 1024
+        for (x = 0; x <= da2->hdisp; x += 8)/* hdisp = 1024 */
         {
             uint8_t edat[8];
             uint8_t dat;
 
-            //get 8 pixels from vram
+            /* get 8 pixels from vram */
             da2->ma &= da2->vram_display_mask;
             *(uint32_t*)(&edat[0]) = *(uint32_t*)(&da2->vram[da2->ma << 3]);
             da2->ma += 1;
@@ -1952,7 +1959,7 @@ void da2_render_color_8bpp(da2_t* da2)
         da2->lastline_draw = da2->displine;
         //da2_log("d %X\n", da2->ma);
 
-        for (x = 0; x <= da2->hdisp; x += 8)//hdisp = 1024
+        for (x = 0; x <= da2->hdisp; x += 8) /* hdisp = 1024 */
         {
             uint8_t edat[8];
             uint8_t dat;
@@ -2037,7 +2044,7 @@ void da2_recalctimings(da2_t* da2)
     da2->htotal = da2->crtc[LC_HORIZONTAL_TOTAL];
     da2->htotal += 1;
 
-    da2->rowoffset = da2->crtc[LC_OFFSET];//number of bytes in a scanline
+    da2->rowoffset = da2->crtc[LC_OFFSET];/* number of bytes in a scanline */
 
     da2->clock = da2->da2const;
 
@@ -2052,11 +2059,12 @@ void da2_recalctimings(da2_t* da2)
 
     da2->hdisp_time = da2->hdisp;
     da2->render = da2_render_blank;
-    //determine display mode
+    /* determine display mode */
     //if (da2->attr_palette_enable && (da2->attrc[0x1f] & 0x08))
     if (da2->attrc[LV_COMPATIBILITY] & 0x08)
     {
-        if (!(da2->ioctl[LS_MODE] & 0x01)) {//16 color graphics mode
+        /* 16 color graphics mode */
+        if (!(da2->ioctl[LS_MODE] & 0x01)) {
             da2->hdisp *= 16;
             da2->char_width = 13;
             da2->hdisp_old = da2->hdisp;
@@ -2065,19 +2073,21 @@ void da2_recalctimings(da2_t* da2)
                 da2->render = da2_render_color_8bpp;
                 da2->vram_display_mask = DA2_MASK_GRAM;
             }
-            else {//PS/55 8-color
+            else {/* PS/55 8-color */
                 da2_log("Set videomode to PS/55 4 bpp graphics.\n");
                 da2->vram_display_mask = DA2_MASK_GRAM;
                 da2->render = da2_render_color_4bpp;
             }
         }
-        else {//text mode
+        else {
+            /* text mode */
             if (da2->attrc[LV_ATTRIBUTE_CNTL] & 1) {
                 da2_log("Set videomode to PS/55 Mode 03 text.\n");
                 da2->render = da2_render_textm3;
                 da2->vram_display_mask = DA2_MASK_CRAM;
             }
-            else {//PS/55 text(color/mono)
+            /* PS/55 text(color/mono) */
+            else {
                 da2_log("Set videomode to PS/55 Mode 8/E text.\n");
                 da2->render = da2_render_text;
                 da2->vram_display_mask = DA2_MASK_CRAM;
@@ -2096,7 +2106,7 @@ void da2_recalctimings(da2_t* da2)
         //da2->render = da2_draw_text;
     //}
 
-    //        da2_log("da2_render %08X : %08X %08X %08X %08X %08X  %i %i %02X %i %i\n", da2_render, da2_render_text_40, da2_render_text_80, da2_render_8bpp_lowres, da2_render_8bpp_highres, da2_render_blank, scrblank,gdcreg[6]&1,gdcreg[5]&0x60,bpp,seqregs[1]&8);
+    //da2_log("da2_render %08X : %08X %08X %08X %08X %08X  %i %i %02X %i %i\n", da2_render, da2_render_text_40, da2_render_text_80, da2_render_8bpp_lowres, da2_render_8bpp_highres, da2_render_blank, scrblank,gdcreg[6]&1,gdcreg[5]&0x60,bpp,seqregs[1]&8);
 
     //if (da2->recalctimings_ex)
     //    da2->recalctimings_ex(da2);
@@ -2122,10 +2132,10 @@ void da2_recalctimings(da2_t* da2)
     if (da2->dispofftime < TIMER_USEC)
         da2->dispofftime = TIMER_USEC;
     da2_log("da2 horiz total %i display end %i vidclock %f\n",da2->crtc[0],da2->crtc[1],da2->clock);
-    //        da2_log("da2 vert total %i display end %i max row %i vsync %i\n",da2->vtotal,da2->dispend,(da2->crtc[9]&31)+1,da2->vsyncstart);
-    //        da2_log("total %f on %i cycles off %i cycles frame %i sec %i\n",disptime*crtcconst,da2->dispontime,da2->dispofftime,(da2->dispontime+da2->dispofftime)*da2->vtotal,(da2->dispontime+da2->dispofftime)*da2->vtotal*70);
+    //da2_log("da2 vert total %i display end %i max row %i vsync %i\n",da2->vtotal,da2->dispend,(da2->crtc[9]&31)+1,da2->vsyncstart);
+    //da2_log("total %f on %i cycles off %i cycles frame %i sec %i\n",disptime*crtcconst,da2->dispontime,da2->dispofftime,(da2->dispontime+da2->dispofftime)*da2->vtotal,(da2->dispontime+da2->dispofftime)*da2->vtotal*70);
 
-    //        da2_log("da2->render %08X\n", da2->render);
+    //da2_log("da2->render %08X\n", da2->render);
 }
 
 uint8_t da2_mca_read(int port, void *p)
@@ -2189,7 +2199,7 @@ static void da2_mca_reset(void *p)
         da2_reset(da2);
         da2_mca_write(0x102, 0, da2);
 }
-//
+
 static void da2_gdcropB(uint32_t addr, da2_t* da2) {
     for (int i = 0; i < 8; i++) {
         if (da2->writemask & (1 << i)) {
@@ -2265,11 +2275,11 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
 
     if (da2->ioctl[LS_MMIO] & 0x10) {
         if (da2->fctl[LF_MMIO_SEL] == 0x80)
-            //linear access
+            /* linear access */
             addr |= ((uint32_t)da2->fctl[LF_MMIO_ADDR] << 17);
         else
         {
-            //64k bank switch access
+            /* 64k bank switch access */
             uint32_t index = da2->fctl[LF_MMIO_MODE] & 0x0f;
             index <<= 8;
             index |= da2->fctl[LF_MMIO_ADDR];
@@ -2277,12 +2287,12 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
         }
         //da2_log("PS55_MemHnd: Read from mem %x, bank %x, addr %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
         switch (da2->fctl[LF_MMIO_MODE] & 0xf0) {
-        case 0xb0://Gaiji RAM
-            addr &= DA2_MASK_GAIJIRAM;//safety access
+        case 0xb0:/* Gaiji RAM */
+            addr &= DA2_MASK_GAIJIRAM;/* safety access */
             //da2_log("PS55_MemHnd_G: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 128, addr, da2->mmio.font[addr]);
             return da2->mmio.ram[addr];
             break;
-        case 0x10://Font ROM
+        case 0x10:/* Font ROM */
             if (da2->mmio.charset == DA2_DCONFIG_CHARSET_HANT) {
                 if (addr >= 0x1a0000) return DA2_INVALIDACCESS8;
                 if (addr >= 0x180000) addr -= 0x40000; /* The bank 12 (180000h-19ffffh) is beyond the available ROM address range,
@@ -2293,29 +2303,29 @@ static uint8_t da2_mmio_read(uint32_t addr, void* p)
             return da2->mmio.font[addr];
             break;
         default:
-            return DA2_INVALIDACCESS8;//invalid memory access
+            return DA2_INVALIDACCESS8;/* invalid memory access */
             break;
         }
     }
-    else if (!(da2->ioctl[LS_MODE] & 1))//8 or 256 color mode
+    else if (!(da2->ioctl[LS_MODE] & 1))/* 8 or 256 color mode */
     {
         cycles -= video_timing_read_b;
         for (int i = 0; i < 8; i++)
-            da2->gdcla[i] = da2->vram[(addr << 3) | i];//read in byte
+            da2->gdcla[i] = da2->vram[(addr << 3) | i];/* read in byte */
         //da2_log("da2_Rb: %05x=%02x\n", addr, da2->gdcla[da2->readplane]);
-        if (da2->gdcreg[LG_MODE] & 0x08) {//compare data across planes if the read mode bit (3EB 05, bit 3) is 1
+        if (da2->gdcreg[LG_MODE] & 0x08) {/* compare data across planes if the read mode bit (3EB 05, bit 3) is 1 */
             uint8_t ret = 0;
 
             for (int i = 0; i < 8; i++)
             {
-                if (~da2->gdcreg[LG_COLOR_DONT_CARE] & (1 << i))//color don't care register
+                if (~da2->gdcreg[LG_COLOR_DONT_CARE] & (1 << i))/* color don't care register */
                     ret |= da2->gdcla[i] ^ ((da2->gdcreg[LG_COLOR_COMPAREJ] & (1 << i)) ? 0xff : 0);
             }
             return ~ret;
         }
         else return da2->gdcla[da2->readplane];
     }
-    else //text mode 3
+    else /* text mode 3 */
     {
         cycles -= video_timing_read_b;
         return da2->vram[addr];
@@ -2328,12 +2338,12 @@ static uint16_t da2_mmio_readw(uint32_t addr, void* p)
     if (da2->ioctl[LS_MMIO] & 0x10) {
         return (uint16_t)da2_mmio_read(addr, da2) | (uint16_t)(da2_mmio_read(addr + 1, da2) << 8);
     }
-    else if (!(da2->ioctl[LS_MODE] & 1))//8 color or 256 color mode
+    else if (!(da2->ioctl[LS_MODE] & 1))/* 8 color or 256 color mode */
     {
         cycles -= video_timing_read_w;
         addr &= DA2_MASK_MMIO;
         for (int i = 0; i < 8; i++)
-            da2->gdcla[i] = (uint16_t)(da2->vram[(addr << 3) | i]) | ((uint16_t)(da2->vram[((addr << 3) + 8) | i]) << 8);//read vram into latch
+            da2->gdcla[i] = (uint16_t)(da2->vram[(addr << 3) | i]) | ((uint16_t)(da2->vram[((addr << 3) + 8) | i]) << 8);/* read vram into latch */
 
 #ifdef ENABLE_DA2_DEBUGBLT
         ////debug
@@ -2352,12 +2362,12 @@ static uint16_t da2_mmio_readw(uint32_t addr, void* p)
         //da2->mmrdbg_vidaddr = addr;
 #endif
 
-        if (da2->gdcreg[LG_MODE] & 0x08) {//compare data across planes if the read mode bit (3EB 05, bit 3) is 1
+        if (da2->gdcreg[LG_MODE] & 0x08) {/* compare data across planes if the read mode bit (3EB 05, bit 3) is 1 */
             uint16_t ret = 0;
 
             for (int i = 0; i < 8; i++)
             {
-                if (~da2->gdcreg[LG_COLOR_DONT_CARE] & (1 << i))//color don't care register
+                if (~da2->gdcreg[LG_COLOR_DONT_CARE] & (1 << i))/* color don't care register */
                     ret |= da2->gdcla[i] ^ ((da2->gdcreg[LG_COLOR_COMPAREJ] & (1 << i)) ? 0xffff : 0);
             }
             return ~ret;
@@ -2382,9 +2392,9 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
 
     if (da2->ioctl[LS_MMIO] & 0x10) {
         //if(da2->ioctl[LS_MMIO] == 0x1f) da2_log("mw mem %x, addr %x, val %x, ESDI %x:%x DSSI %x:%x\n", da2->fctl[LF_MMIO_MODE], addr, val, ES, DI, DS, SI);
-        //Gaiji RAM
+        /* Gaiji RAM */
         if (da2->fctl[LF_MMIO_SEL] == 0x80)
-            addr |= ((uint32_t)da2->fctl[LF_MMIO_ADDR] << 17);//xxxy yyyy yyyy yyyy yyyy
+            addr |= ((uint32_t)da2->fctl[LF_MMIO_ADDR] << 17);/* xxxy yyyy yyyy yyyy yyyy */
         else
         {
             uint32_t index = da2->fctl[LF_MMIO_MODE] & 0x0f;
@@ -2393,16 +2403,16 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
             addr += index * 0x40;
         }
         switch (da2->fctl[LF_MMIO_MODE]) {
-        case 0xb0://Gaiji RAM 1011 0000
-            addr &= DA2_MASK_GAIJIRAM;//safety access
+        case 0xb0:/* Gaiji RAM 1011 0000 */
+            addr &= DA2_MASK_GAIJIRAM;/* safety access */
             da2->mmio.ram[addr] = val;
             break;
-        case 0x10://Font ROM  0001 0000
-            //Read-Only
+        case 0x10:/* Font ROM  0001 0000 */
+            /* Read-Only */
             break;
         case 0x00:
             //da2_log("da2_mmio_write %x %x %04X:%04X\n", addr, val, CS, cpu_state.pc);
-            //addr &= 0x7f;//OS/2 write addr 1cf80-1cfc3, val xx
+            //addr &= 0x7f;/* OS/2 write addr 1cf80-1cfc3, val xx */
             //if (addr >= DA2_BLT_MEMSIZE)
             //{
             //    da2_log("da2_mmio_write failed mem %x, addr %x, val %x\n", da2->fctl[LF_MMIO_MODE], addr, val);
@@ -2419,12 +2429,11 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
             break;
         }
     }
-    else if (!(da2->ioctl[LS_MODE] & 1))//8 color or 256 color mode
+    else if (!(da2->ioctl[LS_MODE] & 1))/* 8 color or 256 color mode */
     {
         uint8_t wm = da2->writemask;
         //da2_log("da2_gcB m%d a%x d%x\n", da2->writemode, addr, val);
 #ifdef ENABLE_DA2_DEBUGBLT
-        //debug
         //if (!(da2->gdcreg[LG_COMMAND] & 0x08))
         //{
         if (((int)addr - (int)da2->mmdbg_vidaddr) > 2 || (((int)da2->mmdbg_vidaddr - (int)addr) > 2) || da2->mmdbg_vidaddr == addr)
@@ -2449,7 +2458,7 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
         addr <<= 3;
 
         for (int i = 0; i < 8; i++)
-            da2->gdcsrc[i] = da2->gdcla[i];//use latch
+            da2->gdcsrc[i] = da2->gdcla[i];/* use latch */
 
         //da2_log("da2_Wb m%02x r%02x %05x:%02x %x:%x\n", da2->gdcreg[0x5], da2->gdcreg[LG_COMMAND], addr >> 3, val, cs >> 4, cpu_state.pc);
         //da2_log("da2_Wb m%02x r%02x %05x:%02x=%02x%02x%02x%02x->", da2->gdcreg[0x5], da2->gdcreg[LG_COMMAND], addr >> 3, val, da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]);
@@ -2485,11 +2494,11 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
                     else da2->gdcinput[i] = val;
 
                 for (int i = 0; i < 8; i++)
-                    da2->debug_vramold[i] = da2->vram[addr | i];//use latch
+                    da2->debug_vramold[i] = da2->vram[addr | i];/* use latch */
                 da2_gdcropB(addr, da2);
                 //for (int i = 0; i < 8; i++)
                 //    da2_log("\tsrc %02x in %02x bitm %02x mod %x rop %x: %02x -> %02x\n", da2->gdcsrc[i], da2->gdcinput[i], da2->gdcreg[LG_BIT_MASK_LOW], da2->gdcreg[5],da2->gdcreg[LG_COMMAND], da2->debug_vramold[i],  da2->vram[addr | i]);//use latch
-                ////                        da2_log("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
+                ////da2_log("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
             }
             break;
         case 1:
@@ -2519,7 +2528,7 @@ static void da2_mmio_write(uint32_t addr, uint8_t val, void* p)
         }
         //da2_log("%02x%02x%02x%02x\n", da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]);
     }
-    else// mode 3h text
+    else/*  mode 3h text */
     {
         cycles -= video_timing_write_b;
         da2->vram[addr] = val;
@@ -2538,7 +2547,6 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
     bitmask <<= 8;
     bitmask |= (uint16_t)da2->gdcreg[LG_BIT_MASK_LOW];
 #ifdef ENABLE_DA2_DEBUGBLT
-    //debug
     //if (!(da2->gdcreg[LG_COMMAND] & 0x08))
     //{
         if (((int)addr - (int)da2->mmdbg_vidaddr) > 2 || (((int)da2->mmdbg_vidaddr - (int)addr) > 2) || da2->mmdbg_vidaddr == addr)
@@ -2567,7 +2575,7 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
     addr <<= 3;
 
     for (int i = 0; i < 8; i++)
-        da2->gdcsrc[i] = da2->gdcla[i];//use latch
+        da2->gdcsrc[i] = da2->gdcla[i];/* use latch */
 
     if (!(da2->gdcreg[LG_COMMAND] & 0x08))
     {
@@ -2608,7 +2616,7 @@ static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void* p)
                 if (da2->gdcreg[LG_ENABLE_SRJ] & (1 << i)) da2->gdcinput[i] = (da2->gdcreg[LG_SET_RESETJ] & (1 << i)) ? 0xffff : 0;
                 else da2->gdcinput[i] = val;
             da2_gdcropW(addr, bitmask, da2);
-            //                        da2_log("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
+            //da2_log("- %02X %02X %02X %02X   %08X\n",vram[addr],vram[addr|0x1],vram[addr|0x2],vram[addr|0x3],addr);
         }
         break;
     case 1:
@@ -2653,14 +2661,14 @@ static void da2_mmio_writew(uint32_t addr, uint16_t val, void* p)
         da2_mmio_write(addr, val & 0xff, da2);
         da2_mmio_write(addr + 1, val >> 8, da2);
     }
-    else if (!(da2->ioctl[LS_MODE] & 1))//8 color or 256 color mode
+    else if (!(da2->ioctl[LS_MODE] & 1))/* 8 color or 256 color mode */
     {
         addr &= DA2_MASK_MMIO;
         //return;
         //da2_log("da2_mmio_writeGW %x %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, val);
         da2_mmio_gc_writeW(addr, val, da2);
     }
-    else {//mode 3h text
+    else {/* mode 3h text */
         //if (addr & 0xff00 == 0) da2_log("da2_mmio_write %x %x %04X:%04X\n", addr, val, CS, cpu_state.pc);
         //da2_log("da2_mmio_writeGW %x %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, val);
         da2_mmio_write(addr, val & 0xff, da2);
@@ -2739,7 +2747,7 @@ void da2_poll(void* priv)
     if (!da2->linepos)
     {
         timer_advance_u64(&da2->timer, da2->dispofftime);
-        //                if (output) printf("Display off %f\n",vidtime);
+        //if (output) printf("Display off %f\n",vidtime);
         da2->cgastat |= 1;
         da2->linepos = 1;
 
@@ -2767,21 +2775,21 @@ void da2_poll(void* priv)
         //    da2->displine++;
         if ((da2->cgastat & 8) && ((da2->displine & 0xf) == (da2->crtc[LC_VERTICAL_SYNC_END] & 0xf)) && da2->vslines)
         {
-                                    //da2_log("Vsync off at line %i\n",displine);
+            //da2_log("Vsync off at line %i\n",displine);
             da2->cgastat &= ~8;
         }
         da2->vslines++;
         if (da2->displine > 1200)
             da2->displine = 0;
-        //                da2_log("Col is %08X %08X %08X   %i %i  %08X\n",((uint32_t *)buffer32->line[displine])[320],((uint32_t *)buffer32->line[displine])[321],((uint32_t *)buffer32->line[displine])[322],
-        //                                                                displine, vc, ma);
+        //da2_log("Col is %08X %08X %08X   %i %i  %08X\n",((uint32_t *)buffer32->line[displine])[320],((uint32_t *)buffer32->line[displine])[321],((uint32_t *)buffer32->line[displine])[322],
+        //displine, vc, ma);
     }
     else
     {
-        //                da2_log("VC %i ma %05X\n", da2->vc, da2->ma);
+        //da2_log("VC %i ma %05X\n", da2->vc, da2->ma);
         timer_advance_u64(&da2->timer, da2->dispontime);
 
-        //                if (output) printf("Display on %f\n",vidtime);
+        //if (output) printf("Display on %f\n",vidtime);
         if (da2->dispon)
             da2->cgastat &= ~1;
         da2->hdisp_on = 0;
@@ -2796,7 +2804,7 @@ void da2_poll(void* priv)
                 da2->linecountff = 0;
                 da2->sc = 0;
 
-                da2->maback += (da2->rowoffset << 1);//  color = 0x50(80), mono = 0x40(64)
+                da2->maback += (da2->rowoffset << 1);/*   color = 0x50(80), mono = 0x40(64) */
                 if (da2->interlace)
                     da2->maback += (da2->rowoffset << 1);
                 da2->maback &= da2->vram_display_mask;
@@ -2817,9 +2825,9 @@ void da2_poll(void* priv)
         {
             da2->dispon = 0;
             //if (da2->crtc[10] & 0x20) da2->cursoron = 0;
-            //else                       da2->cursoron = da2->blink & 16;
-            if (da2->ioctl[LS_MODE] & 1) {//in text mode
-                if (da2->attrc[LV_CURSOR_CONTROL] & 0x01)//cursor blinking
+            //else da2->cursoron = da2->blink & 16;
+            if (da2->ioctl[LS_MODE] & 1) {/* in text mode */
+                if (da2->attrc[LV_CURSOR_CONTROL] & 0x01)/* cursor blinking */
                 {
                     da2->cursoron = (da2->blink | 1) & da2->blinkconf;
                 }
@@ -2827,7 +2835,7 @@ void da2_poll(void* priv)
                 {
                     da2->cursoron = 0;
                 }
-                if (!(da2->blink & (0x10 - 1)))//force redrawing for cursor and blink attribute
+                if (!(da2->blink & (0x10 - 1)))/* force redrawing for cursor and blink attribute */
                     da2->fullchange = 2;
             }
             da2->blink++;
@@ -2837,7 +2845,7 @@ void da2_poll(void* priv)
                 if (da2->changedvram[x])
                     da2->changedvram[x]--;
             }
-            //                        memset(changedvram,0,2048);  del
+            //memset(changedvram,0,2048);  del
             if (da2->fullchange)
             {
                 da2->fullchange--;
@@ -2846,7 +2854,7 @@ void da2_poll(void* priv)
         if (da2->vc == da2->vsyncstart)
         {
             int wx, wy;
-            //                        da2_log("VC vsync  %i %i\n", da2->firstline_draw, da2->lastline_draw);
+            //da2_log("VC vsync  %i %i\n", da2->firstline_draw, da2->lastline_draw);
             da2->dispon = 0;
             da2->cgastat |= 8;
             x = da2->hdisp;
@@ -2881,14 +2889,12 @@ void da2_poll(void* priv)
             da2->maback <<= 1;
             da2->ca <<= 1;
 
-            //  da2_log("Addr %08X vson %03X vsoff %01X  %02X %02X %02X %i %i\n",ma,da2_vsyncstart,crtc[0x11]&0xF,crtc[0xD],crtc[0xC],crtc[0x33], da2_interlace, oddeven);
+            //da2_log("Addr %08X vson %03X vsoff %01X  %02X %02X %02X %i %i\n",ma,da2_vsyncstart,crtc[0x11]&0xF,crtc[0xD],crtc[0xC],crtc[0x33], da2_interlace, oddeven);
         }
         if (da2->vc == da2->vtotal)
         {
-            //                        da2_log("VC vtotal\n");
-
-
-            //                        printf("Frame over at line %i %i  %i %i\n",displine,vc,da2_vsyncstart,da2_dispend);
+            //da2_log("VC vtotal\n");
+            //printf("Frame over at line %i %i  %i %i\n",displine,vc,da2_vsyncstart,da2_dispend);
             da2->vc = 0;
             da2->sc = da2->crtc[LC_PRESET_ROW_SCANJ] & 0x1f;
             da2->dispon = 1;
@@ -2898,9 +2904,9 @@ void da2_poll(void* priv)
         if (da2->sc == (da2->crtc[LC_CURSOR_ROW_START] & 31))
             da2->con = 1;
     }
-    //        printf("2 %i\n",da2_vsyncstart);
+    //printf("2 %i\n",da2_vsyncstart);
     //da2_log("da2_poll %i %i %i %i %i  %i %i\n", ins, da2->dispofftime, da2->dispontime, da2->vidtime, cyc_total, da2->linepos, da2->vc);
-        //da2_log("r");
+    //da2_log("r");
 }
 
 static void da2_loadfont(char* fname, void* p) {
@@ -2916,10 +2922,10 @@ static void da2_loadfont(char* fname, void* p) {
         return;
     }
     fseek(mfile, 0, SEEK_END);
-    fsize = ftell(mfile);//get filesize
+    fsize = ftell(mfile); /* get filesize */
     fseek(mfile, 0, SEEK_SET);
     if (fsize > DA2_FONTROM_SIZE) {
-        fsize = DA2_FONTROM_SIZE;//truncate read data
+        fsize = DA2_FONTROM_SIZE; /* truncate read data */
         //da2_log("MSG: The binary ROM font is truncated: %s\n", fname);
         //fclose(mfile);
         //return 1;
@@ -2991,8 +2997,6 @@ da2_reset(void* priv)
 
 static void *da2_init()
 {
-    //Todo: init regs, gaiji memory, video memory, I/O handlers, font ROM
-
         if (svga_get_pri() == NULL)
             return NULL;
         svga_t *mb_vga = svga_get_pri();
@@ -3008,7 +3012,7 @@ static void *da2_init()
         da2->vram_mask = memsize - 1;
         da2->cram = malloc(0x1000);
         da2->vram_display_mask = DA2_MASK_CRAM;
-        da2->changedvram = malloc(/*(memsize >> 12) << 1*/0x1000000 >> 12);//XX000h
+        da2->changedvram = malloc(/*(memsize >> 12) << 1*/0x1000000 >> 12); /* XX000h */
         da2->monitorid = device_get_config_int("montype"); /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
         da2->mmio.charset = device_get_config_int("charset");
