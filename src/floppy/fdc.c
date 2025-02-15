@@ -743,7 +743,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             /* Bit 2: FIFO test mode (PS/55 only? This is not documented in neither the PS/2 HITR nor the 82077AA datasheet.) 
                The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
                If it fails, then floppy drives will be treated as DD drives. */
-            if (fdc->flags & FDC_FLAG_PS2) {
+            if (fdc->flags & FDC_FLAG_PS2_MCA) {
                 if (val & 0x04)
                 {
                     fdc->tfifo = 8;
@@ -769,6 +769,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
         case 5: /*Command register*/
             if (fdc->fifointest)
             {
+                /* Write FIFO buffer in the test mode (PS/55) */
                 fdc_log("FIFO buffer position = %X\n", ((fifo_t *)fdc->fifo_p)->end);
                 fifo_write(val, fdc->fifo_p);
                 if (fifo_get_full(fdc->fifo_p))
@@ -1358,10 +1359,7 @@ fdc_read(uint16_t addr, void *priv)
                     ret = 0x10;
                 else
                     ret = 0x00;
-            }
-            else if (fdc->flags & FDC_FLAG_PS2) {
-                /* error when ret = 1, 2*/
-                ret = (fdc->fifointest) ? 4 : 0;
+                /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
             }
             else if (!fdc->enh_mode)
                 ret = 0x20;
@@ -1374,6 +1372,7 @@ fdc_read(uint16_t addr, void *priv)
         case 5: /*Data*/
             if (fdc->fifointest)
             {
+                /* Read FIFO buffer in the test mode (PS/55) */
                 ret = fifo_read(fdc->fifo_p);
                 break;
             }
@@ -1698,7 +1697,6 @@ fdc_callback(void *priv)
             else if (fdc->params[5] == 0)
                 fdc->sector++;
             ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
-            //fdc_log("cb_rwsect: %d %d %d %d %d %xh\n", real_drive(fdc, fdc->drive), fdc->sector, fdc->rw_track, fdc->head, fdc->rate, fdc->params[4]);
             switch (fdc->interrupt) {
                 case 5:
                 case 9:
