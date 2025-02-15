@@ -145,7 +145,7 @@ static struct ps2_t {
 static uint8_t ps2_cache[65536];
 static int     ps2_cache_valid[65536 / 8];
 static void mem_encoding_update(void);
-
+#define ENABLE_PS2_MCA_LOG 1
 #ifdef ENABLE_PS2_MCA_LOG
 int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
 
@@ -452,7 +452,7 @@ ps55_model_50v_read(uint16_t port)
         }
         return val;
     case 0x104:
-        return ps2.option[2];
+        return ps2.option[2] & 0xf3;
     case 0x105:
         return ps2.option[3];
     case 0x106:
@@ -1472,10 +1472,12 @@ mem_encoding_write_cached_ps55(uint16_t addr, uint8_t val, UNUSED(void *priv))
         mem_mapping_disable(&ram_low_mapping);
         mem_mapping_enable(&ps2.cache_mapping);
         flushmmucache();
+        ps2_mca_log("mem_encoding_write: low ram mapping disabled\n");
     } else {
         mem_mapping_disable(&ps2.cache_mapping);
         mem_mapping_enable(&ram_low_mapping);
         flushmmucache();
+        ps2_mca_log("mem_encoding_write: low ram mapping enabled\n");
     }
     if (ps2.option[2] & 1) /* reset memstate for E0000 - E0FFFh hole */
     {
@@ -1906,7 +1908,7 @@ ps55_mca_board_model_50v_init()
 
     device_add(&ps2_nvr_device);
 
-    io_sethandler(0x00e0, 0x0002, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached_ps55, NULL, NULL, NULL);
+    io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached_ps55, NULL, NULL, NULL);
 
     ps2.mem_regs[1] = 2;
     ps2.option[2] &= 0xf2; /*   Bit 3-2: -Cache IDs, Bit 1: Reserved
@@ -1925,6 +1927,20 @@ ps55_mca_board_model_50v_init()
         MEM_MAPPING_INTERNAL,
         NULL);
     mem_mapping_disable(&ps2.split_mapping);
+
+    mem_mapping_add(&ps2.cache_mapping,
+                    0,
+                    64 * 1024,
+                    ps2_read_cache_ram,
+                    ps2_read_cache_ramw,
+                    ps2_read_cache_raml,
+                    ps2_write_cache_ram,
+                    NULL,
+                    NULL,
+                    ps2_cache,
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+    mem_mapping_disable(&ps2.cache_mapping);
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
