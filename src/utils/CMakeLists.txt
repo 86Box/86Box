@@ -17,6 +17,7 @@
 
 add_library(utils OBJECT
     cJSON.c
+    crc.c
     fifo.c
     fifo8.c
     ini.c
