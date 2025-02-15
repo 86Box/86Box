@@ -511,10 +511,12 @@ svga_in(uint16_t addr, void *priv)
             }
             else
             {
-                // The Display Adapter has own Monitor Type Detection bit in the different I/O port (I/O 3E0h, 3E1h).
-                // When the monitor cable is connected to the Display Adapter, this port returns the value as no cable connection.
-                // The Power-on Self Test of PS/55 tries detecting the monitor on the planar VGA.
-                // If it fails, then the POST reads the NVRAM set by the reference diskette, and sets the BIOS Data Area (Mem 487h, 489h).
+                /*
+                   The IBM PS/55 Display Adapter has own Monitor Type Detection bit in the different I/O port (I/O 3E0h, 3E1h).
+                   When the monitor cable is connected to the Display Adapter, this port returns the value as 'no cable connection'.
+                   The POST of PS/55 has an extra code that tries detecting the monitor on the planar VGA.
+                   If it fails, then the POST reads the NVRAM set by the reference diskette, and updates the BIOS Data Area (Mem 487h, 489h).
+                */
                 if (svga->vgapal[0].r >= 10 || svga->vgapal[0].g >= 10 || svga->vgapal[0].b >= 10)
                     ret = 0;
                 else
