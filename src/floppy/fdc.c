@@ -1284,8 +1284,7 @@ fdc_read(uint16_t addr, void *priv)
                     ret |= 0x40;
                 if (fdc->fintr || fdc->reset_stat) /* INTR */
                     ret |= 0x80;
-            }
-            else
+            } else
                 ret = 0xff;
             break;
         case 1: /* STB */
@@ -1360,8 +1359,7 @@ fdc_read(uint16_t addr, void *priv)
                 else
                     ret = 0x00;
                 /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
-            }
-            else if (!fdc->enh_mode)
+            } else if (!fdc->enh_mode)
                 ret = 0x20;
             else
                 ret = fdc->rwc[drive] << 4;
