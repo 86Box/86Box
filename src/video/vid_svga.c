@@ -502,20 +502,19 @@ svga_in(uint16_t addr, void *priv)
             ret = svga->attrregs[svga->attraddr];
             break;
         case 0x3c2:
-            if (svga->cable_connected)
-            {
+            if (svga->cable_connected) {
                 if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
                     ret = 0;
                 else
                     ret = 0x10;
-            }
-            else
-            {
+            /* Monitor is not connected to the planar VGA if the PS/55 Display Adapter is installed. */
+            } else {
                 /*
                    The IBM PS/55 Display Adapter has own Monitor Type Detection bit in the different I/O port (I/O 3E0h, 3E1h).
-                   When the monitor cable is connected to the Display Adapter, this port returns the value as 'no cable connection'.
+                   When the monitor cable is connected to the Display Adapter, the port 3C2h returns the value as 'no cable connection'.
                    The POST of PS/55 has an extra code that tries detecting the monitor on the planar VGA.
-                   If it fails, then the POST reads the NVRAM set by the reference diskette, and updates the BIOS Data Area (Mem 487h, 489h).
+                   If it fails, then the POST reads the NVRAM set by the reference diskette, and writes the BIOS Data Area (Mem 487h, 489h).
+                   MONCHK.EXE in the reference diskette uses both I/O ports to determine the monitor type, and writes the BDA.
                 */
                 if (svga->vgapal[0].r >= 10 || svga->vgapal[0].g >= 10 || svga->vgapal[0].b >= 10)
                     ret = 0;

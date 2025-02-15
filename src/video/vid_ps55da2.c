@@ -1562,12 +1562,12 @@ The Font ROM can be accessed via 128 KB memory window located at A0000-BFFFFh.
  16000-17FFFh (B6000-B7FFFh) : Codepage 850 characters (13 x 30)
  18000-1A3FFh (B8000-BA3FFh) : CAD control icons and box drawing characters (32 x 32)
 
- Some models have the signature 80h, 01h placed at Bank 0:1AFFEh. (it disables hardware text drawing in OS/2 J1.3)
+ Some models have the signature 80h, 01h placed at Bank 0:1AFFEh. It disables Bitblt text drawing in OS/2 J1.3.
 
 [Font ROM Map (DA3, Traditional Chinese)]
  Bank 0 - 11 : Valid Font ROM data
- Bank 12 : Alias of bank 11 (At least, DOS T5.0 uses this on purpose.)
- Bank 13 : All addresses return 0xFF
+ Bank 12 : Alias of bank 11 (At least, DOS T5.0 uses this on purpose to obtain the SBCS font.)
+ Bank 13 : Filled by 0xFFh
 
 [Gaiji RAM Map (DA2)]
  Bank 0 00000-1FFFFh placed between A0000h-BFFFFh
