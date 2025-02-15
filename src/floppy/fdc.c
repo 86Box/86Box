@@ -722,7 +722,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 if ((val & 4) && !(fdc->dor & 4))
                     fdc_soft_reset(fdc);
                 /* We can now simplify this since each motor now spins separately. */
-                for (int i = 0; i < FDD_NUM; i++) {
+                for (i = 0; i < FDD_NUM; i++) {
                     drive_num = real_drive(fdc, i);
                     if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
                         val &= ~(0x10 << drive_num);
@@ -2610,20 +2610,6 @@ const device_t fdc_at_actlow_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
-};
-
-const device_t fdc_at_ps2_device = {
-    .name = "PC/AT Floppy Drive Controller (PS/2 internal)",
-    .internal_name = "fdc_at_ps55",
-    .flags = 0,
-    .local = FDC_FLAG_AT | FDC_FLAG_PS2,
-    .init = fdc_init,
-    .close = fdc_close,
-    .reset = fdc_reset,
-    {.available = NULL },
-    .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
 };
 
 const device_t fdc_at_smc_device = {
