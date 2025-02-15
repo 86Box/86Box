@@ -2987,11 +2987,11 @@ da2_reset(void* priv)
     da2->attr_palette_enable = 0; /* disable attribute generator */
 
     /* Set default color palette (Windows 3.1 display driver won't reset palette) */
-    da2_out(0x3c8, 0, da2);
     for (int i = 0; i < 256; i++) {
-        da2_out(0x3c9, ps55_palette_color[i & 0x3F][0], da2);
-        da2_out(0x3c9, ps55_palette_color[i & 0x3F][1], da2);
-        da2_out(0x3c9, ps55_palette_color[i & 0x3F][2], da2);
+        da2->vgapal[i].r = ps55_palette_color[i & 0x3F][0];
+        da2->vgapal[i].g = ps55_palette_color[i & 0x3F][1];
+        da2->vgapal[i].b = ps55_palette_color[i & 0x3F][2];
+        da2->pallook[i]  = makecol32((da2->vgapal[i].r & 0x3f) * 4, (da2->vgapal[i].g & 0x3f) * 4, (da2->vgapal[i].b & 0x3f) * 4);
     }
 }
 
@@ -3147,14 +3147,13 @@ void da2_speed_changed(void *p)
 {
     da2_t* da2 = (da2_t*)p;
     da2->da2const = (uint64_t)((cpuclock / DA2_PIXELCLOCK) * (float)(1ull << 32));
-        da2_recalctimings(da2);
+    da2_recalctimings(da2);
 }
 
 void da2_force_redraw(void *p)
 {
     da2_t* da2 = (da2_t*)p;
-
-        da2->fullchange = changeframecount;
+    da2->fullchange = changeframecount;
 }
 
 static const device_config_t da2_configuration[] = {
