@@ -145,7 +145,7 @@ static struct ps2_t {
 static uint8_t ps2_cache[65536];
 static int     ps2_cache_valid[65536 / 8];
 static void mem_encoding_update(void);
-#define ENABLE_PS2_MCA_LOG 1
+
 #ifdef ENABLE_PS2_MCA_LOG
 int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
 
@@ -367,53 +367,59 @@ static uint8_t
 ps55_model_50t_read(uint16_t port)
 {
     ps2_mca_log(" Read SysBrd %04X xx %04X:%04X\n", port, cs >> 4, cpu_state.pc);
-    switch (port)
-    {
-    case 0x100:
-        return ps2.planar_id & 0xff;
-    case 0x101:
-        return ps2.planar_id >> 8;
-    case 0x102:
-        return ps2.option[0];
-    case 0x103:
-        uint8_t val = 0xff;
-        /*
-        I/O 103h - Bit 7-4: Memory Card ID (Connector 1 or 3)
-                   Bit 3-0: Memory Card ID (Connector 2)
+    switch (port) {
+        case 0x100:
+            return ps2.planar_id & 0xff;
+        case 0x101:
+            return ps2.planar_id >> 8;
+        case 0x102:
+            return ps2.option[0];
+        case 0x103:
+            uint8_t val = 0xff;
+            /*
+            I/O 103h - Bit 7-4: Memory Card ID (Connector 1 or 3)
+                       Bit 3-0: Memory Card ID (Connector 2)
 
-        Memory Card ID: 7h = 2 MB Memory Card 2 or 3 Installed
-                        5h = 4 MB Memory Card 2 Installed
-        */
-        switch (mem_size / 1024)
-        {
-        case 2:
-            if (ps2.option[1] & 0x04) val = 0xff;
-            else val = 0x7f;
-            break;
-        case 4:
-            if (ps2.option[1] & 0x04) val = 0xff;
-            else val = 0x77;
-            break;
-        case 6:
-            if (ps2.option[1] & 0x04) val = 0x7f;
-            else val = 0x77;
-            break;
-        case 8:
-        default:
-            if (ps2.option[1] & 0x04) val = 0x5f;
-            else val = 0x77;
-            break;
-        }
-        ps2_mca_log(" Read MCA %04X %02X %04X:%04X mem_size = %d, ps2option1 = %2X\n", port, val, cs >> 4, cpu_state.pc, mem_size, ps2.option[1]);
-        return val;
-    case 0x104:
-        return ps2.option[2];
-    case 0x105:
-        return ps2.option[3];
-    case 0x106:
-        return ps2.subaddr_lo;
-    case 0x107:
-        return ps2.subaddr_hi;
+            Memory Card ID: 7h = 2 MB Memory Card 2 or 3 Installed
+                            5h = 4 MB Memory Card 2 Installed
+            */
+            switch (mem_size / 1024) {
+                case 2:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xff;
+                    else
+                        val = 0x7f;
+                    break;
+                case 4:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xff;
+                    else
+                        val = 0x77;
+                    break;
+                case 6:
+                    if (ps2.option[1] & 0x04)
+                        val = 0x7f;
+                    else
+                        val = 0x77;
+                    break;
+                case 8:
+                default:
+                    if (ps2.option[1] & 0x04)
+                        val = 0x5f;
+                    else
+                        val = 0x77;
+                    break;
+            }
+            ps2_mca_log(" Read MCA %04X %02X %04X:%04X mem_size = %d, ps2option1 = %2X\n", port, val, cs >> 4, cpu_state.pc, mem_size, ps2.option[1]);
+            return val;
+        case 0x104:
+            return ps2.option[2];
+        case 0x105:
+            return ps2.option[3];
+        case 0x106:
+            return ps2.subaddr_lo;
+        case 0x107:
+            return ps2.subaddr_hi;
     }
     return 0xff;
 }
@@ -421,44 +427,47 @@ ps55_model_50t_read(uint16_t port)
 static uint8_t
 ps55_model_50v_read(uint16_t port)
 {
-    switch (port)
-    {
-    case 0x100:
-        return ps2.planar_id & 0xff;
-    case 0x101:
-        return ps2.planar_id >> 8;
-    case 0x102:
-        return ps2.option[0];
-    case 0x103:
-        uint8_t val = 0xff;
-        /*
-        I/O 103h - Bit 7-4: Reserved
-                   Bit 3-0: Memory Card ID (Connector 3 or 1)
+    switch (port) {
+        case 0x100:
+            return ps2.planar_id & 0xff;
+        case 0x101:
+            return ps2.planar_id >> 8;
+        case 0x102:
+            return ps2.option[0];
+        case 0x103:
+            uint8_t val = 0xff;
+            /*
+            I/O 103h - Bit 7-4: Reserved
+                       Bit 3-0: Memory Card ID (Connector 3 or 1)
 
-        Memory Card ID: 8h = 4 MB Memory Card IV Installed
-                        Fh = No Card Installed
-        */
-        switch (mem_size / 1024)
-        {
-        case 4:
-            if (ps2.option[1] & 0x04) val = 0xff;
-            else val = 0xf8;
-            break;
-        case 8:
-        default:
-            if (ps2.option[1] & 0x04) val = 0xf8;
-            else val = 0xf8;
-            break;
-        }
-        return val;
-    case 0x104:
-        return ps2.option[2] & 0xf3;
-    case 0x105:
-        return ps2.option[3];
-    case 0x106:
-        return ps2.subaddr_lo;
-    case 0x107:
-        return ps2.subaddr_hi;
+            Memory Card ID: 8h = 4 MB Memory Card IV Installed
+                            Fh = No Card Installed
+            */
+            switch (mem_size / 1024) {
+                case 4:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xff;
+                    else
+                        val = 0xf8;
+                    break;
+                case 8:
+                default:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xf8;
+                    else
+                        val = 0xf8;
+                    break;
+            }
+            return val;
+        case 0x104:
+            /* Reading cache ID (bit 3-2) always returns zero */
+            return ps2.option[2] & 0xf3;
+        case 0x105:
+            return ps2.option[3];
+        case 0x106:
+            return ps2.subaddr_lo;
+        case 0x107:
+            return ps2.subaddr_hi;
     }
     return 0xff;
 }
@@ -763,71 +772,66 @@ static void
 ps55_model_50tv_write(uint16_t port, uint8_t val)
 {
     ps2_mca_log(" Write SysBrd %04X %02X %04X:%04X\n", port, val, cs >> 4, cpu_state.pc);
-    switch (port)
-    {
-    case 0x102:
-        lpt1_remove();
-        serial_remove(ps2.uart);
-        if (val & 0x04)
-        {
-            if (val & 0x08)
-                serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
-            else
-                serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
-        }
-        if (val & 0x10)
-        {
-            switch ((val >> 5) & 3)
-            {
-            case 0:
-                lpt1_setup(LPT_MDA_ADDR);
-                break;
-            case 1:
-                lpt1_setup(LPT1_ADDR);
-                break;
-            case 2:
-                lpt1_setup(LPT2_ADDR);
-                break;
-            default:
-                break;
+    switch (port) {
+        case 0x102:
+            lpt1_remove();
+            serial_remove(ps2.uart);
+            if (val & 0x04) {
+                if (val & 0x08)
+                    serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
+                else
+                    serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
             }
-        }
-        ps2.option[0] = val;
-        break;
-    case 0x103:
-        ps2.option[1] = val;
-        break;
-    case 0x104:
-        if ((ps2.option[2] ^ val) & 1) {
-            mem_encoding_update();
-            if (val & 1)/* Disable E0000 - E0FFF(Make 2 KB hole for Display Adapter) */
-            {
-                ps2_mca_log("ROM E0000-E0FFF is disabled.\n");
-                //mem_mapping_set_addr(&bios_mapping 0xe1000, 0x1f000);
-                mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-                //mem_mapping_disable(&bios_mapping[0]);
+            if (val & 0x10) {
+                switch ((val >> 5) & 3) {
+                    case 0:
+                        lpt1_setup(LPT_MDA_ADDR);
+                        break;
+                    case 1:
+                        lpt1_setup(LPT1_ADDR);
+                        break;
+                    case 2:
+                        lpt1_setup(LPT2_ADDR);
+                        break;
+                    default:
+                        break;
+                }
             }
-            else/* Enable E0000 - E0FFF for BIOS */
-            {
-                ps2_mca_log("ROM E0000-E0FFF is enabled.\n");
-                //mem_mapping_set_addr(&bios_mapping 0xe0000, 0x20000);
-                //mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_DISABLED);
-                //mem_mapping_enable(&bios_mapping[0]);
+            ps2.option[0] = val;
+            break;
+        case 0x103:
+            ps2.option[1] = val;
+            break;
+        case 0x104:
+            if ((ps2.option[2] ^ val) & 1) {
+                mem_encoding_update();
+                if (val & 1) {
+                    /* Disable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
+                    ps2_mca_log("ROM E0000-E0FFF is disabled.\n");
+                    // mem_mapping_set_addr(&bios_mapping 0xe1000, 0x1f000);
+                    mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+                    // mem_mapping_disable(&bios_mapping[0]);
+                } else {
+                    /* Enable E0000 - E0FFF for BIOS */
+                    ps2_mca_log("ROM E0000-E0FFF is enabled.\n");
+                    // mem_mapping_set_addr(&bios_mapping 0xe0000, 0x20000);
+                    // mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_DISABLED);
+                    // mem_mapping_enable(&bios_mapping[0]);
+                }
             }
-        }
-        ps2.option[2] = val;
-        break;
-    case 0x105:
-        ps2.option[3] = val;
-        break;
-    case 0x106:
-        ps2.subaddr_lo = val;
-        break;
-    case 0x107:
-        ps2.subaddr_hi = val;
-        break;
-    default:
-        break;
+            ps2.option[2] = val;
+            break;
+        case 0x105:
+            ps2.option[3] = val;
+            break;
+        case 0x106:
+            ps2.subaddr_lo = val;
+            break;
+        case 0x107:
+            ps2.subaddr_hi = val;
+            break;
+        default:
+            break;
     }
 }
 
@@ -1339,20 +1343,19 @@ static void
 mem_encoding_write_ps55(uint16_t addr, uint8_t val, void* p)
 {
     //ps2_mca_log(" Write Memory Encoding %04X %02X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
-    switch (addr)
-    {
-    case 0xe0:
-        ps2.mem_regs[0] = val;
-        break;
-    case 0xe1:
-        ps2.mem_regs[1] = val;
-        break;
-    default:
-        break;
+    switch (addr) {
+        case 0xe0:
+            ps2.mem_regs[0] = val;
+            break;
+        case 0xe1:
+            ps2.mem_regs[1] = val;
+            break;
+        default:
+            break;
     }
     mem_encoding_update();
-    if (ps2.option[2] & 1) /* reset memstate for E0000 - E0FFFh hole */
-    {
+    if (ps2.option[2] & 1) {
+        /* reset memstate for E0000 - E0FFFh hole */
         mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
     }
 }
@@ -1479,8 +1482,8 @@ mem_encoding_write_cached_ps55(uint16_t addr, uint8_t val, UNUSED(void *priv))
         flushmmucache();
         ps2_mca_log("mem_encoding_write: low ram mapping enabled\n");
     }
-    if (ps2.option[2] & 1) /* reset memstate for E0000 - E0FFFh hole */
-    {
+    if (ps2.option[2] & 1) {
+        /* reset memstate for E0000 - E0FFFh hole */
         mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
     }
 }
@@ -1845,7 +1848,6 @@ ps55_mca_board_model_50t_init()
 {
     ps2_mca_board_common_init();
 
-    //mem_remap_top(256);
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
@@ -1860,14 +1862,6 @@ ps55_mca_board_model_50t_init()
 
     ps2.mem_regs[1] = 2;
     ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
-
-    //resize bios_mapping 0,1
-    //mem_mapping_set_addr(&bios_mapping[0], 0xe0000, 0x1000);
-    //mem_mapping_set_exec(&bios_mapping[0], rom + (0x20000 & biosmask));
-    //mem_mapping_set_addr(&bios_mapping[1], 0xe1000, 0x7000);
-    //mem_mapping_set_exec(&bios_mapping[1], rom + (0x21000 & biosmask));
-    //mem_mapping_add(&bios_mapping[0], 0xe0000, 0x04000, mem_read_bios, mem_read_biosw, mem_read_biosl, mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x20000 & biosmask), MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM, 0);
-    //mem_mapping_add(&bios_mapping[1], 0xe4000, 0x04000, mem_read_bios, mem_read_biosw, mem_read_biosl, mem_write_null, mem_write_nullw, mem_write_nulll, rom + (0x23000 & biosmask), MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM, 0);
 
     mem_mapping_add(&ps2.split_mapping,
         (mem_size + 256) * 1024,
@@ -1897,7 +1891,6 @@ ps55_mca_board_model_50v_init()
 {
     ps2_mca_board_common_init();
 
-    //mem_remap_top(256);
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
