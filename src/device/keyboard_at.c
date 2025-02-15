@@ -1648,14 +1648,14 @@ static const scancode scancode_set3[512] = {
 
     Currently, scancode set 81h and 82h are not implemented yet. Also, the key layout is designed to match with the Japanese keyboard.
 
-     [Japanese DOS and keyboard scancode set]
-    |                           | K3.3 | J4.0 | J5.0 | J4.0/V | J5.0/V | OS/2 J1.3 | PC DOS 5 |
+     [Japanese DOS and keyboard scancode set comparison]
+    |                           | K3.3 | J4.0 | J5.0 | J4.0/V | J5.0/V | OS/2 J1.3 | DOS 5(US)|
     |---------------------------|:----:|:----:|:----:|:------:|:------:|:---------:|:--------:|
     | IBM 101-key               |  n/a |  n/a |  n/a |  n/a   |    2   |    n/a    |     2    |
-    | IBM-J 5576-00x (obsolete) |   8A |   8A |   8A |   82   |   82   |     82    |     2    |
-    | OADG (modern JA standard) |  n/a |  n/a |  n/a |    2   |    2   |      2    |     2    | */
+    | IBM-J 5576-00x (obsolete) |  8Ah |  8Ah |  8Ah |   82h  |   82h  |     82h   |     2    |
+    | OADG (modern Japanese)    |  n/a |  n/a |  n/a |    2   |    2   |      2    |     2    | */
 
-/* Scancode set 8Ah : 5556 keyboard compatible scancode set used by J-DOS */
+/* Scancode set 8Ah : IBM 5556 keyboard compatible scancode set used by J-DOS */
 static scancode scancode_set8a[512] =
 {
     // clang-format off                     
