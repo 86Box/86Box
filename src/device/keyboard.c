@@ -190,7 +190,7 @@ key_process(uint16_t scan, int down)
 
     oldkey[scan] = down;
 
-    pclog("keyboard : %04X,%d in process\n", scan, down);
+    kbc_at_log("Key %04X,%d in process\n", scan, down);
 
     c = 0;
     /* According to Japanese DOS K3.3 manual (N:SC18-2194-1),
@@ -206,7 +206,7 @@ key_process(uint16_t scan, int down)
             if (scan != 0x1d && scan != 0x2a && scan != 0x138)
             {
                 key5576mode = 0;
-                pclog("keyboard : 5576-001 key emulation disabled.\n");
+                kbc_at_log("5576-001 key emulation disabled.\n");
             }
         }
         while (scconv55_8a[i].sc != 0)
@@ -251,7 +251,7 @@ key_process(uint16_t scan, int down)
     if (keyboard_mode == 0x8a && down && ((keyboard_get_shift() & 0x43) == 0x43))
     {
         key5576mode = 1;
-        pclog("keyboard : 5576-001 key emulation enabled.\n");
+        kbc_at_log("5576-001 key emulation enabled.\n");
     }
 }
 
@@ -348,7 +348,7 @@ keyboard_input(int down, uint16_t scan)
         }
     }
 
-    /* pclog("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
+    /* kbc_at_log("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
     recv_key_ui[scan & 0x1ff] = down;
 
     if (mouse_capture || !kbd_req_capture || video_fullscreen) {
