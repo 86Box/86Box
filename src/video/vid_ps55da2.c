@@ -228,10 +228,11 @@
 #define LG_SET_RESET_2             0x10
 
 #ifndef RELEASE_BUILD
-#define ENABLE_DA2_LOG 1
+//#define ENABLE_DA2_LOG 1
 #endif
 
 #ifdef ENABLE_DA2_LOG
+#define ENABLE_DA2_DEBUGBLT 1
 int da2_do_log = ENABLE_DA2_LOG;
 
 static void
@@ -247,9 +248,6 @@ da2_log(const char* fmt, ...)
 }
 #else
 #    define da2_log(fmt, ...)
-#endif
-#ifndef RELEASE_BUILD
-#   define ENABLE_DA2_DEBUGBLT 1
 #endif
 
 typedef struct da2_t
@@ -710,31 +708,35 @@ void da2_bitblt_load(da2_t* da2)
             //    da2->bitblt.destpitch += 2;
             //    da2->bitblt.srcpitch += 2;
             //}
-            uint32_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
-            uint32_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
             da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 72 + 2;
             da2->bitblt.destaddr += 2;
             da2->bitblt.srcpitch = 0;
             da2->bitblt.raster_op = da2->bitblt.reg[0x05] & 0x03; /* XOR */
             da2->bitblt.bitshift_destr += 1;
+#ifdef ENABLE_DA2_DEBUGBLT
+            uint32_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
+            uint32_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
             da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d, c=%c%c\n",
                 da2->bitblt.srcaddr, da2->bitblt.destaddr,
                 da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                 da2->bitblt.size_x, da2->bitblt.size_y, sjis_h, sjis_l);
+#endif
         }
         else if (da2->bitblt.reg[0x10] == 0x0004 || da2->bitblt.reg[0x10] == 0x0E04) {
             da2->bitblt.exec = DA2_BLT_CPUTCHAR;
-            uint32_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
-            uint32_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
             da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 64 + 2 + DA2_FONTROM_BASESBCS;
             da2->bitblt.destaddr += 2;
             da2->bitblt.srcpitch = 0;
             da2->bitblt.raster_op = da2->bitblt.reg[0x05] & 0x03; /* XOR */
             da2->bitblt.bitshift_destr += 1;
+#ifdef ENABLE_DA2_DEBUGBLT
+            uint32_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
+            uint32_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
             da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d, c=%c%c\n",
                 da2->bitblt.srcaddr, da2->bitblt.destaddr,
                 da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                 da2->bitblt.size_x, da2->bitblt.size_y, sjis_h, sjis_l);
+#endif
         }
         else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {/* Fill a rectangle(or draw a line) */
             da2_log("fillrect x=%d, y=%d, w=%d, h=%d, c=%d, 2f=%x, rowcount=%x\n",
@@ -898,15 +900,15 @@ void da2_bitblt_exec(void* p)
     case DA2_BLT_CPUTCHAR:
         //da2->bitblt.y += 2;
         da2->bitblt.destaddr = da2->bitblt.reg[0x29] + da2->bitblt.x * 2 + da2->bitblt.y * 130 + 0 + 260;
-        pclog("scr %x dest %x :", da2->bitblt.srcaddr, da2->bitblt.destaddr);
+        //pclog("scr %x dest %x :", da2->bitblt.srcaddr, da2->bitblt.destaddr);
         //da2->bitblt.srcaddr += 2;
         if(da2->bitblt.reg[0x12] < 0x100)
             da2->bitblt.srcaddr = DA2_FONTROM_BASESBCS + da2->bitblt.reg[0x12] * 64 + (da2->bitblt.x * 2) + (da2->bitblt.y * 2) - 2;
         else
             da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 72 + (da2->bitblt.x * 2) + (da2->bitblt.y * 3) - 2;
-        print_bytetobin(da2->mmio.font[da2->bitblt.srcaddr + 2]);
-        print_bytetobin(da2->mmio.font[da2->bitblt.srcaddr + 3]);
-        pclog("\n");
+        //print_bytetobin(da2->mmio.font[da2->bitblt.srcaddr + 2]);
+        //print_bytetobin(da2->mmio.font[da2->bitblt.srcaddr + 3]);
+        //pclog("\n");
         if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
         //if (1) {
             DA2_PutcharWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
@@ -3059,7 +3061,7 @@ void da2_close(void *p)
         da2_t *da2 = (da2_t *)p;
 
         /* dump mem for debug */
-#ifndef RELEASE_BUILD
+#ifdef ENABLE_DA2_LOG
         FILE* f;
         f = fopen("da2_cram.dmp", "wb");
         if (f != NULL) {
