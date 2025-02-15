@@ -35,6 +35,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_unused.h>
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -153,6 +154,48 @@ x808x_log(const char *fmt, ...)
 static void pfq_add(int c, int add);
 static void set_pzs(int bits);
 
+void
+prefetch_queue_set_pos(int pos)
+{
+    pfq_pos = pos;
+}
+
+void
+prefetch_queue_set_ip(uint16_t ip)
+{
+    pfq_ip = ip;
+}
+
+void
+prefetch_queue_set_prefetching(int p)
+{
+    prefetching = p;
+}
+
+int
+prefetch_queue_get_pos(void)
+{
+    return pfq_pos;
+}
+
+uint16_t
+prefetch_queue_get_ip(void)
+{
+    return pfq_ip;
+}
+
+int
+prefetch_queue_get_prefetching(void)
+{
+    return prefetching;
+}
+
+int
+prefetch_queue_get_size(void)
+{
+    return pfq_size;
+}
+
 uint16_t
 get_last_addr(void)
 {
@@ -240,13 +283,13 @@ cpu_io(int bits, int out, uint16_t port)
     int old_cycles = cycles;
 
     if (out) {
-        wait(4, 1);
+        wait(is_mazovia ? 5 : 4, 1);
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
                 old_cycles = cycles;
                 outw(port, AX);
             } else {
-                wait(4, 1);
+                wait(is_mazovia ? 5 : 4, 1);
                 old_cycles = cycles;
                 outb(port++, AL);
                 outb(port, AH);
@@ -256,13 +299,13 @@ cpu_io(int bits, int out, uint16_t port)
             outb(port, AL);
         }
     } else {
-        wait(4, 1);
+        wait(is_mazovia ? 5 : 4, 1);
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
                 old_cycles = cycles;
                 AX         = inw(port);
             } else {
-                wait(4, 1);
+                wait(is_mazovia ? 5 : 4, 1);
                 old_cycles = cycles;
                 AL         = inb(port++);
                 AH         = inb(port);
@@ -815,7 +858,7 @@ pop(void)
 }
 
 static void
-access(int num, int bits)
+access(int num, UNUSED(int bits))
 {
     switch (num) {
         case 0:
@@ -1419,7 +1462,7 @@ set_pzs(int bits)
 }
 
 static void
-set_co_mul(int bits, int carry)
+set_co_mul(UNUSED(int bits), int carry)
 {
     set_cf(carry);
     set_of(carry);
@@ -1634,28 +1677,75 @@ cpu_data_opff_rm(void)
     }
 }
 
+uint8_t
+cpu_inb(uint16_t port)
+{
+    int     old_cycles = cycles;
+    uint8_t ret;
+
+    wait(is_mazovia ? 5 : 4, 1);
+    old_cycles = cycles;
+
+    ret = inb(port);
+
+    resub_cycles(old_cycles);
+
+    return ret;
+}
+
 uint16_t
 cpu_inw(uint16_t port)
 {
+    int      old_cycles = cycles;
+    uint16_t ret;
+
+    wait(is_mazovia ? 5 : 4, 1);
     if (is8086 && !(port & 1)) {
-        wait(4, 0);
+        old_cycles = cycles;
+        ret = inw(port);
     } else {
-        wait(8, 0);
+        wait(is_mazovia ? 5 : 4, 1);
+        old_cycles = cycles;
+        ret = inb(port++);
+        ret |= (inb(port) << 8);
     }
 
-    return inw(port);
+    resub_cycles(old_cycles);
+
+    return ret;
+}
+
+void
+cpu_outb(uint16_t port, uint16_t val)
+{
+    int old_cycles = cycles;
+
+    wait(is_mazovia ? 5 : 4, 1);
+    old_cycles = cycles;
+
+    outb(port, val);
+
+    resub_cycles(old_cycles);
 }
 
 void
 cpu_outw(uint16_t port, uint16_t val)
 {
+    int old_cycles = cycles;
+
+    wait(is_mazovia ? 5 : 4, 1);
+
     if (is8086 && !(port & 1)) {
-        wait(4, 0);
+        old_cycles = cycles;
+        outw(port, val);
     } else {
-        wait(8, 0);
+        wait(is_mazovia ? 5 : 4, 1);
+        old_cycles = cycles;
+        outb(port++, val);
+        outb(port, val >> 8);
     }
 
-    return outw(port, val);
+    resub_cycles(old_cycles);
 }
 
 /* Executes instructions up to the specified number of cycles. */
@@ -1804,8 +1894,7 @@ execx86(int cycs)
                         writememw(es, DI, cpu_inw(DX));
                         DI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
-                        wait(4, 0);
-                        writememb(es, DI, inb(DX));
+                        writememb(es, DI, cpu_inb(DX));
                         DI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
 
@@ -1833,8 +1922,7 @@ execx86(int cycs)
                         cpu_outw(DX, readmemw(dest_seg, SI));
                         SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
-                        wait(4, 0);
-                        outb(DX, readmemb(dest_seg + SI));
+                        cpu_outb(DX, readmemb(dest_seg + SI));
                         SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
                     if (in_rep == 0)
@@ -3154,8 +3242,10 @@ execx86(int cycs)
 #else
                     cpu_src = pfq_fetchb();
 #endif
-                    if (x86_div(AL, 0))
-                        set_pzs(16);
+                    if (x86_div(AL, 0)) {
+                        cpu_data = AL;
+                        set_pzs(8);
+                    }
                     break;
                 case 0xD5: /*AAD*/
                     wait(1, 0);
@@ -3169,6 +3259,7 @@ execx86(int cycs)
                     add(8);
                     AL = cpu_data;
                     AH = 0x00;
+                    set_pzs(8);
                     break;
                 case 0xD6: /*SALC*/
                     wait(1, 0);

@@ -62,17 +62,13 @@ joystick_standard_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
-    if (JOYSTICK_PRESENT(0)) {
-        if (joystick_state[0].button[0])
-            ret &= ~0x10;
-        if (joystick_state[0].button[1])
-            ret &= ~0x20;
-    }
-    if (JOYSTICK_PRESENT(1)) {
-        if (joystick_state[1].button[0])
-            ret &= ~0x40;
-        if (joystick_state[1].button[1])
-            ret &= ~0x80;
+    for (int js = 0; js < 2; js++) {
+        if (JOYSTICK_PRESENT(0, js)) {
+            if (joystick_state[0][js].button[0])
+                ret &= ~0x10;
+            if (joystick_state[0][js].button[1])
+                ret &= ~0x20;
+        }
     }
 
     return ret;
@@ -83,14 +79,14 @@ joystick_standard_read_4button(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
-    if (JOYSTICK_PRESENT(0)) {
-        if (joystick_state[0].button[0])
+    if (JOYSTICK_PRESENT(0, 0)) {
+        if (joystick_state[0][0].button[0])
             ret &= ~0x10;
-        if (joystick_state[0].button[1])
+        if (joystick_state[0][0].button[1])
             ret &= ~0x20;
-        if (joystick_state[0].button[2])
+        if (joystick_state[0][0].button[2])
             ret &= ~0x40;
-        if (joystick_state[0].button[3])
+        if (joystick_state[0][0].button[3])
             ret &= ~0x80;
     }
 
@@ -108,21 +104,21 @@ joystick_standard_read_axis(UNUSED(void *priv), int axis)
 {
     switch (axis) {
         case 0:
-            if (!JOYSTICK_PRESENT(0))
+            if (!JOYSTICK_PRESENT(0, 0))
                 return AXIS_NOT_PRESENT;
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            if (!JOYSTICK_PRESENT(0))
+            if (!JOYSTICK_PRESENT(0, 0))
                 return AXIS_NOT_PRESENT;
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
-            if (!JOYSTICK_PRESENT(1))
+            if (!JOYSTICK_PRESENT(0, 1))
                 return AXIS_NOT_PRESENT;
-            return joystick_state[1].axis[0];
+            return joystick_state[0][1].axis[0];
         case 3:
-            if (!JOYSTICK_PRESENT(1))
+            if (!JOYSTICK_PRESENT(0, 1))
                 return AXIS_NOT_PRESENT;
-            return joystick_state[1].axis[1];
+            return joystick_state[0][1].axis[1];
         default:
             return 0;
     }
@@ -131,18 +127,16 @@ joystick_standard_read_axis(UNUSED(void *priv), int axis)
 static int
 joystick_standard_read_axis_4button(UNUSED(void *priv), int axis)
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     switch (axis) {
         case 0:
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
-            return 0;
         case 3:
-            return 0;
         default:
             return 0;
     }
@@ -151,18 +145,17 @@ joystick_standard_read_axis_4button(UNUSED(void *priv), int axis)
 static int
 joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     switch (axis) {
         case 0:
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
-            return joystick_state[0].axis[2];
+            return joystick_state[0][0].axis[2];
         case 3:
-            return 0;
         default:
             return 0;
     }
@@ -171,18 +164,18 @@ joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
 static int
 joystick_standard_read_axis_4axis(UNUSED(void *priv), int axis)
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     switch (axis) {
         case 0:
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
-            return joystick_state[0].axis[2];
+            return joystick_state[0][0].axis[2];
         case 3:
-            return joystick_state[0].axis[3];
+            return joystick_state[0][0].axis[3];
         default:
             return 0;
     }
@@ -191,18 +184,18 @@ joystick_standard_read_axis_4axis(UNUSED(void *priv), int axis)
 static int
 joystick_standard_read_axis_6button(UNUSED(void *priv), int axis)
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     switch (axis) {
         case 0:
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
-            return joystick_state[0].button[4] ? -32767 : 32768;
+            return joystick_state[0][0].button[4] ? -32767 : 32768;
         case 3:
-            return joystick_state[0].button[5] ? -32767 : 32768;
+            return joystick_state[0][0].button[5] ? -32767 : 32768;
         default:
             return 0;
     }
@@ -210,24 +203,24 @@ joystick_standard_read_axis_6button(UNUSED(void *priv), int axis)
 static int
 joystick_standard_read_axis_8button(UNUSED(void *priv), int axis)
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     switch (axis) {
         case 0:
-            return joystick_state[0].axis[0];
+            return joystick_state[0][0].axis[0];
         case 1:
-            return joystick_state[0].axis[1];
+            return joystick_state[0][0].axis[1];
         case 2:
-            if (joystick_state[0].button[4])
+            if (joystick_state[0][0].button[4])
                 return -32767;
-            if (joystick_state[0].button[6])
+            if (joystick_state[0][0].button[6])
                 return 32768;
             return 0;
         case 3:
-            if (joystick_state[0].button[5])
+            if (joystick_state[0][0].button[5])
                 return -32767;
-            if (joystick_state[0].button[7])
+            if (joystick_state[0][0].button[7])
                 return 32768;
             return 0;
         default:

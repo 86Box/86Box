@@ -11,9 +11,11 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 
 #ifndef SOUND_SND_SB_H
@@ -27,15 +29,19 @@
 
 enum {
     SADLIB  = 1,     /* No DSP */
-    SB1,             /* DSP v1.05 */
-    SB15,            /* DSP v2.00 */
-    SB2,             /* DSP v2.01 - needed for high-speed DMA */
-    SBPRO,           /* DSP v3.00 */
-    SBPRO2,          /* DSP v3.02 + OPL3 */
-    SB16,            /* DSP v4.05 + OPL3 */
-    SBAWE32,         /* DSP v4.12 + OPL3 */
-    SBAWE32PNP,      /* DSP v4.13 + OPL3 */
-    SBAWE64          /* DSP v4.16 + OPL3 */
+    SB_DSP_105,      /* DSP v1.05, Original CT1320 (Also known as CT1310) */
+    SB_DSP_200,      /* DSP v2.00 */
+    SB_DSP_201,      /* DSP v2.01 - needed for high-speed DMA, Seen on CT1350B with CT1336 */
+    SB_DSP_202,      /* DSP v2.02 - Seen on CT1350B with CT1336A */
+    SBPRO_DSP_300,   /* DSP v3.00 */
+    SBPRO2_DSP_302,  /* DSP v3.02 + OPL3 */
+    SB16_DSP_404,    /* DSP v4.05 + OPL3 */
+    SB16_DSP_405,    /* DSP v4.05 + OPL3 */
+    SB16_DSP_406,    /* DSP v4.06 + OPL3 */
+    SB16_DSP_411,    /* DSP v4.11 + OPL3 */
+    SBAWE32_DSP_412, /* DSP v4.12 + OPL3 */
+    SBAWE32_DSP_413, /* DSP v4.13 + OPL3 */
+    SBAWE64_DSP_416  /* DSP v4.16 + OPL3 */
 };
 
 /* SB 2.0 CD version */
@@ -182,6 +188,7 @@ typedef struct sb_t {
     void   *gameport;
 
     int pnp;
+    int has_ide;
 
     uint8_t pos_regs[8];
     uint8_t pnp_rom[512];
@@ -194,6 +201,12 @@ typedef struct sb_t {
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
 } sb_t;
+
+typedef struct goldfinch_t {
+    emu8k_t emu8k;
+
+    uint8_t pnp_rom[512];
+} goldfinch_t;
 
 extern void    sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ct1345_mixer_read(uint16_t addr, void *priv);

@@ -1,5 +1,5 @@
 static uint32_t
-ropINC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropINC_rw(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -22,7 +22,7 @@ ropINC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return op_pc;
 }
 static uint32_t
-ropINC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropINC_rl(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -45,7 +45,7 @@ ropINC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return op_pc;
 }
 static uint32_t
-ropDEC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropDEC_rw(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -68,7 +68,7 @@ ropDEC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return op_pc;
 }
 static uint32_t
-ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropDEC_rl(uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -93,7 +93,7 @@ ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 
 #define ROP_ARITH_RMW(name, op, writeback)                                                                   \
     static uint32_t                                                                                          \
-    rop##name##_b_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    rop##name##_b_rmw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                        \
         int     src_reg;                                                                                     \
         int     dst_reg;                                                                                     \
@@ -129,7 +129,7 @@ ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
         return op_pc + 1;                                                                                    \
     }                                                                                                        \
     static uint32_t                                                                                          \
-    rop##name##_w_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    rop##name##_w_rmw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                        \
         int     src_reg;                                                                                     \
         int     dst_reg;                                                                                     \
@@ -165,7 +165,7 @@ ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
         return op_pc + 1;                                                                                    \
     }                                                                                                        \
     static uint32_t                                                                                          \
-    rop##name##_l_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    rop##name##_l_rmw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                        \
         int     src_reg;                                                                                     \
         int     dst_reg;                                                                                     \
@@ -203,7 +203,7 @@ ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 
 #define ROP_ARITH_RM(name, op, writeback)                                                                   \
     static uint32_t                                                                                         \
-    rop##name##_b_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    rop##name##_b_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                       \
         int src_reg;                                                                                        \
         int dst_reg;                                                                                        \
@@ -233,7 +233,7 @@ ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
         return op_pc + 1;                                                                                   \
     }                                                                                                       \
     static uint32_t                                                                                         \
-    rop##name##_w_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    rop##name##_w_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                       \
         int src_reg;                                                                                        \
         int dst_reg;                                                                                        \
@@ -263,7 +263,7 @@ ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
         return op_pc + 1;                                                                                   \
     }                                                                                                       \
     static uint32_t                                                                                         \
-    rop##name##_l_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    rop##name##_l_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                       \
         int src_reg;                                                                                        \
         int dst_reg;                                                                                        \
@@ -299,7 +299,7 @@ ROP_ARITH_RM(ADD, ADD, 1)
 ROP_ARITH_RM(SUB, SUB, 1)
 
 static uint32_t
-ropCMP_b_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_b_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int src_reg;
     int dst_reg;
@@ -326,7 +326,7 @@ ropCMP_b_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
     return op_pc + 1;
 }
 static uint32_t
-ropCMP_w_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_w_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int src_reg;
     int dst_reg;
@@ -353,7 +353,7 @@ ropCMP_w_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
     return op_pc + 1;
 }
 static uint32_t
-ropCMP_l_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_l_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int src_reg;
     int dst_reg;
@@ -381,7 +381,7 @@ ropCMP_l_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
 }
 
 static uint32_t
-ropCMP_b_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_b_rmw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int src_reg;
     int dst_reg;
@@ -408,7 +408,7 @@ ropCMP_b_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropCMP_w_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_w_rmw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int src_reg;
     int dst_reg;
@@ -435,7 +435,7 @@ ropCMP_w_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropCMP_l_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_l_rmw(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int src_reg;
     int dst_reg;
@@ -463,7 +463,7 @@ ropCMP_l_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropADD_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropADD_AL_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_B(REG_AL);
 
@@ -478,7 +478,7 @@ ropADD_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
     return op_pc + 1;
 }
 static uint32_t
-ropADD_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropADD_AX_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_W(REG_AX);
 
@@ -493,7 +493,7 @@ ropADD_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
     return op_pc + 2;
 }
 static uint32_t
-ropADD_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropADD_EAX_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_L(REG_EAX);
 
@@ -510,7 +510,7 @@ ropADD_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc
 }
 
 static uint32_t
-ropCMP_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_AL_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_B(REG_AL);
 
@@ -525,7 +525,7 @@ ropCMP_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
     return op_pc + 1;
 }
 static uint32_t
-ropCMP_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_AX_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_W(REG_AX);
 
@@ -540,7 +540,7 @@ ropCMP_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
     return op_pc + 2;
 }
 static uint32_t
-ropCMP_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCMP_EAX_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_L(REG_EAX);
 
@@ -557,7 +557,7 @@ ropCMP_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc
 }
 
 static uint32_t
-ropSUB_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropSUB_AL_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_B(REG_AL);
 
@@ -572,7 +572,7 @@ ropSUB_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
     return op_pc + 1;
 }
 static uint32_t
-ropSUB_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropSUB_AX_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_W(REG_AX);
 
@@ -587,7 +587,7 @@ ropSUB_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
     return op_pc + 2;
 }
 static uint32_t
-ropSUB_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropSUB_EAX_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_L(REG_EAX);
 
@@ -604,7 +604,7 @@ ropSUB_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc
 }
 
 static uint32_t
-rop80(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+rop80(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int      host_reg;
     uint32_t imm;
@@ -679,7 +679,7 @@ rop80(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblo
 }
 
 static uint32_t
-rop81_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+rop81_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int      host_reg;
     uint32_t imm;
@@ -753,7 +753,7 @@ rop81_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc + 3;
 }
 static uint32_t
-rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+rop81_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int      host_reg;
     uint32_t imm;
@@ -827,7 +827,7 @@ rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
 }
 
 static uint32_t
-rop83_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+rop83_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int      host_reg;
     uint32_t imm;
@@ -904,7 +904,7 @@ rop83_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc + 2;
 }
 static uint32_t
-rop83_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+rop83_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int      host_reg;
     uint32_t imm;

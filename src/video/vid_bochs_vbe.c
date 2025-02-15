@@ -921,50 +921,37 @@ bochs_vbe_force_redraw(void *priv)
 static const device_config_t bochs_vbe_config[] = {
     // clang-format off
     {
-        .name = "revision",
-        .description = "Revision",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "VirtualBox",
-                .value = VBE_DISPI_ID4
-            },
-            {
-                .description = "Bochs latest",
-                .value = VBE_DISPI_ID5
-            },
-            {
-                .description = ""
-            }
+        .name           = "revision",
+        .description    = "Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = VBE_DISPI_ID5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "VirtualBox",   .value = VBE_DISPI_ID4 },
+            { .description = "Bochs latest", .value = VBE_DISPI_ID5 },
+            { .description = ""                                     }
         },
-        .default_int = VBE_DISPI_ID5
+        .bios           = { { 0 } }
     },
     {
-        .name        = "memory",
-        .description = "Memory size",
-        .type        = CONFIG_SELECTION,
-        .selection   = {
-            {
-                .description = "4 MB",
-                .value       = 4
-            },
-            {
-                .description = "8 MB",
-                .value       = 8
-            },
-            {
-                .description = "16 MB",
-                .value       = 16
-            },
-            {
-                .description = ""
-            }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 16,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "4 MB", .value =  4 },
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
         },
-        .default_int = 16
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
@@ -976,7 +963,7 @@ const device_t bochs_svga_device = {
     .init          = bochs_vbe_init,
     .close         = bochs_vbe_close,
     .reset         = bochs_vbe_reset,
-    { .available = bochs_vbe_available },
+    .available     = bochs_vbe_available,
     .speed_changed = bochs_vbe_speed_changed,
     .force_redraw  = bochs_vbe_force_redraw,
     .config        = bochs_vbe_config

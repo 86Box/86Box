@@ -34,38 +34,87 @@
 #include "qt_winrawinputfilter.hpp"
 
 #include <QMenuBar>
+#include <QFile>
+#include <QTextStream>
+#include <QApplication>
+#include <QTimer>
 
 #include <atomic>
 
 #include <windows.h>
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/video.h>
+#include <dbt.h>
+#include <strsafe.h>
+
+extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 
 #include <array>
 #include <memory>
 
 #include "qt_rendererstack.hpp"
+#include "ui_qt_mainwindow.h"
+
+bool windows_is_light_theme() {
+    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
+
+    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
+    auto buffer = std::vector<char>(4);
+    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
+    auto res = RegGetValueW(
+        HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        L"AppsUseLightTheme",
+        RRF_RT_REG_DWORD, // expected value type
+        nullptr,
+        buffer.data(),
+        &cbData);
+
+    if (res != ERROR_SUCCESS) {
+        return 1;
+    }
+
+    // convert bytes written to our buffer to an int, assuming little-endian
+    auto i = int(buffer[3] << 24 |
+        buffer[2] << 16 |
+        buffer[1] << 8 |
+        buffer[0]);
+
+    return i == 1;
+}
 
 extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
     RAWINPUTDEVICE rid[2] = {
-        {.usUsagePage = 0x01,
-         .usUsage     = 0x06,
-         .dwFlags     = RIDEV_NOHOTKEYS,
-         .hwndTarget  = nullptr},
-        { .usUsagePage = 0x01,
-         .usUsage     = 0x02,
-         .dwFlags     = 0,
-         .hwndTarget  = nullptr}
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x06,
+            .dwFlags     = RIDEV_NOHOTKEYS,
+            .hwndTarget  = nullptr
+        },
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x02,
+            .dwFlags     = 0,
+            .hwndTarget  = nullptr
+        }
     };
 
-    if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
-        return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    if (hook_enabled && (RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0])) == FALSE))
+            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    else if (!hook_enabled && (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE))
+            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
 
     std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
 
@@ -80,27 +129,83 @@ WindowsRawInputFilter::WindowsRawInputFilter(MainWindow *window)
         connect(menu, &QMenu::aboutToShow, this, [=]() { menus_open++; });
         connect(menu, &QMenu::aboutToHide, this, [=]() { menus_open--; });
     }
-
-    for (size_t i = 0; i < sizeof(scancode_map) / sizeof(scancode_map[0]); i++)
-        scancode_map[i] = i;
-
-    keyboard_getkeymap();
 }
 
 WindowsRawInputFilter::~WindowsRawInputFilter()
 {
     RAWINPUTDEVICE rid[2] = {
-        {.usUsagePage = 0x01,
-         .usUsage     = 0x06,
-         .dwFlags     = RIDEV_REMOVE,
-         .hwndTarget  = NULL},
-        { .usUsagePage = 0x01,
-         .usUsage     = 0x02,
-         .dwFlags     = RIDEV_REMOVE,
-         .hwndTarget  = NULL}
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x06,
+            .dwFlags     = RIDEV_REMOVE,
+            .hwndTarget  = NULL
+        },
+        {
+             .usUsagePage = 0x01,
+             .usUsage     = 0x02,
+             .dwFlags     = RIDEV_REMOVE,
+             .hwndTarget  = NULL
+        }
     };
 
-    RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+    if (hook_enabled)
+        RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0]));
+    else
+        RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+}
+
+static void
+notify_drives(ULONG unitmask, int empty)
+{
+    char p[1024] = { 0 };
+
+    for (int i = 0; i < 26; ++i) {
+        if (unitmask & 0x1) {
+            cdrom_t *dev = NULL;
+
+            sprintf(p, "ioctl://\\\\.\\%c:", 'A' + i);
+
+            for (int i = 0; i < CDROM_NUM; i++)
+                if (!stricmp(cdrom[i].image_path, p)) {
+                    dev = &(cdrom[i]);
+                    if (empty)
+                        cdrom_set_empty(dev);
+                    else
+                        cdrom_update_status(dev);
+                    // pclog("CD-ROM %i      : Drive notified of media %s\n",
+                          // dev->id, empty ? "removal" : "change");
+                }
+        }
+
+        unitmask = unitmask >> 1;
+    }
+}
+
+static void
+device_change(WPARAM wParam, LPARAM lParam)
+{
+    PDEV_BROADCAST_HDR lpdb      = (PDEV_BROADCAST_HDR) lParam;
+
+    switch(wParam) {
+        case DBT_DEVICEARRIVAL:
+        case DBT_DEVICEREMOVECOMPLETE:
+            /* Check whether a CD or DVD was inserted into a drive. */
+            if (lpdb->dbch_devicetype == DBT_DEVTYP_VOLUME) {
+                PDEV_BROADCAST_VOLUME lpdbv = (PDEV_BROADCAST_VOLUME) lpdb;
+
+                if (lpdbv->dbcv_flags & DBTF_MEDIA)
+                    notify_drives(lpdbv->dbcv_unitmask,
+                                  (wParam == DBT_DEVICEREMOVECOMPLETE));
+            }
+            break;
+
+        default:
+            /*
+               Process other WM_DEVICECHANGE notifications for other 
+               devices or reasons.
+             */ 
+            break;
+    }
 }
 
 bool
@@ -109,28 +214,82 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
     if (eventType == "windows_generic_MSG") {
         MSG *msg = static_cast<MSG *>(message);
 
-        if (msg->message == WM_INPUT) {
-
-            if (window->isActiveWindow() && menus_open == 0)
-                handle_input((HRAWINPUT) msg->lParam);
-            else
-            {
-                for (auto &w : window->renderers) {
-                    if (w && w->isActiveWindow()) {
-                        handle_input((HRAWINPUT) msg->lParam);
-                        break;
+        if (msg != nullptr)  switch(msg->message) {
+            case WM_INPUT:
+                if (window->isActiveWindow() && (menus_open == 0))
+                    handle_input((HRAWINPUT) msg->lParam);
+                else {
+                    for (auto &w : window->renderers) {
+                        if (w && w->isActiveWindow()) {
+                            handle_input((HRAWINPUT) msg->lParam);
+                            break;
+                        }
                     }
                 }
-            }
-
-            return true;
-        }
-
-        /* Stop processing of Alt-F4 */
-        if (msg->message == WM_SYSKEYDOWN) {
-            if (msg->wParam == 0x73) {
                 return true;
-            }
+            case WM_SETTINGCHANGE:
+                if ((((void *) msg->lParam) != nullptr) &&
+                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
+
+                    if (!windows_is_light_theme()) {
+                        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+                        if (!f.exists())
+                            printf("Unable to set stylesheet, file not found\n");
+                        else {
+                            f.open(QFile::ReadOnly | QFile::Text);
+                            QTextStream ts(&f);
+                           qApp->setStyleSheet(ts.readAll());
+                        }
+                        QTimer::singleShot(1000, [this] () {
+                            BOOL DarkMode  = TRUE;
+                            auto vid_stack = (RendererStack::Renderer) vid_api;
+                            DwmSetWindowAttribute((HWND) window->winId(),
+                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                                  (LPCVOID) &DarkMode,
+                                                  sizeof(DarkMode));
+                            window->ui->stackedWidget->switchRenderer(vid_stack);
+                            for (int i = 1; i < MONITORS_NUM; i++) {
+                                if ((window->renderers[i] != nullptr) &&
+                                    !window->renderers[i]->isHidden())
+                                    window->renderers[i]->switchRenderer(vid_stack);
+                            }
+                        });
+                    } else {
+                        qApp->setStyleSheet("");
+                        QTimer::singleShot(1000, [this] () {
+                            BOOL DarkMode = FALSE;
+                            DwmSetWindowAttribute((HWND) window->winId(),
+                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                                  (LPCVOID) &DarkMode,
+                                                  sizeof(DarkMode));
+                        });
+                    }
+
+                    QTimer::singleShot(1000, [this] () {
+                        window->resizeContents(monitors[0].mon_scrnsz_x,
+                                               monitors[0].mon_scrnsz_y);
+                        for (int i = 1; i < MONITORS_NUM; i++) {
+                            auto           mon = &(monitors[i]);
+
+                            if ((window->renderers[i] != nullptr) &&
+                                !window->renderers[i]->isHidden())
+                                window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                                              mon->mon_scrnsz_y,
+                                                              i);
+                        }
+                    });
+                }
+                break;
+            case WM_SYSKEYDOWN:
+                /* Stop processing of Alt-F4 */
+                if (msg->wParam == 0x73)
+                    return true;
+                break;
+            case WM_DEVICECHANGE:
+                if (msg->hwnd == (HWND) window->winId())
+                    device_change(msg->wParam, msg->lParam);
+                break;
         }
     }
 
@@ -158,10 +317,8 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
                     mouse_handle(raw);
                 break;
             case RIM_TYPEHID:
-                {
-                    win_joystick_handle(raw);
-                    break;
-                }
+                win_joystick_handle(raw);
+                break;
         }
     }
 }
@@ -171,125 +328,10 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
 void
 WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
-    USHORT     scancode;
-
     RAWKEYBOARD rawKB = raw->data.keyboard;
-    scancode          = rawKB.MakeCode;
 
-    /* If it's not a scan code that starts with 0xE1 */
-    if ((rawKB.Flags & RI_KEY_E1)) {
-        if (rawKB.MakeCode == 0x1D) {
-            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
-                                               otherwise be E0 00 but that is invalid
-                                               anyway).
-                                               Also, take a potential mapping into
-                                               account. */
-        } else
-            scancode = 0xFFFF;
-        if (scancode != 0xFFFF)
-            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-    } else {
-        if (rawKB.Flags & RI_KEY_E0)
-            scancode |= 0x100;
-
-        /* Translate the scan code to 9-bit */
-        scancode = convert_scan_code(scancode);
-
-        /* Remap it according to the list from the Registry */
-        if ((scancode < (sizeof(scancode_map) / sizeof(scancode_map[0]))) && (scancode != scancode_map[scancode])) {
-            pclog("Scan code remap: %03X -> %03X\n", scancode, scancode_map[scancode]);
-            scancode = scancode_map[scancode];
-        }
-
-        /* If it's not 0xFFFF, send it to the emulated
-           keyboard.
-           We use scan code 0xFFFF to mean a mapping that
-           has a prefix other than E0 and that is not E1 1D,
-           which is, for our purposes, invalid. */
-
-        /* Translate right CTRL to left ALT if the user has so
-           chosen. */
-        if ((scancode == 0x11d) && rctrl_is_lalt)
-            scancode = 0x038;
-
-        /* Normal scan code pass through, pass it through as is if
-           it's not an invalid scan code. */
-        if (scancode != 0xFFFF)
-            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-
-        window->checkFullscreenHotkey();
-    }
-}
-
-/* This is so we can disambiguate scan codes that would otherwise conflict and get
-   passed on incorrectly. */
-UINT16
-WindowsRawInputFilter::convert_scan_code(UINT16 scan_code)
-{
-    if ((scan_code & 0xff00) == 0xe000)
-        scan_code = (scan_code & 0xff) | 0x0100;
-
-    if (scan_code == 0xE11D)
-        scan_code = 0x0100;
-    /* E0 00 is sent by some USB keyboards for their special keys, as it is an
-       invalid scan code (it has no untranslated set 2 equivalent), we mark it
-       appropriately so it does not get passed through. */
-    else if ((scan_code > 0x01FF) || (scan_code == 0x0100))
-        scan_code = 0xFFFF;
-
-    return scan_code;
-}
-
-void
-WindowsRawInputFilter::keyboard_getkeymap()
-{
-    const LPCSTR  keyName   = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-    const LPCSTR  valueName = "Scancode Map";
-    unsigned char buf[32768];
-    DWORD         bufSize;
-    HKEY          hKey;
-    int           j;
-    UINT32       *bufEx2;
-    int           scMapCount;
-    UINT16       *bufEx;
-    int           scancode_unmapped;
-    int           scancode_mapped;
-
-    /* First, prepare the default scan code map list which is 1:1.
-     * Remappings will be inserted directly into it.
-     * 512 bytes so this takes less memory, bit 9 set means E0
-     * prefix.
-     */
-    for (j = 0; j < 512; j++)
-        scancode_map[j] = j;
-
-    /* Get the scan code remappings from:
-    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
-    bufSize = 32768;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
-            bufEx2     = (UINT32 *) buf;
-            scMapCount = bufEx2[2];
-            if ((bufSize != 0) && (scMapCount != 0)) {
-                bufEx = (UINT16 *) (buf + 12);
-                for (j = 0; j < scMapCount * 2; j += 2) {
-                    /* Each scan code is 32-bit: 16 bits of remapped scan code,
-                    and 16 bits of original scan code. */
-                    scancode_unmapped = bufEx[j + 1];
-                    scancode_mapped   = bufEx[j];
-
-                    scancode_unmapped = convert_scan_code(scancode_unmapped);
-                    scancode_mapped   = convert_scan_code(scancode_mapped);
-
-                    /* Ignore source scan codes with prefixes other than E1
-                   that are not E1 1D. */
-                    if (scancode_unmapped != 0xFFFF)
-                        scancode_map[scancode_unmapped] = scancode_mapped;
-                }
-            }
-        }
-        RegCloseKey(hKey);
-    }
+    win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
+                        (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
 }
 
 void

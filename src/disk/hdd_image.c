@@ -26,6 +26,9 @@
 #include <time.h>
 #include <wchar.h>
 #include <errno.h>
+#ifdef __unix__
+#include <unistd.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/path.h>
@@ -181,8 +184,12 @@ hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size)
 static int
 prepare_new_hard_disk(uint8_t id, uint64_t full_size)
 {
+    if (!hdd_images[id].file)
+        return -1;
+
     uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 
+#ifndef __unix__
     uint32_t size;
     uint32_t t;
 
@@ -217,7 +224,16 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     pclog_toggle_suppr();
 
     free(empty_sector_1mb);
+#else
+    pclog("Creating hard disk image: ");
+    int ret = ftruncate(fileno(hdd_images[id].file), (size_t) target_size);
 
+    if (ret) {
+        pclog("failed\n");
+        fatal("Could not create hard disk image\n");
+    }
+    pclog("OK!\n");
+#endif
     hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 
     hdd_images[id].loaded = 1;
@@ -279,7 +295,7 @@ hdd_image_load(int id)
     if (fn[0] == '.') {
         hdd_image_log("File name starts with .\n");
         memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-        return 0;
+        goto fail_raw;
     }
     hdd_images[id].file = plat_fopen(fn, "rb+");
     if (hdd_images[id].file == NULL) {
@@ -290,14 +306,14 @@ hdd_image_load(int id)
             if (hdd[id].wp) {
                 hdd_image_log("A write-protected image must exist\n");
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             }
 
             hdd_images[id].file = plat_fopen(fn, "wb+");
             if (hdd_images[id].file == NULL) {
                 hdd_image_log("Unable to open image\n");
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             } else {
                 if (image_is_hdi(fn)) {
                     full_size           = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
@@ -373,11 +389,16 @@ retry_vhd:
             s = full_size = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
 
             ret = prepare_new_hard_disk(id, full_size);
+            if (ret <= 0)
+                goto fail_raw;
             return ret;
         } else {
             /* Failed for another reason */
             hdd_image_log("Failed for another reason\n");
-            return 0;
+fail_raw:
+            hdd_images[id].type        = HDD_IMAGE_RAW;
+            hdd_images[id].last_sector = (uint32_t) (((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks)) - 1;
+            return 1;
         }
     } else {
         if (image_is_hdi(fn)) {
@@ -400,7 +421,7 @@ retry_vhd:
                 fclose(hdd_images[id].file);
                 hdd_images[id].file = NULL;
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             }
             if (fread(&spt, 1, 4, hdd_images[id].file) != 4)
                 fatal("hdd_image_load(): HDI: Error reading sectors per track\n");
@@ -428,7 +449,7 @@ retry_vhd:
                 fclose(hdd_images[id].file);
                 hdd_images[id].file = NULL;
                 memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-                return 0;
+                goto fail_raw;
             }
             if (fread(&spt, 1, 4, hdd_images[id].file) != 4)
                 fatal("hdd_image_load(): HDI: Error reading sectors per track\n");
@@ -487,7 +508,7 @@ retry_vhd:
     return ret;
 }
 
-void
+int
 hdd_image_seek(uint8_t id, uint32_t sector)
 {
     off64_t addr = sector;
@@ -495,29 +516,40 @@ hdd_image_seek(uint8_t id, uint32_t sector)
 
     hdd_images[id].pos = sector;
     if (hdd_images[id].type != HDD_IMAGE_VHD) {
-        if (fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET) == -1)
-            fatal("hdd_image_seek(): Error seeking\n");
+        if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, addr + hdd_images[id].base, SEEK_SET) == -1)) {
+            hdd_image_log("hdd_image_seek(): Error seeking\n");
+            return -1;
+        }
     }
+
+    return 0;
 }
 
-void
+int
 hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
     int    non_transferred_sectors;
     size_t num_read;
 
     if (hdd_images[id].type == HDD_IMAGE_VHD) {
-        non_transferred_sectors = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
-        hdd_images[id].pos      = sector + count - non_transferred_sectors - 1;
+        hdd_images[id].vhd->error = 0;
+        non_transferred_sectors   = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
+        hdd_images[id].pos        = sector + count - non_transferred_sectors - 1;
+        if (hdd_images[id].vhd->error)
+            return -1;
     } else {
-        if (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
-            fatal("Hard disk image %i: Read error during seek\n", id);
-            return;
+        if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
+            hdd_image_log("Hard disk image %i: Read error during seek\n", id);
+            return -1;
         }
 
         num_read           = fread(buffer, 512, count, hdd_images[id].file);
         hdd_images[id].pos = sector + num_read;
+        if ((num_read < count) && !feof(hdd_images[id].file))
+            return -1;
     }
+
+    return 0;
 }
 
 uint32_t
@@ -541,31 +573,40 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     if ((sectors - sector) < transfer_sectors)
         transfer_sectors = sectors - sector;
 
-    hdd_image_read(id, sector, transfer_sectors, buffer);
+    if (hdd_image_read(id, sector, transfer_sectors, buffer) < 0)
+        return -1;
 
     if (count != transfer_sectors)
         return 1;
     return 0;
 }
 
-void
+int
 hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
     int    non_transferred_sectors;
     size_t num_write;
 
     if (hdd_images[id].type == HDD_IMAGE_VHD) {
-        non_transferred_sectors = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
-        hdd_images[id].pos      = sector + count - non_transferred_sectors - 1;
+        hdd_images[id].vhd->error = 0;
+        non_transferred_sectors   = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
+        hdd_images[id].pos        = sector + count - non_transferred_sectors - 1;
+        if (hdd_images[id].vhd->error)
+            return -1;
     } else {
-        if (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
-            fatal("Hard disk image %i: Write error during seek\n", id);
-            return;
+        if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
+            hdd_image_log("Hard disk image %i: Write error during seek\n", id);
+            return -1;
         }
 
         num_write          = fwrite(buffer, 512, count, hdd_images[id].file);
         hdd_images[id].pos = sector + num_write;
+        fflush(hdd_images[id].file);
+        if (num_write < count)
+            return -1;
     }
+
+    return 0;
 }
 
 int
@@ -577,25 +618,29 @@ hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     if ((sectors - sector) < transfer_sectors)
         transfer_sectors = sectors - sector;
 
-    hdd_image_write(id, sector, transfer_sectors, buffer);
+    if (hdd_image_write(id, sector, transfer_sectors, buffer) < 0)
+        return -1;
 
     if (count != transfer_sectors)
         return 1;
     return 0;
 }
 
-void
+int
 hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 {
     if (hdd_images[id].type == HDD_IMAGE_VHD) {
+        hdd_images[id].vhd->error   = 0;
         int non_transferred_sectors = mvhd_format_sectors(hdd_images[id].vhd, sector, count);
         hdd_images[id].pos          = sector + count - non_transferred_sectors - 1;
+        if (hdd_images[id].vhd->error)
+            return -1;
     } else {
         memset(empty_sector, 0, 512);
 
-        if (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
-            fatal("Hard disk image %i: Zero error during seek\n", id);
-            return;
+        if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
+            hdd_image_log("Hard disk image %i: Zero error during seek\n", id);
+            return -1;
         }
 
         for (uint32_t i = 0; i < count; i++) {
@@ -603,9 +648,14 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
                 break;
 
             hdd_images[id].pos = sector + i;
-            fwrite(empty_sector, 512, 1, hdd_images[id].file);
+            if (!fwrite(empty_sector, 512, 1, hdd_images[id].file))
+                return -1;
         }
+
+        fflush(hdd_images[id].file);
     }
+
+    return 0;
 }
 
 int

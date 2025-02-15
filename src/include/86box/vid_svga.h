@@ -79,6 +79,7 @@ typedef struct svga_t {
     uint8_t fcr;
     uint8_t hblank_overscan;
     uint8_t vidsys_ena;
+    uint8_t sleep;
 
     int dac_addr;
     int dac_pos;
@@ -87,6 +88,7 @@ typedef struct svga_t {
     int dac_b;
     int vtotal;
     int dispend;
+    int vdisp;
     int vsyncstart;
     int split;
     int vblankstart;
@@ -170,9 +172,11 @@ typedef struct svga_t {
 
     pc_timer_t timer;
     pc_timer_t timer8514;
+    pc_timer_t timer_xga;
 
     double clock;
     double clock8514;
+    double clock_xga;
 
     double multiplier;
 
@@ -185,6 +189,7 @@ typedef struct svga_t {
 
     void (*render)(struct svga_t *svga);
     void (*render8514)(struct svga_t *svga);
+    void (*render_xga)(struct svga_t *svga);
     void (*recalctimings_ex)(struct svga_t *svga);
 
     void (*video_out)(uint16_t addr, uint8_t val, void *priv);
@@ -197,6 +202,14 @@ typedef struct svga_t {
     void (*overlay_draw)(struct svga_t *svga, int displine);
 
     void (*vblank_start)(struct svga_t *svga);
+
+    void (*write)(uint32_t addr, uint8_t val, void *priv);
+    void (*writew)(uint32_t addr, uint16_t val, void *priv);
+    void (*writel)(uint32_t addr, uint32_t val, void *priv);
+
+    uint8_t (*read)(uint32_t addr, void *priv);
+    uint16_t (*readw)(uint32_t addr, void *priv);
+    uint32_t (*readl)(uint32_t addr, void *priv);
 
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
     float (*getclock)(int clock, void *priv);
@@ -299,8 +312,7 @@ typedef struct svga_t {
     void *  xga;
 } svga_t;
 
-extern int      vga_on;
-
+extern void     ibm8514_set_poll(svga_t *svga);
 extern void     ibm8514_poll(void *priv);
 extern void     ibm8514_recalctimings(svga_t *svga);
 extern uint8_t  ibm8514_ramdac_in(uint16_t port, void *priv);
@@ -315,16 +327,21 @@ extern void     ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint32_t
 extern void     ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
 extern void     ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
-#ifdef ATI_8514_ULTRA
+extern void     ati8514_out(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t  ati8514_in(uint16_t addr, void *priv);
 extern void     ati8514_recalctimings(svga_t *svga);
 extern uint8_t  ati8514_mca_read(int port, void *priv);
 extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
 extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
 extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
-#endif
 
-extern void xga_poll(void *priv, svga_t *svga);
-extern void xga_recalctimings(svga_t *svga);
+extern void     xga_write_test(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t  xga_read_test(uint32_t addr, void *priv);
+extern void     xga_set_poll(svga_t *svga);
+extern void     xga_poll(void *priv);
+extern void     xga_recalctimings(svga_t *svga);
+
+extern uint32_t svga_decode_addr(svga_t *svga, uint32_t addr, int write);
 
 extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                       void (*recalctimings_ex)(struct svga_t *svga),
@@ -367,6 +384,8 @@ uint32_t svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
 void svga_doblit(int wx, int wy, svga_t *svga);
+void svga_set_poll(svga_t *svga);
+void svga_poll(void *priv);
 
 enum {
     RAMDAC_6BIT = 0,
@@ -393,6 +412,9 @@ extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga
 extern void    att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t att498_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 extern float   av9194_getclock(int clock, void *priv);
+
+extern void    bt481_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t bt481_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 
 extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
@@ -450,6 +472,7 @@ extern const device_t att491_ramdac_device;
 extern const device_t att492_ramdac_device;
 extern const device_t att498_ramdac_device;
 extern const device_t av9194_device;
+extern const device_t bt481_ramdac_device;
 extern const device_t bt484_ramdac_device;
 extern const device_t att20c504_ramdac_device;
 extern const device_t bt485_ramdac_device;

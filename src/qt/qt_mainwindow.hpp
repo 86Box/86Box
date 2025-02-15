@@ -63,6 +63,7 @@ public slots:
     void togglePause();
     void initRendererMonitorSlot(int monitor_index);
     void destroyRendererMonitorSlot(int monitor_index);
+    void updateStatusEmptyIcons();
     void updateUiPauseState();
 private slots:
     void on_actionFullscreen_triggered();
@@ -176,6 +177,7 @@ private:
     friend class ProgSettings;
     friend class RendererCommon;
     friend class RendererStack; // For UI variable access by non-primary renderer windows.
+    friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 };
 
 #endif // QT_MAINWINDOW_HPP

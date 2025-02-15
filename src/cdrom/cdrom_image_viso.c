@@ -8,9 +8,7 @@
  *
  *          Virtual ISO CD-ROM image back-end.
  *
- *
- *
- * Authors: RichardG <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.
  */
@@ -23,7 +21,9 @@
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
 #include <inttypes.h>
+#ifdef IMAGE_VISO_LOG
 #include <stdarg.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,15 +31,16 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <wchar.h>
-#define HAVE_STDARG_H
 #include <86box/86box.h>
-#include <86box/bswap.h>
-#include <86box/cdrom_image_backend.h>
+#include <86box/cdrom.h>
+#include <86box/cdrom_image.h>
+#include <86box/cdrom_image_viso.h>
+#include <86box/log.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/plat_dir.h>
 #include <86box/version.h>
-#include <86box/timer.h>
 #include <86box/nvr.h>
 
 #ifndef S_ISDIR
@@ -138,29 +139,30 @@ static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for
 static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
 static int8_t     tz_offset  = 0;
 
-#ifdef ENABLE_CDROM_IMAGE_VISO_LOG
-int cdrom_image_viso_do_log = ENABLE_CDROM_IMAGE_VISO_LOG;
+#ifdef IMAGE_VISO_LOG
+int image_viso_do_log = IMAGE_VISO_LOG;
 
 void
-cdrom_image_viso_log(const char *fmt, ...)
+image_viso_log(void *priv, const char *fmt, ...)
 {
     va_list ap;
 
-    if (cdrom_image_viso_do_log) {
+    if (image_viso_do_log) {
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define cdrom_image_viso_log(fmt, ...)
+#    define image_viso_log(priv, fmt, ...)
 #endif
 
 static size_t
-viso_pread(void *ptr, uint64_t offset, size_t size, size_t count, FILE *fp)
+viso_pread(void *ptr, const uint64_t offset, const size_t size,
+           const size_t count, FILE *fp)
 {
-    uint64_t cur_pos = ftello64(fp);
-    size_t   ret     = 0;
+    const uint64_t cur_pos = ftello64(fp);
+    size_t         ret     = 0;
     if (fseeko64(fp, offset, SEEK_SET) != -1)
         ret = fread(ptr, size, count, fp);
     fseeko64(fp, cur_pos, SEEK_SET);
@@ -168,10 +170,11 @@ viso_pread(void *ptr, uint64_t offset, size_t size, size_t count, FILE *fp)
 }
 
 static size_t
-viso_pwrite(const void *ptr, uint64_t offset, size_t size, size_t count, FILE *fp)
+viso_pwrite(const void *ptr, const uint64_t offset, const size_t size,
+            const size_t count, FILE *fp)
 {
-    uint64_t cur_pos = ftello64(fp);
-    size_t   ret     = 0;
+    const uint64_t cur_pos = ftello64(fp);
+    size_t         ret     = 0;
     if (fseeko64(fp, offset, SEEK_SET) != -1)
         ret = fwrite(ptr, size, count, fp);
     fseeko64(fp, cur_pos, SEEK_SET);
@@ -693,22 +696,22 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
                     /* Close any existing FIFO entry's file. */
                     viso_entry_t *other_entry = viso->file_fifo[viso->file_fifo_pos];
                     if (other_entry && other_entry->file) {
-                        cdrom_image_viso_log("VISO: Closing [%s]", other_entry->path);
+                        image_viso_log(viso->tf.log, "Closing [%s]...\n", other_entry->path);
                         fclose(other_entry->file);
                         other_entry->file = NULL;
-                        cdrom_image_viso_log("\n");
+                        image_viso_log(viso->tf.log, "Done\n");
                     }
 
                     /* Open file. */
-                    cdrom_image_viso_log("VISO: Opening [%s]", entry->path);
+                    image_viso_log(viso->tf.log, "Opening [%s]...\n", entry->path);
                     if ((entry->file = fopen(entry->path, "rb"))) {
-                        cdrom_image_viso_log("\n");
+                        image_viso_log(viso->tf.log, "Done\n");
 
                         /* Add this entry to the FIFO. */
                         viso->file_fifo[viso->file_fifo_pos++] = entry;
                         viso->file_fifo_pos &= (sizeof(viso->file_fifo) / sizeof(viso->file_fifo[0])) - 1;
                     } else {
-                        cdrom_image_viso_log(" => failed\n");
+                        image_viso_log(viso->tf.log, "Failed\n");
 
                         /* Clear any existing FIFO entry. */
                         viso->file_fifo[viso->file_fifo_pos] = NULL;
@@ -716,8 +719,11 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
                 }
 
                 /* Read data. */
-                if (entry->file && (fseeko64(entry->file, seek - entry->data_offset, SEEK_SET) != -1))
-                    read = fread(buffer, 1, sector_remain, entry->file);
+                if (!entry->file || (fseeko64(entry->file, seek - entry->data_offset, SEEK_SET) == -1))
+                    return -1;
+                read = fread(buffer, 1, sector_remain, entry->file);
+                if (sector_remain && !read)
+                    return -1;
             }
 
             /* Fill remainder with 00 bytes if needed. */
@@ -752,12 +758,12 @@ viso_close(void *priv)
     if (viso == NULL)
         return;
 
-    cdrom_image_viso_log("VISO: close()\n");
+    image_viso_log(viso->tf.log, "close()\n");
 
     /* De-allocate everything. */
     if (tf->fp)
         fclose(tf->fp);
-#ifndef ENABLE_CDROM_IMAGE_VISO_LOG
+#ifndef ENABLE_IMAGE_VISO_LOG
     remove(nvr_path(viso->tf.fn));
 #endif
 
@@ -776,21 +782,32 @@ viso_close(void *priv)
     if (viso->entry_map)
         free(viso->entry_map);
 
+    if (tf->log != NULL) {
+
+    }
+
     free(viso);
 }
 
 track_file_t *
-viso_init(const char *dirname, int *error)
+viso_init(const uint8_t id, const char *dirname, int *error)
 {
-    cdrom_image_viso_log("VISO: init()\n");
-
     /* Initialize our data structure. */
     viso_t  *viso = (viso_t *) calloc(1, sizeof(viso_t));
     uint8_t *data = NULL;
     uint8_t *p;
     *error        = 1;
+
     if (viso == NULL)
         goto end;
+
+    char n[1024]        = { 0 };
+
+    sprintf(n, "CD-ROM %i VISO ", id + 1);
+    viso->tf.log        = log_open(n);
+
+    image_viso_log(viso->tf.log, "init()\n");
+
     viso->sector_size        = VISO_SECTOR_SIZE;
     viso->format             = VISO_FORMAT_ISO | VISO_FORMAT_JOLIET | VISO_FORMAT_RR;
     viso->use_version_suffix = (viso->format & VISO_FORMAT_ISO); /* cleared later if required */
@@ -801,7 +818,7 @@ viso_init(const char *dirname, int *error)
         goto end;
 
         /* Open temporary file. */
-#ifdef ENABLE_CDROM_IMAGE_VISO_LOG
+#ifdef ENABLE_IMAGE_VISO_LOG
     strcpy(viso->tf.fn, "viso-debug.iso");
 #else
     plat_tempfile(viso->tf.fn, "viso", ".tmp");
@@ -811,7 +828,7 @@ viso_init(const char *dirname, int *error)
         goto end;
 
     /* Set up directory traversal. */
-    cdrom_image_viso_log("VISO: Traversing directories:\n");
+    image_viso_log(viso->tf.log, "Traversing directories:\n");
     viso_entry_t        *entry;
     viso_entry_t        *last_entry;
     viso_entry_t        *dir;
@@ -838,7 +855,7 @@ viso_init(const char *dirname, int *error)
     if (!S_ISDIR(dir->stats.st_mode)) /* root is not a directory */
         goto end;
     dir->parent = dir; /* for the root's path table and .. entries */
-    cdrom_image_viso_log("[%08X] %s => [root]\n", dir, dir->path);
+    image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
     viso_entry_t **dir_entries     = NULL;
@@ -888,7 +905,8 @@ viso_init(const char *dirname, int *error)
             /* Set basename. */
             strcpy(entry->name_short, children_count ? ".." : ".");
 
-            cdrom_image_viso_log("[%08X] %s => %s\n", entry, dir->path, entry->name_short);
+            image_viso_log(viso->tf.log, "[%08X] %s => %s\n", entry,
+                           dir->path, entry->name_short);
         }
 
         /* Iterate through this directory's children again, making the entries. */
@@ -896,12 +914,16 @@ viso_init(const char *dirname, int *error)
             rewinddir(dirp);
             while ((readdir_entry = readdir(dirp))) {
                 /* Ignore . and .. pseudo-directories. */
-                if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
+                if ((readdir_entry->d_name[0] == '.') &&
+                    ((readdir_entry->d_name[1] == '\0') ||
+                    (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
                     continue;
 
                 /* Add and fill entry. */
-                entry = dir_entries[children_count++] = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + strlen(readdir_entry->d_name) + 2);
-                if (!entry)
+                entry = dir_entries[children_count++] =
+                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) +
+                        dir_path_len + strlen(readdir_entry->d_name) + 2);
+                if (entry == NULL)
                     break;
                 entry->parent = dir;
                 strcpy(entry->path, dir->path);
@@ -971,10 +993,12 @@ have_eltorito_entry:
                     continue;
                 }
 
-                cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", entry, dir->path, entry->name_short, entry->basename);
+                image_viso_log(viso->tf.log, "[%08X] %s => [%-12s] %s\n", entry,
+                               dir->path, entry->name_short, entry->basename);
             }
         } else {
-            cdrom_image_viso_log("VISO: Failed to enumerate [%s], will be empty\n", dir->path);
+            image_viso_log(viso->tf.log, "Failed to enumerate [%s], will be empty\n",
+                           dir->path);
         }
 
         /* Add terminator. */
@@ -1128,13 +1152,17 @@ next_dir:
         /* Write El Torito boot descriptor. This is an awkward spot for
            that, but the spec requires it to be the second descriptor. */
         if (!i && eltorito_entry) {
-            cdrom_image_viso_log("VISO: Writing El Torito boot descriptor for entry [%08X]\n", eltorito_entry);
+            image_viso_log(viso->tf.log, "Writing El Torito boot descriptor for "
+                           "entry [%08X]\n", eltorito_entry);
 
             p = data;
             if (!(viso->format & VISO_FORMAT_ISO))
-                VISO_LBE_32(p, ftello64(viso->tf.fp) / viso->sector_size);    /* sector offset (HSF only) */
-            *p++ = 0;                                                           /* type */
-            memcpy(p, (viso->format & VISO_FORMAT_ISO) ? "CD001" : "CDROM", 5); /* standard ID */
+                /* Sector offset (HSF only). */
+                VISO_LBE_32(p, ftello64(viso->tf.fp) / viso->sector_size);
+            /* Type. */
+            *p++ = 0;
+            /* Standard ID. */
+            memcpy(p, (viso->format & VISO_FORMAT_ISO) ? "CD001" : "CDROM", 5);
             p += 5;
             *p++ = 1; /* version */
 
@@ -1235,7 +1263,7 @@ next_dir:
 
     /* Write each path table. */
     for (int i = 0; i <= ((max_vd << 1) | 1); i++) {
-        cdrom_image_viso_log("VISO: Generating path table #%d:\n", i);
+        image_viso_log(viso->tf.log, "Generating path table #%d:\n", i);
 
         /* Save this path table's start offset. */
         uint64_t pt_start = ftello64(viso->tf.fp);
@@ -1256,7 +1284,9 @@ next_dir:
                 continue;
             }
 
-            cdrom_image_viso_log("[%08X] %s => %s\n", dir, dir->path, ((i & 2) || (dir == viso->root_dir)) ? dir->basename : dir->name_short);
+            image_viso_log(viso->tf.log, "[%08X] %s => %s\n", dir,
+                           dir->path, ((i & 2) || (dir == viso->root_dir)) ? dir->basename :
+                           dir->name_short);
 
             /* Save this directory's path table index and offset. */
             dir->pt_idx        = pt_idx;
@@ -1324,7 +1354,7 @@ next_dir:
     /* Write directory records for each type. */
     int dir_type = VISO_DIR_CURRENT_ROOT;
     for (int i = 0; i <= max_vd; i++) {
-        cdrom_image_viso_log("VISO: Generating directory record set #%d:\n", i);
+        image_viso_log(viso->tf.log, "Generating directory record set #%d:\n", i);
 
         /* Go through directories. */
         dir = viso->root_dir;
@@ -1367,8 +1397,10 @@ next_dir:
                 if ((entry == eltorito_entry) || (entry == eltorito_dir))
                     goto next_entry;
 
-                cdrom_image_viso_log("[%08X] %s => %s\n", entry, dir->path,
-                                     ((dir_type == VISO_DIR_PARENT) ? ".." : ((dir_type < VISO_DIR_PARENT) ? "." : (i ? entry->basename : entry->name_short))));
+                image_viso_log(viso->tf.log, "[%08X] %s => %s\n", entry, dir->path,
+                               ((dir_type == VISO_DIR_PARENT) ? ".." :
+                               ((dir_type < VISO_DIR_PARENT) ? "." :
+                                (i ? entry->basename : entry->name_short))));
 
                 /* Fill directory record. */
                 viso_fill_dir_record(data, entry, viso, dir_type);
@@ -1435,7 +1467,8 @@ next_entry:
     /* Allocate entry map for sector->file lookups. */
     size_t orig_sector_size = viso->sector_size;
     while (1) {
-        cdrom_image_viso_log("VISO: Allocating entry map for %zu %zu-byte sectors\n", viso->entry_map_size, viso->sector_size);
+        image_viso_log(viso->tf.log, "Allocating entry map for %zu %zu-byte sectors\n",
+                       viso->entry_map_size, viso->sector_size);
         viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
         if (viso->entry_map) {
             /* Successfully allocated. */
@@ -1476,7 +1509,7 @@ next_entry:
     viso->all_sectors      = viso->metadata_sectors;
 
     /* Go through files, assigning sectors to them. */
-    cdrom_image_viso_log("VISO: Assigning sectors to files:\n");
+    image_viso_log(viso->tf.log, "Assigning sectors to files:\n");
     size_t        base_factor  = viso->sector_size / orig_sector_size;
     viso_entry_t *prev_entry   = viso->root_dir;
     viso_entry_t **entry_map_p = viso->entry_map;
@@ -1521,7 +1554,8 @@ next_entry:
         size_t size = entry->stats.st_size / viso->sector_size;
         if (entry->stats.st_size % viso->sector_size)
             size++; /* round up to the next sector */
-        cdrom_image_viso_log("[%08X] %s => %zu + %zu sectors\n", entry, entry->path, viso->all_sectors, size);
+        image_viso_log(viso->tf.log, "[%08X] %s => %zu + %zu sectors\n", entry,
+                       entry->path, viso->all_sectors, size);
 
         /* Allocate sectors to this file. */
         viso->all_sectors += size;
@@ -1540,9 +1574,10 @@ next_entry:
         viso_pwrite(data, viso->vol_size_offsets[i], 8, 1, viso->tf.fp);
 
     /* Metadata processing is finished, read it back to memory. */
-    cdrom_image_viso_log("VISO: Reading back %zu %zu-byte sectors of metadata\n", viso->metadata_sectors, viso->sector_size);
+    image_viso_log(viso->tf.log, "Reading back %zu %zu-byte sectors of metadata\n",
+                   viso->metadata_sectors, viso->sector_size);
     viso->metadata = (uint8_t *) calloc(viso->metadata_sectors, viso->sector_size);
-    if (!viso->metadata)
+    if (viso->metadata == NULL)
         goto end;
     fseeko64(viso->tf.fp, 0, SEEK_SET);
     size_t metadata_size = viso->metadata_sectors * viso->sector_size;
@@ -1553,7 +1588,7 @@ next_entry:
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.fp);
     viso->tf.fp = NULL;
-#ifndef ENABLE_CDROM_IMAGE_VISO_LOG
+#ifndef ENABLE_IMAGE_VISO_LOG
     remove(nvr_path(viso->tf.fn));
 #endif
 
@@ -1564,13 +1599,15 @@ end:
     /* Set the function pointers. */
     viso->tf.priv = viso;
     if (!*error) {
-        cdrom_image_viso_log("VISO: Initialized\n");
+        image_viso_log(viso->tf.log, "Initialized\n");
+
         viso->tf.read       = viso_read;
         viso->tf.get_length = viso_get_length;
         viso->tf.close      = viso_close;
+
         return &viso->tf;
     } else {
-        cdrom_image_viso_log("VISO: Initialization failed\n");
+        image_viso_log(viso->tf.log, "Initialization failed\n");
         if (data)
             free(data);
         viso_close(&viso->tf);

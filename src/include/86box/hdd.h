@@ -90,6 +90,7 @@ enum {
 typedef struct hdd_preset_t {
     const char *name;
     const char *internal_name;
+    const char *model;
     uint32_t    zones;
     uint32_t    avg_spt;
     uint32_t    heads;
@@ -147,7 +148,7 @@ typedef struct hard_disk_t {
         uint8_t ide_channel;
         uint8_t scsi_id;
     };
-    uint8_t bus;
+    uint8_t bus_type;
     uint8_t bus_mode;  /* Bit 0 = PIO suported;
                           Bit 1 = DMA supportd. */
     uint8_t wp; /* Disk has been mounted READ-ONLY */
@@ -165,6 +166,7 @@ typedef struct hard_disk_t {
     uint32_t spt;
     uint32_t hpc; /* Physical geometry parameters */
     uint32_t tracks;
+    const char *model;
 
     hdd_zone_t  zones[HDD_MAX_ZONES];
     uint32_t    num_zones;
@@ -197,12 +199,12 @@ extern int   hdd_is_valid(int c);
 
 extern void     hdd_image_init(void);
 extern int      hdd_image_load(int id);
-extern void     hdd_image_seek(uint8_t id, uint32_t sector);
-extern void     hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer);
+extern int      hdd_image_seek(uint8_t id, uint32_t sector);
+extern int      hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer);
 extern int      hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer);
-extern void     hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer);
+extern int      hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer);
 extern int      hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer);
-extern void     hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count);
+extern int      hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count);
 extern int      hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count);
 extern uint32_t hdd_image_get_last_sector(uint8_t id);
 extern uint32_t hdd_image_get_pos(uint8_t id);

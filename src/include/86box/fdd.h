@@ -22,7 +22,7 @@
 #define EMU_FDD_H
 
 #define FDD_NUM              4
-#define FLOPPY_IMAGE_HISTORY 4
+#define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     -999
 
 #ifdef __cplusplus

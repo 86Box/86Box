@@ -390,14 +390,17 @@ msgstr "动态重编译器"
 msgid "Video:"
 msgstr "显卡:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo Graphics"
+msgid "Video #2:"
+msgstr "显卡 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo 1 或 2 图形"
 
 msgid "IBM 8514/A Graphics"
-msgstr "IBM 8514/A Graphics"
+msgstr "IBM 8514/A 图形"
 
 msgid "XGA Graphics"
-msgstr "XGA Graphics"
+msgstr "XGA 图形"
 
 msgid "Mouse:"
 msgstr "鼠标:"
@@ -684,6 +687,12 @@ msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" �
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 \"%hs\" 不可用。将切换到其他可用显卡。"
 
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 2 \"%hs\" 不可用。禁用第二块显卡。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "由于缺少合适的 ROM，设备 \"%hs\" 不可用。忽略设备。"
+
 msgid "Machine"
 msgstr "机型"
 
@@ -762,17 +771,26 @@ msgstr "未找到 PCap 设备"
 msgid "Invalid PCap device"
 msgstr "无效 PCap 设备"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "标准 2 键操纵杆"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "2 轴, 2 键操纵杆"
 
-msgid "Standard 4-button joystick"
-msgstr "标准 4 键操纵杆"
+msgid "2-axis, 4-button joystick"
+msgstr "2 轴, 4 键操纵杆"
 
-msgid "Standard 6-button joystick"
-msgstr "标准 6 键操纵杆"
+msgid "2-axis, 6-button joystick"
+msgstr "2 轴, 6 键操纵杆"
 
-msgid "Standard 8-button joystick"
-msgstr "标准 8 键操纵杆"
+msgid "2-axis, 8-button joystick"
+msgstr "2 轴, 8 键操纵杆"
+
+msgid "3-axis, 2-button joystick"
+msgstr "3 轴, 2 键操纵杆"
+
+msgid "3-axis, 4-button joystick"
+msgstr "3 轴, 4 键操纵杆"
+
+msgid "4-axis, 4-button joystick"
+msgstr "4 轴, 4 键操纵杆"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -807,6 +825,9 @@ msgstr "确定要退出 86Box 吗？"
 msgid "Unable to initialize Ghostscript"
 msgstr "无法初始化 Ghostscript"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "无法初始化 GhostPCL"
+
 msgid "MO %i (%ls): %ls"
 msgstr "磁光盘 %i (%ls): %ls"
 
@@ -816,8 +837,8 @@ msgstr "磁光盘映像"
 msgid "Welcome to 86Box!"
 msgstr "欢迎使用 86Box！"
 
-msgid "Internal controller"
-msgstr "内部控制器"
+msgid "Internal device"
+msgstr "内部设备"
 
 msgid "Exit"
 msgstr "退出"
@@ -841,7 +862,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
+msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n感谢 Sarah Walker、leilei、JohnElliott、greatpsycho 和其他人的核心贡献。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
 
 msgid "Hardware not available"
 msgstr "硬件不可用"
@@ -854,6 +875,9 @@ msgstr "无效配置"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "%1 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) 文件。"
 
 msgid "Entering fullscreen mode"
 msgstr "正在进入全屏模式"
@@ -999,6 +1023,27 @@ msgstr "覆盖"
 msgid "Don't overwrite"
 msgstr "不覆盖"
 
+msgid "Raw image"
+msgstr "原始映像"
+
+msgid "HDI image"
+msgstr "HDI 映像"
+
+msgid "HDX image"
+msgstr "HDX 映像"
+
+msgid "Fixed-size VHD"
+msgstr "固定大小 VHD"
+
+msgid "Dynamic-size VHD"
+msgstr "动态大小 VHD"
+
+msgid "Differencing VHD"
+msgstr "差分 VHD"
+
+msgid "(N/A)"
+msgstr "(不适用)"
+
 msgid "Raw image (.img)"
 msgstr "原始映像 (.img)"
 
@@ -1056,23 +1101,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "光盘 %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1.2 MB"
@@ -1147,7 +1192,7 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "网络配置将切换为空驱动程序"
 
 msgid "Mouse sensitivity:"
-msgstr "鼠标敏感度:"
+msgstr "鼠标灵敏度:"
 
 msgid "Select media images from program working directory"
 msgstr "从程序工作目录中选择介质映像"
@@ -1172,3 +1217,915 @@ msgstr "WinBox 不再受支持"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "由于缺乏维护者，WinBox 管理器的开发工作于 2022 年停止。由于我们正努力将 86Box 做得更好，因此决定不再支持 WinBox 作为管理器。\n\nWinBox将不再提供更新，如果你继续在86Box的新版本中使用WinBox，可能会遇到不正确的行为。任何与 WinBox 行为相关的错误报告都将被视为无效而关闭。\n\n请访问 86box.net，查看你可以使用的其他管理器列表。"
+
+msgid "Generate"
+msgstr "生成"
+
+msgid "Joystick configuration"
+msgstr "操纵杆配置"
+
+msgid "Device"
+msgstr "设备"
+
+msgid "%1 (X axis)"
+msgstr "%1（X 轴）"
+
+msgid "%1 (Y axis)"
+msgstr "%1（Y 轴）"
+
+msgid "MCA devices"
+msgstr "MCA 设备"
+
+msgid "List of MCA devices:"
+msgstr "MCA 设备清单："
+
+msgid "Tablet tool"
+msgstr "平板工具"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt（OpenGL &ES）"
+
+msgid "About Qt"
+msgstr "关于 Qt"
+
+msgid "MCA devices..."
+msgstr "MCA 设备..."
+
+msgid "Show non-primary monitors"
+msgstr "显示非主要显示器"
+
+msgid "Open screenshots folder..."
+msgstr "打开屏幕截图文件夹..."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "最大化时应用全屏拉伸模式"
+
+msgid "Cursor/Puck"
+msgstr "光标/冰球"
+
+msgid "Pen"
+msgstr "笔"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "主机 CD/DVD 驱动器 (%1:)"
+
+msgid "&Connected"
+msgstr "&Connected"
+
+msgid "Clear image history"
+msgstr "清除映像历史记录"
+
+msgid "Create..."
+msgstr "创建..."
+
+msgid "previous image"
+msgstr "上一张"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "主机 CD/DVD 驱动器 (%1)"
+
+msgid "Unknown Bus"
+msgstr "未知总线"
+
+msgid "Null Driver"
+msgstr "空驱动程序"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "打开 \"%1\": %2 时出错"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "文件 \"%1\" 中的顶点着色器编译出错"
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "文件 \"%1\" 中的片段着色器编译出错"
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "文件 \"%1\" 中的着色器程序链接出错"
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "OpenGL 3.0 渲染器选项"
+
+msgid "Render behavior"
+msgstr "渲染行为"
+
+msgid "Use target framerate:"
+msgstr "使用目标帧率:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;与模拟显示同步，即时渲染每一帧。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;如果使用的着色器不使用帧时间来产生动画效果，则建议使用此选项。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "与视频同步"
+
+msgid "Shaders"
+msgstr "着色器"
+
+msgid "Remove"
+msgstr "移除"
+
+msgid "No shader selected"
+msgstr "未选择着色器"
+
+msgid "Browse..."
+msgstr "浏览..."
+
+msgid "Shader error"
+msgstr "着色器错误"
+
+msgid "Could not load shaders."
+msgstr "无法加载着色器。"
+
+msgid "More information in details."
+msgstr "更多详细信息。"
+
+msgid "Couldn't create OpenGL context."
+msgstr "无法创建 OpenGL 上下文。"
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "无法切换到 OpenGL 上下文。"
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "需要 OpenGL 3.0 或更高版本。当前版本为 %1.%2"
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "OpenGL 初始化失败。错误 %1."
+
+msgid "Error initializing OpenGL"
+msgstr "初始化 OpenGL 时出错"
+
+msgid "Falling back to software rendering.\n"
+msgstr "回到软件渲染。"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "为解包缓冲区分配内存失败.\n"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt；"
+
+msgid "This machine might have been moved or copied."
+msgstr "这台机器可能被移动或复制过。"
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "为了确保网络功能正常，86Box需要知道这台机器是否被移动或复制。\n\n如果您不确定，请选择\"我已复制这台机器\"。"
+
+msgid "I Moved It"
+msgstr "我已移动这台机器"
+
+msgid "I Copied It"
+msgstr "我已复制这台机器"
+
+msgid "86Box Monitor #"
+msgstr "86Box 监测器 "
+
+msgid "No MCA devices."
+msgstr "无 MCA 设备。"
+
+msgid "MiB"
+msgstr "兆字节"
+
+msgid "Network Card #1"
+msgstr "网卡 1"
+
+msgid "Network Card #2"
+msgstr "网卡 2"
+
+msgid "Network Card #3"
+msgstr "网卡 3"
+
+msgid "Network Card #4"
+msgstr "网卡 4"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Interface"
+msgstr "界面"
+
+msgid "Adapter"
+msgstr "适配器"
+
+msgid "VDE Socket"
+msgstr "VDE 套接字"
+
+msgid "86Box Unit Tester"
+msgstr "86Box 装置测试仪"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Novell NetWare 2.x 密钥卡"
+
+msgid "Serial port passthrough 1"
+msgstr "串行端口直通 1"
+
+msgid "Serial port passthrough 2"
+msgstr "串行端口直通 2"
+
+msgid "Serial port passthrough 3"
+msgstr "串行端口直通 3"
+
+msgid "Serial port passthrough 4"
+msgstr "串行端口直通 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "Vision Systems LBA 增强器"
+
+msgid "Renderer options..."
+msgstr "渲染器选项..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Logitech/Microsoft 总线鼠标"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Microsoft 总线鼠标（InPort）"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Mouse Systems 串行鼠标"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Microsoft 串行鼠标"
+
+msgid "Logitech Serial Mouse"
+msgstr "Logitech 串行鼠标"
+
+msgid "PS/2 Mouse"
+msgstr "PS/2 鼠标"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (串行)"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] 标准 Hayes 兼容调制解调器"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Roland MT-32 仿真"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Roland MT-32（新）仿真"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Roland CM-32L 仿真"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Roland CM-32LN 仿真"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "OPL4-ML 子板"
+
+msgid "System MIDI"
+msgstr "系统 MIDI"
+
+msgid "MIDI Input Device"
+msgstr "MIDI 输入设备"
+
+msgid "BIOS Address"
+msgstr "BIOS 地址"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "启用 BIOS 扩展 ROM 写入功能"
+
+msgid "Address"
+msgstr "地址"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "BIOS Revision"
+msgstr "BIOS 修订版"
+
+msgid "Translate 26 -> 17"
+msgstr "翻译 26 -> 17"
+
+msgid "Language"
+msgstr "语言"
+
+msgid "Enable backlight"
+msgstr "启用背光"
+
+msgid "Invert colors"
+msgstr "反转颜色"
+
+msgid "BIOS size"
+msgstr "BIOS 大小"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "将 C0000-C7FFF 映射为 UMB"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "将 C8000-CFFFF 映射为 UMB"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "将 D0000-D7FFF 映射为 UMB"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "将 D8000-DFFFF 映射为 UMB"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "将 E0000-E7FFF 映射为 UMB"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "将 E8000-EFFFF 映射为 UMB"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "JS9 跳线 (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "MIDI 输出设备"
+
+msgid "MIDI Real time"
+msgstr "实时 MIDI"
+
+msgid "MIDI Thru"
+msgstr "MIDI 输入直通"
+
+msgid "MIDI Clockout"
+msgstr "MIDI 时钟输出"
+
+msgid "SoundFont"
+msgstr "声音字体"
+
+msgid "Output Gain"
+msgstr "输出增益"
+
+msgid "Chorus"
+msgstr "合唱"
+
+msgid "Chorus Voices"
+msgstr "合唱声部"
+
+msgid "Chorus Level"
+msgstr "合唱音量"
+
+msgid "Chorus Speed"
+msgstr "合唱速度"
+
+msgid "Chorus Depth"
+msgstr "合唱深度"
+
+msgid "Chorus Waveform"
+msgstr "合唱波形"
+
+msgid "Reverb"
+msgstr "混响"
+
+msgid "Reverb Room Size"
+msgstr "混响室的大小"
+
+msgid "Reverb Damping"
+msgstr "混响阻尼"
+
+msgid "Reverb Width"
+msgstr "混响宽度"
+
+msgid "Reverb Level"
+msgstr "混响电平"
+
+msgid "Interpolation Method"
+msgstr "插值法"
+
+msgid "Reverb Output Gain"
+msgstr "混响输出的增益"
+
+msgid "Reversed stereo"
+msgstr "反转立体声"
+
+msgid "Nice ramp"
+msgstr "漂亮的斜坡"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "按钮"
+
+msgid "Serial Port"
+msgstr "串行端口"
+
+msgid "RTS toggle"
+msgstr "RTS 切换"
+
+msgid "Revision"
+msgstr "修订"
+
+msgid "Controller"
+msgstr "控制器"
+
+msgid "Show Crosshair"
+msgstr "显示十字准线"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "MAC 地址"
+
+msgid "MAC Address OUI"
+msgstr "MAC 地址的 OUI"
+
+msgid "Enable BIOS"
+msgstr "启用 BIOS"
+
+msgid "Baud Rate"
+msgstr "波特率"
+
+msgid "TCP/IP listening port"
+msgstr "TCP/IP 监听端口"
+
+msgid "Phonebook File"
+msgstr "电话簿文件"
+
+msgid "Telnet emulation"
+msgstr "Telnet 仿真"
+
+msgid "RAM Address"
+msgstr "内存地址"
+
+msgid "RAM size"
+msgstr "内存大小"
+
+msgid "Initial RAM size"
+msgstr "初始 RAM 大小"
+
+msgid "Serial Number"
+msgstr "序列号"
+
+msgid "Host ID"
+msgstr "主机 ID"
+
+msgid "FDC Address"
+msgstr "FDC 地址"
+
+msgid "MPU-401 Address"
+msgstr "MPU-401 地址"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401 IRQ"
+
+msgid "Receive MIDI input"
+msgstr "接收 MIDI 输入"
+
+msgid "Low DMA"
+msgstr "低 DMA"
+
+msgid "Enable Game port"
+msgstr "启用游戏端口"
+
+msgid "Surround module"
+msgstr "环绕声模块"
+
+msgid "CODEC"
+msgstr "CODEC"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "在 CODEC 设置时引发 CODEC 中断（某些驱动程序需要）。"
+
+msgid "SB Address"
+msgstr "SB 地址"
+
+msgid "WSS IRQ"
+msgstr "WSS IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS DMA"
+
+msgid "Enable OPL"
+msgstr "启用 OPL"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "接收 MIDI 输入（MPU-401）"
+
+msgid "SB low DMA"
+msgstr "SB 低 DMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "6 通道变体（6 通道）"
+
+msgid "Enable CMS"
+msgstr "启用 CMS"
+
+msgid "Mixer"
+msgstr "混合器"
+
+msgid "High DMA"
+msgstr "高 DMA"
+
+msgid "Control PC speaker"
+msgstr "控制电脑扬声器"
+
+msgid "Memory size"
+msgstr "内存大小"
+
+msgid "EMU8000 Address"
+msgstr "EMU8000 地址"
+
+msgid "IDE Controller"
+msgstr "IDE 控制器"
+
+msgid "Codec"
+msgstr "编解码器"
+
+msgid "GUS type"
+msgstr "GUS 类型"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "启用命令 0x04 \"退出 86Box\""
+
+msgid "Display type"
+msgstr "显示类型"
+
+msgid "Composite type"
+msgstr "复合视频类型"
+
+msgid "RGB type"
+msgstr "RGB 类型"
+
+msgid "Line doubling type"
+msgstr "线路倍增类型"
+
+msgid "Snow emulation"
+msgstr "雪花模拟"
+
+msgid "Monitor type"
+msgstr "显示器类型"
+
+msgid "Character set"
+msgstr "字符集"
+
+msgid "XGA type"
+msgstr "XGA 类型"
+
+msgid "Instance"
+msgstr "实例"
+
+msgid "MMIO Address"
+msgstr "MMIO 地址"
+
+msgid "RAMDAC type"
+msgstr "RAMDAC 类型"
+
+msgid "Blend"
+msgstr "混合"
+
+msgid "Bilinear filtering"
+msgstr "双线性滤波"
+
+msgid "Dithering"
+msgstr "抖动"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "为 CGA 仿真启用 NMI"
+
+msgid "Voodoo type"
+msgstr "巫毒类型"
+
+msgid "Framebuffer memory size"
+msgstr "帧缓冲区内存大小"
+
+msgid "Texture memory size"
+msgstr "纹理内存大小"
+
+msgid "Dither subtraction"
+msgstr "抖动减法"
+
+msgid "Screen Filter"
+msgstr "滤镜"
+
+msgid "Render threads"
+msgstr "渲染线程"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "起始地址"
+
+msgid "Contiguous Size"
+msgstr "连续大小"
+
+msgid "I/O Width"
+msgstr "输入/输出宽度"
+
+msgid "Transfer Speed"
+msgstr "传输速度"
+
+msgid "EMS mode"
+msgstr "EMS (扩展内存)模式"
+
+msgid "Address for > 2 MB"
+msgstr "地址 > 2 MB"
+
+msgid "Frame Address"
+msgstr "帧地址"
+
+msgid "USA"
+msgstr "美国"
+
+msgid "Danish"
+msgstr "丹麦语"
+
+msgid "Always at selected speed"
+msgstr "始终保持选定速度"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "BIOS 设置 + 热键 (开机自检期间关闭)"
+
+msgid "64 kB starting from F0000"
+msgstr "64 kB，从 F0000 开始"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "128 kB，从 E0000 开始 (地址 MSB 反相，最后 64KB 优先)"
+
+msgid "Sine"
+msgstr "正弦"
+
+msgid "Triangle"
+msgstr "三角"
+
+msgid "Linear"
+msgstr "线性"
+
+msgid "4th Order"
+msgstr "四阶"
+
+msgid "7th Order"
+msgstr "七阶"
+
+msgid "Non-timed (original)"
+msgstr "没有计时器 (原版)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (JMP2 上无跳线)"
+
+msgid "Two"
+msgstr "两键"
+
+msgid "Three"
+msgstr "三键"
+
+msgid "Wheel"
+msgstr "滚轮"
+
+msgid "Five + Wheel"
+msgstr "五键+滚轮"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 串行 / SMT3（R）V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3（R）串行"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "禁用 BIOS"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr "8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (立体声)"
+
+msgid "Classic"
+msgstr "经典"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "复合视频"
+
+msgid "Old"
+msgstr "旧"
+
+msgid "New"
+msgstr "新"
+
+msgid "Color (generic)"
+msgstr "彩色（通用）"
+
+msgid "Green Monochrome"
+msgstr "单色绿色"
+
+msgid "Amber Monochrome"
+msgstr "琥珀单色"
+
+msgid "Gray Monochrome"
+msgstr "灰色单色"
+
+msgid "Color (no brown)"
+msgstr "彩色（无棕色）"
+
+msgid "Color (IBM 5153)"
+msgstr "彩色（IBM 5153）"
+
+msgid "Simple doubling"
+msgstr "简单加倍"
+
+msgid "sRGB interpolation"
+msgstr "sRGB 插值"
+
+msgid "Linear interpolation"
+msgstr "线性插值"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "单色（5151/MDA）（白色）"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "单色（5151/MDA）（绿色）"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "单色 (5151/MDA)（琥珀色）"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "彩色 40x25（5153/CGA）"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "彩色 80x25（5153/CGA）"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "增强色彩 - 正常模式 (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "增强色彩 - 增强模式 (5154/ECD)"
+
+msgid "Green"
+msgstr "绿色"
+
+msgid "Amber"
+msgstr "琥珀色"
+
+msgid "Gray"
+msgstr "灰色"
+
+msgid "Color"
+msgstr "彩色"
+
+msgid "U.S. English"
+msgstr "美国英语"
+
+msgid "Scandinavian"
+msgstr "斯堪的纳维亚语系"
+
+msgid "Other languages"
+msgstr "其他语言"
+
+msgid "Bochs latest"
+msgstr "Bochs 最新版本"
+
+msgid "Mono Non-Interlaced"
+msgstr "单色非隔行扫描"
+
+msgid "Color Interlaced"
+msgstr "彩色隔行扫描"
+
+msgid "Color Non-Interlaced"
+msgstr "彩色非隔行扫描"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo 图形"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst（2 个 TMU）"
+
+msgid "8-bit"
+msgstr "8 位"
+
+msgid "16-bit"
+msgstr "16 位"
+
+msgid "Standard (150ns)"
+msgstr "标准 (150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "高速 (120ns)"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Standard"
+msgstr "标准"
+
+msgid "High-Speed"
+msgstr "高速"
+
+msgid "Stereo LPT DAC"
+msgstr "立体声 LPT DAC"
+
+msgid "Generic Text Printer"
+msgstr "通用文本打印机"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "通用 ESC/P 点阵打印机"
+
+msgid "Generic PostScript Printer"
+msgstr "通用 PostScript 打印机"
+
+msgid "Generic PCL5e Printer"
+msgstr "通用 PCL5e 打印机"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Parallel Line Internet Protocol"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Savage Quest保护加密狗"
+
+msgid "Serial Passthrough Device"
+msgstr "串行端口直通设备"
+
+msgid "Passthrough Mode"
+msgstr "直通模式"
+
+msgid "Host Serial Device"
+msgstr "主机串行设备"
+
+msgid "Name of pipe"
+msgstr "管道名称"
+
+msgid "Data bits"
+msgstr "数据位"
+
+msgid "Stop bits"
+msgstr "停止位"
+
+msgid "Baud Rate of Passthrough"
+msgstr "直通波特率"
+
+msgid "Named Pipe (Server)"
+msgstr "命名管道（服务器）"
+
+msgid "Host Serial Passthrough"
+msgstr "主机串行端口直通"
+
+msgid "Eject %s"
+msgstr "弹出 %s"
+
+msgid "&Unmute"
+msgstr "解除静音(&U)"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "重大性能影响"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM 磁盘 (最大速度)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A 克隆 (ISA)"
+
+msgid "Vendor"
+msgstr "制造商"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "通用 PC/XT 内存扩展"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "通用 PC/AT 内存扩展"

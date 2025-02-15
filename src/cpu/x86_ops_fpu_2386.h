@@ -90,22 +90,20 @@ opESCAPE_df_a32(uint32_t fetchdat)
 }
 
 static int
-opWAIT(uint32_t fetchdat)
+opWAIT(UNUSED(uint32_t fetchdat))
 {
     if ((cr0 & 0xa) == 0xa) {
         x86_int(7);
         return 1;
     }
 
-#if 0
-    if (!cpu_use_dynarec && fpu_softfloat) {
-#endif
     if (fpu_softfloat) {
         if (fpu_state.swd & FPU_SW_Summary) {
-            if (cr0 & 0x20) {
-                x86_int(16);
-                return 1;
-            }
+            if (cr0 & 0x20)
+                new_ne = 1;
+            else
+                picint(1 << 13);
+            return 1;
         }
     }
     CLOCK_CYCLES(4);

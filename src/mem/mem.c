@@ -226,6 +226,19 @@ flushmmucache(void)
 }
 
 void
+flushmmucache_pc(void)
+{
+    mmuflush++;
+
+    pccache  = (uint32_t) 0xffffffff;
+    pccache2 = (uint8_t *) 0xffffffff;
+
+#ifdef USE_DYNAREC
+    codegen_flush();
+#endif
+}
+
+void
 flushmmucache_nopc(void)
 {
     for (uint16_t c = 0; c < 256; c++) {
@@ -307,7 +320,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
             cr2 = addr;
             temp &= 1;
             if (CPL == 3)
@@ -323,12 +336,15 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         mmu_perm = temp & 4;
         rammap(addr2) |= (rw ? 0x60 : 0x20);
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
         cr2 = addr;
         temp &= 1;
         if (CPL == 3)
@@ -392,7 +408,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
         /*2MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
             cr2 = addr;
             temp &= 1;
             if (CPL == 3)
@@ -413,7 +429,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
     temp  = rammap64(addr4) & 0x000000ffffffffffULL;
     temp3 = temp & temp4;
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
         cr2 = addr;
         temp &= 1;
         if (CPL == 3)
@@ -475,16 +491,19 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
 
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
         return 0xffffffffffffffffULL;
 
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
@@ -519,7 +538,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
         /*2MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
         return ((temp & ~0x1fffffULL) + (addr & 0x1fffff)) & 0x000000ffffffffffULL;
@@ -530,7 +549,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     temp3 = temp & temp4;
 
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
         return 0xffffffffffffffffULL;
 
     return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
@@ -2338,41 +2357,47 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         /* In range? */
         if (map->enable && (uint64_t) map->base < ((uint64_t) base + (uint64_t) size) &&
             ((uint64_t) map->base + (uint64_t) map->size) > (uint64_t) base) {
+            uint64_t i_a   = ((~map->base_ignore) & 0xffffffffULL) + 0x00000001ULL;
+            uint64_t i_s   = 0x00000000ULL;
+            uint64_t i_e   = map->base_ignore;
+            uint64_t i_c   = 0x00000000ULL;
             uint64_t start = (map->base < base) ? map->base : base;
             uint64_t end   = (((uint64_t) map->base + (uint64_t) map->size) < (base + size)) ?
                              ((uint64_t) map->base + (uint64_t) map->size) : (base + size);
             if (start < map->base)
                 start = map->base;
 
-            for (c = start; c < end; c += MEM_GRANULARITY_SIZE) {
-                /* CPU */
-                n = !!in_smm;
-                wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
+            for (i_c = i_s; i_c <= i_e; i_c += i_a) {
+                for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
+                    /* CPU */
+                    n = !!in_smm;
+                    wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
-                if (map->exec && mem_mapping_access_allowed(map->flags,
-                                 _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
-                    _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
-                if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
-                    write_mapping[c >> MEM_GRANULARITY_BITS] = map;
-                if ((map->read_b || map->read_w || map->read_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
-                    read_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if (map->exec && mem_mapping_access_allowed(map->flags,
+                                                                _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
+                        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping[c >> MEM_GRANULARITY_BITS] = map;
 
-                /* Bus */
-                n |= STATE_BUS;
-                wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
+                    /* Bus */
+                    n |= STATE_BUS;
+                    wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
 
-                if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
-                    write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
-                if ((map->read_b || map->read_w || map->read_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
-                    read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                }
             }
         }
         map = map->next;
@@ -2580,6 +2605,20 @@ mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
     map->enable = 1;
     map->base   = base;
     map->size   = size;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+void
+mem_mapping_set_base_ignore(mem_mapping_t *map, uint32_t base_ignore)
+{
+    /* Remove old mapping. */
+    map->enable      = 0;
+    mem_mapping_recalc(map->base, map->size);
+
+    /* Set new mapping. */
+    map->enable      = 1;
+    map->base_ignore = base_ignore;
 
     mem_mapping_recalc(map->base, map->size);
 }
@@ -2980,8 +3019,8 @@ umc_smram_recalc(uint32_t start, int set)
         umc_page_recalc(c, set);
 }
 
-void
-mem_remap_top_ex(int kb, uint32_t start)
+static void
+mem_remap_top_ex_common(int kb, uint32_t start, int mid)
 {
     uint32_t   c;
     int        offset;
@@ -3084,35 +3123,59 @@ mem_remap_top_ex(int kb, uint32_t start)
             mem_mapping_set_addr(&ram_remapped_mapping2, (start * 1024) + 0x00020000, 0x00020000);
             mem_mapping_set_exec(&ram_remapped_mapping2, ram + 0x000d0000);
 
-            mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
-            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
-            mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
-            mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+            if (mid) {
+                mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
+                mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
+                mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
+                mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+            }
         } else {
             mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
             mem_mapping_set_exec(&ram_remapped_mapping, ram + start_addr);
             mem_mapping_disable(&ram_remapped_mapping2);
 
-            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
-            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
-            mem_mapping_disable(&ram_mid_mapping2);
+            if (mid) {
+                mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+                mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+                mem_mapping_disable(&ram_mid_mapping2);
+            }
         }
     } else {
         mem_mapping_disable(&ram_remapped_mapping);
         mem_mapping_disable(&ram_remapped_mapping2);
 
-        mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
-        mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
-        mem_mapping_disable(&ram_mid_mapping2);
+        if (mid) {
+            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+            mem_mapping_disable(&ram_mid_mapping2);
+        }
     }
 
     flushmmucache();
 }
 
 void
+mem_remap_top_ex(int kb, uint32_t start)
+{
+    mem_remap_top_ex_common(kb, start, 1);
+}
+
+void
+mem_remap_top_ex_nomid(int kb, uint32_t start)
+{
+    mem_remap_top_ex_common(kb, start, 0);
+}
+
+void
 mem_remap_top(int kb)
 {
     mem_remap_top_ex(kb, (mem_size >= 1024) ? mem_size : 1024);
+}
+
+void
+mem_remap_top_nomid(int kb)
+{
+    mem_remap_top_ex_nomid(kb, (mem_size >= 1024) ? mem_size : 1024);
 }
 
 void

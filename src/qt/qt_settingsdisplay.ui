@@ -106,6 +106,13 @@
      </property>
     </widget>
    </item>
+   <item row="5" column="2">
+    <widget class="QPushButton" name="pushButtonConfigure8514">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
    <item row="6" column="2">
     <widget class="QPushButton" name="pushButtonConfigureXga">
      <property name="text">

@@ -72,6 +72,7 @@ extern uint8_t *pccache2;
 extern int      optype;
 extern uint32_t pccache;
 
+int      new_ne            = 0;
 int      in_sys            = 0;
 int      unmask_a20_in_smm = 0;
 uint32_t old_rammask       = 0xffffffff;
@@ -1016,9 +1017,14 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_gs.ar_high = (saved_state[SMRAM_FIELD_P6_GS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_gs);
 
-    mem_a20_alt = 0x00;
-    mem_a20_key = saved_state[SMRAM_FIELD_P6_A20M] ? 0x00 : 0x02;
-    mem_a20_recalc();
+    rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+    if (is6117)
+        rammask |= 0x3000000;
+
+    if (saved_state[SMRAM_FIELD_P6_A20M] & 0x01)
+        rammask &= 0xffefffff;
+
+    flushmmucache();
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
         smbase = saved_state[SMRAM_FIELD_P6_SMBASE_OFFSET];
@@ -1819,7 +1825,7 @@ cpu_386_check_instruction_fault(void)
 }
 
 int
-sysenter(uint32_t fetchdat)
+sysenter(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSENTER called\n");
@@ -1901,7 +1907,7 @@ sysenter(uint32_t fetchdat)
 }
 
 int
-sysexit(uint32_t fetchdat)
+sysexit(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSEXIT called\n");
@@ -1988,7 +1994,7 @@ sysexit(uint32_t fetchdat)
 }
 
 int
-syscall_op(uint32_t fetchdat)
+syscall_op(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSCALL called\n");
@@ -2040,7 +2046,7 @@ syscall_op(uint32_t fetchdat)
 }
 
 int
-sysret(uint32_t fetchdat)
+sysret(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSRET called\n");

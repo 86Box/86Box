@@ -14,7 +14,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1018,7 +1018,7 @@ incolor_init(UNUSED(const device_t *info))
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_incolor);
 
     /* Force the LPT3 port to be enabled. */
-    lpt3_init(0x3BC);
+    lpt3_setup(LPT_MDA_ADDR);
 
     return dev;
 }
@@ -1053,7 +1053,7 @@ const device_t incolor_device = {
     .init          = incolor_init,
     .close         = incolor_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

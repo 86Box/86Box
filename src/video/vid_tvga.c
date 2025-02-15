@@ -521,101 +521,92 @@ tvga_force_redraw(void *priv)
 static const device_config_t tvga_config[] = {
     // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
             /*Chip supports 2mb, but drivers are buggy*/
-            {
-                .description = ""
-            }
-        }
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 
 const device_t tvga8900b_device = {
-    .name = "Trident TVGA 8900B",
+    .name          = "Trident TVGA 8900B",
     .internal_name = "tvga8900b",
-    .flags = DEVICE_ISA,
-    .local = TVGA8900B_ID,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga8900b_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900B_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900b_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = tvga_config
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_config
 };
 
 const device_t tvga8900d_device = {
-    .name = "Trident TVGA 8900D",
+    .name          = "Trident TVGA 8900D",
     .internal_name = "tvga8900d",
-    .flags = DEVICE_ISA,
-    .local = TVGA8900CLD_ID,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga8900d_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900CLD_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900d_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = tvga_config
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_config
 };
 
 const device_t tvga8900dr_device = {
-    .name = "Trident TVGA 8900D-R",
+    .name          = "Trident TVGA 8900D-R",
     .internal_name = "tvga8900dr",
-    .flags = DEVICE_ISA,
-    .local = TVGA8900CLD_ID | 0x0100,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga8900dr_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900CLD_ID | 0x0100,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900dr_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = tvga_config
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_config
 };
 
 const device_t tvga9000b_device = {
-    .name = "Trident TVGA 9000B",
+    .name          = "Trident TVGA 9000B",
     .internal_name = "tvga9000b",
-    .flags = DEVICE_ISA,
-    .local = TVGA9000B_ID,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga9000b_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA9000B_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga9000b_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = NULL
+    .force_redraw  = tvga_force_redraw,
+    .config        = NULL
 };
 
 const device_t nec_sv9000_device = {
-    .name = "NEC SV9000 (Trident TVGA 9000B)",
+    .name          = "NEC SV9000 (Trident TVGA 9000B)",
     .internal_name = "nec_sv9000",
-    .flags = DEVICE_ISA,
-    .local = TVGA9000B_ID | 0x100,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga9000b_nec_sv9000_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA9000B_ID | 0x100,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga9000b_nec_sv9000_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = NULL
+    .force_redraw  = tvga_force_redraw,
+    .config        = NULL
 };

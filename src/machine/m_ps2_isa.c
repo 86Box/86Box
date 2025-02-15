@@ -64,13 +64,13 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_init(LPT_MDA_ADDR);
+                            lpt1_setup(LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_init(LPT1_ADDR);
+                            lpt1_setup(LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_init(LPT2_ADDR);
+                            lpt1_setup(LPT2_ADDR);
                             break;
 
                         default:
@@ -151,8 +151,7 @@ ps2_isa_setup(int model, int cpu_type)
     ps2_isa_t *ps2;
     void      *priv;
 
-    ps2 = (ps2_isa_t *) malloc(sizeof(ps2_isa_t));
-    memset(ps2, 0x00, sizeof(ps2_isa_t));
+    ps2 = (ps2_isa_t *) calloc(1, sizeof(ps2_isa_t));
     ps2->model    = model;
     ps2->cpu_type = cpu_type;
 
@@ -168,7 +167,7 @@ ps2_isa_setup(int model, int cpu_type)
     ps2->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     device_add(&port_92_device);
 
@@ -176,7 +175,7 @@ ps2_isa_setup(int model, int cpu_type)
 
     device_add(&ps_nvr_device);
 
-    device_add(&fdc_at_ps1_device);
+    device_add(&fdc_ps2_device);
 
     /* Enable the builtin HDC. */
     if (hdc_current[0] == HDC_INTERNAL) {

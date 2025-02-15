@@ -35,7 +35,7 @@
 typedef struct opti5x7_t {
     uint8_t idx;
     uint8_t is_pci;
-    uint8_t regs[16];
+    uint8_t regs[18];
 } opti5x7_t;
 
 #ifdef ENABLE_OPTI5X7_LOG
@@ -158,7 +158,7 @@ opti5x7_read(uint16_t addr, void *priv)
 {
     const opti5x7_t *dev = (opti5x7_t *) priv;
 
-    return (addr == 0x24) ? dev->regs[dev->idx] : 0xff;
+    return ((addr == 0x24) && (dev->idx < sizeof(dev->regs))) ? dev->regs[dev->idx] : 0xff;
 }
 
 static void
@@ -172,8 +172,7 @@ opti5x7_close(void *priv)
 static void *
 opti5x7_init(const device_t *info)
 {
-    opti5x7_t *dev = (opti5x7_t *) malloc(sizeof(opti5x7_t));
-    memset(dev, 0, sizeof(opti5x7_t));
+    opti5x7_t *dev = (opti5x7_t *) calloc(1, sizeof(opti5x7_t));
 
     dev->is_pci = info->local;
 
@@ -193,7 +192,7 @@ const device_t opti5x7_device = {
     .init          = opti5x7_init,
     .close         = opti5x7_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -207,7 +206,7 @@ const device_t opti5x7_pci_device = {
     .init          = opti5x7_init,
     .close         = opti5x7_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

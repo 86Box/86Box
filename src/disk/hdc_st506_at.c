@@ -585,12 +585,16 @@ do_callback(void *priv)
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
+read_error:
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
 
-            hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer);
+            if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer) < 0) {
+                mfm->error = ERR_BAD_BLOCK;
+                goto read_error;
+            }
 
             mfm->pos    = 0;
             mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
@@ -604,12 +608,16 @@ do_callback(void *priv)
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
+write_error:
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
 
-            hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer);
+            if (hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer) < 0) {
+                mfm->error = ERR_BAD_BLOCK;
+                goto write_error;
+            }
             irq_raise(mfm);
             mfm->secount = (mfm->secount - 1) & 0xff;
 
@@ -736,12 +744,11 @@ mfm_init(UNUSED(const device_t *info))
     int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
-    mfm = malloc(sizeof(mfm_t));
-    memset(mfm, 0x00, sizeof(mfm_t));
+    mfm = calloc(1, sizeof(mfm_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
             loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
             st506_at_log("WD1003(%d): (%s) geometry %d/%d/%d\n", c, hdd[d].fn,
@@ -788,12 +795,12 @@ mfm_close(void *priv)
 const device_t st506_at_wd1003_device = {
     .name          = "WD1003 AT MFM/RLL Controller",
     .internal_name = "st506_at",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = mfm_init,
     .close         = mfm_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -102,9 +102,9 @@ lm78_log(const char *fmt, ...)
 void
 lm78_nvram(lm78_t *dev, uint8_t save)
 {
-    size_t l        = strlen(machine_get_internal_name_ex(machine)) + 14;
+    size_t l        = strlen(machine_get_nvr_name_ex(machine)) + 14;
     char  *nvr_path = (char *) malloc(l);
-    sprintf(nvr_path, "%s_as99127f.nvr", machine_get_internal_name_ex(machine));
+    sprintf(nvr_path, "%s_as99127f.nvr", machine_get_nvr_name_ex(machine));
 
     FILE *fp = nvr_fopen(nvr_path, save ? "wb" : "rb");
     if (fp) {
@@ -771,8 +771,7 @@ lm78_close(void *priv)
 static void *
 lm78_init(const device_t *info)
 {
-    lm78_t *dev = (lm78_t *) malloc(sizeof(lm78_t));
-    memset(dev, 0, sizeof(lm78_t));
+    lm78_t *dev = (lm78_t *) calloc(1, sizeof(lm78_t));
 
     dev->local = info->local;
 
@@ -857,7 +856,7 @@ const device_t lm78_device = {
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -872,7 +871,7 @@ const device_t w83781d_device = {
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -887,7 +886,7 @@ const device_t w83781d_p5a_device = {
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -903,7 +902,7 @@ const device_t as99127f_device = {
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -918,7 +917,7 @@ const device_t as99127f_rev2_device = {
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -933,7 +932,7 @@ const device_t w83782d_device = {
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

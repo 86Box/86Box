@@ -72,15 +72,9 @@ jobs:
         environment:
 #          - msystem: MSYS
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
-          - msystem: MINGW32
-            prefix: mingw-w64-i686
-            toolchain: ./cmake/flags-gcc-i686.cmake
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
-#          - msystem: CLANG32
-#            prefix: mingw-w64-clang-i686
-#            toolchain: ./cmake/llvm-win32-i686.cmake
 #          - msystem: CLANG64
 #            prefix: mingw-w64-clang-x86_64
 #            toolchain: ./cmake/llvm-win32-x86_64.cmake
@@ -108,6 +102,7 @@ jobs:
             rtmidi:p
             libslirp:p
             fluidsynth:p
+            libserialport:p
             ${{ matrix.ui.packages }}
 
       - name: Checkout repository

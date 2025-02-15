@@ -107,7 +107,7 @@ fdc37c669_lpt_handler(fdc37c669_t *dev)
 
     lpt_port_remove(dev->id);
     if ((dev->regs[0x01] & 0x04) && (dev->regs[0x23] >= 0x40))
-        lpt_port_init(dev->id, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
+        lpt_port_setup(dev->id, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
 }
 
 static void
@@ -335,8 +335,7 @@ fdc37c669_close(void *priv)
 static void *
 fdc37c669_init(const device_t *info)
 {
-    fdc37c669_t *dev = (fdc37c669_t *) malloc(sizeof(fdc37c669_t));
-    memset(dev, 0, sizeof(fdc37c669_t));
+    fdc37c669_t *dev = (fdc37c669_t *) calloc(1, sizeof(fdc37c669_t));
 
     dev->id = next_id;
 
@@ -364,7 +363,7 @@ const device_t fdc37c669_device = {
     .init          = fdc37c669_init,
     .close         = fdc37c669_close,
     .reset         = fdc37c669_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -378,7 +377,7 @@ const device_t fdc37c669_370_device = {
     .init          = fdc37c669_init,
     .close         = fdc37c669_close,
     .reset         = fdc37c669_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -136,7 +136,7 @@ static int
 get_axis(JoystickConfiguration &jc, int axis, int joystick_nr)
 {
     int axis_sel = jc.selectedAxis(axis);
-    int nr_axes  = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_axes;
+    int nr_axes  = plat_joystick_state[joystick_state[0][joystick_nr].plat_joystick_nr - 1].nr_axes;
 
     if (axis_sel < nr_axes) {
         return axis_sel;
@@ -153,7 +153,7 @@ static int
 get_pov(JoystickConfiguration &jc, int pov, int joystick_nr)
 {
     int pov_sel = jc.selectedPov(pov);
-    int nr_povs = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_povs * 2;
+    int nr_povs = plat_joystick_state[joystick_state[0][joystick_nr].plat_joystick_nr - 1].nr_povs * 2;
 
     if (pov_sel < nr_povs) {
         if (pov_sel & 1)
@@ -176,17 +176,19 @@ updateJoystickConfig(int type, int joystick_nr, QWidget *parent)
             break;
     }
 
-    joystick_state[joystick_nr].plat_joystick_nr = jc.selectedDevice();
-    if (joystick_state[joystick_nr].plat_joystick_nr) {
-        for (int c = 0; c < joystick_get_axis_count(type); c++) {
-            joystick_state[joystick_nr].axis_mapping[c] = get_axis(jc, c, joystick_nr);
+    joystick_state[0][joystick_nr].plat_joystick_nr = jc.selectedDevice();
+    if (joystick_state[0][joystick_nr].plat_joystick_nr) {
+        for (int axis_nr = 0; axis_nr < joystick_get_axis_count(type); axis_nr++) {
+            joystick_state[0][joystick_nr].axis_mapping[axis_nr] = get_axis(jc, axis_nr, joystick_nr);
         }
-        for (int c = 0; c < joystick_get_button_count(type); c++) {
-            joystick_state[joystick_nr].button_mapping[c] = jc.selectedButton(c);
+
+        for (int button_nr = 0; button_nr < joystick_get_button_count(type); button_nr++) {
+            joystick_state[0][joystick_nr].button_mapping[button_nr] = jc.selectedButton(button_nr);
         }
-        for (int c = 0; c < joystick_get_pov_count(type) * 2; c += 2) {
-            joystick_state[joystick_nr].pov_mapping[c][0] = get_pov(jc, c, joystick_nr);
-            joystick_state[joystick_nr].pov_mapping[c][1] = get_pov(jc, c + 1, joystick_nr);
+
+        for (int pov_nr = 0; pov_nr < joystick_get_pov_count(type) * 2; pov_nr += 2) {
+            joystick_state[0][joystick_nr].pov_mapping[pov_nr][0] = get_pov(jc, pov_nr, joystick_nr);
+            joystick_state[0][joystick_nr].pov_mapping[pov_nr][1] = get_pov(jc, pov_nr + 1, joystick_nr);
         }
     }
 }

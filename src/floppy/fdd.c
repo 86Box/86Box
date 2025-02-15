@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/machine.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -99,10 +100,10 @@ d86f_handler_t d86f_handler[FDD_NUM];
 
 static const struct
 {
-    char *ext;
-    void (*load)(int drive, char *fn);
-    void (*close)(int drive);
-    int size;
+    const char *ext;
+    void        (*load)(int drive, char *fn);
+    void        (*close)(int drive);
+    int         size;
 } loaders[] = {
     { "001",  img_load,  img_close,  -1},
     { "002",  img_load,  img_close,  -1},
@@ -153,20 +154,16 @@ static const struct {
     { 43, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0, "5.25\" 360k", "525_2dd" },
     /* 5.25" QD */
     { 86, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "5.25\" 720k", "525_2qd" },
-    /* 5.25" HD PS/2 */
-    { 86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2, "5.25\" 1.2M PS/2", "525_2hd_ps2" },
     /* 5.25" HD */
-    { 86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M", "525_2hd" },
+    { 86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_PS2, "5.25\" 1.2M", "525_2hd" },
     /* 5.25" HD Dual RPM */
     { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M 300/360 RPM", "525_2hd_dualrpm" },
     /* 3.5" 1DD */
     { 86, FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 360k", "35_1dd" },
     /* 3.5" DD, Equivalent to TEAC FD-235F */
     { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 720k", "35_2dd" },
-    /* 3.5" HD PS/2 */
-    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2, "3.5\" 1.44M PS/2", "35_2hd_ps2" },
     /* 3.5" HD, Equivalent to TEAC FD-235HF */
-    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M", "35_2hd" },
+    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_PS2, "3.5\" 1.44M", "35_2hd" },
     /* TODO: 3.5" DD, Equivalent to TEAC FD-235GF */
 //    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.25M", "35_2hd_2mode" },
     /* 3.5" HD PC-98 */
@@ -214,10 +211,19 @@ fdd_get_internal_name(int type)
 int
 fdd_get_from_internal_name(char *s)
 {
-    int c = 0;
+    int   c = 0;
+    char *n;
+
+    /* TODO: Remove this once the migration period is over. */
+    if (!strcmp(s, "525_2hd_ps2"))
+        n = "525_2hd";
+    else if (!strcmp(s, "35_2hd_ps2"))
+        n = "35_2hd";
+    else
+        n = s;
 
     while (strlen(drive_types[c].internal_name)) {
-        if (!strcmp((char *) drive_types[c].internal_name, s))
+        if (!strcmp((char *) drive_types[c].internal_name, n))
             return c;
         c++;
     }
@@ -282,11 +288,32 @@ fdd_current_track(int drive)
     return fdd[drive].track;
 }
 
+static int
+fdd_type_invert_densel(int type)
+{
+    int ret;
+
+    if (drive_types[type].flags & FLAG_PS2)
+        ret = (!!strstr(machine_getname(), "PS/1")) || (!!strstr(machine_getname(), "PS/2"));
+    else
+        ret = drive_types[type].flags & FLAG_INVERT_DENSEL;
+
+    return ret;
+}
+
+static int
+fdd_invert_densel(int drive)
+{
+    int ret = fdd_type_invert_densel(fdd[drive].type);
+
+    return ret;
+}
+
 void
 fdd_set_densel(int densel)
 {
     for (uint8_t i = 0; i < FDD_NUM; i++) {
-        if (drive_types[fdd[i].type].flags & FLAG_INVERT_DENSEL)
+        if (fdd_invert_densel(i))
             fdd[i].densel = densel ^ 1;
         else
             fdd[i].densel = densel;
@@ -302,7 +329,7 @@ fdd_getrpm(int drive)
     hole   = fdd_hole(drive);
     densel = fdd[drive].densel;
 
-    if (drive_types[fdd[drive].type].flags & FLAG_INVERT_DENSEL)
+    if (fdd_invert_densel(drive))
         densel ^= 1;
 
     if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_360))
@@ -340,10 +367,9 @@ fdd_doublestep_40(int drive)
 void
 fdd_set_type(int drive, int type)
 {
-    int old_type    = fdd[drive].type;
-    fdd[drive].type = type;
-    if ((drive_types[old_type].flags ^ drive_types[type].flags) & FLAG_INVERT_DENSEL)
+    if (fdd_type_invert_densel(fdd[drive].type) != fdd_type_invert_densel(type))
         fdd[drive].densel ^= 1;
+    fdd[drive].type = type;
 }
 
 int

@@ -8,15 +8,13 @@
  *
  *          RawInput joystick interface.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          GH Cao, <driver1998.ms@outlook.com>
- *          Jasmine Iwanek,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2020 GH Cao.
- *          Copyright 2021-2023 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <windows.h>
 #include <windowsx.h>
@@ -98,9 +96,9 @@ typedef struct {
     } pov[MAX_JOY_POVS];
 } raw_joystick_t;
 
-plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_t      joystick_state[MAX_JOYSTICKS];
 int             joysticks_present = 0;
+joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 
 raw_joystick_t raw_joystick_state[MAX_PLAT_JOYSTICKS];
 
@@ -412,21 +410,21 @@ win_joystick_handle(PRAWINPUT raw)
     /* Read buttons */
     USAGE usage_list[128] = { 0 };
     ULONG usage_length    = plat_joystick_state[j].nr_buttons;
-    memset(plat_joystick_state[j].b, 0, 32 * sizeof(int));
+    memset(plat_joystick_state[j].b, 0, MAX_JOY_BUTTONS * sizeof(int));
 
     r = HidP_GetUsages(HidP_Input, HID_USAGE_PAGE_BUTTON, 0, usage_list, &usage_length,
                        raw_joystick_state[j].data, (PCHAR) raw->data.hid.bRawData, raw->data.hid.dwSizeHid);
 
     if (r == HIDP_STATUS_SUCCESS) {
         for (int i = 0; i < usage_length; i++) {
-            int button                       = raw_joystick_state[j].usage_button[usage_list[i]];
+            int button                          = raw_joystick_state[j].usage_button[usage_list[i]];
             plat_joystick_state[j].b[button] = 128;
         }
     }
 
     /* Read axes */
-    for (int a = 0; a < plat_joystick_state[j].nr_axes; a++) {
-        const struct raw_axis_t *axis   = &raw_joystick_state[j].axis[a];
+    for (int axis_nr = 0; axis_nr < plat_joystick_state[j].nr_axes; axis_nr++) {
+        const struct raw_axis_t *axis   = &raw_joystick_state[j].axis[axis_nr];
         ULONG                    uvalue = 0;
         LONG                     value  = 0;
         LONG                     center = (axis->max - axis->min + 1) / 2;
@@ -453,15 +451,15 @@ win_joystick_handle(PRAWINPUT raw)
             value = value * 32768 / center;
         }
 
-        plat_joystick_state[j].a[a] = value;
+        plat_joystick_state[j].a[axis_nr] = value;
 #if 0
-        joystick_log("%s %-06d ", plat_joystick_state[j].axis[a].name, plat_joystick_state[j].a[a]);
+        joystick_log("%s %-06d ", plat_joystick_state[0][j].axis[axis_nr].name, plat_joystick_state[j].a[axis_nr]);
 #endif
     }
 
     /* read povs */
-    for (int p = 0; p < plat_joystick_state[j].nr_povs; p++) {
-        const struct raw_pov_t *pov    = &raw_joystick_state[j].pov[p];
+    for (int pov_nr = 0; pov_nr < plat_joystick_state[j].nr_povs; pov_nr++) {
+        const struct raw_pov_t *pov    = &raw_joystick_state[j].pov[pov_nr];
         ULONG                   uvalue = 0;
         LONG                    value  = -1;
 
@@ -474,10 +472,10 @@ win_joystick_handle(PRAWINPUT raw)
             value %= 36000;
         }
 
-        plat_joystick_state[j].p[p] = value;
+        plat_joystick_state[j].p[pov_nr] = value;
 
 #if 0
-        joystick_log("%s %-3d ", plat_joystick_state[j].pov[p].name, plat_joystick_state[j].p[p]);
+        joystick_log("%s %-3d ", plat_joystick_state[0][j].pov[pov_nr].name, plat_joystick_state[j].p[pov_nr]);
 #endif
     }
 #if 0
@@ -508,44 +506,39 @@ joystick_get_axis(int joystick_nr, int mapping)
 void
 joystick_process(void)
 {
-    int d;
-
     if (joystick_type == JS_TYPE_NONE)
         return;
 
-    for (int c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
-        if (joystick_state[c].plat_joystick_nr) {
-            int joystick_nr = joystick_state[c].plat_joystick_nr - 1;
+    for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
+        if (joystick_state[0][js].plat_joystick_nr) {
+            int joystick_nr = joystick_state[0][js].plat_joystick_nr - 1;
 
-            for (d = 0; d < joystick_get_axis_count(joystick_type); d++)
-                joystick_state[c].axis[d] = joystick_get_axis(joystick_nr, joystick_state[c].axis_mapping[d]);
-            for (d = 0; d < joystick_get_button_count(joystick_type); d++)
-                joystick_state[c].button[d] = plat_joystick_state[joystick_nr].b[joystick_state[c].button_mapping[d]];
+            for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++)
+                joystick_state[0][js].axis[axis_nr] = joystick_get_axis(joystick_nr, joystick_state[0][js].axis_mapping[axis_nr]);
 
-            for (d = 0; d < joystick_get_pov_count(joystick_type); d++) {
-                int    x;
-                int    y;
-                double angle;
-                double magnitude;
+            for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++)
+                joystick_state[0][js].button[button_nr] = plat_joystick_state[joystick_nr].b[joystick_state[0][js].button_mapping[button_nr]];
 
-                x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
-                y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);
-
-                angle     = (atan2((double) y, (double) x) * 360.0) / (2 * M_PI);
-                magnitude = sqrt((double) x * (double) x + (double) y * (double) y);
+            for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
+                int    x         = joystick_get_axis(joystick_nr, joystick_state[0][js].pov_mapping[pov_nr][0]);
+                int    y         = joystick_get_axis(joystick_nr, joystick_state[0][js].pov_mapping[pov_nr][1]);
+                double angle     = (atan2((double) y, (double) x) * 360.0) / (2 * M_PI);
+                double magnitude = sqrt((double) x * (double) x + (double) y * (double) y);
 
                 if (magnitude < 16384)
-                    joystick_state[c].pov[d] = -1;
+                    joystick_state[0][js].pov[pov_nr] = -1;
                 else
-                    joystick_state[c].pov[d] = ((int) angle + 90 + 360) % 360;
+                    joystick_state[0][js].pov[pov_nr] = ((int) angle + 90 + 360) % 360;
             }
         } else {
-            for (d = 0; d < joystick_get_axis_count(joystick_type); d++)
-                joystick_state[c].axis[d] = 0;
-            for (d = 0; d < joystick_get_button_count(joystick_type); d++)
-                joystick_state[c].button[d] = 0;
-            for (d = 0; d < joystick_get_pov_count(joystick_type); d++)
-                joystick_state[c].pov[d] = -1;
+            for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++)
+                joystick_state[0][js].axis[axis_nr] = 0;
+
+            for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++)
+                joystick_state[0][js].button[button_nr] = 0;
+
+            for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++)
+                joystick_state[0][js].pov[pov_nr] = -1;
         }
     }
 }

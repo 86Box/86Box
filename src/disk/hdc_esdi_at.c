@@ -552,6 +552,29 @@ esdi_read(uint16_t port, void *priv)
     return temp;
 }
 
+/**
+ * Copy a string into a buffer, padding with spaces, and placing characters as
+ * if they were packed into 16-bit values, stored little-endian.
+ *
+ * @param str Destination buffer
+ * @param src Source string
+ * @param len Length of destination buffer to fill in. Strings shorter than
+ *            this length will be padded with spaces.
+ */
+static void
+esdi_padstr(char *str, const char *src, const int len)
+{
+    int v;
+
+    for (int i = 0; i < len; i++) {
+        if (*src != '\0')
+            v = *src++;
+        else
+            v = ' ';
+        str[i ^ 1] = v;
+    }
+}
+
 static void
 esdi_callback(void *priv)
 {
@@ -606,12 +629,16 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+read_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     break;
                 }
 
-                hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer);
+                if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto read_error;
+                }
                 esdi->pos    = 0;
                 esdi->status = STAT_DRQ | STAT_READY | STAT_DSC;
                 irq_raise(esdi);
@@ -628,13 +655,17 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+write_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
                 }
 
-                hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer);
+                if (hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto write_error;
+                }
                 irq_raise(esdi);
                 esdi->secount = (esdi->secount - 1) & 0xff;
                 if (esdi->secount) {
@@ -659,13 +690,17 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+verify_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
                 }
 
-                hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer);
+                if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) esdi->buffer) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto verify_error;
+                }
                 ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                 next_sector(esdi);
                 esdi->secount = (esdi->secount - 1) & 0xff;
@@ -692,12 +727,16 @@ esdi_callback(void *priv)
             } else {
                 if (get_sector_format(esdi, &addr)) {
                     esdi->error  = ERR_ID_NOT_FOUND;
+format_error:
                     esdi->status = STAT_READY | STAT_DSC | STAT_ERR;
                     irq_raise(esdi);
                     break;
                 }
 
-                hdd_image_zero(drive->hdd_num, addr, esdi->secount);
+                if (hdd_image_zero(drive->hdd_num, addr, esdi->secount) < 0) {
+                    esdi->error = ERR_BAD_BLOCK;
+                    goto format_error;
+                }
                 esdi->status = STAT_READY | STAT_DSC;
                 irq_raise(esdi);
             }
@@ -795,28 +834,36 @@ esdi_callback(void *priv)
                 irq_raise(esdi);
             } else {
                 memset(esdi->buffer, 0x00, 512);
-                esdi->buffer[0] = 0x44;                              /* general configuration */
-                esdi->buffer[1] = drive->real_tracks;                /* number of non-removable cylinders */
-                esdi->buffer[2] = 0;                                 /* number of removable cylinders */
-                esdi->buffer[3] = drive->real_hpc;                   /* number of heads */
-                esdi->buffer[4] = 600;                               /* number of unformatted bytes/sector */
-                esdi->buffer[5] = esdi->buffer[4] * drive->real_spt; /* number of unformatted bytes/track */
-                esdi->buffer[6] = drive->real_spt;                   /* number of sectors */
-                esdi->buffer[7] = 0;                                 /*minimum bytes in inter-sector gap*/
-                esdi->buffer[8] = 0;                                 /* minimum bytes in postamble */
-                esdi->buffer[9] = 0;                                 /* number of words of vendor status */
-                /* controller info */
-                esdi->buffer[20] = 2; /* controller type */
-                esdi->buffer[21] = 1; /* sector buffer size, in sectors */
-                esdi->buffer[22] = 0; /* ecc bytes appended */
-                esdi->buffer[27] = 'W' | ('D' << 8);
-                esdi->buffer[28] = '1' | ('0' << 8);
-                esdi->buffer[29] = '0' | ('7' << 8);
-                esdi->buffer[30] = 'V' | ('-' << 8);
-                esdi->buffer[31] = 'S' | ('E' << 8);
-                esdi->buffer[32] = '1';
-                esdi->buffer[47] = 0; /* sectors per interrupt */
-                esdi->buffer[48] = 0; /* can use double word read/write? */
+                esdi->buffer[0] = 0x3244;                            /*
+                                                                        Soft sectored (0x0004),
+                                                                        Fixed drive (0x0040),
+                                                                        Transfer rate > 5 Mbps but <= 10 Mbps (0x0200),
+                                                                        Data strobe offset option (0x1000),
+                                                                        Track offset option (0x2000).
+                                                                      */
+                if (drive->real_spt >= 26)
+                    esdi->buffer[0] |= 0x0008;                       /* Not MFM encoded. */
+                esdi->buffer[1] = drive->real_tracks;                /* Fixed cylinders - the BIOS lists 2 less. */
+                esdi->buffer[2] = 0;                                 /* Removable cylinders. */
+                esdi->buffer[3] = drive->real_hpc;                   /* Heads. */
+                esdi->buffer[5] = 600;                               /* Unformatted bytes per sector. */
+                esdi->buffer[4] = esdi->buffer[5] * drive->real_spt; /* Unformatted bytes per track. */
+                esdi->buffer[6] = drive->real_spt;                   /* Sectors per track - the BIOS lists 1 less. */
+                esdi->buffer[7] = 3088;                              /* Bytes in inter-sector gap. */
+                esdi->buffer[8] = 11;                                /* Byce in sync fileds. */
+                esdi->buffer[9] = 0xf;                               /* Number of vendor unique words. */
+                /* Serial Number */
+                esdi_padstr((char *) (esdi->buffer + 10), "00000000000000000000", 20);
+                /* Controller information. */
+                esdi->buffer[20] = 3;                                /* Buffer type. */
+                esdi->buffer[21] = 64;                               /* Buffer size in 512-byte increments. */
+                esdi->buffer[22] = 4;                                /* Bytes of ECC. */
+                /* Firmware */
+                esdi_padstr((char *) (esdi->buffer + 23), "REV. A5", 8);
+                /* Model */
+                esdi_padstr((char *) (esdi->buffer + 27), "WD1007V", 40);
+                esdi->buffer[47] = 1;                                /* Sectors per interrupt. */
+                esdi->buffer[48] = 0;                                /* Can use DWord read/write? */
                 esdi->pos        = 0;
                 esdi->status     = STAT_DRQ | STAT_READY | STAT_DSC;
                 irq_raise(esdi);
@@ -873,12 +920,11 @@ wd1007vse1_init(UNUSED(const device_t *info))
 {
     int c;
 
-    esdi_t *esdi = malloc(sizeof(esdi_t));
-    memset(esdi, 0x00, sizeof(esdi_t));
+    esdi_t *esdi = calloc(1, sizeof(esdi_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
             loadhd(esdi, hdd[d].esdi_channel, d, hdd[d].fn);
 
             if (++c >= ESDI_NUM)
@@ -938,12 +984,12 @@ wd1007vse1_available(void)
 const device_t esdi_at_wd1007vse1_device = {
     .name          = "Western Digital WD1007V-SE1 (ESDI)",
     .internal_name = "esdi_at",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = wd1007vse1_init,
     .close         = wd1007vse1_close,
     .reset         = NULL,
-    { .available = wd1007vse1_available },
+    .available     = wd1007vse1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

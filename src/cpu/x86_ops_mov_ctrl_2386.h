@@ -9,6 +9,8 @@ opMOV_r_CRx_a16(uint32_t fetchdat)
     switch (cpu_reg) {
         case 0:
             cpu_state.regs[cpu_rm].l = cr0;
+            if (cpu_flush_pending)
+                cpu_state.regs[cpu_rm].l ^= 0x80000000;
             if (is486 || isibm486)
                 cpu_state.regs[cpu_rm].l |= 0x10; /*ET hardwired on 486*/
             else {
@@ -49,6 +51,8 @@ opMOV_r_CRx_a32(uint32_t fetchdat)
     switch (cpu_reg) {
         case 0:
             cpu_state.regs[cpu_rm].l = cr0;
+            if (cpu_flush_pending)
+                cpu_state.regs[cpu_rm].l ^= 0x80000000;
             if (is486 || isibm486)
                 cpu_state.regs[cpu_rm].l |= 0x10; /*ET hardwired on 486*/
             else {
@@ -176,8 +180,12 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     switch (cpu_reg) {
         case 0:
-            if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000001)
+            if ((cpu_state.regs[cpu_rm].l ^ cr0) & (0x00000001 | WP_FLAG))
                 flushmmucache();
+            else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
+                flushmmucache_nopc();
+                cpu_flush_pending = 1;
+            }
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
             if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
@@ -206,7 +214,7 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             break;
         case 4:
             if (cpu_has_feature(CPU_FEATURE_CR4)) {
-                if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PAE | CR4_PGE))
+                if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
                     flushmmucache();
                 cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                 break;
@@ -233,8 +241,12 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0:
-            if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000001)
+            if ((cpu_state.regs[cpu_rm].l ^ cr0) & (0x00000001 | WP_FLAG))
                 flushmmucache();
+            else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
+                flushmmucache_nopc();
+                cpu_flush_pending = 1;
+            }
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
             if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
@@ -263,7 +275,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             break;
         case 4:
             if (cpu_has_feature(CPU_FEATURE_CR4)) {
-                if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PAE | CR4_PGE))
+                if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
                     flushmmucache();
                 cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                 break;

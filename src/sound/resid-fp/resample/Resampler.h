@@ -1,7 +1,7 @@
 /*
  * This file is part of libsidplayfp, a SID player engine.
  *
- * Copyright 2011-2020 Leandro Nini <drfiemost@users.sourceforge.net>
+ * Copyright 2011-2024 Leandro Nini <drfiemost@users.sourceforge.net>
  * Copyright 2007-2010 Antti Lankila
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 #define RESAMPLER_H
 
 #include <cmath>
+#include <cassert>
 
 #include "../sidcxx11.h"
 
@@ -37,28 +38,45 @@ namespace reSIDfp
  */
 class Resampler
 {
-protected:
-    inline short softClip(int x) const
+private:
+    template<int m>
+    static inline int clipper(int x)
     {
+        assert(x >= 0);
         constexpr int threshold = 28000;
         if (likely(x < threshold))
             return x;
 
-        constexpr double t = threshold / 32768.;
+        constexpr double max_val = static_cast<double>(m);
+        constexpr double t = threshold / max_val;
         constexpr double a = 1. - t;
         constexpr double b = 1. / a;
 
-        double value = static_cast<double>(x - threshold) / 32768.;
-        value = t + a * tanh(b * value);
-        return static_cast<short>(value * 32768.);
+        double value = static_cast<double>(x - threshold) / max_val;
+        value = t + a * std::tanh(b * value);
+        return static_cast<int>(value * max_val);
     }
+
+    /*
+     * Soft Clipping implementation, splitted for test.
+     */
+    static inline int softClipImpl(int x)
+    {
+        return x < 0 ? -clipper<32768>(-x) : clipper<32767>(x);
+    }
+
+protected:
+    /*
+     * Soft Clipping into 16 bit range [-32768,32767]
+     */
+    static inline short softClip(int x) { return static_cast<short>(softClipImpl(x)); }
 
     virtual int output() const = 0;
 
     Resampler() {}
 
 public:
-    virtual ~Resampler() {}
+    virtual ~Resampler() = default;
 
     /**
      * Input a sample into resampler. Output "true" when resampler is ready with new sample.
@@ -73,9 +91,10 @@ public:
      *
      * @return resampled sample
      */
-    short getOutput() const
+    inline short getOutput(int scaleFactor) const
     {
-        return softClip(output());
+        const int out = (scaleFactor * output()) / 2;
+        return softClip(out);
     }
 
     virtual void reset() = 0;

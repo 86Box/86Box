@@ -1,21 +1,21 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Sound Blaster emulation.
+ *          Sound Blaster emulation.
  *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           Miran Grca, <mgrca8@gmail.com>
- *           TheCollector1995, <mariogplayer@gmail.com>
- *
- *           Copyright 2008-2020 Sarah Walker.
- *           Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -43,18 +43,40 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
-#define PNP_ROM_SB_16_PNP      "roms/sound/creative/CTL0024A.BIN"
-#define PNP_ROM_SB_VIBRA16XV   "roms/sound/creative/CT4170 PnP.BIN"
-#define PNP_ROM_SB_VIBRA16C    "roms/sound/creative/CT4180 PnP.BIN"
-#define PNP_ROM_SB_32_PNP      "roms/sound/creative/CT3600 PnP.BIN"
-#define PNP_ROM_SB_AWE32_PNP   "roms/sound/creative/CT3980 PnP.BIN"
-#define PNP_ROM_SB_AWE64_VALUE "roms/sound/creative/CT4520 PnP.BIN"
-#define PNP_ROM_SB_AWE64       "roms/sound/creative/CTL009DA.BIN"
-#define PNP_ROM_SB_AWE64_GOLD  "roms/sound/creative/CT4540 PnP.BIN"
+#define SB_1  0
+#define SB_15 1
+#define SB_2  2
+
+#define SB_16_PNP_NOIDE 0
+#define SB_16_PNP_IDE   1
+
+#define SB_VIBRA16XV 0
+#define SB_VIBRA16C  1
+#define SB_VIBRA16CL  2
+
+#define SB_32_PNP      0
+#define SB_AWE32_PNP   1
+#define SB_AWE64_VALUE 2
+#define SB_AWE64_NOIDE 3
+#define SB_AWE64_IDE   4
+#define SB_AWE64_GOLD  5
+
+#define PNP_ROM_SB_16_PNP_NOIDE "roms/sound/creative/CT2941 PnP.BIN"
+#define PNP_ROM_SB_16_PNP_IDE   "roms/sound/creative/CTL0024A.BIN" /* CT2940 */
+#define PNP_ROM_SB_VIBRA16C     "roms/sound/creative/CT4180 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16CL    "roms/sound/creative/CT4100 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
+#define PNP_ROM_SB_GOLDFINCH    "roms/sound/creative/CT1920 PnP.BIN"
+#define PNP_ROM_SB_32_PNP       "roms/sound/creative/CT3600 PnP.BIN"
+#define PNP_ROM_SB_AWE32_PNP    "roms/sound/creative/CT3980 PnP.BIN"
+#define PNP_ROM_SB_AWE64_VALUE  "roms/sound/creative/CT4520 PnP.BIN"
+#define PNP_ROM_SB_AWE64_NOIDE  "roms/sound/creative/CT4380 PnP noIDE.BIN"
+#define PNP_ROM_SB_AWE64_IDE    "roms/sound/creative/CTL009DA.BIN" /* CT4381? */
+#define PNP_ROM_SB_AWE64_GOLD   "roms/sound/creative/CT4540 PnP.BIN"
 /* TODO: Find real ESS PnP ROM dumps. */
-#define PNP_ROM_ESS0100        "roms/sound/ess/ESS0100.BIN"
-#define PNP_ROM_ESS0102        "roms/sound/ess/ESS0102.BIN"
-#define PNP_ROM_ESS0968        "roms/sound/ess/ESS0968.BIN"
+#define PNP_ROM_ESS0100         "roms/sound/ess/ESS0100.BIN"
+#define PNP_ROM_ESS0102         "roms/sound/ess/ESS0102.BIN"
+#define PNP_ROM_ESS0968         "roms/sound/ess/ESS0968.BIN"
 
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
    Note that for positive dB values, this is not amplitude, it is amplitude - 1. */
@@ -126,8 +148,8 @@ sb_log(const char *fmt, ...)
 static void
 sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 {
-    sb_t                    *sb       = (sb_t *) priv;
-    const sb_ct1335_mixer_t *mixer    = &sb->mixer_sb2;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
     double                   out_mono;
 
     sb_dsp_update(&sb->dsp);
@@ -136,8 +158,8 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
         cms_update(&sb->cms);
 
     for (int c = 0; c < len * 2; c += 2) {
-        double out_l    = 0.0;
-        double out_r    = 0.0;
+        double out_l = 0.0;
+        double out_r = 0.0;
 
         if (sb->cms_enabled) {
             out_l += sb->cms.buffer[c];
@@ -177,15 +199,15 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 static void
 sb_get_music_buffer_sb2(int32_t *buffer, int len, void *priv)
 {
-    const sb_t              *sb       = (const sb_t *) priv;
-    const sb_ct1335_mixer_t *mixer    = &sb->mixer_sb2;
-    const int32_t           *opl_buf  = NULL;
+    const sb_t              *sb      = (const sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer   = &sb->mixer_sb2;
+    const int32_t           *opl_buf = NULL;
 
     opl_buf = sb->opl.update(sb->opl.priv);
 
     for (int c = 0; c < len * 2; c += 2) {
-        double       out_l    = 0.0;
-        double       out_r    = 0.0;
+        double out_l = 0.0;
+        double out_r = 0.0;
 
         const double out_mono = ((double) opl_buf[c]) * 0.7171630859375;
 
@@ -270,7 +292,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
     if (!sb->opl_enabled)
         return;
 
-    if (sb->dsp.sb_type == SBPRO) {
+    if (sb->dsp.sb_type == SBPRO_DSP_300) {
         opl_buf  = sb->opl.update(sb->opl.priv);
         opl2_buf = sb->opl2.update(sb->opl2.priv);
     } else
@@ -282,7 +304,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
         out_l = 0.0;
         out_r = 0.0;
 
-        if (sb->dsp.sb_type == SBPRO) {
+        if (sb->dsp.sb_type == SBPRO_DSP_300) {
             /* Two chips for LEFT and RIGHT channels.
                Each chip stores data into the LEFT channel only (no sample alternating.) */
             out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
@@ -304,7 +326,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
     }
 
     sb->opl.reset_buffer(sb->opl.priv);
-    if (sb->dsp.sb_type == SBPRO)
+    if (sb->dsp.sb_type == SBPRO_DSP_300)
         sb->opl2.reset_buffer(sb->opl2.priv);
 }
 
@@ -323,8 +345,8 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 static void
 sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 {
-    sb_t                    *sb      = (sb_t *) priv;
-    const sb_ct1745_mixer_t *mixer   = &sb->mixer_sb16;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     double                   bass_treble;
 
     sb_dsp_update(&sb->dsp);
@@ -491,10 +513,31 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
 }
 
 static void
+sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const int len, void *priv)
+{
+    goldfinch_t *goldfinch = (goldfinch_t *) priv;
+
+    emu8k_update(&goldfinch->emu8k);
+
+    for (int c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
+
+        out_l += ((double) goldfinch->emu8k.buffer[c]);
+        out_r += ((double) goldfinch->emu8k.buffer[c + 1]);
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    goldfinch->emu8k.pos = 0;
+}
+
+static void
 sb_get_wavetable_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
 {
-    sb_t                    *sb      = (sb_t *) priv;
-    const sb_ct1745_mixer_t *mixer   = &sb->mixer_sb16;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     double                   bass_treble;
 
     emu8k_update(&sb->emu8k);
@@ -1118,7 +1161,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff:
-                if ((sb->dsp.sb_type > SBAWE32) && !sb->dsp.sb_16_dma_supported) {
+                if ((sb->dsp.sb_type > SBAWE32_DSP_412) && !sb->dsp.sb_16_dma_supported) {
                     /*
                        Bit 5: High DMA channel enabled (0 = yes, 1 = no);
                        Bit 2: ????;
@@ -1175,14 +1218,13 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
 {
     const sb_t              *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    uint8_t                  ret = 0xff;
-
-    if (!(addr & 1))
-        ret = mixer->index;
+    uint8_t                  ret   = 0xff;
 
     sb_log("sb_ct1745: received register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
 
-    if ((mixer->index >= 0x30) && (mixer->index <= 0x47))
+    if (!(addr & 1))
+        ret = 0xff /*mixer->index*/;
+    else if ((mixer->index >= 0x30) && (mixer->index <= 0x47))
         ret = mixer->regs[mixer->index];
     else {
         switch (mixer->index) {
@@ -1303,10 +1345,10 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 /* http://the.earth.li/~tfm/oldpage/sb_mixer.html - 0x10, 0x20, 0x80. */
                 const uint8_t temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) |
                                      ((sb->dsp.sb_irq401) ? 4 : 0);
-                if (sb->dsp.sb_type >= SBAWE32)
-                    ret  = temp | 0x80;
+                if (sb->dsp.sb_type >= SBAWE32_DSP_412)
+                    ret = temp | 0x80;
                 else
-                    ret  = temp | 0x40;
+                    ret = temp | 0x40;
                 break;
 
             case 0x83:
@@ -1332,23 +1374,23 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                     ret |= 0x01;
                 break;
 
-            case 0x49:    /* Undocumented register used by some Creative drivers. */
-            case 0x4a:    /* Undocumented register used by some Creative drivers. */
-            case 0x8c:    /* Undocumented register used by some Creative drivers. */
-            case 0x8e:    /* Undocumented register used by some Creative drivers. */
-            case 0x90:    /* 3D Enhancement switch. */
-            case 0xfd:    /* Undocumented register used by some Creative drivers. */
-            case 0xfe:    /* Undocumented register used by some Creative drivers. */
+            case 0x49: /* Undocumented register used by some Creative drivers. */
+            case 0x4a: /* Undocumented register used by some Creative drivers. */
+            case 0x8c: /* Undocumented register used by some Creative drivers. */
+            case 0x8e: /* Undocumented register used by some Creative drivers. */
+            case 0x90: /* 3D Enhancement switch. */
+            case 0xfd: /* Undocumented register used by some Creative drivers. */
+            case 0xfe: /* Undocumented register used by some Creative drivers. */
                 ret = mixer->regs[mixer->index];
                 break;
 
-            case 0xff:    /* Undocumented register used by some Creative drivers.
-                             This and the upper bits of 0x82 seem to affect the
-                             playback volume:
-                             - Register FF = FF: Volume playback normal.
-                             - Register FF = Not FF: Volume playback low unless
-                                             bit 6 of 82h is set. */
-                if (sb->dsp.sb_type > SBAWE32)
+            case 0xff: /* Undocumented register used by some Creative drivers.
+                          This and the upper bits of 0x82 seem to affect the
+                          playback volume:
+                          - Register FF = FF: Volume playback normal.
+                          - Register FF = Not FF: Volume playback low unless
+                                          bit 6 of 82h is set. */
+                if (sb->dsp.sb_type > SBAWE32_DSP_412)
                     ret = mixer->regs[mixer->index];
                 break;
 
@@ -1375,9 +1417,9 @@ sb_ct1745_mixer_reset(sb_t *sb)
 }
 
 static void
-ess_base_write(uint16_t addr, uint8_t val, void *priv)
+ess_base_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
-    sb_t *       ess   = (sb_t *) priv;
+    sb_t *ess = (sb_t *) priv;
 
     switch (addr & 0x000f) {
         case 0x0002:
@@ -1396,7 +1438,7 @@ ess_base_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ess_base_read(uint16_t addr, void *priv)
 {
-    sb_t *       ess   = (sb_t *) priv;
+    sb_t *ess = (sb_t *) priv;
 
     switch (addr & 0x000f) {
         case 0x0002:
@@ -1421,17 +1463,17 @@ ess_base_read(uint16_t addr, void *priv)
 }
 
 static void
-ess_fm_midi_write(uint16_t addr, uint8_t val, void *priv)
+ess_fm_midi_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
 {
-    sb_t *       ess   = (sb_t *) priv;
+    sb_t *ess = (sb_t *) priv;
 
     ess->dsp.activity &= 0x7f;
 }
 
 static uint8_t
-ess_fm_midi_read(uint16_t addr, void *priv)
+ess_fm_midi_read(UNUSED(uint16_t addr), void *priv)
 {
-    sb_t *       ess   = (sb_t *) priv;
+    sb_t *ess = (sb_t *) priv;
 
     ess->dsp.activity &= 0x7f;
 
@@ -1452,9 +1494,6 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
     if (!(addr & 1)) {
         mixer->index      = val;
         mixer->regs[0x01] = val;
-        if (val == 0x40) {
-            mixer->ess_id_str_pos = 0;
-        }
     } else {
         if (mixer->index == 0) {
             /* Reset */
@@ -1472,6 +1511,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x3a]                     = 0x00;
             mixer->regs[0x3c]                     = 0x05;
             mixer->regs[0x3e]                     = 0x00;
+
+            mixer->regs[0x64]                     = 0x08;
 
             sb_dsp_set_stereo(&ess->dsp, mixer->regs[0x0e] & 2);
         } else {
@@ -1510,8 +1551,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x0E:
-                    mixer->output_filter  = !(mixer->regs[0xE] & 0x20);
-                    mixer->stereo         = mixer->regs[0xE] & 2;
+                    mixer->output_filter = !(mixer->regs[0xE] & 0x20);
+                    mixer->stereo        = mixer->regs[0xE] & 2;
                     sb_dsp_set_stereo(&ess->dsp, val & 2);
                     break;
 
@@ -1525,6 +1566,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x1C:
+                    mixer->regs[mixer->index] = val & 0x2f;
                     if ((mixer->regs[0x1C] & 0x07) == 0x07) {
                         mixer->input_selector = INPUT_MIXER_L | INPUT_MIXER_R;
                     } else if ((mixer->regs[0x1C] & 0x07) == 0x06) {
@@ -1547,21 +1589,27 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 /* More compatibility:
                    SoundBlaster Pro selects register 020h for 030h, 022h for 032h,
                    026h for 036h, and 028h for 038h. */
-                case 0x30: case 0x32: case 0x36: case 0x38:
+                case 0x30:
+                case 0x32:
+                case 0x36:
+                case 0x38:
                 case 0x3e:
                     mixer->regs[mixer->index - 0x10] = (val & 0xee);
                     break;
 
-                case 0x00: case 0x04: case 0x3a: case 0x3c:
+                case 0x00:
+                case 0x04:
+                case 0x3a:
+                case 0x3c:
                     break;
 
                 case 0x64:
-                    mixer->regs[mixer->index] = (mixer->regs[mixer->index] & 0xf7) | 0x20;
-                    // mixer->regs[mixer->index] &= ~0x8;
+                    if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688)
+                        mixer->regs[mixer->index] = (mixer->regs[mixer->index] & 0xf7) | 0x20;
                     break;
 
                 case 0x40:
-                    {
+                    if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688) {
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
                         sb_log("mpu401_base_addr = %04X\n", mpu401_base_addr);
 
@@ -1572,7 +1620,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
-                        if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688) {
+                        if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688) {
                             /* Not on ES1688. */
                             io_removehandler(0x0388, 0x0004,
                                              ess->opl.read, NULL, NULL,
@@ -1585,53 +1633,56 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                               ess->opl.priv);
                             }
                         }
-                        switch ((mixer->regs[0x40] >> 5) & 0x7) {
-                            default:
-                                break;
-                            case 0:
-                                mpu401_base_addr = 0x0000;
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, -1);
-                                break;
-                            case 1:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, -1);
-                                break;
-                            case 2:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, ess->dsp.sb_irqnum);
-                                break;
-                            case 3:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 11);
-                                break;
-                            case 4:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 9);
-                                break;
-                            case 5:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 5);
-                                break;
-                            case 6:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 7);
-                                break;
-                            case 7:
-                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
-                                mpu401_setirq(ess->mpu, 10);
-                                break;
-                        }
+
+                        if (ess->mpu != NULL)
+                            switch ((mixer->regs[0x40] >> 5) & 0x7) {
+                                default:
+                                    break;
+                                case 0:
+                                    mpu401_base_addr = 0x0000;
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, -1);
+                                    break;
+                                case 1:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, -1);
+                                    break;
+                                case 2:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, ess->dsp.sb_irqnum);
+                                    break;
+                                case 3:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, 11);
+                                    break;
+                                case 4:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, 9);
+                                    break;
+                                case 5:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, 5);
+                                    break;
+                                case 6:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, 7);
+                                    break;
+                                case 7:
+                                    mpu401_change_addr(ess->mpu, mpu401_base_addr);
+                                    mpu401_setirq(ess->mpu, 10);
+                                    break;
+                            }
                         ess->midi_addr = mpu401_base_addr;
                         io_sethandler(addr, 0x0002,
                                       ess_fm_midi_read, NULL, NULL,
                                       ess_fm_midi_write, NULL, NULL,
                                       ess);
-                        break;
                     }
+                    break;
 
                 default:
-                    sb_log("ess: Unknown mixer register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    sb_log("ess: Unknown mixer register WRITE: %02X\t%02X\n",
+                           mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -1655,58 +1706,88 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 ess_mixer_read(uint16_t addr, void *priv)
 {
-    const sb_t *       ess   = (sb_t *) priv;
+    const sb_t        *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
     uint8_t            ret   = 0x0a;
 
     if (!(addr & 1))
         ret = mixer->index;
-    else  switch (mixer->index) {
-        case 0x00:
-        case 0x0a:
-        case 0x0c:
-        case 0x0e:
-        case 0x14:
-        case 0x02:
-        case 0x06:
-        case 0x30:
-        case 0x32:
-        case 0x36:
-        case 0x38:
-        case 0x3e:
-            ret = mixer->regs[mixer->index];
-            break;
-
-        case 0x04:
-        case 0x22:
-        case 0x26:
-        case 0x28:
-        case 0x2e:
-            ret = mixer->regs[mixer->index] | 0x11;
-            break;
-
-        case 0x40:
-            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688)
+    else
+        switch (mixer->index) {
+            case 0x00:
+            case 0x0a:
+            case 0x0c:
+            case 0x0e:
+            case 0x14:
+            case 0x1a:
+            case 0x02:
+            case 0x06:
+            case 0x30:
+            case 0x32:
+            case 0x36:
+            case 0x38:
+            case 0x3e:
                 ret = mixer->regs[mixer->index];
-            else
-                ret = 0x0a;
-            break;
+                break;
 
-        case 0x48:
-            ret = mixer->regs[mixer->index];
-        break;
+            case 0x04:
+            case 0x22:
+            case 0x26:
+            case 0x28:
+            case 0x2e:
+                ret = mixer->regs[mixer->index] | 0x11;
+                break;
 
-        /* Return 0x00 so it has bit 3 clear, so NT 5.x drivers don't misdetect it as ES1788. */
-        case 0x64:
-            ret = (mixer->regs[mixer->index] & 0xf7) | 0x20;
-            break;
+            /* Bit 1 always set, bits 7-6 always clear on both the real ES688 and ES1688. */
+            case 0x1c:
+                ret = mixer->regs[mixer->index] | 0x10;
+                break;
 
-        default:
-            sb_log("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
-            break;
-    }
+            /*
+               Real ES688: Always 0x00;
+               Real ES1688: Bit 2 always clear.
+             */
+            case 0x40:
+                if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688)
+                    ret = mixer->regs[mixer->index];
+                else if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688)
+                    ret = mixer->regs[mixer->index] & 0xfb;
+                else
+                    ret = 0x00;
+                break;
 
-    sb_log("[%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, addr, ret);
+            /*
+               Real ES688: Always 0x00;
+               Real ES1688: All bits writable.
+             */
+            case 0x48:
+                if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688)
+                    ret = mixer->regs[mixer->index];
+                else
+                    ret = 0x00;
+                break;
+
+            /*
+               Return 0x00 so it has bit 3 clear, so NT 5.x drivers don't misdetect it as ES1788.
+               Bit 3 set and writable: ESSCFG detects the card as ES1788 if register 70h is read-only,
+               otherwise, as ES1887.
+               Bit 3 set and read-only: ESSCFG detects the card as ES1788 if register 70h is read-only,
+               otherwise, as ES1888.
+               Real ES688 and ES1688: Always 0x00.
+             */
+            case 0x64:
+                if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688)
+                    ret = (mixer->regs[mixer->index] & 0xf7) | 0x20;
+                else
+                    ret = 0x00;
+                break;
+
+            default:
+                sb_log("ess: Unknown mixer register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                break;
+        }
+
+    sb_log("[%04X:%08X] [R] %04X = %02X (%02X)\n", CS, cpu_state.pc, addr, ret, mixer->index);
 
     return ret;
 }
@@ -1731,8 +1812,8 @@ sb_mcv_read(int port, void *priv)
 void
 sb_mcv_write(int port, uint8_t val, void *priv)
 {
-    uint16_t addr;
-    sb_t    *sb = (sb_t *) priv;
+    uint16_t addr = 0;
+    sb_t    *sb   = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1784,8 +1865,8 @@ sb_mcv_feedb(void *priv)
 static uint8_t
 sb_pro_mcv_read(int port, void *priv)
 {
-    const sb_t   *sb  = (sb_t *) priv;
-    uint8_t       ret = sb->pos_regs[port & 7];
+    const sb_t *sb  = (sb_t *) priv;
+    uint8_t     ret = sb->pos_regs[port & 7];
 
     sb_log("sb_pro_mcv_read: port=%04x ret=%02x\n", port, ret);
 
@@ -1795,8 +1876,8 @@ sb_pro_mcv_read(int port, void *priv)
 static void
 sb_pro_mcv_write(int port, uint8_t val, void *priv)
 {
-    uint16_t addr;
-    sb_t    *sb = (sb_t *) priv;
+    uint16_t addr = 0;
+    sb_t    *sb   = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1855,8 +1936,8 @@ sb_pro_mcv_write(int port, uint8_t val, void *priv)
 static uint8_t
 sb_16_reply_mca_read(int port, void *priv)
 {
-    const sb_t   *sb  = (sb_t *) priv;
-    uint8_t       ret = sb->pos_regs[port & 7];
+    const sb_t *sb  = (sb_t *) priv;
+    uint8_t     ret = sb->pos_regs[port & 7];
 
     sb_log("sb_16_reply_mca_read: port=%04x ret=%02x\n", port, ret);
 
@@ -1866,8 +1947,8 @@ sb_16_reply_mca_read(int port, void *priv)
 static void
 sb_16_reply_mca_write(const int port, const uint8_t val, void *priv)
 {
-    uint16_t addr;
-    sb_t    *sb = (sb_t *) priv;
+    uint16_t addr = 0;
+    sb_t    *sb   = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -2083,7 +2164,7 @@ sb_16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void 
             mpu401_change_addr(sb->mpu, 0);
 
             if (config->activate) {
-                uint8_t  val = config->irq[0].irq;
+                uint8_t val = config->irq[0].irq;
 
                 addr = config->io[0].base;
                 if (addr != ISAPNP_IO_DISABLED) {
@@ -2137,11 +2218,12 @@ sb_16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void 
             break;
 
         case 1: /* IDE */
-            ide_pnp_config_changed(0, config, (void *) 3);
+            if (sb->has_ide)
+                ide_pnp_config_changed(0, config, (void *) 3);
             break;
 
         case 2: /* Reserved (16) / WaveTable (32+) */
-            if (sb->dsp.sb_type > SB16)
+            if (sb->dsp.sb_type >= SBAWE32_DSP_412)
                 emu8k_change_addr(&sb->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
             break;
 
@@ -2154,7 +2236,7 @@ sb_16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void 
 static void
 sb_vibra16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
-    sb_t    *sb   = (sb_t *) priv;
+    sb_t *sb = (sb_t *) priv;
 
     switch (ld) {
         case 0: /* Audio */
@@ -2163,6 +2245,21 @@ sb_vibra16_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, 
             break;
 
         default:
+            break;
+    }
+}
+
+static void
+goldfinch_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    goldfinch_t *goldfinch = (goldfinch_t *) priv;
+
+    switch (ld) {
+        default:
+            break;
+
+        case 0: /* WaveTable */
+            emu8k_change_addr(&goldfinch->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
             break;
     }
 }
@@ -2189,7 +2286,7 @@ sb_awe32_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
 }
 
 static void
-sb_awe64_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+sb_awe64_pnp_ide_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
@@ -2210,7 +2307,7 @@ sb_awe64_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
 }
 
 static void
-sb_awe64_gold_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
+sb_awe64_pnp_noide_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
@@ -2268,9 +2365,6 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                              ess_base_write, NULL, NULL,
                              ess);
 
-            ess->mixer_ess.ess_id_str[2] = 0x00;
-            ess->mixer_ess.ess_id_str[3] = 0x00;
-
             addr = ess->opl_pnp_addr;
             if (addr) {
                 ess->opl_pnp_addr = 0;
@@ -2288,7 +2382,8 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                 addr = ess->midi_addr;
                 if (addr) {
                     ess->midi_addr = 0;
-                    mpu401_change_addr(ess->mpu, 0);
+                    if (ess->mpu != NULL)
+                        mpu401_change_addr(ess->mpu, 0);
                     io_removehandler(addr, 0x0002,
                                      ess_fm_midi_read, NULL, NULL,
                                      ess_fm_midi_write, NULL, NULL,
@@ -2298,7 +2393,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
 
             sb_dsp_setaddr(&ess->dsp, 0);
             sb_dsp_setirq(&ess->dsp, 0);
-            if (ess->pnp == 3)
+            if ((ess->pnp == 3) && (ess->mpu != NULL))
                 mpu401_setirq(ess->mpu, -1);
             sb_dsp_setdma8(&ess->dsp, ISAPNP_DMA_DISABLED);
             sb_dsp_setdma16_8(&ess->dsp, ISAPNP_DMA_DISABLED);
@@ -2336,9 +2431,6 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                                   ess_base_read, NULL, NULL,
                                   ess_base_write, NULL, NULL,
                                   ess);
-
-                    ess->mixer_ess.ess_id_str[2] = (addr >> 8) & 0xff;
-                    ess->mixer_ess.ess_id_str[3] = addr & 0xff;
                 }
 
                 addr = config->io[1].base;
@@ -2357,7 +2449,8 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                 if (ess->pnp == 3) {
                     addr = config->io[2].base;
                     if (addr != ISAPNP_IO_DISABLED) {
-                        mpu401_change_addr(ess->mpu, addr);
+                        if (ess->mpu != NULL)
+                            mpu401_change_addr(ess->mpu, addr);
                         io_sethandler(addr, 0x0002,
                                       ess_fm_midi_read, NULL, NULL,
                                       ess_fm_midi_write, NULL, NULL,
@@ -2368,7 +2461,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                 val = config->irq[0].irq;
                 if (val != ISAPNP_IRQ_DISABLED) {
                     sb_dsp_setirq(&ess->dsp, val);
-                    if (ess->pnp == 3)
+                    if ((ess->pnp == 3) && (ess->mpu != NULL))
                         mpu401_setirq(ess->mpu, val);
                 }
 
@@ -2383,7 +2476,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
         case 1:
             if (ess->pnp == 3) { /* Game */
                 gameport_remap(ess->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
-            } else { /* MPU-401 */            
+            } else if (ess->mpu != NULL) { /* MPU-401 */
                 mpu401_change_addr(ess->mpu, 0);
                 mpu401_setirq(ess->mpu, -1);
 
@@ -2431,7 +2524,7 @@ ess_x688_mca_read(const int port, void *priv)
 static void
 ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
 {
-    sb_t    *ess = (sb_t *) priv;
+    sb_t *ess = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -2594,7 +2687,7 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
 static void
 ess_chipchat_mca_write(int port, uint8_t val, void *priv)
 {
-    sb_t    *ess = (sb_t *) priv;
+    sb_t *ess = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -2723,182 +2816,62 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
 }
 
 void *
-sb_1_init(UNUSED(const device_t *info))
+sb_init(UNUSED(const device_t *info))
 {
-    /* SB1/2 port mappings, 210h to 260h in 10h steps
-       2x0 to 2x3 -> CMS chip
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip */
-    sb_t    *      sb   = malloc(sizeof(sb_t));
-    const uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
-
-    sb->opl_enabled = device_get_config_int("opl");
-    if (sb->opl_enabled)
-        fm_driver_get(FM_YM3812, &sb->opl);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB1, SB_SUBTYPE_DEFAULT, sb);
-    sb_dsp_setaddr(&sb->dsp, addr);
-    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    /* DSP I/O handler is activated in sb_dsp_setaddr */
-    if (sb->opl_enabled) {
-        io_sethandler(addr + 8, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-        io_sethandler(0x0388, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-    }
-
-    sb->cms_enabled = 1;
-    memset(&sb->cms, 0, sizeof(cms_t));
-    io_sethandler(addr, 0x0004,
-                  cms_read, NULL, NULL,
-                  cms_write, NULL, NULL,
-                  &sb->cms);
-
-    sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
-    if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
-    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
-
-    if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
-
-    return sb;
-}
-
-void *
-sb_15_init(UNUSED(const device_t *info))
-{
-    /* SB1/2 port mappings, 210h to 260h in 10h steps
-       2x0 to 2x3 -> CMS chip
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip */
-    sb_t    *      sb   = malloc(sizeof(sb_t));
-    const uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
-
-    sb->opl_enabled = device_get_config_int("opl");
-    if (sb->opl_enabled)
-        fm_driver_get(FM_YM3812, &sb->opl);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB15, SB_SUBTYPE_DEFAULT, sb);
-    sb_dsp_setaddr(&sb->dsp, addr);
-    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    /* DSP I/O handler is activated in sb_dsp_setaddr */
-    if (sb->opl_enabled) {
-        io_sethandler(addr + 8, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-        io_sethandler(0x0388, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
-    }
-
-    sb->cms_enabled = device_get_config_int("cms");
-    if (sb->cms_enabled) {
-        memset(&sb->cms, 0, sizeof(cms_t));
-        io_sethandler(addr, 0x0004,
-                      cms_read, NULL, NULL,
-                      cms_write, NULL, NULL,
-                      &sb->cms);
-    }
-
-    sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
-    if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
-    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
-
-    if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
-
-    return sb;
-}
-
-void *
-sb_mcv_init(UNUSED(const device_t *info))
-{
-    /* SB1/2 port mappings, 210h to 260h in 10h steps
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip */
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
-
-    sb->opl_enabled = device_get_config_int("opl");
-    if (sb->opl_enabled)
-        fm_driver_get(FM_YM3812, &sb->opl);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB15, SB_SUBTYPE_DEFAULT, sb);
-    sb_dsp_setaddr(&sb->dsp, 0);
-    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-
-    sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
-    if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
-    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
-
-    /* I/O handlers activated in sb_mcv_write */
-    mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, NULL, sb);
-    sb->pos_regs[0] = 0x84;
-    sb->pos_regs[1] = 0x50;
-
-    if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
-
-    return sb;
-}
-
-void *
-sb_2_init(UNUSED(const device_t *info))
-{
-    /* SB2 port mappings, 220h or 240h.
-       2x0 to 2x3 -> CMS chip
-       2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip
-       "CD version" also uses 250h or 260h for
-       2x0 to 2x3 -> CDROM interface
-       2x4 to 2x5 -> Mixer interface */
+    /* SB1.x port mappings, 210h to 260h in 10h steps:
+       (SB2 port mappings are 220h or 240h)
+           2x0 to 2x3 -> CMS chip
+           2x6, 2xA, 2xC, 2xE -> DSP chip
+           2x8, 2x9, 388 and 389 FM chip
+       SB2 "CD version" also uses 250h or 260h:
+           2x0 to 2x3 -> CDROM interface
+           2x4 to 2x5 -> Mixer interface */
     /* My SB 2.0 mirrors the OPL2 at ports 2x0/2x1. Presumably this mirror is disabled when the
        CMS chips are present.
        This mirror may also exist on SB 1.5 & MCV, however I am unable to test this. It shouldn't
        exist on SB 1.0 as the CMS chips are always present there. Syndicate requires this mirror
-       for music to play.*/
-    sb_t    *sb         = malloc(sizeof(sb_t));
-    uint16_t addr       = device_get_config_hex16("base");
-    uint16_t mixer_addr = device_get_config_int("mixaddr");
+       for music to play. */
+    sb_t          *sb         = calloc(1, sizeof(sb_t));
+    const uint16_t addr       = device_get_config_hex16("base");
+    uint16_t       mixer_addr = 0x0000;
+    uint8_t        model      = 0;
 
-    memset(sb, 0, sizeof(sb_t));
+    switch (info->local) {
+        default:
+        case SB_1:
+            model           = SB_DSP_105;
+            sb->cms_enabled = 1;
+            break;
+
+        case SB_15:
+            model           = SB_DSP_200;
+            sb->cms_enabled = device_get_config_int("cms");
+            break;
+
+        case SB_2:
+            model           = SB_DSP_201;
+            sb->cms_enabled = device_get_config_int("cms");
+            mixer_addr      = device_get_config_int("mixaddr");
+            break;
+    }
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, model, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    if (mixer_addr > 0x000)
+
+    if (mixer_addr > 0x0000)
         sb_ct1335_mixer_reset(sb);
 
-    sb->cms_enabled = device_get_config_int("cms");
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
-        if (!sb->cms_enabled) {
+        // TODO: See if this applies to the SB1.5 as well
+        if ((!sb->cms_enabled) && ((model == SB_DSP_201) || (model == SB_DSP_202))) {
             io_sethandler(addr, 0x0002,
                           sb->opl.read, NULL, NULL,
                           sb->opl.write, NULL, NULL,
@@ -2930,10 +2903,46 @@ sb_2_init(UNUSED(const device_t *info))
                       sb);
     } else
         sb->mixer_enabled = 0;
+
     sound_add_handler(sb_get_buffer_sb2, sb);
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sb2, sb);
     sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    return sb;
+}
+
+void *
+sb_mcv_init(UNUSED(const device_t *info))
+{
+    /* SB1/2 port mappings, 210h to 260h in 10h steps
+       2x6, 2xA, 2xC, 2xE -> DSP chip
+       2x8, 2x9, 388 and 389 FM chip */
+    sb_t *sb = calloc(1, sizeof(sb_t));
+
+    sb->opl_enabled = device_get_config_int("opl");
+    if (sb->opl_enabled)
+        fm_driver_get(FM_YM3812, &sb->opl);
+
+    sb_dsp_set_real_opl(&sb->dsp, 1);
+    sb_dsp_init(&sb->dsp, SB_DSP_105, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
+    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+
+    sb->mixer_enabled = 0;
+    sound_add_handler(sb_get_buffer_sb2, sb);
+    if (sb->opl_enabled)
+        music_add_handler(sb_get_music_buffer_sb2, sb);
+    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
+
+    /* I/O handlers activated in sb_mcv_write */
+    mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, NULL, sb);
+    sb->pos_regs[0] = 0x84;
+    sb->pos_regs[1] = 0x50;
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -2970,9 +2979,8 @@ sb_pro_v1_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    sb_t    *sb   = malloc(sizeof(sb_t));
+    sb_t    *sb   = calloc(1, sizeof(sb_t));
     uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled) {
@@ -2983,7 +2991,7 @@ sb_pro_v1_init(UNUSED(const device_t *info))
     }
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO_DSP_300, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3033,16 +3041,15 @@ sb_pro_v2_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    sb_t    *sb   = malloc(sizeof(sb_t));
+    sb_t    *sb   = calloc(1, sizeof(sb_t));
     uint16_t addr = device_get_config_hex16("base");
-    memset(sb, 0, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3087,14 +3094,13 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
        2x4 to 2x5 -> Mixer interface
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices) */
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -3116,13 +3122,12 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
 static void *
 sb_pro_compat_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -3130,8 +3135,7 @@ sb_pro_compat_init(UNUSED(const device_t *info))
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sbpro, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, 1);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3141,18 +3145,16 @@ sb_pro_compat_init(UNUSED(const device_t *info))
 static void *
 sb_16_init(UNUSED(const device_t *info))
 {
-    sb_t    *sb             = malloc(sizeof(sb_t));
+    sb_t          *sb       = calloc(1, sizeof(sb_t));
     const uint16_t addr     = device_get_config_hex16("base");
     const uint16_t mpu_addr = device_get_config_hex16("base401");
-
-    memset(sb, 0x00, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get((int) (intptr_t) info->local, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, (info->local == FM_YMF289B) ? SBAWE32PNP : SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == FM_YMF289B) ? SBAWE32_DSP_413 : SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3188,8 +3190,7 @@ sb_16_init(UNUSED(const device_t *info))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     if (mpu_addr) {
-        sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-        memset(sb->mpu, 0, sizeof(mpu_t));
+        sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
                     device_get_config_int("receive_input401"));
     } else
@@ -3199,7 +3200,7 @@ sb_16_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport = gameport_add(&gameport_pnp_device);
+    sb->gameport      = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
     gameport_remap(sb->gameport, sb->gameport_addr);
 
@@ -3209,14 +3210,13 @@ sb_16_init(UNUSED(const device_t *info))
 static void *
 sb_16_reply_mca_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0x00, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -3229,8 +3229,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3250,23 +3249,28 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
 }
 
 static int
-sb_16_pnp_available(void)
+sb_16_pnp_noide_available(void)
 {
-    return rom_present(PNP_ROM_SB_16_PNP);
+    return rom_present(PNP_ROM_SB_16_PNP_NOIDE);
+}
+
+static int
+sb_16_pnp_ide_available(void)
+{
+    return rom_present(PNP_ROM_SB_16_PNP_IDE);
 }
 
 static void *
 sb_16_pnp_init(UNUSED(const device_t *info))
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0x00, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
@@ -3278,8 +3282,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3288,91 +3291,23 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    device_add(&ide_qua_pnp_device);
-    other_ide_present++;
+    // Does it have IDE?
+    if (info->local != SB_16_PNP_NOIDE) {
+        device_add(&ide_qua_pnp_device);
+        other_ide_present++;
 
-    uint8_t *pnp_rom = NULL;
-
-    FILE *fp = rom_fopen(PNP_ROM_SB_16_PNP, "rb");
-    if (fp) {
-        if (fread(sb->pnp_rom, 1, 390, fp) == 390)
-            pnp_rom = sb->pnp_rom;
-        fclose(fp);
+        sb->has_ide = 1;
     }
 
-    isapnp_add_card(pnp_rom, 390, sb_16_pnp_config_changed,
-                    NULL, NULL, NULL, sb);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_setaddr(&sb->dsp, 0);
-    sb_dsp_setirq(&sb->dsp, 0);
-    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
-    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
-
-    mpu401_change_addr(sb->mpu, 0);
-    ide_remove_handlers(3);
-
-    sb->gameport_addr = 0;
-    gameport_remap(sb->gameport, 0);
-
-    return sb;
-}
-
-static int
-sb_vibra16xv_available(void)
-{
-    return rom_present(PNP_ROM_SB_VIBRA16XV);
-}
-
-static int
-sb_vibra16c_available(void)
-{
-    return rom_present(PNP_ROM_SB_VIBRA16C);
-}
-
-static void *
-sb_vibra16_pnp_init(UNUSED(const device_t *info))
-{
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0x00, sizeof(sb_t));
-
-    sb->pnp = 1;
-
-    sb->opl_enabled = 1;
-    fm_driver_get(FM_YMF262, &sb->opl);
-
-    sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, (info->local == 0) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
-    /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
-    sb_dsp_setdma16_supported(&sb->dsp, info->local != 0);
-    sb_ct1745_mixer_reset(sb);
-
-    sb->mixer_enabled            = 1;
-    sb->mixer_sb16.output_filter = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
-    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
-    if (device_get_config_int("control_pc_speaker"))
-        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
-
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
-    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
-    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
-
-    if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
-
-    sb->gameport = gameport_add(&gameport_pnp_device);
-
     const char *pnp_rom_file = NULL;
+    uint16_t    pnp_rom_len  = 512;
     switch (info->local) {
-        case 0:
-            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
+        case SB_16_PNP_NOIDE:
+            pnp_rom_file = PNP_ROM_SB_16_PNP_NOIDE;
             break;
 
-        case 1:
-            pnp_rom_file = PNP_ROM_SB_VIBRA16C;
+        case SB_16_PNP_IDE:
+            pnp_rom_file = PNP_ROM_SB_16_PNP_IDE;
             break;
 
         default:
@@ -3383,16 +3318,129 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     if (pnp_rom_file) {
         FILE *fp = rom_fopen(pnp_rom_file, "rb");
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
+                pnp_rom = sb->pnp_rom;
+            fclose(fp);
+        }
+    }
+
+    isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
+                    NULL, NULL, NULL, sb);
+
+    sb_dsp_set_real_opl(&sb->dsp, 1);
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+    mpu401_change_addr(sb->mpu, 0);
+
+    if (info->local != SB_16_PNP_NOIDE)
+        ide_remove_handlers(3);
+
+    sb->gameport_addr = 0;
+    gameport_remap(sb->gameport, 0);
+
+    return sb;
+}
+
+static int
+sb_vibra16c_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16C);
+}
+
+static int
+sb_vibra16cl_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16CL);
+}
+
+static int
+sb_vibra16xv_available(void)
+{
+    return rom_present(PNP_ROM_SB_VIBRA16XV);
+}
+
+static void *
+sb_vibra16_pnp_init(UNUSED(const device_t *info))
+{
+    sb_t *sb = calloc(1, sizeof(sb_t));
+
+    sb->pnp = 1;
+
+    sb->opl_enabled = 1;
+    fm_driver_get(FM_YMF262, &sb->opl);
+
+    sb_dsp_set_real_opl(&sb->dsp, 1);
+    sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
+    /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
+    sb_dsp_setdma16_supported(&sb->dsp, info->local != SB_VIBRA16XV);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled            = 1;
+    sb->mixer_sb16.output_filter = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    switch (info->local) {
+        case SB_VIBRA16C:  /* CTL7001 */
+        case SB_VIBRA16CL: /* CTL7002 */
+            sb->gameport = gameport_add(&gameport_pnp_device);
+            break;
+
+        case SB_VIBRA16XV: /* CTL7005 */
+            sb->gameport = gameport_add(&gameport_pnp_1io_device);
+            break;
+
+        default:
+            break;
+    }
+
+    const char *pnp_rom_file = NULL;
+    switch (info->local) {
+        case SB_VIBRA16C:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16C;
+            break;
+
+        case SB_VIBRA16CL:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16CL;
+            break;
+
+        case SB_VIBRA16XV:
+            pnp_rom_file = PNP_ROM_SB_VIBRA16XV;
+            break;
+
+        default:
+            break;
+    }
+
+    uint8_t *pnp_rom = NULL;
+    if (pnp_rom_file) {
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
+        if (fp) {
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
     }
 
     switch (info->local) {
-        case 0:
-        case 1:
-            isapnp_add_card(pnp_rom, 512, sb_vibra16_pnp_config_changed,
+        case SB_VIBRA16C:
+        case SB_VIBRA16CL:
+        case SB_VIBRA16XV:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
 
@@ -3416,28 +3464,27 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 static void *
 sb_16_compat_init(const device_t *info)
 {
-    sb_t *sb = malloc(sizeof(sb_t));
-    memset(sb, 0, sizeof(sb_t));
+    sb_t *sb = calloc(1, sizeof(sb_t));
 
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
-    sb->opl_enabled = 1;
+    sb->opl_enabled   = 1;
     sb->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, (int) (intptr_t) info->local);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
-    sb->gameport = gameport_add(&gameport_pnp_device);
+    sb->gameport      = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
     gameport_remap(sb->gameport, sb->gameport_addr);
 
@@ -3448,6 +3495,12 @@ static int
 sb_awe32_available(void)
 {
     return rom_present(EMU8K_ROM_PATH);
+}
+
+static int
+sb_goldfinch_available(void)
+{
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_GOLDFINCH);
 }
 
 static int
@@ -3469,9 +3522,15 @@ sb_awe64_value_available(void)
 }
 
 static int
-sb_awe64_available(void)
+sb_awe64_noide_available(void)
 {
-    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64);
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_NOIDE);
+}
+
+static int
+sb_awe64_ide_available(void)
+{
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_IDE);
 }
 
 static int
@@ -3483,7 +3542,7 @@ sb_awe64_gold_available(void)
 static void *
 sb_awe32_init(UNUSED(const device_t *info))
 {
-    sb_t    *sb          = malloc(sizeof(sb_t));
+    sb_t    *sb          = calloc(1, sizeof(sb_t));
     uint16_t addr        = device_get_config_hex16("base");
     uint16_t mpu_addr    = device_get_config_hex16("base401");
     uint16_t emu_addr    = device_get_config_hex16("emu_base");
@@ -3496,7 +3555,7 @@ sb_awe32_init(UNUSED(const device_t *info))
         fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBAWE32, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBAWE32_DSP_412, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3533,7 +3592,7 @@ sb_awe32_init(UNUSED(const device_t *info))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     if (mpu_addr) {
-        sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+        sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         memset(sb->mpu, 0, sizeof(mpu_t));
         mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
                     device_get_config_int("receive_input401"));
@@ -3546,7 +3605,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport = gameport_add(&gameport_pnp_device);
+    sb->gameport      = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
     gameport_remap(sb->gameport, sb->gameport_addr);
 
@@ -3554,20 +3613,64 @@ sb_awe32_init(UNUSED(const device_t *info))
 }
 
 static void *
+sb_goldfinch_init(const device_t *info)
+{
+    goldfinch_t *goldfinch   = calloc(1, sizeof(goldfinch_t));
+    int          onboard_ram = device_get_config_int("onboard_ram");
+
+    wavetable_add_handler(sb_get_wavetable_buffer_goldfinch, goldfinch);
+
+    emu8k_init(&goldfinch->emu8k, 0, onboard_ram);
+
+    const char *pnp_rom_file = NULL;
+    switch (info->local) {
+        case 0:
+            pnp_rom_file = PNP_ROM_SB_GOLDFINCH;
+            break;
+
+        default:
+            break;
+    }
+
+    uint8_t *pnp_rom = NULL;
+    if (pnp_rom_file) {
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 256;
+        if (fp) {
+            if (fread(goldfinch->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
+                pnp_rom = goldfinch->pnp_rom;
+            fclose(fp);
+        }
+    }
+
+    switch (info->local) {
+        case 0:
+            isapnp_add_card(pnp_rom, sizeof(goldfinch->pnp_rom), goldfinch_pnp_config_changed,
+                            NULL, NULL, NULL, goldfinch);
+            break;
+
+        default:
+            break;
+    }
+
+    emu8k_change_addr(&goldfinch->emu8k, 0);
+
+    return goldfinch;
+}
+
+static void *
 sb_awe32_pnp_init(const device_t *info)
 {
-    sb_t *sb          = malloc(sizeof(sb_t));
+    sb_t *sb          = calloc(1, sizeof(sb_t));
     int   onboard_ram = device_get_config_int("onboard_ram");
-
-    memset(sb, 0x00, sizeof(sb_t));
 
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ?
-                SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local >= SB_AWE64_VALUE) ?
+                SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
@@ -3581,8 +3684,7 @@ sb_awe32_pnp_init(const device_t *info)
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
-    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
+    sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3593,30 +3695,37 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    if ((info->local != 2) && (info->local != 4)) {
+    // Does it have IDE?
+    if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD)) {
         device_add(&ide_qua_pnp_device);
         other_ide_present++;
+
+        sb->has_ide = 1;
     }
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
-        case 0:
+        case SB_32_PNP:
             pnp_rom_file = PNP_ROM_SB_32_PNP;
             break;
 
-        case 1:
+        case SB_AWE32_PNP:
             pnp_rom_file = PNP_ROM_SB_AWE32_PNP;
             break;
 
-        case 2:
+        case SB_AWE64_VALUE:
             pnp_rom_file = PNP_ROM_SB_AWE64_VALUE;
             break;
 
-        case 3:
-            pnp_rom_file = PNP_ROM_SB_AWE64;
+        case SB_AWE64_NOIDE:
+            pnp_rom_file = PNP_ROM_SB_AWE64_NOIDE;
             break;
 
-        case 4:
+        case SB_AWE64_IDE:
+            pnp_rom_file = PNP_ROM_SB_AWE64_IDE;
+            break;
+
+        case SB_AWE64_GOLD:
             pnp_rom_file = PNP_ROM_SB_AWE64_GOLD;
             break;
 
@@ -3626,30 +3735,36 @@ sb_awe32_pnp_init(const device_t *info)
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        FILE    *fp          = rom_fopen(pnp_rom_file, "rb");
+        uint16_t pnp_rom_len = 512;
         if (fp) {
-            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+            if (fread(sb->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = sb->pnp_rom;
             fclose(fp);
         }
     }
 
     switch (info->local) {
-        case 0:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_32_PNP:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 1:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE32_PNP:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 3:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE64_IDE:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_ide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
-        case 2:
-        case 4:
-            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
+        case SB_AWE64_VALUE:
+        case SB_AWE64_NOIDE:
+        case SB_AWE64_GOLD:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_pnp_noide_config_changed,
+                            NULL, NULL, NULL, sb);
             break;
 
         default:
@@ -3662,7 +3777,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    if ((info->local != 2) && (info->local != 4))
+
+    if ((info->local != SB_AWE64_VALUE) && (info->local != SB_AWE64_NOIDE) && (info->local != SB_AWE64_GOLD))
         ide_remove_handlers(3);
 
     emu8k_change_addr(&sb->emu8k, 0);
@@ -3677,7 +3793,7 @@ sb_awe32_pnp_init(const device_t *info)
 static void *
 ess_x688_init(UNUSED(const device_t *info))
 {
-    sb_t    *ess  = calloc(sizeof(sb_t), 1);
+    sb_t          *ess      = calloc(sizeof(sb_t), 1);
     const uint16_t addr     = device_get_config_hex16("base");
     const uint16_t ide_ctrl = (const uint16_t) device_get_config_int("ide_ctrl");
     const uint16_t ide_base = ide_ctrl & 0x0fff;
@@ -3687,7 +3803,7 @@ ess_x688_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setaddr(&ess->dsp, addr);
     sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
@@ -3746,11 +3862,6 @@ ess_x688_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
 
     if (info->local) {
-        ess->mixer_ess.ess_id_str[0] = 0x16;
-        ess->mixer_ess.ess_id_str[1] = 0x88;
-        ess->mixer_ess.ess_id_str[2] = (addr >> 8) & 0xff;
-        ess->mixer_ess.ess_id_str[3] = addr & 0xff;
-
         ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
         /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
          * It will be later initialized by the guest OS's drivers. */
@@ -3768,6 +3879,8 @@ ess_x688_init(UNUSED(const device_t *info))
         ide_set_side(4, ide_side);
         ide_set_irq(4, ide_irq);
         other_ide_present++;
+
+        ess->has_ide = 1;
     }
 
     return ess;
@@ -3794,19 +3907,18 @@ ess_1688_968_pnp_available(void)
 static void *
 ess_x688_pnp_init(UNUSED(const device_t *info))
 {
-    sb_t    *ess  = calloc(sizeof(sb_t), 1);
-    int      len  = 512;
+    sb_t *ess = calloc(sizeof(sb_t), 1);
 
     ess->pnp = 1 + (int) info->local;
 
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
-    ess->mixer_enabled           = 1;
+    ess->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -3815,12 +3927,6 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
-
-    /* Not on ES688. */
-    ess->mixer_ess.ess_id_str[0] = 0x16;
-    ess->mixer_ess.ess_id_str[1] = 0x88;
-    ess->mixer_ess.ess_id_str[2] = 0x00;
-    ess->mixer_ess.ess_id_str[3] = 0x00;
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
@@ -3833,21 +3939,24 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     device_add(&ide_qua_pnp_device);
     other_ide_present++;
 
+    ess->has_ide = 1;
+
     const char *pnp_rom_file = NULL;
+    uint16_t    pnp_rom_len  = 512;
     switch (info->local) {
         case 0:
             pnp_rom_file = PNP_ROM_ESS0100;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 1:
             pnp_rom_file = PNP_ROM_ESS0102;
-            len          = 145;
+            pnp_rom_len  = 145;
             break;
 
         case 2:
             pnp_rom_file = PNP_ROM_ESS0968;
-            len          = 135;
+            pnp_rom_len  = 135;
             break;
 
         default:
@@ -3858,13 +3967,13 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     if (pnp_rom_file) {
         FILE *fp = rom_fopen(pnp_rom_file, "rb");
         if (fp) {
-            if (fread(ess->pnp_rom, 1, len, fp) == len)
+            if (fread(ess->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
                 pnp_rom = ess->pnp_rom;
             fclose(fp);
         }
     }
 
-    isapnp_add_card(pnp_rom, len, ess_x688_pnp_config_changed,
+    isapnp_add_card(pnp_rom, sizeof(ess->pnp_rom), ess_x688_pnp_config_changed,
                     NULL, NULL, NULL, ess);
 
     sb_dsp_setaddr(&ess->dsp, 0);
@@ -3891,11 +4000,11 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
-    ess->mixer_enabled            = 1;
+    ess->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -3942,6 +4051,16 @@ sb_close(void *priv)
 }
 
 static void
+sb_goldfinch_close(void *priv)
+{
+    goldfinch_t *goldfinch = (goldfinch_t *) priv;
+
+    emu8k_close(&goldfinch->emu8k);
+
+    free(goldfinch);
+}
+
+static void
 sb_awe32_close(void *priv)
 {
     sb_t *sb = (sb_t *) priv;
@@ -3962,211 +4081,165 @@ sb_speed_changed(void *priv)
 // clang-format off
 static const device_config_t sb_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x210",
-                .value = 0x210
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x230",
-                .value = 0x230
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260 },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { "" }
-        }
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
-    },
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb15_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x210",
-                .value = 0x210
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x230",
-                .value = 0x230
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name = "irq",
         .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "cms",
-        .description = "Enable CMS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "cms",
+        .description    = "Enable CMS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -4175,1028 +4248,888 @@ static const device_config_t sb2_config[] = {
     {
         .name = "base",
         .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            { .description = "" }
-        }
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mixaddr",
-        .description = "Mixer",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Disabled",
-                .value = 0
-            },
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x250",
-                .value = 0x250
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            { .description = "" }
-        }
+        .name           = "mixaddr",
+        .description    = "Mixer",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x250",    .value = 0x250 },
+            { .description = "0x260",    .value = 0x260 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "cms",
-        .description = "Enable CMS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "cms",
+        .description    = "Enable CMS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_mcv_config[] = {
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_pro_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_pro_mcv_config[] = {
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_16_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = "0x280",
-                .value = 0x280
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base401",
-        .description = "MPU-401 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x330,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Disabled",
-                .value = 0
-            },
-            {
-                .description = "0x300",
-                .value = 0x300
-            },
-            {
-                .description = "0x330",
-                .value = 0x330
-            },
-            { .description = "" }
-        }
+        .name           = "base401",
+        .description    = "MPU-401 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x330,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x300",    .value = 0x300 },
+            { .description = "0x330",    .value = 0x330 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "Low DMA channel",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "Low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma16",
-        .description = "High DMA channel",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 5",
-                .value = 5
-            },
-            {
-                .description = "DMA 6",
-                .value = 6
-            },
-            {
-                .description = "DMA 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "dma16",
+        .description    = "High DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_16_pnp_config[] = {
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t sb_goldfinch_config[] = {
+    {
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "1 MB",  .value =  1024 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "4 MB",  .value =  4096 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "16 MB",  .value = 16384 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_32_pnp_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Onboard RAM",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe32_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "0x260",
-                .value = 0x260
-            },
-            {
-                .description = "0x280",
-                .value = 0x280
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "emu_base",
-        .description =  "EMU8000 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x620,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x620",
-                .value = 0x620
-            },
-            {
-                .description = "0x640",
-                .value = 0x640
-            },
-            {
-                .description = "0x660",
-                .value = 0x660
-            },
-            {
-                .description = "0x680",
-                .value = 0x680
-            },
-            { .description = ""}
-        }
+        .name           = "emu_base",
+        .description    = "EMU8000 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x620,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x620", .value = 0x620 },
+            { .description = "0x640", .value = 0x640 },
+            { .description = "0x660", .value = 0x660 },
+            { .description = "0x680", .value = 0x680 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base401",
-        .description = "MPU-401 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x330,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Disabled",
-                .value = 0
-            },
-            {
-                .description = "0x300",
-                .value = 0x300
-            },
-            {
-                .description = "0x330",
-                .value = 0x330
-            },
-            { .description = "" }
-        }
+        .name           = "base401",
+        .description    = "MPU-401 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x330,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x300",    .value = 0x300 },
+            { .description = "0x330",    .value = 0x330 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "Low DMA channel",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 0",
-                .value = 0
-            },
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "Low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma16",
-        .description = "High DMA channel",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 5",
-                .value = 5
-            },
-            {
-                .description = "DMA 6",
-                .value = 6
-            },
-            {
-                .description = "DMA 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "dma16",
+        .description    = "High DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "onboard_ram",
-        .description = "Onboard RAM",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 512,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "opl",
+        .description    = "Enable OPL",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe32_pnp_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Onboard RAM",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 512,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "None",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",   .value =     0 },
+            { .description = "512 KB", .value =   512 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe64_value_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Onboard RAM",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 512,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "12 MB",
-                .value = 12288
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "20 MB",
-                .value = 20480
-            },
-            {
-                .description = "24 MB",
-                .value = 24576
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =   512 },
+            { .description =  "1 MB",  .value =  1024 },
+            { .description =  "2 MB",  .value =  2048 },
+            { .description =  "4 MB",  .value =  4096 },
+            { .description =  "8 MB",  .value =  8192 },
+            { .description = "12 MB",  .value = 12288 },
+            { .description = "16 MB",  .value = 16384 },
+            { .description = "20 MB",  .value = 20480 },
+            { .description = "24 MB",  .value = 24576 },
+            { .description = "28 MB",  .value = 28672 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe64_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Onboard RAM",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1024,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "12 MB",
-                .value = 12288
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "20 MB",
-                .value = 20480
-            },
-            {
-                .description = "24 MB",
-                .value = 24576
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "1 MB", .value =  1024 },
+            { .description =  "2 MB", .value =  2048 },
+            { .description =  "4 MB", .value =  4096 },
+            { .description =  "8 MB", .value =  8192 },
+            { .description = "12 MB", .value = 12288 },
+            { .description = "16 MB", .value = 16384 },
+            { .description = "20 MB", .value = 20480 },
+            { .description = "24 MB", .value = 24576 },
+            { .description = "28 MB", .value = 28672 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t sb_awe64_gold_config[] = {
     {
-        .name = "onboard_ram",
-        .description = "Onboard RAM",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 4096,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = "8 MB",
-                .value = 8192
-            },
-            {
-                .description = "12 MB",
-                .value = 12288
-            },
-            {
-                .description = "16 MB",
-                .value = 16384
-            },
-            {
-                .description = "20 MB",
-                .value = 20480
-            },
-            {
-                .description = "24 MB",
-                .value = 24576
-            },
-            {
-                .description = "28 MB",
-                .value = 28672
-            },
-            { .description = "" }
-        }
+        .name           = "onboard_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4096,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "4 MB", .value =  4096 },
+            { .description =  "8 MB", .value =  8192 },
+            { .description = "12 MB", .value = 12288 },
+            { .description = "16 MB", .value = 16384 },
+            { .description = "20 MB", .value = 20480 },
+            { .description = "24 MB", .value = 24576 },
+            { .description = "28 MB", .value = 28672 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -5206,296 +5139,237 @@ static const device_config_t ess_688_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x220,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "0x220",
-                .value       = 0x220
-            },
-            {
-                .description = "0x230",
-                .value       = 0x230
-            },
-            {
-                .description = "0x240",
-                .value       = 0x240
-            },
-            {
-                .description = "0x250",
-                .value       = 0x250
-            },
-            { .description = "" }
-        }
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 5,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "IRQ 2",
-                .value       = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value       = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value       = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value       = 10
-            },
-            { .description = "" }
-        }
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "DMA 0",
-                .value       = 0
-            },
-            {
-                .description = "DMA 1",
-                .value       = 1
-            },
-            {
-                .description = "DMA 3",
-                .value       = 3
-            },
-            { .description = "" }
-        }
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x0000,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "Disabled",
-                .value       = 0x0000
-            },
-            {
-                .description = "0x170, IRQ 15",
-                .value       = 0xf170
-            },
-            {
-                .description = "0x1E8, IRQ 11",
-                .value       = 0xb1e8
-            },
-            {
-                .description = "0x168, IRQ 9",
-                .value       = 0x9168
-            },
-            {
-                .description = "0x168, IRQ 10",
-                .value       = 0xa168
-            },
-            { .description = "" }
-        }
+            { .description = "Disabled",      .value = 0x0000 },
+            { .description = "0x170, IRQ 15", .value = 0xf170 },
+            { .description = "0x1E8, IRQ 11", .value = 0xb1e8 },
+            { .description = "0x168, IRQ 9",  .value = 0x9168 },
+            { .description = "0x168, IRQ 10", .value = 0xa168 },
+            { .description = ""                               }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "receive_input",
-        .description    = "Receive input (DSP MIDI)",
+        .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
-        .default_string = "",
-        .default_int    = 1
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
-// clang-format on
 
 static const device_config_t ess_1688_config[] = {
     {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x220,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "0x220",
-                .value       = 0x220
-            },
-            {
-                .description = "0x230",
-                .value       = 0x230
-            },
-            {
-                .description = "0x240",
-                .value       = 0x240
-            },
-            {
-                .description = "0x250",
-                .value       = 0x250
-            },
-            { .description = "" }
-        }
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 5,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "IRQ 2",
-                .value       = 2
-            },
-            {
-                .description = "IRQ 5",
-                .value       = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value       = 7
-            },
-            {
-                .description = "IRQ 10",
-                .value       = 10
-            },
-            { .description = "" }
-        }
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "DMA 0",
-                .value       = 0
-            },
-            {
-                .description = "DMA 1",
-                .value       = 1
-            },
-            {
-                .description = "DMA 3",
-                .value       = 3
-            },
-            { .description = "" }
-        }
+            { .description = "DMA 0", .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x0000,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            {
-                .description = "Disabled",
-                .value       = 0x0000
-            },
-            {
-                .description = "0x170, IRQ 15",
-                .value       = 0xf170
-            },
-            {
-                .description = "0x1E8, IRQ 11",
-                .value       = 0xb1e8
-            },
-            {
-                .description = "0x168, IRQ 9",
-                .value       = 0x9168
-            },
-            {
-                .description = "0x168, IRQ 10",
-                .value       = 0xa168
-            },
-            { .description = "" }
-        }
+            { .description = "Disabled",      .value = 0x0000 },
+            { .description = "0x170, IRQ 15", .value = 0xf170 },
+            { .description = "0x1E8, IRQ 11", .value = 0xb1e8 },
+            { .description = "0x168, IRQ 9",  .value = 0x9168 },
+            { .description = "0x168, IRQ 10", .value = 0xa168 },
+            { .description = ""                               }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
-// clang-format on
 
 static const device_config_t ess_688_pnp_config[] = {
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
-// clang-format on
 
 static const device_config_t ess_1688_pnp_config[] = {
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 0
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (DSP MIDI)",
-        .type = CONFIG_BINARY,
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 1
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 0
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -5505,11 +5379,11 @@ const device_t sb_1_device = {
     .name          = "Sound Blaster v1.0",
     .internal_name = "sb",
     .flags         = DEVICE_ISA,
-    .local         = 0,
-    .init          = sb_1_init,
+    .local         = SB_1,
+    .init          = sb_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_config
@@ -5519,11 +5393,11 @@ const device_t sb_15_device = {
     .name          = "Sound Blaster v1.5",
     .internal_name = "sb1.5",
     .flags         = DEVICE_ISA,
-    .local         = 0,
-    .init          = sb_15_init,
+    .local         = SB_15,
+    .init          = sb_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb15_config
@@ -5537,7 +5411,7 @@ const device_t sb_mcv_device = {
     .init          = sb_mcv_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_mcv_config
@@ -5547,11 +5421,11 @@ const device_t sb_2_device = {
     .name          = "Sound Blaster v2.0",
     .internal_name = "sb2.0",
     .flags         = DEVICE_ISA,
-    .local         = 0,
-    .init          = sb_2_init,
+    .local         = SB_2,
+    .init          = sb_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb2_config
@@ -5565,7 +5439,7 @@ const device_t sb_pro_v1_device = {
     .init          = sb_pro_v1_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_pro_config
@@ -5579,7 +5453,7 @@ const device_t sb_pro_v2_device = {
     .init          = sb_pro_v2_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_pro_config
@@ -5593,7 +5467,7 @@ const device_t sb_pro_mcv_device = {
     .init          = sb_pro_mcv_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_pro_mcv_config
@@ -5602,12 +5476,12 @@ const device_t sb_pro_mcv_device = {
 const device_t sb_pro_compat_device = {
     .name          = "Sound Blaster Pro (Compatibility)",
     .internal_name = "sbpro_compat",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = sb_pro_compat_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -5616,68 +5490,26 @@ const device_t sb_pro_compat_device = {
 const device_t sb_16_device = {
     .name          = "Sound Blaster 16",
     .internal_name = "sb16",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = FM_YMF262,
     .init          = sb_16_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_config
-};
-
-const device_t sb_vibra16s_onboard_device = {
-    .name          = "Sound Blaster ViBRA 16S (On-Board)",
-    .internal_name = "sb_vibra16s_onboard",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = FM_YMF289B,
-    .init          = sb_16_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_config
-};
-
-const device_t sb_vibra16s_device = {
-    .name          = "Sound Blaster ViBRA 16S",
-    .internal_name = "sb_vibra16s",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = FM_YMF289B,
-    .init          = sb_16_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_config
-};
-
-const device_t sb_vibra16xv_device = {
-    .name          = "Sound Blaster ViBRA 16XV",
-    .internal_name = "sb_vibra16xv",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
-    .init          = sb_vibra16_pnp_init,
-    .close         = sb_close,
-    .reset         = NULL,
-    { .available = sb_vibra16xv_available },
-    .speed_changed = sb_speed_changed,
-    .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
 };
 
 const device_t sb_vibra16c_onboard_device = {
     .name          = "Sound Blaster ViBRA 16C (On-Board)",
     .internal_name = "sb_vibra16c_onboard",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_VIBRA16C,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = sb_vibra16c_available },
+    .available     = sb_vibra16c_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5686,12 +5518,96 @@ const device_t sb_vibra16c_onboard_device = {
 const device_t sb_vibra16c_device = {
     .name          = "Sound Blaster ViBRA 16C",
     .internal_name = "sb_vibra16c",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_VIBRA16C,
     .init          = sb_vibra16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = sb_vibra16c_available },
+    .available     = sb_vibra16c_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16CL (On-Board)",
+    .internal_name = "sb_vibra16cl_onboard",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16cl_device = {
+    .name          = "Sound Blaster ViBRA 16CL",
+    .internal_name = "sb_vibra16cl",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_VIBRA16CL,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16cl_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16s_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16S (On-Board)",
+    .internal_name = "sb_vibra16s_onboard",
+    .flags         = DEVICE_ISA16,
+    .local         = FM_YMF289B,
+    .init          = sb_16_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_config
+};
+
+const device_t sb_vibra16s_device = {
+    .name          = "Sound Blaster ViBRA 16S",
+    .internal_name = "sb_vibra16s",
+    .flags         = DEVICE_ISA16,
+    .local         = FM_YMF289B,
+    .init          = sb_16_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_config
+};
+
+const device_t sb_vibra16xv_onboard_device = {
+    .name          = "Sound Blaster ViBRA 16XV (On-Board)",
+    .internal_name = "sb_vibra16xv_onboard",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_VIBRA16XV,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16xv_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16xv_device = {
+    .name          = "Sound Blaster ViBRA 16XV",
+    .internal_name = "sb_vibra16xv",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_VIBRA16XV,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_vibra16xv_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5705,7 +5621,7 @@ const device_t sb_16_reply_mca_device = {
     .init          = sb_16_reply_mca_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5714,12 +5630,26 @@ const device_t sb_16_reply_mca_device = {
 const device_t sb_16_pnp_device = {
     .name          = "Sound Blaster 16 PnP",
     .internal_name = "sb16_pnp",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_16_PNP_NOIDE,
     .init          = sb_16_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = sb_16_pnp_available },
+    .available     = sb_16_pnp_noide_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_16_pnp_ide_device = {
+    .name          = "Sound Blaster 16 PnP (IDE)",
+    .internal_name = "sb16_pnp_ide",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_16_PNP_IDE,
+    .init          = sb_16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = sb_16_pnp_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config
@@ -5728,12 +5658,12 @@ const device_t sb_16_pnp_device = {
 const device_t sb_16_compat_device = {
     .name          = "Sound Blaster 16 (Compatibility)",
     .internal_name = "sb16_compat",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 1,
     .init          = sb_16_compat_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -5742,26 +5672,40 @@ const device_t sb_16_compat_device = {
 const device_t sb_16_compat_nompu_device = {
     .name          = "Sound Blaster 16 (Compatibility - MPU-401 Off)",
     .internal_name = "sb16_compat",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = sb_16_compat_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
+const device_t sb_goldfinch_device = {
+    .name          = "Creative EMU8000 PnP (Goldfinch)",
+    .internal_name = "sb_goldfinch",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = sb_goldfinch_init,
+    .close         = sb_goldfinch_close,
+    .reset         = NULL,
+    .available     = sb_goldfinch_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = sb_goldfinch_config
+};
+
 const device_t sb_32_pnp_device = {
     .name          = "Sound Blaster 32 PnP",
     .internal_name = "sb32_pnp",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_32_PNP,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_32_pnp_available },
+    .available     = sb_32_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_32_pnp_config
@@ -5770,12 +5714,12 @@ const device_t sb_32_pnp_device = {
 const device_t sb_awe32_device = {
     .name          = "Sound Blaster AWE32",
     .internal_name = "sbawe32",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = sb_awe32_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_awe32_available },
+    .available     = sb_awe32_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe32_config
@@ -5784,12 +5728,12 @@ const device_t sb_awe32_device = {
 const device_t sb_awe32_pnp_device = {
     .name          = "Sound Blaster AWE32 PnP",
     .internal_name = "sbawe32_pnp",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_AWE32_PNP,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_awe32_pnp_available },
+    .available     = sb_awe32_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe32_pnp_config
@@ -5798,12 +5742,12 @@ const device_t sb_awe32_pnp_device = {
 const device_t sb_awe64_value_device = {
     .name          = "Sound Blaster AWE64 Value",
     .internal_name = "sbawe64_value",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 2,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_AWE64_VALUE,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_awe64_value_available },
+    .available     = sb_awe64_value_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_value_config
@@ -5812,12 +5756,26 @@ const device_t sb_awe64_value_device = {
 const device_t sb_awe64_device = {
     .name          = "Sound Blaster AWE64",
     .internal_name = "sbawe64",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 3,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_AWE64_NOIDE,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_awe64_available },
+    .available     = sb_awe64_noide_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_awe64_config
+};
+
+const device_t sb_awe64_ide_device = {
+    .name          = "Sound Blaster AWE64 (IDE)",
+    .internal_name = "sbawe64_ide",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_AWE64_IDE,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
+    .available     = sb_awe64_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_config
@@ -5826,12 +5784,12 @@ const device_t sb_awe64_device = {
 const device_t sb_awe64_gold_device = {
     .name          = "Sound Blaster AWE64 Gold",
     .internal_name = "sbawe64_gold",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 4,
+    .flags         = DEVICE_ISA16,
+    .local         = SB_AWE64_GOLD,
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    { .available = sb_awe64_gold_available },
+    .available     = sb_awe64_gold_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_gold_config
@@ -5845,7 +5803,7 @@ const device_t ess_688_device = {
     .init          = ess_x688_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_688_config
@@ -5859,7 +5817,7 @@ const device_t ess_ess0100_pnp_device = {
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = ess_688_pnp_available },
+    .available     = ess_688_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_688_pnp_config
@@ -5873,7 +5831,7 @@ const device_t ess_1688_device = {
     .init          = ess_x688_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_1688_config
@@ -5887,7 +5845,7 @@ const device_t ess_ess0102_pnp_device = {
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = ess_1688_pnp_available },
+    .available     = ess_1688_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_1688_pnp_config
@@ -5901,7 +5859,7 @@ const device_t ess_ess0968_pnp_device = {
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = ess_1688_968_pnp_available },
+    .available     = ess_1688_968_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_1688_pnp_config
@@ -5915,7 +5873,7 @@ const device_t ess_soundpiper_16_mca_device = {
     .init          = ess_x688_mca_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_688_pnp_config
@@ -5929,7 +5887,7 @@ const device_t ess_soundpiper_32_mca_device = {
     .init          = ess_x688_mca_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_1688_pnp_config
@@ -5943,10 +5901,8 @@ const device_t ess_chipchat_16_mca_device = {
     .init          = ess_x688_mca_init,
     .close         = sb_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_1688_pnp_config
 };
-
-

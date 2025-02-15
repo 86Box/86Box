@@ -8,18 +8,20 @@
  *
  *          Definitions for the generic game port handlers.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2021 RichardG.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_GAMEPORT_H
 #define EMU_GAMEPORT_H
+
+#define GAMEPORT_MAX 2
 
 #define MAX_PLAT_JOYSTICKS  8
 #define MAX_JOYSTICKS       4
@@ -43,8 +45,11 @@
 
 #define AXIS_NOT_PRESENT    -99999
 
-#define JOYSTICK_PRESENT(n) (joystick_state[n].plat_joystick_nr != 0)
+#define JOYSTICK_PRESENT(gp, js) (joystick_state[gp][js].plat_joystick_nr != 0)
 
+#define GAMEPORT_1ADDR      0x010000
+#define GAMEPORT_6ADDR      0x060000
+#define GAMEPORT_8ADDR      0x080000
 #define GAMEPORT_SIO        0x1000000
 
 typedef struct plat_joystick_t {
@@ -105,9 +110,19 @@ typedef struct joystick_if_t {
     const char *pov_names[MAX_JOY_POVS];
 } joystick_if_t;
 
+extern device_t game_ports[GAMEPORT_MAX];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern int gameport_available(int port);
+#ifdef EMU_DEVICE_H
+extern const device_t *gameport_getdevice(int port);
+#endif
+extern int         gameport_has_config(int port);
+extern const char *gameport_get_internal_name(int port);
+extern int         gameport_get_from_internal_name(const char *str);
 
 #ifdef EMU_DEVICE_H
 extern const device_t gameport_device;
@@ -122,6 +137,7 @@ extern const device_t gameport_20d_device;
 extern const device_t gameport_20f_device;
 extern const device_t gameport_tm_acm_device;
 extern const device_t gameport_pnp_device;
+extern const device_t gameport_pnp_1io_device;
 extern const device_t gameport_pnp_6io_device;
 extern const device_t gameport_sio_device;
 extern const device_t gameport_sio_1io_device;
@@ -130,7 +146,7 @@ extern const device_t *standalone_gameport_type;
 #endif
 extern int             gameport_instance_id;
 extern plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-extern joystick_t      joystick_state[MAX_JOYSTICKS];
+extern joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 extern int             joysticks_present;
 
 extern int joystick_type;
@@ -167,6 +183,15 @@ extern const joystick_if_t joystick_ch_flightstick_pro;
 extern const joystick_if_t joystick_sw_pad;
 
 extern const joystick_if_t joystick_tm_fcs;
+
+extern int             gameport_available(int);
+extern int             gameport_has_config(int);
+extern const char     *gameport_get_internal_name(int);
+extern int             gampeport_get_from_internal_name(char *);
+#ifdef EMU_DEVICE_H
+extern const device_t *gameport_getdevice(int);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

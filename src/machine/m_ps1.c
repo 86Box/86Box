@@ -146,13 +146,13 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_init(LPT_MDA_ADDR);
+                            lpt1_setup(LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_init(LPT1_ADDR);
+                            lpt1_setup(LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_init(LPT2_ADDR);
+                            lpt1_setup(LPT2_ADDR);
                             break;
 
                         default:
@@ -252,7 +252,7 @@ static const device_config_t ps1_2011_config[] = {
         .default_string = "english_us",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "English (US)", .internal_name = "english_us", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ibmps1es/FC0000_US.BIN", "" } },
@@ -287,7 +287,7 @@ const device_t ps1_2011_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = &ps1_2011_config[0]
@@ -299,8 +299,7 @@ ps1_setup(int model)
     ps1_t *ps;
     void  *priv;
 
-    ps = (ps1_t *) malloc(sizeof(ps1_t));
-    memset(ps, 0x00, sizeof(ps1_t));
+    ps = (ps1_t *) calloc(1, sizeof(ps1_t));
     ps->model = model;
 
     io_sethandler(0x0091, 1,
@@ -317,11 +316,13 @@ ps1_setup(int model)
     ps->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     mem_remap_top(384);
 
     device_add(&ps_nvr_device);
+
+    device_add(&fdc_ps2_device);
 
     if (model == 2011) {
         if (!strcmp("english_us", device_get_config_bios("bios_language"))) {
@@ -350,8 +351,6 @@ ps1_setup(int model)
 
         device_add(&ps1snd_device);
 
-        device_add(&fdc_at_ps1_device);
-
         /* Enable the builtin HDC. */
         if (hdc_current[0] == HDC_INTERNAL) {
             priv = device_add(&ps1_hdc_device);
@@ -377,8 +376,6 @@ ps1_setup(int model)
         /* Initialize the video controller. */
         if (gfxcard[0] == VID_INTERNAL)
             device_add(&ibm_ps1_2121_device);
-
-        device_add(&fdc_at_ps1_2121_device);
 
         device_add(&ide_isa_device);
 

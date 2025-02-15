@@ -207,7 +207,7 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 um8669f_log("UM8669F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_init(config->io[0].base);
+                lpt1_setup(config->io[0].base);
             } else {
                 um8669f_log("UM8669F: LPT disabled\n");
             }
@@ -328,8 +328,7 @@ um8669f_init(const device_t *info)
 {
     um8669f_log("UM8669F: init(%02X)\n", info->local);
 
-    um8669f_t *dev = (um8669f_t *) malloc(sizeof(um8669f_t));
-    memset(dev, 0, sizeof(um8669f_t));
+    um8669f_t *dev = (um8669f_t *) calloc(1, sizeof(um8669f_t));
 
     dev->pnp_card = isapnp_add_card(um8669f_pnp_rom, sizeof(um8669f_pnp_rom), um8669f_pnp_config_changed, NULL, NULL, NULL, dev);
     for (uint8_t i = 0; i < (sizeof(um8669f_pnp_defaults) / sizeof(isapnp_device_config_t)); i++)
@@ -362,7 +361,7 @@ const device_t um8669f_device = {
     .init          = um8669f_init,
     .close         = um8669f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -376,7 +375,7 @@ const device_t um8669f_ide_device = {
     .init          = um8669f_init,
     .close         = um8669f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -390,7 +389,7 @@ const device_t um8669f_ide_sec_device = {
     .init          = um8669f_init,
     .close         = um8669f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

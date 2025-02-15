@@ -103,15 +103,18 @@ typedef const struct {
 
 static fdc_cards_t fdc_cards[] = {
     // clang-format off
-    { &device_none        },
-    { &device_internal    },
-    { &fdc_xt_device      },
-    { &fdc_at_device      },
-    { &fdc_b215_device    },
-    { &fdc_pii151b_device },
-    { &fdc_pii158b_device },
-    { &fdc_monster_device },
-    { NULL                }
+    { &device_none               },
+    { &device_internal           },
+    { &fdc_b215_device           },
+    { &fdc_pii151b_device        },
+    { &fdc_pii158b_device        },
+    { &fdc_compaticard_i_device  },
+    { &fdc_compaticard_ii_device },
+#if 0
+    { &fdc_compaticard_iv_device },
+#endif
+    { &fdc_monster_device        },
+    { NULL                       }
     // clang-format on
 };
 
@@ -177,15 +180,13 @@ fdc_ctrl_reset(void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
-    fdc->stat = 0x80;
+    fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
     fdc->st0              = 0;
     fdc->lock             = 0;
     fdc->head             = 0;
     fdc->step             = 0;
     fdc->power_down       = 0;
-    if (!(fdc->flags & FDC_FLAG_AT))
-        fdc->rate = 2;
 }
 
 sector_id_t
@@ -612,9 +613,11 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
 
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
     fdc->stat = out ? 0x10 : 0x50;
-    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
+    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
         fdc->stat |= 0x20;
-    else
+        if (out)
+            fdc->stat |= 0x80;
+    } else
         dma_set_drq(fdc->dma_ch, 1);
 }
 
@@ -653,12 +656,30 @@ fdc_sis(fdc_t *fdc)
 }
 
 static void
+fdc_soft_reset(fdc_t *fdc)
+{
+    if (fdc->power_down) {
+        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+        fdc->interrupt = -5;
+    } else {
+        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+        fdc->interrupt = -1;
+
+        fdc->perp &= 0xfc;
+
+        for (int i = 0; i < FDD_NUM; i++)
+             ui_sb_update_icon(SB_FLOPPY | i, 0);
+
+        fdc_ctrl_reset(fdc);
+   }
+}
+
+static void
 fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
     int drive;
-    int i;
     int drive_num;
 
     fdc_log("Write FDC %04X %02X\n", addr, val);
@@ -682,7 +703,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc->interrupt = -1;
                     ui_sb_update_icon(SB_FLOPPY | 0, 0);
                     fdc_ctrl_reset(fdc);
-                    fdd_changed[0] = 1;
                 }
                 if (!fdd_get_flags(0))
                     val &= 0xfe;
@@ -699,24 +719,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc->stat = 0x00;
                     fdc->pnum = fdc->ptot = 0;
                 }
-                if ((val & 4) && !(fdc->dor & 4)) {
-                    if (fdc->power_down) {
-                        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                        fdc->interrupt = -5;
-                    } else {
-                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                        fdc->interrupt = -1;
-
-                        fdc->perp &= 0xfc;
-
-                        for (i = 0; i < FDD_NUM; i++)
-                            ui_sb_update_icon(SB_FLOPPY | i, 0);
-
-                        fdc_ctrl_reset(fdc);
-                    }
-                }
+                if ((val & 4) && !(fdc->dor & 4))
+                    fdc_soft_reset(fdc);
                 /* We can now simplify this since each motor now spins separately. */
-                for (i = 0; i < FDD_NUM; i++) {
+                for (int i = 0; i < FDD_NUM; i++) {
                     drive_num = real_drive(fdc, i);
                     if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
                         val &= ~(0x10 << drive_num);
@@ -749,28 +755,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 }
             }
             return;
-        case 4:
+        case 4: /* DSR */
             if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
                 if (!(val & 0x80)) {
                     timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
                     fdc->interrupt = -6;
                 }
-                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80))) {
-                    if (fdc->power_down) {
-                        timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                        fdc->interrupt = -5;
-                    } else {
-                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                        fdc->interrupt = -1;
-
-                        fdc->perp &= 0xfc;
-
-                        for (i = 0; i < FDD_NUM; i++)
-                            ui_sb_update_icon(SB_FLOPPY | i, 0);
-
-                        fdc_ctrl_reset(fdc);
-                    }
-                }
+                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80)))
+                    fdc_soft_reset(fdc);
             }
             fdc->dsr = val;
             return;
@@ -1231,7 +1223,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
                 return;
             fdc->rate = val & 0x03;
-            if (fdc->flags & FDC_FLAG_PS1)
+            if (fdc->flags & FDC_FLAG_PS2)
                 fdc->noprec = !!(val & 0x04);
             return;
 
@@ -1251,23 +1243,43 @@ fdc_read(uint16_t addr, void *priv)
 
     if (!fdc->power_down || ((addr & 7) == 2))  switch (addr & 7) {
         case 0: /* STA */
-            if (fdc->flags & FDC_FLAG_PS1) {
+            if (fdc->flags & FDC_FLAG_PS2) {
                 drive = real_drive(fdc, fdc->dor & 3);
                 ret   = 0x00;
                 /* TODO:
                         Bit 2: INDEX (best return always 0 as it goes by very fast)
                 */
-                if (fdc->seek_dir) /* nDIRECTION */
+                if (fdc->seek_dir)                 /* nDIRECTION */
                     ret |= 0x01;
-                if (writeprot[drive]) /* WRITEPROT */
+                if (writeprot[drive])              /* WRITEPROT */
                     ret |= 0x02;
-                if (!fdd_get_head(drive)) /* nHDSEL */
+                if (!fdd_get_head(drive))          /* nHDSEL */
                     ret |= 0x08;
-                if (fdd_track0(drive)) /* TRK0 */
+                if (fdd_track0(drive))             /* TRK0 */
                     ret |= 0x10;
-                if (fdc->step) /* STEP */
+                if (fdc->step)                     /* STEP */
                     ret |= 0x20;
-                if (dma_get_drq(fdc->dma_ch)) /* DRQ */
+                if (dma_get_drq(fdc->dma_ch))      /* DRQ */
+                    ret |= 0x40;
+                if (fdc->fintr || fdc->reset_stat) /* INTR */
+                    ret |= 0x80;
+            } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                drive = real_drive(fdc, fdc->dor & 3);
+                ret   = 0x04;
+                /* TODO:
+                        Bit 2: nINDEX (best return always 1 as it goes by very fast)
+                */
+                if (!fdc->seek_dir)                /* DIRECTION */
+                    ret |= 0x01;
+                if (!writeprot[drive])             /* nWRITEPROT */
+                    ret |= 0x02;
+                if (fdd_get_head(drive))           /* HDSEL */
+                    ret |= 0x08;
+                if (!fdd_track0(drive))            /* nTRK0 */
+                    ret |= 0x10;
+                if (fdc->step)                     /* STEP */
+                    ret |= 0x20;
+                if (!fdd_get_type(1))              /* -Drive 2 Installed */
                     ret |= 0x40;
                 if (fdc->fintr || fdc->reset_stat) /* INTR */
                     ret |= 0x80;
@@ -1295,14 +1307,12 @@ fdc_read(uint16_t addr, void *priv)
                 ret = 0xff;
             break;
         case 1: /* STB */
-            if (fdc->flags & FDC_FLAG_PS1) {
+            if (fdc->flags & FDC_FLAG_PS2) {
                 drive = real_drive(fdc, fdc->dor & 3);
                 ret   = 0x00;
-                /* -Drive 2 Installed */
-                if (!fdd_get_type(1))
+                if (!fdd_get_type(1))              /* -Drive 2 Installed */
                     ret |= 0x80;
-                /* -Drive Select 1,0 */
-                switch (drive) {
+                switch (drive) {                   /* -Drive Select 1,0 */
                     case 0:
                         ret |= 0x43;
                         break;
@@ -1319,19 +1329,12 @@ fdc_read(uint16_t addr, void *priv)
                     default:
                         break;
                 }
-            }
-            else if (fdc->flags & FDC_FLAG_PS2) {
-                /* Status Register B (PS/2, PS/55) */
-                /* | 1 | 1 | DS0 | WD TOGGLE | RD TOGGLE | WE | MOT EN1 | MOT EN0 | */
-                ret = 0xc0;
-                if (motoron[0]) /* Bit 0: MOT EN0 */
-                    ret |= 1;
-                if (motoron[1]) /* Bit 1: MOT EN1 */
-                    ret |= 2;
-                if(real_drive(fdc, fdc->dor & 3) == 0) /* Bit 5: Drive Select 0 */
-                    ret |= 0x20;
-            }
-            else {
+            } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                drive = real_drive(fdc, fdc->dor & 3);
+                ret   = 0xc0;
+                ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
+                ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
+            } else {
                 if (is486 || !fdc->enable_3f1)
                     ret = 0xff;
                 else {
@@ -1339,19 +1342,12 @@ fdc_read(uint16_t addr, void *priv)
                         drive = real_drive(fdc, fdc->dor & 1);
                         ret   = !fdd_is_dd(drive) ? ((fdc->dor & 1) ? 2 : 1) : 0;
                     } else {
-                        ret = 0x70;
-
+                        /* TODO: What is this and what is it used for?
+                                 It's almost identical to the PS/2 MCA mode. */
                         drive = real_drive(fdc, fdc->dor & 3);
-
-                        if (drive)
-                            ret &= ~0x40;
-                        else
-                            ret &= ~0x20;
-
-                        if (fdc->dor & 0x10)
-                            ret |= 1;
-                        if (fdc->dor & 0x20)
-                            ret |= 2;
+                        ret   = 0x70;
+                        ret  &= ~(drive ? 0x40 : 0x20);
+                        ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
                     }
                 }
             }
@@ -1361,7 +1357,8 @@ fdc_read(uint16_t addr, void *priv)
             break;
         case 3:
             drive = real_drive(fdc, fdc->dor & 3);
-            if (fdc->flags & FDC_FLAG_PS1) {
+            /* TODO: FDC_FLAG_PS2_TDR? */
+            if ((fdc->flags & FDC_FLAG_PS2) || (fdc->flags & FDC_FLAG_PS2_MCA)) {
                 /* PS/1 Model 2121 seems return drive type in port
                  * 0x3f3, despite the 82077AA fdc_t not implementing
                  * this. This is presumably implemented outside the
@@ -1433,7 +1430,7 @@ fdc_read(uint16_t addr, void *priv)
         case 7: /*Disk change*/
             drive = real_drive(fdc, fdc->dor & 3);
 
-            if (fdc->flags & FDC_FLAG_PS1) {
+            if (fdc->flags & FDC_FLAG_PS2) {
                 if (fdc->dor & (0x10 << drive)) {
                     ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x00 : 0x80;
                     ret |= (fdc->dor & 0x08);
@@ -1441,18 +1438,15 @@ fdc_read(uint16_t addr, void *priv)
                     ret |= (fdc->rate & 0x03);
                 } else
                     ret = 0x00;
-            }
-            else if (fdc->flags & FDC_FLAG_PS2) {
-                /* Digital Input Register (PS/2, PS/55) */
-                /* | DSKCHG | 1 | 1 | 1 | 1 | DRATE1 | DRATE0 | nHDEN | */
-                ret = 0x78;
-                ret |= (fdc->rate & 0x03) << 1;
-                if (fdc->rate == 1 || fdc->rate == 2)
-                    ret |= 0x01;
-                if (fdc->dor & (0x10 << drive))
-                    ret |= (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
-            }
-            else {
+            } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                if (fdc->dor & (0x10 << drive)) {
+                    ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
+                    ret |= ((fdc->rate & 0x03) << 1);
+                    ret |= fdc_get_densel(fdc, drive);
+                    ret |= 0x78;
+                } else
+                    ret = 0xf9;
+            } else {
                 if (fdc->dor & (0x10 << drive)) {
                     if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
                         ret = 0x00;
@@ -1484,7 +1478,7 @@ static void
 fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
 {
     fdc_int(fdc, 1);
-    if (!(fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS2)))
+    if (!(fdc->flags & FDC_FLAG_FINTR))
         fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
@@ -1786,7 +1780,7 @@ fdc_callback(void *priv)
             } else {
                 fdc->interrupt = -2;
                 fdc_int(fdc, 1);
-                if (!(fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS2)))
+                if (!(fdc->flags & FDC_FLAG_FINTR))
                     fdc->fintr = 0;
                 fdc->stat = 0xD0;
                 fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
@@ -1878,7 +1872,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
     timer_disable(&fdc->timer);
 
     fdc_int(fdc, 1);
-    if (!(fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS2)))
+    if (!(fdc->flags & FDC_FLAG_FINTR))
         fdc->fintr = 0;
     fdc->stat = 0xD0;
     fdc->st0 = fdc->res[4] = 0x40 | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->rw_drive;
@@ -2287,7 +2281,7 @@ fdc_reset(void *priv)
     fdc->enable_3f1 = 1;
 
     fdc_update_enh_mode(fdc, 0);
-    if (fdc->flags & (FDC_FLAG_PS1 | FDC_FLAG_PS2))
+    if (fdc->flags & FDC_FLAG_DENSEL_INVERT)
         fdc_update_densel_polarity(fdc, 0);
     else
         fdc_update_densel_polarity(fdc, 1);
@@ -2334,6 +2328,9 @@ fdc_reset(void *priv)
 
     fdc_ctrl_reset(fdc);
 
+    if (!(fdc->flags & FDC_FLAG_AT))
+        fdc->rate = 2;
+
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
     fdc_remove(fdc);
@@ -2371,8 +2368,7 @@ fdc_close(void *priv)
 static void *
 fdc_init(const device_t *info)
 {
-    fdc_t *fdc = (fdc_t *) malloc(sizeof(fdc_t));
-    memset(fdc, 0, sizeof(fdc_t));
+    fdc_t *fdc = (fdc_t *) calloc(1, sizeof(fdc_t));
 
     fdc->flags = info->local;
 
@@ -2428,7 +2424,7 @@ const device_t fdc_xt_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2442,7 +2438,7 @@ const device_t fdc_xt_sec_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2456,7 +2452,7 @@ const device_t fdc_xt_ter_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2470,7 +2466,7 @@ const device_t fdc_xt_qua_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2484,7 +2480,7 @@ const device_t fdc_xt_t1x00_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2498,7 +2494,7 @@ const device_t fdc_xt_amstrad_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2512,7 +2508,21 @@ const device_t fdc_xt_tandy_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_xt_umc_um8398_device = {
+    .name          = "PC/XT Floppy Drive Controller (UMC UM8398)",
+    .internal_name = "fdc_xt_umc_um8398",
+    .flags         = 0,
+    .local         = FDC_FLAG_UMC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2526,7 +2536,7 @@ const device_t fdc_pcjr_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2540,7 +2550,7 @@ const device_t fdc_at_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2554,7 +2564,7 @@ const device_t fdc_at_sec_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2568,7 +2578,7 @@ const device_t fdc_at_ter_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2582,7 +2592,7 @@ const device_t fdc_at_qua_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2596,35 +2606,7 @@ const device_t fdc_at_actlow_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc_at_ps1_device = {
-    .name          = "PC/AT Floppy Drive Controller (PS/1, PS/2 ISA)",
-    .internal_name = "fdc_at_ps1",
-    .flags         = 0,
-    .local         = FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT | FDC_FLAG_PS1,
-    .init          = fdc_init,
-    .close         = fdc_close,
-    .reset         = fdc_reset,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc_at_ps1_2121_device = {
-    .name          = "PC/AT Floppy Drive Controller (PS/1, PS/2 ISA)",
-    .internal_name = "fdc_at_ps1",
-    .flags         = 0,
-    .local         = FDC_FLAG_NO_DSR_RESET | FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT | FDC_FLAG_PS1,
-    .init          = fdc_init,
-    .close         = fdc_close,
-    .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2652,7 +2634,7 @@ const device_t fdc_at_smc_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2666,7 +2648,7 @@ const device_t fdc_at_ali_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2680,7 +2662,7 @@ const device_t fdc_at_winbond_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2694,35 +2676,51 @@ const device_t fdc_at_nsc_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
-const device_t fdc_dp8473_device = {
-    .name          = "NS DP8473 Floppy Drive Controller",
-    .internal_name = "fdc_dp8473",
+const device_t fdc_at_nsc_dp8473_device = {
+    .name          = "PC/AT Floppy Drive Controller (NSC DP8473)",
+    .internal_name = "fdc_at_nsc_dp8473",
     .flags         = 0,
     .local         = FDC_FLAG_AT | FDC_FLAG_NEC | FDC_FLAG_NO_DSR_RESET,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
-const device_t fdc_um8398_device = {
-    .name          = "UMC UM8398 Floppy Drive Controller",
-    .internal_name = "fdc_um8398",
+const device_t fdc_ps2_device = {
+    .name          = "PS/2 Model 25/30 Floppy Drive Controller",
+    .internal_name = "fdc_ps2",
     .flags         = 0,
-    .local         = FDC_FLAG_UMC,
+    .local         = FDC_FLAG_FINTR | FDC_FLAG_DENSEL_INVERT | FDC_FLAG_NO_DSR_RESET | FDC_FLAG_DISKCHG_ACTLOW |
+                     FDC_FLAG_AT | FDC_FLAG_PS2,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_ps2_mca_device = {
+    .name          = "PS/2 MCA Floppy Drive Controller",
+    .internal_name = "fdc_ps2_mca",
+    .flags         = 0,
+    .local         = FDC_FLAG_FINTR | FDC_FLAG_DENSEL_INVERT | FDC_FLAG_NO_DSR_RESET | FDC_FLAG_AT |
+                     FDC_FLAG_PS2_MCA,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

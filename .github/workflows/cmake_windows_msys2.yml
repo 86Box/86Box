@@ -67,15 +67,9 @@ jobs:
         environment:
 #          - msystem: MSYS
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
-#          - msystem: MINGW32
-#            prefix: mingw-w64-i686
-#            toolchain: ./cmake/flags-gcc-i686.cmake
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
-#          - msystem: CLANG32
-#            prefix: mingw-w64-clang-i686
-#            toolchain: ./cmake/llvm-win32-i686.cmake
 #          - msystem: CLANG64
 #            prefix: mingw-w64-clang-x86_64
 #            toolchain: ./cmake/llvm-win32-x86_64.cmake
@@ -103,6 +97,7 @@ jobs:
             rtmidi:p
             libslirp:p
             fluidsynth:p
+            libserialport:p
             ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -111,7 +106,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@5c3c39143e381909307f6903f13774b275ed956d
+        uses: SonarSource/sonarcloud-github-c-cpp@v3
 
       - name: Configure CMake
         run: >-

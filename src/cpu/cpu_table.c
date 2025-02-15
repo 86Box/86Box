@@ -374,6 +374,32 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        .package       = CPU_PKG_8086_MAZOVIA,
+        .manufacturer  = "Kyiv Research Institute of Microdevices",
+        .name          = "K1810VM86",
+        .internal_name = "8086_mazovia",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_8086_MAZOVIA,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_ALTERNATE_XTAL,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_188,
         .manufacturer  = "Intel",
         .name          = "80188",
@@ -2508,7 +2534,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 75000000,
                 .multi              = 3.0,
-                .voltage            = 3300,
+                .voltage            = 5000,
                 .edx_reset          = 0x480,
                 .cpuid_model        = 0x480,
                 .cyrix_id           = 0x0000,
@@ -2525,7 +2551,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 100000000,
                 .multi              = 3.0,
-                .voltage            = 3300,
+                .voltage            = 5000,
                 .edx_reset          = 0x483,
                 .cpuid_model        = 0x483,
                 .cyrix_id           = 0x0000,
@@ -3066,7 +3092,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 133333333,
                 .multi              = 4.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x4e0,
                 .cpuid_model        = 0x4e0,
                 .cyrix_id           = 0,
@@ -3083,7 +3109,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 150000000,
                 .multi              = 3.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x482,
                 .cpuid_model        = 0x482,
                 .cyrix_id           = 0,
@@ -3100,7 +3126,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 160000000,
                 .multi              = 4.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x4e0,
                 .cpuid_model        = 0x4e0,
                 .cyrix_id           = 0,
@@ -3332,7 +3358,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 80000000,
                 .multi              = 2.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x480,
                 .cpuid_model        = 0,
                 .cyrix_id           = 0x002f,
@@ -3349,7 +3375,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 100000000,
                 .multi              = 3.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x480,
                 .cpuid_model        = 0,
                 .cyrix_id           = 0x002f,
@@ -3366,7 +3392,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 120000000,
                 .multi              = 3.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x480,
                 .cpuid_model        = 0,
                 .cyrix_id           = 0x002f,
@@ -3383,7 +3409,7 @@ const cpu_family_t cpu_families[] = {
                 .fpus               = fpus_internal,
                 .rspeed             = 133333333,
                 .multi              = 4.0,
-                .voltage            = 3450,
+                .voltage            = 5000,
                 .edx_reset          = 0x480,
                 .cpuid_model        = 0,
                 .cyrix_id           = 0x002f,
@@ -4474,7 +4500,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
+#ifdef USE_AMD_K5
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "AMD",
@@ -4629,7 +4655,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#endif
+#endif /* USE_AMD_K5 */
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "AMD",
@@ -5982,7 +6008,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+#ifdef USE_CYRIX_6X86
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Cyrix",
@@ -6342,7 +6368,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#endif
+#endif /* USE_CYRIX_6X86 */
     {
         .package       = CPU_PKG_SOCKET8,
         .manufacturer  = "Intel",

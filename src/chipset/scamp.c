@@ -47,12 +47,34 @@
 
 #define ID_VL82C311    0xd6
 
-#define RAMMAP_REMP386 (1 << 4)
+#define RAMMAP_ROMMOV  0x60
+#define RAMMAP_ROMMOV1 (1 << 6)
+#define RAMMAP_ROMMOV0 (1 << 5)
+#define RAMMAP_REMP384 (1 << 4)
 
 #define EMSEN1_EMSMAP  (1 << 4)
+#define EMSEN1_BFENAB  (1 << 6)
 #define EMSEN1_EMSENAB (1 << 7)
 
 #define NR_ELEMS(x)    (sizeof(x) / sizeof(x[0]))
+
+#define EMS_MAXPAGE 4
+#define EMS_PGSIZE  16384
+#define EMS_PGMASK  16383
+
+#define MEM_FLAG_SLOTBUS    0x40
+#define MEM_FLAG_REMAP      0x20
+#define MEM_FLAG_MEMCARD    0x10
+#define MEM_FLAG_EMS        0x08
+#define MEM_FLAG_ROMCS      0x04
+#define MEM_FLAG_READ       0x02
+#define MEM_FLAG_WRITE      0x01
+#define MEM_FMASK_SLOTBUS   0x40
+#define MEM_FMASK_REMAP     0x20
+#define MEM_FMASK_MEMCARD   0x10
+#define MEM_FMASK_EMS       0x08
+#define MEM_FMASK_ROMCS     0x04
+#define MEM_FMASK_RW        0x03
 
 /*Commodore SL386SX requires proper memory slot decoding to detect memory size.
   Therefore we emulate the SCAMP memory address decoding, and therefore are
@@ -72,36 +94,43 @@ typedef struct ram_struct_t {
     int   bank;
 } ram_struct_t;
 
-typedef struct ems_struct_t {
-    void *parent;
-    int   segment;
-} ems_struct_t;
+typedef struct card_mem_t {
+    int       in_ram;
+    uint32_t  virt_addr;
+    uint32_t  phys_addr;
+    uint8_t  *mem;
+} mem_page_t;
 
 typedef struct scamp_t {
-    int     cfg_index;
-    uint8_t cfg_regs[256];
-    int     cfg_enable;
-    int     ram_config;
+    int           cfg_index;
+    uint8_t       cfg_regs[256];
+    int           cfg_enable;
+    int           ram_config;
 
     int           ems_index;
     int           ems_autoinc;
-    uint16_t      ems[0x24];
-    mem_mapping_t ems_mappings[20]; /*a0000-effff*/
-    uint32_t      mappings[20];
+    uint16_t      ems[64];
 
     mem_mapping_t ram_mapping[2];
     ram_struct_t  ram_struct[2];
-    ems_struct_t  ems_struct[20];
 
-    uint32_t ram_virt_base[2];
-    uint32_t ram_phys_base[2];
-    uint32_t ram_mask[2];
-    int      row_virt_shift[2];
-    int      row_phys_shift[2];
-    int      ram_interleaved[2];
-    int      ibank_shift[2];
+    uint32_t      ram_virt_base[2];
+    uint32_t      ram_phys_base[2];
+    uint32_t      ram_mask[2];
+    int           row_virt_shift[2];
+    int           row_phys_shift[2];
+    int           ram_interleaved[2];
+    int           ibank_shift[2];
 
-    port_92_t *port_92;
+    int           mem_flags[64];
+    mem_mapping_t mem_mappings[64]; /* The entire first 1 MB of memory space. */
+    mem_page_t    mem_pages[64];
+
+    uint32_t      card_mem_size;
+    uint8_t      *card_mem;
+    mem_page_t    card_pages[4];
+
+    port_92_t    *port_92;
 } scamp_t;
 
 static const struct {
@@ -146,6 +175,70 @@ static const struct {
     { { BANK_1M_INTERLEAVED, BANK_4M },                 0},
     { { BANK_1M_INTERLEAVED, BANK_4M_INTERLEAVED },     0}, /*Undocumented - probably wrong!*/
 };
+
+#ifdef ENABLE_SCAMP_LOG
+int scamp_do_log = ENABLE_SCAMP_LOG;
+
+static void
+scamp_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (scamp_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define scamp_log(fmt, ...)
+#endif
+
+/* Read one byte from paged RAM. */
+static uint8_t
+scamp_mem_readb(uint32_t addr, void *priv)
+{
+    mem_page_t *dev = (mem_page_t *) priv;
+    uint8_t     ret = 0xff;
+
+    if (dev->mem != NULL)
+        ret = *(uint8_t *) &(dev->mem[addr & EMS_PGMASK]);
+
+    return ret;
+}
+
+/* Read one word from paged RAM. */
+static uint16_t
+scamp_mem_readw(uint32_t addr, void *priv)
+{
+    mem_page_t *dev = (mem_page_t *) priv;
+    uint16_t    ret = 0xffff;
+
+    if (dev->mem != NULL)
+        ret = *(uint16_t *) &(dev->mem[addr & EMS_PGMASK]);
+
+    return ret;
+}
+
+/* Write one byte to paged RAM. */
+static void
+scamp_mem_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    mem_page_t *dev = (mem_page_t *) priv;
+
+    if (dev->mem != NULL)
+        *(uint8_t *) &(dev->mem[addr & EMS_PGMASK]) = val;
+}
+
+/* Write one word to paged RAM. */
+static void
+scamp_mem_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    mem_page_t *dev = (mem_page_t *) priv;
+
+    if (dev->mem != NULL)
+        *(uint16_t *) &(dev->mem[addr & EMS_PGMASK]) = val;
+}
 
 /* The column bits masked when using 256kbit DRAMs in 4Mbit mode aren't contiguous,
    so we use separate routines for that special case */
@@ -332,208 +425,193 @@ recalc_mappings(void *priv)
     /* Once the BIOS programs the correct DRAM configuration, switch to regular
        linear memory mapping */
     if (cur_rammap == ram_configs[dev->ram_config].rammap) {
-        mem_mapping_set_handler(&ram_low_mapping,
-                                mem_read_ram, mem_read_ramw, mem_read_raml,
-                                mem_write_ram, mem_write_ramw, mem_write_raml);
-        mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
+        mem_mapping_disable(&ram_low_mapping);
+
+        for (uint8_t i = 0; i < 40; i++)
+            mem_mapping_enable(&(dev->mem_mappings[i]));
+
         if (mem_size > 1024)
             mem_set_mem_state_both((1 << 20), (mem_size - 1024) << 10, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         mem_mapping_enable(&ram_high_mapping);
-        return;
     } else {
         mem_mapping_set_handler(&ram_low_mapping,
                                 ram_mirrored_read, NULL, NULL,
                                 ram_mirrored_write, NULL, NULL);
+
         mem_mapping_disable(&ram_low_mapping);
-    }
 
-    if (rammap[cur_rammap].bank[0] == BANK_NONE)
-        bank_nr = 1;
+        for (uint8_t i = 0; i < 40; i++)
+            mem_mapping_disable(&(dev->mem_mappings[i]));
 
-    for (; bank_nr < 2; bank_nr++) {
-        old_virt_base = virt_base;
-        phys_bank     = ram_configs[dev->ram_config].bank[bank_nr];
+        if (rammap[cur_rammap].bank[0] == BANK_NONE)
+            bank_nr = 1;
 
-        dev->ram_virt_base[bank_nr] = virt_base;
+        for (; bank_nr < 2; bank_nr++) {
+            old_virt_base = virt_base;
+            phys_bank     = ram_configs[dev->ram_config].bank[bank_nr];
 
-        if (virt_base == 0) {
-            switch (rammap[cur_rammap].bank[bank_nr]) {
-                case BANK_NONE:
-                    fatal("        Bank %i is empty!\n    }\n}\n", bank_nr);
-                    break;
+            dev->ram_virt_base[bank_nr] = virt_base;
 
-                case BANK_256K:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&ram_low_mapping, 0, 0x80000);
-                        mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
-                    }
-                    virt_base += (1 << 19);
-                    dev->row_virt_shift[bank_nr] = 10;
-                    break;
+            if (virt_base == 0) {
+                switch (rammap[cur_rammap].bank[bank_nr]) {
+                    case BANK_NONE:
+                        fatal("        Bank %i is empty!\n    }\n}\n", bank_nr);
+                        break;
 
-                case BANK_256K_INTERLEAVED:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-                        mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
-                    }
-                    virt_base += (1 << 20);
-                    dev->row_virt_shift[bank_nr] = 10;
-                    break;
+                    case BANK_256K:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&ram_low_mapping, 0, 0x80000);
+                            mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
+                        }
+                        virt_base += (1 << 19);
+                        dev->row_virt_shift[bank_nr] = 10;
+                        break;
 
-                case BANK_1M:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-                        mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x100000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
-                        mem_set_mem_state_both((1 << 20), (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 21);
-                    dev->row_virt_shift[bank_nr] = 11;
-                    break;
+                    case BANK_256K_INTERLEAVED:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
+                            mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
+                        }
+                        virt_base += (1 << 20);
+                        dev->row_virt_shift[bank_nr] = 10;
+                        break;
 
-                case BANK_1M_INTERLEAVED:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-                        mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x300000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
-                        mem_set_mem_state_both((1 << 20), (3 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 22);
-                    dev->row_virt_shift[bank_nr] = 11;
-                    break;
+                    case BANK_1M:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
+                            mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x100000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
+                            mem_set_mem_state_both((1 << 20), (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 21);
+                        dev->row_virt_shift[bank_nr] = 11;
+                        break;
 
-                case BANK_4M:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-                        mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x700000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
-                        mem_set_mem_state_both((1 << 20), (7 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 23);
-                    dev->row_virt_shift[bank_nr] = 12;
-                    break;
+                    case BANK_1M_INTERLEAVED:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
+                            mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x300000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
+                            mem_set_mem_state_both((1 << 20), (3 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 22);
+                        dev->row_virt_shift[bank_nr] = 11;
+                        break;
 
-                case BANK_4M_INTERLEAVED:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-                        mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0xf00000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
-                        mem_set_mem_state_both((1 << 20), (15 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 24);
-                    dev->row_virt_shift[bank_nr] = 12;
-                    break;
+                    case BANK_4M:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
+                            mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x700000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
+                            mem_set_mem_state_both((1 << 20), (7 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 23);
+                        dev->row_virt_shift[bank_nr] = 12;
+                        break;
 
-                default:
-                    break;
+                    case BANK_4M_INTERLEAVED:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
+                            mem_mapping_set_p(&ram_low_mapping, (void *) &dev->ram_struct[bank_nr]);
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0xf00000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
+                            mem_set_mem_state_both((1 << 20), (15 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 24);
+                        dev->row_virt_shift[bank_nr] = 12;
+                        break;
+
+                    default:
+                        break;
+                }
+            } else {
+                switch (rammap[cur_rammap].bank[bank_nr]) {
+                    case BANK_NONE:
+                        break;
+
+                    case BANK_256K:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x80000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
+                            mem_set_mem_state_both(virt_base, (1 << 19), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 19);
+                        dev->row_virt_shift[bank_nr] = 10;
+                        break;
+
+                    case BANK_256K_INTERLEAVED:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x100000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
+                            mem_set_mem_state_both(virt_base, (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 20);
+                        dev->row_virt_shift[bank_nr] = 10;
+                        break;
+
+                    case BANK_1M:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x200000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
+                            mem_set_mem_state_both(virt_base, (1 << 21), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 21);
+                        dev->row_virt_shift[bank_nr] = 11;
+                        break;
+
+                    case BANK_1M_INTERLEAVED:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x400000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
+                            mem_set_mem_state_both(virt_base, (1 << 22), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 22);
+                        dev->row_virt_shift[bank_nr] = 11;
+                        break;
+
+                    case BANK_4M:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x800000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
+                            mem_set_mem_state_both(virt_base, (1 << 23), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 23);
+                        dev->row_virt_shift[bank_nr] = 12;
+                        break;
+
+                    case BANK_4M_INTERLEAVED:
+                        if (phys_bank != BANK_NONE) {
+                            mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x1000000);
+                            mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
+                            mem_set_mem_state_both(virt_base, (1 << 24), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        }
+                        virt_base += (1 << 24);
+                        dev->row_virt_shift[bank_nr] = 12;
+                        break;
+
+                    default:
+                        break;
+                }
             }
-        } else {
+
             switch (rammap[cur_rammap].bank[bank_nr]) {
-                case BANK_NONE:
-                    break;
-
                 case BANK_256K:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x80000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
-                        mem_set_mem_state_both(virt_base, (1 << 19), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 19);
-                    dev->row_virt_shift[bank_nr] = 10;
-                    break;
-
-                case BANK_256K_INTERLEAVED:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x100000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
-                        mem_set_mem_state_both(virt_base, (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 20);
-                    dev->row_virt_shift[bank_nr] = 10;
-                    break;
-
                 case BANK_1M:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x200000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
-                        mem_set_mem_state_both(virt_base, (1 << 21), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 21);
-                    dev->row_virt_shift[bank_nr] = 11;
-                    break;
-
-                case BANK_1M_INTERLEAVED:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x400000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
-                        mem_set_mem_state_both(virt_base, (1 << 22), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 22);
-                    dev->row_virt_shift[bank_nr] = 11;
-                    break;
-
                 case BANK_4M:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x800000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
-                        mem_set_mem_state_both(virt_base, (1 << 23), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 23);
-                    dev->row_virt_shift[bank_nr] = 12;
-                    break;
-
-                case BANK_4M_INTERLEAVED:
-                    if (phys_bank != BANK_NONE) {
-                        mem_mapping_set_addr(&dev->ram_mapping[bank_nr], virt_base, 0x1000000);
-                        mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr]]);
-                        mem_set_mem_state_both(virt_base, (1 << 24), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    }
-                    virt_base += (1 << 24);
-                    dev->row_virt_shift[bank_nr] = 12;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        switch (rammap[cur_rammap].bank[bank_nr]) {
-            case BANK_256K:
-            case BANK_1M:
-            case BANK_4M:
-                mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
-                                        ram_mirrored_read, NULL, NULL,
-                                        ram_mirrored_write, NULL, NULL);
-                if (!old_virt_base)
-                    mem_mapping_set_handler(&ram_low_mapping,
+                    mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
                                             ram_mirrored_read, NULL, NULL,
                                             ram_mirrored_write, NULL, NULL);
-                break;
-
-            case BANK_256K_INTERLEAVED:
-            case BANK_1M_INTERLEAVED:
-                mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
-                                        ram_mirrored_interleaved_read, NULL, NULL,
-                                        ram_mirrored_interleaved_write, NULL, NULL);
-                if (!old_virt_base)
-                    mem_mapping_set_handler(&ram_low_mapping,
-                                            ram_mirrored_interleaved_read, NULL, NULL,
-                                            ram_mirrored_interleaved_write, NULL, NULL);
-                break;
-
-            case BANK_4M_INTERLEAVED:
-                if (phys_bank == BANK_256K || phys_bank == BANK_256K_INTERLEAVED) {
-                    mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
-                                            ram_mirrored_256k_in_4mi_read, NULL, NULL,
-                                            ram_mirrored_256k_in_4mi_write, NULL, NULL);
                     if (!old_virt_base)
                         mem_mapping_set_handler(&ram_low_mapping,
-                                                ram_mirrored_256k_in_4mi_read, NULL, NULL,
-                                                ram_mirrored_256k_in_4mi_write, NULL, NULL);
-                } else {
+                                                ram_mirrored_read, NULL, NULL,
+                                                ram_mirrored_write, NULL, NULL);
+                    break;
+
+                case BANK_256K_INTERLEAVED:
+                case BANK_1M_INTERLEAVED:
                     mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
                                             ram_mirrored_interleaved_read, NULL, NULL,
                                             ram_mirrored_interleaved_write, NULL, NULL);
@@ -541,13 +619,203 @@ recalc_mappings(void *priv)
                         mem_mapping_set_handler(&ram_low_mapping,
                                                 ram_mirrored_interleaved_read, NULL, NULL,
                                                 ram_mirrored_interleaved_write, NULL, NULL);
-                }
-                break;
+                    break;
 
+                case BANK_4M_INTERLEAVED:
+                    if (phys_bank == BANK_256K || phys_bank == BANK_256K_INTERLEAVED) {
+                        mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
+                                                ram_mirrored_256k_in_4mi_read, NULL, NULL,
+                                                ram_mirrored_256k_in_4mi_write, NULL, NULL);
+                        if (!old_virt_base)
+                            mem_mapping_set_handler(&ram_low_mapping,
+                                                    ram_mirrored_256k_in_4mi_read, NULL, NULL,
+                                                    ram_mirrored_256k_in_4mi_write, NULL, NULL);
+                    } else {
+                        mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
+                                                ram_mirrored_interleaved_read, NULL, NULL,
+                                                ram_mirrored_interleaved_write, NULL, NULL);
+                        if (!old_virt_base)
+                            mem_mapping_set_handler(&ram_low_mapping,
+                                                    ram_mirrored_interleaved_read, NULL, NULL,
+                                                    ram_mirrored_interleaved_write, NULL, NULL);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+}
+
+static void
+scamp_mem_update_state(scamp_t *dev, uint32_t addr, uint32_t size, uint8_t new_flags, uint8_t mask)
+{
+    int read_ext  = MEM_READ_EXTERNAL;
+    int write_ext = MEM_WRITE_EXTERNAL;
+
+    if ((addr < 0x00100000) && ((new_flags ^ dev->mem_flags[addr / EMS_PGSIZE]) & mask)) {
+        dev->mem_flags[addr / EMS_PGSIZE] &= ~mask;
+        dev->mem_flags[addr / EMS_PGSIZE] |= new_flags;
+
+        new_flags = dev->mem_flags[addr / EMS_PGSIZE];
+
+        if (new_flags & MEM_FLAG_ROMCS) {
+            read_ext  = MEM_READ_ROMCS;
+            write_ext = MEM_WRITE_ROMCS;
+        }
+
+        if (new_flags & (MEM_FLAG_REMAP | MEM_FLAG_SLOTBUS)) {
+            scamp_log("scamp_mem_update_state(): %08X-%08X: %02X (REMAP)\n", addr, addr + size - 1, new_flags);
+            mem_set_mem_state(addr, size, read_ext | write_ext);
+        } else if (new_flags & (MEM_FLAG_EMS | MEM_FLAG_MEMCARD)) {
+            scamp_log("scamp_mem_update_state(): %08X-%08X: %02X (EMS)\n", addr, addr + size - 1, new_flags);
+            mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        } else  switch (new_flags & (MEM_FLAG_READ | MEM_FLAG_WRITE)) {
+            case 0:
+                scamp_log("scamp_mem_update_state(): %08X-%08X: %02X (RE | WE)\n", addr, addr + size - 1, new_flags);
+                mem_set_mem_state(addr, size, read_ext | write_ext);
+                break;
+            case 1:
+                scamp_log("scamp_mem_update_state(): %08X-%08X: %02X (RE | WI)\n", addr, addr + size - 1, new_flags);
+                mem_set_mem_state(addr, size, read_ext | MEM_WRITE_INTERNAL);
+                break;
+            case 2:
+                scamp_log("scamp_mem_update_state(): %08X-%08X: %02X (RI | WE)\n", addr, addr + size - 1, new_flags);
+                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | write_ext);
+                break;
+            case 3:
+                scamp_log("scamp_mem_update_state(): %08X-%08X: %02X (RI | WI)\n", addr, addr + size - 1, new_flags);
+                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                break;
             default:
                 break;
         }
     }
+
+    flushmmucache_nopc();
+}
+
+static int
+is_seg_in_ram(scamp_t *dev, uint8_t s)
+{
+    mem_page_t *mp  = (mem_page_t *) dev->mem_mappings[s].priv;
+    const int   ret = mp->in_ram;
+
+    return ret;
+}
+
+static void
+recalc_ems(scamp_t *dev)
+{
+    const uint8_t  seg_xlat[12] = { 40, 41, 42, 43, 52, 53, 54, 55, 44, 45, 46, 47 };
+    const uint16_t seg_enable   = dev->cfg_regs[CFG_EMSEN2] | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 8);
+
+    for (uint8_t s = 40; s < 60; s++) {
+        dev->mem_pages[s].phys_addr = dev->mem_pages[s].virt_addr;
+        dev->mem_pages[s].mem       = ram + dev->mem_pages[s].phys_addr;
+
+       if (is_seg_in_ram(dev, s))
+           mem_mapping_set_exec(&(dev->mem_mappings[s]), dev->mem_pages[s].mem);
+
+       scamp_mem_update_state(dev, s * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_EMS);
+    }
+
+    for (uint8_t i = 0; i < 36; i++) {
+        uint8_t  s         = (i < 12) ? (i + 48) : (i + 4);
+        uint8_t  on        = (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSENAB);
+        uint32_t phys_addr = dev->ems[i] << 14;
+
+        if (i < 12) {
+            if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSMAP)
+                s = seg_xlat[i];
+
+            on = on && (seg_enable & (1 << i));
+        } else
+            on = on && (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_BFENAB);
+
+        if (on) {
+            dev->mem_pages[s].phys_addr = phys_addr;
+            dev->mem_pages[s].mem       = ram + dev->mem_pages[s].phys_addr;
+
+            if (is_seg_in_ram(dev, s))
+                mem_mapping_set_exec(&(dev->mem_mappings[s]), dev->mem_pages[s].mem);
+
+            scamp_mem_update_state(dev, s * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_EMS, MEM_FMASK_EMS);
+        } else if (i >= 12) {
+            dev->mem_pages[s].phys_addr = dev->mem_pages[s].virt_addr;
+            dev->mem_pages[s].mem       = ram + dev->mem_pages[s].phys_addr;
+
+            if (is_seg_in_ram(dev, s))
+                mem_mapping_set_exec(&(dev->mem_mappings[s]), dev->mem_pages[s].mem);
+
+            scamp_mem_update_state(dev, s * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_EMS);
+        }
+    }
+
+    flushmmucache_nopc();
+}
+
+static void
+shadow_control(scamp_t *dev, uint32_t addr, uint32_t size, int state)
+{
+    if (size == 0x8000) {
+        scamp_mem_update_state(dev, addr, EMS_PGSIZE, state, MEM_FMASK_RW);
+        scamp_mem_update_state(dev, addr + EMS_PGSIZE, EMS_PGSIZE, state, MEM_FMASK_RW);
+    } else
+        scamp_mem_update_state(dev, addr, size, state, MEM_FMASK_RW);
+
+    flushmmucache_nopc();
+}
+
+static void
+shadow_recalc(scamp_t *dev)
+{
+    uint8_t  abaxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP384) ? 0 : dev->cfg_regs[CFG_ABAXS];
+    uint8_t  caxs  = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP384) ? 0 : dev->cfg_regs[CFG_CAXS];
+    uint8_t  daxs  = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP384) ? 0 : dev->cfg_regs[CFG_DAXS];
+    uint8_t  feaxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP384) ? 0 : dev->cfg_regs[CFG_FEAXS];
+
+    /*Enabling remapping will disable all shadowing*/
+    if (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP384)
+        mem_remap_top_nomid(384);
+    else
+        mem_remap_top_nomid(0);
+
+    for (uint8_t i = 40; i < 64; i++) {
+        if (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP384)
+            scamp_mem_update_state(dev, (i * EMS_PGSIZE), EMS_PGSIZE, MEM_FLAG_REMAP, MEM_FMASK_REMAP);
+        else
+            scamp_mem_update_state(dev, (i * EMS_PGSIZE), EMS_PGSIZE, 0x00, MEM_FMASK_REMAP);
+    }
+
+    shadow_control(dev, 0xa0000, 0x4000, abaxs & 3);
+    shadow_control(dev, 0xa0000, 0x4000, abaxs & 3);
+    shadow_control(dev, 0xa8000, 0x4000, (abaxs >> 2) & 3);
+    shadow_control(dev, 0xa8000, 0x4000, (abaxs >> 2) & 3);
+
+    shadow_control(dev, 0xb0000, 0x4000, (abaxs >> 4) & 3);
+    shadow_control(dev, 0xb0000, 0x4000, (abaxs >> 4) & 3);
+    shadow_control(dev, 0xb8000, 0x4000, (abaxs >> 6) & 3);
+    shadow_control(dev, 0xb8000, 0x4000, (abaxs >> 6) & 3);
+
+    shadow_control(dev, 0xc0000, 0x4000, caxs & 3);
+    shadow_control(dev, 0xc4000, 0x4000, (caxs >> 2) & 3);
+    shadow_control(dev, 0xc8000, 0x4000, (caxs >> 4) & 3);
+    shadow_control(dev, 0xcc000, 0x4000, (caxs >> 6) & 3);
+
+    shadow_control(dev, 0xd0000, 0x4000, daxs & 3);
+    shadow_control(dev, 0xd4000, 0x4000, (daxs >> 2) & 3);
+    shadow_control(dev, 0xd8000, 0x4000, (daxs >> 4) & 3);
+    shadow_control(dev, 0xdc000, 0x4000, (daxs >> 6) & 3);
+
+    shadow_control(dev, 0xe0000, 0x4000, feaxs & 3);
+    shadow_control(dev, 0xe4000, 0x4000, feaxs & 3);
+    shadow_control(dev, 0xe8000, 0x4000, (feaxs >> 2) & 3);
+    shadow_control(dev, 0xec000, 0x4000, (feaxs >> 2) & 3);
+
+    shadow_control(dev, 0xf0000, 0x8000, (feaxs >> 4) & 3);
+    shadow_control(dev, 0xf8000, 0x8000, (feaxs >> 6) & 3);
 }
 
 static void
@@ -561,155 +829,84 @@ recalc_sltptr(scamp_t *dev)
         sltptr = 0xfe0000;
 
     if (sltptr >= 0xa0000) {
-        mem_set_mem_state(0, 0xa0000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        for (uint8_t i = 0; i < 40; i++)
+            scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_SLOTBUS);
+
         mem_set_mem_state(0x100000, sltptr - 0x100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         mem_set_mem_state(sltptr, 0x1000000 - sltptr, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+        if ((sltptr >= 0x40000) && (sltptr <= 0x90000)) {
+            dev->cfg_regs[CFG_EMSEN1] &= ~EMSEN1_BFENAB;
+            recalc_ems(dev);
+        }
     } else {
-        mem_set_mem_state(0, sltptr, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        for (uint8_t i = 0; i < (sltptr / EMS_PGSIZE); i++)
+            scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_SLOTBUS);
+
+        for (uint8_t i = (sltptr / EMS_PGSIZE); i < 40; i++)
+            scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_SLOTBUS, MEM_FMASK_SLOTBUS);
+
         mem_set_mem_state(sltptr, 0xa0000 - sltptr, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
         mem_set_mem_state(0x100000, 0xf00000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
-}
-
-static uint8_t
-scamp_ems_read(uint32_t addr, void *priv)
-{
-    const ems_struct_t *ems     = (ems_struct_t *) priv;
-    const scamp_t      *dev     = ems->parent;
-    int                 segment = ems->segment;
-
-    addr = (addr & 0x3fff) | dev->mappings[segment];
-    return ram[addr];
-}
-
-static void
-scamp_ems_write(uint32_t addr, uint8_t val, void *priv)
-{
-    const ems_struct_t *ems     = (ems_struct_t *) priv;
-    const scamp_t      *dev     = ems->parent;
-    int                 segment = ems->segment;
-
-    addr      = (addr & 0x3fff) | dev->mappings[segment];
-    ram[addr] = val;
-}
-
-static void
-recalc_ems(scamp_t *dev)
-{
-    const uint32_t ems_base[12] = {
-        0xc0000, 0xc4000, 0xc8000, 0xcc000,
-        0xd0000, 0xd4000, 0xd8000, 0xdc000,
-        0xe0000, 0xe4000, 0xe8000, 0xec000
-    };
-    uint32_t new_mappings[20];
-    uint16_t ems_enable;
-
-    for (int segment = 0; segment < 20; segment++)
-        new_mappings[segment] = 0xa0000 + segment * 0x4000;
-
-    if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSENAB)
-        ems_enable = dev->cfg_regs[CFG_EMSEN2] | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 8);
-    else
-        ems_enable = 0;
-
-    for (int segment = 0; segment < 12; segment++) {
-        if (ems_enable & (1 << segment)) {
-            uint32_t phys_addr = dev->ems[segment] << 14;
-
-            /*If physical address is in remapped memory then adjust down to a0000-fffff range*/
-            if ((dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) && phys_addr >= (mem_size * 1024)
-                && phys_addr < ((mem_size + 384) * 1024))
-                phys_addr = (phys_addr - mem_size * 1024) + 0xa0000;
-            new_mappings[(ems_base[segment] - 0xa0000) >> 14] = phys_addr;
-        }
-    }
-
-    for (int segment = 0; segment < 20; segment++) {
-        if (new_mappings[segment] != dev->mappings[segment]) {
-            dev->mappings[segment] = new_mappings[segment];
-            if (new_mappings[segment] < (mem_size * 1024)) {
-                mem_mapping_set_exec(&dev->ems_mappings[segment], ram + dev->mappings[segment]);
-                mem_mapping_enable(&dev->ems_mappings[segment]);
-            } else
-                mem_mapping_disable(&dev->ems_mappings[segment]);
-        }
-    }
-}
-
-static void
-shadow_control(uint32_t addr, uint32_t size, int state, int ems_enable)
-{
-    if (ems_enable)
-        mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    else
-        switch (state) {
-            case 0:
-                mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-                break;
-            case 1:
-                mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-                break;
-            case 2:
-                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-                break;
-            case 3:
-                mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                break;
-            default:
-                break;
-        }
 
     flushmmucache_nopc();
 }
 
 static void
-shadow_recalc(scamp_t *dev)
+recalc_rommov(scamp_t *dev)
 {
-    uint8_t  abaxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_ABAXS];
-    uint8_t  caxs  = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_CAXS];
-    uint8_t  daxs  = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_DAXS];
-    uint8_t  feaxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_FEAXS];
-    uint32_t ems_enable;
+    switch ((dev->cfg_regs[CFG_RAMMAP] & RAMMAP_ROMMOV) >> 5) {
+        case 0x00:
+            scamp_mem_update_state(dev, 0x000c0000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c4000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c8000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000cc000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
 
-    if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSENAB) {
-        if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSMAP) /*Axxx/Bxxx/Dxxx*/
-            ems_enable = (dev->cfg_regs[CFG_EMSEN2] & 0xf) | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 4) | ((dev->cfg_regs[CFG_EMSEN2] & 0xf0) << 8);
-        else /*Cxxx/Dxxx/Exxx*/
-            ems_enable = (dev->cfg_regs[CFG_EMSEN2] << 8) | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 16);
-    } else
-        ems_enable = 0;
+            scamp_mem_update_state(dev, 0x000e0000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e4000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e8000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000ec000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            break;
 
-    /*Enabling remapping will disable all shadowing*/
-    if (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386)
-        mem_remap_top(384);
+        case 0x01:
+            scamp_mem_update_state(dev, 0x000c0000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c4000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c8000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000cc000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
 
-    shadow_control(0xa0000, 0x4000, abaxs & 3, ems_enable & 0x00001);
-    shadow_control(0xa0000, 0x4000, abaxs & 3, ems_enable & 0x00002);
-    shadow_control(0xa8000, 0x4000, (abaxs >> 2) & 3, ems_enable & 0x00004);
-    shadow_control(0xa8000, 0x4000, (abaxs >> 2) & 3, ems_enable & 0x00008);
+            scamp_mem_update_state(dev, 0x000e0000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e4000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e8000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000ec000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            break;
 
-    shadow_control(0xb0000, 0x4000, (abaxs >> 4) & 3, ems_enable & 0x00010);
-    shadow_control(0xb0000, 0x4000, (abaxs >> 4) & 3, ems_enable & 0x00020);
-    shadow_control(0xb8000, 0x4000, (abaxs >> 6) & 3, ems_enable & 0x00040);
-    shadow_control(0xb8000, 0x4000, (abaxs >> 6) & 3, ems_enable & 0x00080);
+        case 0x02:
+            scamp_mem_update_state(dev, 0x000c0000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c4000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c8000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000cc000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
 
-    shadow_control(0xc0000, 0x4000, caxs & 3, ems_enable & 0x00100);
-    shadow_control(0xc4000, 0x4000, (caxs >> 2) & 3, ems_enable & 0x00200);
-    shadow_control(0xc8000, 0x4000, (caxs >> 4) & 3, ems_enable & 0x00400);
-    shadow_control(0xcc000, 0x4000, (caxs >> 6) & 3, ems_enable & 0x00800);
+            scamp_mem_update_state(dev, 0x000e0000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e4000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e8000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000ec000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            break;
 
-    shadow_control(0xd0000, 0x4000, daxs & 3, ems_enable & 0x01000);
-    shadow_control(0xd4000, 0x4000, (daxs >> 2) & 3, ems_enable & 0x02000);
-    shadow_control(0xd8000, 0x4000, (daxs >> 4) & 3, ems_enable & 0x04000);
-    shadow_control(0xdc000, 0x4000, (daxs >> 6) & 3, ems_enable & 0x08000);
+        case 0x03:
+            scamp_mem_update_state(dev, 0x000c0000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c4000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000c8000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000cc000, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
 
-    shadow_control(0xe0000, 0x4000, feaxs & 3, ems_enable & 0x10000);
-    shadow_control(0xe4000, 0x4000, feaxs & 3, ems_enable & 0x20000);
-    shadow_control(0xe8000, 0x4000, (feaxs >> 2) & 3, ems_enable & 0x40000);
-    shadow_control(0xec000, 0x4000, (feaxs >> 2) & 3, ems_enable & 0x80000);
+            scamp_mem_update_state(dev, 0x000e0000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e4000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000e8000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            scamp_mem_update_state(dev, 0x000ec000, EMS_PGSIZE,           0x00, MEM_FMASK_ROMCS);
+            break;
+    }
 
-    shadow_control(0xf0000, 0x8000, (feaxs >> 4) & 3, 0);
-    shadow_control(0xf8000, 0x8000, (feaxs >> 6) & 3, 0);
+    flushmmucache_nopc();
 }
 
 static void
@@ -719,7 +916,7 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0xe8:
-            dev->ems_index   = val & 0x1f;
+            dev->ems_index   = val & 0x3f;
             dev->ems_autoinc = val & 0x40;
             break;
 
@@ -749,12 +946,14 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
                 switch (dev->cfg_index) {
                     case CFG_SLTPTR:
                         recalc_sltptr(dev);
+                        recalc_ems(dev);
                         break;
 
                     case CFG_RAMMAP:
                         recalc_mappings(dev);
                         mem_mapping_disable(&ram_remapped_mapping);
                         shadow_recalc(dev);
+                        recalc_rommov(dev);
                         break;
 
                     case CFG_EMSEN1:
@@ -847,8 +1046,7 @@ static void *
 scamp_init(UNUSED(const device_t *info))
 {
     uint32_t addr;
-    scamp_t *dev = (scamp_t *) malloc(sizeof(scamp_t));
-    memset(dev, 0x00, sizeof(scamp_t));
+    scamp_t *dev = (scamp_t *) calloc(1, sizeof(scamp_t));
 
     dev->cfg_regs[CFG_ID] = ID_VL82C311;
     dev->cfg_enable       = 1;
@@ -878,9 +1076,8 @@ scamp_init(UNUSED(const device_t *info))
     mem_mapping_set_handler(&ram_low_mapping,
                             ram_mirrored_read, NULL, NULL,
                             ram_mirrored_write, NULL, NULL);
+    mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
-    mem_mapping_set_addr(&ram_mid_mapping, 0xf0000, 0x10000);
-    mem_mapping_set_exec(&ram_mid_mapping, ram + 0xf0000);
 
     addr = 0;
     for (uint8_t c = 0; c < 2; c++) {
@@ -952,15 +1149,45 @@ scamp_init(UNUSED(const device_t *info))
 
     mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
-    for (uint8_t c = 0; c < 20; c++) {
-        dev->ems_struct[c].parent  = dev;
-        dev->ems_struct[c].segment = c;
-        mem_mapping_add(&dev->ems_mappings[c],
-                        0xa0000 + c * 0x4000, 0x4000,
-                        scamp_ems_read, NULL, NULL,
-                        scamp_ems_write, NULL, NULL,
-                        ram + 0xa0000 + c * 0x4000, MEM_MAPPING_INTERNAL, (void *) &dev->ems_struct[c]);
-        dev->mappings[c] = 0xa0000 + c * 0x4000;
+    for (uint8_t i = 0; i < 12; i++)
+        dev->ems[i]      = (0x000c0000 + (i * EMS_PGSIZE)) >> 14;
+
+    for (uint8_t i = 0; i < 24; i++)
+        dev->ems[i + 12] = (0x00040000 + (i * EMS_PGSIZE)) >> 14;
+
+    for (uint8_t i = 0; i < 64; i++) {
+        dev->mem_pages[i].in_ram    = 1;
+        dev->mem_pages[i].virt_addr = i * EMS_PGSIZE;
+        dev->mem_pages[i].phys_addr = dev->mem_pages[i].virt_addr;
+        dev->mem_pages[i].mem       = ram + dev->mem_pages[i].phys_addr;
+
+        mem_mapping_add(&(dev->mem_mappings[i]),
+                        i * EMS_PGSIZE, EMS_PGSIZE,
+                        scamp_mem_readb, scamp_mem_readw, NULL,
+                        scamp_mem_writeb, scamp_mem_writew, NULL,
+                        dev->mem_pages[i].mem, MEM_MAPPING_INTERNAL,
+                        &(dev->mem_pages[i]));
+
+        if (i < 40) {
+            mem_mapping_disable(&(dev->mem_mappings[i]));
+
+            scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_RW);
+        } else {
+            /* This is needed to the state update actually occurs. */
+            dev->mem_flags[i] = MEM_FLAG_READ | MEM_FLAG_WRITE;
+            scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_RW);
+
+            if (i >= 60)
+                scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
+        }
+    }
+
+    dev->card_mem = NULL;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        dev->card_pages[i].virt_addr = i * EMS_PGSIZE;
+        dev->card_pages[i].phys_addr = dev->card_pages[i].virt_addr;
+        dev->card_pages[i].mem       = dev->card_mem + dev->card_pages[i].phys_addr;
     }
 
     dev->port_92 = device_add(&port_92_device);
@@ -976,7 +1203,7 @@ const device_t vlsi_scamp_device = {
     .init          = scamp_init,
     .close         = scamp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -44,6 +44,7 @@
 #    include <stdlib.h>
 #    include <wchar.h>
 #    include <86box/86box.h>
+#    include <86box/plat.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
 #    include "x86.h"
@@ -63,14 +64,6 @@
 #    include "codegen_accumulate.h"
 #    include "codegen_ops.h"
 #    include "codegen_ops_x86.h"
-
-#    ifdef __unix__
-#        include <sys/mman.h>
-#        include <unistd.h>
-#    endif
-#    if defined _WIN32
-#        include <windows.h>
-#    endif
 
 int      codegen_flat_ds;
 int      codegen_flat_ss;
@@ -1194,13 +1187,7 @@ gen_MEM_CHECK_WRITE_L(void)
 void
 codegen_init(void)
 {
-#    ifdef _WIN32
-    codeblock = VirtualAlloc(NULL, (BLOCK_SIZE + 1) * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-#    elif defined __unix__
-    codeblock = mmap(NULL, (BLOCK_SIZE + 1) * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, 0, 0);
-#    else
-    codeblock = malloc((BLOCK_SIZE + 1) * sizeof(codeblock_t));
-#    endif
+    codeblock      = plat_mmap((BLOCK_SIZE + 1) * sizeof(codeblock_t), 1);
     codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
 
     memset(codeblock, 0, (BLOCK_SIZE + 1) * sizeof(codeblock_t));

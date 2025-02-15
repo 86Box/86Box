@@ -66,7 +66,6 @@
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 #include <86box/net_ne2000.h>
-#include <86box/bswap.h>
 #include <86box/isapnp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
@@ -313,7 +312,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 static uint32_t
 page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
 {
-    if (dev->board >= NE2K_RTL8019AS)
+    if (dev->board >= NE2K_RTL8019AS_PNP)
         switch (off) {
             case 0x1: /* 9346CR */
                 return (dev->_9346cr);
@@ -328,7 +327,7 @@ page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
                 return (dev->config3 & 0x46);
 
             case 0x8: /* CSNSAV */
-                return ((dev->board == NE2K_RTL8019AS) ? dev->pnp_csnsav : 0x00);
+                return ((dev->board == NE2K_RTL8019AS_PNP) ? dev->pnp_csnsav : 0x00);
 
             case 0xe: /* 8029ASID0 */
                 if (dev->board == NE2K_RTL8029AS)
@@ -351,7 +350,7 @@ page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
 static void
 page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
 {
-    if (dev->board >= NE2K_RTL8019AS) {
+    if (dev->board >= NE2K_RTL8019AS_PNP) {
         nelog(3, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
               dev->name, off, len, val);
 
@@ -911,16 +910,16 @@ static void *
 nic_init(const device_t *info)
 {
     uint32_t mac;
-    char    *rom;
+    uint32_t mac_oui;
+    char    *rom = NULL;
     nic_t   *dev;
+    int      set_oui = 0;
 
-    dev = malloc(sizeof(nic_t));
-    memset(dev, 0x00, sizeof(nic_t));
+    dev = calloc(1, sizeof(nic_t));
     dev->name  = info->name;
     dev->board = info->local;
-    rom        = NULL;
 
-    if (dev->board >= NE2K_RTL8019AS) {
+    if (dev->board >= NE2K_RTL8019AS_PNP) {
         dev->base_address = 0x340;
         dev->base_irq     = 12;
         if (dev->board == NE2K_RTL8029AS) {
@@ -957,8 +956,8 @@ nic_init(const device_t *info)
         dev->maclocal[4] = random_generate();
         dev->maclocal[5] = random_generate();
         mac              = (((int) dev->maclocal[3]) << 16);
-        mac |= (((int) dev->maclocal[4]) << 8);
-        mac |= ((int) dev->maclocal[5]);
+        mac             |= (((int) dev->maclocal[4]) << 8);
+        mac             |= ((int) dev->maclocal[5]);
         device_set_config_mac("mac", mac);
     } else {
         dev->maclocal[3] = (mac >> 16) & 0xff;
@@ -987,6 +986,7 @@ nic_init(const device_t *info)
             dev->maclocal[2] = 0xB0;
             dev->is_8bit     = 1;
             rom              = NULL;
+            set_oui          = 1;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
             break;
@@ -1005,6 +1005,7 @@ nic_init(const device_t *info)
             dev->maclocal[1] = 0x86;
             dev->maclocal[2] = 0xB0;
             rom              = ROM_PATH_NE2000;
+            set_oui          = 1;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
             break;
@@ -1015,6 +1016,7 @@ nic_init(const device_t *info)
             dev->maclocal[2] = 0xB0;
             dev->is_8bit     = 1;
             rom              = ROM_PATH_NE2000;
+            set_oui          = 1;
             dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
             break;
@@ -1040,23 +1042,41 @@ nic_init(const device_t *info)
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x8000);
             break;
 
-        case NE2K_RTL8019AS:
+        case NE2K_RTL8019AS_PNP:
         case NE2K_RTL8029AS:
             dev->is_pci      = (dev->board == NE2K_RTL8029AS) ? 1 : 0;
             dev->maclocal[0] = 0x00; /* 00:E0:4C (Realtek OID) */
             dev->maclocal[1] = 0xE0;
             dev->maclocal[2] = 0x4C;
-            rom              = (dev->board == NE2K_RTL8019AS) ? ROM_PATH_RTL8019 : ROM_PATH_RTL8029;
+            rom              = (dev->board == NE2K_RTL8019AS_PNP) ? ROM_PATH_RTL8019 : ROM_PATH_RTL8029;
             if (dev->is_pci)
                 dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC);
             else
                 dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CLEAR_IRQ);
-            dp8390_set_id(dev->dp8390, 0x50, (dev->board == NE2K_RTL8019AS) ? 0x70 : 0x43);
+            dp8390_set_id(dev->dp8390, 0x50, (dev->board == NE2K_RTL8019AS_PNP) ? 0x70 : 0x43);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x8000);
             break;
 
         default:
             break;
+    }
+
+    
+    if (set_oui) {
+        /* See if we have a local MAC address configured. */
+        mac_oui = device_get_config_mac("mac_oui", -1);
+
+        /* Set up our BIA. */
+        if (mac_oui & 0xff000000) {
+            mac_oui          = (((int) dev->maclocal[0]) << 16);
+            mac_oui         |= (((int) dev->maclocal[1]) << 8);
+            mac_oui         |= ((int) dev->maclocal[2]);
+            device_set_config_mac("mac", mac);
+        } else {
+            dev->maclocal[0] = (mac_oui >> 16) & 0xff;
+            dev->maclocal[1] = (mac_oui >> 8) & 0xff;
+            dev->maclocal[2] = (mac_oui & 0xff);
+        }
     }
 
     memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
@@ -1070,13 +1090,13 @@ nic_init(const device_t *info)
      * Make this device known to the I/O system.
      * PnP and PCI devices start with address spaces inactive.
      */
-    if ((dev->board < NE2K_RTL8019AS) && (dev->board != NE2K_ETHERNEXT_MC))
+    if ((dev->board < NE2K_RTL8019AS_PNP) && (dev->board != NE2K_ETHERNEXT_MC))
         nic_ioset(dev, dev->base_address);
 
     /* Set up our BIOS ROM space, if any. */
     nic_rom_init(dev, rom);
 
-    if (dev->board >= NE2K_RTL8019AS) {
+    if (dev->board >= NE2K_RTL8019AS_PNP) {
         if (dev->is_pci) {
             /*
              * Configure the PCI space registers.
@@ -1124,7 +1144,7 @@ nic_init(const device_t *info)
             pci_add_card(PCI_ADD_NORMAL, nic_pci_read, nic_pci_write, dev, &dev->pci_slot);
         }
 
-        /* Initialize the RTL8029 EEPROM. */
+        /* Initialize the RTL80x9 EEPROM. */
         memset(dev->eeprom, 0x00, sizeof(dev->eeprom));
 
         if (dev->board == NE2K_RTL8029AS) {
@@ -1138,7 +1158,7 @@ nic_init(const device_t *info)
             const char *pnp_rom_file = NULL;
             int pnp_rom_len = 0x4a;
             switch (dev->board) {
-                case NE2K_RTL8019AS:
+                case NE2K_RTL8019AS_PNP:
                     pnp_rom_file = "roms/network/rtl8019as/RTL8019A.BIN";
                     break;
 
@@ -1162,7 +1182,7 @@ nic_init(const device_t *info)
             }
 
             switch (info->local) {
-                case NE2K_RTL8019AS:
+                case NE2K_RTL8019AS_PNP:
                 case NE2K_DE220P:
                     dev->pnp_card = isapnp_add_card(pnp_rom, pnp_rom_len,
                                                     nic_pnp_config_changed, nic_pnp_csn_changed,
@@ -1214,14 +1234,14 @@ de220p_available(void)
 // clang-format off
 static const device_config_t ne1000_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x300", .value = 0x300 },
             { .description = "0x320", .value = 0x320 },
@@ -1229,16 +1249,17 @@ static const device_config_t ne1000_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1247,27 +1268,32 @@ static const device_config_t ne1000_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne1000_compat_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x200", .value = 0x200 },
             { .description = "0x220", .value = 0x220 },
@@ -1287,16 +1313,17 @@ static const device_config_t ne1000_compat_config[] = {
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1306,27 +1333,43 @@ static const device_config_t ne1000_compat_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "mac_oui",
+        .description    = "MAC Address OUI",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x300", .value = 0x300 },
             { .description = "0x320", .value = 0x320 },
@@ -1334,16 +1377,17 @@ static const device_config_t ne2000_config[] = {
             { .description = "0x360", .value = 0x360 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1352,43 +1396,49 @@ static const device_config_t ne2000_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
         .name = "bios_addr",
-        .description = "BIOS address",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "D000",     .value = 0xD0000 },
             { .description = "D800",     .value = 0xD8000 },
             { .description = "C800",     .value = 0xC8000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_compat_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file. */
             { .description = "0x200", .value = 0x200 },
             { .description = "0x220", .value = 0x220 },
@@ -1408,16 +1458,17 @@ static const device_config_t ne2000_compat_config[] = {
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 10,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 10,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: Windows 95 .INF file - not giving impossible IRQ's
                        such as 6, 8, or 13. */
             { .description = "IRQ 3",  .value =  3 },
@@ -1432,43 +1483,60 @@ static const device_config_t ne2000_compat_config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "mac_oui",
+        .description    = "MAC Address OUI",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "D000",     .value = 0xD0000 },
             { .description = "D800",     .value = 0xD8000 },
             { .description = "C800",     .value = 0xC8000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_compat_8bit_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: board docs, https://github.com/skiselev/isa8_eth */
             { .description = "0x200", .value = 0x200 },
             { .description = "0x220", .value = 0x220 },
@@ -1488,16 +1556,17 @@ static const device_config_t ne2000_compat_8bit_config[] = {
             { .description = "0x3e0", .value = 0x3e0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             /* Source: board docs, https://github.com/skiselev/isa8_eth */
             { .description = "IRQ 2",  .value =  2 },
             { .description = "IRQ 3",  .value =  3 },
@@ -1506,23 +1575,39 @@ static const device_config_t ne2000_compat_8bit_config[] = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = ""                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "mac_oui",
+        .description    = "MAC Address OUI",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
 			/* Source: board docs, https://github.com/skiselev/isa8_eth */
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C000",     .value = 0xC0000 },
@@ -1535,6 +1620,7 @@ static const device_config_t ne2000_compat_8bit_config[] = {
             { .description = "DC00",     .value = 0xDC000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -1542,40 +1628,56 @@ static const device_config_t ne2000_compat_8bit_config[] = {
 
 static const device_config_t rtl8019as_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t rtl8029as_config[] = {
     {
-        .name = "bios",
-        .description = "Enable BIOS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t mca_mac_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -1589,7 +1691,7 @@ const device_t ne1000_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ne1000_config
@@ -1603,7 +1705,7 @@ const device_t ne1000_compat_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ne1000_compat_config
@@ -1612,12 +1714,12 @@ const device_t ne1000_compat_device = {
 const device_t ne2000_device = {
     .name          = "Novell NE2000",
     .internal_name = "novell_ne2k",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = NE2K_NE2000,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ne2000_config
@@ -1626,12 +1728,12 @@ const device_t ne2000_device = {
 const device_t ne2000_compat_device = {
     .name          = "NE2000 Compatible",
     .internal_name = "ne2k",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = NE2K_NE2000_COMPAT,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ne2000_compat_config
@@ -1645,7 +1747,7 @@ const device_t ne2000_compat_8bit_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ne2000_compat_8bit_config
@@ -1659,21 +1761,21 @@ const device_t ethernext_mc_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mca_mac_config
 };
 
-const device_t rtl8019as_device = {
+const device_t rtl8019as_pnp_device = {
     .name          = "Realtek RTL8019AS",
     .internal_name = "ne2kpnp",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = NE2K_RTL8019AS,
+    .flags         = DEVICE_ISA16,
+    .local         = NE2K_RTL8019AS_PNP,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = rtl8019as_available },
+    .available     = rtl8019as_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = rtl8019as_config
@@ -1682,12 +1784,12 @@ const device_t rtl8019as_device = {
 const device_t de220p_device = {
     .name          = "D-Link DE-220P",
     .internal_name = "de220p",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = NE2K_DE220P,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = de220p_available },
+    .available     = de220p_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = rtl8019as_config
@@ -1701,7 +1803,7 @@ const device_t rtl8029as_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = rtl8029as_config

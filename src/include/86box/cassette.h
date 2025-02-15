@@ -153,10 +153,13 @@ void pc_cas_print_state(const pc_cassette_t *cas);
 void pc_cas_clock(pc_cassette_t *cas, unsigned long cnt);
 void pc_cas_advance(pc_cassette_t *cas);
 
+#define CASSETTE_IMAGE_HISTORY    10
+
 extern pc_cassette_t *cassette;
 
 extern char          cassette_fname[512];
 extern char          cassette_mode[512];
+extern char *        cassette_image_history[CASSETTE_IMAGE_HISTORY];
 extern unsigned long cassette_pos;
 extern unsigned long cassette_srate;
 extern int           cassette_enable;

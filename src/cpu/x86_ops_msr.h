@@ -1,5 +1,5 @@
 static int
-opRDTSC(uint32_t fetchdat)
+opRDTSC(UNUSED(uint32_t fetchdat))
 {
     if (!cpu_has_feature(CPU_FEATURE_RDTSC)) {
         cpu_state.pc = cpu_state.oldpc;
@@ -21,7 +21,7 @@ opRDTSC(uint32_t fetchdat)
 }
 
 static int
-opRDPMC(uint32_t fetchdat)
+opRDPMC(UNUSED(uint32_t fetchdat))
 {
     if (ECX > 1 || (!(cr4 & CR4_PCE) && (cr0 & 1) && CPL)) {
         x86gpf("RDPMC not allowed", 0);

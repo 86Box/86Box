@@ -15,7 +15,7 @@
 #include "codegen_ops_mov.h"
 
 uint32_t
-ropJMP_r8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropJMP_r8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -29,7 +29,7 @@ ropJMP_r8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     return dest_addr;
 }
 uint32_t
-ropJMP_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropJMP_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int16_t) fastreadw(cs + op_pc);
     uint32_t dest_addr = op_pc + 2 + offset;
@@ -42,7 +42,7 @@ ropJMP_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
     return dest_addr;
 }
 uint32_t
-ropJMP_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropJMP_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t offset    = fastreadl(cs + op_pc);
     uint32_t dest_addr = op_pc + 4 + offset;
@@ -54,7 +54,7 @@ ropJMP_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
 }
 
 uint32_t
-ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t new_pc = fastreadw(cs + op_pc);
     uint16_t new_cs = fastreadw(cs + op_pc + 2);
@@ -69,7 +69,7 @@ ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return -1;
 }
 uint32_t
-ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t new_pc = fastreadl(cs + op_pc);
     uint16_t new_cs = fastreadw(cs + op_pc + 4);
@@ -85,7 +85,7 @@ ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
 }
 
 uint32_t
-ropCALL_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropCALL_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int16_t) fastreadw(cs + op_pc);
     uint16_t ret_addr  = op_pc + 2;
@@ -104,7 +104,7 @@ ropCALL_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
     return -1;
 }
 uint32_t
-ropCALL_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropCALL_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint32_t offset    = fastreadl(cs + op_pc);
     uint32_t ret_addr  = op_pc + 4;
@@ -122,7 +122,7 @@ ropCALL_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
 }
 
 uint32_t
-ropRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -138,7 +138,7 @@ ropRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uin
     return -1;
 }
 uint32_t
-ropRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -154,7 +154,7 @@ ropRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uin
 }
 
 uint32_t
-ropRET_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropRET_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t offset = fastreadw(cs + op_pc);
 
@@ -173,7 +173,7 @@ ropRET_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     return -1;
 }
 uint32_t
-ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t offset = fastreadw(cs + op_pc);
 
@@ -192,7 +192,7 @@ ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
 }
 
 uint32_t
-ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
         return 0;
@@ -215,7 +215,7 @@ ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), ui
     return -1;
 }
 uint32_t
-ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
         return 0;
@@ -239,7 +239,7 @@ ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), ui
 }
 
 uint32_t
-ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t offset;
 
@@ -266,7 +266,7 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
     return -1;
 }
 uint32_t
-ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t offset;
 

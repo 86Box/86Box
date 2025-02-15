@@ -599,9 +599,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), val & 0xf);
                     if (dev->type == 3) {
                         if (val & 0x20)
-                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
-                        else
                             sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+                        else
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
                     }
                     piix_log("MIRQ%i is %s\n", addr & 0x01, (val & 0x20) ? "disabled" : "enabled");
                 }
@@ -1538,8 +1538,7 @@ piix_speed_changed(void *priv)
 static void *
 piix_init(const device_t *info)
 {
-    piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
-    memset(dev, 0, sizeof(piix_t));
+    piix_t *dev = (piix_t *) calloc(1, sizeof(piix_t));
 
     dev->type = info->local & 0x0f;
     /* If (dev->type == 4) and (dev->rev & 0x08), then this is PIIX4E. */
@@ -1674,7 +1673,7 @@ const device_t piix_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1688,7 +1687,7 @@ const device_t piix_no_mirq_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1702,7 +1701,7 @@ const device_t piix_rev02_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1716,7 +1715,7 @@ const device_t piix3_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1730,7 +1729,7 @@ const device_t piix3_ioapic_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1744,7 +1743,7 @@ const device_t piix4_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1758,7 +1757,7 @@ const device_t piix4e_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1772,7 +1771,7 @@ const device_t slc90e66_device = {
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = piix_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

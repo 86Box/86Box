@@ -104,23 +104,14 @@ struct unittester_state {
     /* 0x04: Exit */
     uint8_t exit_code;
 };
-static struct unittester_state       unittester;
-static const struct unittester_state unittester_defaults = {
+static struct unittester_state unittester;
+static struct unittester_state unittester_defaults = {
     .trigger_port = 0x0080,
     .iobase_port  = 0xFFFF,
     .fsm1         = UT_FSM1_WAIT_8,
     .fsm2         = UT_FSM2_IDLE,
     .status       = UT_STATUS_IDLE,
     .cmd_id       = UT_CMD_NOOP,
-};
-
-static const device_config_t unittester_config[] = {
-    { .name           = "exit_enabled",
-     .description    = "Enable 0x04 \"Exit 86Box\" command",
-     .type           = CONFIG_BINARY,
-     .default_int    = 1,
-     .default_string = "" },
-    { .type = CONFIG_END }
 };
 
 /* Kept separate, as we will be reusing this object */
@@ -589,7 +580,7 @@ unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 static void *
 unittester_init(UNUSED(const device_t *info))
 {
-    unittester = (struct unittester_state) unittester_defaults;
+    unittester = unittester_defaults;
 
     unittester_exit_enabled = !!device_get_config_int("exit_enabled");
 
@@ -620,6 +611,23 @@ unittester_close(UNUSED(void *priv))
     unittester_log("[UT] 86Box Unit Tester closed\n");
 }
 
+static const device_config_t unittester_config[] = {
+  // clang-format off
+    {
+        .name           = "exit_enabled",
+        .description    = "Enable 0x04 \"Exit 86Box\" command",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .default_string = NULL,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t unittester_device = {
     .name          = "86Box Unit Tester",
     .internal_name = "unittester",
@@ -628,7 +636,7 @@ const device_t unittester_device = {
     .init          = unittester_init,
     .close         = unittester_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = unittester_config,

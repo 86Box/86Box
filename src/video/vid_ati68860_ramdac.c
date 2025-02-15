@@ -74,16 +74,16 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 
     switch (addr) {
         case 0:
-            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2ec : 0x3c8, val, svga);
+            svga_out((dev && dev->on) ? 0x2ec : 0x3c8, val, svga);
             break;
         case 1:
-            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2ed : 0x3c9, val, svga);
+            svga_out((dev && dev->on) ? 0x2ed : 0x3c9, val, svga);
             break;
         case 2:
-            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2ea : 0x3c6, val, svga);
+            svga_out((dev && dev->on) ? 0x2ea : 0x3c6, val, svga);
             break;
         case 3:
-            svga_out((dev && (dev->on[0] || dev->on[1])) ? 0x2eb : 0x3c7, val, svga);
+            svga_out((dev && dev->on) ? 0x2eb : 0x3c7, val, svga);
             break;
         default:
             ramdac->regs[addr & 0xf] = val;
@@ -181,16 +181,16 @@ ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 
     switch (addr) {
         case 0:
-            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2ec : 0x3c8, svga);
+            temp = svga_in((dev && dev->on) ? 0x2ec : 0x3c8, svga);
             break;
         case 1:
-            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2ed : 0x3c9, svga);
+            temp = svga_in((dev && dev->on) ? 0x2ed : 0x3c9, svga);
             break;
         case 2:
-            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2ea : 0x3c6, svga);
+            temp = svga_in((dev && dev->on) ? 0x2ea : 0x3c6, svga);
             break;
         case 3:
-            temp = svga_in((dev && (dev->on[0] || dev->on[1])) ? 0x2eb : 0x3c7, svga);
+            temp = svga_in((dev && dev->on) ? 0x2eb : 0x3c7, svga);
             break;
         case 4:
         case 8:
@@ -314,7 +314,7 @@ const device_t ati68860_ramdac_device = {
     .init          = ati68860_ramdac_init,
     .close         = ati68860_ramdac_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

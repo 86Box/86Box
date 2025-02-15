@@ -298,8 +298,7 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 
     al_set_midi(samplerate, buf_size);
 
-    dev = malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    dev = calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = mt32_msg;
     dev->play_sysex = mt32_sysex;
@@ -378,42 +377,60 @@ mt32_close(void *priv)
 static const device_config_t mt32_config[] = {
   // clang-format off
     {
-        .name = "output_gain",
-        .description = "Output Gain",
-        .type = CONFIG_SPINNER,
-        .spinner = {
+        .name           = "output_gain",
+        .description    = "Output Gain",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 100,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min =   0,
+            .max = 100
+        },
+        .selection      = { { 0 } }
+    },
+    {
+        .name           = "reverb",
+        .description    = "Reverb",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } }
+    },
+    {
+        .name           = "reverb_output_gain",
+        .description    = "Reverb Output Gain",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 100,
+        .file_filter    = NULL,
+        .spinner        = {
             .min = 0,
             .max = 100
         },
-        .default_int = 100
+        .selection      = { { 0 } }
     },
     {
-        .name = "reverb",
-        .description = "Reverb",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "reversed_stereo",
+        .description    = "Reversed stereo",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } }
     },
     {
-        .name = "reverb_output_gain",
-        .description = "Reverb Output Gain",
-        .type = CONFIG_SPINNER,
-        .spinner = {
-            .min = 0,
-            .max = 100
-        },
-        .default_int = 100
-    },
-    {
-        .name = "reversed_stereo",
-        .description = "Reversed stereo",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
-    {
-        .name = "nice_ramp",
-        .description = "Nice ramp",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "nice_ramp",
+        .description    = "Nice ramp",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -427,7 +444,7 @@ const device_t mt32_old_device = {
     .init          = mt32_old_init,
     .close         = mt32_close,
     .reset         = NULL,
-    { .available = mt32_old_available },
+    .available     = mt32_old_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mt32_config
@@ -441,7 +458,7 @@ const device_t mt32_new_device = {
     .init          = mt32_new_init,
     .close         = mt32_close,
     .reset         = NULL,
-    { .available = mt32_new_available },
+    .available     = mt32_new_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mt32_config
@@ -455,7 +472,7 @@ const device_t cm32l_device = {
     .init          = cm32l_init,
     .close         = mt32_close,
     .reset         = NULL,
-    { .available = cm32l_available },
+    .available     = cm32l_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mt32_config
@@ -469,7 +486,7 @@ const device_t cm32ln_device = {
     .init          = cm32ln_init,
     .close         = mt32_close,
     .reset         = NULL,
-    { .available = cm32ln_available },
+    .available     = cm32ln_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mt32_config

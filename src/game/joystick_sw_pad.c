@@ -119,8 +119,7 @@ sw_parity(uint16_t data)
 static void *
 sw_init(void)
 {
-    sw_data *sw = (sw_data *) malloc(sizeof(sw_data));
-    memset(sw, 0, sizeof(sw_data));
+    sw_data *sw = (sw_data *) calloc(1, sizeof(sw_data));
 
     timer_add(&sw->poll_timer, sw_timer_over, sw, 0);
     timer_add(&sw->trigger_timer, sw_trigger_timer_over, sw, 0);
@@ -142,7 +141,7 @@ sw_read(void *priv)
     sw_data *sw   = (sw_data *) priv;
     uint8_t  temp = 0;
 
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return 0xff;
 
     if (timer_is_enabled(&sw->poll_timer)) {
@@ -168,7 +167,7 @@ sw_write(void *priv)
     sw_data *sw              = (sw_data *) priv;
     int64_t  time_since_last = timer_get_remaining_us(&sw->trigger_timer);
 
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return;
 
     if (!sw->poll_left) {
@@ -191,24 +190,24 @@ sw_write(void *priv)
                 sw->poll_data = 1;
             }
 
-            for (uint8_t c = 0; c < 4; c++) {
+            for (uint8_t js = 0; js < 4; js++) {
                 uint16_t data = 0x3fff;
 
-                if (!JOYSTICK_PRESENT(c))
+                if (!JOYSTICK_PRESENT(0, js))
                     break;
 
-                if (joystick_state[c].axis[1] < -16383)
+                if (joystick_state[0][js].axis[1] < -16383)
                     data &= ~1;
-                if (joystick_state[c].axis[1] > 16383)
+                if (joystick_state[0][js].axis[1] > 16383)
                     data &= ~2;
-                if (joystick_state[c].axis[0] > 16383)
+                if (joystick_state[0][js].axis[0] > 16383)
                     data &= ~4;
-                if (joystick_state[c].axis[0] < -16383)
+                if (joystick_state[0][js].axis[0] < -16383)
                     data &= ~8;
 
-                for (uint8_t b = 0; b < 10; b++) {
-                    if (joystick_state[c].button[b])
-                        data &= ~(1 << (b + 4));
+                for (uint8_t button_nr = 0; button_nr < 10; button_nr++) {
+                    if (joystick_state[0][js].button[button_nr])
+                        data &= ~(1 << (button_nr + 4));
                 }
 
                 if (sw_parity(data))
@@ -216,10 +215,10 @@ sw_write(void *priv)
 
                 if (sw->poll_mode) {
                     sw->poll_left += 5;
-                    sw->poll_data |= (data << (c * 15 + 3));
+                    sw->poll_data |= (data << (js * 15 + 3));
                 } else {
                     sw->poll_left += 15;
-                    sw->poll_data |= (data << (c * 15 + 1));
+                    sw->poll_data |= (data << (js * 15 + 1));
                 }
             }
         }
@@ -231,7 +230,7 @@ sw_write(void *priv)
 static int
 sw_read_axis(UNUSED(void *priv), UNUSED(int axis))
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     return 0; /*No analogue support on Sidewinder game pad*/

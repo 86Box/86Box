@@ -14,7 +14,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -357,7 +357,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
     mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, colorplus);
     io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
 
-    lpt3_init(0x3BC);
+    lpt3_setup(LPT_MDA_ADDR);
 
     return colorplus;
 }
@@ -382,52 +382,47 @@ colorplus_speed_changed(void *priv)
 static const device_config_t colorplus_config[] = {
   // clang-format off
     {
-        .name = "display_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = CGA_RGB,
-        .selection = {
-            {
-                .description = "RGB",
-                .value = CGA_RGB
-            },
-            {
-                .description = "Composite",
-                .value = CGA_COMPOSITE
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CGA_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "RGB",       .value = CGA_RGB       },
+            { .description = "Composite", .value = CGA_COMPOSITE },
+            { .description = ""                                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "composite_type",
-        .description = "Composite type",
-        .type = CONFIG_SELECTION,
-        .default_int = COMPOSITE_OLD,
-        .selection = {
-            {
-                .description = "Old",
-                .value = COMPOSITE_OLD
-            },
-            {
-                .description = "New",
-                .value = COMPOSITE_NEW
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "composite_type",
+        .description    = "Composite type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = COMPOSITE_OLD,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Old", .value = COMPOSITE_OLD },
+            { .description = "New", .value = COMPOSITE_NEW },
+            { .description = ""                            }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -439,7 +434,7 @@ const device_t colorplus_device = {
     .init          = colorplus_standalone_init,
     .close         = colorplus_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = colorplus_speed_changed,
     .force_redraw  = NULL,
     .config        = colorplus_config

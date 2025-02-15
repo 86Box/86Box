@@ -9,9 +9,21 @@
 #          CMake build script.
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 #
 
-add_library(mem OBJECT catalyst_flash.c i2c_eeprom.c intel_flash.c mem.c mmu_2386.c
-    rom.c row.c smram.c spd.c sst_flash.c)
+add_library(mem OBJECT
+    catalyst_flash.c
+    i2c_eeprom.c
+    intel_flash.c
+    mem.c
+    mmu_2386.c
+    rom.c
+    row.c
+    smram.c
+    spd.c
+    sst_flash.c
+)

@@ -1546,8 +1546,7 @@ buslogic_init(const device_t *info)
     dev      = x54x_init(info);
     dev->bus = scsi_get_bus();
 
-    dev->ven_data = malloc(sizeof(buslogic_data_t));
-    memset(dev->ven_data, 0x00, sizeof(buslogic_data_t));
+    dev->ven_data = calloc(1, sizeof(buslogic_data_t));
 
     bl = (buslogic_data_t *) dev->ven_data;
 
@@ -1781,14 +1780,14 @@ buslogic_init(const device_t *info)
 // clang-format off
 static const device_config_t BT_ISA_Config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x334,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x334,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x330", .value = 0x330 },
             { .description = "0x334", .value = 0x334 },
             { .description = "0x230", .value = 0x230 },
@@ -1797,16 +1796,17 @@ static const device_config_t BT_ISA_Config[] = {
             { .description = "0x134", .value = 0x134 },
             { .description = "",      .value =     0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 11,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 11,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 9",  .value =  9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
@@ -1815,48 +1815,55 @@ static const device_config_t BT_ISA_Config[] = {
             { .description = "IRQ 15", .value = 15 },
             { .description = "", 0                 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA channel",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
             { .description = "DMA 7", .value = 7 },
             { .description = "",      .value = 0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value =       0 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "D000H",    .value = 0xd0000 },
             { .description = "D800H",    .value = 0xd8000 },
             { .description = "",         .value =       0 }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t BT958D_Config[] = {
     {
-        .name = "bios",
-        .description = "Enable BIOS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -1865,12 +1872,12 @@ static const device_config_t BT958D_Config[] = {
 const device_t buslogic_542b_device = {
     .name          = "BusLogic BT-542B ISA",
     .internal_name = "bt542b",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = CHIP_BUSLOGIC_ISA_542B_1991_12_14,
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT_ISA_Config
@@ -1879,12 +1886,12 @@ const device_t buslogic_542b_device = {
 const device_t buslogic_545s_device = {
     .name          = "BusLogic BT-545S ISA",
     .internal_name = "bt545s",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = CHIP_BUSLOGIC_ISA_545S_1992_10_05,
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT_ISA_Config
@@ -1893,12 +1900,12 @@ const device_t buslogic_545s_device = {
 const device_t buslogic_542bh_device = {
     .name          = "BusLogic BT-542BH ISA",
     .internal_name = "bt542bh",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = CHIP_BUSLOGIC_ISA_542BH_1993_05_23,
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT_ISA_Config
@@ -1907,12 +1914,12 @@ const device_t buslogic_542bh_device = {
 const device_t buslogic_545c_device = {
     .name          = "BusLogic BT-545C ISA",
     .internal_name = "bt545c",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = CHIP_BUSLOGIC_ISA_545C_1994_12_01,
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT_ISA_Config
@@ -1926,7 +1933,7 @@ const device_t buslogic_640a_device = {
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1940,7 +1947,7 @@ const device_t buslogic_445s_device = {
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT_ISA_Config
@@ -1954,7 +1961,7 @@ const device_t buslogic_445c_device = {
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT_ISA_Config
@@ -1968,7 +1975,7 @@ const device_t buslogic_958d_pci_device = {
     .init          = buslogic_init,
     .close         = x54x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = BT958D_Config

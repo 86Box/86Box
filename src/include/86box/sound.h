@@ -109,6 +109,8 @@ extern void givealbuffer_wt(const void *buf);
 extern void givealbuffer_cd(const void *buf);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16xv_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);
 
 #ifdef EMU_DEVICE_H
@@ -143,26 +145,34 @@ extern const device_t sb_pro_v2_device;
 extern const device_t sb_pro_mcv_device;
 extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
-extern const device_t sb_vibra16s_onboard_device;
-extern const device_t sb_vibra16s_device;
-extern const device_t sb_vibra16xv_device;
 extern const device_t sb_vibra16c_onboard_device;
 extern const device_t sb_vibra16c_device;
+extern const device_t sb_vibra16cl_onboard_device;
+extern const device_t sb_vibra16cl_device;
+extern const device_t sb_vibra16s_onboard_device;
+extern const device_t sb_vibra16s_device;
+extern const device_t sb_vibra16xv_onboard_device;
+extern const device_t sb_vibra16xv_device;
 extern const device_t sb_16_pnp_device;
+extern const device_t sb_16_pnp_ide_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;
 extern const device_t sb_16_reply_mca_device;
+extern const device_t sb_goldfinch_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
 extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
+extern const device_t sb_awe64_ide_device;
 extern const device_t sb_awe64_gold_device;
 
 /* Crystal CS423x */
 extern const device_t cs4235_device;
 extern const device_t cs4235_onboard_device;
+extern const device_t cs4236_onboard_device;
 extern const device_t cs4236b_device;
+extern const device_t cs4236b_onboard_device;
 extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;
 
@@ -177,6 +187,7 @@ extern const device_t ess_soundpiper_32_mca_device;
 extern const device_t ess_chipchat_16_mca_device;
 
 /* Ensoniq AudioPCI */
+extern const device_t es1370_device;
 extern const device_t es1371_device;
 extern const device_t es1371_onboard_device;
 extern const device_t es1373_device;
@@ -192,6 +203,7 @@ extern const device_t ps1snd_device;
 
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;
+extern const device_t entertainer_device;
 
 /* Pro Audio Spectrum Plus, 16, and 16D */
 extern const device_t pasplus_device;
@@ -208,6 +220,11 @@ extern const device_t tndy_device;
 /* Windows Sound System */
 extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
+
+#ifdef USE_LIBSERIALPORT
+/* External Audio device OPL2Board (Host Connected hardware)*/
+extern const device_t opl2board_device;
+#endif 
 
 #endif
 

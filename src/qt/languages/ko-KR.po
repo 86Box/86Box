@@ -390,8 +390,11 @@ msgstr "동적 재컴파일"
 msgid "Video:"
 msgstr "비디오 카드:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo 그래픽"
+msgid "Video 2:"
+msgstr "비디오 카드 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo 1 또는 2 그래픽"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A 그래픽"
@@ -637,7 +640,7 @@ msgid "Fatal error"
 msgstr "치명적인 오류"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - 일시 중지됨"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
@@ -683,6 +686,12 @@ msgstr "roms/machines 디렉토리에 필요한 롬파일이 없어 기종 \"%hs
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 \"%hs\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
+
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 2 \"%hs\"을(를) 사용할 수 없습니다. 두 번째 비디오 카드를 비활성화합니다."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "필요한 롬파일이 없어 장치 \"%hs\"을(를) 사용할 수 없습니다. 장치를 무시합니다."
 
 msgid "Machine"
 msgstr "기종"
@@ -762,17 +771,26 @@ msgstr "PCap 장치가 없습니다"
 msgid "Invalid PCap device"
 msgstr "PCap 장치가 올바르지 않습니다"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "표준 2버튼 조이스틱"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "2축, 2버튼 조이스틱"
 
-msgid "Standard 4-button joystick"
-msgstr "표준 4버튼 조이스틱"
+msgid "2-axis, 4-button joystick"
+msgstr "2축, 4버튼 조이스틱"
 
-msgid "Standard 6-button joystick"
-msgstr "표준 6버튼 조이스틱"
+msgid "2-axis, 6-button joystick"
+msgstr "2축, 6버튼 조이스틱"
 
-msgid "Standard 8-button joystick"
-msgstr "표준 8버튼 조이스틱"
+msgid "2-axis, 8-button joystick"
+msgstr "2축, 8버튼 조이스틱"
+
+msgid "3-axis, 2-button joystick"
+msgstr "3축, 2버튼 조이스틱"
+
+msgid "3-axis, 4-button joystick"
+msgstr "3축, 4버튼 조이스틱"
+
+msgid "4-axis, 4-button joystick"
+msgstr "4축, 4버튼 조이스틱"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -807,6 +825,9 @@ msgstr "86Box를 끝내시겠습니까?"
 msgid "Unable to initialize Ghostscript"
 msgstr "Ghostscript를 초기화할 수 없습니다"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "GhostPCL를 초기화할 수 없습니다"
+
 msgid "MO %i (%ls): %ls"
 msgstr "광자기 %i (%ls): %ls"
 
@@ -816,8 +837,8 @@ msgstr "광자기 이미지"
 msgid "Welcome to 86Box!"
 msgstr "86Box에 어서오세요!"
 
-msgid "Internal controller"
-msgstr "내부 컨트롤러"
+msgid "Internal device"
+msgstr "내부 장치"
 
 msgid "Exit"
 msgstr "끝내기"
@@ -841,7 +862,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public 라이선스 (버전 2 이상)에 의해 배포되었습니다. 자세한 내용은 LICENSE 파일을 읽어 주세요."
+msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\n이전 핵심 기여자로는 Sarah Walker, leilei, JohnElliott, greatpsycho 등이 있습니다.\n\nGNU General Public 라이선스 (버전 2 이상)에 의해 배포되었습니다. 자세한 내용은 LICENSE 파일을 읽어 주세요."
 
 msgid "Hardware not available"
 msgstr "하드웨어를 이용할 수 없습니다"
@@ -854,6 +875,9 @@ msgstr "올바르지 않은 설정입니다"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "%1은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1은(는) PCL 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PCL 프린터로 보내신 임의의 문서는 Printer Command Language (.pcl) 파일로 저장됩니다."
 
 msgid "Entering fullscreen mode"
 msgstr "전체 화면으로 전환"
@@ -999,6 +1023,27 @@ msgstr "덮어쓰기"
 msgid "Don't overwrite"
 msgstr "덮어쓰지 않음"
 
+msgid "Raw image"
+msgstr "Raw 이미지"
+
+msgid "HDI image"
+msgstr "HDI 이미지"
+
+msgid "HDX image"
+msgstr "HDX 이미지"
+
+msgid "Fixed-size VHD"
+msgstr "고정 사이즈 VHD"
+
+msgid "Dynamic-size VHD"
+msgstr "동적 사이즈 VHD"
+
+msgid "Differencing VHD"
+msgstr "디퍼런싱 VHD"
+
+msgid "(N/A)"
+msgstr "(해당 없음)"
+
 msgid "Raw image (.img)"
 msgstr "Raw 이미지 (.img)"
 
@@ -1056,23 +1101,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1.2 MB"
@@ -1172,3 +1217,915 @@ msgstr "WinBox는 더 이상 지원되지 않습니다"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "WinBox 매니저의 개발은 유지 관리자의 부족으로 인해 2022년에 중단되었습니다. 86Box를 더욱 개선하기 위한 노력의 일환으로 WinBox 매니저를 더 이상 지원하지 않기로 결정했습니다.\n\nWinBox를 통해 더 이상의 업데이트는 제공되지 않으며, 최신 버전의 86Box를 계속 사용할 경우 잘못된 동작이 발생할 수 있습니다. WinBox 동작과 관련된 모든 버그 보고는 유효하지 않은 것으로 종료됩니다.\n\n사용할 수 있는 다른 관리자 목록을 보려면 86box.net으로 이동하세요."
+
+msgid "Generate"
+msgstr "생성"
+
+msgid "Joystick configuration"
+msgstr "조이스틱 구성"
+
+msgid "Device"
+msgstr "장치"
+
+msgid "%1 (X axis)"
+msgstr "1(X 축)"
+
+msgid "%1 (Y axis)"
+msgstr "1(Y 축)"
+
+msgid "MCA devices"
+msgstr "MCA 장치"
+
+msgid "List of MCA devices:"
+msgstr "MCA 장치 목록:"
+
+msgid "Tablet tool"
+msgstr "태블릿 도구"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt(OpenGL &ES)"
+
+msgid "About Qt"
+msgstr "Qt 소개"
+
+msgid "MCA devices..."
+msgstr "MCA 장치..."
+
+msgid "Show non-primary monitors"
+msgstr "기본 모니터가 아닌 모니터 표시"
+
+msgid "Open screenshots folder..."
+msgstr "스크린샷 폴더 열기..."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "최대화 시 전체 화면 비율 적용"
+
+msgid "Cursor/Puck"
+msgstr "커서/퍽"
+
+msgid "Pen"
+msgstr "펜"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "호스트 CD/DVD 드라이브(%1:)"
+
+msgid "&Connected"
+msgstr "&커넥티드"
+
+msgid "Clear image history"
+msgstr "이미지 기록 지우기"
+
+msgid "Create..."
+msgstr "만들기..."
+
+msgid "previous image"
+msgstr "이전 이미지"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "호스트 CD/DVD 드라이브 (%1)"
+
+msgid "Unknown Bus"
+msgstr "알 수 없는 버스"
+
+msgid "Null Driver"
+msgstr "Null 드라이버"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "열기 오류 \"%1\": %2"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "파일 \"%1\"에서 버텍스 셰이더를 컴파일하는 동안 오류가 발생했습니다."
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "파일에서 조각 셰이더 컴파일 중 오류 발생 \"%1\""
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "파일에서 셰이더 프로그램 연결 중 오류 \"%1\"\""
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "OpenGL 3.0 렌더러 옵션"
+
+msgid "Render behavior"
+msgstr "렌더링 동작"
+
+msgid "Use target framerate:"
+msgstr "목표 프레임 레이트를 사용합니다:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;;에뮬레이트된 디스플레이와 동기화하여 각 프레임을 즉시 렌더링합니다.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;사용 중인 셰이더가 애니메이션 효과에 프레임 시간을 활용하지 않는 경우 권장되는 옵션입니다.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "비디오와 동기"
+
+msgid "Shaders"
+msgstr "셰이더"
+
+msgid "Remove"
+msgstr "제거"
+
+msgid "No shader selected"
+msgstr "셰이더를 선택하지 않음"
+
+msgid "Browse..."
+msgstr "찾아보기..."
+
+msgid "Shader error"
+msgstr "셰이더 오류"
+
+msgid "Could not load shaders."
+msgstr "셰이더를 로드할 수 없습니다."
+
+msgid "More information in details."
+msgstr "자세한 내용은 자세히 알아보세요."
+
+msgid "Couldn't create OpenGL context."
+msgstr "OpenGL 컨텍스트를 만들 수 없습니다."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다."
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "OpenGL 초기화에 실패했습니다. 오류 %1입니다."
+
+msgid "Error initializing OpenGL"
+msgstr "OpenGL 초기화 중 오류 발생"
+
+msgid "Falling back to software rendering.\n"
+msgstr "소프트웨어 렌더링으로 돌아가기.\n"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "압축 해제 버퍼에 메모리를 할당하지 못했습니다.\n"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;미디어 이미지(CD-ROM, 플로피 등)를 선택하면 86Box 구성 파일과 동일한 디렉터리에서 열기 대화 상자가 시작됩니다. 이 설정은 macOS에서만 차이가 있을 수 있습니다.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "This machine might have been moved or copied."
+msgstr "이 컴퓨터가 이동되었거나 복사되었을 수 있습니다."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "적절한 네트워킹 기능을 보장하기 위해 86Box는 이 머신이 이동 또는 복사되었는지 여부를 알아야 합니다.\n\n확실하지 않은 경우 \"복사했습니다\"를 선택합니다."
+
+msgid "I Moved It"
+msgstr "옮겼어요"
+
+msgid "I Copied It"
+msgstr "복사했습니다"
+
+msgid "86Box Monitor #"
+msgstr "86Box 모니터 "
+
+msgid "No MCA devices."
+msgstr "MCA 장치가 없습니다."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "Network Card #1"
+msgstr "네트워크 카드 1"
+
+msgid "Network Card #2"
+msgstr "네트워크 카드 2"
+
+msgid "Network Card #3"
+msgstr "네트워크 카드 3"
+
+msgid "Network Card #4"
+msgstr "네트워크 카드 4"
+
+msgid "Mode"
+msgstr "모드"
+
+msgid "Interface"
+msgstr "인터페이스"
+
+msgid "Adapter"
+msgstr "어댑터"
+
+msgid "VDE Socket"
+msgstr "VDE 소켓"
+
+msgid "86Box Unit Tester"
+msgstr "86Box 유닛 테스터"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Novell NetWare 2.x 키 카드"
+
+msgid "Serial port passthrough 1"
+msgstr "직렬 포트 패스스루 1"
+
+msgid "Serial port passthrough 2"
+msgstr "직렬 포트 패스스루 2"
+
+msgid "Serial port passthrough 3"
+msgstr "직렬 포트 패스스루 3"
+
+msgid "Serial port passthrough 4"
+msgstr "직렬 포트 패스스루 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "비전 시스템 LBA 인핸서"
+
+msgid "Renderer options..."
+msgstr "렌더러 옵션..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "로지텍/마이크로소프트 버스 마우스"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "마이크로소프트 버스 마우스(인포트)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "마우스 시스템 시리얼 마우스"
+
+msgid "Microsoft Serial Mouse"
+msgstr "마이크로소프트 직렬 마우스"
+
+msgid "Logitech Serial Mouse"
+msgstr "로지텍 직렬 마우스"
+
+msgid "PS/2 Mouse"
+msgstr "PS/2 마우스"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M 마이크로터치(직렬)"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] 표준 헤이즈 호환 모뎀"
+
+msgid "Roland MT-32 Emulation"
+msgstr "롤랜드 MT-32 에뮬레이션"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "롤랜드 MT-32(신규) 에뮬레이션"
+
+msgid "Roland CM-32L Emulation"
+msgstr "롤랜드 CM-32L 에뮬레이션"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "롤랜드 CM-32LN 에뮬레이션"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "OPL4-ML 도터보드"
+
+msgid "System MIDI"
+msgstr "시스템 미디"
+
+msgid "MIDI Input Device"
+msgstr "미디 입력 장치"
+
+msgid "BIOS Address"
+msgstr "BIOS 주소"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "BIOS 확장 ROM 쓰기 활성화"
+
+msgid "Address"
+msgstr "주소"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "BIOS Revision"
+msgstr "BIOS 개정"
+
+msgid "Translate 26 -> 17"
+msgstr "번역 26 -> 17"
+
+msgid "Language"
+msgstr "언어"
+
+msgid "Enable backlight"
+msgstr "백라이트 사용"
+
+msgid "Invert colors"
+msgstr "색상 반전"
+
+msgid "BIOS size"
+msgstr "BIOS 크기"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "C0000-C7FFF를 UMB로 매핑하기"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "C8000-CFFFF를 UMB로 매핑하기"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "D0000-D7FFF를 UMB로 매핑하기"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "D8000-DFFFF를 UMB로 매핑하기"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "E0000-E7FFF를 UMB로 매핑하기"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "E8000-EFFFF를 UMB로 매핑하기"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "JS9 점퍼(JIM)"
+
+msgid "MIDI Output Device"
+msgstr "미디 출력 장치"
+
+msgid "MIDI Real time"
+msgstr "실시간 MIDI"
+
+msgid "MIDI Thru"
+msgstr "미디 입력 패스스루"
+
+msgid "MIDI Clockout"
+msgstr "미디 클럭 출력"
+
+msgid "SoundFont"
+msgstr "사운드 글꼴"
+
+msgid "Output Gain"
+msgstr "출력 게인"
+
+msgid "Chorus"
+msgstr "코러스"
+
+msgid "Chorus Voices"
+msgstr "코러스 보이스"
+
+msgid "Chorus Level"
+msgstr "코러스 레벨"
+
+msgid "Chorus Speed"
+msgstr "코러스 속도"
+
+msgid "Chorus Depth"
+msgstr "코러스 깊이"
+
+msgid "Chorus Waveform"
+msgstr "코러스 파형"
+
+msgid "Reverb"
+msgstr "리버브"
+
+msgid "Reverb Room Size"
+msgstr "리버브 룸의 크기"
+
+msgid "Reverb Damping"
+msgstr "리버브 댐핑"
+
+msgid "Reverb Width"
+msgstr "리버브 폭"
+
+msgid "Reverb Level"
+msgstr "리버브 레벨"
+
+msgid "Interpolation Method"
+msgstr "보간 방법"
+
+msgid "Reverb Output Gain"
+msgstr "리버브 출력의 게인"
+
+msgid "Reversed stereo"
+msgstr "리버시블 스테레오"
+
+msgid "Nice ramp"
+msgstr "멋진 경사로"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "버튼"
+
+msgid "Serial Port"
+msgstr "직렬 포트"
+
+msgid "RTS toggle"
+msgstr "RTS 토글"
+
+msgid "Revision"
+msgstr "개정"
+
+msgid "Controller"
+msgstr "컨트롤러"
+
+msgid "Show Crosshair"
+msgstr "십자선 표시"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "MAC 주소"
+
+msgid "MAC Address OUI"
+msgstr "MAC 주소 OUI"
+
+msgid "Enable BIOS"
+msgstr "BIOS 활성화"
+
+msgid "Baud Rate"
+msgstr "전송 속도"
+
+msgid "TCP/IP listening port"
+msgstr "TCP/IP 수신 포트"
+
+msgid "Phonebook File"
+msgstr "전화번호부 파일"
+
+msgid "Telnet emulation"
+msgstr "텔넷 에뮬레이션"
+
+msgid "RAM Address"
+msgstr "RAM 주소"
+
+msgid "RAM size"
+msgstr "RAM 크기"
+
+msgid "Initial RAM size"
+msgstr "초기 RAM 크기"
+
+msgid "Serial Number"
+msgstr "일련 번호"
+
+msgid "Host ID"
+msgstr "호스트 ID"
+
+msgid "FDC Address"
+msgstr "FDC 주소"
+
+msgid "MPU-401 Address"
+msgstr "MPU-401 주소"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401 IRQ"
+
+msgid "Receive MIDI input"
+msgstr "미디 입력 받기"
+
+msgid "Low DMA"
+msgstr "낮은 DMA"
+
+msgid "Enable Game port"
+msgstr "게임 포트 사용"
+
+msgid "Surround module"
+msgstr "서라운드 모듈"
+
+msgid "CODEC"
+msgstr "코덱"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "코덱 설정 시 코덱 인터럽트 올리기(일부 드라이버에 필요)"
+
+msgid "SB Address"
+msgstr "SB 주소"
+
+msgid "WSS IRQ"
+msgstr "WSS IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS DMA"
+
+msgid "Enable OPL"
+msgstr "OPL 사용"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "미디 입력 수신(MPU-401)"
+
+msgid "SB low DMA"
+msgstr "SB 낮은 DMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "6채널 변형(6채널)"
+
+msgid "Enable CMS"
+msgstr "CMS 사용"
+
+msgid "Mixer"
+msgstr "믹서"
+
+msgid "High DMA"
+msgstr "높은 DMA"
+
+msgid "Control PC speaker"
+msgstr "PC 스피커 제어"
+
+msgid "Memory size"
+msgstr "메모리 크기"
+
+msgid "EMU8000 Address"
+msgstr "EMU8000 주소"
+
+msgid "IDE Controller"
+msgstr "IDE 컨트롤러"
+
+msgid "Codec"
+msgstr "코덱"
+
+msgid "GUS type"
+msgstr "GUS 유형"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "명령 0x04 활성화 \"86Box 종료\""
+
+msgid "Display type"
+msgstr "디스플레이 유형"
+
+msgid "Composite type"
+msgstr "복합 유형"
+
+msgid "RGB type"
+msgstr "RGB 유형"
+
+msgid "Line doubling type"
+msgstr "라인 두 배 유형"
+
+msgid "Snow emulation"
+msgstr "눈 에뮬레이션"
+
+msgid "Monitor type"
+msgstr "모니터 유형"
+
+msgid "Character set"
+msgstr "문자 집합"
+
+msgid "XGA type"
+msgstr "XGA 유형"
+
+msgid "Instance"
+msgstr "인스턴스"
+
+msgid "MMIO Address"
+msgstr "MMIO 주소"
+
+msgid "RAMDAC type"
+msgstr "램닥 유형"
+
+msgid "Blend"
+msgstr "블렌드"
+
+msgid "Bilinear filtering"
+msgstr "이중선형 필터링"
+
+msgid "Dithering"
+msgstr "디더링"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "CGA 에뮬레이션을 위한 NMI 활성화"
+
+msgid "Voodoo type"
+msgstr "부두 유형"
+
+msgid "Framebuffer memory size"
+msgstr "프레임버퍼 메모리 크기"
+
+msgid "Texture memory size"
+msgstr "텍스처 메모리 크기"
+
+msgid "Dither subtraction"
+msgstr "디더 빼기"
+
+msgid "Screen Filter"
+msgstr "화면 필터"
+
+msgid "Render threads"
+msgstr "렌더 스레드"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "시작 주소"
+
+msgid "Contiguous Size"
+msgstr "연속 크기"
+
+msgid "I/O Width"
+msgstr "I/O 폭"
+
+msgid "Transfer Speed"
+msgstr "전송 속도"
+
+msgid "EMS mode"
+msgstr "EMS 모드"
+
+msgid "Address for > 2 MB"
+msgstr "2MB 이상의 주소"
+
+msgid "Frame Address"
+msgstr "프레임 주소"
+
+msgid "USA"
+msgstr "미국"
+
+msgid "Danish"
+msgstr "덴마크어"
+
+msgid "Always at selected speed"
+msgstr "항상 선택한 속도로"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "BIOS 설정 + 핫키(POST 중 꺼짐)"
+
+msgid "64 kB starting from F0000"
+msgstr "64kB부터 F0000"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "E0000에서 시작하는 128kB(주소 MSB 반전, 마지막 64KB 먼저)"
+
+msgid "Sine"
+msgstr "사인"
+
+msgid "Triangle"
+msgstr "삼각형"
+
+msgid "Linear"
+msgstr "선형"
+
+msgid "4th Order"
+msgstr "4차 주문"
+
+msgid "7th Order"
+msgstr "7차 주문"
+
+msgid "Non-timed (original)"
+msgstr "타이머 없음(원본)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45Hz(JMP2에서 점퍼 없음)"
+
+msgid "Two"
+msgstr "Two"
+
+msgid "Three"
+msgstr "세"
+
+msgid "Wheel"
+msgstr "휠"
+
+msgid "Five + Wheel"
+msgstr "5개 + 휠"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 직렬/SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) 직렬"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "BIOS 비활성화"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2MB"
+
+msgid "8 MB"
+msgstr "8MB"
+
+msgid "28 MB"
+msgstr "28MB"
+
+msgid "1 MB"
+msgstr "1MB"
+
+msgid "4 MB"
+msgstr "4MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16MB"
+
+msgid "20 MB"
+msgstr "20MB"
+
+msgid "24 MB"
+msgstr "24MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "시그마텔 STAC9721T(스테레오)"
+
+msgid "Classic"
+msgstr "클래식"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "합성"
+
+msgid "Old"
+msgstr "Old"
+
+msgid "New"
+msgstr "신규"
+
+msgid "Color (generic)"
+msgstr "색상(일반)"
+
+msgid "Green Monochrome"
+msgstr "녹색 단색"
+
+msgid "Amber Monochrome"
+msgstr "앰버 모노크롬"
+
+msgid "Gray Monochrome"
+msgstr "회색 단색"
+
+msgid "Color (no brown)"
+msgstr "색상(갈색 없음)"
+
+msgid "Color (IBM 5153)"
+msgstr "색상(IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "간단한 두 배로 늘리기"
+
+msgid "sRGB interpolation"
+msgstr "sRGB 보간"
+
+msgid "Linear interpolation"
+msgstr "선형 보간"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "흑백(5151/MDA)(흰색)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "흑백(5151/MDA)(녹색)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "흑백(5151/MDA)(호박색)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "컬러 40x25(5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "컬러 80x25(5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "향상된 색상 - 일반 모드(5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "향상된 색상 - 향상된 모드(5154/ECD)"
+
+msgid "Green"
+msgstr "녹색"
+
+msgid "Amber"
+msgstr "Amber"
+
+msgid "Gray"
+msgstr "회색"
+
+msgid "Color"
+msgstr "색상"
+
+msgid "U.S. English"
+msgstr "미국 영어"
+
+msgid "Scandinavian"
+msgstr "스칸디나비아"
+
+msgid "Other languages"
+msgstr "기타 언어"
+
+msgid "Bochs latest"
+msgstr "Bochs 최신 정보"
+
+msgid "Mono Non-Interlaced"
+msgstr "모노 비인터레이스"
+
+msgid "Color Interlaced"
+msgstr "컬러 인터레이스"
+
+msgid "Color Non-Interlaced"
+msgstr "비인터레이스 컬러"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx 부두 그래픽"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "옵시디언 SB50 + 자수정(TMU 2개)"
+
+msgid "8-bit"
+msgstr "8비트"
+
+msgid "16-bit"
+msgstr "16비트"
+
+msgid "Standard (150ns)"
+msgstr "표준(150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "고속(120ns)"
+
+msgid "Enabled"
+msgstr "활성화됨"
+
+msgid "Standard"
+msgstr "표준"
+
+msgid "High-Speed"
+msgstr "고속"
+
+msgid "Stereo LPT DAC"
+msgstr "스테레오 LPT DAC"
+
+msgid "Generic Text Printer"
+msgstr "일반 텍스트 프린터"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "일반 ESC/P 도트 매트릭스 프린터"
+
+msgid "Generic PostScript Printer"
+msgstr "일반 포스트스크립트 프린터"
+
+msgid "Generic PCL5e Printer"
+msgstr "일반 PCL5e 프린터"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "병렬 인터넷 프로토콜"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "새비지 퀘스트용 보호 동글"
+
+msgid "Serial Passthrough Device"
+msgstr "직렬 포트 패스스루 장치"
+
+msgid "Passthrough Mode"
+msgstr "패스스루 모드"
+
+msgid "Host Serial Device"
+msgstr "호스트 직렬 장치"
+
+msgid "Name of pipe"
+msgstr "파이프 이름"
+
+msgid "Data bits"
+msgstr "데이터 비트"
+
+msgid "Stop bits"
+msgstr "비트 중지"
+
+msgid "Baud Rate of Passthrough"
+msgstr "통과 속도"
+
+msgid "Named Pipe (Server)"
+msgstr "네임드 파이프(서버)"
+
+msgid "Host Serial Passthrough"
+msgstr "호스트 직렬 포트 패스스루"
+
+msgid "Eject %s"
+msgstr "%s 꺼내기"
+
+msgid "&Unmute"
+msgstr "음소거 해제(&U)"
+
+msgid "Softfloat FPU"
+msgstr "소프트플로트 FPU"
+
+msgid "High performance impact"
+msgstr "성능에 미치는 영향"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM 디스크(최대 속도)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A 클론(ISA)"
+
+msgid "Vendor"
+msgstr "제조사"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "일반 PC/XT 메모리 확장 카드"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "일반 PC/AT 메모리 확장 카드"

@@ -77,7 +77,7 @@ lpt1_handler(pc87332_t *dev)
     }
 
     if (lpt_port)
-        lpt1_init(lpt_port);
+        lpt1_setup(lpt_port);
 
     lpt1_irq(lpt_irq);
 }
@@ -323,8 +323,7 @@ pc87332_close(void *priv)
 static void *
 pc87332_init(const device_t *info)
 {
-    pc87332_t *dev = (pc87332_t *) malloc(sizeof(pc87332_t));
-    memset(dev, 0, sizeof(pc87332_t));
+    pc87332_t *dev = (pc87332_t *) calloc(1, sizeof(pc87332_t));
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 
@@ -354,7 +353,7 @@ const device_t pc87332_device = {
     .init          = pc87332_init,
     .close         = pc87332_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -368,7 +367,7 @@ const device_t pc87332_398_device = {
     .init          = pc87332_init,
     .close         = pc87332_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -382,7 +381,7 @@ const device_t pc87332_398_ide_device = {
     .init          = pc87332_init,
     .close         = pc87332_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -396,7 +395,7 @@ const device_t pc87332_398_ide_sec_device = {
     .init          = pc87332_init,
     .close         = pc87332_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -410,7 +409,7 @@ const device_t pc87332_398_ide_fdcon_device = {
     .init          = pc87332_init,
     .close         = pc87332_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -571,110 +571,80 @@ oti067_m300_available(void)
 // clang-format off
 static const device_config_t oti067_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t oti067_ama932j_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 256,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 256,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t oti077_acer100t_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t oti077_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -686,7 +656,7 @@ const device_t oti037c_device = {
     .init          = oti_init,
     .close         = oti_close,
     .reset         = NULL,
-    { .available = oti037c_available },
+    .available     = oti037c_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .config        = NULL
@@ -700,7 +670,7 @@ const device_t oti067_device = {
     .init          = oti_init,
     .close         = oti_close,
     .reset         = NULL,
-    { .available = oti067_077_available },
+    .available     = oti067_077_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .config        = oti067_config
@@ -714,7 +684,7 @@ const device_t oti067_m300_device = {
     .init          = oti_init,
     .close         = oti_close,
     .reset         = NULL,
-    { .available = oti067_m300_available },
+    .available     = oti067_m300_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .config        = oti067_config
@@ -728,7 +698,7 @@ const device_t oti067_ama932j_device = {
     .init          = oti_init,
     .close         = oti_close,
     .reset         = NULL,
-    { .available = oti067_ama932j_available },
+    .available     = oti067_ama932j_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .config        = oti067_ama932j_config
@@ -742,7 +712,7 @@ const device_t oti077_acer100t_device = {
     .init          = oti_init,
     .close         = oti_close,
     .reset         = NULL,
-    { .available = oti077_acer100t_available },
+    .available     = oti077_acer100t_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .config        = oti077_acer100t_config
@@ -757,7 +727,7 @@ const device_t oti077_device = {
     .init          = oti_init,
     .close         = oti_close,
     .reset         = NULL,
-    { .available = oti067_077_available },
+    .available     = oti067_077_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .config        = oti077_config

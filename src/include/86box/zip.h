@@ -13,7 +13,7 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2018-2019 Miran Grca.
+ *          Copyright 2018-2025 Miran Grca.
  */
 
 #ifndef EMU_ZIP_H
@@ -29,7 +29,7 @@
 
 #define ZIP_250_SECTORS (489532)
 
-#define ZIP_IMAGE_HISTORY 4
+#define ZIP_IMAGE_HISTORY 10
 
 enum {
     ZIP_BUS_DISABLED = 0,
@@ -39,85 +39,79 @@ enum {
 };
 
 typedef struct zip_drive_t {
-    uint8_t id;
+    uint8_t            id;
 
     union {
-        uint8_t res;
-        uint8_t res0; /* Reserved for other ID's. */
-        uint8_t res1;
-        uint8_t ide_channel;
-        uint8_t scsi_device_id;
+        uint8_t            res;
+        /* Reserved for other ID's. */
+        uint8_t            res0;
+        uint8_t            res1;
+        uint8_t            ide_channel;
+        uint8_t            scsi_device_id;
     };
 
-    uint8_t bus_type;  /* 0 = ATAPI, 1 = SCSI */
-    uint8_t bus_mode;  /* Bit 0 = PIO suported;
-                          Bit 1 = DMA supportd. */
-    uint8_t read_only; /* Struct variable reserved for
-                          media status. */
-    uint8_t pad;
-    uint8_t pad0;
+    uint8_t            bus_type;  /* 0 = ATAPI, 1 = SCSI */
+    uint8_t            bus_mode;  /* Bit 0 = PIO suported;
+                                     Bit 1 = DMA supportd. */
+    uint8_t            read_only; /* Struct variable reserved for
+                                     media status. */
+    uint8_t            pad;
+    uint8_t            pad0;
 
-    FILE *fp;
-    void *priv;
+    FILE *             fp;
+    void *             priv;
 
-    char image_path[1024];
-    char prev_image_path[1024];
+    char               image_path[1024];
+    char               prev_image_path[1024];
 
-    char *image_history[ZIP_IMAGE_HISTORY];
+    char *             image_history[ZIP_IMAGE_HISTORY];
 
-    uint32_t is_250;
-    uint32_t medium_size;
-    uint32_t base;
+    uint32_t           is_250;
+    uint32_t           medium_size;
+    uint32_t           base;
 } zip_drive_t;
 
 typedef struct zip_t {
     mode_sense_pages_t ms_pages_saved;
 
-    zip_drive_t *drv;
+    zip_drive_t *      drv;
 #ifdef EMU_IDE_H
-    ide_tf_t *   tf;
+    ide_tf_t *         tf;
 #else
-    void *       tf;
+    void *             tf;
 #endif
 
-    uint8_t *buffer;
-    uint8_t atapi_cdb[16];
-    uint8_t current_cdb[16];
-    uint8_t sense[256];
+    void *             log;
 
-#ifdef ANCIENT_CODE
-    /* Task file. */
-    uint8_t features;
-    uint8_t phase;
-    uint16_t request_length;
-    uint8_t status;
-    uint8_t error;
-    uint16_t pad;
-    uint32_t pos;
-#endif
+    uint8_t *          buffer;
+    uint8_t            atapi_cdb[16];
+    uint8_t            current_cdb[16];
+    uint8_t            sense[256];
 
-    uint8_t id;
-    uint8_t cur_lun;
-    uint8_t pad0;
-    uint8_t pad1;
+    uint8_t            id;
+    uint8_t            cur_lun;
+    uint8_t            pad0;
+    uint8_t            pad1;
 
-    uint16_t max_transfer_len;
-    uint16_t pad2;
+    uint16_t           max_transfer_len;
+    uint16_t           pad2;
 
-    int requested_blocks;
-    int packet_status;
-    int total_length;
-    int do_page_save;
-    int unit_attention;
-    int request_pos;
-    int old_len;
-    int pad3;
+    int                requested_blocks;
+    int                packet_status;
+    int                total_length;
+    int                do_page_save;
+    int                unit_attention;
+    int                request_pos;
+    int                old_len;
+    int                transition;
 
-    uint32_t sector_pos;
-    uint32_t sector_len;
-    uint32_t packet_len;
+    uint32_t           sector_pos;
+    uint32_t           sector_len;
+    uint32_t           packet_len;
 
-    double callback;
+    double             callback;
+
+    uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 } zip_t;
 
 extern zip_t      *zip[ZIP_NUM];
@@ -127,6 +121,7 @@ extern uint8_t     scsi_zip_drives[16];
 
 #define zip_sense_error dev->sense[0]
 #define zip_sense_key   dev->sense[2]
+#define zip_info        *(uint32_t *) &(dev->sense[3])
 #define zip_asc         dev->sense[12]
 #define zip_ascq        dev->sense[13]
 
@@ -134,15 +129,16 @@ extern uint8_t     scsi_zip_drives[16];
 extern "C" {
 #endif
 
-extern void zip_disk_close(zip_t *dev);
-extern void zip_disk_reload(zip_t *dev);
+extern void zip_disk_close(const zip_t *dev);
+extern void zip_disk_reload(const zip_t *dev);
 extern void zip_insert(zip_t *dev);
 
 extern void zip_global_init(void);
 extern void zip_hard_reset(void);
 
 extern void zip_reset(scsi_common_t *sc);
-extern int  zip_load(zip_t *dev, char *fn);
+extern int  zip_is_empty(const uint8_t id);
+extern void zip_load(const zip_t *dev, const char *fn, const int skip_insert);
 extern void zip_close(void);
 
 #ifdef __cplusplus
