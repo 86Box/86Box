@@ -137,7 +137,7 @@ lpt1_handler(pc87309_t *dev)
     irq    = (dev->ld_regs[0x01][0x40] & 0x0f);
 
     if (active) {
-        lpt1_init(addr);
+        lpt1_setup(addr);
         lpt1_irq(irq);
     }
 }
@@ -466,8 +466,7 @@ pc87309_close(void *priv)
 static void *
 pc87309_init(const device_t *info)
 {
-    pc87309_t *dev = (pc87309_t *) malloc(sizeof(pc87309_t));
-    memset(dev, 0, sizeof(pc87309_t));
+    pc87309_t *dev = (pc87309_t *) calloc(1, sizeof(pc87309_t));
 
     dev->id = info->local & 0xff;
 
@@ -497,7 +496,7 @@ const device_t pc87309_device = {
     .init          = pc87309_init,
     .close         = pc87309_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -511,7 +510,7 @@ const device_t pc87309_15c_device = {
     .init          = pc87309_init,
     .close         = pc87309_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -54,7 +54,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
+#ifndef _MSC_VER
 #include <sys/time.h>
+#endif
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -75,40 +77,46 @@
 #    include <winsock2.h>
 #endif
 
-static const device_t *net_cards[] = {
-    &device_none,
-    &device_internal,
-    &threec501_device,
-    &threec503_device,
-    &pcnet_am79c960_device,
-    &pcnet_am79c961_device,
-    &de220p_device,
-    &ne1000_compat_device,
-    &ne2000_compat_device,
-    &ne2000_compat_8bit_device,
-    &ne1000_device,
-    &ne2000_device,
-    &pcnet_am79c960_eb_device,
-    &rtl8019as_device,
-    &wd8003e_device,
-    &wd8003eb_device,
-    &wd8013ebt_device,
-    &plip_device,
-    &ethernext_mc_device,
-    &wd8003eta_device,
-    &wd8003ea_device,
-    &wd8013epa_device,
-    &pcnet_am79c973_device,
-    &pcnet_am79c970a_device,
-    &dec_tulip_device,
-    &rtl8029as_device,
-    &rtl8139c_plus_device,
-    &dec_tulip_21140_device,
-    &dec_tulip_21140_vpc_device,
-    &dec_tulip_21040_device,
-    &pcnet_am79c960_vlb_device,
-    &modem_device,
-    NULL
+typedef struct {
+    const device_t *device;
+} NETWORK_CARD;
+
+static const NETWORK_CARD net_cards[] = {
+    // clang-format off
+    { &device_none                },
+    { &device_internal            },
+    { &threec501_device           },
+    { &threec503_device           },
+    { &pcnet_am79c960_device      },
+    { &pcnet_am79c961_device      },
+    { &de220p_device              },
+    { &ne1000_compat_device       },
+    { &ne2000_compat_device       },
+    { &ne2000_compat_8bit_device  },
+    { &ne1000_device              },
+    { &ne2000_device              },
+    { &pcnet_am79c960_eb_device   },
+    { &rtl8019as_pnp_device       },
+    { &wd8003e_device             },
+    { &wd8003eb_device            },
+    { &wd8013ebt_device           },
+    { &plip_device                },
+    { &ethernext_mc_device        },
+    { &wd8003eta_device           },
+    { &wd8003ea_device            },
+    { &wd8013epa_device           },
+    { &pcnet_am79c973_device      },
+    { &pcnet_am79c970a_device     },
+    { &dec_tulip_device           },
+    { &rtl8029as_device           },
+    { &rtl8139c_plus_device       },
+    { &dec_tulip_21140_device     },
+    { &dec_tulip_21140_vpc_device },
+    { &dec_tulip_21040_device     },
+    { &pcnet_am79c960_vlb_device  },
+    { &modem_device               },
+    { NULL                        }
+    // clang-format on
 };
 
 netcard_conf_t net_cards_conf[NET_CARD_MAX];
@@ -581,7 +589,7 @@ network_reset(void)
 
         net_card_current = i;
         if (net_cards_conf[i].device_num > NET_INTERNAL)
-            device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
+            device_add_inst(net_cards[net_cards_conf[i].device_num].device, i + 1);
     }
 }
 
@@ -712,8 +720,8 @@ network_available(void)
 int
 network_card_available(int card)
 {
-    if (net_cards[card])
-        return (device_available(net_cards[card]));
+    if (net_cards[card].device)
+        return (device_available(net_cards[card].device));
 
     return 1;
 }
@@ -722,24 +730,24 @@ network_card_available(int card)
 const device_t *
 network_card_getdevice(int card)
 {
-    return (net_cards[card]);
+    return (net_cards[card].device);
 }
 
 /* UI */
 int
 network_card_has_config(int card)
 {
-    if (!net_cards[card])
+    if (!net_cards[card].device)
         return 0;
 
-    return (device_has_config(net_cards[card]) ? 1 : 0);
+    return (device_has_config(net_cards[card].device) ? 1 : 0);
 }
 
 /* UI */
 const char *
 network_card_get_internal_name(int card)
 {
-    return device_get_internal_name(net_cards[card]);
+    return device_get_internal_name(net_cards[card].device);
 }
 
 /* UI */
@@ -748,8 +756,8 @@ network_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (net_cards[c] != NULL) {
-        if (!strcmp(net_cards[c]->internal_name, s))
+    while (net_cards[c].device != NULL) {
+        if (!strcmp(net_cards[c].device->internal_name, s))
             return c;
         c++;
     }

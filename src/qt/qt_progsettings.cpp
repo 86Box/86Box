@@ -195,7 +195,9 @@ ProgSettings::loadTranslators(QObject *parent)
                 qDebug() << "Translations loaded.\n";
                 QCoreApplication::installTranslator(translator);
                 if (!qtTranslator->load(QLatin1String("qtbase_") + localetofilename.replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-                    qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QApplication::applicationDirPath() + "/./translations/");
+                    if (!qtTranslator->load(QLatin1String("qtbase_") + localetofilename.left(localetofilename.indexOf('-')), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+                        if (!qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QApplication::applicationDirPath() + "/./translations/"))
+                            qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QLatin1String(":/"));
                 if (QApplication::installTranslator(qtTranslator)) {
                     qDebug() << "Qt translations loaded."
                              << "\n";
@@ -207,7 +209,10 @@ ProgSettings::loadTranslators(QObject *parent)
         translator->load(QLatin1String("86box_") + lcid_langcode[lang_id].first, QLatin1String(":/"));
         QCoreApplication::installTranslator(translator);
         if (!qtTranslator->load(QLatin1String("qtbase_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-            qtTranslator->load(QLatin1String("qt_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QApplication::applicationDirPath() + "/./translations/");
+            if (!qtTranslator->load(QLatin1String("qtbase_") + QString(lcid_langcode[lang_id].first).left(QString(lcid_langcode[lang_id].first).indexOf('-')), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+                if(!qtTranslator->load(QLatin1String("qt_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QApplication::applicationDirPath() + "/./translations/"))
+                    qtTranslator->load(QLatin1String("qt_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QLatin1String(":/"));
+
         QCoreApplication::installTranslator(qtTranslator);
     }
 }

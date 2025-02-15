@@ -665,6 +665,19 @@ dma_ps2_read(uint16_t addr, UNUSED(void *priv))
                     temp = dma_c->arb_level;
                     break;
 
+                case 9: /*Set DMA mask*/
+                    dma_m |= (1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xa: /*Reset DMA mask*/
+                    dma_m &= ~(1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xb:
+                    if (!(dma_m & (1 << dma_ps2.xfr_channel)))
+                        dma_ps2_run(dma_ps2.xfr_channel);
+                    break;
+
                 default:
                     fatal("Bad XFR Read command %i channel %i\n", dma_ps2.xfr_command, dma_ps2.xfr_channel);
             }
@@ -767,6 +780,19 @@ dma_ps2_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
                     dma_c->arb_level = val;
                     break;
 
+                case 9: /*Set DMA mask*/
+                    dma_m |= (1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xa: /*Reset DMA mask*/
+                    dma_m &= ~(1 << dma_ps2.xfr_channel);
+                    break;
+
+                case 0xb:
+                    if (!(dma_m & (1 << dma_ps2.xfr_channel)))
+                        dma_ps2_run(dma_ps2.xfr_channel);
+                    break;
+
                 default:
                     fatal("Bad XFR command %i channel %i val %02x\n", dma_ps2.xfr_command, dma_ps2.xfr_channel, val);
             }
@@ -814,8 +840,6 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
         case 7: /*Count registers*/
             dma_wp[1] ^= 1;
             count = dma[channel].cc/* + 1*/;
-            // if (count > dma[channel].cb)
-                // count = 0x0000;
             if (dma_wp[1])
                 ret = count & 0xff;
             else

@@ -34,6 +34,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_fallthrough.h>
 
 typedef struct pc87307_t {
     uint8_t   id;
@@ -199,7 +200,7 @@ lpt1_handler(pc87307_t *dev)
     irq    = (dev->ld_regs[0x04][0x40] & 0x0f);
 
     if (active && (addr <= 0xfffc)) {
-        lpt1_init(addr);
+        lpt1_setup(addr);
         lpt1_irq(irq);
     }
 }
@@ -323,8 +324,12 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
             }
             break;
         case 0x60:
+            if (dev->regs[0x07] == 0x04) {
+                val &= 0x03;
+            }
+            fallthrough;
         case 0x62:
-            dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0x07;
+            dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val;
             if ((dev->cur_reg == 0x62) && (dev->regs[0x07] != 0x07))
                 break;
             switch (dev->regs[0x07]) {
@@ -588,8 +593,7 @@ pc87307_close(void *priv)
 static void *
 pc87307_init(const device_t *info)
 {
-    pc87307_t *dev = (pc87307_t *) malloc(sizeof(pc87307_t));
-    memset(dev, 0, sizeof(pc87307_t));
+    pc87307_t *dev = (pc87307_t *) calloc(1, sizeof(pc87307_t));
 
     dev->id = info->local & 0xff;
 
@@ -620,7 +624,7 @@ const device_t pc87307_device = {
     .init          = pc87307_init,
     .close         = pc87307_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -634,7 +638,7 @@ const device_t pc87307_15c_device = {
     .init          = pc87307_init,
     .close         = pc87307_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -648,7 +652,7 @@ const device_t pc87307_both_device = {
     .init          = pc87307_init,
     .close         = pc87307_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -662,7 +666,7 @@ const device_t pc97307_device = {
     .init          = pc87307_init,
     .close         = pc87307_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

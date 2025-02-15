@@ -294,7 +294,7 @@ it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 it86x1f_log("IT86x1F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_init(config->io[0].base);
+                lpt1_setup(config->io[0].base);
             } else {
                 it86x1f_log("IT86x1F: LPT disabled\n");
             }
@@ -602,7 +602,7 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 }
 
 static void
-it86x1f_write_addr(uint16_t port, uint8_t val, void *priv)
+it86x1f_write_addr(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
 
@@ -623,7 +623,7 @@ it86x1f_write_addr(uint16_t port, uint8_t val, void *priv)
 }
 
 static void
-it86x1f_write_data(uint16_t port, uint8_t val, void *priv)
+it86x1f_write_data(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
 
@@ -659,7 +659,7 @@ it86x1f_write_data(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-it86x1f_read_addr(uint16_t port, void *priv)
+it86x1f_read_addr(UNUSED(uint16_t port), void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
     uint8_t    ret = dev->locked ? 0xff : dev->cur_reg;
@@ -670,7 +670,7 @@ it86x1f_read_addr(uint16_t port, void *priv)
 }
 
 static uint8_t
-it86x1f_read_data(uint16_t port, void *priv)
+it86x1f_read_data(UNUSED(uint16_t port), void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
     uint8_t    ret = 0xff;
@@ -799,8 +799,7 @@ it86x1f_close(void *priv)
 static void *
 it86x1f_init(UNUSED(const device_t *info))
 {
-    it86x1f_t *dev = (it86x1f_t *) malloc(sizeof(it86x1f_t));
-    memset(dev, 0, sizeof(it86x1f_t));
+    it86x1f_t *dev = (it86x1f_t *) calloc(1, sizeof(it86x1f_t));
 
     uint8_t i;
     for (i = 0; i < (sizeof(it86x1f_models) / sizeof(it86x1f_models[0])); i++) {
@@ -844,7 +843,7 @@ const device_t it8661f_device = {
     .init          = it86x1f_init,
     .close         = it86x1f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -858,7 +857,7 @@ const device_t it8671f_device = {
     .init          = it86x1f_init,
     .close         = it86x1f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

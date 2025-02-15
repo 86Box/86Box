@@ -305,7 +305,7 @@ acc3221_lpt_handle(acc3221_t *dev)
     lpt1_remove();
 
     if (!(dev->regs[0xbe] & REG_BE_LPT1_DISABLE))
-        lpt1_init(dev->regs[0xbf] << 2);
+        lpt1_setup(dev->regs[0xbf] << 2);
 }
 
 static void
@@ -437,7 +437,7 @@ acc3221_reset(acc3221_t *dev)
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(LPT1_ADDR);
+    lpt1_setup(LPT1_ADDR);
     lpt1_irq(LPT1_IRQ);
 
     fdc_reset(dev->fdc);
@@ -454,8 +454,7 @@ acc3221_close(void *priv)
 static void *
 acc3221_init(UNUSED(const device_t *info))
 {
-    acc3221_t *dev = (acc3221_t *) malloc(sizeof(acc3221_t));
-    memset(dev, 0, sizeof(acc3221_t));
+    acc3221_t *dev = (acc3221_t *) calloc(1, sizeof(acc3221_t));
 
     dev->fdc = device_add(&fdc_at_device);
 
@@ -477,7 +476,7 @@ const device_t acc3221_device = {
     .init          = acc3221_init,
     .close         = acc3221_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

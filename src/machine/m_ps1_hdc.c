@@ -462,7 +462,6 @@ static const geom_t ibm_type_table[] = {
   // clang-format on
 };
 
-#define ENABLE_PS1_HDC_LOG 1
 #ifdef ENABLE_PS1_HDC_LOG
 int ps1_hdc_do_log = ENABLE_PS1_HDC_LOG;
 
@@ -721,7 +720,9 @@ hdc_callback(void *priv)
     off64_t  addr;
     int      no_data = 0;
     int      val;
+#ifdef ENABLE_PS1_HDC_LOG
     uint8_t  cmd = ccb->cmd & 0x0f;
+#endif
 
     /* Clear the SSB error bits. */
     dev->ssb.track_0        = 0;
@@ -1296,8 +1297,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     int      c;
 
     /* Allocate and initialize device block. */
-    dev = malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = calloc(1, sizeof(hdc_t));
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;
@@ -1310,7 +1310,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     /* Load any disks for this device class. */
     c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
+        if ((hdd[i].bus_type == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
             drive = &dev->drives[hdd[i].xta_channel];
 
             if (!hdd_image_load(i)) {
@@ -1380,12 +1380,12 @@ ps1_hdc_close(void *priv)
 const device_t ps1_hdc_device = {
     .name          = "PS/1 2011 Fixed Disk Controller",
     .internal_name = "ps1_hdc",
-    .flags         = DEVICE_ISA | DEVICE_PS2,
+    .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = ps1_hdc_init,
     .close         = ps1_hdc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

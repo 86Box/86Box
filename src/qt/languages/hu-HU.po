@@ -259,7 +259,7 @@ msgid "Target &framerate"
 msgstr "Cél &képkockasebesség"
 
 msgid "&Sync with video"
-msgstr "&Szinkronizálás a videóval "
+msgstr "&Szinkronizálás a videóval"
 
 msgid "&25 fps"
 msgstr "&25 fps"
@@ -390,8 +390,11 @@ msgstr "Dinamikus újrafordítás"
 msgid "Video:"
 msgstr "Videokártya:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo-gyorsítókártya"
+msgid "Video #2:"
+msgstr "Videokártya 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo 1 vagy 2-gyorsítókártya"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A-gyorsítókártya"
@@ -637,7 +640,7 @@ msgid "Fatal error"
 msgstr "Végzetes hiba"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - SZÜNETELT"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Használja a Ctrl+Alt+PgDn gombokat az ablakhoz való visszatéréshez."
@@ -683,6 +686,12 @@ msgstr "A számítógép \"%hs\" nem elérhető a \"roms/machines\" mappából h
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "A videokártya \"%hs\" nem elérhető a \"roms/video\" mappából hiányzó ROM-képek miatt. Ehelyett egy másik kártya kerül futtatásra."
+
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "A videokártya 2 \"%hs\" nem elérhető a \"roms/video\" mappából hiányzó ROM-képek miatt. A második videokártya kerül letiltásra."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Az eszköz \"%hs\" nem elérhető a hiányzó ROM-képek miatt. Az eszköz figyelmen kívül marad."
 
 msgid "Machine"
 msgstr "Számítógép"
@@ -762,17 +771,26 @@ msgstr "Nem találhatóak PCap eszközök"
 msgid "Invalid PCap device"
 msgstr "Érvénytelen PCap eszköz"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "Szabványos 2-gombos játékvezérlő(k)"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "2-tengelyes, 2-gombos játékvezérlő(k)"
 
-msgid "Standard 4-button joystick"
-msgstr "Szabványos 4-gombos játékvezérlő"
+msgid "2-axis, 4-button joystick"
+msgstr "2-tengelyes, 4-gombos játékvezérlő"
 
-msgid "Standard 6-button joystick"
-msgstr "Szabványos 6-gombos játékvezérlő"
+msgid "2-axis, 6-button joystick"
+msgstr "2-tengelyes, 6-gombos játékvezérlő"
 
-msgid "Standard 8-button joystick"
-msgstr "Szabványos 8-gombos játékvezérlő"
+msgid "2-axis, 8-button joystick"
+msgstr "2-tengelyes, 8-gombos játékvezérlő"
+
+msgid "3-axis, 2-button joystick(s)"
+msgstr "3-tengelyes, 2-gombos játékvezérlő(k)"
+
+msgid "3-axis, 4-button joystick"
+msgstr "3-tengelyes, 4-gombos játékvezérlő"
+
+msgid "4-axis, 4-button joystick"
+msgstr "4-tengelyes, 4-gombos játékvezérlő"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -807,6 +825,9 @@ msgstr "Biztos benne, hogy ki szeretne lépni a 86Box-ból?"
 msgid "Unable to initialize Ghostscript"
 msgstr "Nem sikerült inicializálni a Ghostscript-et"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "Nem sikerült inicializálni a GhostPCL-et"
+
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
@@ -816,8 +837,8 @@ msgstr "MO-képfájlok"
 msgid "Welcome to 86Box!"
 msgstr "Üdvözli önt az 86Box!"
 
-msgid "Internal controller"
-msgstr "Integrált vezérlő"
+msgid "Internal device"
+msgstr "Integrált eszköz"
 
 msgid "Exit"
 msgstr "Kilépés"
@@ -841,7 +862,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Régi számítógépek emulátora\n\nFejlesztők: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
+msgstr "Régi számítógépek emulátora\n\nFejlesztők: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nSarah Walker, leilei, JohnElliott, greatpsycho és mások korábbi alapvető hozzájárulásával.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
 
 msgid "Hardware not available"
 msgstr "Hardver nem elérhető"
@@ -854,6 +875,9 @@ msgstr "Érvénytelen konfiguráció"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "%1 szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Lnaugage (.pcl) files."
+msgstr "%1 szükséges a PCL fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PCL nyomtatóra küldött dokumentumok Printer Command Language (.pcl) fájlként kerülnek mentésre."
 
 msgid "Entering fullscreen mode"
 msgstr "Teljes képernyős módra váltás"
@@ -999,6 +1023,27 @@ msgstr "Felülírás"
 msgid "Don't overwrite"
 msgstr "Ne írja felül"
 
+msgid "Raw image"
+msgstr "Nyers lemezkép"
+
+msgid "HDI image"
+msgstr "HDI-lemezkép"
+
+msgid "HDX image"
+msgstr "HDX-lemezkép"
+
+msgid "Fixed-size VHD"
+msgstr "Rögzített méretű VHD"
+
+msgid "Dynamic-size VHD"
+msgstr "Dinamikusan bővülő VHD"
+
+msgid "Differencing VHD"
+msgstr "Különbség-VHD"
+
+msgid "(N/A)"
+msgstr "(Nincs)"
+
 msgid "Raw image (.img)"
 msgstr "Nyers lemezkép (.img)"
 
@@ -1056,23 +1101,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1.2 MB"
@@ -1172,3 +1217,915 @@ msgstr "A WinBox már nem támogatott"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "A WinBox menedzser fejlesztése 2022-ben leállt karbantartók hiányában. Mivel erőfeszítéseinket a 86Box még jobbá tételére irányítjuk, úgy döntöttünk, hogy a WinBox-ot mint menedzsert nem támogatjuk tovább.\n\nA WinBoxon keresztül nem lesznek további frissítések, és hibás viselkedéssel találkozhat, ha továbbra is a 86Box újabb verzióival használja. A WinBox viselkedésével kapcsolatos hibajelentéseket érvénytelennek nyilvánítjuk.\n\nA 86box.net oldalon talál egy listát más kezelőkről, amelyeket használhat."
+
+msgid "Generate"
+msgstr "Generálja"
+
+msgid "Joystick configuration"
+msgstr "Joystick konfiguráció"
+
+msgid "Device"
+msgstr "Eszköz"
+
+msgid "%1 (X axis)"
+msgstr "%1 (X tengely)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (Y tengely)"
+
+msgid "MCA devices"
+msgstr "MCA eszközök"
+
+msgid "List of MCA devices:"
+msgstr "Az MCA-eszközök listája:"
+
+msgid "Tablet tool"
+msgstr "Tablet eszköz"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt (OpenGL &ES)"
+
+msgid "About Qt"
+msgstr "A Qt-ről"
+
+msgid "MCA devices..."
+msgstr "MCA eszközök..."
+
+msgid "Show non-primary monitors"
+msgstr "Nem elsődleges monitorok megjelenítése"
+
+msgid "Open screenshots folder..."
+msgstr "Nyissa meg a képernyőképek mappát..."
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Teljes képernyős méretezés alkalmazása maximalizáláskor"
+
+msgid "Cursor/Puck"
+msgstr "Cursor/Puck"
+
+msgid "Pen"
+msgstr "Toll"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "Gazdag CD/DVD-meghajtó (%1:)"
+
+msgid "&Connected"
+msgstr "&Connected"
+
+msgid "Clear image history"
+msgstr "Törölje a kép előzményeit"
+
+msgid "Create..."
+msgstr "Hozzon létre..."
+
+msgid "previous image"
+msgstr "előző képfájl"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Gazdag CD/DVD-meghajtó (%1)"
+
+msgid "Unknown Bus"
+msgstr "Ismeretlen busz"
+
+msgid "Null Driver"
+msgstr "Null Driver"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "Hiba a \"%1\" megnyitásakor: %2"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "Hiba a vertex shader fordításában a \"%1\" fájlban"
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "Hiba a fragment shader fordításában a \"%1\" fájlban"
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "Hiba a shader program összekapcsolásában a \"%1\" fájlban"
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "OpenGL 3.0 renderelési beállítások"
+
+msgid "Render behavior"
+msgstr "Renderelési viselkedés"
+
+msgid "Use target framerate:"
+msgstr "Cél képkockasebesség használata:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Az egyes képkockák azonnali, az emulált kijelzővel szinkronizált megjelenítése.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&quot;&gt;Ez az ajánlott opció, ha a használt shaderek nem használják a frametime-ot az animált effektusokhoz.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "Szinkronizálás a videóval"
+
+msgid "Shaders"
+msgstr "Shaderek"
+
+msgid "Remove"
+msgstr "Távolítsa el a"
+
+msgid "No shader selected"
+msgstr "Nincs shader kiválasztva"
+
+msgid "Browse..."
+msgstr "Böngésszen..."
+
+msgid "Shader error"
+msgstr "Shader hiba"
+
+msgid "Could not load shaders."
+msgstr "Nem sikerült betölteni a shadereket."
+
+msgid "More information in details."
+msgstr "További információ a részletekről."
+
+msgid "Couldn't create OpenGL context."
+msgstr "Nem sikerült OpenGL-kontextust létrehozni."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "Nem tudott OpenGL-kontextusra váltani."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "Az OpenGL 3.0 vagy magasabb verziója szükséges. Az aktuális verzió %1.%2"
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "Az OpenGL inicializálása sikertelen. Hiba %1."
+
+msgid "Error initializing OpenGL"
+msgstr "Hiba az OpenGL inicializálásában"
+
+msgid "Falling back to software rendering.\n"
+msgstr "Visszatérés a szoftveres rendereléshez.\n"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "A memória kiosztása a kicsomagolási pufferhez sikertelen.\n"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A médiaképek (CD-ROM, floppy stb.) kiválasztásakor a megnyitási párbeszédpanel ugyanabban a könyvtárban indul, mint a 86Box konfigurációs fájl. Ez a beállítás valószínűleg csak a macOS rendszerben jelent különbséget.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "This machine might have been moved or copied."
+msgstr "Lehet, hogy ezt a gépet áthelyezték vagy lemásolták."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "A megfelelő hálózati működés biztosítása érdekében a 86Box-nak tudnia kell, hogy a gépet áthelyezték vagy másolták-e.\n\nVálassza a \"Lemásoltam\" lehetőséget, ha nem biztos benne."
+
+msgid "I Moved It"
+msgstr "Elmozdítottam"
+
+msgid "I Copied It"
+msgstr "Lemásoltam"
+
+msgid "86Box Monitor #"
+msgstr "86Box Monitor "
+
+msgid "No MCA devices."
+msgstr "Nincsenek MCA eszközök."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "Network Card #1"
+msgstr "Hálózati kártya 1"
+
+msgid "Network Card #2"
+msgstr "Hálózati kártya 2"
+
+msgid "Network Card #3"
+msgstr "Hálózati kártya 3"
+
+msgid "Network Card #4"
+msgstr "Hálózati kártya 4"
+
+msgid "Mode"
+msgstr "Mód"
+
+msgid "Interface"
+msgstr "Interfész"
+
+msgid "Adapter"
+msgstr "Adapter"
+
+msgid "VDE Socket"
+msgstr "VDE aljzat"
+
+msgid "86Box Unit Tester"
+msgstr "86Box Unit Tester"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Novell NetWare 2.x kulcskártya"
+
+msgid "Serial port passthrough 1"
+msgstr "Soros port áthaladás 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Soros port áthaladás 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Soros port áthaladás 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Soros port áthaladás 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "Vision Systems LBA Enhancer"
+
+msgid "Renderer options..."
+msgstr "Renderer opciók..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Logitech/Microsoft busz egér"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Microsoft buszos egér (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Egérrendszerek Soros egér"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Microsoft soros egér"
+
+msgid "Logitech Serial Mouse"
+msgstr "Logitech soros egér"
+
+msgid "PS/2 Mouse"
+msgstr "PS/2 egér"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (soros)"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] Szabványos Hayes-kompatibilis modem"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Roland MT-32 emuláció"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Roland MT-32 (Új) Emuláció"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Roland CM-32L emuláció"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Roland CM-32LN emuláció"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "OPL4-ML alaplap"
+
+msgid "System MIDI"
+msgstr "Rendszer MIDI"
+
+msgid "MIDI Input Device"
+msgstr "MIDI bemeneti eszköz"
+
+msgid "BIOS Address"
+msgstr "BIOS cím"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "BIOS bővítés ROM írások engedélyezése"
+
+msgid "Address"
+msgstr "Cím:"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "BIOS Revision"
+msgstr "BIOS felülvizsgálata"
+
+msgid "Translate 26 -> 17"
+msgstr "Fordítsd le 26 -> 17"
+
+msgid "Language"
+msgstr "Nyelv"
+
+msgid "Enable backlight"
+msgstr "Háttérvilágítás engedélyezése"
+
+msgid "Invert colors"
+msgstr "Invertált színek"
+
+msgid "BIOS size"
+msgstr "BIOS mérete"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "C0000-C7FFF mint UMB leképezése"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "C8000-CFFFF mint UMB leképezése"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "D0000-D7FFF mint UMB leképezése"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "D8000-DFFFF mint UMB leképezése"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "E0000-E7FFF mint UMB leképezése"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "E8000-EFFFF mint UMB leképezése"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "JS9 Jumper (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "MIDI kimeneti eszköz"
+
+msgid "MIDI Real time"
+msgstr "MIDI valós időben"
+
+msgid "MIDI Thru"
+msgstr "A MIDI bemenet átmenete"
+
+msgid "MIDI Clockout"
+msgstr "A MIDI óra kimenete"
+
+msgid "SoundFont"
+msgstr "SoundFont"
+
+msgid "Output Gain"
+msgstr "Kimeneti erősítés"
+
+msgid "Chorus"
+msgstr "Kórus"
+
+msgid "Chorus Voices"
+msgstr "Kórus hangok"
+
+msgid "Chorus Level"
+msgstr "Kórus szint"
+
+msgid "Chorus Speed"
+msgstr "Kórus sebesség"
+
+msgid "Chorus Depth"
+msgstr "Kórus mélység"
+
+msgid "Chorus Waveform"
+msgstr "Kórus hullámforma"
+
+msgid "Reverb"
+msgstr "Visszhang"
+
+msgid "Reverb Room Size"
+msgstr "Visszhangterem mérete"
+
+msgid "Reverb Damping"
+msgstr "Visszhang csillapítás"
+
+msgid "Reverb Width"
+msgstr "Visszhang szélessége"
+
+msgid "Reverb Level"
+msgstr "Visszhang szint"
+
+msgid "Interpolation Method"
+msgstr "Interpolációs módszer"
+
+msgid "Reverb Output Gain"
+msgstr "Visszhang kimenetének erősítése"
+
+msgid "Reversed stereo"
+msgstr "Fordított sztereó"
+
+msgid "Nice ramp"
+msgstr "Szép rámpa"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "Gombok"
+
+msgid "Serial Port"
+msgstr "Soros port"
+
+msgid "RTS toggle"
+msgstr "RTS kapcsoló"
+
+msgid "Revision"
+msgstr "Felülvizsgálat"
+
+msgid "Controller"
+msgstr "Vezérlő"
+
+msgid "Show Crosshair"
+msgstr "Keresztmetszet megjelenítése"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "MAC cím"
+
+msgid "MAC Address OUI"
+msgstr "MAC cím OUI"
+
+msgid "Enable BIOS"
+msgstr "BIOS engedélyezése"
+
+msgid "Baud Rate"
+msgstr "Baud-ráta"
+
+msgid "TCP/IP listening port"
+msgstr "TCP/IP figyelő port"
+
+msgid "Phonebook File"
+msgstr "Telefonkönyv fájl"
+
+msgid "Telnet emulation"
+msgstr "Telnet emuláció"
+
+msgid "RAM Address"
+msgstr "RAM cím"
+
+msgid "RAM size"
+msgstr "RAM mérete"
+
+msgid "Initial RAM size"
+msgstr "RAM kezdeti mérete"
+
+msgid "Serial Number"
+msgstr "Sorszám"
+
+msgid "Host ID"
+msgstr "Host azonosító"
+
+msgid "FDC Address"
+msgstr "FDC cím"
+
+msgid "MPU-401 Address"
+msgstr "MPU-401 cím"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401 IRQ"
+
+msgid "Receive MIDI input"
+msgstr "MIDI bemenet fogadása"
+
+msgid "Low DMA"
+msgstr "Alacsony DMA"
+
+msgid "Enable Game port"
+msgstr "Játékport engedélyezése"
+
+msgid "Surround module"
+msgstr "Surround modul"
+
+msgid "CODEC"
+msgstr "CODEC"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "CODEC megszakítás felemelése CODEC beállításakor (néhány illesztőprogramnak szükséges)"
+
+msgid "SB Address"
+msgstr "SB cím"
+
+msgid "WSS IRQ"
+msgstr "WSS IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS DMA"
+
+msgid "Enable OPL"
+msgstr "OPL engedélyezése"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "MIDI bemenet fogadása (MPU-401)"
+
+msgid "SB low DMA"
+msgstr "SB alacsony DMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "6CH változat (6 csatornás)"
+
+msgid "Enable CMS"
+msgstr "CMS engedélyezése"
+
+msgid "Mixer"
+msgstr "Keverő"
+
+msgid "High DMA"
+msgstr "Magas DMA"
+
+msgid "Control PC speaker"
+msgstr "Control PC hangszóró"
+
+msgid "Memory size"
+msgstr "Memória mérete"
+
+msgid "EMU8000 Address"
+msgstr "EMU8000 cím"
+
+msgid "IDE Controller"
+msgstr "IDE vezérlő"
+
+msgid "Codec"
+msgstr "Codec"
+
+msgid "GUS type"
+msgstr "GUS típus"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "A 0x04 parancs engedélyezése \"Lépni a 86Box-ból\""
+
+msgid "Display type"
+msgstr "Megjelenítés típusa"
+
+msgid "Composite type"
+msgstr "Összetett típus"
+
+msgid "RGB type"
+msgstr "RGB típus"
+
+msgid "Line doubling type"
+msgstr "Vonal megduplázásának típusa"
+
+msgid "Snow emulation"
+msgstr "Hó emulációja"
+
+msgid "Monitor type"
+msgstr "Monitor típusa"
+
+msgid "Character set"
+msgstr "Karakterkészlet"
+
+msgid "XGA type"
+msgstr "XGA típus"
+
+msgid "Instance"
+msgstr "Példa"
+
+msgid "MMIO Address"
+msgstr "MMIO cím"
+
+msgid "RAMDAC type"
+msgstr "RAMDAC típus"
+
+msgid "Blend"
+msgstr "Blend"
+
+msgid "Bilinear filtering"
+msgstr "Bilineáris szűrés"
+
+msgid "Dithering"
+msgstr "Dithering"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "NMI engedélyezése a CGA emulációhoz"
+
+msgid "Voodoo type"
+msgstr "Voodoo típus"
+
+msgid "Framebuffer memory size"
+msgstr "A keretpuffer memória mérete"
+
+msgid "Texture memory size"
+msgstr "Textúra memória mérete"
+
+msgid "Dither subtraction"
+msgstr "Dither kivonás"
+
+msgid "Screen Filter"
+msgstr "Szűrő szűrő"
+
+msgid "Render threads"
+msgstr "Renderelési szálak"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "Kezdeti cím"
+
+msgid "Contiguous Size"
+msgstr "Összefüggő méret"
+
+msgid "I/O Width"
+msgstr "I/O szélesség"
+
+msgid "Transfer Speed"
+msgstr "Átviteli sebesség"
+
+msgid "EMS mode"
+msgstr "EMS üzemmód"
+
+msgid "Address for > 2 MB"
+msgstr "Cím > 2 MB"
+
+msgid "Frame Address"
+msgstr "Keret címe"
+
+msgid "USA"
+msgstr "USA"
+
+msgid "Danish"
+msgstr "Dán"
+
+msgid "Always at selected speed"
+msgstr "Mindig a kiválasztott sebességen"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "BIOS beállítás + gyorsbillentyűk (kikapcsolva POST alatt)"
+
+msgid "64 kB starting from F0000"
+msgstr "64 kB F0000-től kezdődően"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "128 kB E0000-től kezdődően (cím MSB invertálva, először az utolsó 64KB)"
+
+msgid "Sine"
+msgstr "Szinuszos"
+
+msgid "Triangle"
+msgstr "Háromszög"
+
+msgid "Linear"
+msgstr "Lineáris"
+
+msgid "4th Order"
+msgstr "4. rendű"
+
+msgid "7th Order"
+msgstr "7. rendű"
+
+msgid "Non-timed (original)"
+msgstr "Időzítő nélkül (eredeti)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (nincs jumper a JMP2-nél)"
+
+msgid "Two"
+msgstr "Két"
+
+msgid "Three"
+msgstr "Három"
+
+msgid "Wheel"
+msgstr "Kerék"
+
+msgid "Five + Wheel"
+msgstr "Öt + kerék"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 soros / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) soros"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "BIOS letiltása"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr "8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (sztereó)"
+
+msgid "Classic"
+msgstr "Klasszikus"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "Összetett"
+
+msgid "Old"
+msgstr "Régi"
+
+msgid "New"
+msgstr "Új"
+
+msgid "Color (generic)"
+msgstr "Szín (általános)"
+
+msgid "Green Monochrome"
+msgstr "Zöld monokróm"
+
+msgid "Amber Monochrome"
+msgstr "Sárga monokróm"
+
+msgid "Gray Monochrome"
+msgstr "Szürke monokróm"
+
+msgid "Color (no brown)"
+msgstr "Szín (nem barna)"
+
+msgid "Color (IBM 5153)"
+msgstr "Színes (IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "Egyszerű duplázás"
+
+msgid "sRGB interpolation"
+msgstr "sRGB interpoláció"
+
+msgid "Linear interpolation"
+msgstr "Lineáris interpoláció"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "Monokróm (5151/MDA) (fehér)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "Monokróm (5151/MDA) (zöld)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "Monokróm (5151/MDA) (sárga)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "Színes 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "Színes 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "Fokozott szín - normál üzemmód (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "Továbbfejlesztett szín - továbbfejlesztett üzemmód (5154/ECD)"
+
+msgid "Green"
+msgstr "Zöld"
+
+msgid "Amber"
+msgstr "Sárga"
+
+msgid "Gray"
+msgstr "Szürke"
+
+msgid "Color"
+msgstr "Színes"
+
+msgid "U.S. English"
+msgstr "Amerikai angol"
+
+msgid "Scandinavian"
+msgstr "Skandináv"
+
+msgid "Other languages"
+msgstr "Egyéb nyelvek"
+
+msgid "Bochs latest"
+msgstr "Bochs legújabb"
+
+msgid "Mono Non-Interlaced"
+msgstr "Monokróm nem átlapolt"
+
+msgid "Color Interlaced"
+msgstr "Színes átlapolt"
+
+msgid "Color Non-Interlaced"
+msgstr "Színes nem átlapolt"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3dfx Voodoo-gyorsítókártya"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 TMU)"
+
+msgid "8-bit"
+msgstr "8 bites"
+
+msgid "16-bit"
+msgstr "16 bites"
+
+msgid "Standard (150ns)"
+msgstr "Standard (150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "Nagy sebességű (120ns)"
+
+msgid "Enabled"
+msgstr "Engedélyezve"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "High-Speed"
+msgstr "Nagy sebességű"
+
+msgid "Stereo LPT DAC"
+msgstr "Sztereó LPT DAC"
+
+msgid "Generic Text Printer"
+msgstr "Általános szövegnyomtató"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "Általános ESC/P pontmátrixnyomtató"
+
+msgid "Generic PostScript Printer"
+msgstr "Általános PostScript nyomtató"
+
+msgid "Generic PCL5e Printer"
+msgstr "Általános PCL5e nyomtató"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Párhuzamos vonalas internetprotokoll"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Védelmi dongle a Savage Questhez"
+
+msgid "Serial Passthrough Device"
+msgstr "Soros port áthaladó eszköz"
+
+msgid "Passthrough Mode"
+msgstr "Áthaladó mód"
+
+msgid "Host Serial Device"
+msgstr "Host soros eszköz"
+
+msgid "Name of pipe"
+msgstr "A cső neve"
+
+msgid "Data bits"
+msgstr "Adat bitek"
+
+msgid "Stop bits"
+msgstr "Stop bitek"
+
+msgid "Baud Rate of Passthrough"
+msgstr "Az átmenő átviteli sebesség Baud-rátája"
+
+msgid "Named Pipe (Server)"
+msgstr "Megnevezett cső (kiszolgáló)"
+
+msgid "Host Serial Passthrough"
+msgstr "Az állomás soros portjának áthaladása"
+
+msgid "Eject %s"
+msgstr "%s kiadás"
+
+msgid "&Unmute"
+msgstr "&Hang újra bekapcsolása"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Nagy hatással van a teljesítményre"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAM lemez (max. sebesség)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A klón (ISA)"
+
+msgid "Vendor"
+msgstr "Gyártó"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Általános PC/XT memóriabővítők"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Általános PC/AT memóriabővítők"

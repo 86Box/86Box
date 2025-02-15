@@ -122,16 +122,21 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_pro_v2_device             },
     { &sb_16_device                 },
     { &sb_16_pnp_device             },
+    { &sb_16_pnp_ide_device         },
+    { &sb_goldfinch_device          },
     { &sb_32_pnp_device             },
     { &sb_awe32_device              },
     { &sb_awe32_pnp_device          },
     { &sb_awe64_value_device        },
     { &sb_awe64_device              },
+    { &sb_awe64_ide_device          },
     { &sb_awe64_gold_device         },
     { &sb_vibra16c_device           },
+    { &sb_vibra16cl_device          },
     { &sb_vibra16s_device           },
     { &sb_vibra16xv_device          },
     { &ssi2001_device               },
+    { &entertainer_device           },
     { &pasplus_device               },
     { &pas16_device                 },
     { &pas16d_device                },
@@ -148,11 +153,15 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_soundpiper_32_mca_device },
     { &cmi8338_device               },
     { &cmi8738_device               },
+    { &es1370_device                },
     { &es1371_device                },
     { &es1373_device                },
     { &ct5880_device                },
     { &ad1881_device                },
     { &cs4297a_device               },
+#ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
+    { &opl2board_device             },
+#endif     
     { NULL                          }
     // clang-format on
 };

@@ -51,7 +51,7 @@
         return 0;                                                       \
     }                                                                   \
                                                                         \
-    static int opJ##condition##_l(uint32_t fetchdat)                    \
+    static int opJ##condition##_l(UNUSED(uint32_t fetchdat))            \
     {                                                                   \
         uint32_t offset = getlong();                                    \
         if (cpu_state.abrt)                                             \
@@ -256,7 +256,7 @@ opJMP_r16(uint32_t fetchdat)
     return 0;
 }
 static int
-opJMP_r32(uint32_t fetchdat)
+opJMP_r32(UNUSED(uint32_t fetchdat))
 {
     int32_t offset = (int32_t) getlong();
     if (cpu_state.abrt)
@@ -289,7 +289,7 @@ opJMP_far_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opJMP_far_a32(uint32_t fetchdat)
+opJMP_far_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t seg;
     uint32_t addr;
@@ -323,7 +323,7 @@ opCALL_r16(uint32_t fetchdat)
     return 0;
 }
 static int
-opCALL_r32(uint32_t fetchdat)
+opCALL_r32(UNUSED(uint32_t fetchdat))
 {
     int32_t addr = getlong();
 
@@ -339,7 +339,7 @@ opCALL_r32(uint32_t fetchdat)
 }
 
 static int
-opRET_w(uint32_t fetchdat)
+opRET_w(UNUSED(uint32_t fetchdat))
 {
     uint16_t ret;
 
@@ -355,7 +355,7 @@ opRET_w(uint32_t fetchdat)
     return 0;
 }
 static int
-opRET_l(uint32_t fetchdat)
+opRET_l(UNUSED(uint32_t fetchdat))
 {
     uint32_t ret;
 

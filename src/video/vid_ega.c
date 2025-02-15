@@ -156,7 +156,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             if (!(val & 1))
                 io_sethandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
             ega_recalctimings(ega);
-            if ((ega_type == 2) && !(val & 0x02))
+            if ((ega_type == EGA_TYPE_COMPAQ) && !(val & 0x02))
                 mem_mapping_disable(&ega->mapping);
             else  switch (ega->gdcreg[6] & 0xc) {
                 case 0x0: /*128k at A0000*/
@@ -227,7 +227,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     ega->chain2_read = val & 0x10;
                     break;
                 case 6:
-                    if ((ega_type == 2) && !(ega->miscout & 0x02))
+                    if ((ega_type == EGA_TYPE_COMPAQ) && !(ega->miscout & 0x02))
                         mem_mapping_disable(&ega->mapping);
                     else  switch (val & 0xc) {
                         case 0x0: /*128k at A0000*/
@@ -615,7 +615,7 @@ ega_recalctimings(ega_t *ega)
     if (ega->dispofftime < TIMER_USEC)
         ega->dispofftime = TIMER_USEC;
 
-    if (ega_type == 2) {
+    if (ega_type == EGA_TYPE_COMPAQ) {
         ega->dot_time  = (uint64_t) (ega->dot_clock);
         if (ega->dot_time < TIMER_USEC)
             ega->dot_time = TIMER_USEC;
@@ -1313,7 +1313,7 @@ ega_read(uint32_t addr, void *priv)
         return ~(temp | temp2 | temp3 | temp4);
     }
 
-    if ((ega_type == 2) && (ega->gdcreg[4] & 0x04))
+    if ((ega_type == EGA_TYPE_COMPAQ) && (ega->gdcreg[4] & 0x04))
         return 0xff;
 
     return ega->vram[addr | readplane];
@@ -1504,7 +1504,7 @@ ega_standalone_init(const device_t *info)
     ega->vrammask   = ega->vram_limit - 1;
 
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-    if (ega_type == 2)
+    if (ega_type == EGA_TYPE_COMPAQ)
         mem_mapping_disable(&ega->mapping);
     io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
@@ -1590,74 +1590,43 @@ ega_speed_changed(void *priv)
 static const device_config_t ega_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 256,
-        .selection = {
-            {
-                .description = "32 kB",
-                .value = 32
-            },
-            {
-                .description = "64 kB",
-                .value = 64
-            },
-            {
-                .description = "128 kB",
-                .value = 128
-            },
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = ""
-            }
-        }
-    },
-    {
-        .name = "monitor_type",
-        .description = "Monitor type",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "Monochrome (5151/MDA) (white)",
-                .value = 0x0B | (DISPLAY_WHITE << 4)
-            },
-            {
-                .description = "Monochrome (5151/MDA) (green)",
-                .value = 0x0B | (DISPLAY_GREEN << 4)
-            },
-            {
-                .description = "Monochrome (5151/MDA) (amber)",
-                .value = 0x0B | (DISPLAY_AMBER << 4)
-            },
-            {
-                .description = "Color 40x25 (5153/CGA)",
-                .value = 0x06
-            },
-            {
-                .description = "Color 80x25 (5153/CGA)",
-                .value = 0x07
-            },
-            {
-                .description = "Enhanced Color - Normal Mode (5154/ECD)",
-                .value = 0x08
-            },
-            {
-                .description = "Enhanced Color - Enhanced Mode (5154/ECD)",
-                .value = 0x09
-            },
-            {
-                .description = ""
-            }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 256,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "32 KB", .value =  32 },
+            { .description =  "64 KB", .value =  64 },
+            { .description = "128 KB", .value = 128 },
+            { .description = "256 KB", .value = 256 },
+            { .description = ""                     }
         },
-        .default_int = 9
+        .bios           = { { 0 } }
     },
     {
-        .type = CONFIG_END
-    }
+        .name           = "monitor_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 9,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Monochrome (5151/MDA) (white)",             .value = 0x0B | (DISPLAY_WHITE << 4) },
+            { .description = "Monochrome (5151/MDA) (green)",             .value = 0x0B | (DISPLAY_GREEN << 4) },
+            { .description = "Monochrome (5151/MDA) (amber)",             .value = 0x0B | (DISPLAY_AMBER << 4) },
+            { .description = "Color 40x25 (5153/CGA)",                    .value = 0x06                        },
+            { .description = "Color 80x25 (5153/CGA)",                    .value = 0x07                        },
+            { .description = "Enhanced Color - Normal Mode (5154/ECD)",   .value = 0x08                        },
+            { .description = "Enhanced Color - Enhanced Mode (5154/ECD)", .value = 0x09                        },
+            { .description = ""                                                                                }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1669,7 +1638,7 @@ const device_t ega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = ega_standalone_available },
+    .available     = ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1683,7 +1652,7 @@ const device_t cpqega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = cpqega_standalone_available },
+    .available     = cpqega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1697,7 +1666,7 @@ const device_t sega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = sega_standalone_available },
+    .available     = sega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1711,7 +1680,7 @@ const device_t atiega800p_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = atiega800p_standalone_available },
+    .available     = atiega800p_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1725,7 +1694,7 @@ const device_t iskra_ega_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = iskra_ega_standalone_available },
+    .available     = iskra_ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
@@ -1739,7 +1708,7 @@ const device_t et2000_device = {
     .init          = ega_standalone_init,
     .close         = ega_close,
     .reset         = NULL,
-    { .available = et2000_standalone_available },
+    .available     = et2000_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config

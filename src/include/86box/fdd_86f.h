@@ -8,13 +8,11 @@
  *
  *          Definitions for the 86F floppy image format.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2018-2025 Fred N. van Kempen.
  */
 #ifndef EMU_FLOPPY_86F_H
 #define EMU_FLOPPY_86F_H

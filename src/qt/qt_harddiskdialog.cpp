@@ -20,6 +20,9 @@
 #include "ui_qt_harddiskdialog.h"
 
 extern "C" {
+#ifdef __unix__
+#include <unistd.h>
+#endif
 #include <86box/86box.h>
 #include <86box/hdd.h>
 #include "../disk/minivhd/minivhd.h"
@@ -227,7 +230,11 @@ static HarddiskDialog *callbackPtr = nullptr;
 static MVHDGeom
 create_drive_vhd_fixed(const QString &fileName, HarddiskDialog *p, uint16_t cyl, uint8_t heads, uint8_t spt)
 {
-    MVHDGeom _86box_geometry = { .cyl = cyl, .heads = heads, .spt = spt };
+    MVHDGeom _86box_geometry = {
+        .cyl   = cyl,
+        .heads = heads,
+        .spt   = spt
+    };
     MVHDGeom vhd_geometry;
     adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
 
@@ -253,7 +260,11 @@ create_drive_vhd_fixed(const QString &fileName, HarddiskDialog *p, uint16_t cyl,
 static MVHDGeom
 create_drive_vhd_dynamic(const QString &fileName, uint16_t cyl, uint8_t heads, uint8_t spt, int blocksize)
 {
-    MVHDGeom _86box_geometry = { .cyl = cyl, .heads = heads, .spt = spt };
+    MVHDGeom _86box_geometry = {
+        .cyl   = cyl,
+        .heads = heads,
+        .spt   = spt
+    };
     MVHDGeom vhd_geometry;
     adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
     int                 vhd_error     = 0;
@@ -447,6 +458,7 @@ HarddiskDialog::onCreateNewFile()
     }
 
     // formats 0, 1 and 2
+#ifndef __unix__
     connect(this, &HarddiskDialog::fileProgress, this, [this](int value) { ui->progressBar->setValue(value); QApplication::processEvents(); });
     ui->progressBar->setVisible(true);
     [size, &file, this] {
@@ -469,6 +481,13 @@ HarddiskDialog::onCreateNewFile()
         }
         emit fileProgress(100);
     }();
+#else
+    int ret = ftruncate(file.handle(), (size_t) size);
+
+    if (ret) {
+        QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
+    }
+#endif
 
     QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
     setResult(QDialog::Accepted);

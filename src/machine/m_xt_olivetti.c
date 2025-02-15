@@ -2038,6 +2038,8 @@ m19_vid_init(m19_vid_t *vid)
         vid->ogc.mono_display = 0;
     else
         vid->ogc.mono_display = 1;
+
+    vid->ogc.ctrl_addr = 0x3db;
     /* OGC emulation part end */
 
     /* Plantronics emulation part begin*/
@@ -2073,7 +2075,7 @@ const device_t m24_kbd_device = {
     .init          = NULL,
     .close         = m24_kbd_close,
     .reset         = m24_kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2117,7 +2119,7 @@ const device_t m19_vid_device = {
     .init          = NULL,
     .close         = m19_vid_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = m19_vid_speed_changed,
     .force_redraw  = NULL,
     .config        = m19_vid_config
@@ -2311,8 +2313,7 @@ machine_xt_m24_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    m24_kbd = (m24_kbd_t *) malloc(sizeof(m24_kbd_t));
-    memset(m24_kbd, 0x00, sizeof(m24_kbd_t));
+    m24_kbd = (m24_kbd_t *) calloc(1, sizeof(m24_kbd_t));
 
     machine_common_init(model);
 
@@ -2328,10 +2329,9 @@ machine_xt_m24_init(const machine_t *model)
     nmi_init();
 
     /* Allocate an NVR for this machine. */
-    nvr = (nvr_t *) malloc(sizeof(nvr_t));
+    nvr = (nvr_t *) calloc(1, sizeof(nvr_t));
     if (nvr == NULL)
         return 0;
-    memset(nvr, 0x00, sizeof(nvr_t));
 
     mm58174_init(nvr, model->nvrmask + 1);
 
@@ -2372,8 +2372,7 @@ machine_xt_m240_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    m24_kbd = (m24_kbd_t *) malloc(sizeof(m24_kbd_t));
-    memset(m24_kbd, 0x00, sizeof(m24_kbd_t));
+    m24_kbd = (m24_kbd_t *) calloc(1, sizeof(m24_kbd_t));
 
     machine_common_init(model);
 
@@ -2402,10 +2401,9 @@ machine_xt_m240_init(const machine_t *model)
     nmi_init();
 
     /* Allocate an NVR for this machine. */
-    nvr = (nvr_t *) malloc(sizeof(nvr_t));
+    nvr = (nvr_t *) calloc(1, sizeof(nvr_t));
     if (nvr == NULL)
         return 0;
-    memset(nvr, 0x00, sizeof(nvr_t));
 
     mm58274_init(nvr, model->nvrmask + 1);
 
@@ -2436,8 +2434,7 @@ machine_xt_m19_init(const machine_t *model)
     m19_vid_t *vid;
 
     /* Do not move memory allocation elsewhere. */
-    vid = (m19_vid_t *) malloc(sizeof(m19_vid_t));
-    memset(vid, 0x00, sizeof(m19_vid_t));
+    vid = (m19_vid_t *) calloc(1, sizeof(m19_vid_t));
 
     machine_common_init(model);
 

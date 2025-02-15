@@ -4,7 +4,6 @@
 static int
 opESCAPE_d8_a16(uint32_t fetchdat)
 {
-    //pclog("D8 A16: fetchdat=%02x.\n", (fetchdat >> 3) & 0x1f);
     return x86_opcodes_d8_a16[(fetchdat >> 3) & 0x1f](fetchdat);
 }
 static int
@@ -16,7 +15,6 @@ opESCAPE_d8_a32(uint32_t fetchdat)
 static int
 opESCAPE_d9_a16(uint32_t fetchdat)
 {
-    //pclog("D9 A16: fetchdat=%02x.\n", fetchdat & 0xff);
     return x86_opcodes_d9_a16[fetchdat & 0xff](fetchdat);
 }
 static int
@@ -28,7 +26,6 @@ opESCAPE_d9_a32(uint32_t fetchdat)
 static int
 opESCAPE_da_a16(uint32_t fetchdat)
 {
-    //pclog("DA A16: fetchdat=%02x.\n", fetchdat & 0xff);
     return x86_opcodes_da_a16[fetchdat & 0xff](fetchdat);
 }
 static int
@@ -40,7 +37,6 @@ opESCAPE_da_a32(uint32_t fetchdat)
 static int
 opESCAPE_db_a16(uint32_t fetchdat)
 {
-    //pclog("DB A16: fetchdat=%02x.\n", fetchdat & 0xff);
     return x86_opcodes_db_a16[fetchdat & 0xff](fetchdat);
 }
 static int
@@ -52,7 +48,6 @@ opESCAPE_db_a32(uint32_t fetchdat)
 static int
 opESCAPE_dc_a16(uint32_t fetchdat)
 {
-    //pclog("DC A16: fetchdat=%02x.\n", (fetchdat >> 3) & 0x1f);
     return x86_opcodes_dc_a16[(fetchdat >> 3) & 0x1f](fetchdat);
 }
 static int
@@ -64,7 +59,6 @@ opESCAPE_dc_a32(uint32_t fetchdat)
 static int
 opESCAPE_dd_a16(uint32_t fetchdat)
 {
-    //pclog("DD A16: fetchdat=%02x.\n", fetchdat & 0xff);
     return x86_opcodes_dd_a16[fetchdat & 0xff](fetchdat);
 }
 static int
@@ -76,7 +70,6 @@ opESCAPE_dd_a32(uint32_t fetchdat)
 static int
 opESCAPE_de_a16(uint32_t fetchdat)
 {
-    //pclog("DE A16: fetchdat=%02x.\n", fetchdat & 0xff);
     return x86_opcodes_de_a16[fetchdat & 0xff](fetchdat);
 }
 static int
@@ -88,7 +81,6 @@ opESCAPE_de_a32(uint32_t fetchdat)
 static int
 opESCAPE_df_a16(uint32_t fetchdat)
 {
-    //pclog("DF A16: fetchdat=%02x.\n", fetchdat & 0xff);
     return x86_opcodes_df_a16[fetchdat & 0xff](fetchdat);
 }
 static int
@@ -98,22 +90,20 @@ opESCAPE_df_a32(uint32_t fetchdat)
 }
 
 static int
-opWAIT(uint32_t fetchdat)
+opWAIT(UNUSED(uint32_t fetchdat))
 {
     if ((cr0 & 0xa) == 0xa) {
         x86_int(7);
         return 1;
     }
 
-#if 0
-    if (!cpu_use_dynarec && fpu_softfloat) {
-#endif
     if (fpu_softfloat) {
         if (fpu_state.swd & FPU_SW_Summary) {
-            if (cr0 & 0x20) {
-                x86_int(16);
-                return 1;
-            }
+            if (cr0 & 0x20)
+                new_ne = 1;
+            else
+                picint(1 << 13);
+            return 1;
         }
     }
     CLOCK_CYCLES(4);

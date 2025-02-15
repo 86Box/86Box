@@ -19,20 +19,23 @@
 #ifndef EMU_IDE_H
 #define EMU_IDE_H
 
+#define IDE_NUM             10    /* 8 drives per AT IDE + 2 for XT IDE */
+#define ATAPI_NUM           10    /* 8 drives per AT IDE + 2 for XT IDE */
+
 #define IDE_BUS_MAX         4
 #define IDE_CHAN_MAX        2
 
-#define HDC_PRIMARY_BASE    0x01F0
-#define HDC_PRIMARY_SIDE    0x03F6
+#define HDC_PRIMARY_BASE    0x01f0
+#define HDC_PRIMARY_SIDE    0x03f6
 #define HDC_PRIMARY_IRQ     14
 #define HDC_SECONDARY_BASE  0x0170
 #define HDC_SECONDARY_SIDE  0x0376
 #define HDC_SECONDARY_IRQ   15
-#define HDC_TERTIARY_BASE   0x01E8
-#define HDC_TERTIARY_SIDE   0x03EE
+#define HDC_TERTIARY_BASE   0x01e8
+#define HDC_TERTIARY_SIDE   0x03ee
 #define HDC_TERTIARY_IRQ    11
 #define HDC_QUATERNARY_BASE 0x0168
-#define HDC_QUATERNARY_SIDE 0x036E
+#define HDC_QUATERNARY_SIDE 0x036e
 #define HDC_QUATERNARY_IRQ  10
 
 enum {
@@ -121,11 +124,11 @@ typedef struct ide_s {
     double         pending_delay;
 
 #ifdef SCSI_DEVICE_H
-    int     (*get_max)(int ide_has_dma, int type);
-    int     (*get_timings)(int ide_has_dma, int type);
-    void    (*identify)(struct ide_s *ide, int ide_has_dma);
-    void    (*stop)(scsi_common_t *sc);
-    void    (*packet_command)(scsi_common_t *sc, uint8_t *cdb);
+    int     (*get_max)(const struct ide_s *ide, const int ide_has_dma, const int type);
+    int     (*get_timings)(const struct ide_s *ide, const int ide_has_dma, const int type);
+    void    (*identify)(const struct ide_s *ide, const int ide_has_dma);
+    void    (*stop)(const scsi_common_t *sc);
+    void    (*packet_command)(scsi_common_t *sc, const uint8_t *cdb);
     void    (*device_reset)(scsi_common_t *sc);
     uint8_t (*phase_data_out)(scsi_common_t *sc);
     void    (*command_stop)(scsi_common_t *sc);
@@ -142,9 +145,7 @@ typedef struct ide_s {
 #endif
 } ide_t;
 
-#ifdef EMU_HDC_H
 extern ide_t *ide_drives[IDE_NUM];
-#endif
 #endif
 
 /* Type:

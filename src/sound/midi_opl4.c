@@ -557,7 +557,7 @@ program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
 }
 
 static void
-opl4_midi_thread(void *arg)
+opl4_midi_thread(UNUSED(void *arg))
 {
     opl4_midi_t *opl4_midi         = opl4_midi_cur;
     uint32_t     i                 = 0;
@@ -648,18 +648,18 @@ opl4_midi_msg(uint8_t *val)
 }
 
 void
-opl4_midi_sysex(uint8_t *data, unsigned int len)
+opl4_midi_sysex(UNUSED(uint8_t *data), UNUSED(unsigned int len))
 {
+    //
 }
 
 void *
-opl4_init(const device_t *info)
+opl4_init(UNUSED(const device_t *info))
 {
     midi_device_t *dev;
     extern void    al_set_midi(int freq, int buf_size);
 
-    dev = malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    dev = calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = opl4_midi_msg;
     dev->play_sysex = opl4_midi_sysex;
@@ -724,7 +724,7 @@ const device_t opl4_midi_device = {
     .init          = opl4_init,
     .close         = opl4_close,
     .reset         = NULL,
-    { .available = opl4_midi_available },
+    .available     = opl4_midi_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

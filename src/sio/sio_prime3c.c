@@ -241,7 +241,7 @@ prime3c_lpt_handler(prime3c_t *dev)
     lpt1_remove();
     if (!(FUNCTION_SELECT & 0x03)) {
 
-        lpt1_init(LPT_BASE_ADDRESS << 2);
+        lpt1_setup(LPT_BASE_ADDRESS << 2);
         lpt1_irq(FDC_LPT_IRQ & 0xf);
         prime3c_log("Prime3C-LPT: BASE %04x IRQ %02x\n", LPT_BASE_ADDRESS << 2, FDC_LPT_IRQ & 0xf);
     }
@@ -296,8 +296,7 @@ prime3c_close(void *priv)
 static void *
 prime3c_init(const device_t *info)
 {
-    prime3c_t *dev = (prime3c_t *) malloc(sizeof(prime3c_t));
-    memset(dev, 0, sizeof(prime3c_t));
+    prime3c_t *dev = (prime3c_t *) calloc(1, sizeof(prime3c_t));
 
     /* Avoid conflicting with machines that make no use of the Prime3C Internal IDE */
     HAS_IDE_FUNCTIONALITY = info->local;
@@ -335,7 +334,7 @@ const device_t prime3c_device = {
     .init          = prime3c_init,
     .close         = prime3c_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -349,7 +348,7 @@ const device_t prime3c_ide_device = {
     .init          = prime3c_init,
     .close         = prime3c_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

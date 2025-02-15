@@ -302,9 +302,9 @@ void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, c
 // VDE Driver structure
 //-
 const netdrv_t net_vde_drv =  {
-    &net_vde_in_available,
-    &net_vde_init,
-    &net_vde_close,
-    NULL
+    .notify_in = &net_vde_in_available,
+    .init      = &net_vde_init,
+    .close     = &net_vde_close,
+    .priv      = NULL
 };
 

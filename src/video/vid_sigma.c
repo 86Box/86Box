@@ -860,100 +860,59 @@ sigma_speed_changed(void *priv)
 device_config_t sigma_config[] = {
   // clang-format off
     {
-        .name = "rgb_type",
-        .description = "RGB type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "Color",
-                .value = 0
-            },
-            {
-                .description = "Green Monochrome",
-                .value = 1
-            },
-            {
-                .description = "Amber Monochrome",
-                .value = 2
-            },
-            {
-                .description = "Gray Monochrome",
-                .value = 3
-            },
-            {
-                .description = "Color (no brown)",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
-    },
-    {
-        .name = "enable_nmi",
-        .description = "Enable NMI for CGA emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_int = 0xc0000,
-        .selection = {
-            {
-                .description = "C000H",
-                .value = 0xc0000
-            },
-            {
-                .description = "C800H",
-                .value = 0xc8000
-            },
-            {
-                .description = "CC00H",
-                .value = 0xcc000
-            },
-            {
-                .description = "D000H",
-                .value = 0xd0000
-            },
-            {
-                .description = "D400H",
-                .value = 0xd4000
-            },
-            {
-                .description = "D800H",
-                .value = 0xd8000
-            },
-            {
-                .description = "DC00H",
-                .value = 0xdc000
-            },
-            {
-                .description = "E000H",
-                .value = 0xe0000
-            },
-            {
-                .description = "E400H",
-                .value = 0xe4000
-            },
-            {
-                .description = "E800H",
-                .value = 0xe8000
-            },
-            {
-                .description = "EC00H",
-                .value = 0xec000
-            },
-            {
-                .description = ""
-            }
+        .name           = "rgb_type",
+        .description    = "RGB type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Color",            .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = "Color (no brown)", .value = 4 },
+            { .description = ""                             }
         },
+        .bios           = { { 0 } }
     },
     {
-        .type = CONFIG_END
-    }
+        .name           = "enable_nmi",
+        .description    = "Enable NMI for CGA emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc0000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C000H", .value = 0xc0000 },
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = "E000H", .value = 0xe0000 },
+            { .description = "E400H", .value = 0xe4000 },
+            { .description = "E800H", .value = 0xe8000 },
+            { .description = "EC00H", .value = 0xec000 },
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -965,7 +924,7 @@ const device_t sigma_device = {
     .init          = sigma_init,
     .close         = sigma_close,
     .reset         = NULL,
-    { .available = sigma_available },
+    .available     = sigma_available,
     .speed_changed = sigma_speed_changed,
     .force_redraw  = NULL,
     .config        = sigma_config

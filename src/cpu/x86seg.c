@@ -48,12 +48,12 @@
 #define  seg_writememwl writememwl_2386
 #define  seg_writememll writememll_2386
 #else
-#define  seg_readmembl  readmembl_2386
-#define  seg_readmemwl  readmemwl_2386
-#define  seg_readmemll  readmemll_2386
-#define  seg_writemembl writemembl_2386
-#define  seg_writememwl writememwl_2386
-#define  seg_writememll writememll_2386
+#define  seg_readmembl  readmembl
+#define  seg_readmemwl  readmemwl
+#define  seg_readmemll  readmemll
+#define  seg_writemembl writemembl
+#define  seg_writememwl writememwl
+#define  seg_writememll writememll
 #endif
 
 #define DPL  ((segdat[2] >> 13) & 3)

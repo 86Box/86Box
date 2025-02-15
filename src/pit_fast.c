@@ -751,7 +751,7 @@ const device_t i8253_fast_device = {
     .init          = pitf_init,
     .close         = pitf_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -765,7 +765,7 @@ const device_t i8254_fast_device = {
     .init          = pitf_init,
     .close         = pitf_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -779,7 +779,7 @@ const device_t i8254_sec_fast_device = {
     .init          = pitf_init,
     .close         = pitf_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -793,7 +793,7 @@ const device_t i8254_ext_io_fast_device = {
     .init          = pitf_init,
     .close         = pitf_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -807,21 +807,21 @@ const device_t i8254_ps2_fast_device = {
     .init          = pitf_init,
     .close         = pitf_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pitf_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
 const pit_intf_t pit_fast_intf = {
-    &pitf_read,
-    &pitf_write,
-    &pitf_ctr_get_count,
-    &pitf_ctr_set_gate,
-    &pitf_ctr_set_using_timer,
-    &pitf_ctr_set_out_func,
-    &pitf_ctr_set_load_func,
-    &pitf_ctr_clock,
-    &pitf_set_pit_const,
-    NULL,
+    .read            = &pitf_read,
+    .write           = &pitf_write,
+    .get_count       = &pitf_ctr_get_count,
+    .set_gate        = &pitf_ctr_set_gate,
+    .set_using_timer = &pitf_ctr_set_using_timer,
+    .set_out_func    = &pitf_ctr_set_out_func,
+    .set_load_func   = &pitf_ctr_set_load_func,
+    .ctr_clock       = &pitf_ctr_clock,
+    .set_pit_const   = &pitf_set_pit_const,
+    .data            = NULL,
 };

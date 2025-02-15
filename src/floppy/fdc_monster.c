@@ -13,7 +13,7 @@
  * Authors:  Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *           Miran Grca, <mgrca8@gmail.com>
  *
- *           Copyright 2022-2024 Jasmine Iwanek.
+ *           Copyright 2022-2025 Jasmine Iwanek.
  *           Copyright 2024      Miran Grca.
  */
 #include <stdarg.h>
@@ -165,82 +165,61 @@ static const device_config_t monster_fdc_config[] = {
   // clang-format off
 #if 0
     {
-        .name = "sec_enabled",
-        .description = "Enable Secondary Controller",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "sec_enabled",
+        .description    = "Enable Secondary Controller",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "sec_irq",
-        .description = "Secondary Controller IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 2",
-                .value = 2
-            },
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 4",
-                .value = 4
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 6",
-                .value = 6
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "sec_irq",
+        .description    = "Secondary Controller IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 6", .value = 6 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "sec_dma",
-        .description = "Secondary Controller DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 2,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 2",
-                .value = 2
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "sec_dma",
+        .description    = "Secondary Controller DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 2", .value = 2 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
 #endif
     {
-        .name = "bios_addr",
-        .description = "BIOS Address:",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0 },
             { .description = "C000H",    .value = 0xc0000 },
             { .description = "C800H",    .value = 0xc8000 },
@@ -249,30 +228,36 @@ static const device_config_t monster_fdc_config[] = {
             { .description = "E000H",    .value = 0xe0000 },
             { .description = "E800H",    .value = 0xe8000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
 #if 0
     {
-        .name = "bios_size",
-        .description = "BIOS Size:",
-        .type = CONFIG_HEX20,
-        .default_string = "32",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_size",
+        .description    = "BIOS Size:",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 32,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "8K",  .value = 8  },
             { .description = "32K", .value = 32 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
 #endif
     {
-        .name = "rom_writes_enabled",
-        .description = "Enable BIOS extension ROM Writes",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "rom_writes_enabled",
+        .description    = "Enable BIOS extension ROM Writes",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -286,7 +271,7 @@ const device_t fdc_monster_device = {
     .init          = monster_fdc_init,
     .close         = monster_fdc_close,
     .reset         = NULL,
-    { .available = monster_fdc_available },
+    .available     = monster_fdc_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = monster_fdc_config

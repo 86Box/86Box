@@ -328,7 +328,7 @@ emu8k_log(const char *fmt, ...)
 static inline int16_t
 EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
-    const register emu8k_mem_pointers_t addrmem = { { addr } };
+    register const emu8k_mem_pointers_t addrmem = { { addr } };
     return emu8k->ram_pointers[addrmem.hb_address][addrmem.lw_address];
 }
 
@@ -2171,8 +2171,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         emu8k->rom[0x7ffff] = 0;
     }
 
-    emu8k->empty = malloc(2 * BLOCK_SIZE_WORDS);
-    memset(emu8k->empty, 0, 2 * BLOCK_SIZE_WORDS);
+    emu8k->empty = calloc(2, BLOCK_SIZE_WORDS);
 
     int j = 0;
     for (; j < 0x8; j++) {
@@ -2186,8 +2185,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         /*Clip to 28MB, since that's the max that we can address. */
         if (onboard_ram > 0x7000)
             onboard_ram = 0x7000;
-        emu8k->ram = malloc(onboard_ram * 1024);
-        memset(emu8k->ram, 0, onboard_ram * 1024);
+        emu8k->ram = calloc(1024, onboard_ram);
         const int i_end = onboard_ram >> 7;
         int       i     = 0;
         for (; i < i_end; i++, j++) {

@@ -25,11 +25,11 @@ on:
 
 jobs:
 
-  analyze-macos12:
+  analyze-macos13-x86_64:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
-    runs-on: macos-12
+    runs-on: macos-13
 
     permissions:
       actions: read
@@ -74,6 +74,9 @@ jobs:
           rtmidi
           openal-soft
           fluidsynth
+          libslirp
+          vde
+          libserialport
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -95,6 +98,7 @@ jobs:
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
+          -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
 
       - name: Build
         run: cmake --build build

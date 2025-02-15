@@ -600,91 +600,67 @@ nga_init(UNUSED(const device_t *info))
 const device_config_t nga_config[] = {
   // clang-format off
     {
-        .name = "rgb_type",
-        .description = "RGB type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "Color",
-                .value = 0
-            },
-            {
-                .description = "Green Monochrome",
-                .value = 1
-            },
-            {
-                .description = "Amber Monochrome",
-                .value = 2
-            },
-            {
-                .description = "Gray Monochrome",
-                .value = 3
-            },
-            {
-                .description = "Color (no brown)",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "RGB type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Color",            .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = "Color (no brown)", .value = 4 },
+            { .description = ""                             }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 64,
-        .selection = {
-            {
-                .description = "32 KB",
-                .value = 32
-            },
-            {
-                .description = "64 KB",
-                .value = 64
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 64,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "32 KB", .value = 32 },
+            { .description = "64 KB", .value = 64 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "charset",
-        .description = "Character set",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "U.S. English",
-                .value = 0
-            },
-            {
-                .description = "Scandinavian",
-                .value = 1
-            },
-            {
-                .description = "Other languages",
-                .value = 2
-            },
-            {
-                .description = "E.F. Hutton",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "charset",
+        .description    = "Character set",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "U.S. English",    .value = 0 },
+            { .description = "Scandinavian",    .value = 1 },
+            { .description = "Other languages", .value = 2 },
+            { .description = "E.F. Hutton",     .value = 3 },
+            { .description = ""                            }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -696,7 +672,7 @@ const device_t nga_device = {
     .init          = nga_init,
     .close         = nga_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = nga_speed_changed,
     .force_redraw  = NULL,
     .config        = nga_config

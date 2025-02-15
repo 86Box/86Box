@@ -192,10 +192,9 @@ catalyst_flash_init(UNUSED(const device_t *info))
     FILE    *fp;
     flash_t *dev;
 
-    dev = malloc(sizeof(flash_t));
-    memset(dev, 0, sizeof(flash_t));
+    dev = calloc(1, sizeof(flash_t));
 
-    sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
+    sprintf(flash_path, "%s.bin", machine_get_nvr_name_ex(machine));
 
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
@@ -240,7 +239,7 @@ const device_t catalyst_flash_device = {
     .init          = catalyst_flash_init,
     .close         = catalyst_flash_close,
     .reset         = catalyst_flash_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -2512,18 +2512,24 @@ keyboard_at_write(void *priv)
         }
     } else {
         if (dev->flags & FLAG_CTRLDAT) {
-            /* Special case - another command during another command that wants input - proceed
+            /*
+               Special case - another command during another command that wants input - proceed
                as normal but do not cancel the command (so keep waiting for input), unless the
-               command in progress is ED (Set/reset LEDs). */
-            if (val == 0xed) {
-                keyboard_scan = 1;
+               command in progress is ED (Set/reset LEDs).
+
+               It appears to also apply to command EE (Echo), F4 (Enable), F5 (Diable and Set
+               Default), and F6 (SetDefault).
+             */
+            if ((val == 0xed) || (val == 0xee) || (val == 0xf4) || (val == 0xf5) || (val == 0xf6))
                 dev->flags &= ~FLAG_CTRLDAT;
-            } else
+            else
                 dev->state = DEV_STATE_MAIN_WANT_IN;
         }
 
         switch (val) {
             case 0xed: /* set/reset LEDs */
+                if ((dev->flags & FLAG_CTRLDAT) && (dev->command == 0xed))
+                    keyboard_scan = 1;
                 dev->command = val;
                 keyboard_at_log("%s: set/reset LEDs\n", dev->name);
                 dev->flags |= FLAG_CTRLDAT;
@@ -2653,6 +2659,7 @@ keyboard_at_write(void *priv)
             /* TODO: This is supposed to resend multiple bytes after some commands. */
             case 0xfe: /* resend last scan code */
                 keyboard_at_log("%s: resend last scan code\n", dev->name);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 kbc_at_dev_queue_add(dev, dev->last_scan_code, 0);
                 break;
 
@@ -2731,14 +2738,14 @@ keyboard_at_close(void *priv)
 static const device_config_t keyboard_at_config[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "Type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "type",
+        .description    = "Type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "AT 84-key",          .value = FLAG_AT  | KBD_84_KEY  },
             { .description = "AT 101/102/106-key", .value = FLAG_AT  | KBD_101_KEY },
             { .description = "AT Korean",          .value = FLAG_AT  | KBD_KOREAN  },
@@ -2747,7 +2754,8 @@ static const device_config_t keyboard_at_config[] = {
             { .description = "PS/2 106-key JIS",   .value = FLAG_PS2 | KBD_JIS     },
             { .description = "PS/2 Korean",        .value = FLAG_PS2 | KBD_KOREAN  },
             { .description = ""                                                    }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name = "", .description = "", .type = CONFIG_END
@@ -2759,12 +2767,12 @@ static const device_config_t keyboard_at_config[] = {
 const device_t keyboard_at_generic_device = {
     .name          = "Standard AT or PS/2 Keyboard",
     .internal_name = "ps2",
-    .flags         = DEVICE_PS2,
+    .flags         = DEVICE_PS2_KBC,
     .local         = 0,
     .init          = keyboard_at_init,
     .close         = keyboard_at_close,
     .reset         = NULL,
-    { .poll = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = keyboard_at_config

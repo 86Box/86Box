@@ -14,6 +14,8 @@
  *
  *          Copyright 2020 Miran Grca.
  */
+#ifndef EMU_VERSION_H
+#define EMU_VERSION_H
 
 #define _LSTR(s) L ## s
 #define LSTR(s) _LSTR(s)
@@ -58,3 +60,5 @@
 # define EMU_DOCS_URL  "https://86box.readthedocs.io"
 #endif
 #define EMU_DOCS_URL_W LSTR(EMU_DOCS_URL)
+
+#endif /*EMU_VERSION_H*/

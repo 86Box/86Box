@@ -68,7 +68,7 @@ typedef struct paradise_t {
 } paradise_t;
 
 static video_timings_t timing_paradise_pvga1a = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
-static video_timings_t timing_paradise_wd90c  = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
+static video_timings_t timing_paradise_wd90c  = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l =  6, .read_b = 5, .read_w = 5, .read_l = 10 };
 
 void paradise_remap(paradise_t *paradise);
 
@@ -204,6 +204,14 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                     return;
                 case 0x0b:
                     svga->gdcreg[0x0b] = val;
+                    svga->gdcreg[0x0b] &= ~0xc0;
+                    if (paradise->memory == 1024)
+                        svga->gdcreg[0x0b] |= 0xc0;
+                    else if (paradise->memory == 512)
+                        svga->gdcreg[0x0b] |= 0x80;
+                    else
+                        svga->gdcreg[0x0b] |= 0x40;
+
                     paradise_remap(paradise);
                     return;
                 case 0x0e:
@@ -282,6 +290,7 @@ paradise_remap(paradise_t *paradise)
         paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
     }
 
+    /*There are separate drivers for 1M and 512K/256K versions of the PVGA chips.*/
     if ((svga->gdcreg[0x0b] & 0xc0) < 0xc0) {
         paradise->read_bank[1] &= 0x7ffff;
         paradise->write_bank[1] &= 0x7ffff;
@@ -294,7 +303,7 @@ paradise_remap(paradise_t *paradise)
 void
 paradise_recalctimings(svga_t *svga)
 {
-    const paradise_t *paradise = (paradise_t *) svga->priv;
+    paradise_t *paradise = (paradise_t *) svga->priv;
 
     svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
@@ -328,15 +337,11 @@ paradise_recalctimings(svga_t *svga)
                     svga->hdisp >>= 1;
                     if (svga->hdisp == 788)
                         svga->hdisp += 12;
-                    if (svga->hdisp == 800)
-                        svga->ma_latch -= 3;
                 } else if (svga->bpp == 15) {
                     svga->render = svga_render_15bpp_highres;
                     svga->hdisp >>= 1;
                     if (svga->hdisp == 788)
                         svga->hdisp += 12;
-                    if (svga->hdisp == 800)
-                        svga->ma_latch -= 3;
                 } else
                     svga->render = svga_render_8bpp_highres;
 
@@ -482,7 +487,7 @@ paradise_readw(uint32_t addr, void *priv)
 }
 
 void *
-paradise_init(const device_t *info, uint32_t memsize)
+paradise_init(const device_t *info, uint32_t memory)
 {
     paradise_t *paradise = malloc(sizeof(paradise_t));
     svga_t     *svga     = &paradise->svga;
@@ -493,35 +498,35 @@ paradise_init(const device_t *info, uint32_t memsize)
     else
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c);
 
-    paradise->memory = memsize >> 10;
+    paradise->memory = memory;
 
     switch (info->local) {
         case PVGA1A:
-            svga_init(info, svga, paradise, memsize, /*256kb*/
+            svga_init(info, svga, paradise, (memory << 10), /*256kb default*/
                       paradise_recalctimings,
                       paradise_in, paradise_out,
                       NULL,
                       NULL);
-            paradise->vram_mask = memsize - 1;
-            svga->decode_mask   = memsize - 1;
+            paradise->vram_mask = (memory << 10) - 1;
+            svga->decode_mask   = (memory << 10) - 1;
             break;
         case WD90C11:
-            svga_init(info, svga, paradise, 1 << 19, /*512kb*/
+            svga_init(info, svga, paradise, (memory << 10), /*512kb default*/
                       paradise_recalctimings,
                       paradise_in, paradise_out,
                       NULL,
                       NULL);
-            paradise->vram_mask = (1 << 19) - 1;
-            svga->decode_mask   = (1 << 19) - 1;
+            paradise->vram_mask = (memory << 10) - 1;
+            svga->decode_mask   = (memory << 10) - 1;
             break;
         case WD90C30:
-            svga_init(info, svga, paradise, memsize,
+            svga_init(info, svga, paradise, (memory << 10),
                       paradise_recalctimings,
                       paradise_in, paradise_out,
                       NULL,
                       NULL);
-            paradise->vram_mask = memsize - 1;
-            svga->decode_mask   = memsize - 1;
+            paradise->vram_mask = (memory << 10) - 1;
+            svga->decode_mask   = (memory << 10) - 1;
             svga->ramdac        = device_add(&sc11487_ramdac_device); /*Actually a Winbond W82c487-80, probably a clone.*/
             break;
 
@@ -529,6 +534,12 @@ paradise_init(const device_t *info, uint32_t memsize)
             break;
     }
 
+    svga->read = paradise_read;
+    svga->readw = paradise_readw;
+    svga->readl = NULL;
+    svga->write = paradise_write;
+    svga->writew = paradise_writew;
+    svga->writel = NULL;
     mem_mapping_set_handler(&svga->mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
     mem_mapping_set_p(&svga->mapping, paradise);
 
@@ -566,7 +577,7 @@ paradise_init(const device_t *info, uint32_t memsize)
 static void *
 paradise_pvga1a_ncr3302_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, 1 << 18);
+    paradise_t *paradise = paradise_init(info, 256);
 
     if (paradise)
         rom_init(&paradise->bios_rom, "roms/machines/3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -577,7 +588,7 @@ paradise_pvga1a_ncr3302_init(const device_t *info)
 static void *
 paradise_pvga1a_pc2086_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, 1 << 18);
+    paradise_t *paradise = paradise_init(info, 256);
 
     if (paradise)
         rom_init(&paradise->bios_rom, "roms/machines/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -588,7 +599,7 @@ paradise_pvga1a_pc2086_init(const device_t *info)
 static void *
 paradise_pvga1a_pc3086_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, 1 << 18);
+    paradise_t *paradise = paradise_init(info, 256);
 
     if (paradise)
         rom_init(&paradise->bios_rom, "roms/machines/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -600,12 +611,9 @@ static void *
 paradise_pvga1a_standalone_init(const device_t *info)
 {
     paradise_t *paradise;
-    uint32_t    memory = 512;
+    uint32_t memsize = device_get_config_int("memory");
 
-    memory = device_get_config_int("memory");
-    memory <<= 10;
-
-    paradise = paradise_init(info, memory);
+    paradise = paradise_init(info, memsize);
 
     if (paradise)
         rom_init(&paradise->bios_rom, "roms/video/pvga1a/BIOS.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -622,7 +630,7 @@ paradise_pvga1a_standalone_available(void)
 static void *
 paradise_wd90c11_megapc_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, 0);
+    paradise_t *paradise = paradise_init(info, 512);
 
     if (paradise)
         rom_init_interleaved(&paradise->bios_rom,
@@ -636,7 +644,7 @@ paradise_wd90c11_megapc_init(const device_t *info)
 static void *
 paradise_wd90c11_standalone_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, 0);
+    paradise_t *paradise = paradise_init(info, 512);
 
     if (paradise)
         rom_init(&paradise->bios_rom, "roms/video/wd90c11/WD90C11.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -654,12 +662,9 @@ static void *
 paradise_wd90c30_standalone_init(const device_t *info)
 {
     paradise_t *paradise;
-    uint32_t    memory = 512;
+    uint32_t memsize = device_get_config_int("memory");
 
-    memory = device_get_config_int("memory");
-    memory <<= 10;
-
-    paradise = paradise_init(info, memory);
+    paradise = paradise_init(info, memsize);
 
     if (paradise)
         rom_init(&paradise->bios_rom, "roms/video/wd90c30/90C30-LR.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -707,7 +712,7 @@ const device_t paradise_pvga1a_pc2086_device = {
     .init          = paradise_pvga1a_pc2086_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -721,7 +726,7 @@ const device_t paradise_pvga1a_pc3086_device = {
     .init          = paradise_pvga1a_pc3086_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -730,27 +735,21 @@ const device_t paradise_pvga1a_pc3086_device = {
 static const device_config_t paradise_pvga1a_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -762,7 +761,7 @@ const device_t paradise_pvga1a_ncr3302_device = {
     .init          = paradise_pvga1a_ncr3302_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_pvga1a_config
@@ -776,7 +775,7 @@ const device_t paradise_pvga1a_device = {
     .init          = paradise_pvga1a_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = paradise_pvga1a_standalone_available },
+    .available     = paradise_pvga1a_standalone_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_pvga1a_config
@@ -790,7 +789,7 @@ const device_t paradise_wd90c11_megapc_device = {
     .init          = paradise_wd90c11_megapc_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -804,7 +803,7 @@ const device_t paradise_wd90c11_device = {
     .init          = paradise_wd90c11_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = paradise_wd90c11_standalone_available },
+    .available     = paradise_wd90c11_standalone_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = NULL
@@ -813,27 +812,22 @@ const device_t paradise_wd90c11_device = {
 static const device_config_t paradise_wd90c30_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -845,7 +839,7 @@ const device_t paradise_wd90c30_device = {
     .init          = paradise_wd90c30_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    { .available = paradise_wd90c30_standalone_available },
+    .available     = paradise_wd90c30_standalone_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_wd90c30_config

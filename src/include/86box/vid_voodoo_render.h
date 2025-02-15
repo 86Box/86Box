@@ -210,11 +210,10 @@ void voodoo_codegen_close(voodoo_t *voodoo);
                 newdest_g = (dest_g * (255 - dest_a)) / 255; \
                 newdest_b = (dest_b * (255 - dest_a)) / 255; \
                 break;                                       \
-            case AFUNC_ASATURATE:                            \
-                _a        = MIN(src_a, 1 - dest_a);          \
-                newdest_r = (dest_r * _a) / 255;             \
-                newdest_g = (dest_g * _a) / 255;             \
-                newdest_b = (dest_b * _a) / 255;             \
+            case AFUNC_ACOLORBEFOREFOG:                      \
+                newdest_r = (dest_r * colbfog_r) / 255;      \
+                newdest_g = (dest_g * colbfog_g) / 255;      \
+                newdest_b = (dest_b * colbfog_b) / 255;      \
                 break;                                       \
         }                                                    \
                                                              \
@@ -254,8 +253,11 @@ void voodoo_codegen_close(voodoo_t *voodoo);
                 src_g = (src_g * (255 - dest_a)) / 255;      \
                 src_b = (src_b * (255 - dest_a)) / 255;      \
                 break;                                       \
-            case AFUNC_ACOLORBEFOREFOG:                      \
-                fatal("AFUNC_ACOLORBEFOREFOG\n");            \
+            case AFUNC_ASATURATE:                            \
+                _a        = MIN(src_a, 255 - dest_a);        \
+                src_r     = (dest_r * _a) / 255;             \
+                src_g     = (dest_g * _a) / 255;             \
+                src_b     = (dest_b * _a) / 255;             \
                 break;                                       \
         }                                                    \
                                                              \

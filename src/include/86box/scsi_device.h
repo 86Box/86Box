@@ -21,6 +21,7 @@
 #define SCSI_DEVICE_H
 
 /* Configuration. */
+#define SCSI_NUM         (SCSI_BUS_MAX * SCSI_ID_MAX)
 
 #define SCSI_LUN_USE_CDB 0xff
 
@@ -53,8 +54,8 @@
 #define GPCMD_SEEK_6                                  0x0b
 #define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
 #define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
-#define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command */
-#define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command */
+#define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command. */
+#define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command. */
 #define GPCMD_INQUIRY                                 0x12
 #define GPCMD_VERIFY_6                                0x13
 #define GPCMD_MODE_SELECT_6                           0x15
@@ -66,7 +67,7 @@
 #define GPCMD_PREVENT_REMOVAL                         0x1e
 #define GPCMD_READ_FORMAT_CAPACITIES                  0x23
 #define GPCMD_READ_CDROM_CAPACITY                     0x25
-#define GPCMD_UNKNOWN_CHINON                          0x26 /*Chinon Vendor Unique command*/
+#define GPCMD_UNKNOWN_CHINON                          0x26 /* Chinon Vendor Unique command. */
 #define GPCMD_READ_10                                 0x28
 #define GPCMD_READ_GENERATION                         0x29
 #define GPCMD_WRITE_10                                0x2a
@@ -100,43 +101,54 @@
 #define GPCMD_WRITE_AND_VERIFY_12                     0xae
 #define GPCMD_VERIFY_12                               0xaf
 #define GPCMD_PLAY_CD_OLD                             0xb4
-#define GPCMD_READ_CD_OLD                             0xb8
+#define GPCMD_READ_CD_OLD                             0xb8 /* Should be equivalent to 0xbe */
 #define GPCMD_READ_CD_MSF                             0xb9
 #define GPCMD_AUDIO_SCAN                              0xba
 #define GPCMD_SET_SPEED                               0xbb
-#define GPCMD_PLAY_CD                                 0xbc
+#define GPCMD_PLAY_CD                                 0xbc /* At some point, this was READ CD, according to the
+                                                              ATAPI specification */
 #define GPCMD_MECHANISM_STATUS                        0xbd
 #define GPCMD_READ_CD                                 0xbe
 #define GPCMD_SEND_DVD_STRUCTURE                      0xbf /* This is for writing only, irrelevant to 86Box. */
 #define GPCMD_EJECT_CHINON                            0xc0 /* Chinon Vendor Unique command */
 #define GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA              0xc0 /* Toshiba Vendor Unique command */
-#define GPCMD_UNKNOWN_SONY                            0xc0 /* Sony Vendor Unique command */
+#define GPCMD_SET_ADDRESS_FORMAT_SONY                 0xc0 /* Sony Vendor Unique command */
+#define GPCMD_MAGAZINE_EJECT_PIONEER                  0xc0 /* Pioneer Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TOSHIBA                      0xc1 /* Toshiba Vendor Unique command */
 #define GPCMD_READ_TOC_SONY                           0xc1 /* Sony Vendor Unique command */
+#define GPCMD_READ_TOC_PIONEER                        0xc1 /* Pioneer Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_ALT                        0xc2
 #define GPCMD_READ_SUBCHANNEL_MATSUSHITA              0xc2 /* Matsushita Vendor Unique command */
 #define GPCMD_READ_SUBCHANNEL_SONY                    0xc2 /* Sony Vendor Unique command */
 #define GPCMD_STILL_TOSHIBA                           0xc2 /* Toshiba Vendor Unique command */
+#define GPCMD_READ_SUBCODEQ_PIONEER                   0xc2 /* Pioneer Vendor Unique command */
 #define GPCMD_READ_TOC_MATSUSHITA                     0xc3 /* Matsushita Vendor Unique command */
 #define GPCMD_READ_HEADER_SONY                        0xc3 /* Sony Vendor Unique command */
 #define GPCMD_SET_STOP_TIME_TOSHIBA                   0xc3 /* Toshiba Vendor Unique command */
 #define GPCMD_READ_HEADER_MATSUSHITA                  0xc4 /* Matsushita Vendor Unique command */
-#define GPCMD_PLAYBACK_STATUS_TOSHIBA                 0xc4 /* Sony Vendor Unique command */
+#define GPCMD_PLAYBACK_STATUS_SONY                    0xc4 /* Sony Vendor Unique command */
 #define GPCMD_CADDY_EJECT_TOSHIBA                     0xc4 /* Toshiba Vendor Unique command */
 #define GPCMD_PAUSE_SONY                              0xc5 /* Sony Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_MATSUSHITA                   0xc5 /* Matsushita Vendor Unique command */
+#define GPCMD_UNKNOWN_SCSI2_NEC                       0xc5 /* NEC Vendor Unique Command */
 #define GPCMD_STOP_CHINON                             0xc6 /* Chinon Vendor Unique command */
-#define GPCMD_PLAT_TRACK_SONY                         0xc6 /* Sony Vendor Unique command */
+#define GPCMD_PLAY_TRACK_SONY                         0xc6 /* Sony Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA    0xc6 /* Toshiba Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_MSF_MATSUSHITA               0xc7 /* Matsushita Vendor Unique command*/
 #define GPCMD_PLAY_MSF_SONY                           0xc7 /* Sony Vendor Unique command*/
 #define GPCMD_READ_DISC_INFORMATION_TOSHIBA           0xc7 /* Toshiba Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA       0xc8 /* Matsushita Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_SONY                         0xc8 /* Sony Vendor Unique command */
-#define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10_MATSUSHITA 0xc9 /*Matsushita Vendor Unique command */
+#define GPCMD_AUDIO_TRACK_SEARCH_PIONEER              0xc8 /* Pioneer Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10_MATSUSHITA 0xc9 /* Matsushita Vendor Unique command */
 #define GPCMD_PLAYBACK_CONTROL_SONY                   0xc9 /* Sony Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_PIONEER                      0xc9 /* Pioneer Vendor Unique command */
+#define GPCMD_PAUSE_PIONEER                           0xca /* Pioneer Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_MATSUSHITA                 0xcb /* Matsushita Vendor Unique command */
+#define GPCMD_STOP_PIONEER                            0xcb /* Pioneer Vendor Unique command */
+#define GPCMD_PLAYBACK_STATUS_PIONEER                 0xcc /* Pioneer Vendor Unique command */
 #define GPCMD_SCAN_PIONEER                            0xcd /* Should be equivalent to 0xba */
+#define GPCMD_READ_CD_MSF_OLD                         0xd5 /* Should be equivalent to 0xb9 */
 #define GPCMD_AUDIO_TRACK_SEARCH_NEC                  0xd8 /* NEC Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_NEC                          0xd9 /* NEC Vendor Unique command */
 #define GPCMD_STILL_NEC                               0xda /* NEC Vendor Unique command */
@@ -145,6 +157,7 @@
 #define GPCMD_CADDY_EJECT_NEC                         0xdc /* NEC Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC        0xdd /* NEC Vendor Unique command */
 #define GPCMD_READ_DISC_INFORMATION_NEC               0xde /* NEC Vendor Unique command */
+#define GPCMD_DRIVE_STATUS_PIONEER                    0xe0 /* Pioneer Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_12_MATSUSHITA                0xe5 /* Matsushita Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
 
@@ -189,6 +202,7 @@
 /* SCSI Sense Keys */
 #define SENSE_NONE            0
 #define SENSE_NOT_READY       2
+#define SENSE_MEDIUM_ERROR    3
 #define SENSE_ILLEGAL_REQUEST 5
 #define SENSE_UNIT_ATTENTION  6
 
@@ -196,6 +210,8 @@
 #define ASC_NONE                               0x00
 #define ASC_AUDIO_PLAY_OPERATION               0x00
 #define ASC_NOT_READY                          0x04
+#define ASC_WRITE_ERROR                        0x0c
+#define ASC_UNRECOVERED_READ_ERROR             0x11
 #define ASC_ILLEGAL_OPCODE                     0x20
 #define ASC_LBA_OUT_OF_RANGE                   0x21
 #define ASC_INV_FIELD_IN_CMD_PACKET            0x24
@@ -203,7 +219,7 @@
 #define ASC_INV_FIELD_IN_PARAMETER_LIST        0x26
 #define ASC_WRITE_PROTECTED                    0x27
 #define ASC_MEDIUM_MAY_HAVE_CHANGED            0x28
-#define ASC_CAPACITY_DATA_CHANGED              0x2A
+#define ASC_CAPACITY_DATA_CHANGED              0x2a
 #define ASC_INCOMPATIBLE_FORMAT                0x30
 #define ASC_MEDIUM_NOT_PRESENT                 0x3a
 #define ASC_DATA_PHASE_ERROR                   0x4b
@@ -212,21 +228,18 @@
 #define ASCQ_NONE                              0x00
 #define ASCQ_UNIT_IN_PROCESS_OF_BECOMING_READY 0x01
 #define ASCQ_INITIALIZING_COMMAND_REQUIRED     0x02
+#define ASCQ_CIRC_UNRECOVERED_ERROR            0x06
 #define ASCQ_CAPACITY_DATA_CHANGED             0x09
 #define ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS  0x11
 #define ASCQ_AUDIO_PLAY_OPERATION_PAUSED       0x12
 #define ASCQ_AUDIO_PLAY_OPERATION_COMPLETED    0x13
 
-/* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
-   Not that it means anything */
-#define CDROM_SPEED 706 /* 0x2C2 */
-
-#define BUFFER_SIZE (256 * 1024)
-
-#define RW_DELAY    (TIMER_USEC * 500)
-
 /* Some generally useful CD-ROM information */
+#ifdef CONSERVATIVE_MAXIMUM
 #define CD_MINS        90   /* max. minutes per CD */
+#else
+#define CD_MINS        100  /* max. minutes per CD - yes, 100-minute CD's in fact existed */
+#endif
 #define CD_SECS        60   /* seconds per minute */
 #define CD_FRAMES      75   /* frames per second */
 #define CD_FRAMESIZE   2048 /* bytes per frame, "cooked" mode */
@@ -260,6 +273,10 @@
 
 /* Profile list from MMC-6 revision 1 table 91 */
 #define MMC_PROFILE_NONE              0x0000
+#define MMC_PROFILE_REMOVABLE_DISK    0x0002
+#define MMC_PROFILE_MO                0x0003
+#define MMC_PROFILE_MO_WORM           0x0004
+#define MMC_PROFILE_AS_MO             0x0005
 #define MMC_PROFILE_CD_ROM            0x0008
 #define MMC_PROFILE_CD_R              0x0009
 #define MMC_PROFILE_CD_RW             0x000A
@@ -288,15 +305,12 @@
 #define MMC_PROFILE_HDDVD_RW_DL       0x005A
 #define MMC_PROFILE_INVALID           0xFFFF
 
-#define EARLY_ONLY                    64
 #define SCSI_ONLY                     32
 #define ATAPI_ONLY                    16
 #define IMPLEMENTED                   8
 #define NONDATA                       4
 #define CHECK_READY                   2
 #define ALLOW_UA                      1
-
-#define MSFtoLBA(m, s, f)             ((((m * 60) + s) * 75) + f)
 
 #define MSG_COMMAND_COMPLETE          0x00
 
@@ -316,6 +330,20 @@
 #define BUS_DATAMASK                  0xff0000
 
 #define BUS_IDLE                      (1 << 31)
+
+#define STATE_IDLE                    0
+#define STATE_COMMAND                 1
+#define STATE_DATAIN                  2
+#define STATE_DATAOUT                 3
+#define STATE_STATUS                  4
+#define STATE_MESSAGEIN               5
+#define STATE_SELECT                  6
+#define STATE_MESSAGEOUT              7
+#define STATE_MESSAGE_ID              8
+
+#define PIO_TX_BUS                    0
+#define DMA_IN_TX_BUS                 1
+#define DMA_OUT_TX_BUS                2
 
 #define PHASE_IDLE                    0x00
 #define PHASE_COMMAND                 0x01
@@ -341,7 +369,7 @@
 #define MODE_SELECT_PHASE_PAGE        4
 
 typedef struct mode_sense_pages_t {
-    uint8_t pages[0x40][0x40];
+    uint8_t            pages[0x40][0x40];
 } mode_sense_pages_t;
 
 /* This is so we can access the common elements to all SCSI device structs
@@ -349,69 +377,106 @@ typedef struct mode_sense_pages_t {
 typedef struct scsi_common_s {
     mode_sense_pages_t ms_pages_saved;
 
-    void *    priv;
+    void *             priv;
 #ifdef EMU_IDE_H
-    ide_tf_t *tf;
+    ide_tf_t *         tf;
 #else
-    void *    tf;
+    void *             tf;
 #endif
 
-    uint8_t *temp_buffer;
-    uint8_t atapi_cdb[16]; /* This is atapi_cdb in ATAPI-supporting devices,
-                              and pad in SCSI-only devices. */
-    uint8_t current_cdb[16];
-    uint8_t sense[256];
+    void *             log;
 
-#ifdef ANCIENT_CODE
-    /* Task file. */
-    uint8_t features;
-    uint8_t phase;
-    uint16_t request_length;
-    uint8_t status;
-    uint8_t error;
-    uint16_t pad;
-    uint32_t pos;
-#endif
+    uint8_t *          temp_buffer;
+    /*
+       This is atapi_cdb in ATAPI-supporting devices,
+       and pad in SCSI-only devices.
+     */
+    uint8_t            atapi_cdb[16];
+    uint8_t            current_cdb[16];
+    uint8_t            sense[256];
 
-    uint8_t id;
-    uint8_t cur_lun;
-    uint8_t pad0;
-    uint8_t pad1;
+    uint8_t            id;
+    uint8_t            cur_lun;
+    uint8_t            pad0;
+    uint8_t            pad1;
 
-    uint16_t max_transfer_len;
-    uint16_t pad2;
+    uint16_t           max_transfer_len;
+    uint16_t           pad2;
 
-    int requested_blocks;
-    int packet_status;
-    int total_length;
-    int do_page_save;
-    int unit_attention;
-    int request_pos;
-    int old_len;
-    int media_status;
+    int                requested_blocks;
+    int                packet_status;
+    int                total_length;
+    int                do_page_save;
+    int                unit_attention;
+    int                request_pos;
+    int                old_len;
+    int                media_status;
 
-    uint32_t sector_pos;
-    uint32_t sector_len;
-    uint32_t packet_len;
+    uint32_t           sector_pos;
+    uint32_t           sector_len;
+    uint32_t           packet_len;
 
-    double callback;
+    double             callback;
+
+    uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 } scsi_common_t;
 
 typedef struct scsi_device_t {
-    int32_t buffer_length;
+    int32_t            buffer_length;
 
-    uint8_t  status;
-    uint8_t  phase;
-    uint16_t type;
+    uint8_t            status;
+    uint8_t            phase;
 
-    scsi_common_t *sc;
+    uint16_t           type;
 
-    void    (*command)(scsi_common_t *sc, uint8_t *cdb);
-    void    (*request_sense)(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length);
-    void    (*reset)(scsi_common_t *sc);
-    uint8_t (*phase_data_out)(scsi_common_t *sc);
-    void    (*command_stop)(scsi_common_t *sc);
+    scsi_common_t *    sc;
+
+    void               (*command)(scsi_common_t *sc, const uint8_t *cdb);
+    void               (*request_sense)(scsi_common_t *sc, uint8_t *buffer,
+                                        uint8_t alloc_length);
+    void               (*reset)(scsi_common_t *sc);
+    uint8_t            (*phase_data_out)(scsi_common_t *sc);
+    void               (*command_stop)(scsi_common_t *sc);
 } scsi_device_t;
+
+typedef struct scsi_bus_t {
+    uint8_t            data;
+    uint8_t            msglun;
+    uint8_t            data_wait;
+    uint8_t            target_id;
+    uint8_t            bus_device;
+    uint8_t            pad;
+    uint8_t            pad0;
+    uint8_t            pad1;
+
+    uint8_t            command[16];
+    uint8_t            msgout[4];
+    uint8_t            pad2[4];
+
+    int                tx_mode;
+    int                clear_req;
+    int                wait_data;
+    int                wait_complete;
+    int                bus_out;
+    int                bus_in;
+    int                command_pos;
+    int                command_issued;
+    int                data_pos;
+    int                msgout_pos;
+    int                is_msgout;
+    int                state;
+    int                dma_on_pio_enabled;
+
+    uint32_t           bus_phase;
+
+    double             period;
+    double             speed;
+    double             divider;
+    double             multi;
+
+    void              *priv;
+    void               (*timer)(void *priv, double period);
+} scsi_bus_t;
 
 /* These are based on the INQUIRY values. */
 #define SCSI_NONE            0x0060
@@ -423,15 +488,8 @@ typedef struct scsi_device_t {
 extern scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 #endif /* EMU_SCSI_H */
 
-extern int cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
-extern int cdrom_LBAtoMSF_accurate(void);
-
-extern int mode_select_init(uint8_t command, uint16_t pl_length, uint8_t do_save);
-extern int mode_select_terminate(int force);
-extern int mode_select_write(uint8_t val);
-
-extern uint8_t *scsi_device_sense(scsi_device_t *dev);
 extern double   scsi_device_get_callback(scsi_device_t *dev);
+extern uint8_t *scsi_device_sense(scsi_device_t *dev);
 extern void     scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer,
                                           uint8_t alloc_length);
 extern void     scsi_device_reset(scsi_device_t *dev);
@@ -439,14 +497,16 @@ extern int      scsi_device_present(scsi_device_t *dev);
 extern int      scsi_device_valid(scsi_device_t *dev);
 extern int      scsi_device_cdb_length(scsi_device_t *dev);
 extern void     scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
-extern void     scsi_device_command_phase1(scsi_device_t *dev);
 extern void     scsi_device_command_stop(scsi_device_t *dev);
+extern void     scsi_device_command_phase1(scsi_device_t *dev);
 extern void     scsi_device_identify(scsi_device_t *dev, uint8_t lun);
 extern void     scsi_device_close_all(void);
 extern void     scsi_device_init(void);
 
 extern void    scsi_reset(void);
 extern uint8_t scsi_get_bus(void);
+extern int     scsi_bus_read(scsi_bus_t *scsi_bus);
+extern void    scsi_bus_update(scsi_bus_t *scsi_bus, int bus);
 
 extern void    scsi_bus_set_speed(uint8_t bus, double speed);
 extern double  scsi_bus_get_speed(uint8_t bus);

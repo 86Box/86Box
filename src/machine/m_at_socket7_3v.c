@@ -671,15 +671,15 @@ machine_at_p5vxb_init(const machine_t *model)
 }
 
 int
-machine_at_gw2kte_init(const machine_t *model)
+machine_at_gw2kma_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/gw2kte/1008CY1T.BIO",
-                                     "roms/machines/gw2kte/1008CY1T.BI1",
-                                     "roms/machines/gw2kte/1008CY1T.BI2",
-                                     "roms/machines/gw2kte/1008CY1T.BI3",
-                                     "roms/machines/gw2kte/1008CY1T.RCV",
+    ret = bios_load_linear_combined2("roms/machines/gw2kma/1007DQ0T.BIO",
+                                     "roms/machines/gw2kma/1007DQ0T.BI1",
+                                     "roms/machines/gw2kma/1007DQ0T.BI2",
+                                     "roms/machines/gw2kma/1007DQ0T.BI3",
+                                     "roms/machines/gw2kma/1007DQ0T.RCV",
                                      0x3a000, 128);
 
     if (bios_only || !ret)
@@ -689,7 +689,6 @@ machine_at_gw2kte_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);

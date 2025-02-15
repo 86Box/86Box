@@ -70,6 +70,15 @@ static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w 
 
 void cga_recalctimings(cga_t *cga);
 
+static void
+cga_update_latch(cga_t *cga)
+{
+    uint32_t lp_latch = cga->displine * cga->crtc[1];
+
+    cga->crtc[0x10] = (lp_latch >> 8) & 0x3f;
+    cga->crtc[0x11] = lp_latch & 0xff;
+}
+
 void
 cga_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -87,7 +96,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
             old                     = cga->crtc[cga->crtcreg];
             cga->crtc[cga->crtcreg] = val & crtcmask[cga->crtcreg];
             if (old != val) {
-                if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x10)) {
+                if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
                     cga->fullchange = changeframecount;
                     cga_recalctimings(cga);
                 }
@@ -111,6 +120,17 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 cga_recalctimings(cga);
             return;
 
+        case 0x3DB:
+            if (cga->lp_strobe == 1)
+                cga->lp_strobe = 0;
+            return;
+        case 0x3DC:
+            if (cga->lp_strobe == 0) {
+                cga->lp_strobe = 1;
+                cga_update_latch(cga);
+            }
+            return;
+
         default:
             break;
     }
@@ -119,8 +139,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 cga_in(uint16_t addr, void *priv)
 {
-    const cga_t *cga = (cga_t *) priv;
-
+    cga_t  *cga = (cga_t *) priv;
     uint8_t ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
@@ -135,6 +154,17 @@ cga_in(uint16_t addr, void *priv)
             break;
         case 0x3DA:
             ret = cga->cgastat;
+            break;
+
+        case 0x3DB:
+            if (cga->lp_strobe == 1)
+                cga->lp_strobe = 0;
+            break;
+        case 0x3DC:
+            if (cga->lp_strobe == 0) {
+                cga->lp_strobe = 1;
+                cga_update_latch(cga);
+            }
             break;
 
         default:
@@ -418,7 +448,7 @@ cga_interpolate_linear(uint8_t co1, uint8_t co2, double fraction)
 }
 
 static color_t
-cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, double fraction)
+cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, UNUSED(double fraction))
 {
     color_t ret;
     uint8_t dt = cga->double_type - DOUBLE_INTERPOLATE_SRGB;
@@ -779,114 +809,83 @@ cga_speed_changed(void *priv)
 // clang-format off
 const device_config_t cga_config[] = {
     {
-        .name = "display_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_int = CGA_RGB,
-        .selection = {
-            {
-                .description = "RGB",
-                .value = CGA_RGB
-            },
-            {
-                .description = "Composite",
-                .value = CGA_COMPOSITE
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CGA_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "RGB",       .value = CGA_RGB       },
+            { .description = "Composite", .value = CGA_COMPOSITE },
+            { .description = ""                                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "composite_type",
-        .description = "Composite type",
-        .type = CONFIG_SELECTION,
-        .default_int = COMPOSITE_OLD,
-        .selection = {
-            {
-                .description = "Old",
-                .value = COMPOSITE_OLD
-            },
-            {
-                .description = "New",
-                .value = COMPOSITE_NEW
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "composite_type",
+        .description    = "Composite type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = COMPOSITE_OLD,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Old", .value = COMPOSITE_OLD },
+            { .description = "New", .value = COMPOSITE_NEW },
+            { .description = ""                            }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "rgb_type",
-        .description = "RGB type",
-        .type = CONFIG_SELECTION,
-        .default_int = 5,
-        .selection = {
-            {
-                .description = "Color (generic)",
-                .value = 0
-            },
-            {
-                .description = "Green Monochrome",
-                .value = 1
-            },
-            {
-                .description = "Amber Monochrome",
-                .value = 2
-            },
-            {
-                .description = "Gray Monochrome",
-                .value = 3
-            },
-            {
-                .description = "Color (no brown)",
-                .value = 4
-            },
-            {
-                .description = "Color (IBM 5153)",
-                .value = 5
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "RGB type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Color (generic)",  .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = "Color (no brown)", .value = 4 },
+            { .description = "Color (IBM 5153)", .value = 5 },
+            { .description = ""                             }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "double_type",
-        .description = "Line doubling type",
-        .type = CONFIG_SELECTION,
-        .default_int = DOUBLE_NONE,
-        .selection = {
-            {
-                .description = "None",
-                .value = DOUBLE_NONE
-            },
-            {
-                .description = "Simple doubling",
-                .value = DOUBLE_SIMPLE
-            },
-            {
-                .description = "sRGB interpolation",
-                .value = DOUBLE_INTERPOLATE_SRGB
-            },
-            {
-                .description = "Linear interpolation",
-                .value = DOUBLE_INTERPOLATE_LINEAR
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "double_type",
+        .description    = "Line doubling type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DOUBLE_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",                 .value = DOUBLE_NONE               },
+            { .description = "Simple doubling",      .value = DOUBLE_SIMPLE             },
+            { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
+            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -898,7 +897,7 @@ const device_t cga_device = {
     .init          = cga_standalone_init,
     .close         = cga_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config
@@ -912,7 +911,7 @@ const device_t cga_pravetz_device = {
     .init          = cga_pravetz_init,
     .close         = cga_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config

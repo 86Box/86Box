@@ -614,8 +614,7 @@ bm_init(const device_t *info)
     mouse_t *dev;
     int      hz;
 
-    dev = (mouse_t *) malloc(sizeof(mouse_t));
-    memset(dev, 0x00, sizeof(mouse_t));
+    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
 
     if ((info->local & ~MOUSE_TYPE_ONBOARD) == MOUSE_TYPE_INPORT)
         dev->flags = FLAG_INPORT;
@@ -681,72 +680,78 @@ bm_init(const device_t *info)
 
     mouse_set_sample_rate(0.0);
 
+    mouse_set_poll(bm_poll, dev);
+
     return dev;
 }
 
 static const device_config_t lt_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x23c,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x23c,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x230", .value = 0x230 },
             { .description = "0x234", .value = 0x234 },
             { .description = "0x238", .value = 0x238 },
             { .description = "0x23C", .value = 0x23c },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "hz",
-        .description = "Hz",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 45,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "hz",
+        .description    = "Hz",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 45,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Non-timed (original)",       .value =  0 },
             { .description = "30 Hz (JMP2 = 1)",           .value = 30 },
             { .description = "45 Hz (JMP2 not populated)", .value = 45 },
-            { .description = "60 Hz (JMP 2 = 2)",          .value = 60 },
+            { .description = "60 Hz (JMP2 = 2)",           .value = 60 },
             { .description = ""                                        }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "buttons",
-        .description = "Buttons",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 2,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "buttons",
+        .description    = "Buttons",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Two",   .value = 2 },
             { .description = "Three", .value = 3 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -755,50 +760,53 @@ static const device_config_t lt_config[] = {
 static const device_config_t ms_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x23c,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x23c,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x230", .value = 0x230 },
             { .description = "0x234", .value = 0x234 },
             { .description = "0x238", .value = 0x238 },
             { .description = "0x23C", .value = 0x23c },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "buttons",
-        .description = "Buttons",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 2,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "buttons",
+        .description    = "Buttons",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Two",   .value = 2 },
             { .description = "Three", .value = 3 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -812,7 +820,7 @@ const device_t mouse_logibus_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    { .poll = bm_poll },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = lt_config
@@ -826,7 +834,7 @@ const device_t mouse_logibus_onboard_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    { .poll = bm_poll },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -840,7 +848,7 @@ const device_t mouse_msinport_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    { .poll = bm_poll },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ms_config

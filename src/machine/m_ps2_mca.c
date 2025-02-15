@@ -478,13 +478,13 @@ model_50_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_init(LPT_MDA_ADDR);
+                        lpt1_setup(LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_init(LPT1_ADDR);
+                        lpt1_setup(LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_init(LPT2_ADDR);
+                        lpt1_setup(LPT2_ADDR);
                         break;
 
                     default:
@@ -610,13 +610,13 @@ model_55sx_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_init(LPT_MDA_ADDR);
+                        lpt1_setup(LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_init(LPT1_ADDR);
+                        lpt1_setup(LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_init(LPT2_ADDR);
+                        lpt1_setup(LPT2_ADDR);
                         break;
 
                     default:
@@ -669,13 +669,13 @@ model_70_type3_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_init(LPT_MDA_ADDR);
+                        lpt1_setup(LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_init(LPT1_ADDR);
+                        lpt1_setup(LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_init(LPT2_ADDR);
+                        lpt1_setup(LPT2_ADDR);
                         break;
 
                     default:
@@ -723,13 +723,13 @@ model_80_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_init(LPT_MDA_ADDR);
+                        lpt1_setup(LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_init(LPT1_ADDR);
+                        lpt1_setup(LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_init(LPT2_ADDR);
+                        lpt1_setup(LPT2_ADDR);
                         break;
 
                     default:
@@ -1031,7 +1031,7 @@ ps2_mca_board_common_init(void)
 
     ps2.setup = 0xff;
 
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 }
 
 static uint8_t
@@ -1657,7 +1657,7 @@ machine_ps2_common_init(const machine_t *model)
     machine_common_init(model);
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_ps2_device);
+        device_add(&fdc_ps2_mca_device);
 
     dma16_init();
     ps2_dma_init();

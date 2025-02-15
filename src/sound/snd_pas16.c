@@ -86,6 +86,7 @@
  *           Copyright 2008-2024 Sarah Walker.
  *           Copyright 2024 Miran Grca.
  */
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -705,6 +706,7 @@ static uint8_t
 pas16_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
+    scsi_bus_t *scsi_bus = NULL;
     uint8_t  ret   = 0xff;
 
     port -= pas16->base;
@@ -783,9 +785,11 @@ pas16_in(uint16_t port, void *priv)
                 ret = t128_read(0x1e00, pas16->scsi);
             break;
         case 0x5c01:
-            if (pas16->has_scsi)
+            if (pas16->has_scsi) {
+                scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
-                ret = (((pas16->scsi->ncr.dma_mode != DMA_IDLE) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+            }
             break;
         case 0x5c03:
             if (pas16->has_scsi)
@@ -1020,7 +1024,7 @@ pas16_nsc_mixer_reset(nsc_mixer_t *mixer)
     mixer->lmc1982_regs[LMC1982_REG_ISELECT] = 0x01;
     mixer->lmc1982_regs[LMC1982_REG_LES]     = 0x00;
     mixer->lmc1982_regs[LMC1982_REG_BASS]    = mixer->lmc1982_regs[LMC1982_REG_TREBLE]  = 0x06;
-    mixer->lmc1982_regs[LMC1982_REG_VOL_L]   = mixer->lmc1982_regs[LMC1982_REG_VOL_R]   = 0x28;
+    mixer->lmc1982_regs[LMC1982_REG_VOL_L]   = mixer->lmc1982_regs[LMC1982_REG_VOL_R]   = 0x00; /*0x28*/ /*Note by TC1995: otherwise the volume gets lowered too much*/
     mixer->lmc1982_regs[LMC1982_REG_MODE]    = 0x05;
 
     lmc1982_recalc(mixer);
@@ -1182,10 +1186,11 @@ pas16_scsi_callback(void *priv)
 {
     pas16_t *      pas16 = (pas16_t *) priv;
     t128_t  *      dev   = pas16->scsi;
+    scsi_bus_t *   scsi_bus = &dev->ncr.scsibus;
 
     t128_callback(pas16->scsi);
 
-    if ((dev->ncr.dma_mode != DMA_IDLE) && (dev->status & 0x04)) {
+    if ((scsi_bus->tx_mode != PIO_TX_BUS) && (dev->status & 0x04)) {
         timer_stop(&pas16->scsi_timer);
         pas16->timeout_status &= 0x7f;
     }
@@ -1666,7 +1671,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
     - A 16-bit sample always takes two ctr_clock() ticks.
  */
 static uint16_t
-pas16_dma_channel_read(pas16_t *pas16, int channel)
+pas16_dma_channel_read(pas16_t *pas16, UNUSED(int channel))
 {
     int status;
     uint16_t ret;
@@ -2314,9 +2319,8 @@ pas16_init(const device_t *info)
     pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
-    sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
-    pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(pas16->mpu, 0, sizeof(mpu_t));
+    sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
+    pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
 
@@ -2397,25 +2401,37 @@ pas16_close(void *priv)
 
 static const device_config_t pas16_config[] = {
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (PAS MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -2428,7 +2444,7 @@ const device_t pasplus_device = {
     .init          = pas16_init,
     .close         = pas16_close,
     .reset         = pas16_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config
@@ -2437,12 +2453,12 @@ const device_t pasplus_device = {
 const device_t pas16_device = {
     .name          = "Pro Audio Spectrum 16",
     .internal_name = "pas16",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x0f,
     .init          = pas16_init,
     .close         = pas16_close,
     .reset         = pas16_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config
@@ -2451,12 +2467,12 @@ const device_t pas16_device = {
 const device_t pas16d_device = {
     .name          = "Pro Audio Spectrum 16D",
     .internal_name = "pas16d",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x0c,
     .init          = pas16_init,
     .close         = pas16_close,
     .reset         = pas16_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config

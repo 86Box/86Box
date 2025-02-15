@@ -390,8 +390,11 @@ msgstr "動的再コンパイル"
 msgid "Video:"
 msgstr "ビデオカード:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodooグラフィック"
+msgid "Video #2:"
+msgstr "ビデオカード2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo1または2グラフィック"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/Aグラフィック"
@@ -684,6 +687,12 @@ msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs�
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
 
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。2枚目のビデオカードを無効にします。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "ROMがないため、デバイス「%hs」は使用できません。装置を無視する。"
+
 msgid "Machine"
 msgstr "マシン"
 
@@ -762,17 +771,26 @@ msgstr "PCapデバイスがありません"
 msgid "Invalid PCap device"
 msgstr "不正なPCapデバイス"
 
-msgid "Standard 2-button joystick(s)"
-msgstr "標準ジョイスティック(2ボタン)"
+msgid "2-axis, 2-button joystick(s)"
+msgstr "ジョイスティック(2軸、2ボタン)"
 
-msgid "Standard 4-button joystick"
-msgstr "標準ジョイスティック(4ボタン)"
+msgid "2-axis, 4-button joystick"
+msgstr "ジョイスティック(2軸、4ボタン)"
 
-msgid "Standard 6-button joystick"
-msgstr "標準ジョイスティック(6ボタン)"
+msgid "2-axis, 6-button joystick"
+msgstr "ジョイスティック(2軸、6ボタン)"
 
-msgid "Standard 8-button joystick"
-msgstr "標準ジョイスティック(8ボタン)"
+msgid "2-axis, 8-button joystick"
+msgstr "ジョイスティック(2軸、8ボタン)"
+
+msgid "3-axis, 2-button joystick"
+msgstr "ジョイスティック(3軸、2ボタン)"
+
+msgid "3-axis, 4-button joystick"
+msgstr "ジョイスティック(3軸、4ボタン)"
+
+msgid "4-axis, 4-button joystick"
+msgstr "ジョイスティック(4軸、4ボタン)"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -807,6 +825,9 @@ msgstr "86Boxを終了しますか？"
 msgid "Unable to initialize Ghostscript"
 msgstr "Ghostscriptが初期化できません"
 
+msgid "Unable to initialize GhostPCL"
+msgstr "GhostPCLが初期化できません"
+
 msgid "MO %i (%ls): %ls"
 msgstr "光磁気 %i (%ls): %ls"
 
@@ -816,8 +837,8 @@ msgstr "光磁気イメージ"
 msgid "Welcome to 86Box!"
 msgstr "86Boxへようこそ！"
 
-msgid "Internal controller"
-msgstr "内蔵コントローラー"
+msgid "Internal device"
+msgstr "内蔵デバイス"
 
 msgid "Exit"
 msgstr "終了"
@@ -841,7 +862,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
+msgstr "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nSarah Walker, leilei, JohnElliott, greatpsycho, その他の方々による以前からの多大な貢献。\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
 
 msgid "Hardware not available"
 msgstr "ハードウェアが利用できません"
@@ -854,6 +875,9 @@ msgstr "不正な設定です"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "PostScriptファイルをPDFに自動変換するには%1が必要です。\n\n汎用PostScriptプリンターに送信された文書は、PostScript (.ps) ファイルとして保存されます。"
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "PCLファイルをPDFに自動変換するには%1が必要です。\n\n汎用PCLプリンターに送信された文書は、Printer Command Language (.pcl) ファイルとして保存されます。"
 
 msgid "Entering fullscreen mode"
 msgstr "全画面モードを入力"
@@ -999,6 +1023,27 @@ msgstr "上書き"
 msgid "Don't overwrite"
 msgstr "上書きしない"
 
+msgid "Raw image"
+msgstr "Rawイメージ"
+
+msgid "HDI image"
+msgstr "HDIイメージ"
+
+msgid "HDX image"
+msgstr "HDXイメージ"
+
+msgid "Fixed-size VHD"
+msgstr "VHD (容量固定)"
+
+msgid "Dynamic-size VHD"
+msgstr "VHD (容量可変)"
+
+msgid "Differencing VHD"
+msgstr "VHD (差分)"
+
+msgid "(N/A)"
+msgstr "(該当なし)"
+
 msgid "Raw image (.img)"
 msgstr "Rawイメージ (.img)"
 
@@ -1056,23 +1101,23 @@ msgstr "ATAPI"
 msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
-msgid "160 kB"
-msgstr "160 kB"
+msgid "160 KB"
+msgstr "160 KB"
 
-msgid "180 kB"
-msgstr "180 kB"
+msgid "180 KB"
+msgstr "180 KB"
 
-msgid "320 kB"
-msgstr "320 kB"
+msgid "320 KB"
+msgstr "320 KB"
 
-msgid "360 kB"
-msgstr "360 kB"
+msgid "360 KB"
+msgstr "360 KB"
 
-msgid "640 kB"
-msgstr "640 kB"
+msgid "640 KB"
+msgstr "640 KB"
 
-msgid "720 kB"
-msgstr "720 kB"
+msgid "720 KB"
+msgstr "720 KB"
 
 msgid "1.2 MB"
 msgstr "1.2 MB"
@@ -1172,3 +1217,915 @@ msgstr "WinBoxはサポート終了"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "WinBoxマネージャーの開発は、メンテナ不足のため2022年に停止しました。86Boxをより良いものにするため、WinBoxをマネージャーとしてサポートしないことを決定しました。\n\nWinBoxを使ったアップデートは今後提供されませんし、86Boxの新しいバージョンでWinBoxを使い続けると、正しくない動作に遭遇するかもしれません。WinBoxの動作に関連するバグレポートは無効としてクローズされます。\n\n86box.netに他のマネージャのリストがあります。"
+
+msgid "Generate"
+msgstr "生成する"
+
+msgid "Joystick configuration"
+msgstr "ジョイスティックの構成"
+
+msgid "Device"
+msgstr "デバイス"
+
+msgid "%1 (X axis)"
+msgstr "1（X軸）"
+
+msgid "%1 (Y axis)"
+msgstr "1（Y軸）"
+
+msgid "MCA devices"
+msgstr "MCAデバイス"
+
+msgid "List of MCA devices:"
+msgstr "MCAデバイスのリスト："
+
+msgid "Tablet tool"
+msgstr "タブレットツール"
+
+msgid "Qt (OpenGL &ES)"
+msgstr "Qt (OpenGL &ES)"
+
+msgid "About Qt"
+msgstr "Qtについて"
+
+msgid "MCA devices..."
+msgstr "MCAデバイス..."
+
+msgid "Show non-primary monitors"
+msgstr "プライマリーモニター以外のモニターを表示する"
+
+msgid "Open screenshots folder..."
+msgstr "スクリーンショットフォルダを開く"
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "最大化時にフルスクリーンストレッチモードを適用"
+
+msgid "Cursor/Puck"
+msgstr "カーソル/パック"
+
+msgid "Pen"
+msgstr "ペン"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "ホスト CD/DVD ドライブ (%1:)"
+
+msgid "&Connected"
+msgstr "コネクテッド"
+
+msgid "Clear image history"
+msgstr "クリア画像履歴"
+
+msgid "Create..."
+msgstr "作成..."
+
+msgid "previous image"
+msgstr "前の画像"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "ホスト CD/DVD ドライブ (%1)"
+
+msgid "Unknown Bus"
+msgstr "不明バス"
+
+msgid "Null Driver"
+msgstr "ヌル・ドライバー"
+
+msgid "NIC %02i (%ls) %ls"
+msgstr "NIC %02i (%ls) %ls"
+
+msgid "Error opening \"%1\": %2"
+msgstr "エラー・オープニング\"%1\": %2"
+
+msgid "Error compiling vertex shader in file \"%1\""
+msgstr "ファイル\"%1\"の頂点シェーダのコンパイルエラー。"
+
+msgid "Error compiling fragment shader in file \"%1\""
+msgstr "ファイル\"%1\"のフラグメント・シェーダのコンパイル・エラー。"
+
+msgid "Error linking shader program in file \"%1\""
+msgstr "ファイル\"%1\"のシェーダープログラムのリンクエラー。"
+
+msgid "OpenGL 3.0 renderer options"
+msgstr "OpenGL 3.0レンダラー設定"
+
+msgid "Render behavior"
+msgstr "レンダリング動作"
+
+msgid "Use target framerate:"
+msgstr "目標フレームレートを使用する："
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSシンク"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;エミュレートされたディスプレイと同期して、各フレームを即座にレンダリングします。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;これは、使用中のシェーダがアニメーション効果のためにフレームタイムを利用しない場合に推奨されるオプションです。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "Synchronize with video"
+msgstr "ビデオと同期"
+
+msgid "Shaders"
+msgstr "シェーダー"
+
+msgid "Remove"
+msgstr "削除"
+
+msgid "No shader selected"
+msgstr "シェーダーが選択されていない"
+
+msgid "Browse..."
+msgstr "ブラウズ..."
+
+msgid "Shader error"
+msgstr "シェーダーエラー"
+
+msgid "Could not load shaders."
+msgstr "シェーダーをロードできませんでした。"
+
+msgid "More information in details."
+msgstr "詳細はこちら。"
+
+msgid "Couldn't create OpenGL context."
+msgstr "OpenGLコンテキストを作成できませんでした。"
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "OpenGLコンテキストに切り替えられなかった。"
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です。"
+
+msgid "OpenGL initialization failed. Error %1."
+msgstr "OpenGL の初期化に失敗しました。エラー %1。"
+
+msgid "Error initializing OpenGL"
+msgstr "OpenGLの初期化エラー"
+
+msgid "Falling back to software rendering.\n"
+msgstr "ソフトウェアレンダリングに逆戻り。"
+
+msgid "Allocating memory for unpack buffer failed.\n"
+msgstr "アンパックバッファのメモリ確保に失敗しました。"
+
+msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;メディアイメージ（CD-ROM、フロッピーなど）を選択するとき、オープンダイアログは86Box設定ファイルと同じディレクトリで開始します。この設定は、おそらく macOS でのみ違いがあります。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+
+msgid "This machine might have been moved or copied."
+msgstr "このマシンは移動されたかコピーされた可能性がある。"
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。「コピーした」を選択してください。"
+
+msgid "I Moved It"
+msgstr "動かした"
+
+msgid "I Copied It"
+msgstr "コピーした"
+
+msgid "86Box Monitor #"
+msgstr "86Box モニター"
+
+msgid "No MCA devices."
+msgstr "MCAデバイスはない。"
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "Network Card #1"
+msgstr "ネットワークカード 1"
+
+msgid "Network Card #2"
+msgstr "ネットワークカード 2"
+
+msgid "Network Card #3"
+msgstr "ネットワークカード 3"
+
+msgid "Network Card #4"
+msgstr "ネットワークカード 4"
+
+msgid "Mode"
+msgstr "モード"
+
+msgid "Interface"
+msgstr "インターフェース"
+
+msgid "Adapter"
+msgstr "アダプター"
+
+msgid "VDE Socket"
+msgstr "VDEソケット"
+
+msgid "86Box Unit Tester"
+msgstr "86Boxユニットテスター"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Novell NetWare 2.xキーカード"
+
+msgid "Serial port passthrough 1"
+msgstr "シリアル・ポート・パススルー 1"
+
+msgid "Serial port passthrough 2"
+msgstr "シリアル・ポート・パススルー 2"
+
+msgid "Serial port passthrough 3"
+msgstr "シリアル・ポート・パススルー 3"
+
+msgid "Serial port passthrough 4"
+msgstr "シリアル・ポート・パススルー 4"
+
+msgid "Vision Systems LBA Enhancer"
+msgstr "ビジョン・システムズ LBAエンハンサー"
+
+msgid "Renderer options..."
+msgstr "レンダラー設定..."
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Logitech/Microsoft バスマウス"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Microsoft バスマウス（InPort）"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Mouse Systems シリアルマウス"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Microsoft シリアルマウス"
+
+msgid "Logitech Serial Mouse"
+msgstr "Logitech シリアルマウス"
+
+msgid "PS/2 Mouse"
+msgstr "PS/2マウス"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3Mマイクロタッチ（シリアル）"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] 標準ヘイズ準拠モデム"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Roland MT-32エミュレーション"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Roland MT-32（新しい）エミュレーション"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Roland CM-32Lエミュレーション"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Roland CM-32LNエミュレーション"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "OPL4-MLドーターボード"
+
+msgid "System MIDI"
+msgstr "システムMIDI"
+
+msgid "MIDI Input Device"
+msgstr "MIDI入力デバイス"
+
+msgid "BIOS Address"
+msgstr "BIOSアドレス"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "BIOS拡張ROM書き込みを有効にする"
+
+msgid "Address"
+msgstr "アドレス"
+
+msgid "IRQ"
+msgstr "割り込み要求"
+
+msgid "BIOS Revision"
+msgstr "BIOSリビジョン"
+
+msgid "Translate 26 -> 17"
+msgstr "26→17を翻訳"
+
+msgid "Language"
+msgstr "言語"
+
+msgid "Enable backlight"
+msgstr "バックライトを有効にする"
+
+msgid "Invert colors"
+msgstr "色の反転"
+
+msgid "BIOS size"
+msgstr "BIOSサイズ"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "C0000-C7FFFをUMBとしてマップ"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "C8000-CFFFFをUMBとしてマップ"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "D0000-D7FFFをUMBとしてマップ"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "D8000-DFFFFをUMBとしてマップ"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "E0000～E7FFFをUMBとしてマップ"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "E8000-EFFFFをUMBとしてマップ"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "JS9ジャンパ（JIM）"
+
+msgid "MIDI Output Device"
+msgstr "MIDI出力デバイス"
+
+msgid "MIDI Real time"
+msgstr "リアルタイムMIDI"
+
+msgid "MIDI Thru"
+msgstr "MIDI入力のパススルー"
+
+msgid "MIDI Clockout"
+msgstr "MIDIクロックの出力"
+
+msgid "SoundFont"
+msgstr "サウンドフォント"
+
+msgid "Output Gain"
+msgstr "出力ゲイン"
+
+msgid "Chorus"
+msgstr "コーラス"
+
+msgid "Chorus Voices"
+msgstr "コーラスの声"
+
+msgid "Chorus Level"
+msgstr "コーラス・レベル"
+
+msgid "Chorus Speed"
+msgstr "コーラス・スピード"
+
+msgid "Chorus Depth"
+msgstr "コーラスの深さ"
+
+msgid "Chorus Waveform"
+msgstr "コーラス波形"
+
+msgid "Reverb"
+msgstr "リバーブ"
+
+msgid "Reverb Room Size"
+msgstr "リバーブ・ルームの大きさ"
+
+msgid "Reverb Damping"
+msgstr "リバーブ・ダンピング"
+
+msgid "Reverb Width"
+msgstr "リバーブ幅"
+
+msgid "Reverb Level"
+msgstr "リバーブ・レベル"
+
+msgid "Interpolation Method"
+msgstr "補間法"
+
+msgid "Reverb Output Gain"
+msgstr "リバーブ出力のゲイン"
+
+msgid "Reversed stereo"
+msgstr "逆ステレオ"
+
+msgid "Nice ramp"
+msgstr "ナイス・スロープ"
+
+msgid "Hz"
+msgstr "ヘルツ"
+
+msgid "Buttons"
+msgstr "ボタン"
+
+msgid "Serial Port"
+msgstr "シリアルポート"
+
+msgid "RTS toggle"
+msgstr "RTSトグル"
+
+msgid "Revision"
+msgstr "改訂"
+
+msgid "Controller"
+msgstr "コントローラー"
+
+msgid "Show Crosshair"
+msgstr "十字線を表示"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "MACアドレス"
+
+msgid "MAC Address OUI"
+msgstr "MACアドレスのOUI"
+
+msgid "Enable BIOS"
+msgstr "BIOSを有効にする"
+
+msgid "Baud Rate"
+msgstr "ボーレート"
+
+msgid "TCP/IP listening port"
+msgstr "TCP/IPリスニングポート"
+
+msgid "Phonebook File"
+msgstr "電話帳ファイル"
+
+msgid "Telnet emulation"
+msgstr "Telnetエミュレーション"
+
+msgid "RAM Address"
+msgstr "RAMアドレス"
+
+msgid "RAM size"
+msgstr "RAMサイズ"
+
+msgid "Initial RAM size"
+msgstr "初期RAMサイズ"
+
+msgid "Serial Number"
+msgstr "シリアル番号"
+
+msgid "Host ID"
+msgstr "ホストID"
+
+msgid "FDC Address"
+msgstr "FDCアドレス"
+
+msgid "MPU-401 Address"
+msgstr "MPU-401 アドレス"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401 IRQ"
+
+msgid "Receive MIDI input"
+msgstr "MIDI入力を受信する"
+
+msgid "Low DMA"
+msgstr "低DMA"
+
+msgid "Enable Game port"
+msgstr "ゲームポートを有効にする"
+
+msgid "Surround module"
+msgstr "サラウンド・モジュール"
+
+msgid "CODEC"
+msgstr "コーデック"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "CODECセットアップ時にCODEC割り込みを発生させる(一部のドライバで必要)"
+
+msgid "SB Address"
+msgstr "SBアドレス"
+
+msgid "WSS IRQ"
+msgstr "WSS IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS DMA"
+
+msgid "Enable OPL"
+msgstr "OPLを有効にする"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "MIDI入力を受信する（MPU-401）"
+
+msgid "SB low DMA"
+msgstr "SBローDMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "6CHバリアント（6チャンネル）"
+
+msgid "Enable CMS"
+msgstr "CMSを有効にする"
+
+msgid "Mixer"
+msgstr "ミキサー"
+
+msgid "High DMA"
+msgstr "ハイDMA"
+
+msgid "Control PC speaker"
+msgstr "コントロールPCスピーカー"
+
+msgid "Memory size"
+msgstr "メモリーサイズ"
+
+msgid "EMU8000 Address"
+msgstr "EMU8000 アドレス"
+
+msgid "IDE Controller"
+msgstr "IDEコントローラ"
+
+msgid "Codec"
+msgstr "コーデック"
+
+msgid "GUS type"
+msgstr "GUSタイプ"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "コマンド 0x04 \"86Boxを終了する\"を有効にする"
+
+msgid "Display type"
+msgstr "表示タイプ"
+
+msgid "Composite type"
+msgstr "コンポジット・タイプ"
+
+msgid "RGB type"
+msgstr "RGBタイプ"
+
+msgid "Line doubling type"
+msgstr "ライン倍増タイプ"
+
+msgid "Snow emulation"
+msgstr "スノー・エミュレーション"
+
+msgid "Monitor type"
+msgstr "モニタータイプ"
+
+msgid "Character set"
+msgstr "文字セット"
+
+msgid "XGA type"
+msgstr "XGAタイプ"
+
+msgid "Instance"
+msgstr "インスタンス"
+
+msgid "MMIO Address"
+msgstr "MMIOアドレス"
+
+msgid "RAMDAC type"
+msgstr "RAMDACタイプ"
+
+msgid "Blend"
+msgstr "ブレンド"
+
+msgid "Bilinear filtering"
+msgstr "バイリニア・フィルタリング"
+
+msgid "Dithering"
+msgstr "ディザリング"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "CGAエミュレーションのNMIを有効にする"
+
+msgid "Voodoo type"
+msgstr "Voodooタイプ"
+
+msgid "Framebuffer memory size"
+msgstr "フレームバッファのメモリサイズ"
+
+msgid "Texture memory size"
+msgstr "テクスチャメモリサイズ"
+
+msgid "Dither subtraction"
+msgstr "ディザ減算"
+
+msgid "Screen Filter"
+msgstr "スクリーンフィルター"
+
+msgid "Render threads"
+msgstr "レンダリングスレッド"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "開始アドレス"
+
+msgid "Contiguous Size"
+msgstr "連続サイズ"
+
+msgid "I/O Width"
+msgstr "I/O幅"
+
+msgid "Transfer Speed"
+msgstr "転送速度"
+
+msgid "EMS mode"
+msgstr "EMSモード"
+
+msgid "Address for > 2 MB"
+msgstr "2MB以上のアドレス"
+
+msgid "Frame Address"
+msgstr "フレームアドレス"
+
+msgid "USA"
+msgstr "アメリカ"
+
+msgid "Danish"
+msgstr "デンマーク語"
+
+msgid "Always at selected speed"
+msgstr "常に選択された速度"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "BIOS設定＋ホットキー（POST中はオフ）"
+
+msgid "64 kB starting from F0000"
+msgstr "F0000から始まる64キロバイト"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "E0000から始まる128キロバイト（アドレスMSBが反転、最後の64キロバイトが最初）"
+
+msgid "Sine"
+msgstr "正弦"
+
+msgid "Triangle"
+msgstr "三角"
+
+msgid "Linear"
+msgstr "線形"
+
+msgid "4th Order"
+msgstr "4次"
+
+msgid "7th Order"
+msgstr "7次"
+
+msgid "Non-timed (original)"
+msgstr "タイマーなし（オリジナル）"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz（JMP2にジャンパーなし）"
+
+msgid "Two"
+msgstr "二つ"
+
+msgid "Three"
+msgstr "三つ"
+
+msgid "Wheel"
+msgstr "ホイール"
+
+msgid "Five + Wheel"
+msgstr "五つ＋ホイール"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 シリアル / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R)シリアル"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "BIOSを無効にする"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr "8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "シグマテル STAC9721T（ステレオ）"
+
+msgid "Classic"
+msgstr "クラシック"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "コンポジット"
+
+msgid "Old"
+msgstr "古い"
+
+msgid "New"
+msgstr "新しい"
+
+msgid "Color (generic)"
+msgstr "カラー（ジェネリック）"
+
+msgid "Green Monochrome"
+msgstr "みどりのモノクローム"
+
+msgid "Amber Monochrome"
+msgstr "鼈甲色のモノクローム"
+
+msgid "Gray Monochrome"
+msgstr "ねずみ色のモノクローム"
+
+msgid "Color (no brown)"
+msgstr "カラー（ブラウンなし）"
+
+msgid "Color (IBM 5153)"
+msgstr "カラー（IBM 5153）"
+
+msgid "Simple doubling"
+msgstr "単純な倍加"
+
+msgid "sRGB interpolation"
+msgstr "sRGB補間"
+
+msgid "Linear interpolation"
+msgstr "線形補間"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "モノクローム（5151/MDA）（白い）"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "モノクローム（5151/MDA）（みどり）"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "モノクローム（5151/MDA）（鼈甲色）"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "カラー40x25（5153/CGA）"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "カラー80x25（5153/CGA）"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "エンハンスト・カラー - ノーマルモード（5154/ECD）"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "エンハンスト・カラー - エンハンスト・モード（5154/ECD）"
+
+msgid "Green"
+msgstr "みどり"
+
+msgid "Amber"
+msgstr "鼈甲色"
+
+msgid "Gray"
+msgstr "ねずみ色"
+
+msgid "Color"
+msgstr "カラー"
+
+msgid "U.S. English"
+msgstr "アメリカ英語"
+
+msgid "Scandinavian"
+msgstr "スカンジナビア"
+
+msgid "Other languages"
+msgstr "その他の言語"
+
+msgid "Bochs latest"
+msgstr "Bochs latest"
+
+msgid "Mono Non-Interlaced"
+msgstr "モノラル・ノンインターレース"
+
+msgid "Color Interlaced"
+msgstr "カラー・インターレース"
+
+msgid "Color Non-Interlaced"
+msgstr "カラー・ノンインターレース"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3dfx Voodooグラフィック"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst（2 TMU単位）"
+
+msgid "8-bit"
+msgstr "8ビット"
+
+msgid "16-bit"
+msgstr "16ビット"
+
+msgid "Standard (150ns)"
+msgstr "標準（150ns）"
+
+msgid "High-Speed (120ns)"
+msgstr "高速（120ns）"
+
+msgid "Enabled"
+msgstr "有効"
+
+msgid "Standard"
+msgstr "スタンダード"
+
+msgid "High-Speed"
+msgstr "高速"
+
+msgid "Stereo LPT DAC"
+msgstr "ステレオLPT DAC"
+
+msgid "Generic Text Printer"
+msgstr "汎用テキスト・プリンタ"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "汎用ESC/Pドットマトリクスプリンタ"
+
+msgid "Generic PostScript Printer"
+msgstr "汎用ポストスクリプトプリンタ"
+
+msgid "Generic PCL5e Printer"
+msgstr "汎用PCL5eプリンタ"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "パラレルライン・インターネット・プロトコル"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "サベージ・クエスト用プロテクション・ドングル"
+
+msgid "Serial Passthrough Device"
+msgstr "シリアル・ポート・パススルー・デバイス"
+
+msgid "Passthrough Mode"
+msgstr "パススルーモード"
+
+msgid "Host Serial Device"
+msgstr "ホスト・シリアル・デバイス"
+
+msgid "Name of pipe"
+msgstr "パイプ名"
+
+msgid "Data bits"
+msgstr "データビット"
+
+msgid "Stop bits"
+msgstr "ストップビット"
+
+msgid "Baud Rate of Passthrough"
+msgstr "パススルーのボーレート"
+
+msgid "Named Pipe (Server)"
+msgstr "名前付きパイプ（サーバー）"
+
+msgid "Host Serial Passthrough"
+msgstr "ホストシリアルポートのパススルー"
+
+msgid "Eject %s"
+msgstr "%sを取り出す"
+
+msgid "&Unmute"
+msgstr "ミュート解除(&U)"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "パフォーマンスへの影響が大きい"
+
+msgid "RAM Disk (max. speed)"
+msgstr "RAMディスク（最高速度）"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A クローン（ISA）"
+
+msgid "Vendor"
+msgstr "業者"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "汎用PC/XTメモリ拡張カード"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "汎用PC/ATメモリ拡張カード"

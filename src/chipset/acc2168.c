@@ -184,8 +184,7 @@ acc2168_close(void *priv)
 static void *
 acc2168_init(UNUSED(const device_t *info))
 {
-    acc2168_t *dev = (acc2168_t *) malloc(sizeof(acc2168_t));
-    memset(dev, 0, sizeof(acc2168_t));
+    acc2168_t *dev = (acc2168_t *) calloc(1, sizeof(acc2168_t));
 
     device_add(&port_92_device);
     io_sethandler(0x00f2, 0x0002, acc2168_read, NULL, NULL, acc2168_write, NULL, NULL, dev);
@@ -201,7 +200,7 @@ const device_t acc2168_device = {
     .init          = acc2168_init,
     .close         = acc2168_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -791,8 +791,8 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
     adgold_update(adgold);
 
     for (c = 0; c < len * 2; c += 2) {
-        adgold_buffer[c] += ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
-        adgold_buffer[c + 1] += ((adgold->mma_buffer[1][c >> 1] * adgold->samp_vol_r) >> 7) / 4;
+        adgold_buffer[c] = ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
+        adgold_buffer[c + 1] = ((adgold->mma_buffer[1][c >> 1] * adgold->samp_vol_r) >> 7) / 4;
     }
 
     if (adgold->surround_enabled)
@@ -904,7 +904,6 @@ adgold_get_music_buffer(int32_t *buffer, int len, void *priv)
     int c;
 
     const int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
-    adgold_update(adgold);
 
     for (c = 0; c < len * 2; c += 2) {
         adgold_buffer[c] = ((opl_buf[c] * adgold->fm_vol_l) >> 7) / 2;
@@ -1067,8 +1066,7 @@ adgold_init(UNUSED(const device_t *info))
     FILE     *fp;
     int       c;
     double    out;
-    adgold_t *adgold = malloc(sizeof(adgold_t));
-    memset(adgold, 0, sizeof(adgold_t));
+    adgold_t *adgold = calloc(1, sizeof(adgold_t));
 
     adgold->dma              = device_get_config_int("dma");
     adgold->irq              = device_get_config_int("irq");
@@ -1194,73 +1192,69 @@ adgold_close(void *priv)
 static const device_config_t adgold_config[] = {
   // clang-format off
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 4",
-                .value = 4
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "Low DMA channel",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "Low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "gameport",
-        .description = "Enable Game port",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "surround",
-        .description = "Surround module",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "surround",
+        .description    = "Surround module",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1274,7 +1268,7 @@ const device_t adgold_device = {
     .init          = adgold_init,
     .close         = adgold_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = adgold_config

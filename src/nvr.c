@@ -161,9 +161,9 @@ nvr_init(nvr_t *nvr)
     int c;
 
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_internal_name()) + 5;
+    c       = strlen(machine_get_nvr_name()) + 5;
     nvr->fn = (char *) malloc(c + 1);
-    sprintf(nvr->fn, "%s.nvr", machine_get_internal_name());
+    sprintf(nvr->fn, "%s.nvr", machine_get_nvr_name());
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
@@ -326,14 +326,15 @@ nvr_time_sync(void)
 
 /* Get current time from internal clock. */
 void
-nvr_time_get(struct tm *tm)
+nvr_time_get(void *priv)
 {
-    uint8_t  dom;
-    uint8_t  mon;
-    uint8_t  sum;
-    uint8_t  wd;
-    uint16_t cent;
-    uint16_t yr;
+    struct tm *tm   = (struct tm *) priv;
+    uint8_t    dom;
+    uint8_t    mon;
+    uint8_t    sum;
+    uint8_t    wd;
+    uint16_t   cent;
+    uint16_t   yr;
 
     tm->tm_sec  = intclk.tm_sec;
     tm->tm_min  = intclk.tm_min;
@@ -352,8 +353,10 @@ nvr_time_get(struct tm *tm)
 
 /* Set internal clock time. */
 void
-nvr_time_set(struct tm *tm)
+nvr_time_set(void *priv)
 {
+    struct tm *tm   = (struct tm *) priv;
+
     intclk.tm_sec  = tm->tm_sec;
     intclk.tm_min  = tm->tm_min;
     intclk.tm_hour = tm->tm_hour;

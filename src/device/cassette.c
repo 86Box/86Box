@@ -45,6 +45,7 @@ pc_cassette_t *cassette;
 
 char          cassette_fname[512];
 char          cassette_mode[512];
+char *        cassette_image_history[CASSETTE_IMAGE_HISTORY];
 unsigned long cassette_pos;
 unsigned long cassette_srate;
 int           cassette_enable;
@@ -130,9 +131,7 @@ pc_cas_free(pc_cassette_t *cas)
 pc_cassette_t *
 pc_cas_new(void)
 {
-    pc_cassette_t *cas;
-
-    cas = malloc(sizeof(pc_cassette_t));
+    pc_cassette_t *cas = calloc(1, sizeof( pc_cassette_t));
 
     if (cas == NULL) {
         return (NULL);
@@ -721,7 +720,7 @@ const device_t cassette_device = {
     .init          = cassette_init,
     .close         = cassette_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

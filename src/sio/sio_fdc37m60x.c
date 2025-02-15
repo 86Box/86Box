@@ -216,7 +216,7 @@ fdc37m60x_lpt_handler(fdc37m60x_t *dev)
     lpt1_remove();
 
     if (ENABLED(3) || (POWER_CONTROL & 0x08)) {
-        lpt1_init(BASE_ADDRESS(3));
+        lpt1_setup(BASE_ADDRESS(3));
         lpt1_irq(IRQ(3) & 0xf);
         fdc37m60x_log("SMC60x-LPT: BASE %04x IRQ %d\n", BASE_ADDRESS(3), IRQ(3) & 0xf);
     }
@@ -306,8 +306,7 @@ fdc37m60x_close(void *priv)
 static void *
 fdc37m60x_init(const device_t *info)
 {
-    fdc37m60x_t *dev = (fdc37m60x_t *) malloc(sizeof(fdc37m60x_t));
-    memset(dev, 0, sizeof(fdc37m60x_t));
+    fdc37m60x_t *dev = (fdc37m60x_t *) calloc(1, sizeof(fdc37m60x_t));
     SIO_INDEX_PORT = info->local;
 
     dev->fdc     = device_add(&fdc_at_smc_device);
@@ -329,7 +328,7 @@ const device_t fdc37m60x_device = {
     .init          = fdc37m60x_init,
     .close         = fdc37m60x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -343,7 +342,7 @@ const device_t fdc37m60x_370_device = {
     .init          = fdc37m60x_init,
     .close         = fdc37m60x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

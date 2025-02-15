@@ -56,6 +56,14 @@
             "inherits": "base"
         },
         {
+            "name": "ultra_debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "UltraDebug",
+                "DEV_BRANCH": "ON"
+            },
+            "inherits": "base"
+        },
+        {
             "name": "llvm-macos-aarch64.cmake",
             "displayName": "MacOS clang regular",
             "generator": "Ninja",
@@ -68,7 +76,8 @@
                 "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
                 "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
                 "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
-                "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft"
+                "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
+                "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport"
             },
             "inherits": "regular"
         },
@@ -86,6 +95,7 @@
                 "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
                 "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
                 "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
+                "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport",
                 "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
                 "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
             },

@@ -90,12 +90,11 @@ b215_close(void *priv)
 static void *
 b215_init(UNUSED(const device_t *info))
 {
-    b215_t *dev = (b215_t *) malloc(sizeof(b215_t));
-    memset(dev, 0, sizeof(b215_t));
+    b215_t *dev = (b215_t *) calloc(1, sizeof(b215_t));
 
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
-    dev->fdc_controller = device_add(&fdc_um8398_device);
+    dev->fdc_controller = device_add(&fdc_xt_umc_um8398_device);
     io_sethandler(FDC_PRIMARY_ADDR, 1, b215_read, NULL, NULL, NULL, NULL, NULL, dev);
 
     return dev;
@@ -110,18 +109,19 @@ b215_available(void)
 static const device_config_t b215_config[] = {
   // clang-format off
     {
-        .name = "bios_addr",
-        .description = "BIOS Address:",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xca000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xca000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "CA00H", .value = 0xca000 },
             { .description = "CC00H", .value = 0xcc000 },
             { .description = ""                        }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -135,7 +135,7 @@ const device_t fdc_b215_device = {
     .init          = b215_init,
     .close         = b215_close,
     .reset         = NULL,
-    { .available = b215_available },
+    .available     = b215_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = b215_config

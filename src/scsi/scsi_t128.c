@@ -69,7 +69,8 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 {
     t128_t              *t128    = (t128_t *) priv;
     ncr_t               *ncr     = &t128->ncr;
-    const scsi_device_t *dev     = &scsi_devices[ncr->bus][ncr->target_id];
+    scsi_bus_t          *scsi_bus = &ncr->scsibus;
+    const scsi_device_t *dev     = &scsi_devices[ncr->bus][scsi_bus->target_id];
 
     addr &= 0x3fff;
     if ((addr >= 0x1800) && (addr < 0x1880))
@@ -84,7 +85,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
         ncr5380_write((addr - 0x1d00) >> 5, val, ncr);
     else if ((addr >= 0x1e00) && (addr < 0x2000)) {
         if ((t128->host_pos < MIN(512, dev->buffer_length)) &&
-            (ncr->dma_mode == DMA_SEND)) {
+            (scsi_bus->tx_mode == DMA_OUT_TX_BUS)) {
             t128->buffer[t128->host_pos] = val;
             t128->host_pos++;
 
@@ -106,7 +107,8 @@ t128_read(uint32_t addr, void *priv)
 {
     t128_t        *t128    = (t128_t *) priv;
     ncr_t         *ncr     = &t128->ncr;
-    scsi_device_t *dev     = &scsi_devices[ncr->bus][ncr->target_id];
+    scsi_bus_t    *scsi_bus = &ncr->scsibus;
+    scsi_device_t *dev     = &scsi_devices[ncr->bus][scsi_bus->target_id];
     uint8_t        ret     = 0xff;
 
     addr &= 0x3fff;
@@ -124,7 +126,7 @@ t128_read(uint32_t addr, void *priv)
         ret = ncr5380_read((addr - 0x1d00) >> 5, ncr);
     else if (addr >= 0x1e00 && addr < 0x2000) {
         if ((t128->host_pos >= MIN(512, dev->buffer_length)) ||
-            (ncr->dma_mode != DMA_INITIATOR_RECEIVE))
+            (scsi_bus->tx_mode != DMA_IN_TX_BUS))
             ret = 0xff;
         else {
             ret = t128->buffer[t128->host_pos++];
@@ -135,8 +137,8 @@ t128_read(uint32_t addr, void *priv)
             if (t128->host_pos == MIN(512, dev->buffer_length)) {
                 t128->status &= ~0x04;
                 t128_log("T128 Transfer busy read, status = %02x, period = %lf\n",
-                        t128->status, ncr->period);
-                if ((ncr->period == 0.2) || (ncr->period == 0.02))
+                        t128->status, scsi_bus->period);
+                if ((scsi_bus->period == 0.2) || (scsi_bus->period == 0.02))
                     timer_on_auto(&t128->timer, 40.2);
             } else if ((t128->host_pos < MIN(512, dev->buffer_length)) &&
                        (scsi_device_get_callback(dev) > 100.0))
@@ -148,15 +150,16 @@ t128_read(uint32_t addr, void *priv)
 }
 
 static void
-t128_dma_mode_ext(void *priv, void *ext_priv)
+t128_dma_mode_ext(void *priv, void *ext_priv, UNUSED(uint8_t val))
 {
     t128_t      *t128   = (t128_t *) ext_priv;
     ncr_t       *ncr    = (ncr_t *) priv;
+    scsi_bus_t  *scsi_bus = &ncr->scsibus;
 
     /*Don't stop the timer until it finishes the transfer*/
     if (t128->block_loaded && (ncr->mode & MODE_DMA)) {
         t128_log("Continuing DMA mode\n");
-        timer_on_auto(&t128->timer, ncr->period + 1.0);
+        timer_on_auto(&t128->timer, scsi_bus->period + 1.0);
     }
 
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
@@ -164,7 +167,7 @@ t128_dma_mode_ext(void *priv, void *ext_priv)
         t128_log("No DMA mode\n");
         ncr->tcr &= ~TCR_LAST_BYTE_SENT;
         ncr->isr &= ~STATUS_END_OF_DMA;
-        ncr->dma_mode = DMA_IDLE;
+        scsi_bus->tx_mode = PIO_TX_BUS;
     }
 }
 
@@ -173,7 +176,8 @@ t128_dma_send_ext(void *priv, void *ext_priv)
 {
     t128_t          *t128   = (t128_t *) ext_priv;
     ncr_t           *ncr    = (ncr_t *) priv;
-    scsi_device_t   *dev    = &scsi_devices[ncr->bus][ncr->target_id];
+    scsi_bus_t      *scsi_bus = &ncr->scsibus;
+    scsi_device_t   *dev    = &scsi_devices[ncr->bus][scsi_bus->target_id];
 
     if ((ncr->mode & MODE_DMA) && !timer_is_on(&t128->timer) && (dev->buffer_length > 0)) {
         memset(t128->buffer, 0, MIN(512, dev->buffer_length));
@@ -194,7 +198,8 @@ t128_dma_initiator_receive_ext(void *priv, void *ext_priv)
 {
     t128_t          *t128   = (t128_t *) ext_priv;
     ncr_t           *ncr    = (ncr_t *) priv;
-    scsi_device_t   *dev    = &scsi_devices[ncr->bus][ncr->target_id];
+    scsi_bus_t      *scsi_bus = &ncr->scsibus;
+    scsi_device_t   *dev    = &scsi_devices[ncr->bus][scsi_bus->target_id];
 
     if ((ncr->mode & MODE_DMA) && !timer_is_on(&t128->timer) && (dev->buffer_length > 0)) {
         memset(t128->buffer, 0, MIN(512, dev->buffer_length));
@@ -227,27 +232,29 @@ t128_callback(void *priv)
 {
     t128_t         *t128       = (void *) priv;
     ncr_t          *ncr        = &t128->ncr;
-    scsi_device_t  *dev        = &scsi_devices[ncr->bus][ncr->target_id];
-    int            bus;
-    uint8_t        c;
-    uint8_t        temp;
+    scsi_bus_t     *scsi_bus   = &ncr->scsibus;
+    scsi_device_t  *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
+    int             bus;
+    uint8_t         c;
+    uint8_t         temp;
+    uint8_t         status;
 
-    if ((ncr->dma_mode != DMA_IDLE) && (ncr->mode & MODE_DMA) && t128->block_loaded) {
+    if ((scsi_bus->tx_mode != PIO_TX_BUS) && (ncr->mode & MODE_DMA) && t128->block_loaded) {
         if ((t128->host_pos == MIN(512, dev->buffer_length)) && t128->block_count)
             t128->status |= 0x04;
 
-        timer_on_auto(&t128->timer, ncr->period / 55.0);
+        timer_on_auto(&t128->timer, scsi_bus->period / 55.0);
     }
 
-    if (ncr->data_wait & 1) {
-        ncr->clear_req = 3;
-        ncr->data_wait &= ~1;
-        if (ncr->dma_mode == DMA_IDLE)
+    if (scsi_bus->data_wait & 1) {
+        scsi_bus->clear_req = 3;
+        scsi_bus->data_wait &= ~1;
+        if (scsi_bus->tx_mode == PIO_TX_BUS)
             return;
     }
 
-    switch (ncr->dma_mode) {
-        case DMA_SEND:
+    switch (scsi_bus->tx_mode) {
+        case DMA_OUT_TX_BUS:
             if (!(t128->status & 0x04)) {
                 t128_log("Write status busy, block count = %i, host pos = %i\n", t128->block_count, t128->host_pos);
                 break;
@@ -263,8 +270,8 @@ t128_callback(void *priv)
 
 write_again:
             for (c = 0; c < 10; c++) {
-                ncr5380_bus_read(ncr);
-                if (ncr->cur_bus & BUS_REQ)
+                status = scsi_bus_read(scsi_bus);
+                if (status & BUS_REQ)
                     break;
             }
 
@@ -274,8 +281,8 @@ write_again:
             bus = ncr5380_get_bus_host(ncr) & ~BUS_DATAMASK;
             bus |= BUS_SETDATA(temp);
 
-            ncr5380_bus_update(ncr, bus | BUS_ACK);
-            ncr5380_bus_update(ncr, bus & ~BUS_ACK);
+            scsi_bus_update(scsi_bus, bus | BUS_ACK);
+            scsi_bus_update(scsi_bus, bus & ~BUS_ACK);
 
             t128->pos++;
             t128_log("T128 Buffer pos for writing = %d\n", t128->pos);
@@ -302,7 +309,7 @@ write_again:
                 goto write_again;
             break;
 
-        case DMA_INITIATOR_RECEIVE:
+        case DMA_IN_TX_BUS:
             if (!(t128->status & 0x04)) {
                 t128_log("Read status busy, block count = %i, host pos = %i\n", t128->block_count, t128->host_pos);
                 break;
@@ -318,19 +325,19 @@ write_again:
 
 read_again:
             for (c = 0; c < 10; c++) {
-                ncr5380_bus_read(ncr);
-                if (ncr->cur_bus & BUS_REQ)
+                status = scsi_bus_read(scsi_bus);
+                if (status & BUS_REQ)
                     break;
             }
 
             /* Data ready. */
-            ncr5380_bus_read(ncr);
-            temp = BUS_GETDATA(ncr->cur_bus);
+            bus = scsi_bus_read(scsi_bus);
+            temp = BUS_GETDATA(bus);
 
             bus = ncr5380_get_bus_host(ncr);
 
-            ncr5380_bus_update(ncr, bus | BUS_ACK);
-            ncr5380_bus_update(ncr, bus & ~BUS_ACK);
+            scsi_bus_update(scsi_bus, bus | BUS_ACK);
+            scsi_bus_update(scsi_bus, bus & ~BUS_ACK);
 
             t128->buffer[t128->pos++] = temp;
             t128_log("T128 Buffer pos for reading=%d, temp=%02x, len=%d.\n", t128->pos, temp, dev->buffer_length);
@@ -360,12 +367,12 @@ read_again:
             break;
     }
 
-    ncr5380_bus_read(ncr);
+    status = scsi_bus_read(scsi_bus);
 
-    if (!(ncr->cur_bus & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
+    if (!(status & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
         t128_log("Updating DMA\n");
         ncr->mode &= ~MODE_DMA;
-        ncr->dma_mode = DMA_IDLE;
+        scsi_bus->tx_mode = PIO_TX_BUS;
         timer_on_auto(&t128->timer, 10.0);
     }
 }
@@ -465,14 +472,12 @@ t228_feedb(void *priv)
 static void *
 t128_init(const device_t *info)
 {
-    t128_t      *t128;
-    ncr_t       *ncr;
-
-    t128 = malloc(sizeof(t128_t));
-    memset(t128, 0x00, sizeof(t128_t));
-    ncr = &t128->ncr;
+    t128_t      *t128 = calloc(1, sizeof(t128_t));
+    ncr_t       *ncr  = &t128->ncr;
+    scsi_bus_t  *scsi_bus;
 
     ncr->bus = scsi_get_bus();
+    scsi_bus = &ncr->scsibus;
 
     if (info->flags & DEVICE_MCA) {
         rom_init(&t128->bios_rom, T128_ROM,
@@ -504,15 +509,24 @@ t128_init(const device_t *info)
     ncr->dma_send_ext               = t128_dma_send_ext;
     ncr->dma_initiator_receive_ext  = t128_dma_initiator_receive_ext;
     ncr->timer                      = t128_timer_on_auto;
+    scsi_bus->bus_device            = ncr->bus;
+    scsi_bus->timer                 = ncr->timer;
+    scsi_bus->priv                  = ncr->priv;
     t128->status                    = 0x00 /*0x04*/;
     t128->host_pos                  = 512;
     if (!t128->bios_enabled && !(info->flags & DEVICE_MCA))
         t128->status                |= 0x80;
 
+    if (info->flags & DEVICE_MCA)
+        t128->status                |= 0x08;
+
     if (info->local == 0)
         timer_add(&t128->timer, t128_callback, t128, 0);
 
     scsi_bus_set_speed(ncr->bus, 5000000.0);
+    scsi_bus->speed = 0.2;
+    scsi_bus->divider = 1.0;
+    scsi_bus->multi = 1.0;
 
     return t128;
 }
@@ -540,43 +554,49 @@ t128_available(void)
 // clang-format off
 static const device_config_t t128_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xD8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xD8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
             { .description = "D800H", .value = 0xd8000 },
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = -1 },
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "boot",
-        .description = "Enable Boot ROM",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "boot",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -590,12 +610,11 @@ const device_t scsi_t128_device = {
     .init          = t128_init,
     .close         = t128_close,
     .reset         = NULL,
-    { .available = t128_available },
+    .available     = t128_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = t128_config
 };
-
 
 const device_t scsi_t228_device = {
     .name          = "Trantor T228",
@@ -605,7 +624,7 @@ const device_t scsi_t228_device = {
     .init          = t128_init,
     .close         = t128_close,
     .reset         = NULL,
-    { .available = t128_available },
+    .available     = t128_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -619,7 +638,7 @@ const device_t scsi_pas_device = {
     .init          = t128_init,
     .close         = t128_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

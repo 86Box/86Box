@@ -138,8 +138,7 @@ opti291_close(void *priv)
 static void *
 opti291_init(UNUSED(const device_t *info))
 {
-    opti291_t *dev = (opti291_t *) malloc(sizeof(opti291_t));
-    memset(dev, 0, sizeof(opti291_t));
+    opti291_t *dev = (opti291_t *) calloc(1, sizeof(opti291_t));
 
     io_sethandler(0x022, 0x0001, opti291_read, NULL, NULL, opti291_write, NULL, NULL, dev);
     io_sethandler(0x024, 0x0001, opti291_read, NULL, NULL, opti291_write, NULL, NULL, dev);
@@ -161,7 +160,7 @@ const device_t opti291_device = {
     .init          = opti291_init,
     .close         = opti291_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

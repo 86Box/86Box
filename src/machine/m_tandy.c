@@ -27,6 +27,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/io.h>
+#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -83,6 +84,7 @@ typedef struct t1kvid_t {
     uint32_t b8000_mask;
     uint32_t b8000_limit;
     uint8_t  planar_ctrl;
+    uint8_t  lp_strobe;
 
     int      linepos;
     int      displine;
@@ -717,8 +719,13 @@ recalc_timings(tandy_t *dev)
     double _dispofftime;
     double disptime;
 
-    disptime    = vid->crtc[0] + 1;
-    _dispontime = vid->crtc[1];
+    if (vid->mode & 1) {
+        disptime    = vid->crtc[0] + 1;
+        _dispontime = vid->crtc[1];
+    } else {
+        disptime    = (vid->crtc[0] + 1) << 1;
+        _dispontime = vid->crtc[1] << 1;
+    }
 
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
@@ -765,6 +772,15 @@ recalc_address_sl(tandy_t *dev)
 }
 
 static void
+vid_update_latch(t1kvid_t *vid)
+{
+    uint32_t lp_latch = vid->displine * vid->crtc[1];
+
+    vid->crtc[0x10] = (lp_latch >> 8) & 0x3f;
+    vid->crtc[0x11] = lp_latch & 0xff;
+}
+
+static void
 vid_out(uint16_t addr, uint8_t val, void *priv)
 {
     tandy_t  *dev = (tandy_t *) priv;
@@ -794,7 +810,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x03d8:
+            old = vid->mode;
             vid->mode = val;
+            if ((old ^ val) & 0x01)
+                recalc_timings(dev);
             if (!dev->is_sl2)
                 update_cga16_color(vid->mode);
             break;
@@ -805,6 +824,18 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x03da:
             vid->array_index = val & 0x1f;
+            break;
+
+        case 0x3db:
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
+                vid->lp_strobe = 0;
+            break;
+
+        case 0x3dc:
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
+                vid->lp_strobe = 1;
+                vid_update_latch(vid);
+            }
             break;
 
         case 0x03de:
@@ -843,7 +874,7 @@ static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
     const tandy_t  *dev = (tandy_t *) priv;
-    const t1kvid_t *vid = dev->vid;
+    t1kvid_t       *vid = dev->vid;
     uint8_t         ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
@@ -860,6 +891,18 @@ vid_in(uint16_t addr, void *priv)
 
         case 0x03da:
             ret = vid->stat;
+            break;
+
+        case 0x3db:
+            if (!dev->is_sl2 && (vid->lp_strobe == 1))
+                vid->lp_strobe = 0;
+            break;
+
+        case 0x3dc:
+            if (!dev->is_sl2 && (vid->lp_strobe == 0)) {
+                vid->lp_strobe = 1;
+                vid_update_latch(vid);
+            }
             break;
 
         default:
@@ -1215,6 +1258,7 @@ vid_poll(void *priv)
                 vid->dispon    = 0;
                 vid->displine  = 0;
                 vid->vsynctime = 16;
+                picint(1 << 5);
                 if (vid->crtc[7]) {
                     if (vid->mode & 1)
                         x = (vid->crtc[1] << 3) + 16;
@@ -1315,14 +1359,12 @@ vid_init(tandy_t *dev)
     int       display_type;
     t1kvid_t *vid;
 
-    vid = malloc(sizeof(t1kvid_t));
-    memset(vid, 0x00, sizeof(t1kvid_t));
+    vid = calloc(1, sizeof(t1kvid_t));
     vid->memctrl = -1;
-    dev->vid     = vid;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
 
-    display_type   = machine_get_config_int("display_type");
+    display_type   = device_get_config_int("display_type");
     vid->composite = (display_type != TANDY_RGB);
 
     cga_comp_init(1);
@@ -1335,11 +1377,14 @@ vid_init(tandy_t *dev)
         io_sethandler(0x0065, 1, vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
     } else
         vid->b8000_mask = 0x3fff;
+
     timer_add(&vid->timer, vid_poll, dev, 1);
     mem_mapping_add(&vid->mapping, 0xb8000, 0x08000,
                     vid_read, NULL, NULL, vid_write, NULL, NULL, NULL, 0, dev);
     io_sethandler(0x03d0, 16,
                   vid_in, NULL, NULL, vid_out, NULL, NULL, dev);
+
+    dev->vid     = vid;
 }
 
 const device_config_t vid_config[] = {
@@ -1370,7 +1415,7 @@ const device_t vid_device = {
     .init          = NULL,
     .close         = vid_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = vid_speed_changed,
     .force_redraw  = NULL,
     .config        = vid_config
@@ -1384,7 +1429,7 @@ const device_t vid_device_hx = {
     .init          = NULL,
     .close         = vid_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = vid_speed_changed,
     .force_redraw  = NULL,
     .config        = vid_config
@@ -1398,7 +1443,7 @@ const device_t vid_device_sl = {
     .init          = NULL,
     .close         = vid_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = vid_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1494,8 +1539,7 @@ eep_init(const device_t *info)
     t1keep_t *eep;
     FILE     *fp = NULL;
 
-    eep = (t1keep_t *) malloc(sizeof(t1keep_t));
-    memset(eep, 0x00, sizeof(t1keep_t));
+    eep = (t1keep_t *) calloc(1, sizeof(t1keep_t));
 
     switch (info->local) {
         case TYPE_TANDY1000HX:
@@ -1546,7 +1590,7 @@ static const device_t eep_1000hx_device = {
     .init          = eep_init,
     .close         = eep_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1560,7 +1604,7 @@ static const device_t eep_1000sl2_device = {
     .init          = eep_init,
     .close         = eep_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1761,9 +1805,11 @@ machine_tandy1k_init(const machine_t *model, int type)
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device);
             vid_init(dev);
+            device_context_restore();
             device_add_ex(&vid_device, dev);
-            device_add(&sn76489_device);
+            device_add((type == TYPE_TANDY1000SX) ? &ncr8496_device : &sn76489_device);
             break;
 
         case TYPE_TANDY1000HX:
@@ -1771,8 +1817,10 @@ machine_tandy1k_init(const machine_t *model, int type)
             keyboard_set_table(scancode_tandy);
             io_sethandler(0x00a0, 1,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device_hx);
             vid_init(dev);
-            device_add_ex(&vid_device, dev);
+            device_context_restore();
+            device_add_ex(&vid_device_hx, dev);
             device_add(&ncr8496_device);
             device_add(&eep_1000hx_device);
             break;
@@ -1782,7 +1830,9 @@ machine_tandy1k_init(const machine_t *model, int type)
             init_rom(dev);
             io_sethandler(0xffe8, 8,
                           tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
+            device_context(&vid_device_sl);
             vid_init(dev);
+            device_context_restore();
             device_add_ex(&vid_device_sl, dev);
             device_add(&pssj_device);
             device_add(&eep_1000sl2_device);

@@ -26,12 +26,12 @@
 #include <stdarg.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/timer.h>
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/thread.h>
-#include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/plat_unused.h>
 
@@ -445,8 +445,7 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 static void *
 plip_lpt_init(void *lpt)
 {
-    plip_t *dev = (plip_t *) malloc(sizeof(plip_t));
-    memset(dev, 0, sizeof(plip_t));
+    plip_t *dev = (plip_t *) calloc(1, sizeof(plip_t));
 
     plip_log(1, "PLIP: lpt_init()\n");
 
@@ -508,7 +507,7 @@ const device_t plip_device = {
     .init          = plip_net_init,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -264,7 +264,7 @@ modem_read_phonebook_file(modem_t *modem, const char *path)
 
         if (strspn(entry.phone, "01234567890*=,;#+>") != strlen(entry.phone)) {
             /* Invalid characters. */
-            pclog("Modem: Invalid character in phone number %s\n", entry.phone);
+            modem_log("Modem: Invalid character in phone number %s\n", entry.phone);
             continue;
         }
 
@@ -434,7 +434,7 @@ host_to_modem_cb(void *priv)
 {
     modem_t *modem = (modem_t *) priv;
 
-    if (modem->in_warmup)
+    if (modem->in_warmup || (modem->serial == NULL))
         goto no_write_to_machine;
 
     if ((modem->serial->type >= SERIAL_16550) && modem->serial->fifo_enabled) {
@@ -617,14 +617,16 @@ modem_enter_idle_state(modem_t *modem)
     if (modem->listen_port) {
         modem->serversocket = plat_netsocket_create_server(NET_SOCKET_TCP, modem->listen_port);
         if (modem->serversocket == (SOCKET) -1) {
-            pclog("Failed to set up server on port %d\n", modem->listen_port);
+            modem_log("Failed to set up server on port %d\n", modem->listen_port);
         }
     }
 
-    serial_set_cts(modem->serial, 1);
-    serial_set_dsr(modem->serial, 1);
-    serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
-    serial_set_ri(modem->serial, 0);
+    if (modem->serial != NULL) {
+        serial_set_cts(modem->serial, 1);
+        serial_set_dsr(modem->serial, 1);
+        serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
+        serial_set_ri(modem->serial, 0);
+    }
 }
 
 void
@@ -640,8 +642,11 @@ modem_enter_connected_state(modem_t *modem)
     plat_netsocket_close(modem->serversocket);
     modem->serversocket = -1;
     memset(&modem->telClient, 0, sizeof(modem->telClient));
-    serial_set_dcd(modem->serial, 1);
-    serial_set_ri(modem->serial, 0);
+
+    if (modem->serial != NULL) {
+        serial_set_dcd(modem->serial, 1);
+        serial_set_ri(modem->serial, 0);
+    }
 }
 
 void
@@ -703,14 +708,14 @@ modem_dial(modem_t *modem, const char *str)
         modem->numberinprogress[0] = 0;
         modem->clientsocket        = plat_netsocket_create(NET_SOCKET_TCP);
         if (modem->clientsocket == -1) {
-            pclog("Failed to create client socket\n");
+            modem_log("Failed to create client socket\n");
             modem_send_res(modem, ResNOCARRIER);
             modem_enter_idle_state(modem);
             return;
         }
 
         if (-1 == plat_netsocket_connect(modem->clientsocket, buf, port)) {
-            pclog("Failed to connect to %s\n", buf);
+            modem_log("Failed to connect to %s\n", buf);
             modem_send_res(modem, ResNOCARRIER);
             modem_enter_idle_state(modem);
             return;
@@ -1128,7 +1133,7 @@ modem_dtr_callback_timer(void *priv)
 }
 
 void
-modem_dtr_callback(serial_t *serial, int status, void *priv)
+modem_dtr_callback(UNUSED(serial_t *serial), int status, void *priv)
 {
     modem_t *dev  = (modem_t *) priv;
     dev->dtrstate = !!status;
@@ -1147,7 +1152,7 @@ fifo8_resize_2x(Fifo8 *fifo)
     if (!used)
         return;
 
-    uint8_t *temp_buf = calloc(fifo->capacity * 2, 1);
+    uint8_t *temp_buf = calloc(size, 1);
     if (!temp_buf) {
         fatal("net_modem: Out Of Memory!\n");
     }
@@ -1391,7 +1396,8 @@ modem_cmdpause_timer_callback(void *priv)
             } else {
                 modem->ringing = true;
                 modem_send_res(modem, ResRING);
-                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+                if (modem->serial != NULL)
+                    serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
                 modem->ringtimer            = 3000;
                 modem->reg[MREG_RING_COUNT] = 0;
             }
@@ -1405,7 +1411,8 @@ modem_cmdpause_timer_callback(void *priv)
                 return;
             }
             modem_send_res(modem, ResRING);
-            serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+            if (modem->serial != NULL)
+                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
 
             modem->ringtimer = 3000;
         }
@@ -1440,7 +1447,8 @@ modem_cmdpause_timer_callback(void *priv)
         if (modem->connected) {
             uint8_t buffer[16];
             int     wouldblock = 0;
-            int     res        = plat_netsocket_receive(modem->clientsocket, buffer, sizeof(buffer), &wouldblock);
+            int     recv       = MIN(modem->rx_data.capacity - modem->rx_data.num, sizeof(buffer));
+            int     res        = plat_netsocket_receive(modem->clientsocket, buffer, recv, &wouldblock);
 
             if (res > 0) {
                 if (modem->telnet_mode)
@@ -1475,7 +1483,7 @@ modem_cmdpause_timer_callback(void *priv)
 
 /* Initialize the device for use by the user. */
 static void *
-modem_init(const device_t *info)
+modem_init(UNUSED(const device_t *info))
 {
     modem_t    *modem          = (modem_t *) calloc(1, sizeof(modem_t));
     const char *phonebook_file = NULL;
@@ -1488,8 +1496,8 @@ modem_init(const device_t *info)
 
     modem->clientsocket = modem->serversocket = modem->waitingclientsocket = -1;
 
-    fifo8_create(&modem->data_pending, 0x20000);
-    fifo8_create(&modem->rx_data, 0x20000);
+    fifo8_create(&modem->data_pending, 0x40000);
+    fifo8_create(&modem->rx_data, 0x40000);
 
     timer_add(&modem->dtr_timer, modem_dtr_callback_timer, modem, 0);
     timer_add(&modem->host_to_serial_timer, host_to_modem_cb, modem, 0);
@@ -1523,30 +1531,31 @@ modem_close(void *priv)
 // clang-format off
 static const device_config_t modem_config[] = {
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "baudrate",
-        .description = "Baud Rate",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 115200,
-        .file_filter = NULL,
-        .spinner = { 0 },
-        .selection = {
+        .name           = "baudrate",
+        .description    = "Baud Rate",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 115200,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "115200", .value = 115200 },
             { .description =  "57600", .value =  57600 },
             { .description =  "56000", .value =  56000 },
@@ -1561,32 +1570,44 @@ static const device_config_t modem_config[] = {
             { .description =   "1200", .value =   1200 },
             { .description =    "600", .value =    600 },
             { .description =    "300", .value =    300 },
-        }
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "listen_port",
-        .description = "TCP/IP listening port",
-        .type = CONFIG_SPINNER,
-        .spinner =
-        {
-            .min = 0,
+        .name           = "listen_port",
+        .description    = "TCP/IP listening port",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min =     0,
             .max = 32767
         },
-        .default_int = 0
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "phonebook_file",
-        .description = "Phonebook File",
-        .type = CONFIG_FNAME,
-        .default_string = "",
-        .file_filter = "Text files (*.txt)|*.txt"
+        .name           = "phonebook_file",
+        .description    = "Phonebook File",
+        .type           = CONFIG_FNAME,
+        .default_string = NULL,
+        .file_filter    = "Text files (*.txt)|*.txt",
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "telnet_mode",
-        .description = "Telnet emulation",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "telnet_mode",
+        .description    = "Telnet emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -1600,7 +1621,7 @@ const device_t modem_device = {
     .init          = modem_init,
     .close         = modem_close,
     .reset         = NULL,
-    { .poll = NULL },
+    .available     = NULL,
     .speed_changed = modem_speed_changed,
     .force_redraw  = NULL,
     .config        = modem_config

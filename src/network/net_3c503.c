@@ -60,7 +60,6 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
-#include <86box/bswap.h>
 #include <86box/plat_unused.h>
 
 typedef struct threec503_t {
@@ -573,8 +572,7 @@ threec503_nic_init(UNUSED(const device_t *info))
     uint32_t     mac;
     threec503_t *dev;
 
-    dev = malloc(sizeof(threec503_t));
-    memset(dev, 0x00, sizeof(threec503_t));
+    dev = calloc(1, sizeof(threec503_t));
     dev->maclocal[0] = 0x02; /* 02:60:8C (3Com OID) */
     dev->maclocal[1] = 0x60;
     dev->maclocal[2] = 0x8C;
@@ -656,14 +654,14 @@ threec503_nic_close(void *priv)
 static const device_config_t threec503_config[] = {
     // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x300,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0x250", .value = 0x250 },
             { .description = "0x280", .value = 0x280 },
             { .description = "0x2a0", .value = 0x2a0 },
@@ -674,80 +672,83 @@ static const device_config_t threec503_config[] = {
             { .description = "0x350", .value = 0x350 },
             { .description = "",      .value =     0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "",      .value = 0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_int    = 3,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DMA 1", .value = 1 },
             { .description = "DMA 2", .value = 2 },
             { .description = "DMA 3", .value = 3 },
             { .description = "",      .value = 0 }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "", .value = 0 }
-        },
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xCC000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xCC000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "DC00", .value = 0xDC000 },
             { .description = "D800", .value = 0xD8000 },
             { .description = "C800", .value = 0xC8000 },
             { .description = "CC00", .value = 0xCC000 },
-            { .description = "",     .value = 0 }
+            { .description = "",     .value =       0 }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 
 const device_t threec503_device = {
-    .name = "3Com EtherLink II",
+    .name          = "3Com EtherLink II",
     .internal_name = "3c503",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = threec503_nic_init,
-    .close = threec503_nic_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = threec503_nic_init,
+    .close         = threec503_nic_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = threec503_config
+    .force_redraw  = NULL,
+    .config        = threec503_config
 };

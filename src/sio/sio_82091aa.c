@@ -78,7 +78,7 @@ lpt1_handler(i82091aa_t *dev)
     }
 
     if ((dev->regs[0x20] & 0x01) && lpt_port)
-        lpt1_init(lpt_port);
+        lpt1_setup(lpt_port);
 
     lpt1_irq((dev->regs[0x20] & 0x08) ? LPT1_IRQ : LPT2_IRQ);
 }
@@ -257,8 +257,7 @@ i82091aa_close(void *priv)
 static void *
 i82091aa_init(const device_t *info)
 {
-    i82091aa_t *dev = (i82091aa_t *) malloc(sizeof(i82091aa_t));
-    memset(dev, 0, sizeof(i82091aa_t));
+    i82091aa_t *dev = (i82091aa_t *) calloc(1, sizeof(i82091aa_t));
 
     dev->fdc = device_add(&fdc_at_device);
 
@@ -290,7 +289,7 @@ const device_t i82091aa_device = {
     .init          = i82091aa_init,
     .close         = i82091aa_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -304,7 +303,7 @@ const device_t i82091aa_398_device = {
     .init          = i82091aa_init,
     .close         = i82091aa_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -318,7 +317,7 @@ const device_t i82091aa_ide_pri_device = {
     .init          = i82091aa_init,
     .close         = i82091aa_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -332,7 +331,7 @@ const device_t i82091aa_ide_device = {
     .init          = i82091aa_init,
     .close         = i82091aa_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
