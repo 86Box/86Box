@@ -107,6 +107,7 @@ static struct ps2_t {
     serial_t *uart;
 
     vga_t* mb_vga;
+    int has_e0000_hole;
 } ps2;
 
 /*The model 70 type 3/4 BIOS performs cache testing. Since 86Box doesn't have any
@@ -145,7 +146,7 @@ static struct ps2_t {
 static uint8_t ps2_cache[65536];
 static int     ps2_cache_valid[65536 / 8];
 static void mem_encoding_update(void);
-
+// #define ENABLE_PS2_MCA_LOG 1
 #ifdef ENABLE_PS2_MCA_LOG
 int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
 
@@ -804,20 +805,9 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
             break;
         case 0x104:
             if ((ps2.option[2] ^ val) & 1) {
+                /* Disable/Enable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
+                ps2.option[2] = val;
                 mem_encoding_update();
-                if (val & 1) {
-                    /* Disable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
-                    ps2_mca_log("ROM E0000-E0FFF is disabled.\n");
-                    // mem_mapping_set_addr(&bios_mapping 0xe1000, 0x1f000);
-                    mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-                    // mem_mapping_disable(&bios_mapping[0]);
-                } else {
-                    /* Enable E0000 - E0FFF for BIOS */
-                    ps2_mca_log("ROM E0000-E0FFF is enabled.\n");
-                    // mem_mapping_set_addr(&bios_mapping 0xe0000, 0x20000);
-                    // mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_DISABLED);
-                    // mem_mapping_enable(&bios_mapping[0]);
-                }
             }
             ps2.option[2] = val;
             break;
@@ -952,8 +942,15 @@ ps2_mca_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             ps2.setup = val;
             break;
         case 0x96:
-            if ((val & 0x80) && !(ps2.adapter_setup & 0x80))
+            if ((val & 0x80) && !(ps2.adapter_setup & 0x80)) {
                 mca_reset();
+                if (ps2.has_e0000_hole) {
+                    /* Reset memstate for E0000 - E0FFFh hole (for PS/55 5550-V)
+                       5550-T does this in POST, but 5550-V doesn't. */
+                    ps2.option[2] &= 0xFE;
+                    mem_encoding_update();
+                }
+            }
             ps2.adapter_setup = val;
             mca_set_index(val & 7);
             break;
@@ -1306,6 +1303,11 @@ mem_encoding_update(void)
         ps2_mca_log("PS/2 Model 80-111: Split memory block disabled\n");
     }
 
+    if (ps2.has_e0000_hole && (ps2.option[2] & 1)) {
+        /* Set memstate for E0000 - E0FFFh hole (PS/55 only) */
+        mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    }
+
     flushmmucache_nopc();
 }
 
@@ -1339,26 +1341,7 @@ mem_encoding_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
     }
     mem_encoding_update();
 }
-static void
-mem_encoding_write_ps55(uint16_t addr, uint8_t val, void* p)
-{
-    //ps2_mca_log(" Write Memory Encoding %04X %02X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
-    switch (addr) {
-        case 0xe0:
-            ps2.mem_regs[0] = val;
-            break;
-        case 0xe1:
-            ps2.mem_regs[1] = val;
-            break;
-        default:
-            break;
-    }
-    mem_encoding_update();
-    if (ps2.option[2] & 1) {
-        /* reset memstate for E0000 - E0FFFh hole */
-        mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-    }
-}
+
 static uint8_t
 mem_encoding_read_cached(uint16_t addr, UNUSED(void *priv))
 {
@@ -1429,64 +1412,6 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
     }
 }
 
-static void
-mem_encoding_write_cached_ps55(uint16_t addr, uint8_t val, UNUSED(void *priv))
-{
-    uint8_t old;
-
-    switch (addr) {
-        case 0xe0:
-            ps2.mem_regs[0] = val;
-            break;
-        case 0xe1:
-            ps2.mem_regs[1] = val;
-            break;
-        case 0xe2:
-            old             = ps2.mem_regs[2];
-            ps2.mem_regs[2] = (ps2.mem_regs[2] & 0x80) | (val & ~0x88);
-            if (val & 2) {
-                ps2_mca_log("Clear latch - %i\n", ps2.pending_cache_miss);
-                if (ps2.pending_cache_miss)
-                    ps2.mem_regs[2] |= 0x80;
-                else
-                    ps2.mem_regs[2] &= ~0x80;
-                ps2.pending_cache_miss = 0;
-            }
-
-            if ((val & 0x21) == 0x20 && (old & 0x21) != 0x20)
-                ps2.pending_cache_miss = 1;
-            if ((val & 0x21) == 0x01 && (old & 0x21) != 0x01)
-                ps2_cache_clean();
-#if 1
-            // FIXME: Look into this!!!
-            if (val & 0x01)
-                ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
-            else
-                ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
-#endif
-            break;
-
-        default:
-            break;
-    }
-    ps2_mca_log("mem_encoding_write: addr=%02x val=%02x %04x:%04x  %02x %02x\n", addr, val, CS, cpu_state.pc, ps2.mem_regs[1], ps2.mem_regs[2]);
-    mem_encoding_update();
-    if ((ps2.mem_regs[1] & 0x10) && (ps2.mem_regs[2] & 0x21) == 0x20) {
-        mem_mapping_disable(&ram_low_mapping);
-        mem_mapping_enable(&ps2.cache_mapping);
-        flushmmucache();
-        ps2_mca_log("mem_encoding_write: low ram mapping disabled\n");
-    } else {
-        mem_mapping_disable(&ps2.cache_mapping);
-        mem_mapping_enable(&ram_low_mapping);
-        flushmmucache();
-        ps2_mca_log("mem_encoding_write: low ram mapping enabled\n");
-    }
-    if (ps2.option[2] & 1) {
-        /* reset memstate for E0000 - E0FFFh hole */
-        mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-    }
-}
 static void
 ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 {
@@ -1675,6 +1600,8 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
+
+    ps2.has_e0000_hole = 0;
 }
 
 int
@@ -1858,10 +1785,11 @@ ps55_mca_board_model_50t_init()
 
     device_add(&ps2_nvr_device);
 
-    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write_ps55, NULL, NULL, NULL);
+    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
     ps2.mem_regs[1] = 2;
     ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
 
     mem_mapping_add(&ps2.split_mapping,
         (mem_size + 256) * 1024,
@@ -1901,11 +1829,12 @@ ps55_mca_board_model_50v_init()
 
     device_add(&ps2_nvr_device);
 
-    io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached_ps55, NULL, NULL, NULL);
+    io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
     ps2.mem_regs[1] = 2;
     ps2.option[2] &= 0xf2; /*   Bit 3-2: -Cache IDs, Bit 1: Reserved
                                 Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
 
     mem_mapping_add(&ps2.split_mapping,
         (mem_size + 256) * 1024,
