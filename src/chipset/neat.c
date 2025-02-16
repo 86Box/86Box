@@ -845,7 +845,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                                  dev->ems_size);
                     }
 
-                    mem_a20_key = val & RB12_GA20;
+                    mem_a20_alt = val & RB12_GA20;
                     mem_a20_recalc();
                     break;
 
