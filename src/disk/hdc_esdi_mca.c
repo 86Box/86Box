@@ -1385,9 +1385,7 @@ esdi_init(UNUSED(const device_t *info))
     if (info->local == ESDI_IS_ADAPTER) {
         dev->pos_regs[0] = 0xff;
         dev->pos_regs[1] = 0xdd;
-    }
-    else if (info->local == ESDI_IS_INTEGRATED)
-    {
+    } else if (info->local == ESDI_IS_INTEGRATED) {
         dev->pos_regs[0] = 0x9f;
         dev->pos_regs[1] = 0xdf;
     }
@@ -1400,8 +1398,7 @@ esdi_init(UNUSED(const device_t *info))
             mca_add_to_slot(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev, slotno - 1);
         else
             mca_add(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev);
-    }
-    else
+    } else
         mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, NULL, dev);
 
     /* Mark for a reset. */
@@ -1453,56 +1450,25 @@ const device_t esdi_ps2_device = {
 };
 
 static device_config_t
-esdi_integrated_config[] =
-{
-        {
-                .name = "in_esdi_slot",
-                .description = "Slot #",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "Auto",
-                                .value = 0
-                        },
-                        {
-                                .description = "1",
-                                .value = 1
-                        },
-                        {
-                                .description = "2",
-                                .value = 2
-                        },
-                        {
-                                .description = "3",
-                                .value = 3
-                        },
-                        {
-                                .description = "4",
-                                .value = 4
-                        },
-                        {
-                                .description = "5",
-                                .value = 5
-                        },
-                        {
-                                .description = "6",
-                                .value = 6
-                        },
-                        {
-                                .description = "7",
-                                .value = 7
-                        },
-                        {
-                                .description = "8",
-                                .value = 8
-                        }
-                },
-                .default_int = 0
+    esdi_integrated_config[] = {
+          {
+           .name        = "in_esdi_slot",
+           .description = "Slot #",
+           .type        = CONFIG_SELECTION,
+           .selection   = {
+                { .description = "Auto", .value = 0 },
+                { .description = "1", .value = 1 },
+                { .description = "2", .value = 2 },
+                { .description = "3", .value = 3 },
+                { .description = "4", .value = 4 },
+                { .description = "5", .value = 5 },
+                { .description = "6", .value = 6 },
+                { .description = "7", .value = 7 },
+                { .description = "8", .value = 8 }
+            },
+           .default_int = 0
         },
-        {
-                .type = -1
-        }
+          { .type = -1 }
 };
 
 const device_t
