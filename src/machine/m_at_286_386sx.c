@@ -626,7 +626,7 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&keyboard_ps2_device);
 
