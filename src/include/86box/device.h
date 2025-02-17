@@ -79,29 +79,33 @@
 // #define CONFIG_STANDALONE 257      /* not available on the on-board variant */
 
 enum {
-    DEVICE_PCJR      = 2,          /* requires an IBM PCjr */
-    DEVICE_XTKBC     = 4,          /* requires an XT-compatible keyboard controller */
-    DEVICE_AT        = 8,          /* requires an AT-compatible system */
-    DEVICE_ATKBC     = 0x10,       /* requires an AT-compatible keyboard controller */
-    DEVICE_PS2       = 0x20,       /* requires a PS/1 or PS/2 system */
-    DEVICE_ISA       = 0x40,       /* requires the ISA bus */
-    DEVICE_CBUS      = 0x80,       /* requires the C-BUS bus */
-    DEVICE_PCMCIA    = 0x100,      /* requires the PCMCIA bus */
-    DEVICE_MCA       = 0x200,      /* requires the MCA bus */
-    DEVICE_HIL       = 0x400,      /* requires the HP HIL bus */
-    DEVICE_EISA      = 0x800,      /* requires the EISA bus */
-    DEVICE_AT32      = 0x1000,     /* requires the Mylex AT/32 local bus */
-    DEVICE_OLB       = 0x2000,     /* requires the OPTi local bus */
-    DEVICE_VLB       = 0x4000,     /* requires the VLB bus */
-    DEVICE_PCI       = 0x8000,     /* requires the PCI bus */
-    DEVICE_CARDBUS   = 0x10000,    /* requires the CardBus bus */
-    DEVICE_USB       = 0x20000,    /* requires the USB bus */
-    DEVICE_AGP       = 0x40000,    /* requires the AGP bus */
-    DEVICE_AC97      = 0x80000,    /* requires the AC'97 bus */
-    DEVICE_COM       = 0x100000,   /* requires a serial port */
-    DEVICE_LPT       = 0x200000,   /* requires a parallel port */
-    DEVICE_KBC       = 0x400000,   /* is a keyboard controller */
-    DEVICE_SOFTRESET = 0x800000,   /* requires to be reset on soft reset */
+    DEVICE_SIDECAR   = 2,          /* requires an IBM PCjr */
+    DEVICE_ISA       = 4,          /* requires the ISA bus */
+    DEVICE_XT_KBC    = 8,          /* requires an XT-compatible keyboard controller */
+    DEVICE_CBUS      = 0x10,       /* requires the C-BUS bus */
+    DEVICE_ISA16     = 0x20,       /* requires an AT-compatible system */
+    DEVICE_AT_KBC    = 0x40,       /* requires an AT-compatible keyboard controller */
+    DEVICE_MCA       = 0x80,       /* requires the MCA bus */
+    DEVICE_MCA32     = 0x100,      /* requires the MCA bus */
+    DEVICE_PS2_KBC   = 0x200,      /* requires a PS/1 or PS/2 system */
+    DEVICE_PCMCIA    = 0x400,      /* requires the PCMCIA bus */
+    DEVICE_HIL       = 0x800,      /* requires the HP HIL bus */
+    DEVICE_EISA      = 0x1000,     /* requires the EISA bus */
+    DEVICE_AT32      = 0x2000,     /* requires the Mylex AT/32 local bus */
+    DEVICE_OLB       = 0x4000,     /* requires the OPTi local bus */
+    DEVICE_VLB       = 0x8000,     /* requires the VLB bus */
+    DEVICE_PCI       = 0x10000,    /* requires the PCI bus */
+    DEVICE_CARDBUS   = 0x20000,    /* requires the CardBus bus */
+    DEVICE_USB       = 0x40000,    /* requires the USB bus */
+    DEVICE_AGP       = 0x80000,    /* requires the AGP bus */
+    DEVICE_AC97      = 0x100000,   /* requires the AC'97 bus */
+    DEVICE_BUS       = 0x1fffff,   /* requires a machine bus */
+
+    DEVICE_COM       = 0x200000,   /* requires a serial port */
+    DEVICE_LPT       = 0x400000,   /* requires a parallel port */
+
+    DEVICE_KBC       = 0x800000,   /* is a keyboard controller */
+    DEVICE_SOFTRESET = 0x1000000,  /* requires to be reset on soft reset */
 
     DEVICE_ONBOARD   = 0x40000000, /* is on-board */
     DEVICE_PIT       = 0x80000000, /* device is a PIT */

@@ -23,26 +23,25 @@
 #define EMU_MACHINE_H
 
 /* Machine feature flags. */
-#define MACHINE_BUS_NONE 0x00000000 /* sys has no bus */
+#define MACHINE_BUS_NONE      0x00000000 /* sys has no bus */
 /* Feature flags for BUS'es. */
-#define MACHINE_BUS_ISA       0x00000001 /* sys has ISA bus */
-#define MACHINE_BUS_CASSETTE  0x00000002 /* sys has cassette port */
-#define MACHINE_BUS_CARTRIDGE 0x00000004 /* sys has two cartridge bays */
-#define MACHINE_BUS_PCJR      0x00000008 /* sys has PCjr sidecar bus */
-#define MACHINE_BUS_DM_KBC    0x00000010 /* system has keyboard controller that supports
-                                            both XT and AT keyboards */
+#define MACHINE_BUS_CASSETTE  0x00000001 /* sys has cassette port */
+#define MACHINE_BUS_SIDECAR   0x00000002 /* sys has PCjr sidecar bus */
+#define MACHINE_BUS_ISA       0x00000004 /* sys has ISA bus */
+#define MACHINE_BUS_XT_KBD    0x00000008 /* sys has an XT keyboard port */
+#define MACHINE_BUS_CBUS      0x00000010 /* sys has C-BUS bus */
 #define MACHINE_BUS_ISA16     0x00000020 /* sys has ISA16 bus - PC/AT architecture */
-#define MACHINE_BUS_CBUS      0x00000040 /* sys has C-BUS bus */
-#define MACHINE_BUS_PCMCIA    0x00000080 /* sys has PCMCIA bus */
-#define MACHINE_BUS_PS2_LATCH 0x00000100 /* system has PS/2 keyboard controller IRQ latch */
+#define MACHINE_BUS_AT_KBD    0x00000040 /* sys has an AT keyboard port */
+#define MACHINE_BUS_MCA       0x00000080 /* sys has MCA bus */
+#define MACHINE_BUS_MCA32     0x00000100 /* sys has MCA32 bus */
 #define MACHINE_BUS_PS2_PORTS 0x00000200 /* system has PS/2 keyboard and mouse ports */
-#define MACHINE_BUS_PS2       (MACHINE_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
-#define MACHINE_BUS_HIL       0x00000400 /* system has HP HIL keyboard and mouse ports */
-#define MACHINE_BUS_EISA      0x00000800 /* sys has EISA bus */
-#define MACHINE_BUS_AT32      0x00001000 /* sys has Mylex AT/32 local bus */
-#define MACHINE_BUS_OLB       0x00002000 /* sys has OPTi local bus */
-#define MACHINE_BUS_VLB       0x00004000 /* sys has VL bus */
-#define MACHINE_BUS_MCA       0x00008000 /* sys has MCA bus */
+#define MACHINE_BUS_PS2       MACHINE_BUS_PS2_PORTS
+#define MACHINE_BUS_PCMCIA    0x00000400 /* sys has PCMCIA bus */
+#define MACHINE_BUS_HIL       0x00000800 /* system has HP HIL keyboard and mouse ports */
+#define MACHINE_BUS_EISA      0x00001000 /* sys has EISA bus */
+#define MACHINE_BUS_AT32      0x00002000 /* sys has Mylex AT/32 local bus */
+#define MACHINE_BUS_OLB       0x00004000 /* sys has OPTi local bus */
+#define MACHINE_BUS_VLB       0x00008000 /* sys has VL bus */
 #define MACHINE_BUS_PCI       0x00010000 /* sys has PCI bus */
 #define MACHINE_BUS_CARDBUS   0x00020000 /* sys has CardBus bus */
 #define MACHINE_BUS_USB       0x00040000 /* sys has USB bus */
@@ -50,7 +49,6 @@
 #define MACHINE_BUS_AC97      0x00100000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Aliases. */
 #define MACHINE_CASSETTE    (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
-#define MACHINE_CARTRIDGE   (MACHINE_BUS_CARTRIDGE) /* sys has two cartridge bays */
 /* Combined flags. */
 #define MACHINE_PC          (MACHINE_BUS_ISA)                     /* sys is PC/XT-compatible (ISA) */
 #define MACHINE_AT          (MACHINE_BUS_ISA | MACHINE_BUS_ISA16) /* sys is AT-compatible (ISA + ISA16) */
@@ -69,18 +67,18 @@
 #define MACHINE_AGP         (MACHINE_BUS_AGP | MACHINE_PCI)       /* sys is AT-compatible with AGP  */
 #define MACHINE_AGP98       (MACHINE_BUS_AGP | MACHINE_PCI98)     /* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 
-#define MACHINE_PC5150      (MACHINE_PC | MACHINE_CASSETTE)                     /* sys is IBM PC 5150 */
-#define MACHINE_PCJR        (MACHINE_PC | MACHINE_CASSETTE | MACHINE_CARTRIDGE) /* sys is PCjr */
-#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)                      /* sys is PS/2 */
-#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)                     /* sys is MCA PS/2 */
-#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)                     /* sys is VLB PS/2 */
-#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)                     /* sys is PCI PS/2 */
-#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)                    /* sys is VLB/PCI PS/2 */
-#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)                     /* sys is AGP PS/2 */
-#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                /* sys is AGP/AC97 PS/2 */
-#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)                     /* sys is AGP PS/2 without ISA */
-#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)              /* sys is PCI PS/2 without ISA */
-#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)                     /* sys is AGP/AC97 PS/2 without ISA */
+#define MACHINE_PC5150      (MACHINE_PC | MACHINE_CASSETTE)                       /* sys is IBM PC 5150 */
+#define MACHINE_PCJR        (MACHINE_PC | MACHINE_CASSETTE | MACHINE_BUS_SIDECAR) /* sys is PCjr */
+#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)                        /* sys is PS/2 */
+#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)                       /* sys is MCA PS/2 */
+#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)                       /* sys is VLB PS/2 */
+#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)                       /* sys is PCI PS/2 */
+#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)                      /* sys is VLB/PCI PS/2 */
+#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)                       /* sys is AGP PS/2 */
+#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                  /* sys is AGP/AC97 PS/2 */
+#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)                       /* sys is AGP PS/2 without ISA */
+#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)                /* sys is PCI PS/2 without ISA */
+#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)                       /* sys is AGP/AC97 PS/2 without ISA */
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_FLAGS_NONE        0x00000000 /* sys has no int devices */
 #define MACHINE_SOFTFLOAT_ONLY    0x00000001 /* sys requires SoftFloat FPU */
@@ -93,7 +91,8 @@
 #define MACHINE_LPT_PRI           0x00000080 /* sys has int pri LPT */
 #define MACHINE_LPT_SEC           0x00000100 /* sys has int sec LPT */
 #define MACHINE_LPT_TER           0x00000200 /* sys has int ter LPT */
-#define MACHINE_LPT_QUA           0x00000400 /* sys has int qua LPT */
+#define MACHINE_PS2_KBC           0x00000400 /* sys has a PS/2 keyboard controller */
+                                             /* this is separate from having PS/2 ports */
 #define MACHINE_UART_PRI          0x00000800 /* sys has int pri UART */
 #define MACHINE_UART_SEC          0x00001000 /* sys has int sec UART */
 #define MACHINE_UART_TER          0x00002000 /* sys has int ter UART */
@@ -106,7 +105,7 @@
 #define MACHINE_APM               0x00080000 /* sys has APM */
 #define MACHINE_ACPI              0x00100000 /* sys has ACPI */
 #define MACHINE_HWM               0x00200000 /* sys has hw monitor */
-#define MACHINE_COREBOOT          0x00400000 /* sys has coreboot BIOS */
+#define MACHINE_CARTRIDGE         0x00400000 /* sys has cartridge bays */
 /* Feature flags for internal storage controllers. */
 #define MACHINE_MFM               0x00800000 /* sys has int MFM/RLL */
 #define MACHINE_XTA               0x01000000 /* sys has int XTA */
