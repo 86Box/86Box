@@ -34,8 +34,6 @@
 #include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
-#define NEAT_DEBUG  0
-
 #define EMS_MAXPAGE 4
 #define EMS_PGSIZE  16384
 #define EMS_PGMASK  16383
@@ -328,7 +326,7 @@ ems_readb(uint32_t addr, void *priv)
 {
     ram_page_t *dev = (ram_page_t *) priv;
     uint8_t     ret = 0xff;
-#ifdef ENABLE_NEAT_LOG
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     uint32_t    old = addr;
 #endif
 
@@ -338,7 +336,9 @@ ems_readb(uint32_t addr, void *priv)
     if (addr < (mem_size << 10))
         ret = *(uint8_t *) &(ram[addr]);
 
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     neat_log("[R08] %08X -> %08X (%08X): ret = %02X\n", old, addr, (mem_size << 10), ret);
+#endif
     return ret;
 }
 
@@ -348,7 +348,7 @@ ems_readw(uint32_t addr, void *priv)
 {
     ram_page_t *dev = (ram_page_t *) priv;
     uint16_t    ret = 0xffff;
-#ifdef ENABLE_NEAT_LOG
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     uint32_t    old = addr;
 #endif
 
@@ -358,7 +358,9 @@ ems_readw(uint32_t addr, void *priv)
     if (addr < (mem_size << 10))
         ret = *(uint16_t *) &(ram[addr]);
 
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     neat_log("[R16] %08X -> %08X (%08X): ret = %04X\n", old, addr, (mem_size << 10), ret);
+#endif
     return ret;
 }
 
@@ -367,13 +369,15 @@ static void
 ems_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     ram_page_t *dev = (ram_page_t *) priv;
-#ifdef ENABLE_NEAT_LOG
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     uint32_t    old = addr;
 #endif
 
     /* Write the data. */
     addr = addr - dev->virt_base + dev->phys_base;
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     neat_log("[W08] %08X -> %08X (%08X): val = %02X\n", old, addr, (mem_size << 10), val);
+#endif
 
     if (addr < (mem_size << 10))
         *(uint8_t *) &(ram[addr]) = val;
@@ -384,13 +388,15 @@ static void
 ems_writew(uint32_t addr, uint16_t val, void *priv)
 {
     ram_page_t *dev = (ram_page_t *) priv;
-#ifdef ENABLE_NEAT_LOG
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     uint32_t    old = addr;
 #endif
 
     /* Write the data. */
     addr = addr - dev->virt_base + dev->phys_base;
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 3)
     neat_log("[W16] %08X -> %08X (%08X): val = %04X\n", old, addr, (mem_size << 10), val);
+#endif
 
     if (addr < (mem_size << 10))
         *(uint16_t *) &(ram[addr]) = val;
@@ -505,7 +511,7 @@ ems_recalc(neat_t *dev, ram_page_t *ems)
 
         neat_mem_update_state(dev, ems->virt_base, EMS_PGSIZE, MEM_FLAG_EMS, MEM_FMASK_EMS);
 
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
         neat_log("NEAT EMS: page %d set to %08lx, %sabled)\n",
                  ems->page, ems->addr - ram, ems->enabled ? "en" : "dis");
 #endif
@@ -528,7 +534,7 @@ ems_write(uint16_t port, uint8_t val, void *priv)
     int8_t      new_enabled;
     uint32_t    new_phys_base;
 
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
     neat_log("NEAT: ems_write(%04x, %02x)\n", port, val);
 #endif
 
@@ -577,6 +583,7 @@ ems_read(uint16_t port, void *priv)
 
     switch (port & 0x000f) {
         case 0x0008: /* page number register */
+        case 0x0009:
             ret = (dev->ems[vpage].phys_base / EMS_PGSIZE) & 0x7f;
             if (dev->ems[vpage].enabled)
                 ret |= 0x80;
@@ -587,7 +594,7 @@ ems_read(uint16_t port, void *priv)
 
     neat_log("Port: %04X, ret: %02X\n", port, ret);
 
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
     neat_log("NEAT: ems_read(%04x) = %02x\n", port, ret);
 #endif
 
@@ -686,7 +693,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
     uint8_t *reg;
     int      i;
 
-#if NEAT_DEBUG > 2
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
     neat_log("NEAT: write(%04x, %02x)\n", port, val);
 #endif
 
@@ -704,7 +711,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     *reg = (*reg & ~RA0_MASK) | val | (RA0_REV_ID << RA0_REV_SH);
                     if ((xval & 0x20) && (val & 0x20))
                         outb(0x64, 0xfe);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RA0=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -712,7 +719,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RA1:
                     val &= RA1_MASK;
                     *reg = (*reg & ~RA1_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RA1=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -720,7 +727,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RA2:
                     val &= RA2_MASK;
                     *reg = (*reg & ~RA2_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RA2=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -728,7 +735,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB0:
                     val &= RB0_MASK;
                     *reg = (*reg & ~RB0_MASK) | val | (RB0_REV_ID << RB0_REV_SH);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB0=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -737,7 +744,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     val &= RB1_MASK;
                     *reg = (*reg & ~RB1_MASK) | val;
                     shadow_recalc(dev);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB1=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -749,7 +756,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                         neat_mem_update_state(dev, 0x00080000, 0x00020000, MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_SHADOW);
                     else
                         neat_mem_update_state(dev, 0x00080000, 0x00020000, 0x00, MEM_FMASK_SHADOW);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB2=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -758,7 +765,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     val &= RB3_MASK;
                     *reg = (*reg & ~RB3_MASK) | val;
                     shadow_recalc(dev);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB3=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -767,7 +774,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     val &= RB4_MASK;
                     *reg = (*reg & ~RB4_MASK) | val;
                     shadow_recalc(dev);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB4=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -776,7 +783,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     val &= RB5_MASK;
                     *reg = (*reg & ~RB5_MASK) | val;
                     shadow_recalc(dev);
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB5=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -784,7 +791,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB6:
                     val &= RB6_MASK;
                     *reg = (*reg & ~RB6_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB6=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -803,7 +810,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     if ((xval & RB7_EMSEN) && (val & RB7_EMSEN))
                         ems_set_handlers(dev);
 
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB7=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -811,7 +818,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB8:
                     val &= RB8_MASK;
                     *reg = (*reg & ~RB8_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB8=%02x(%02x)\n", val, *reg);
 #endif
                     break;
@@ -819,7 +826,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB9:
                     val &= RB9_MASK;
                     *reg = (*reg & ~RB9_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB9=%02x(%02x)\n", val, *reg);
 #endif
 
@@ -842,7 +849,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB10:
                     val &= RB10_MASK;
                     *reg = (*reg & ~RB10_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB10=%02x(%02x)\n", val, *reg);
 #endif
 
@@ -877,7 +884,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                 case REG_RB12:
                     val &= RB12_MASK;
                     *reg = (*reg & ~RB12_MASK) | val;
-#if NEAT_DEBUG > 1
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB12=%02x(%02x)\n", val, *reg);
 #endif
                     i = (val & RB12_EMSLEN) >> RB12_EMSLEN_SH;
@@ -944,7 +951,7 @@ neat_read(uint16_t port, void *priv)
             break;
     }
 
-#if NEAT_DEBUG > 2
+#if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
     neat_log("NEAT: read(%04x) = %02x\n", port, ret);
 #endif
 
