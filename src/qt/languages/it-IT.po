@@ -655,7 +655,7 @@ msgid "ZIP images"
 msgstr "Immagini ZIP"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box non può trovare immagini ROM utilizzabili.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box non può trovare immagini ROM utilizzabili.\n\nSi prega di <a href=\"https://github.com/86Box/roms/releases/latest\">scaricare</a> un set di ROM ed estrarlo nella directory \"roms\"."
 
 msgid "(empty)"
 msgstr "(empty)"
@@ -2129,3 +2129,9 @@ msgstr "Espansione di memoria generica PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Espansione di memoria generica PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Impossibile trovare i font a matrice di punti"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "I font TrueType presenti nella directory \"roms/printer/fonts\" sono necessari per l'emulazione della stampante a matrice di punti ESC/P generica."

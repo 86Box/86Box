@@ -86,6 +86,48 @@ rom_add_path(const char *path)
     path_slash(rom_path->path);
 }
 
+static int
+rom_check(const char *fn)
+{
+    FILE *fp = NULL;
+    int ret = 0;
+
+    if ((fn[strlen(fn) - 1] == '/') || (fn[strlen(fn) - 1] == '\\'))
+        ret = plat_dir_check((char *) fn);
+    else {
+        fp = fopen(fn, "rb");
+        ret = (fp != NULL);
+        fclose(fp);
+    }
+
+    return ret;
+}
+
+void
+rom_get_full_path(char *dest, const char *fn)
+{
+    char temp[1024] = { 0 };
+
+    dest[0] = 0x00;
+
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
+
+            if (rom_check(temp)) {
+                strcpy(dest, temp);
+                return;
+            }
+        }
+
+        return;
+    } else {
+        /* Absolute path */
+        strcpy(dest, fn);
+    }
+}
+
 FILE *
 rom_fopen(const char *fn, char *mode)
 {

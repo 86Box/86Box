@@ -2129,3 +2129,9 @@ msgstr "Sıradan PC/XT bellek artırma"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Sıradan PC/AT bellek artırma"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Dot Matrix yazı tipleri bulunamıyor"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Sıradan ESC/P Dot Matrix Yazıcının emülasyonu için \"roms/printer/fonts\" dizinindeki TrueType yazı tipleri gereklidir."
