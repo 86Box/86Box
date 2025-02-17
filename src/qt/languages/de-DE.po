@@ -2132,3 +2132,9 @@ msgstr "Generische PC/XT-Speichererweiterung"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generische PC/AT-Speichererweiterung"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Nadel-Schriften konnten nicht gefunden werden"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "TrueType-Schriften in das \"roms/printer/fonts\"-Verzeichnis sind für die Allgemeines ESC/P Nadel-Druckers erforderlich."

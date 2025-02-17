@@ -810,27 +810,18 @@ write_p2(atkbc_t *dev, uint8_t val)
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbc_at_log("write_p2(): Pulse reset!\n");
-            if (machines[machine].flags & MACHINE_COREBOOT) {
-                /* The SeaBIOS hard reset code attempts a KBC reset if ACPI RESET_REG
-                   is not available. However, the KBC reset is normally a soft reset, so
-                   SeaBIOS gets caught in a soft reset loop as it tries to hard reset the
-                   machine. Hack around this by making the KBC reset a hard reset only on
-                   coreboot machines. */
-                pc_reset_hard();
-            } else {
-                softresetx86(); /* Pulse reset! */
-                cpu_set_edx();
-                flushmmucache();
-                if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
-                    smbase = 0x00030000;
+            softresetx86(); /* Pulse reset! */
+            cpu_set_edx();
+            flushmmucache();
+            if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
+                smbase = 0x00030000;
 
-                /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
-                   and can find out what they actually did to make it boot from FFFFF0
-                   correctly despite A20 being gated when the CPU is reset, this will
-                   have to do. */
-                if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
-                    is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
-            }
+            /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
+               and can find out what they actually did to make it boot from FFFFF0
+               correctly despite A20 being gated when the CPU is reset, this will
+               have to do. */
+            if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
+                is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
         }
     }
 

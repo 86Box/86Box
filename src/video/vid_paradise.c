@@ -571,6 +571,8 @@ paradise_init(const device_t *info, uint32_t memory)
 
     paradise->type = info->local;
 
+    svga->hoverride = 1;
+
     return paradise;
 }
 

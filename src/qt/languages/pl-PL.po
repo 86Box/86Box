@@ -2129,3 +2129,9 @@ msgstr "Generyczne rozszerzenie pamięci PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generyczne rozszerzenie pamięci PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Nie można znaleźć czcionek igłowych"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Czcionki TrueType w katalogu \"roms/printer/fonts\" są wymagane do emulacji generyczniej drukarki igłowej ESC/P."

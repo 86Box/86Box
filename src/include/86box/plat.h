@@ -50,7 +50,9 @@ enum {
     STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%hs\" is not available..." */
     STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
     STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
-    STRING_GHOSTPCL_ERROR_DESC        /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
+    STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
+    STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
+    STRING_ESCP_ERROR_DESC            /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
 };
 
 /* The Win32 API uses _wcsicmp. */

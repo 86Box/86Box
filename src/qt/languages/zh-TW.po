@@ -2062,7 +2062,7 @@ msgid "Generic Text Printer"
 msgstr "通用文字印表機"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "通用 ESC/P 點矩陣"
+msgstr "通用 ESC/P 點矩陣印表機"
 
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 印表機"
@@ -2129,3 +2129,9 @@ msgstr "通用 PC/XT 記憶體擴充"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 記憶體擴充"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "無法找到點矩陣字型"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "通用 ESC/P 點矩陣印表機的模擬需要 \"roms/printer/fonts\" 目錄中的 TrueType 字體。"

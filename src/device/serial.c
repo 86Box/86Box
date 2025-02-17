@@ -948,7 +948,7 @@ serial_init(const device_t *info)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);
-        else if ((next_inst == 1) || (info->flags & DEVICE_PCJR))
+        else if ((next_inst == 1) || (info->local == SERIAL_8250_PCJR))
             serial_setup(dev, COM2_ADDR, COM2_IRQ);
         else if (next_inst == 0)
             serial_setup(dev, COM1_ADDR, COM1_IRQ);
@@ -1018,7 +1018,7 @@ const device_t ns8250_device = {
 const device_t ns8250_pcjr_device = {
     .name          = "National Semiconductor 8250(-compatible) UART for PCjr",
     .internal_name = "ns8250_pcjr",
-    .flags         = DEVICE_PCJR,
+    .flags         = 0,
     .local         = SERIAL_8250_PCJR,
     .init          = serial_init,
     .close         = serial_close,

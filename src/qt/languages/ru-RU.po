@@ -2135,3 +2135,9 @@ msgstr "Стандартное расширение памяти PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Стандартное расширение памяти PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Невозможно найти матричные шрифты"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Шрифты TrueType в каталоге \"roms/printer/fonts\" необходимы для эмуляции стандартного матричного принтера ESC/P."
