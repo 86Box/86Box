@@ -1604,7 +1604,7 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     mem_mapping_disable(&ht216->linear_mapping);
 
     ht216->id     = info->local;
-    ht216->isabus = (info->flags & DEVICE_ISA);
+    ht216->isabus = (info->flags & DEVICE_ISA) || (info->flags & DEVICE_ISA16);
     ht216->mca    = (info->flags & DEVICE_MCA);
 
     io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
