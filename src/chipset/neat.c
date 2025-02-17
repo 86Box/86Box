@@ -27,6 +27,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
@@ -262,6 +263,64 @@ neat_log(const char *fmt, ...)
 #else
 #    define neat_log(fmt, ...)
 #endif
+
+static uint8_t
+neat_read_ram(uint32_t addr, void *priv)
+{
+    neat_t *dev = (neat_t *) priv;
+
+    if (dev->regs[REG_RB7] & RB7_EMSEN)
+        addr += (dev->ems_size << 10);
+
+    if (cpu_use_exec)
+        addreadlookup(mem_logical_addr, addr);
+
+    return ram[addr];
+}
+
+static uint16_t
+neat_read_ramw(uint32_t addr, void *priv)
+{
+    neat_t *dev = (neat_t *) priv;
+
+    if (dev->regs[REG_RB7] & RB7_EMSEN)
+        addr += (dev->ems_size << 10);
+
+    if (cpu_use_exec)
+        addreadlookup(mem_logical_addr, addr);
+
+    return *(uint16_t *) &ram[addr];
+}
+
+static void
+neat_write_ram(uint32_t addr, uint8_t val, void *priv)
+{
+    neat_t *dev = (neat_t *) priv;
+
+    if (dev->regs[REG_RB7] & RB7_EMSEN)
+        addr += (dev->ems_size << 10);
+
+    if (cpu_use_exec) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_ramb_page(addr, val, &pages[addr >> 12]);
+    } else
+        ram[addr] = val;
+}
+
+static void
+neat_write_ramw(uint32_t addr, uint16_t val, void *priv)
+{
+    neat_t *dev = (neat_t *) priv;
+
+    if (dev->regs[REG_RB7] & RB7_EMSEN)
+        addr += (dev->ems_size << 10);
+
+    if (cpu_use_exec) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_ramw_page(addr, val, &pages[addr >> 12]);
+    } else
+        *(uint16_t *) &ram[addr] = val;
+}
 
 /* Read one byte from paged RAM. */
 static uint8_t
@@ -603,9 +662,11 @@ remap_update(neat_t *dev, uint8_t val)
     else
         mem_mapping_set_addr(&ram_low_mapping, 0x00000000, dev->remap_base << 10);
 
-    if (dev->remap_base > 1024)
+    if (dev->remap_base > 1024) {
         mem_mapping_set_addr(&ram_high_mapping, 0x00100000, (dev->remap_base << 10) - 0x00100000);
-    else
+        mem_mapping_set_exec(&ram_high_mapping, &(ram[(val & RB7_EMSEN) ? 0x00100000 :
+                             (0x00100000 + (dev->ems_size << 10))]));
+    } else
         mem_mapping_disable(&ram_high_mapping);
 
     if (val & RB7_UMAREL) {
@@ -907,6 +968,12 @@ neat_init(UNUSED(const device_t *info))
 
     /* Create an instance. */
     dev = (neat_t *) calloc(1, sizeof(neat_t));
+
+    if (mem_size > 1024) {
+        mem_mapping_set_handler(&ram_high_mapping, neat_read_ram, neat_read_ramw, NULL,
+                                neat_write_ram, neat_write_ramw, NULL);
+        mem_mapping_set_p(&ram_high_mapping, dev);
+    }
 
     /* Get configured I/O address. */
     j              = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
