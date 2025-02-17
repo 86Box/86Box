@@ -106,7 +106,7 @@ lpt1_handler(pc87310_t *dev)
     }
 
     if (lpt_port)
-        lpt1_init(lpt_port);
+        lpt1_setup(lpt_port);
 
     lpt1_irq(lpt_irq);
 }
@@ -309,7 +309,7 @@ const device_t pc87310_device = {
     .init          = pc87310_init,
     .close         = pc87310_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -323,7 +323,7 @@ const device_t pc87310_ide_device = {
     .init          = pc87310_init,
     .close         = pc87310_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -337,7 +337,7 @@ const device_t ali5105_device = {
     .init          = pc87310_init,
     .close         = pc87310_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

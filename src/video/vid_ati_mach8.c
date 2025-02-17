@@ -49,10 +49,10 @@
 #define BIOS_MACH32_MCA_ROM_PATH "roms/video/mach32/MACH32MCA_Olivetti.BIN"
 #define BIOS_MACH32_PCI_ROM_PATH "roms/video/mach32/intelopt_00000.rom"
 
-static video_timings_t timing_gfxultra_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
-static video_timings_t timing_mach32_vlb   = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
-static video_timings_t timing_mach32_mca   = { .type = VIDEO_MCA, .write_b = 4, .write_w = 5, .write_l = 10, .read_b = 5, .read_w = 5, .read_l = 10 };
-static video_timings_t timing_mach32_pci   = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_gfxultra_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l =  6, .read_b =  5, .read_w =  5, .read_l = 10 };
+static video_timings_t timing_mach32_vlb   = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l =  1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_mach32_mca   = { .type = VIDEO_MCA, .write_b = 4, .write_w = 5, .write_l = 10, .read_b =  5, .read_w =  5, .read_l = 10 };
+static video_timings_t timing_mach32_pci   = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l =  1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 static void     mach_accel_outb(uint16_t port, uint8_t val, void *priv);
 static void     mach_accel_outw(uint16_t port, uint16_t val, void *priv);
@@ -88,14 +88,14 @@ mach_log(const char *fmt, ...)
 #    define mach_log(fmt, ...)
 #endif
 
-#define WRITE8(addr, var, val)                        \
-    switch ((addr) & 1) {                             \
-        case 0:                                       \
-            var = (var & 0xff00) | (val);             \
-            break;                                    \
-        case 1:                                       \
-            var = (var & 0x00ff) | ((val) << 8);      \
-            break;                                    \
+#define WRITE8(addr, var, val)                   \
+    switch ((addr) & 1) {                        \
+        case 0:                                  \
+            var = (var & 0xff00) | (val);        \
+            break;                               \
+        case 1:                                  \
+            var = (var & 0x00ff) | ((val) << 8); \
+            break;                               \
     }
 
 #define READ8(addr, var)                \
@@ -110,166 +110,164 @@ mach_log(const char *fmt, ...)
 
 #define READ_PIXTRANS_BYTE_IO(cx, n) \
     if ((mach->accel.cmd_type == 2) || (mach->accel.cmd_type == 5)) { \
-        if (dev->bpp) { \
-            if (n == 0)\
+        if (dev->bpp) {                                                                                             \
+            if (n == 0)                                                                                             \
                 mach->accel.pix_trans[(n)] = vram_w[(dev->accel.dest + (cx) + (n)) & (dev->vram_mask >> 1)] & 0xff; \
-            else \
-                mach->accel.pix_trans[(n)] = vram_w[(dev->accel.dest + (cx) + (n)) & (dev->vram_mask >> 1)] >> 8; \
-            \
-        } else \
-            mach->accel.pix_trans[(n)] = dev->vram[(dev->accel.dest + (cx) + (n)) & dev->vram_mask]; \
-        \
+            else                                                                                                    \
+                mach->accel.pix_trans[(n)] = vram_w[(dev->accel.dest + (cx) + (n)) & (dev->vram_mask >> 1)] >> 8;   \
+        } else                                                                                                      \
+            mach->accel.pix_trans[(n)] = dev->vram[(dev->accel.dest + (cx) + (n)) & dev->vram_mask];                \
     }
 
-#define READ_PIXTRANS_WORD(cx, n)                                                                    \
-    if ((cmd == 0) || (cmd == 1) || (cmd == 5) || (mach->accel.cmd_type == -1)) { \
-        if (dev->bpp) \
-            temp = vram_w[((dev->accel.cy * dev->pitch) + (cx) + (n)) & (dev->vram_mask >> 1)];             \
-        else { \
-            temp = dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n)) & dev->vram_mask];             \
-            temp |= (dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n + 1)) & dev->vram_mask] << 8); \
-        } \
-    } else if ((mach->accel.cmd_type == 2) || (mach->accel.cmd_type == 5)) { \
-        if (dev->bpp) \
-            temp = vram_w[((dev->accel.dest) + (cx) + (n)) & (dev->vram_mask >> 1)];                           \
-        else { \
-            temp = dev->vram[((dev->accel.dest) + (cx) + (n)) & dev->vram_mask];                           \
-            temp |= (dev->vram[((dev->accel.dest) + (cx) + (n + 1)) & dev->vram_mask] << 8);               \
-        } \
-    } else if ((mach->accel.cmd_type == 3) || (mach->accel.cmd_type == 4)) { \
-        if (dev->bpp) \
-            temp = vram_w[((mach->accel.ge_offset << 1) + ((dev->accel.cy) * (dev->pitch)) + (cx) + (n)) & (dev->vram_mask >> 1)]; \
-        else { \
-            temp = dev->vram[((mach->accel.ge_offset << 2) + ((dev->accel.cy) * (dev->pitch)) + (cx) + (n)) & dev->vram_mask]; \
+#define READ_PIXTRANS_WORD(cx, n)                                                                                                          \
+    if ((cmd == 0) || (cmd == 1) || (cmd == 5) || (mach->accel.cmd_type == -1)) {                                                          \
+        if (dev->bpp)                                                                                                                      \
+            temp = vram_w[((dev->accel.cy * dev->pitch) + (cx) + (n)) & (dev->vram_mask >> 1)];                                            \
+        else {                                                                                                                             \
+            temp = dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n)) & dev->vram_mask];                                                \
+            temp |= (dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n + 1)) & dev->vram_mask] << 8);                                    \
+        }                                                                                                                                  \
+    } else if ((mach->accel.cmd_type == 2) || (mach->accel.cmd_type == 5)) {                                                               \
+        if (dev->bpp)                                                                                                                      \
+            temp = vram_w[((dev->accel.dest) + (cx) + (n)) & (dev->vram_mask >> 1)];                                                       \
+        else {                                                                                                                             \
+            temp = dev->vram[((dev->accel.dest) + (cx) + (n)) & dev->vram_mask];                                                           \
+            temp |= (dev->vram[((dev->accel.dest) + (cx) + (n + 1)) & dev->vram_mask] << 8);                                               \
+        }                                                                                                                                  \
+    } else if ((mach->accel.cmd_type == 3) || (mach->accel.cmd_type == 4)) {                                                               \
+        if (dev->bpp)                                                                                                                      \
+            temp = vram_w[((mach->accel.ge_offset << 1) + ((dev->accel.cy) * (dev->pitch)) + (cx) + (n)) & (dev->vram_mask >> 1)];         \
+        else {                                                                                                                             \
+            temp = dev->vram[((mach->accel.ge_offset << 2) + ((dev->accel.cy) * (dev->pitch)) + (cx) + (n)) & dev->vram_mask];             \
             temp |= (dev->vram[((mach->accel.ge_offset << 2) + ((dev->accel.cy) * (dev->pitch)) + (cx) + (n + 1)) & dev->vram_mask] << 8); \
-        } \
+        }                                                                                                                                  \
     }
 
-#define READ(addr, dat) \
-    if (dev->bpp) \
+#define READ(addr, dat)                               \
+    if (dev->bpp)                                     \
         dat = vram_w[(addr) & (dev->vram_mask >> 1)]; \
-    else \
+    else                                              \
         dat = (dev->vram[(addr) & (dev->vram_mask)]);
 
-#define READ_HIGH(addr, dat) \
+#define READ_HIGH(addr, dat)                            \
     dat |= (dev->vram[(addr) & (dev->vram_mask)] << 8);
 
-#define MIX(mixmode, dest_dat, src_dat)                                                       \
-    {                                                                                         \
-        switch ((mixmode) ? (dev->accel.frgd_mix & 0x1f) : (dev->accel.bkgd_mix & 0x1f)) {    \
-            case 0x00:                                                                        \
-                dest_dat = ~dest_dat;                                                         \
-                break;                                                                        \
-            case 0x01:                                                                        \
-                dest_dat = 0;                                                                 \
-                break;                                                                        \
-            case 0x02:                                                                        \
-                dest_dat = ~0;                                                                \
-                break;                                                                        \
-            case 0x03:                                                                        \
-                dest_dat = dest_dat;                                                          \
-                break;                                                                        \
-            case 0x04:                                                                        \
-                dest_dat = ~src_dat;                                                          \
-                break;                                                                        \
-            case 0x05:                                                                        \
-                dest_dat = src_dat ^ dest_dat;                                                \
-                break;                                                                        \
-            case 0x06:                                                                        \
-                dest_dat = ~(src_dat ^ dest_dat);                                             \
-                break;                                                                        \
-            case 0x07:                                                                        \
-                dest_dat = src_dat;                                                           \
-                break;                                                                        \
-            case 0x08:                                                                        \
-                dest_dat = ~(src_dat & dest_dat);                                             \
-                break;                                                                        \
-            case 0x09:                                                                        \
-                dest_dat = ~src_dat | dest_dat;                                               \
-                break;                                                                        \
-            case 0x0a:                                                                        \
-                dest_dat = src_dat | ~dest_dat;                                               \
-                break;                                                                        \
-            case 0x0b:                                                                        \
-                dest_dat = src_dat | dest_dat;                                                \
-                break;                                                                        \
-            case 0x0c:                                                                        \
-                dest_dat = src_dat & dest_dat;                                                \
-                break;                                                                        \
-            case 0x0d:                                                                        \
-                dest_dat = src_dat & ~dest_dat;                                               \
-                break;                                                                        \
-            case 0x0e:                                                                        \
-                dest_dat = ~src_dat & dest_dat;                                               \
-                break;                                                                        \
-            case 0x0f:                                                                        \
-                dest_dat = ~(src_dat | dest_dat);                                             \
-                break;                                                                        \
-            case 0x10:                                                                        \
-                dest_dat = MIN(src_dat, dest_dat);                                            \
-                break;                                                                        \
-            case 0x11:                                                                        \
-                dest_dat = dest_dat - src_dat;                                                \
-                break;                                                                        \
-            case 0x12:                                                                        \
-                dest_dat = src_dat - dest_dat;                                                \
-                break;                                                                        \
-            case 0x13:                                                                        \
-                dest_dat = src_dat + dest_dat;                                                \
-                break;                                                                        \
-            case 0x14:                                                                        \
-                dest_dat = MAX(src_dat, dest_dat);                                            \
-                break;                                                                        \
-            case 0x15:                                                                        \
-                dest_dat = (dest_dat - src_dat) / 2;                                          \
-                break;                                                                        \
-            case 0x16:                                                                        \
-                dest_dat = (src_dat - dest_dat) / 2;                                          \
-                break;                                                                        \
-            case 0x17:                                                                        \
-                dest_dat = (dest_dat + src_dat) / 2;                                          \
-                break;                                                                        \
-            case 0x18:                                                                        \
-                dest_dat = MAX(0, (dest_dat - src_dat));                                      \
-                break;                                                                        \
-            case 0x19:                                                                        \
-                dest_dat = MAX(0, (dest_dat - src_dat));                                      \
-                break;                                                                        \
-            case 0x1a:                                                                        \
-                dest_dat = MAX(0, (src_dat - dest_dat));                                      \
-                break;                                                                        \
-            case 0x1b:                                                                        \
-                if (dev->bpp)                                                                 \
-                    dest_dat = MIN(0xffff, (dest_dat + src_dat));                             \
-                else                                                                          \
-                    dest_dat = MIN(0xff, (dest_dat + src_dat));                               \
-                break;                                                                        \
-            case 0x1c:                                                                        \
-                dest_dat = MAX(0, (dest_dat - src_dat)) / 2;                                  \
-                break;                                                                        \
-            case 0x1d:                                                                        \
-                dest_dat = MAX(0, (dest_dat - src_dat)) / 2;                                  \
-                break;                                                                        \
-            case 0x1e:                                                                        \
-                dest_dat = MAX(0, (src_dat - dest_dat)) / 2;                                  \
-                break;                                                                        \
-            case 0x1f:                                                                        \
-                if (dev->bpp)                                                                 \
+#define MIX(mixmode, dest_dat, src_dat)                                                               \
+    {                                                                                                 \
+        switch ((mixmode) ? (dev->accel.frgd_mix & 0x1f) : (dev->accel.bkgd_mix & 0x1f)) {            \
+            case 0x00:                                                                                \
+                dest_dat = ~dest_dat;                                                                 \
+                break;                                                                                \
+            case 0x01:                                                                                \
+                dest_dat = 0;                                                                         \
+                break;                                                                                \
+            case 0x02:                                                                                \
+                dest_dat = ~0;                                                                        \
+                break;                                                                                \
+            case 0x03:                                                                                \
+                dest_dat = dest_dat;                                                                  \
+                break;                                                                                \
+            case 0x04:                                                                                \
+                dest_dat = ~src_dat;                                                                  \
+                break;                                                                                \
+            case 0x05:                                                                                \
+                dest_dat = src_dat ^ dest_dat;                                                        \
+                break;                                                                                \
+            case 0x06:                                                                                \
+                dest_dat = ~(src_dat ^ dest_dat);                                                     \
+                break;                                                                                \
+            case 0x07:                                                                                \
+                dest_dat = src_dat;                                                                   \
+                break;                                                                                \
+            case 0x08:                                                                                \
+                dest_dat = ~(src_dat & dest_dat);                                                     \
+                break;                                                                                \
+            case 0x09:                                                                                \
+                dest_dat = ~src_dat | dest_dat;                                                       \
+                break;                                                                                \
+            case 0x0a:                                                                                \
+                dest_dat = src_dat | ~dest_dat;                                                       \
+                break;                                                                                \
+            case 0x0b:                                                                                \
+                dest_dat = src_dat | dest_dat;                                                        \
+                break;                                                                                \
+            case 0x0c:                                                                                \
+                dest_dat = src_dat & dest_dat;                                                        \
+                break;                                                                                \
+            case 0x0d:                                                                                \
+                dest_dat = src_dat & ~dest_dat;                                                       \
+                break;                                                                                \
+            case 0x0e:                                                                                \
+                dest_dat = ~src_dat & dest_dat;                                                       \
+                break;                                                                                \
+            case 0x0f:                                                                                \
+                dest_dat = ~(src_dat | dest_dat);                                                     \
+                break;                                                                                \
+            case 0x10:                                                                                \
+                dest_dat = MIN(src_dat, dest_dat);                                                    \
+                break;                                                                                \
+            case 0x11:                                                                                \
+                dest_dat = dest_dat - src_dat;                                                        \
+                break;                                                                                \
+            case 0x12:                                                                                \
+                dest_dat = src_dat - dest_dat;                                                        \
+                break;                                                                                \
+            case 0x13:                                                                                \
+                dest_dat = src_dat + dest_dat;                                                        \
+                break;                                                                                \
+            case 0x14:                                                                                \
+                dest_dat = MAX(src_dat, dest_dat);                                                    \
+                break;                                                                                \
+            case 0x15:                                                                                \
+                dest_dat = (dest_dat - src_dat) / 2;                                                  \
+                break;                                                                                \
+            case 0x16:                                                                                \
+                dest_dat = (src_dat - dest_dat) / 2;                                                  \
+                break;                                                                                \
+            case 0x17:                                                                                \
+                dest_dat = (dest_dat + src_dat) / 2;                                                  \
+                break;                                                                                \
+            case 0x18:                                                                                \
+                dest_dat = MAX(0, (dest_dat - src_dat));                                              \
+                break;                                                                                \
+            case 0x19:                                                                                \
+                dest_dat = MAX(0, (dest_dat - src_dat));                                              \
+                break;                                                                                \
+            case 0x1a:                                                                                \
+                dest_dat = MAX(0, (src_dat - dest_dat));                                              \
+                break;                                                                                \
+            case 0x1b:                                                                                \
+                if (dev->bpp)                                                                         \
+                    dest_dat = MIN(0xffff, (dest_dat + src_dat));                                     \
+                else                                                                                  \
+                    dest_dat = MIN(0xff, (dest_dat + src_dat));                                       \
+                break;                                                                                \
+            case 0x1c:                                                                                \
+                dest_dat = MAX(0, (dest_dat - src_dat)) / 2;                                          \
+                break;                                                                                \
+            case 0x1d:                                                                                \
+                dest_dat = MAX(0, (dest_dat - src_dat)) / 2;                                          \
+                break;                                                                                \
+            case 0x1e:                                                                                \
+                dest_dat = MAX(0, (src_dat - dest_dat)) / 2;                                          \
+                break;                                                                                \
+            case 0x1f:                                                                                \
+                if (dev->bpp)                                                                         \
                     dest_dat = (0xffff < (src_dat + dest_dat)) ? 0xffff : ((src_dat + dest_dat) / 2); \
-                else                                                                          \
-                    dest_dat = (0xff < (src_dat + dest_dat)) ? 0xff : ((src_dat + dest_dat) / 2); \
-                break;                                                                        \
-        }                                                                                     \
+                else                                                                                  \
+                    dest_dat = (0xff < (src_dat + dest_dat)) ? 0xff : ((src_dat + dest_dat) / 2);     \
+                break;                                                                                \
+        }                                                                                             \
     }
 
 
-#define WRITE(addr, dat)                                         \
-    if (dev->bpp) { \
-        vram_w[((addr)) & (dev->vram_mask >> 1)]                    = dat; \
+#define WRITE(addr, dat)                                                               \
+    if (dev->bpp) {                                                                    \
+        vram_w[((addr)) & (dev->vram_mask >> 1)]                    = dat;             \
         dev->changedvram[(((addr)) & (dev->vram_mask >> 1)) >> 11] = changeframecount; \
-    } else { \
-        dev->vram[((addr)) & (dev->vram_mask)]                = dat; \
-        dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = changeframecount; \
+    } else {                                                                           \
+        dev->vram[((addr)) & (dev->vram_mask)]                = dat;                   \
+        dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = changeframecount;      \
     }
 
 static int
@@ -291,7 +289,7 @@ mach_pixel_read(mach_t *mach)
 }
 
 static void
-mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, mach_t *mach, ibm8514_t *dev)
+mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, UNUSED(svga_t *svga), mach_t *mach, ibm8514_t *dev)
 {
     int           compare_mode;
     uint16_t      poly_src     = 0;
@@ -338,7 +336,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
     }
 
     if ((dev->accel_bpp == 8) || (dev->accel_bpp == 15) || (dev->accel_bpp == 16) || (dev->accel_bpp == 24))
-        mach_log("RdMask=%04x, DPCONFIG=%04x, Clipping: l=%d, r=%d, t=%d, b=%d, LineDrawOpt=%04x, BPP=%d, CMDType = %d, offs=%08x, cnt = %d, input = %d, mono_src = %d, frgdsel = %d, d(%d,%d), dstxend = %d, pitch = %d, extcrt = %d, rw = %x, monpattern = %x.\n", dev->accel.rd_mask, mach->accel.dp_config, clip_l, clip_r, clip_t, clip_b, mach->accel.linedraw_opt, dev->accel_bpp, cmd_type, mach->accel.ge_offset, count, cpu_input, mono_src, frgd_sel, dev->accel.cur_x, dev->accel.cur_y, mach->accel.dest_x_end, dev->ext_pitch, dev->ext_crt_pitch, mach->accel.dp_config & 1, mach->accel.mono_pattern_enable);
+        mach_log("RdMask=%04x, DPCONFIG=%04x, Clipping: l=%d, r=%d, t=%d, b=%d, LineDrawOpt=%04x, BPP=%d, CMDType = %d, offs=%08x, cnt = %d, input = %d, mono_src = %d, frgdsel = %d, d(%d,%d), dstxend = %d, pitch = %d, extcrt = %d, rw = %x, monpattern = %x.\n",
+                 dev->accel.rd_mask, mach->accel.dp_config, clip_l, clip_r, clip_t, clip_b, mach->accel.linedraw_opt, dev->accel_bpp, cmd_type, mach->accel.ge_offset, count, cpu_input, mono_src, frgd_sel, dev->accel.cur_x, dev->accel.cur_y,
+                 mach->accel.dest_x_end, dev->ext_pitch, dev->ext_crt_pitch, mach->accel.dp_config & 1, mach->accel.mono_pattern_enable);
 
     switch (cmd_type) {
         case 1: /*Extended Raw Linedraw from bres_count register (0x96ee)*/
@@ -366,7 +366,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 mach->accel.stepx = (mach->accel.linedraw_opt & 0x20) ? 1 : -1;
                 mach->accel.stepy = (mach->accel.linedraw_opt & 0x80) ? 1 : -1;
 
-                mach_log("Extended bresenham, CUR(%d,%d), DEST(%d,%d), width = %d, options = %04x, dpconfig = %04x, opt_ena = %03x.\n", dev->accel.dx, dev->accel.dy, dev->accel.cx, dev->accel.cy, mach->accel.width, mach->accel.linedraw_opt, mach->accel.dp_config, mach->accel.max_waitstates & 0x100);
+                mach_log("Extended bresenham, CUR(%d,%d), DEST(%d,%d), width = %d, options = %04x, dpconfig = %04x, opt_ena = %03x.\n",
+                         dev->accel.dx, dev->accel.dy, dev->accel.cx, dev->accel.cy, mach->accel.width, mach->accel.linedraw_opt,
+                         mach->accel.dp_config, mach->accel.max_waitstates & 0x100);
 
                 if ((mono_src == 2) || (bkgd_sel == 2) || (frgd_sel == 2) || mach_pixel_read(mach)) {
                     if (mach_pixel_write(mach)) {
@@ -853,11 +855,14 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     mach->accel.stepx = -1;
                     if (dev->accel.dx > 0)
                         dev->accel.dx--;
-                    mach_log("BitBLT: Dst Negative X, dxstart = %d, end = %d, width = %d, dx = %d, dpconfig = %04x.\n", mach->accel.dest_x_start, mach->accel.dest_x_end, mach->accel.width, dev->accel.dx, mach->accel.dp_config);
+                    mach_log("BitBLT: Dst Negative X, dxstart = %d, end = %d, width = %d, dx = %d, dpconfig = %04x.\n",
+                             mach->accel.dest_x_start, mach->accel.dest_x_end, mach->accel.width, dev->accel.dx,
+                             mach->accel.dp_config);
                 } else {
                     mach->accel.stepx = 1;
                     mach->accel.width = 0;
-                    mach_log("BitBLT: Dst Indeterminate X, dpconfig = %04x, destxend = %d, destxstart = %d.\n", mach->accel.dp_config, mach->accel.dest_x_end, mach->accel.dest_x_start);
+                    mach_log("BitBLT: Dst Indeterminate X, dpconfig = %04x, destxend = %d, destxstart = %d.\n",
+                             mach->accel.dp_config, mach->accel.dest_x_end, mach->accel.dest_x_start);
                 }
 
                 dev->accel.sx = 0;
@@ -914,17 +919,23 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 if (mach->accel.sx_end > mach->accel.sx_start) {
                     mach->accel.src_width = (mach->accel.sx_end - mach->accel.sx_start);
                     mach->accel.src_stepx = 1;
-                    mach_log("BitBLT: Src Positive X: wh(%d,%d), srcwidth = %d, coordinates: %d,%d px, start: %d, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n", mach->accel.width, mach->accel.height, mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_start, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config, mach->accel.src_width & 1);
+                    mach_log("BitBLT: Src Positive X: wh(%d,%d), srcwidth = %d, coordinates: %d,%d px, start: %d, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
+                             mach->accel.width, mach->accel.height, mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_start, mach->accel.src_x_end,
+                             mach->accel.src_stepx, mach->accel.dp_config, mach->accel.src_width & 1);
                 } else if (mach->accel.sx_end < mach->accel.sx_start) {
                     mach->accel.src_width = (mach->accel.sx_start - mach->accel.sx_end);
                     mach->accel.src_stepx = -1;
                     if (dev->accel.cx > 0)
                         dev->accel.cx--;
-                    mach_log("BitBLT: Src Negative X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n", mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config, mach->accel.src_width & 1);
+                    mach_log("BitBLT: Src Negative X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
+                    mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config
+                    mach->accel.src_width & 1);
                 } else {
                     mach->accel.src_stepx = 1;
                     mach->accel.src_width = 0;
-                    mach_log("BitBLT: Src Indeterminate X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n", mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config, mach->accel.src_width & 1);
+                    mach_log("BitBLT: Src Indeterminate X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
+                             mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx,
+                             mach->accel.dp_config, mach->accel.src_width & 1);
                 }
                 mach->accel.sx = 0;
                 if (mach->accel.patt_data_idx < 16)
@@ -996,7 +1007,8 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 
             if (cpu_input) {
                 if (mach->accel.dp_config == 0x3251) {
-                    mach_log("DPCONFIG 3251: monosrc=%d, frgdsel=%d, bkgdsel=%d, pitch=%d.\n", mono_src, frgd_sel, bkgd_sel, dev->pitch);
+                    mach_log("DPCONFIG 3251: monosrc=%d, frgdsel=%d, bkgdsel=%d, pitch=%d.\n",
+                             mono_src, frgd_sel, bkgd_sel, dev->pitch);
                     if (dev->accel.sy == mach->accel.height) {
                         mach_log("No Blit on DPCONFIG=3251.\n");
                         dev->accel.cmd_back = 1;
@@ -1156,7 +1168,10 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     cpu_dat >>= 8;
 
                 if (mach->accel.dp_config == 0x2071 || (mach->accel.dp_config == 0x2011))
-                    mach_log("FontBlit: SX=%d, C(%d,%d), SRCWidth=%d, frgdmix=%d, bkgdmix=%d, rdmask=%04x, D(%d,%d), geoffset=%x, addr=%08x,.\n", mach->accel.sx, dev->accel.cx, dev->accel.cy, mach->accel.src_width, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, rd_mask, dev->accel.dx, dev->accel.dy, dev->accel.ge_offset, (dev->accel.src + dev->accel.cx) & dev->vram_mask);
+                    mach_log("FontBlit: SX=%d, C(%d,%d), SRCWidth=%d, frgdmix=%d, bkgdmix=%d, rdmask=%04x, D(%d,%d), geoffset=%x, addr=%08x,.\n",
+                             mach->accel.sx, dev->accel.cx, dev->accel.cy, mach->accel.src_width, dev->accel.frgd_mix & 0x1f,
+                             dev->accel.bkgd_mix & 0x1f, rd_mask, dev->accel.dx, dev->accel.dy, dev->accel.ge_offset,
+                             (dev->accel.src + dev->accel.cx) & dev->vram_mask);
 
                 if ((mono_src == 3) || (frgd_sel == 3) || (bkgd_sel == 3) || (mach->accel.dp_config & 0x02)) {
                     dev->accel.cx += mach->accel.src_stepx;
@@ -1248,7 +1263,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 
                 dev->accel.sx = 0;
 
-                mach_log("Linedraw: c(%d,%d), d(%d,%d), cend(%d,%d), bounds: l=%d, r=%d, t=%d, b=%d.\n", dev->accel.cur_x, dev->accel.cur_y, dev->accel.dx, dev->accel.dy, mach->accel.cx_end_line, mach->accel.cy_end_line, mach->accel.bleft, mach->accel.bright, mach->accel.btop, mach->accel.bbottom);
+                mach_log("Linedraw: c(%d,%d), d(%d,%d), cend(%d,%d), bounds: l=%d, r=%d, t=%d, b=%d.\n",
+                         dev->accel.cur_x, dev->accel.cur_y, dev->accel.dx, dev->accel.dy, mach->accel.cx_end_line,
+                         mach->accel.cy_end_line, mach->accel.bleft, mach->accel.bright, mach->accel.btop, mach->accel.bbottom);
 
                 if ((mono_src == 2) || (bkgd_sel == 2) || (frgd_sel == 2) || mach_pixel_read(mach)) {
                     if (mach_pixel_write(mach)) {
@@ -1944,7 +1961,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 else
                     dev->accel.src = (mach->accel.ge_offset << 2) + (dev->accel.cy * (dev->pitch));
 
-                mach_log("ScanToX=%04x, MonoSRC=%d, FrgdSel=%d, BkgdSel=%d, Pitch=%d, C(%d,%d), SRCWidth=%d, WH(%d,%d), colorpattidx=%d, pattlen=%d.\n", mach->accel.dp_config, mono_src, frgd_sel, bkgd_sel, dev->ext_pitch, dev->accel.cx, dev->accel.cy, mach->accel.src_width, mach->accel.width, mach->accel.height, mach->accel.color_pattern_idx, mach->accel.patt_len);
+                mach_log("ScanToX=%04x, MonoSRC=%d, FrgdSel=%d, BkgdSel=%d, Pitch=%d, C(%d,%d), SRCWidth=%d, WH(%d,%d), colorpattidx=%d, pattlen=%d.\n",
+                         mach->accel.dp_config, mono_src, frgd_sel, bkgd_sel, dev->ext_pitch, dev->accel.cx, dev->accel.cy, mach->accel.src_width,
+                         mach->accel.width, mach->accel.height, mach->accel.color_pattern_idx, mach->accel.patt_len);
 
                 if ((mono_src == 2) || (bkgd_sel == 2) || (frgd_sel == 2) || mach_pixel_read(mach)) {
                     if (mach_pixel_write(mach)) {
@@ -2197,9 +2216,11 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
 
     if (((dev->disp_cntl & 0x60) == 0x20) && ((dev->local & 0xff) >= 0x02)) {
         if ((addr >= 0x3c6) && (addr <= 0x3c9)) {
-            mach_log("VGA DAC write regs=%03x, on=%d, display control=%02x, on1=%x, clocksel=%02x.\n", addr, dev->on, dev->disp_cntl & 0x60, dev->accel.advfunc_cntl & 0x01, mach->accel.clock_sel & 0x01);
+            mach_log("VGA DAC write regs=%03x, on=%d, display control=%02x, on1=%x, clocksel=%02x.\n",
+                     addr, dev->on, dev->disp_cntl & 0x60, dev->accel.advfunc_cntl & 0x01, mach->accel.clock_sel & 0x01);
         } else if ((addr >= 0x2ea) && (addr <= 0x2ed))
-            mach_log("8514/A DAC write regs=%03x, on=%d, display control=%02x, on1=%x, clocksel=%02x.\n", addr, dev->on, dev->disp_cntl & 0x60, dev->accel.advfunc_cntl & 0x01, mach->accel.clock_sel & 0x01);
+            mach_log("8514/A DAC write regs=%03x, on=%d, display control=%02x, on1=%x, clocksel=%02x.\n",
+                     addr, dev->on, dev->disp_cntl & 0x60, dev->accel.advfunc_cntl & 0x01, mach->accel.clock_sel & 0x01);
     }
 
     switch (addr) {
@@ -2609,7 +2630,8 @@ ati8514_recalctimings(svga_t *svga)
         dev->accel.ge_offset            = (mach->accel.ge_offset_lo | (mach->accel.ge_offset_hi << 16));
         mach->accel.ge_offset           = dev->accel.ge_offset;
 
-        mach_log("HDISP=%d, VDISP=%d, shadowset=%x, 8514/A mode=%x, clocksel=%02x.\n", dev->hdisp, dev->vdisp, mach->shadow_set & 0x03, dev->accel.advfunc_cntl & 0x05, mach->accel.clock_sel & 0x01);
+        mach_log("HDISP=%d, VDISP=%d, shadowset=%x, 8514/A mode=%x, clocksel=%02x.\n",
+                 dev->hdisp, dev->vdisp, mach->shadow_set & 0x03, dev->accel.advfunc_cntl & 0x05, mach->accel.clock_sel & 0x01);
 
         if (mach->accel.clock_sel & 0x01) {
             dev->h_disp = dev->hdisp;
@@ -2637,7 +2659,9 @@ ati8514_recalctimings(svga_t *svga)
         if (dev->interlace)
             dev->dispend >>= 1;
 
-        mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n", dev->accel.advfunc_cntl & 0x04, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset, mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace);
+        mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n",
+                 dev->accel.advfunc_cntl & 0x04, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset,
+                 mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace);
         if (dev->vram_512k_8514) {
             if (dev->h_disp == 640) {
                 dev->ext_pitch = 640;
@@ -2713,7 +2737,9 @@ mach_recalctimings(svga_t *svga)
         dev->accel.ge_offset            = (mach->accel.ge_offset_lo | (mach->accel.ge_offset_hi << 16));
         mach->accel.ge_offset           = dev->accel.ge_offset;
 
-        mach_log("HDISP=%d, VDISP=%d, shadowset=%x, 8514/A mode=%x, clocksel=%02x, interlace=%x.\n", dev->hdisp, dev->vdisp, mach->shadow_set & 0x03, dev->accel.advfunc_cntl & 0x04, mach->accel.clock_sel & 0xfe, dev->interlace);
+        mach_log("HDISP=%d, VDISP=%d, shadowset=%x, 8514/A mode=%x, clocksel=%02x, interlace=%x.\n",
+                 dev->hdisp, dev->vdisp, mach->shadow_set & 0x03, dev->accel.advfunc_cntl & 0x04,
+                 mach->accel.clock_sel & 0xfe, dev->interlace);
         if ((dev->local & 0xff) >= 0x02) {
             if (dev->bpp || ((mach->accel.ext_ge_config & 0x30) == 0x30) || (mach->accel.clock_sel & 0x01)) {
                 dev->h_disp = dev->hdisp;
@@ -2788,7 +2814,9 @@ mach_recalctimings(svga_t *svga)
                 }
 
                 svga->render8514 = ibm8514_render_blank;
-                mach_log("hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, bpp=%d, shadow=%x, vgahdisp=%d.\n", dev->h_disp, dev->dispend, dev->pitch, dev->ext_crt_pitch, mach->accel.ext_ge_config & 0xcec0, dev->accel_bpp, mach->shadow_set & 3, svga->hdisp);
+                mach_log("hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, bpp=%d, shadow=%x, vgahdisp=%d.\n",
+                         dev->h_disp, dev->dispend, dev->pitch, dev->ext_crt_pitch, mach->accel.ext_ge_config & 0xcec0,
+                         dev->accel_bpp, mach->shadow_set & 3, svga->hdisp);
                 switch (dev->accel_bpp) {
                     case 8:
                         svga->render8514 = ibm8514_render_8bpp;
@@ -2814,7 +2842,9 @@ mach_recalctimings(svga_t *svga)
             }
         } else {
             svga->render8514 = ibm8514_render_blank;
-            mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n", dev->accel.advfunc_cntl & 0x04, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset, mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace);
+            mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n",
+                     dev->accel.advfunc_cntl & 0x04, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset,
+                     mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace);
             if (dev->vram_512k_8514) {
                 if (dev->h_disp == 640) {
                     dev->ext_pitch = 640;
@@ -2829,7 +2859,8 @@ mach_recalctimings(svga_t *svga)
         }
     } else {
         if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
-            mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d.\n", svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on);
+            mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d.\n",
+                     svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on);
             if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
                 if ((svga->gdcreg[5] & 0x40) || (svga->attrregs[0x10] & 0x40) || (mach->regs[0xb0] & 0x20)) {
                     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
@@ -3405,7 +3436,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                 } else if (((mach->shadow_set & 0x03) == 0x00) && !(mach->accel.clock_sel & 0x01))
                     dev->hdisp2 = (val + 1) << 3;
             }
-            mach_log("[%04X:%08X]: ATI 8514/A: (0x%04x): hdisp=0x%02x, shadowcntl=%02x, shadowset=%02x.\n", CS, cpu_state.pc, port, val, mach->shadow_cntl & 0x08, mach->shadow_set & 0x03);
+            mach_log("[%04X:%08X]: ATI 8514/A: (0x%04x): hdisp=0x%02x, shadowcntl=%02x, shadowset=%02x.\n",
+                     CS, cpu_state.pc, port, val, mach->shadow_cntl & 0x08, mach->shadow_set & 0x03);
             svga_recalctimings(svga);
             break;
 
@@ -3475,7 +3507,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
                     dev->interlace = !!(dev->disp_cntl & 0x10);
                 }
             }
-            mach_log("ATI 8514/A: DISP_CNTL write %04x=%02x, written=%02x, interlace=%d.\n", port, val & 0x70, dev->disp_cntl & 0x70, dev->interlace);
+            mach_log("ATI 8514/A: DISP_CNTL write %04x=%02x, written=%02x, interlace=%d.\n",
+                     port, val & 0x70, dev->disp_cntl & 0x70, dev->interlace);
             svga_recalctimings(svga);
             break;
 
@@ -3483,7 +3516,8 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             dev->accel.advfunc_cntl = val;
             dev->on = dev->accel.advfunc_cntl & 0x01;
             dev->vendor_mode = 0;
-            mach_log("[%04X:%08X]: ATI 8514/A: (0x%04x): ON=%d, shadow crt=%x, hdisp=%d, vdisp=%d.\n", CS, cpu_state.pc, port, val & 0x01, dev->accel.advfunc_cntl & 0x04, dev->hdisp, dev->vdisp);
+            mach_log("[%04X:%08X]: ATI 8514/A: (0x%04x): ON=%d, shadow crt=%x, hdisp=%d, vdisp=%d.\n",
+                     CS, cpu_state.pc, port, val & 0x01, dev->accel.advfunc_cntl & 0x04, dev->hdisp, dev->vdisp);
 
             if ((dev->local & 0xff) < 0x02) {
                 dev->ext_crt_pitch = 128;
@@ -3630,8 +3664,10 @@ mach_accel_out_call(uint16_t port, uint8_t val, mach_t *mach, svga_t *svga, ibm8
             WRITE8(port, mach->accel.clock_sel, val);
             dev->on = mach->accel.clock_sel & 0x01;
             dev->vendor_mode = 1;
-            mach_log("ATI 8514/A: (0x%04x): ON=%d, val=%04x, hdisp=%d, vdisp=%d.\n", port, mach->accel.clock_sel & 0x01, val, dev->hdisp, dev->vdisp);
-            mach_log("Vendor ATI mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
+            mach_log("ATI 8514/A: (0x%04x): ON=%d, val=%04x, hdisp=%d, vdisp=%d.\n",
+                     port, mach->accel.clock_sel & 0x01, val, dev->hdisp, dev->vdisp);
+            mach_log("Vendor ATI mode set %s resolution.\n",
+                     (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
             svga_recalctimings(svga);
             if ((dev->local & 0xff) >= 0x01)
                 mach32_updatemapping(mach, svga);
@@ -5160,7 +5196,8 @@ mach32_ap_writeb(uint32_t addr, uint8_t val, void *priv)
             mach_accel_outb(0x02e8 + (addr & 1) + (port_dword << 8), val, mach);
         }
     } else {
-        mach_log("Linear WORDB Write=%08x, val=%02x, ON=%x, dpconfig=%04x, apsize=%08x.\n", addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
+        mach_log("Linear WORDB Write=%08x, val=%02x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
+                 addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
             mach32_write_common(addr, val, 1, mach, svga);
         else
@@ -5186,7 +5223,8 @@ mach32_ap_writew(uint32_t addr, uint16_t val, void *priv)
             mach_accel_outw(0x02e8 + (port_dword << 8), val, mach);
         }
     } else {
-        mach_log("Linear WORDW Write=%08x, val=%04x, ON=%x, dpconfig=%04x, apsize=%08x.\n", addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
+        mach_log("Linear WORDW Write=%08x, val=%04x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
+                 addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
             mach32_writew_linear(addr, val, mach);
         else
@@ -5214,7 +5252,8 @@ mach32_ap_writel(uint32_t addr, uint32_t val, void *priv)
             mach_accel_outw(0x02e8 + (port_dword << 8) + 4, val >> 16, mach);
         }
     } else {
-        mach_log("Linear WORDL Write=%08x, val=%08x, ON=%x, dpconfig=%04x, apsize=%08x.\n", addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
+        mach_log("Linear WORDL Write=%08x, val=%08x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
+                 addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
             mach32_writel_linear(addr, val, mach);
         else
@@ -5354,7 +5393,8 @@ mach32_updatemapping(mach_t *mach, svga_t *svga)
         }
     }
 
-    mach_log("Linear base = %08x, aperture = %04x, localcntl = %02x svgagdc = %x.\n", mach->linear_base, mach->memory_aperture, mach->local_cntl, svga->gdcreg[6] & 0x0c);
+    mach_log("Linear base = %08x, aperture = %04x, localcntl = %02x svgagdc = %x.\n",
+             mach->linear_base, mach->memory_aperture, mach->local_cntl, svga->gdcreg[6] & 0x0c);
     if (mach->linear_base) {
         if (((mach->memory_aperture & 3) == 1) && !mach->pci_bus) {
             /*1 MB aperture*/
@@ -5832,7 +5872,8 @@ mach_mca_write(int port, uint8_t val, void *priv)
         return;
 
     mach->pos_regs[port & 7] = val;
-    mach_log("[%04X]: MCA write port = %x, val = %02x, biosaddr = %05x.\n", CS, port & 7, mach->pos_regs[port & 7], (((mach->pos_regs[3] & 0x3e) << 0x0c) >> 1) + 0xc0000);
+    mach_log("[%04X]: MCA write port = %x, val = %02x, biosaddr = %05x.\n",
+             CS, port & 7, mach->pos_regs[port & 7], (((mach->pos_regs[3] & 0x3e) << 0x0c) >> 1) + 0xc0000);
     mem_mapping_disable(&mach->bios_rom.mapping);
     mem_mapping_disable(&mach->bios_rom2.mapping);
     if (mach->pos_regs[2] & 0x01) {
@@ -5882,7 +5923,8 @@ ati8514_mca_write(int port, uint8_t val, void *priv)
         return;
 
     dev->pos_regs[port & 7] = val;
-    mach_log("[%04X]: MCA write port = %x, val = %02x, biosaddr = %05x.\n", CS, port & 7, dev->pos_regs[port & 7], (((dev->pos_regs[3] & 0x3e) << 0x0c) >> 1) + 0xc0000);
+    mach_log("[%04X]: MCA write port = %x, val = %02x, biosaddr = %05x.\n",
+             CS, port & 7, dev->pos_regs[port & 7], (((dev->pos_regs[3] & 0x3e) << 0x0c) >> 1) + 0xc0000);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
     if (dev->pos_regs[2] & 0x01)
@@ -6239,7 +6281,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     if (dev->vram_amount >= 1024)
         mach->config1 |= 0x20;
 
-    mach->config2 = 0x02;
+    mach->config2 = 0x01 | 0x02;
 }
 
 static int
@@ -6311,197 +6353,161 @@ mach_force_redraw(void *priv)
 // clang-format off
 static const device_config_t mach8_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t mach32_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 2048,
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = "4 MB",   .value = 4096 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t mach32_pci_config[] = {
     {
-        .name = "ramdac",
-        .description = "RAMDAC type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0,
-        .selection = {
-            {
-                .description = "ATI 68860",
-                .value = 0
-            },
-            {
-                .description = "ATI 68875",
-                .value = 1
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "ramdac",
+        .description    = "RAMDAC type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "ATI 68860", .value = 0 },
+            { .description = "ATI 68875", .value = 1 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 2048,
-        .selection = {
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = "2 MB",
-                .value = 2048
-            },
-            {
-                .description = "4 MB",
-                .value = 4096
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = "4 MB",   .value = 4096 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t mach8_vga_isa_device = {
-    .name = "ATI Mach8 (ATI Graphics Ultra) (ISA)",
+    .name          = "ATI Mach8 (ATI Graphics Ultra) (ISA)",
     .internal_name = "mach8_vga_isa",
-    .flags = DEVICE_ISA,
-    .local = 1,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach8_vga_available },
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach8_vga_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach8_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach8_config
 };
 
 const device_t mach32_isa_device = {
-    .name = "ATI Mach32 (ISA)",
+    .name          = "ATI Mach32 (ISA)",
     .internal_name = "mach32_isa",
-    .flags = DEVICE_ISA,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_isa_available },
+    .flags         = DEVICE_ISA,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_isa_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_vlb_device = {
-    .name = "ATI Mach32 (VLB)",
+    .name          = "ATI Mach32 (VLB)",
     .internal_name = "mach32_vlb",
-    .flags = DEVICE_VLB,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_vlb_available },
+    .flags         = DEVICE_VLB,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_vlb_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_mca_device = {
-    .name = "ATI Mach32 (MCA)",
+    .name          = "ATI Mach32 (MCA)",
     .internal_name = "mach32_mca",
-    .flags = DEVICE_MCA,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_mca_available },
+    .flags         = DEVICE_MCA,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_mca_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_config
 };
 
 const device_t mach32_pci_device = {
-    .name = "ATI Mach32 (PCI)",
+    .name          = "ATI Mach32 (PCI)",
     .internal_name = "mach32_pci",
-    .flags = DEVICE_PCI,
-    .local = 2,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = mach32_pci_available },
+    .flags         = DEVICE_PCI,
+    .local         = 2,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = mach32_pci_available,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_pci_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_pci_config
 };
 
 const device_t mach32_onboard_pci_device = {
-    .name = "ATI Mach32 (PCI) On-Board",
+    .name          = "ATI Mach32 (PCI) On-Board",
     .internal_name = "mach32_pci_onboard",
-    .flags = DEVICE_PCI,
-    .local = 2 | 0x100,
-    .init = mach8_init,
-    .close = mach_close,
-    .reset = NULL,
-    { .available = NULL },
+    .flags         = DEVICE_PCI,
+    .local         = 2 | 0x100,
+    .init          = mach8_init,
+    .close         = mach_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = mach_speed_changed,
-    .force_redraw = mach_force_redraw,
-    .config = mach32_pci_config
+    .force_redraw  = mach_force_redraw,
+    .config        = mach32_pci_config
 };
-

@@ -103,7 +103,7 @@ static const device_t cdrom_interface_none_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -593,7 +593,7 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
 }
 
 static int
-track_type_is_valid(const cdrom_t *dev, const int type, const int flags, const int audio,
+track_type_is_valid(UNUSED(const cdrom_t *dev), const int type, const int flags, const int audio,
                     const int mode2)
 {
     if (!(flags & 0x70) && (flags & 0xf8)) { /* 0x08/0x80/0x88 are illegal modes */
@@ -1968,7 +1968,7 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 
 /* TODO: Actually implement this properly. */
 void
-cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
+cdrom_get_q(UNUSED(cdrom_t *dev), uint8_t *buf, UNUSED(int *curtoctrk), UNUSED(uint8_t mode))
 {
     memset(buf, 0x00, 10);
 }
@@ -2642,18 +2642,6 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
 }
 
 int
-cdrom_ext_medium_changed(const cdrom_t *dev)
-{
-    int ret = 0;
-
-    if (dev && dev->ops && dev->ops->ext_medium_changed &&
-        (dev->cd_status != CD_STATUS_PLAYING) && (dev->cd_status != CD_STATUS_PAUSED))
-        ret = dev->ops->ext_medium_changed(dev->local);
-
-    return ret;
-}
-
-int
 cdrom_is_empty(const uint8_t id)
 {
     const cdrom_t *dev = &cdrom[id];
@@ -2700,6 +2688,44 @@ cdrom_toc_dump(cdrom_t *dev)
 }
 #endif
 
+void
+cdrom_set_empty(cdrom_t *dev)
+{
+    dev->cd_status      = CD_STATUS_EMPTY;
+}
+
+void
+cdrom_update_status(cdrom_t *dev)
+{
+    const int  was_empty = (dev->cd_status == CD_STATUS_EMPTY);
+
+    if (dev->ops->load != NULL)
+        dev->ops->load(dev->local);
+
+    /* All good, reset state. */
+    dev->seek_pos       = 0;
+    dev->cd_buflen      = 0;
+
+    if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
+        dev->cd_status      = CD_STATUS_EMPTY;
+    else if (dev->ops->is_dvd(dev->local))
+        dev->cd_status      = CD_STATUS_DVD;
+    else
+        dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                                CD_STATUS_DATA_ONLY;
+
+    dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
+
+    if (dev->cd_status != CD_STATUS_EMPTY) {
+        /* Signal media change to the emulated machine. */
+        cdrom_insert(dev->id);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            cdrom_insert(dev->id);
+    }
+}
+
 int
 cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 {
@@ -2728,10 +2754,12 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->seek_pos       = 0;
         dev->cd_buflen      = 0;
 
+        if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
+            dev->cd_status      = CD_STATUS_EMPTY;
         if (dev->ops->is_dvd(dev->local))
             dev->cd_status      = CD_STATUS_DVD;
         else
-           dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+            dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
                                                                     CD_STATUS_DATA_ONLY;
 
         dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
@@ -2744,7 +2772,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     cdrom_toc_dump(dev);
 #endif
 
-    if (!skip_insert) {
+    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 

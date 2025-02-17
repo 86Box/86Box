@@ -520,8 +520,7 @@ isartc_init(const device_t *info)
     is_at           = is_at || !strcmp(machine_get_internal_name(), "xi8088");
 
     /* Create a device instance. */
-    dev = (rtcdev_t *) malloc(sizeof(rtcdev_t));
-    memset(dev, 0x00, sizeof(rtcdev_t));
+    dev = (rtcdev_t *) calloc(1, sizeof(rtcdev_t));
     dev->name     = info->name;
     dev->board    = info->local;
     dev->irq      = -1;
@@ -632,23 +631,24 @@ static const device_config_t ev170_config[] = {
         .name           = "base",
 		.description    = "Address",
 		.type           = CONFIG_HEX16,
-		.default_string = "",
+		.default_string = NULL,
 		.default_int    = 0x02C0,
-		.file_filter    = "",
+		.file_filter    = NULL,
 		.spinner        = { 0 },
         .selection      = {
             { .description = "240H", .value = 0x0240 },
             { .description = "2C0H", .value = 0x02c0 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
 		.description    = "IRQ",
 		.type           = CONFIG_SELECTION,
-		.default_string = "",
+		.default_string = NULL,
 		.default_int    = -1,
-		.file_filter    = "",
+		.file_filter    = NULL,
 		.spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
@@ -657,6 +657,7 @@ static const device_config_t ev170_config[] = {
             { .description = "IRQ7",     .value =  7 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -682,15 +683,16 @@ static const device_config_t pii147_config[] = {
         .name           = "base",
 		.description    = "Address",
 		.type           = CONFIG_HEX16,
-		.default_string = "",
+		.default_string = NULL,
 		.default_int    = 0x0240,
-		.file_filter    = "",
+		.file_filter    = NULL,
 		.spinner        = { 0 },
         .selection      = {
             { .description = "Clock 1", .value = 0x0240 },
             { .description = "Clock 2", .value = 0x0340 },
             { .description = ""                         }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -716,9 +718,9 @@ static const device_config_t p5pak_config[] = {
         .name           = "irq",
 		.description    = "IRQ",
 		.type           = CONFIG_SELECTION,
-		.default_string = "",
+		.default_string = NULL,
 		.default_int    = -1,
-		.file_filter    = "",
+		.file_filter    = NULL,
 		.spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", -1 },
@@ -727,6 +729,7 @@ static const device_config_t p5pak_config[] = {
             { .description = "IRQ5",      5 },
             { .description = ""             }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -752,9 +755,9 @@ static const device_config_t a6pak_config[] = {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = -1,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
@@ -763,6 +766,7 @@ static const device_config_t a6pak_config[] = {
             { .description = "IRQ5",     .value =  5 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -788,42 +792,44 @@ static const device_config_t mm58167_config[] = {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0x02C0,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { "240H", 0x0240 },
-            { "2C0H", 0x02c0 },
-            { "340H", 0x0340 },
-            { ""             }
+            { .description = "240H", .value = 0x0240 },
+            { .description = "2C0H", .value = 0x02c0 },
+            { .description = "340H", .value = 0x0340 },
+            { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
         .name           = "irq",
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = -1,
-        .file_filter    = "",
+        .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { "Disabled", -1 },
-            { "IRQ2",      2 },
-            { "IRQ5",      5 },
-            { "IRQ7",      7 },
-            { ""             }
+            { .description = "Disabled", .value = -1 },
+            { .description = "IRQ2",     .value =  2 },
+            { .description = "IRQ5",     .value =  5 },
+            { .description = "IRQ7",     .value =  7 },
+            { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xcc000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xcc000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = -1      },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CA00H",    .value = 0xca000 },
@@ -847,6 +853,7 @@ static const device_config_t mm58167_config[] = {
             { .description = "EE00H",    .value = 0xee000 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

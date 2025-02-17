@@ -2129,3 +2129,9 @@ msgstr "Generieke PC/XT geheugenuitbreiding"
 
 msgid "Generic PC/AT Memory Expansion"	
 msgstr "Generieke PC/AT geheugenuitbreiding"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Dot-matrix-lettertypen niet gevonden"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P dot-matrix-printer."

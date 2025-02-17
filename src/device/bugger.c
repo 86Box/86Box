@@ -346,12 +346,12 @@ bug_close(UNUSED(void *priv))
 const device_t bugger_device = {
     .name          = "ISA/PCI Bus Bugger",
     .internal_name = "bugger",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = bug_init,
     .close         = bug_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

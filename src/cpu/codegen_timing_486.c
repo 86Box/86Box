@@ -328,7 +328,7 @@ codegen_timing_486_start(void)
 }
 
 void
-codegen_timing_486_prefix(uint8_t prefix, uint32_t fetchdat)
+codegen_timing_486_prefix(uint8_t prefix, UNUSED(uint32_t fetchdat))
 {
     timing_count += COUNT(opcode_timings_486[prefix], 0);
     last_prefix = prefix;

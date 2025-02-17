@@ -219,14 +219,14 @@ lpt_init(void)
         lpt_ports[i].enable_irq = 0x10;
 
         if (lpt_ports[i].enabled) {
-            lpt_port_init(i, default_ports[i]);
+            lpt_port_setup(i, default_ports[i]);
             lpt_port_irq(i, default_irqs[i]);
         }
     }
 }
 
 void
-lpt_port_init(int i, uint16_t port)
+lpt_port_setup(int i, uint16_t port)
 {
     if (lpt_ports[i].enabled) {
         if (lpt_ports[i].addr != 0xffff)

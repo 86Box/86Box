@@ -578,8 +578,7 @@ sff_close(void *priv)
 static void *
 sff_init(UNUSED(const device_t *info))
 {
-    sff8038i_t *dev = (sff8038i_t *) malloc(sizeof(sff8038i_t));
-    memset(dev, 0, sizeof(sff8038i_t));
+    sff8038i_t *dev = (sff8038i_t *) calloc(1, sizeof(sff8038i_t));
 
     /* Make sure to only add IDE once. */
     if (next_id == 0)
@@ -611,7 +610,7 @@ const device_t sff8038i_device = {
     .init          = sff_init,
     .close         = sff_close,
     .reset         = sff_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

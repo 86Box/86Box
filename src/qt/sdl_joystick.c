@@ -8,13 +8,13 @@
  *
  *          SDL2 joystick interface.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Joakim L. Gilje <jgilje@jgilje.net>
+ *          Joakim L. Gilje, <jgilje@jgilje.net>
+ *          Jasmine Iwanek, jriwanek@gmail.com>
  *
- *          Copyright 2017-2021 Sarah Walker
- *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2017-2021 Sarah Walker.
+ *          Copyright 2021 Joakim L. Gilje.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <SDL2/SDL.h>
 
@@ -33,8 +33,8 @@
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
 
-int                  joysticks_present;
-joystick_t           joystick_state[MAX_JOYSTICKS];
+int                  joysticks_present = 0;
+joystick_t           joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 plat_joystick_t      plat_joystick_state[MAX_PLAT_JOYSTICKS];
 static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
 
@@ -89,7 +89,7 @@ joystick_close(void)
 }
 
 static int
-joystick_get_axis(int joystick_nr, int mapping)
+joystick_get_axis(int gameport, int joystick_nr, int mapping)
 {
     if (mapping & POV_X) {
         switch (plat_joystick_state[joystick_nr].p[mapping & 3]) {
@@ -144,44 +144,44 @@ joystick_process(void)
 
 #if 0
         pclog("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", js,
-              joystick_state[js].x,
-              joystick_state[js].y,
-              joystick_state[js].b[0],
-              joystick_state[js].b[1],
+              joystick_state[0][js].x,
+              joystick_state[0][js].y,
+              joystick_state[0][js].b[0],
+              joystick_state[0][js].b[1],
               joysticks_present);
 #endif
     }
 
     for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
-        if (joystick_state[js].plat_joystick_nr) {
-            int joystick_nr = joystick_state[js].plat_joystick_nr - 1;
+        if (joystick_state[0][js].plat_joystick_nr) {
+            int joystick_nr = joystick_state[0][js].plat_joystick_nr - 1;
 
             for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++)
-                joystick_state[js].axis[axis_nr] = joystick_get_axis(joystick_nr, joystick_state[js].axis_mapping[axis_nr]);
+                joystick_state[0][js].axis[axis_nr] = joystick_get_axis(0, joystick_nr, joystick_state[0][js].axis_mapping[axis_nr]);
 
             for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++)
-                joystick_state[js].button[button_nr] = plat_joystick_state[joystick_nr].b[joystick_state[js].button_mapping[button_nr]];
+                joystick_state[0][js].button[button_nr] = plat_joystick_state[joystick_nr].b[joystick_state[0][js].button_mapping[button_nr]];
 
             for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
-                int    x         = joystick_get_axis(joystick_nr, joystick_state[js].pov_mapping[pov_nr][0]);
-                int    y         = joystick_get_axis(joystick_nr, joystick_state[js].pov_mapping[pov_nr][1]);
+                int    x         = joystick_get_axis(0, joystick_nr, joystick_state[0][js].pov_mapping[pov_nr][0]);
+                int    y         = joystick_get_axis(0, joystick_nr, joystick_state[0][js].pov_mapping[pov_nr][1]);
                 double angle     = (atan2((double) y, (double) x) * 360.0) / (2 * M_PI);
                 double magnitude = sqrt((double) x * (double) x + (double) y * (double) y);
 
                 if (magnitude < 16384)
-                    joystick_state[js].pov[pov_nr] = -1;
+                    joystick_state[0][js].pov[pov_nr] = -1;
                 else
-                    joystick_state[js].pov[pov_nr] = ((int) angle + 90 + 360) % 360;
+                    joystick_state[0][js].pov[pov_nr] = ((int) angle + 90 + 360) % 360;
             }
         } else {
             for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++)
-                joystick_state[js].axis[axis_nr] = 0;
+                joystick_state[0][js].axis[axis_nr] = 0;
 
             for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++)
-                joystick_state[js].button[button_nr] = 0;
+                joystick_state[0][js].button[button_nr] = 0;
 
             for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++)
-                joystick_state[js].pov[pov_nr] = -1;
+                joystick_state[0][js].pov[pov_nr] = -1;
         }
     }
 }

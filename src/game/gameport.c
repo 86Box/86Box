@@ -8,8 +8,6 @@
  *
  *          Implementation of a generic Game Port.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
@@ -18,7 +16,7 @@
  *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2021 RichardG.
- *          Copyright 2021-2024 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -35,6 +33,12 @@
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
 
+device_t game_ports[GAMEPORT_MAX];
+
+typedef struct {
+    const device_t *device;
+} GAMEPORT;
+
 typedef struct g_axis_t {
     pc_timer_t                  timer;
     int                         axis_nr;
@@ -47,6 +51,11 @@ typedef struct _gameport_ {
     struct _joystick_instance_ *joystick;
     struct _gameport_          *next;
 } gameport_t;
+
+typedef struct _tmacm_ {
+    struct gameport_t *port1;
+    struct gameport_t *port2;
+} tmacm_t;
 
 typedef struct _joystick_instance_ {
     uint8_t  state;
@@ -79,21 +88,21 @@ static const joystick_if_t joystick_none = {
 static const struct {
     const joystick_if_t *joystick;
 } joysticks[] = {
-    { &joystick_none },
-    { &joystick_2axis_2button },
-    { &joystick_2axis_4button },
-    { &joystick_2axis_6button },
-    { &joystick_2axis_8button },
-    { &joystick_3axis_2button },
-    { &joystick_3axis_4button },
-    { &joystick_4axis_4button },
+    { &joystick_none               },
+    { &joystick_2axis_2button      },
+    { &joystick_2axis_4button      },
+    { &joystick_2axis_6button      },
+    { &joystick_2axis_8button      },
+    { &joystick_3axis_2button      },
+    { &joystick_3axis_4button      },
+    { &joystick_4axis_4button      },
     { &joystick_ch_flightstick_pro },
-    { &joystick_sw_pad },
-    { &joystick_tm_fcs },
-    { NULL }
+    { &joystick_sw_pad             },
+    { &joystick_tm_fcs             },
+    { NULL                         }
 };
 
-static joystick_instance_t *joystick_instance = NULL;
+static joystick_instance_t *joystick_instance[GAMEPORT_MAX] = { NULL, NULL };
 
 static uint8_t gameport_pnp_rom[] = {
     0x09, 0xf8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,          /* BOX0002, dummy checksum (filled in by isapnp_add_card) */
@@ -275,10 +284,10 @@ gameport_update_joystick_type(void)
         gameport_add(standalone_gameport_type);
 
     /* Reset the joystick interface. */
-    if (joystick_instance) {
-        joystick_instance->intf->close(joystick_instance->dat);
-        joystick_instance->intf = joysticks[joystick_type].joystick;
-        joystick_instance->dat  = joystick_instance->intf->init();
+    if (joystick_instance[0]) {
+        joystick_instance[0]->intf->close(joystick_instance[0]->dat);
+        joystick_instance[0]->intf = joysticks[joystick_type].joystick;
+        joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
     }
 }
 
@@ -357,36 +366,32 @@ gameport_add(const device_t *gameport_type)
 static void *
 gameport_init(const device_t *info)
 {
-    gameport_t *dev = NULL;
-
-    dev = malloc(sizeof(gameport_t));
-    memset(dev, 0x00, sizeof(gameport_t));
+    gameport_t *dev = calloc(1, sizeof(gameport_t));
 
     /* Allocate global instance. */
-    if (!joystick_instance && joystick_type) {
-        joystick_instance = malloc(sizeof(joystick_instance_t));
-        memset(joystick_instance, 0x00, sizeof(joystick_instance_t));
+    if (!joystick_instance[0] && joystick_type) {
+        joystick_instance[0] = calloc(1, sizeof(joystick_instance_t));
 
-        joystick_instance->axis[0].joystick = joystick_instance;
-        joystick_instance->axis[1].joystick = joystick_instance;
-        joystick_instance->axis[2].joystick = joystick_instance;
-        joystick_instance->axis[3].joystick = joystick_instance;
+        joystick_instance[0]->axis[0].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[1].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[2].joystick = joystick_instance[0];
+        joystick_instance[0]->axis[3].joystick = joystick_instance[0];
 
-        joystick_instance->axis[0].axis_nr = 0;
-        joystick_instance->axis[1].axis_nr = 1;
-        joystick_instance->axis[2].axis_nr = 2;
-        joystick_instance->axis[3].axis_nr = 3;
+        joystick_instance[0]->axis[0].axis_nr = 0;
+        joystick_instance[0]->axis[1].axis_nr = 1;
+        joystick_instance[0]->axis[2].axis_nr = 2;
+        joystick_instance[0]->axis[3].axis_nr = 3;
 
-        timer_add(&joystick_instance->axis[0].timer, timer_over, &joystick_instance->axis[0], 0);
-        timer_add(&joystick_instance->axis[1].timer, timer_over, &joystick_instance->axis[1], 0);
-        timer_add(&joystick_instance->axis[2].timer, timer_over, &joystick_instance->axis[2], 0);
-        timer_add(&joystick_instance->axis[3].timer, timer_over, &joystick_instance->axis[3], 0);
+        timer_add(&joystick_instance[0]->axis[0].timer, timer_over, &joystick_instance[0]->axis[0], 0);
+        timer_add(&joystick_instance[0]->axis[1].timer, timer_over, &joystick_instance[0]->axis[1], 0);
+        timer_add(&joystick_instance[0]->axis[2].timer, timer_over, &joystick_instance[0]->axis[2], 0);
+        timer_add(&joystick_instance[0]->axis[3].timer, timer_over, &joystick_instance[0]->axis[3], 0);
 
-        joystick_instance->intf = joysticks[joystick_type].joystick;
-        joystick_instance->dat  = joystick_instance->intf->init();
+        joystick_instance[0]->intf = joysticks[joystick_type].joystick;
+        joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
     }
 
-    dev->joystick = joystick_instance;
+    dev->joystick = joystick_instance[0];
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
     dev->len = (info->local >> 16) & 0xff;
@@ -402,25 +407,24 @@ gameport_init(const device_t *info)
 static void *
 tmacm_init(UNUSED(const device_t *info))
 {
-    uint16_t    port = 0x0000;
-    gameport_t *dev  = NULL;
+    uint16_t  port = 0x0000;
+    tmacm_t  *dev  = NULL;
 
-    dev = malloc(sizeof(gameport_t));
-    memset(dev, 0x00, sizeof(gameport_t));
+    dev = calloc(1, sizeof(tmacm_t));
 
     port = (uint16_t) device_get_config_hex16("port1_addr");
     switch (port) {
         case 0x201:
-            dev = gameport_add(&gameport_201_device);
+            dev->port1 = gameport_add(&gameport_201_device);
             break;
         case 0x203:
-            dev = gameport_add(&gameport_203_device);
+            dev->port1 = gameport_add(&gameport_203_device);
             break;
         case 0x205:
-            dev = gameport_add(&gameport_205_device);
+            dev->port1 = gameport_add(&gameport_205_device);
             break;
         case 0x207:
-            dev = gameport_add(&gameport_207_device);
+            dev->port1 = gameport_add(&gameport_207_device);
             break;
         default:
             break;
@@ -429,16 +433,16 @@ tmacm_init(UNUSED(const device_t *info))
     port = (uint16_t) device_get_config_hex16("port2_addr");
     switch (port) {
         case 0x209:
-            dev = gameport_add(&gameport_209_device);
+            dev->port2 = gameport_add(&gameport_209_device);
             break;
         case 0x20b:
-            dev = gameport_add(&gameport_20b_device);
+            dev->port2 = gameport_add(&gameport_20b_device);
             break;
         case 0x20d:
-            dev = gameport_add(&gameport_20d_device);
+            dev->port2 = gameport_add(&gameport_20d_device);
             break;
         case 0x20f:
-            dev = gameport_add(&gameport_20f_device);
+            dev->port2 = gameport_add(&gameport_20f_device);
             break;
         default:
             break;
@@ -456,11 +460,11 @@ gameport_close(void *priv)
     gameport_remap(dev, 0);
 
     /* Free the global instance here, if it wasn't already freed. */
-    if (joystick_instance) {
-        joystick_instance->intf->close(joystick_instance->dat);
+    if (joystick_instance[0]) {
+        joystick_instance[0]->intf->close(joystick_instance[0]->dat);
 
-        free(joystick_instance);
-        joystick_instance = NULL;
+        free(joystick_instance[0]);
+        joystick_instance[0] = NULL;
     }
 
     free(dev);
@@ -474,7 +478,7 @@ const device_t gameport_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -488,7 +492,7 @@ const device_t gameport_201_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -502,7 +506,7 @@ const device_t gameport_203_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -516,7 +520,7 @@ const device_t gameport_205_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -530,7 +534,7 @@ const device_t gameport_207_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -544,7 +548,7 @@ const device_t gameport_208_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -558,7 +562,7 @@ const device_t gameport_209_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -572,7 +576,7 @@ const device_t gameport_20b_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -586,7 +590,7 @@ const device_t gameport_20d_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -600,7 +604,7 @@ const device_t gameport_20f_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -609,40 +613,42 @@ const device_t gameport_20f_device = {
 static const device_config_t tmacm_config[] = {
   // clang-format off
     {
-        .name = "port1_addr",
-        .description = "Port 1 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0201,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port1_addr",
+        .description    = "Port 1 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0201,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "201h",     .value = 0x0201 },
             { .description = "203h",     .value = 0x0203 },
             { .description = "205h",     .value = 0x0205 },
             { .description = "207h",     .value = 0x0207 },
             { .description = "Disabled", .value = 0x0000 },
-            { "" }
-        }
+            { .description = ""                          }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "port2_addr",
-        .description = "Port 2 Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0209,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port2_addr",
+        .description    = "Port 2 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0209,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "209h",     .value = 0x0209 },
             { .description = "20Bh",     .value = 0x020B },
             { .description = "20Dh",     .value = 0x020D },
             { .description = "20Fh",     .value = 0x020F },
             { .description = "Disabled", .value = 0x0000 },
-            { "" }
-        }
+            { .description = ""                          }
+        },
+        .bios           = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -654,7 +660,7 @@ const device_t gameport_tm_acm_device = {
     .init          = tmacm_init,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = tmacm_config
@@ -668,7 +674,7 @@ const device_t gameport_pnp_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -682,7 +688,7 @@ const device_t gameport_pnp_1io_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -696,7 +702,7 @@ const device_t gameport_pnp_6io_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -710,7 +716,7 @@ const device_t gameport_sio_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -724,8 +730,68 @@ const device_t gameport_sio_1io_device = {
     .init          = gameport_init,
     .close         = gameport_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+static const GAMEPORT gameports[] = {
+    { &device_none            },
+    { &device_internal        },
+    { &gameport_device        },
+    { &gameport_208_device    },
+    { &gameport_pnp_device    },
+    { &gameport_tm_acm_device },
+    { NULL                    }
+    // clang-format on
+};
+
+/* UI */
+int
+gameport_available(int port)
+{
+    if (gameports[port].device)
+        return (device_available(gameports[port].device));
+
+    return 1;
+}
+
+/* UI */
+const device_t *
+gameports_getdevice(int port)
+{
+    return (gameports[port].device);
+}
+
+/* UI */
+int
+gameport_has_config(int port)
+{
+    if (!gameports[port].device)
+        return 0;
+
+    return (device_has_config(gameports[port].device) ? 1 : 0);
+}
+
+/* UI */
+const char *
+gameport_get_internal_name(int port)
+{
+    return device_get_internal_name(gameports[port].device);
+}
+
+/* UI */
+int
+gameport_get_from_internal_name(const char *str)
+{
+    int c = 0;
+
+    while (gameports[c].device != NULL) {
+        if (!strcmp(gameports[c].device->internal_name, str))
+            return c;
+        c++;
+    }
+
+    return 0;
+}

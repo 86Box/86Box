@@ -744,8 +744,7 @@ mfm_init(UNUSED(const device_t *info))
     int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
-    mfm = malloc(sizeof(mfm_t));
-    memset(mfm, 0x00, sizeof(mfm_t));
+    mfm = calloc(1, sizeof(mfm_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
@@ -796,12 +795,12 @@ mfm_close(void *priv)
 const device_t st506_at_wd1003_device = {
     .name          = "WD1003 AT MFM/RLL Controller",
     .internal_name = "st506_at",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = mfm_init,
     .close         = mfm_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -167,6 +167,7 @@ ad1848_read(uint16_t addr, void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
     uint8_t   ret    = 0xff;
+    uint8_t   temp   = 0;
 
     switch (addr & 3) {
         case 0: /* Index */
@@ -200,10 +201,34 @@ ad1848_read(uint16_t addr, void *priv)
 
                 case 23:
                     if ((ad1848->type >= AD1848_TYPE_CS4236B) && (ad1848->regs[23] & 0x08)) {
-                        if ((ad1848->xindex & 0xfe) == 0x00) /* remapped line volume */
-                            ret = ad1848->regs[18 + ad1848->xindex];
-                        else
-                            ret = ad1848->xregs[ad1848->xindex];
+                        ret = ad1848->xregs[ad1848->xindex];
+                        switch (ad1848->xindex) {
+                            case 0 ... 1:
+                                /* Remapped line volume. */
+                                ret = ad1848->regs[18 + ad1848->xindex];
+                                break;
+
+                            case 23 ... 24:
+                            case 29:
+                                /* Backdoor to control indirect registers on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235) {
+                                    temp = ad1848->cram_read(3, ad1848->cram_priv);
+                                    ad1848->cram_write(3, (ad1848->xindex == 23) ? 2 : ((ad1848->xindex == 24) ? 8 : 9), ad1848->cram_priv);
+                                    ret = ad1848->cram_read(4, ad1848->cram_priv);
+                                    ad1848->cram_write(3, temp, ad1848->cram_priv);
+                                }
+                                break;
+
+                            case 26 ... 28:
+                            case 30:
+                                /* Backdoor to control registers on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235)
+                                    ret = ad1848->cram_read((ad1848->xindex == 30) ? 7 : (ad1848->xindex - 26), ad1848->cram_priv);
+                                break;
+
+                            default:
+                                break;
+                        }
                     }
                     break;
 
@@ -291,30 +316,35 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 18:
                 case 19:
                     if (ad1848->type >= AD1848_TYPE_CS4236B) {
-                        if ((ad1848->xregs[4] & 0x14) == 0x14) {     /* FM remapping */
-                            ad1848->xregs[ad1848->index - 12] = val; /* real FM volume on extended registers 6 and 7 */
-                            temp                              = 1;
+                        if (ad1848->type >= AD1848_TYPE_CS4235) {
+                            if (ad1848->xregs[18] & 0x20)              /* AUX1 remapping */
+                                ad1848->regs[ad1848->index & 3] = val; /* also controls AUX1 on registers 2 and 3 */
+                        } else {
+                            if ((ad1848->xregs[4] & 0x14) == 0x14) {          /* FM remapping */
+                                ad1848->xregs[6 | (ad1848->index & 1)] = val; /* real FM volume on extended registers 6 and 7 */
+                                temp                                   = 1;
 
-                            if (ad1848->index == 18) {
-                                if (val & 0x80)
-                                    ad1848->fm_vol_l = 0;
-                                else
-                                    ad1848->fm_vol_l = ad1848_vols_7bits[val & 0x3f];
-                            } else {
-                                if (val & 0x80)
-                                    ad1848->fm_vol_r = 0;
-                                else
-                                    ad1848->fm_vol_r = ad1848_vols_7bits[val & 0x3f];
+                                if (ad1848->index == 18) {
+                                    if (val & 0x80)
+                                        ad1848->fm_vol_l = 0;
+                                    else
+                                        ad1848->fm_vol_l = ad1848_vols_7bits[val & 0x3f];
+                                } else {
+                                    if (val & 0x80)
+                                        ad1848->fm_vol_r = 0;
+                                    else
+                                        ad1848->fm_vol_r = ad1848_vols_7bits[val & 0x3f];
+                                }
                             }
-                        }
-                        if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) { /* wavetable remapping */
-                            ad1848->xregs[ad1848->index - 2] = val;       /* real wavetable volume on extended registers 16 and 17 */
-                            temp                             = 1;
-                        }
+                            if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) {  /* wavetable remapping */
+                                ad1848->xregs[16 | (ad1848->index & 1)] = val; /* real wavetable volume on extended registers 16 and 17 */
+                                temp                                    = 1;
+                            }
 
-                        /* Stop here if any remapping is enabled. */
-                        if (temp)
-                            return;
+                            /* Stop here if any remapping is enabled. */
+                            if (temp)
+                                return;
+                        }
 
                         /* HACK: the Windows 9x driver's "Synth" control writes to this
                            register with no remapping, even if internal FM is enabled. */
@@ -353,10 +383,12 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                         }
 
                         switch (ad1848->xindex) {
-                            case 0:
-                            case 1: /* remapped line volume */
-                                ad1848->regs[18 + ad1848->xindex] = val;
-                                return;
+                            case 0 ... 1:
+                                if (ad1848->type < AD1848_TYPE_CS4235) {
+                                    /* Remapped line volume. */
+                                    ad1848->regs[18 | ad1848->xindex] = val;
+                                }
+                                break;
 
                             case 6:
                                 if (val & 0x80)
@@ -377,8 +409,26 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                                 updatefreq = 1;
                                 break;
 
+                            case 23 ... 24:
+                            case 29:
+                                /* Backdoor to control indirect registers on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235) {
+                                    temp = ad1848->cram_read(3, ad1848->cram_priv);
+                                    ad1848->cram_write(3, (ad1848->xindex == 23) ? 2 : ((ad1848->xindex == 24) ? 8 : 9), ad1848->cram_priv);
+                                    ad1848->cram_write(4, val, ad1848->cram_priv);
+                                    ad1848->cram_write(3, temp, ad1848->cram_priv);
+                                }
+                                break;
+
                             case 25:
                                 return;
+
+                            case 26 ... 28:
+                            case 30:
+                                /* Backdoor to control registers on CS4235+. */
+                                if (ad1848->type >= AD1848_TYPE_CS4235)
+                                    ad1848->cram_write((ad1848->xindex == 30) ? 7 : (ad1848->xindex - 26), val, ad1848->cram_priv);
+                                break;
 
                             default:
                                 break;
@@ -729,7 +779,8 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
         ad1848->regs[30] = ad1848->regs[31] = 0;
 
         if (type >= AD1848_TYPE_CS4236B) {
-            ad1848->xregs[0] = ad1848->xregs[1] = 0xe8;
+            if (type < AD1848_TYPE_CS4235)
+                ad1848->xregs[0] = ad1848->xregs[1] = 0xe8;
             ad1848->xregs[2] = ad1848->xregs[3] = 0xcf;
             ad1848->xregs[4]                    = 0x84;
             ad1848->xregs[5]                    = 0;

@@ -125,7 +125,7 @@ add_to_block_list(codeblock_t *block)
 }
 
 static void
-remove_from_block_list(codeblock_t *block, uint32_t pc)
+remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
 {
     if (!block->page_mask)
         return;

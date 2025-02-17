@@ -823,10 +823,10 @@ msgid "Are you sure you want to exit 86Box?"
 msgstr "Ste prepričani, da želite zapreti 86Box?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Ne morem inicializirati Ghostscript"
+msgstr "Ghostscript-a ni bilo mogoče inicializirati"
 
 msgid "Unable to initialize GhostPCL"
-msgstr "Ne morem inicializirati GhostPCL"
+msgstr "GhostPCL-ja ni bilo mogoče inicializirati"
 
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
@@ -2129,3 +2129,9 @@ msgstr "Generična razširitev pomnilnika PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generična razširitev pomnilnika PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Matričnih pisav ni bilo mogoče najti"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Matrične pisave v imeniku \"roms/printer/fonts\" so potrebne za emulacijo generičnega matričnega tiskalnika ESC/P."

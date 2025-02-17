@@ -104,8 +104,7 @@ enum {
 
 #define CDV                         EMU_VERSION_EX
 
-static const struct
-{
+static const struct cdrom_drive_types_s {
     const char    vendor[9];
     const char    model[17];
     const char    revision[5];
@@ -204,19 +203,19 @@ static const struct
        Unusual 2.23x according to Google, I'm rounding it upwards to 3x.
        Assumed caddy based on the DM-3024.
      */
-    { "TEXEL",    "CD-ROM DM-3028",   "1.06", "texel_3028",     BUS_TYPE_SCSI, 2,  3, 36, 1 }, /* Caddy. */
+    { "TEXEL",    "CD-ROM DM-3028",   "1.06", "texel_3028",     BUS_TYPE_SCSI, 2,  3, 36, 1, { -1, -1, -1, -1 } }, /* Caddy. */
     /*
        The characteristics are a complete guesswork because I can't find
        this one on Google.
 
        Also, INQUIRY length is always 96 on these Toshiba drives.
      */
-    { "TOSHIBA",  "CD-ROM DRIVE:XM",  "3433", "toshiba_xm",     BUS_TYPE_SCSI, 2,  2, 96, 0 }, /* Tray.  */
-    { "TOSHIBA",  "CD-ROM XM-3201B",  "3232", "toshiba_3201b",  BUS_TYPE_SCSI, 1,  1, 96, 1 }, /* Caddy. */
-    { "TOSHIBA",  "CD-ROM XM-3301TA", "0272", "toshiba_3301ta", BUS_TYPE_SCSI, 2,  2, 96, 0 }, /* Tray.  */
-    { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0 }, /* Tray.  */
-    { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0 }, /* Tray.  */
-    { "",         "",                 "",     "",               BUS_TYPE_NONE, 0, -1,  0, 0 }
+    { "TOSHIBA",  "CD-ROM DRIVE:XM",  "3433", "toshiba_xm",     BUS_TYPE_SCSI, 2,  2, 96, 0, { -1, -1, -1, -1 } }, /* Tray.  */
+    { "TOSHIBA",  "CD-ROM XM-3201B",  "3232", "toshiba_3201b",  BUS_TYPE_SCSI, 1,  1, 96, 1, { -1, -1, -1, -1 } }, /* Caddy. */
+    { "TOSHIBA",  "CD-ROM XM-3301TA", "0272", "toshiba_3301ta", BUS_TYPE_SCSI, 2,  2, 96, 0, { -1, -1, -1, -1 } }, /* Tray.  */
+    { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0, { -1, -1, -1, -1 } }, /* Tray.  */
+    { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, { -1, -1, -1, -1 } }, /* Tray.  */
+    { "",         "",                 "",     "",               BUS_TYPE_NONE, 0, -1,  0, 0, { -1, -1, -1, -1 } }
 };
 
 /* To shut up the GCC compilers. */
@@ -272,8 +271,9 @@ typedef struct cdrom_ops_t {
                                    uint32_t *info);
     int      (*is_dvd)(const void *local);
     int      (*has_audio)(const void *local);
-    int      (*ext_medium_changed)(void *local);
+    int      (*is_empty)(const void *local);
     void     (*close)(void *local);
+    void     (*load)(const void *local);
 } cdrom_ops_t;
 
 typedef struct cdrom {
@@ -424,7 +424,8 @@ extern int             cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_
                                                 uint8_t *buffer, uint32_t *info);
 extern void            cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer);
 extern int             cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer);
-extern int             cdrom_ext_medium_changed(const cdrom_t *dev);
+extern void            cdrom_set_empty(cdrom_t *dev);
+extern void            cdrom_update_status(cdrom_t *dev);
 extern int             cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert);
 
 extern void            cdrom_global_init(void);

@@ -810,27 +810,18 @@ write_p2(atkbc_t *dev, uint8_t val)
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbc_at_log("write_p2(): Pulse reset!\n");
-            if (machines[machine].flags & MACHINE_COREBOOT) {
-                /* The SeaBIOS hard reset code attempts a KBC reset if ACPI RESET_REG
-                   is not available. However, the KBC reset is normally a soft reset, so
-                   SeaBIOS gets caught in a soft reset loop as it tries to hard reset the
-                   machine. Hack around this by making the KBC reset a hard reset only on
-                   coreboot machines. */
-                pc_reset_hard();
-            } else {
-                softresetx86(); /* Pulse reset! */
-                cpu_set_edx();
-                flushmmucache();
-                if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
-                    smbase = 0x00030000;
+            softresetx86(); /* Pulse reset! */
+            cpu_set_edx();
+            flushmmucache();
+            if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
+                smbase = 0x00030000;
 
-                /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
-                   and can find out what they actually did to make it boot from FFFFF0
-                   correctly despite A20 being gated when the CPU is reset, this will
-                   have to do. */
-                if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
-                    is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
-            }
+            /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
+               and can find out what they actually did to make it boot from FFFFF0
+               correctly despite A20 being gated when the CPU is reset, this will
+               have to do. */
+            if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
+                is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
         }
     }
 
@@ -2282,8 +2273,7 @@ kbc_at_init(const device_t *info)
     atkbc_t *dev;
     int max_ports;
 
-    dev = (atkbc_t *) malloc(sizeof(atkbc_t));
-    memset(dev, 0x00, sizeof(atkbc_t));
+    dev = (atkbc_t *) calloc(1, sizeof(atkbc_t));
 
     dev->flags = info->local;
 
@@ -2393,8 +2383,7 @@ kbc_at_init(const device_t *info)
 #endif
 
     for (int i = 0; i < max_ports; i++) {
-        kbc_at_ports[i] = (kbc_at_port_t *) malloc(sizeof(kbc_at_port_t));
-        memset(kbc_at_ports[i], 0x00, sizeof(kbc_at_port_t));
+        kbc_at_ports[i] = (kbc_at_port_t *) calloc(1, sizeof(kbc_at_port_t));
         kbc_at_ports[i]->out_new = -1;
     }
 
@@ -2417,7 +2406,7 @@ const device_t keyboard_at_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2431,7 +2420,7 @@ const device_t keyboard_at_siemens_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2445,7 +2434,7 @@ const device_t keyboard_at_ami_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2459,7 +2448,7 @@ const device_t keyboard_at_tg_ami_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2473,7 +2462,7 @@ const device_t keyboard_at_toshiba_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2487,7 +2476,7 @@ const device_t keyboard_at_olivetti_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2501,7 +2490,7 @@ const device_t keyboard_at_ncr_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2515,7 +2504,7 @@ const device_t keyboard_at_compaq_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2529,7 +2518,7 @@ const device_t keyboard_ps2_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2543,7 +2532,7 @@ const device_t keyboard_ps2_ps1_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2557,7 +2546,7 @@ const device_t keyboard_ps2_ps1_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2571,7 +2560,7 @@ const device_t keyboard_ps2_xi8088_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2585,7 +2574,7 @@ const device_t keyboard_ps2_ami_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2599,7 +2588,7 @@ const device_t keyboard_ps2_holtek_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2613,7 +2602,7 @@ const device_t keyboard_ps2_phoenix_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2627,7 +2616,7 @@ const device_t keyboard_ps2_tg_ami_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2641,7 +2630,7 @@ const device_t keyboard_ps2_mca_1_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2655,7 +2644,7 @@ const device_t keyboard_ps2_mca_2_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2669,7 +2658,7 @@ const device_t keyboard_ps2_quadtel_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2683,7 +2672,7 @@ const device_t keyboard_ps2_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2697,7 +2686,7 @@ const device_t keyboard_ps2_ami_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2711,7 +2700,7 @@ const device_t keyboard_ps2_ali_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2725,7 +2714,7 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2739,7 +2728,7 @@ const device_t keyboard_ps2_tg_ami_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2753,7 +2742,7 @@ const device_t keyboard_ps2_acer_pci_device = {
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

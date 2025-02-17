@@ -1671,7 +1671,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
     - A 16-bit sample always takes two ctr_clock() ticks.
  */
 static uint16_t
-pas16_dma_channel_read(pas16_t *pas16, int channel)
+pas16_dma_channel_read(pas16_t *pas16, UNUSED(int channel))
 {
     int status;
     uint16_t ret;
@@ -2320,8 +2320,7 @@ pas16_init(const device_t *info)
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
-    pas16->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(pas16->mpu, 0, sizeof(mpu_t));
+    pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);
 
@@ -2402,25 +2401,37 @@ pas16_close(void *priv)
 
 static const device_config_t pas16_config[] = {
     {
-        .name = "control_pc_speaker",
-        .description = "Control PC speaker",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive MIDI input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -2442,7 +2453,7 @@ const device_t pasplus_device = {
 const device_t pas16_device = {
     .name          = "Pro Audio Spectrum 16",
     .internal_name = "pas16",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x0f,
     .init          = pas16_init,
     .close         = pas16_close,
@@ -2456,7 +2467,7 @@ const device_t pas16_device = {
 const device_t pas16d_device = {
     .name          = "Pro Audio Spectrum 16D",
     .internal_name = "pas16d",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x0c,
     .init          = pas16_init,
     .close         = pas16_close,

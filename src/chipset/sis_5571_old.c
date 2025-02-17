@@ -732,8 +732,7 @@ sis_5571_close(void *priv)
 static void *
 sis_5571_init(UNUSED(const device_t *info))
 {
-    sis_5571_t *dev = (sis_5571_t *) malloc(sizeof(sis_5571_t));
-    memset(dev, 0x00, sizeof(sis_5571_t));
+    sis_5571_t *dev = (sis_5571_t *) calloc(1, sizeof(sis_5571_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, memory_pci_bridge_read, memory_pci_bridge_write, dev, &dev->nb_slot);
     pci_add_card(PCI_ADD_SOUTHBRIDGE, pci_isa_bridge_read, pci_isa_bridge_write, dev, &dev->sb_slot);
@@ -765,7 +764,7 @@ const device_t sis_5571_device = {
     .init          = sis_5571_init,
     .close         = sis_5571_close,
     .reset         = sis_5571_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

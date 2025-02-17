@@ -2129,3 +2129,9 @@ msgstr "通用 PC/XT 内存扩展"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 内存扩展"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "无法找到点阵字体"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "仿真通用 ESC/P 点阵打印机需要使用 \"roms/printer/fonts\" 目录中的 TrueType 字体。"

@@ -35,6 +35,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_unused.h>
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -152,6 +153,48 @@ x808x_log(const char *fmt, ...)
 
 static void pfq_add(int c, int add);
 static void set_pzs(int bits);
+
+void
+prefetch_queue_set_pos(int pos)
+{
+    pfq_pos = pos;
+}
+
+void
+prefetch_queue_set_ip(uint16_t ip)
+{
+    pfq_ip = ip;
+}
+
+void
+prefetch_queue_set_prefetching(int p)
+{
+    prefetching = p;
+}
+
+int
+prefetch_queue_get_pos(void)
+{
+    return pfq_pos;
+}
+
+uint16_t
+prefetch_queue_get_ip(void)
+{
+    return pfq_ip;
+}
+
+int
+prefetch_queue_get_prefetching(void)
+{
+    return prefetching;
+}
+
+int
+prefetch_queue_get_size(void)
+{
+    return pfq_size;
+}
 
 uint16_t
 get_last_addr(void)
@@ -815,7 +858,7 @@ pop(void)
 }
 
 static void
-access(int num, int bits)
+access(int num, UNUSED(int bits))
 {
     switch (num) {
         case 0:
@@ -1419,7 +1462,7 @@ set_pzs(int bits)
 }
 
 static void
-set_co_mul(int bits, int carry)
+set_co_mul(UNUSED(int bits), int carry)
 {
     set_cf(carry);
     set_of(carry);

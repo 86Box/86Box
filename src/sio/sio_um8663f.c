@@ -106,12 +106,12 @@ um8663f_lpt_handler(um8663f_t *dev)
     if (dev->regs[0] & 0x08) {
         switch ((dev->regs[1] >> 3) & 0x01) {
             case 0x01:
-                lpt1_init(LPT1_ADDR);
-                lpt1_irq(7);
+                lpt1_setup(LPT1_ADDR);
+                lpt1_irq(LPT1_IRQ);
                 break;
             case 0x00:
-                lpt1_init(LPT2_ADDR);
-                lpt1_irq(5);
+                lpt1_setup(LPT2_ADDR);
+                lpt1_irq(LPT2_IRQ);
                 break;
 
             default:
@@ -231,7 +231,7 @@ um8663f_reset(void *priv)
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(LPT1_ADDR);
+    lpt1_setup(LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);
@@ -289,7 +289,7 @@ const device_t um8663af_device = {
     .init          = um8663f_init,
     .close         = um8663f_close,
     .reset         = um8663f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -303,7 +303,7 @@ const device_t um8663af_ide_device = {
     .init          = um8663f_init,
     .close         = um8663f_close,
     .reset         = um8663f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -317,7 +317,7 @@ const device_t um8663af_ide_sec_device = {
     .init          = um8663f_init,
     .close         = um8663f_close,
     .reset         = um8663f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -331,7 +331,7 @@ const device_t um8663bf_device = {
     .init          = um8663f_init,
     .close         = um8663f_close,
     .reset         = um8663f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -345,7 +345,7 @@ const device_t um8663bf_ide_device = {
     .init          = um8663f_init,
     .close         = um8663f_close,
     .reset         = um8663f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -359,7 +359,7 @@ const device_t um8663bf_ide_sec_device = {
     .init          = um8663f_init,
     .close         = um8663f_close,
     .reset         = um8663f_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

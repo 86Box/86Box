@@ -7,10 +7,10 @@
 #include "cpu.h"
 #include <86box/86box.h>
 #include <86box/filters.h>
+#include <86box/timer.h>
 #include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
-#include <86box/timer.h>
 #include <86box/plat_unused.h>
 
 typedef struct lpt_dac_t {
@@ -82,8 +82,7 @@ dac_get_buffer(int32_t *buffer, int len, void *priv)
 static void *
 dac_init(void *lpt)
 {
-    lpt_dac_t *lpt_dac = malloc(sizeof(lpt_dac_t));
-    memset(lpt_dac, 0, sizeof(lpt_dac_t));
+    lpt_dac_t *lpt_dac = calloc(1, sizeof(lpt_dac_t));
 
     lpt_dac->lpt = lpt;
 

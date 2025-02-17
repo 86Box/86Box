@@ -15,7 +15,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
@@ -782,6 +782,20 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     dev->irq = irq;
 }
 
+void
+serial_irq(serial_t *dev, const uint8_t irq)
+{
+    if (dev == NULL)
+        return;
+
+    if (com_ports[dev->inst].enabled)
+        dev->irq = irq;
+    else
+        dev->irq = 0xff;
+
+    serial_log("Port %i IRQ = %02X\n", dev->inst, irq);
+}
+
 static void
 serial_rcvr_d_empty_evt(void *priv)
 {
@@ -914,8 +928,7 @@ serial_reset(void *priv)
 static void *
 serial_init(const device_t *info)
 {
-    serial_t *dev = (serial_t *) malloc(sizeof(serial_t));
-    memset(dev, 0, sizeof(serial_t));
+    serial_t *dev = (serial_t *) calloc(1, sizeof(serial_t));
 
     dev->inst = next_inst;
 
@@ -935,7 +948,7 @@ serial_init(const device_t *info)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);
-        else if ((next_inst == 1) || (info->flags & DEVICE_PCJR))
+        else if ((next_inst == 1) || (info->local == SERIAL_8250_PCJR))
             serial_setup(dev, COM2_ADDR, COM2_IRQ);
         else if (next_inst == 0)
             serial_setup(dev, COM1_ADDR, COM1_IRQ);
@@ -996,7 +1009,7 @@ const device_t ns8250_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1005,12 +1018,12 @@ const device_t ns8250_device = {
 const device_t ns8250_pcjr_device = {
     .name          = "National Semiconductor 8250(-compatible) UART for PCjr",
     .internal_name = "ns8250_pcjr",
-    .flags         = DEVICE_PCJR,
+    .flags         = 0,
     .local         = SERIAL_8250_PCJR,
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1024,7 +1037,7 @@ const device_t ns16450_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1038,7 +1051,7 @@ const device_t ns16550_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1052,7 +1065,7 @@ const device_t ns16650_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1066,7 +1079,7 @@ const device_t ns16750_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1080,7 +1093,7 @@ const device_t ns16850_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1094,7 +1107,7 @@ const device_t ns16950_device = {
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = serial_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

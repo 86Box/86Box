@@ -1513,7 +1513,7 @@ const device_t pcjr_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = speed_changed,
     .force_redraw  = NULL,
     .config        = pcjr_config
@@ -1532,8 +1532,7 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     if (bios_only || !ret)
         return ret;
 
-    pcjr = malloc(sizeof(pcjr_t));
-    memset(pcjr, 0x00, sizeof(pcjr_t));
+    pcjr = calloc(1, sizeof(pcjr_t));
 
     pic_init_pcjr();
     pit_common_init(0, pit_irq0_timer_pcjr, NULL);

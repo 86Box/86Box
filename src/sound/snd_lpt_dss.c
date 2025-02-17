@@ -7,10 +7,10 @@
 #include "cpu.h"
 #include <86box/86box.h>
 #include <86box/filters.h>
+#include <86box/timer.h>
 #include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
-#include <86box/timer.h>
 #include <86box/plat_unused.h>
 
 typedef struct dss_t {
@@ -115,8 +115,7 @@ dss_callback(void *priv)
 static void *
 dss_init(void *lpt)
 {
-    dss_t *dss = malloc(sizeof(dss_t));
-    memset(dss, 0, sizeof(dss_t));
+    dss_t *dss = calloc(1, sizeof(dss_t));
 
     dss->lpt = lpt;
 

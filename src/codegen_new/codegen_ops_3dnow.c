@@ -16,28 +16,29 @@
 #include "codegen_ops_3dnow.h"
 #include "codegen_ops_helpers.h"
 
-#define ropParith(func)                                                                                                      \
-    uint32_t rop##func(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
-    {                                                                                                                        \
-        int dest_reg = (fetchdat >> 3) & 7;                                                                                  \
-                                                                                                                             \
-        uop_MMX_ENTER(ir);                                                                                                   \
-        codegen_mark_code_present(block, cs + op_pc, 1);                                                                     \
-        if ((fetchdat & 0xc0) == 0xc0) {                                                                                     \
-            int src_reg = fetchdat & 7;                                                                                      \
-            uop_##func(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_MM(src_reg));                                          \
-        } else {                                                                                                             \
-            x86seg *target_seg;                                                                                              \
-                                                                                                                             \
-            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                    \
-            target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);                           \
-            codegen_check_seg_read(block, ir, target_seg);                                                                   \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);                                      \
-            uop_##func(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);                                              \
-        }                                                                                                                    \
-                                                                                                                             \
-        codegen_mark_code_present(block, cs + op_pc + 1, 1);                                                                 \
-        return op_pc + 2;                                                                                                    \
+#define ropParith(func)                                                                            \
+    uint32_t rop##func(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode),                  \
+                       uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)                          \
+    {                                                                                              \
+        int dest_reg = (fetchdat >> 3) & 7;                                                        \
+                                                                                                   \
+        uop_MMX_ENTER(ir);                                                                         \
+        codegen_mark_code_present(block, cs + op_pc, 1);                                           \
+        if ((fetchdat & 0xc0) == 0xc0) {                                                           \
+            int src_reg = fetchdat & 7;                                                            \
+            uop_##func(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_MM(src_reg));                \
+        } else {                                                                                   \
+            x86seg *target_seg;                                                                    \
+                                                                                                   \
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
+            target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
+            codegen_check_seg_read(block, ir, target_seg);                                         \
+            uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);            \
+            uop_##func(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);                    \
+        }                                                                                          \
+                                                                                                   \
+        codegen_mark_code_present(block, cs + op_pc + 1, 1);                                       \
+        return op_pc + 2;                                                                          \
     }
 
 // clang-format off
@@ -192,7 +193,7 @@ ropPFRSQRT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
 }
 
 uint32_t
-ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MMX_ENTER(ir);
 

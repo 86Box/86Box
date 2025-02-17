@@ -1297,8 +1297,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     int      c;
 
     /* Allocate and initialize device block. */
-    dev = malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = calloc(1, sizeof(hdc_t));
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;
@@ -1381,12 +1380,12 @@ ps1_hdc_close(void *priv)
 const device_t ps1_hdc_device = {
     .name          = "PS/1 2011 Fixed Disk Controller",
     .internal_name = "ps1_hdc",
-    .flags         = DEVICE_ISA | DEVICE_PS2,
+    .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = ps1_hdc_init,
     .close         = ps1_hdc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

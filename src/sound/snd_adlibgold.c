@@ -1066,8 +1066,7 @@ adgold_init(UNUSED(const device_t *info))
     FILE     *fp;
     int       c;
     double    out;
-    adgold_t *adgold = malloc(sizeof(adgold_t));
-    memset(adgold, 0, sizeof(adgold_t));
+    adgold_t *adgold = calloc(1, sizeof(adgold_t));
 
     adgold->dma              = device_get_config_int("dma");
     adgold->irq              = device_get_config_int("irq");
@@ -1193,73 +1192,69 @@ adgold_close(void *priv)
 static const device_config_t adgold_config[] = {
   // clang-format off
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "IRQ 3",
-                .value = 3
-            },
-            {
-                .description = "IRQ 4",
-                .value = 4
-            },
-            {
-                .description = "IRQ 5",
-                .value = 5
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            { .description = "" }
-        }
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "Low DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "DMA 1",
-                .value = 1
-            },
-            {
-                .description = "DMA 3",
-                .value = 3
-            },
-            { .description = "" }
-        }
+        .name           = "dma",
+        .description    = "Low DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "gameport",
-        .description = "Enable Game port",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "surround",
-        .description = "Surround module",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "surround",
+        .description    = "Surround module",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

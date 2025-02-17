@@ -2645,8 +2645,7 @@ static void es137x_speed_changed(void *priv);
 static void *
 es1370_init(const device_t *info)
 {
-    es137x_t *dev = malloc(sizeof(es137x_t));
-    memset(dev, 0x00, sizeof(es137x_t));
+    es137x_t *dev = calloc(1, sizeof(es137x_t));
     dev->type = info->local;
 
     if (device_get_config_int("receive_input"))
@@ -2689,8 +2688,7 @@ es1370_init(const device_t *info)
 static void *
 es1371_init(const device_t *info)
 {
-    es137x_t *dev = malloc(sizeof(es137x_t));
-    memset(dev, 0x00, sizeof(es137x_t));
+    es137x_t *dev = calloc(1, sizeof(es137x_t));
     dev->type = info->local & 0xffffff00;
 
     if (device_get_config_int("receive_input"))
@@ -2739,11 +2737,15 @@ es137x_speed_changed(void *priv)
 static const device_config_t es1370_config[] = {
     // clang-format off
     {
-        .name = "receive_input",
-        .description = "Receive input (MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive input (MIDI)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -2752,28 +2754,30 @@ static const device_config_t es1370_config[] = {
 static const device_config_t es1371_config[] = {
     // clang-format off
     {
-        .name = "codec",
-        .description = "Codec",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "Asahi Kasei AK4540",
-                .value = AC97_CODEC_AK4540
-            },
-            {
-                .description = "TriTech TR28023 / Creative CT1297",
-                .value = AC97_CODEC_TR28023
-            },
-            { .description = "" }
+        .name           = "codec",
+        .description    = "Codec",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = AC97_CODEC_TR28023,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Asahi Kasei AK4540",                .value = AC97_CODEC_AK4540  },
+            { .description = "TriTech TR28023 / Creative CT1297", .value = AC97_CODEC_TR28023 },
+            { .description = ""                                                               }
         },
-        .default_int = AC97_CODEC_TR28023
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -2782,32 +2786,31 @@ static const device_config_t es1371_config[] = {
 static const device_config_t es1373_config[] = {
     // clang-format off
     {
-        .name = "codec",
-        .description = "Codec",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "Crystal CS4297A",
-                .value = AC97_CODEC_CS4297A
-            },
-            {
-                .description = "SigmaTel STAC9721T",
-                .value = AC97_CODEC_STAC9721
-            },
-            {
-                .description = "TriTech TR28023 / Creative CT1297",
-                .value = AC97_CODEC_TR28023
-            },
+        .name           = "codec",
+        .description    = "Codec",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = AC97_CODEC_CS4297A,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Crystal CS4297A",                   .value = AC97_CODEC_CS4297A  },
+            { .description = "SigmaTel STAC9721T",                .value = AC97_CODEC_STAC9721 },
+            { .description = "TriTech TR28023 / Creative CT1297", .value = AC97_CODEC_TR28023  },
             { .description = "" }
         },
-        .default_int = AC97_CODEC_CS4297A
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -2816,32 +2819,31 @@ static const device_config_t es1373_config[] = {
 static const device_config_t ct5880_config[] = {
     // clang-format off
     {
-        .name = "codec",
-        .description = "Codec",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "SigmaTel STAC9708T",
-                .value = AC97_CODEC_STAC9708
-            },
-            {
-                .description = "SigmaTel STAC9721T (stereo)",
-                .value = AC97_CODEC_STAC9721
-            },
-            {
-                .description = "TriTech TR28023 / Creative CT1297",
-                .value = AC97_CODEC_TR28023
-            },
-            { .description = "" }
+        .name           = "codec",
+        .description    = "Codec",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = AC97_CODEC_STAC9708,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "SigmaTel STAC9708T",                .value = AC97_CODEC_STAC9708 },
+            { .description = "SigmaTel STAC9721T (stereo)",       .value = AC97_CODEC_STAC9721 },
+            { .description = "TriTech TR28023 / Creative CT1297", .value = AC97_CODEC_TR28023  },
+            { .description = ""                                                                }
         },
-        .default_int = AC97_CODEC_STAC9708
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -2850,11 +2852,14 @@ static const device_config_t ct5880_config[] = {
 static const device_config_t es1371_onboard_config[] = {
     // clang-format off
     {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on

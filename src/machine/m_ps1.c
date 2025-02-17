@@ -146,13 +146,13 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_init(LPT_MDA_ADDR);
+                            lpt1_setup(LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_init(LPT1_ADDR);
+                            lpt1_setup(LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_init(LPT2_ADDR);
+                            lpt1_setup(LPT2_ADDR);
                             break;
 
                         default:
@@ -287,7 +287,7 @@ const device_t ps1_2011_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = &ps1_2011_config[0]
@@ -299,8 +299,7 @@ ps1_setup(int model)
     ps1_t *ps;
     void  *priv;
 
-    ps = (ps1_t *) malloc(sizeof(ps1_t));
-    memset(ps, 0x00, sizeof(ps1_t));
+    ps = (ps1_t *) calloc(1, sizeof(ps1_t));
     ps->model = model;
 
     io_sethandler(0x0091, 1,
@@ -317,7 +316,7 @@ ps1_setup(int model)
     ps->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    lpt1_setup(LPT_MDA_ADDR);
 
     mem_remap_top(384);
 

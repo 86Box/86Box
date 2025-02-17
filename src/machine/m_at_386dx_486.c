@@ -50,6 +50,7 @@
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
+/* 386DX */
 int
 machine_at_acc386_init(const machine_t *model)
 {
@@ -252,7 +253,7 @@ machine_at_ecs386v_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/ecs386v/PANDA_386V.BIN",
-               0x000f0000, 65536, 0);
+                           0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
     return ret;
@@ -695,7 +696,7 @@ static const device_config_t pb450_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "PCI 1.0A", .internal_name = "pci10a", .bios_type = BIOS_NORMAL, 
+            { .name = "PCI 1.0A", .internal_name = "pb450" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
             { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
@@ -1412,7 +1413,7 @@ machine_at_amis76_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted("roms/machines/s76p/S76P.ROM", 
+    ret = bios_load_linear_inverted("roms/machines/s76p/S76P.ROM",
                                     0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

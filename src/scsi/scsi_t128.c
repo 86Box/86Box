@@ -472,13 +472,9 @@ t228_feedb(void *priv)
 static void *
 t128_init(const device_t *info)
 {
-    t128_t      *t128;
-    ncr_t       *ncr;
+    t128_t      *t128 = calloc(1, sizeof(t128_t));
+    ncr_t       *ncr  = &t128->ncr;
     scsi_bus_t  *scsi_bus;
-
-    t128 = malloc(sizeof(t128_t));
-    memset(t128, 0x00, sizeof(t128_t));
-    ncr = &t128->ncr;
 
     ncr->bus = scsi_get_bus();
     scsi_bus = &ncr->scsibus;
@@ -558,43 +554,49 @@ t128_available(void)
 // clang-format off
 static const device_config_t t128_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xD8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xD8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
             { .description = "D800H", .value = 0xd8000 },
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "None",  .value = -1 },
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "boot",
-        .description = "Enable BIOS",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "boot",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -608,12 +610,11 @@ const device_t scsi_t128_device = {
     .init          = t128_init,
     .close         = t128_close,
     .reset         = NULL,
-    { .available = t128_available },
+    .available     = t128_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = t128_config
 };
-
 
 const device_t scsi_t228_device = {
     .name          = "Trantor T228",
@@ -623,7 +624,7 @@ const device_t scsi_t228_device = {
     .init          = t128_init,
     .close         = t128_close,
     .reset         = NULL,
-    { .available = t128_available },
+    .available     = t128_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -637,7 +638,7 @@ const device_t scsi_pas_device = {
     .init          = t128_init,
     .close         = t128_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

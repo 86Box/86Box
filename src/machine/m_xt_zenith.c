@@ -73,8 +73,7 @@ zenith_scratchpad_init(UNUSED(const device_t *info))
 {
     zenith_t *dev;
 
-    dev = (zenith_t *) malloc(sizeof(zenith_t));
-    memset(dev, 0x00, sizeof(zenith_t));
+    dev = (zenith_t *) calloc(1, sizeof(zenith_t));
 
     dev->scratchpad_ram = malloc(0x4000);
 
@@ -103,7 +102,7 @@ static const device_t zenith_scratchpad_device = {
     .init          = zenith_scratchpad_init,
     .close         = zenith_scratchpad_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -145,7 +144,7 @@ machine_xt_z184_init(const machine_t *model)
 
     lpt1_remove(); /* only one parallel port */
     lpt2_remove();
-    lpt1_init(0x278);
+    lpt1_setup(LPT2_ADDR);
     device_add(&ns8250_device);
     serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
 
@@ -199,7 +198,7 @@ machine_xt_z159_init(const machine_t *model)
     /* parallel port is on the memory board */
     lpt1_remove(); /* only one parallel port */
     lpt2_remove();
-    lpt1_init(0x278);
+    lpt1_setup(LPT2_ADDR);
 
     return ret;
 }

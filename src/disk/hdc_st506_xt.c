@@ -1627,8 +1627,7 @@ st506_init(const device_t *info)
     int         i;
     int         c;
 
-    dev = (hdc_t *) malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = (hdc_t *) calloc(1, sizeof(hdc_t));
     dev->type = info->local & 255;
 
     /* Set defaults for the controller. */
@@ -1915,335 +1914,356 @@ victor_v86p_available(void)
 // clang-format off
 static const device_config_t dtc_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CA00H",    .value = 0xca000 },
             { .description = "D800H",    .value = 0xd8000 },
             { .description = "F400H",    .value = 0xf4000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t st11_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
             { .description = "328H", .value = 0x0328 },
             { .description = "32CH", .value = 0x032c },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "D000H",    .value = 0xd0000 },
             { .description = "D800H",    .value = 0xd8000 },
             { .description = "E000H",    .value = 0xe0000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "revision",
-        .description = "BIOS Revision",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 19,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "revision",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 19,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "v1.7", .value =  5 },
             { .description = "v2.0", .value = 19 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd_nobios_config[] = {
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd_rll_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "translate",
-        .description = "Translate 26 -> 17",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "translate",
+        .description    = "Translate 26 -> 17",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Off", .value = 0 },
             { .description = "On",  .value = 1 },
             { .description = ""                }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd1004a_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd1004_rll_config[] = {
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xc8000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CA00H",    .value = 0xca000 },
             { .description = "CC00H",    .value = 0xcc000 },
             { .description = "CE00H",    .value = 0xce000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0320,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0320,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "320H", .value = 0x0320 },
             { .description = "324H", .value = 0x0324 },
             { .description = "328H", .value = 0x0328 },
             { .description = "32CH", .value = 0x032c },
             { .description = ""                      }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 5,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "IRQ 2", .value = 2 },
             { .description = "IRQ 5", .value = 5 },
             { .description = ""                  }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "translate",
-        .description = "Translate 26 -> 17",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "translate",
+        .description    = "Translate 26 -> 17",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Off", .value = 0 },
             { .description = "On",  .value = 1 },
             { .description = ""                }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -2258,7 +2278,7 @@ const device_t st506_xt_xebec_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = xebec_available },
+    .available     = xebec_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2272,7 +2292,7 @@ const device_t st506_xt_wdxt_gen_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wdxt_available },
+    .available     = wdxt_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2286,7 +2306,7 @@ const device_t st506_xt_dtc5150x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = dtc5150x_available },
+    .available     = dtc5150x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dtc_config
@@ -2300,7 +2320,7 @@ const device_t st506_xt_st11_m_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = st11_m_available },
+    .available     = st11_m_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = st11_config
@@ -2314,7 +2334,7 @@ const device_t st506_xt_st11_r_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = st11_r_available },
+    .available     = st11_r_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = st11_config
@@ -2328,7 +2348,7 @@ const device_t st506_xt_wd1002a_wx1_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1002a_wx1_available },
+    .available     = wd1002a_wx1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_config
@@ -2342,7 +2362,7 @@ const device_t st506_xt_wd1002a_wx1_nobios_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1002a_wx1_available },
+    .available     = wd1002a_wx1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_nobios_config
@@ -2356,7 +2376,7 @@ const device_t st506_xt_wd1002a_27x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1002a_27x_available },
+    .available     = wd1002a_27x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_rll_config
@@ -2370,7 +2390,7 @@ const device_t st506_xt_wd1004a_wx1_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1004a_wx1_available },
+    .available     = wd1004a_wx1_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd1004a_config
@@ -2384,7 +2404,7 @@ const device_t st506_xt_wd1004_27x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1004_27x_available },
+    .available     = wd1004_27x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd1004_rll_config
@@ -2398,7 +2418,7 @@ const device_t st506_xt_wd1004a_27x_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = wd1004a_27x_available },
+    .available     = wd1004a_27x_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_rll_config
@@ -2412,7 +2432,7 @@ const device_t st506_xt_victor_v86p_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = victor_v86p_available },
+    .available     = victor_v86p_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2426,7 +2446,7 @@ const device_t st506_xt_toshiba_t1200_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

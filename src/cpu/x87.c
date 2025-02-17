@@ -20,6 +20,7 @@
 #include "softfloat3e/config.h"
 #include "softfloat3e/fpu_trans.h"
 #include "softfloat3e/specialize.h"
+#include <86box/plat_unused.h>
 
 uint32_t x87_pc_off;
 uint32_t x87_op_off;
@@ -312,7 +313,7 @@ FPU_write_eflags_fpu_compare(int float_relation)
 }
 
 uint16_t
-FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
+FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
 {
     uint16_t status;
     uint16_t unmasked;

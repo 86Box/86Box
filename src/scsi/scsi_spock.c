@@ -1162,8 +1162,7 @@ spock_mca_reset(void *priv)
 static void *
 spock_init(const device_t *info)
 {
-    spock_t *scsi = malloc(sizeof(spock_t));
-    memset(scsi, 0x00, sizeof(spock_t));
+    spock_t *scsi = calloc(1, sizeof(spock_t));
 
     scsi->bus = scsi_get_bus();
 
@@ -1232,18 +1231,19 @@ spock_available(void)
 static const device_config_t spock_rom_config[] = {
   // clang-format off
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 1,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "1991 BIOS (>1GB)", .value = 1 },
             { .description = "1990 BIOS",        .value = 0 },
             { .description = ""                             }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1257,7 +1257,7 @@ const device_t spock_device = {
     .init          = spock_init,
     .close         = spock_close,
     .reset         = NULL,
-    { .available = spock_available },
+    .available     = spock_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = spock_rom_config
@@ -1271,7 +1271,7 @@ const device_t tribble_device = {
     .init          = spock_init,
     .close         = spock_close,
     .reset         = NULL,
-    { .available = spock_available },
+    .available     = spock_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = spock_rom_config

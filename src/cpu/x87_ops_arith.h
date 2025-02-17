@@ -1,5 +1,5 @@
 #define opFPU(name, optype, a_size, load_var, get, use_var, cycle_postfix)                                                                         \
-    static int opFADD##name##_a##a_size(uint32_t fetchdat)                                                                                         \
+    static int opFADD##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -18,7 +18,7 @@
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd##cycle_postfix) : ((x87_concurrency.fadd##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFCOM##name##_a##a_size(uint32_t fetchdat)                                                                                         \
+    static int opFCOM##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -27,13 +27,13 @@
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
-        cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                                         \
+        cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                    \
         cpu_state.npxs |= x87_compare(ST(0), (double) use_var);                                                                                    \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom##cycle_postfix) : ((x87_timings.fcom##cycle_postfix) * cpu_multi));           \
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fcom##cycle_postfix) : ((x87_concurrency.fcom##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFCOMP##name##_a##a_size(uint32_t fetchdat)                                                                                        \
+    static int opFCOMP##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -42,14 +42,14 @@
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
-        cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                                         \
+        cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                    \
         cpu_state.npxs |= x87_compare(ST(0), (double) use_var);                                                                                    \
         x87_pop();                                                                                                                                 \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom##cycle_postfix) : ((x87_timings.fcom##cycle_postfix) * cpu_multi));           \
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fcom##cycle_postfix) : ((x87_concurrency.fcom##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFDIV##name##_a##a_size(uint32_t fetchdat)                                                                                         \
+    static int opFDIV##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -64,7 +64,7 @@
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd##cycle_postfix) : ((x87_concurrency.fadd##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFDIVR##name##_a##a_size(uint32_t fetchdat)                                                                                        \
+    static int opFDIVR##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -79,7 +79,7 @@
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fdiv##cycle_postfix) : ((x87_concurrency.fdiv##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFMUL##name##_a##a_size(uint32_t fetchdat)                                                                                         \
+    static int opFMUL##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -94,7 +94,7 @@
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fmul##cycle_postfix) : ((x87_concurrency.fmul##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFSUB##name##_a##a_size(uint32_t fetchdat)                                                                                         \
+    static int opFSUB##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -109,7 +109,7 @@
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd##cycle_postfix) : ((x87_concurrency.fadd##cycle_postfix) * cpu_multi)); \
         return 0;                                                                                                                                  \
     }                                                                                                                                              \
-    static int opFSUBR##name##_a##a_size(uint32_t fetchdat)                                                                                        \
+    static int opFSUBR##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                        \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
         FP_ENTER();                                                                                                                                \
@@ -208,7 +208,7 @@ opFCOMP(uint32_t fetchdat)
 }
 
 static int
-opFCOMPP(uint32_t fetchdat)
+opFCOMPP(UNUSED(uint32_t fetchdat))
 {
     uint64_t *p, *q;
     FP_ENTER();
@@ -229,7 +229,7 @@ opFCOMPP(uint32_t fetchdat)
 }
 #ifndef FPU_8087
 static int
-opFUCOMPP(uint32_t fetchdat)
+opFUCOMPP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;

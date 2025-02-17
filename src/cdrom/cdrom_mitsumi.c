@@ -459,12 +459,12 @@ mitsumi_cdrom_close(void *priv)
 const device_t mitsumi_cdrom_device = {
     .name          = "Mitsumi CD-ROM interface",
     .internal_name = "mcd",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 1,
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
     .init          = mitsumi_cdrom_init,
     .close         = mitsumi_cdrom_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

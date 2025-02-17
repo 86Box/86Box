@@ -19,7 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <86box/bswap.h>
+//#include <86box/bswap.h>
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/machine.h>
@@ -41,7 +41,7 @@
 #define XGA2_BIOS_PATH      "roms/video/xga/xga2_v300.bin"
 #define INMOS_XGA_BIOS_PATH "roms/video/xga/InMOS XGA - Fairchild NM27C256Q-150.BIN"
 
-static video_timings_t timing_xga_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
+static video_timings_t timing_xga_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l =  6, .read_b = 5, .read_w = 5, .read_l = 10 };
 static video_timings_t timing_xga_mca = { .type = VIDEO_MCA, .write_b = 4, .write_w = 5, .write_l = 10, .read_b = 5, .read_w = 5, .read_l = 10 };
 
 static void    xga_ext_outb(uint16_t addr, uint8_t val, void *priv);
@@ -856,18 +856,18 @@ xga_ext_inb(uint16_t addr, void *priv)
     return ret;
 }
 
-#define READ(addr, dat) \
+#define READ(addr, dat)                         \
     dat = xga->vram[(addr) & (xga->vram_mask)];
 
-#define WRITE(addr, dat)                                         \
-    xga->vram[((addr)) & (xga->vram_mask)]                = dat; \
+#define WRITE(addr, dat)                                                                         \
+    xga->vram[((addr)) & (xga->vram_mask)]                = dat;                                 \
     xga->changedvram[(((addr)) & (xga->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;
 
-#define READW(addr, dat) \
+#define READW(addr, dat)                                       \
     dat = *(uint16_t *) &xga->vram[(addr) & (xga->vram_mask)];
 
-#define WRITEW(addr, dat)                                        \
-    *(uint16_t *) &xga->vram[((addr)) & (xga->vram_mask)] = dat; \
+#define WRITEW(addr, dat)                                                                        \
+    *(uint16_t *) &xga->vram[((addr)) & (xga->vram_mask)] = dat;                                 \
     xga->changedvram[(((addr)) & (xga->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;
 
 #define ROP(mix, d, s)                                                                 \
@@ -928,7 +928,7 @@ xga_ext_inb(uint16_t addr, void *priv)
                 d = MIN(s, d);                                                         \
                 break;                                                                 \
             case 0x12:                                                                 \
-                d = MIN(~0, s + d);                                                  \
+                d = MIN(~0, s + d);                                                    \
                 break;                                                                 \
             case 0x13:                                                                 \
                 d = MAX(0, d - s);                                                     \
@@ -1504,7 +1504,7 @@ xga_bitblt(svga_t *svga)
     uint32_t old_dest_dat;
     uint32_t color_cmp  = xga->accel.color_cmp;
     uint32_t plane_mask = xga->accel.plane_mask;
-    uint32_t patbase    = xga->accel.px_map_base[xga->accel.pat_src];
+    uint32_t patbase;
     uint32_t dstbase    = xga->accel.px_map_base[xga->accel.dst_map];
     uint32_t srcbase    = xga->accel.px_map_base[xga->accel.src_map];
     uint32_t patwidth   = xga->accel.px_map_width[xga->accel.pat_src];
@@ -1632,6 +1632,8 @@ xga_bitblt(svga_t *svga)
             }
         }
     } else if (xga->accel.pat_src >= 1) {
+        patbase    = xga->accel.px_map_base[xga->accel.pat_src];
+
         if (patheight == 7) {
             if (xga->accel.src_map != 1)
                 xga->accel.pattern = 1;
@@ -1741,6 +1743,8 @@ xga_bitblt(svga_t *svga)
                 }
             }
         } else {
+            patbase    = xga->accel.px_map_base[xga->accel.pat_src];
+
             while (xga->accel.y >= 0) {
                 mix = xga_accel_read_pattern_map_pixel(svga, xga->accel.px, xga->accel.py, patbase, patwidth + 1);
 
@@ -3656,24 +3660,19 @@ xga_force_redraw(void *priv)
 static const device_config_t xga_mca_configuration[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "XGA type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "XGA-1",
-                .value = 0
-            },
-            {
-                .description = "XGA-2",
-                .value = 1
-            },
-            { .description = "" }
-        }
+        .name           = "type",
+        .description    = "XGA type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "XGA-1", .value = 0 },
+            { .description = "XGA-2", .value = 1 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -3682,34 +3681,29 @@ static const device_config_t xga_mca_configuration[] = {
 static const device_config_t xga_isa_configuration[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "XGA type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "XGA-1",
-                .value = 0
-            },
-            {
-                .description = "XGA-2",
-                .value = 1
-            },
-            { .description = "" }
-        }
+        .name           = "type",
+        .description    = "XGA type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "XGA-1", .value = 0 },
+            { .description = "XGA-2", .value = 1 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "instance",
-        .description = "Instance",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 6,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "instance",
+        .description    = "Instance",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 6,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "0 (2100h-210Fh)", .value = 0 },
             { .description = "1 (2110h-211Fh)", .value = 1 },
             { .description = "2 (2120h-212Fh)", .value = 2 },
@@ -3718,18 +3712,19 @@ static const device_config_t xga_isa_configuration[] = {
             { .description = "5 (2150h-215Fh)", .value = 5 },
             { .description = "6 (2160h-216Fh)", .value = 6 },
             { .description = "7 (2170h-217Fh)", .value = 7 },
-            { .description = ""                      }
+            { .description = ""                            }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "ext_mem_addr",
-        .description = "MMIO Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x00f0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "ext_mem_addr",
+        .description    = "MMIO Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x00f0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "C800h", .value = 0x0040 },
             { .description = "CA00h", .value = 0x0050 },
             { .description = "CC00h", .value = 0x0060 },
@@ -3742,23 +3737,25 @@ static const device_config_t xga_isa_configuration[] = {
             { .description = "DA00h", .value = 0x00d0 },
             { .description = "DC00h", .value = 0x00e0 },
             { .description = "DE00h", .value = 0x00f0 },
-            { .description = ""                      }
+            { .description = ""                       }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0 },
-            { .description = "DMA 6", .value = 6 },
-            { .description = "DMA 7", .value = 7 },
-            { .description = ""                  }
+            { .description = "DMA 6",    .value = 6 },
+            { .description = "DMA 7",    .value = 7 },
+            { .description = ""                     }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -3767,39 +3764,35 @@ static const device_config_t xga_isa_configuration[] = {
 static const device_config_t xga_inmos_isa_configuration[] = {
   // clang-format off
     {
-        .name = "type",
-        .description = "XGA type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "XGA-1",
-                .value = 0
-            },
-            {
-                .description = "XGA-2",
-                .value = 1
-            },
-            { .description = "" }
-        }
-    },
-    {
-        .name = "dma",
-        .description = "DMA",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            { .description = "Disabled", .value = 0 },
-            { .description = "DMA 6", .value = 6 },
-            { .description = "DMA 7", .value = 7 },
+        .name           = "type",
+        .description    = "XGA type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "XGA-1", .value = 0 },
+            { .description = "XGA-2", .value = 1 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0 },
+            { .description = "DMA 6",    .value = 6 },
+            { .description = "DMA 7",    .value = 7 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -3813,7 +3806,7 @@ const device_t xga_device = {
     .init          = xga_init,
     .close         = xga_close,
     .reset         = xga_reset,
-    { .available = xga_available },
+    .available     = xga_available,
     .speed_changed = xga_speed_changed,
     .force_redraw  = xga_force_redraw,
     .config        = xga_mca_configuration
@@ -3822,12 +3815,12 @@ const device_t xga_device = {
 const device_t xga_isa_device = {
     .name          = "XGA (ISA)",
     .internal_name = "xga_isa",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = xga_init,
     .close         = xga_close,
     .reset         = xga_reset,
-    { .available = xga_available },
+    .available     = xga_available,
     .speed_changed = xga_speed_changed,
     .force_redraw  = xga_force_redraw,
     .config        = xga_isa_configuration
@@ -3836,12 +3829,12 @@ const device_t xga_isa_device = {
 const device_t inmos_isa_device = {
     .name          = "INMOS XGA (ISA)",
     .internal_name = "inmos_xga_isa",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = svga_xga_init,
     .close         = xga_close,
     .reset         = xga_reset,
-    { .available = inmos_xga_available },
+    .available     = inmos_xga_available,
     .speed_changed = xga_speed_changed,
     .force_redraw  = xga_force_redraw,
     .config        = xga_inmos_isa_configuration

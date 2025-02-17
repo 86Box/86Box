@@ -45,11 +45,13 @@ machine_status_init(void)
         machine_status.mo[i].active = false;
     }
 
+    for (size_t i = 0; i < 2; i++)
+        machine_status.cartridge[i].empty  = (strlen(cart_fns[i]) == 0);
+
     machine_status.cassette.empty = (strlen(cassette_fname) == 0);
 
-    for (size_t i = 0; i < HDD_BUS_USB; i++) {
+    for (size_t i = 0; i < HDD_BUS_USB; i++)
         machine_status.hdd[i].active = false;
-    }
 
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
         machine_status.net[i].active = false;

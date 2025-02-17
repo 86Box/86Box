@@ -634,41 +634,34 @@ const device_config_t ogc_m24_config[] = {
   // clang-format off
     {
         /* Olivetti / ATT compatible displays */
-        .name = "rgb_type",
-        .description = "RGB type",
-        .type = CONFIG_SELECTION,
-        .default_int = CGA_RGB,
-        .selection = {
-            {
-                .description = "Color",
-                .value = 0
-            },
-            {
-                .description = "Green Monochrome",
-                .value = 1
-            },
-            {
-                .description = "Amber Monochrome",
-                .value = 2
-            },
-            {
-                .description = "Gray Monochrome",
-                .value = 3
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "rgb_type",
+        .description    = "RGB type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CGA_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Color",            .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = ""                             }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_int = 1,
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -680,7 +673,7 @@ const device_t ogc_m24_device = {
     .init          = ogc_init,
     .close         = ogc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ogc_speed_changed,
     .force_redraw  = NULL,
     .config        = ogc_m24_config
@@ -694,7 +687,7 @@ const device_t ogc_device = {
     .init          = ogc_init,
     .close         = ogc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ogc_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config

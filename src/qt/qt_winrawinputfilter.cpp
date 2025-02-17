@@ -34,15 +34,27 @@
 #include "qt_winrawinputfilter.hpp"
 
 #include <QMenuBar>
+#include <QFile>
+#include <QTextStream>
+#include <QApplication>
+#include <QTimer>
 
 #include <atomic>
 
 #include <windows.h>
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/video.h>
+#include <dbt.h>
+#include <strsafe.h>
 
 extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 
@@ -50,6 +62,35 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include <memory>
 
 #include "qt_rendererstack.hpp"
+#include "ui_qt_mainwindow.h"
+
+bool windows_is_light_theme() {
+    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
+
+    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
+    auto buffer = std::vector<char>(4);
+    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
+    auto res = RegGetValueW(
+        HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        L"AppsUseLightTheme",
+        RRF_RT_REG_DWORD, // expected value type
+        nullptr,
+        buffer.data(),
+        &cbData);
+
+    if (res != ERROR_SUCCESS) {
+        return 1;
+    }
+
+    // convert bytes written to our buffer to an int, assuming little-endian
+    auto i = int(buffer[3] << 24 |
+        buffer[2] << 16 |
+        buffer[1] << 8 |
+        buffer[0]);
+
+    return i == 1;
+}
 
 extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
@@ -113,34 +154,142 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
         RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
 }
 
+static void
+notify_drives(ULONG unitmask, int empty)
+{
+    char p[1024] = { 0 };
+
+    for (int i = 0; i < 26; ++i) {
+        if (unitmask & 0x1) {
+            cdrom_t *dev = NULL;
+
+            sprintf(p, "ioctl://\\\\.\\%c:", 'A' + i);
+
+            for (int i = 0; i < CDROM_NUM; i++)
+                if (!stricmp(cdrom[i].image_path, p)) {
+                    dev = &(cdrom[i]);
+                    if (empty)
+                        cdrom_set_empty(dev);
+                    else
+                        cdrom_update_status(dev);
+                    // pclog("CD-ROM %i      : Drive notified of media %s\n",
+                          // dev->id, empty ? "removal" : "change");
+                }
+        }
+
+        unitmask = unitmask >> 1;
+    }
+}
+
+static void
+device_change(WPARAM wParam, LPARAM lParam)
+{
+    PDEV_BROADCAST_HDR lpdb      = (PDEV_BROADCAST_HDR) lParam;
+
+    switch(wParam) {
+        case DBT_DEVICEARRIVAL:
+        case DBT_DEVICEREMOVECOMPLETE:
+            /* Check whether a CD or DVD was inserted into a drive. */
+            if (lpdb->dbch_devicetype == DBT_DEVTYP_VOLUME) {
+                PDEV_BROADCAST_VOLUME lpdbv = (PDEV_BROADCAST_VOLUME) lpdb;
+
+                if (lpdbv->dbcv_flags & DBTF_MEDIA)
+                    notify_drives(lpdbv->dbcv_unitmask,
+                                  (wParam == DBT_DEVICEREMOVECOMPLETE));
+            }
+            break;
+
+        default:
+            /*
+               Process other WM_DEVICECHANGE notifications for other 
+               devices or reasons.
+             */ 
+            break;
+    }
+}
+
 bool
 WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
     if (eventType == "windows_generic_MSG") {
         MSG *msg = static_cast<MSG *>(message);
 
-        if (msg->message == WM_INPUT) {
-
-            if (window->isActiveWindow() && menus_open == 0)
-                handle_input((HRAWINPUT) msg->lParam);
-            else
-            {
-                for (auto &w : window->renderers) {
-                    if (w && w->isActiveWindow()) {
-                        handle_input((HRAWINPUT) msg->lParam);
-                        break;
+        if (msg != nullptr)  switch(msg->message) {
+            case WM_INPUT:
+                if (window->isActiveWindow() && (menus_open == 0))
+                    handle_input((HRAWINPUT) msg->lParam);
+                else {
+                    for (auto &w : window->renderers) {
+                        if (w && w->isActiveWindow()) {
+                            handle_input((HRAWINPUT) msg->lParam);
+                            break;
+                        }
                     }
                 }
-            }
-
-            return true;
-        }
-
-        /* Stop processing of Alt-F4 */
-        if (msg->message == WM_SYSKEYDOWN) {
-            if (msg->wParam == 0x73) {
                 return true;
-            }
+            case WM_SETTINGCHANGE:
+                if ((((void *) msg->lParam) != nullptr) &&
+                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
+
+                    if (!windows_is_light_theme()) {
+                        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+                        if (!f.exists())
+                            printf("Unable to set stylesheet, file not found\n");
+                        else {
+                            f.open(QFile::ReadOnly | QFile::Text);
+                            QTextStream ts(&f);
+                           qApp->setStyleSheet(ts.readAll());
+                        }
+                        QTimer::singleShot(1000, [this] () {
+                            BOOL DarkMode  = TRUE;
+                            auto vid_stack = (RendererStack::Renderer) vid_api;
+                            DwmSetWindowAttribute((HWND) window->winId(),
+                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                                  (LPCVOID) &DarkMode,
+                                                  sizeof(DarkMode));
+                            window->ui->stackedWidget->switchRenderer(vid_stack);
+                            for (int i = 1; i < MONITORS_NUM; i++) {
+                                if ((window->renderers[i] != nullptr) &&
+                                    !window->renderers[i]->isHidden())
+                                    window->renderers[i]->switchRenderer(vid_stack);
+                            }
+                        });
+                    } else {
+                        qApp->setStyleSheet("");
+                        QTimer::singleShot(1000, [this] () {
+                            BOOL DarkMode = FALSE;
+                            DwmSetWindowAttribute((HWND) window->winId(),
+                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                                  (LPCVOID) &DarkMode,
+                                                  sizeof(DarkMode));
+                        });
+                    }
+
+                    QTimer::singleShot(1000, [this] () {
+                        window->resizeContents(monitors[0].mon_scrnsz_x,
+                                               monitors[0].mon_scrnsz_y);
+                        for (int i = 1; i < MONITORS_NUM; i++) {
+                            auto           mon = &(monitors[i]);
+
+                            if ((window->renderers[i] != nullptr) &&
+                                !window->renderers[i]->isHidden())
+                                window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                                              mon->mon_scrnsz_y,
+                                                              i);
+                        }
+                    });
+                }
+                break;
+            case WM_SYSKEYDOWN:
+                /* Stop processing of Alt-F4 */
+                if (msg->wParam == 0x73)
+                    return true;
+                break;
+            case WM_DEVICECHANGE:
+                if (msg->hwnd == (HWND) window->winId())
+                    device_change(msg->wParam, msg->lParam);
+                break;
         }
     }
 
