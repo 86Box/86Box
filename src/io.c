@@ -30,7 +30,6 @@
 #include "cpu.h"
 #include <86box/m_amstrad.h>
 #include <86box/pci.h>
-#include <86box/mem.h>
 
 #define NPORTS 65536 /* PC/AT supports 64K ports */
 
@@ -60,7 +59,6 @@ int   initialized = 0;
 io_t *io[NPORTS];
 io_t *io_last[NPORTS];
 
-// #define ENABLE_IO_LOG 1
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
 
@@ -71,26 +69,13 @@ io_log(const char *fmt, ...)
 
     if (io_do_log) {
         va_start(ap, fmt);
-        if (CS == 0xf000)
-            pclog_ex(fmt, ap);
+        pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
 #    define io_log(fmt, ...)
 #endif
-
-uint16_t last_port_read = 0xffff;
-
-static void
-print_lpr(void)
-{
-    FILE *f = fopen("d:\\86boxnew\\ndiags.dmp", "wb");
-    fwrite(&(ram[0x24c30]), 1, 65536, f);
-    fclose(f);
-
-    pclog("last_port_read = %04X\n", last_port_read);
-}
 
 void
 io_init(void)
@@ -121,8 +106,6 @@ io_init(void)
         /* io[c] should be NULL. */
         io[c] = io_last[c] = NULL;
     }
-
-    atexit(print_lpr);
 }
 
 void
@@ -350,11 +333,6 @@ io_debug_check_addr(uint16_t addr)
 }
 #endif
 
-#include <86box/random.h>
-
-uint8_t post_code = 0xc6;
-uint8_t action = 0x00;
-
 uint8_t
 inb(uint16_t port)
 {
@@ -415,33 +393,7 @@ inb(uint16_t port)
         ret = 0xfe;
 #endif
 
-#if 0
-    if (port == 0x5f7)
-        ret = 0xaf;
-#endif
-
-    if (port == 0x379)
-        ret &= 0xf8;
-
-    // io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-
-    // if (CS == 0xc000)
-        // pclog("[%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
-
-    // if (port == 0x62)
-        // ret = 0xf2;
-
-    // if (port == 0x62)
-        // ret |= random_generate() & 0x80;
-
-    // if ((port >= 0x60) && (port <= 0x66))
-        // pclog("[%04X:%04X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
-
-    if ((port != 0x0061) && (port != 0x0177) && (port != 0x01f7) && (port != 0x0376) && (port != 0x03c7) && (port != 0x03c8) && (port != 0x03c9) && (port != 0x03f6) && (port != 0x03da)) {
-        io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-    }
-
-    last_port_read = port;
+    io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -495,20 +447,7 @@ outb(uint16_t port, uint8_t val)
 #endif
     }
 
-    // io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-
-    if (port == 0x0068)
-        action = val;
-
-    if (port == 0x0080)
-        post_code = val;
-
-    // if (port == 0x3db)
-        // pclog("[%04X:%04X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
-
-    if ((port != 0x0061) && (port != 0x00ed) && (port != 0x03c7) && (port != 0x03c8) && (port != 0x03c9)) {
-        io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -586,9 +525,7 @@ inw(uint16_t port)
     if (!found)
         cycles -= io_delay;
 
-    if (1) {
-        io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -657,21 +594,7 @@ outw(uint16_t port, uint16_t val)
 #endif
     }
 
-    if (port == 0x0080)
-        post_code = val;
-
-#if 0
-    if (port == 0x0c02) {
-        if (val)
-            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        else
-            mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    }
-#endif
-
-    if (1) {
-        io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -781,9 +704,7 @@ inl(uint16_t port)
     if (!found)
         cycles -= io_delay;
 
-    if (1) {
-        io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -870,9 +791,7 @@ outl(uint16_t port, uint32_t val)
 #endif
     }
 
-    if (1) {
-        io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -882,7 +801,6 @@ io_trap_readb(uint16_t addr, void *priv)
 {
     io_trap_t *trap = (io_trap_t *) priv;
     trap->func(1, addr, 0, 0, trap->priv);
-    pclog("[%04X:%08X] io_trap_readb(%04X)\n", CS, cpu_state.pc, addr);
     return 0xff;
 }
 
@@ -891,7 +809,6 @@ io_trap_readw(uint16_t addr, void *priv)
 {
     io_trap_t *trap = (io_trap_t *) priv;
     trap->func(2, addr, 0, 0, trap->priv);
-    pclog("[%04X:%08X] io_trap_readw(%04X)\n", CS, cpu_state.pc, addr);
     return 0xffff;
 }
 
@@ -900,7 +817,6 @@ io_trap_readl(uint16_t addr, void *priv)
 {
     io_trap_t *trap = (io_trap_t *) priv;
     trap->func(4, addr, 0, 0, trap->priv);
-    pclog("[%04X:%08X] io_trap_readl(%04X)\n", CS, cpu_state.pc, addr);
     return 0xffffffff;
 }
 
@@ -909,7 +825,6 @@ io_trap_writeb(uint16_t addr, uint8_t val, void *priv)
 {
     io_trap_t *trap = (io_trap_t *) priv;
     trap->func(1, addr, 1, val, trap->priv);
-    pclog("[%04X:%08X] io_trap_writeb(%04X)\n", CS, cpu_state.pc, addr);
 }
 
 static void
@@ -917,7 +832,6 @@ io_trap_writew(uint16_t addr, uint16_t val, void *priv)
 {
     io_trap_t *trap = (io_trap_t *) priv;
     trap->func(2, addr, 1, val, trap->priv);
-    pclog("[%04X:%08X] io_trap_writew(%04X)\n", CS, cpu_state.pc, addr);
 }
 
 static void
@@ -925,7 +839,6 @@ io_trap_writel(uint16_t addr, uint32_t val, void *priv)
 {
     io_trap_t *trap = (io_trap_t *) priv;
     trap->func(4, addr, 1, val, trap->priv);
-    pclog("[%04X:%08X] io_trap_writel(%04X)\n", CS, cpu_state.pc, addr);
 }
 
 void *
@@ -972,9 +885,6 @@ io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size)
                       io_trap_writeb, io_trap_writew, io_trap_writel,
                       trap);
     }
-
-    if ((addr == 0x0170) || (addr == 0x0376) || (addr == 0x01f0) || (addr == 0x03f6))
-        pclog("io_trap_remape(%04X) = %i\n", addr, trap->enable);
 }
 
 void
