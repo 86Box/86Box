@@ -96,9 +96,9 @@
      [Japanese DOS and Display Adapter compatibility]
     | POS ID     | Adapter Name                | K3.31 | J4.04 | J4.08 | OS2 J1.3 | Win3 |
     |------------|-----------------------------|:-----:|:-----:|:-----:|:--------:|:----:|
-    | EFFFh      | Display Adapter             | X     |       |       | ?        |      |
-    | FFEDh      | ? [Atlas EVT]               | X     |       |       | ?        |      |
-    | FFFDh      | ? [LDT EVT]                 | X     |       |       | ?        |      |
+    | EFFFh      | Display Adapter             | X     |       |       |          |      |
+    | FFEDh      | ? [Atlas EVT]               | X     |       |       |          |      |
+    | FFFDh      | ? [LDT EVT]                 | X     |       |       |          |      |
     | EFFEh      | Display Adapter II,III,V,B2 | X     | X     | X     | X        | X    |
     | E013h      | ? [LDT]                     | X     | X     | X     | X        |      |
     | ECCEh      | Display Adapter IV          |       | X     | X     | X        |      |
@@ -1308,7 +1308,7 @@ da2_in(uint16_t addr, void *p)
                 //     da2_bitblt_dopayload(da2);
                 if (da2->bitblt.exec != DA2_BLT_CIDLE) {
                     // da2_log("exec:%x\n", da2->bitblt.exec);
-                    temp |= 0x01; // wait(bit 3 + bit 0)
+                    temp |= 0x01; /* wait (bit 3 + bit 0) ? need verify */
                     // if (!da2->bitblt.timer.enabled)
                     //{
                     //     da2_log("bitblt timer restarted!! %04X:%04X\n", cs >> 4, cpu_state.pc);
