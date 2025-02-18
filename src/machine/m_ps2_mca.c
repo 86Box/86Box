@@ -1890,7 +1890,11 @@ machine_ps55_model_50t_init(const machine_t* model)
     * Planar ID
     * FFFAh - PS/55 model 5551-S0x, T0x (stage 1?)
     * FFEEh - PS/55 model 5551-S1x, T1x (stage 2?)
-    * POST (P/N 38F6933) determination: FBxx -> 4 slots (error), xxEE -> 5 slots (ok), others -> 8 (error)
+    * Verification in BIOS P/N 38F6933: FBxx -> 4 slots (error), xxEE -> 5 slots (ok), others -> 8 (error)
+    * 
+    * The only difference between S and T models is the CPU speed (16 MHz vs 20 MHz).
+    * The POST measures the speed, and sets a flag in the BIOS Data Area to indicate the sub model.
+    * The VM in 86Box runs faster than the real, so the POST always determines it as the T model.
     */
     ps2.planar_id = 0xffee;
     ps55_mca_board_model_50t_init();
