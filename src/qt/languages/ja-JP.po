@@ -2129,3 +2129,9 @@ msgstr "汎用PC/XTメモリ拡張カード"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "汎用PC/ATメモリ拡張カード"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "ドットマトリクスフォントが見つかりません"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "汎用ESC/Pドットマトリクスプリンタのエミュレーションには、roms/printer/fontsディレクトリ内のTrueTypeフォントが必要です。"

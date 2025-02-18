@@ -4595,7 +4595,7 @@ mach64gx_init(const device_t *info)
 {
     mach64_t *mach64 = mach64_common_init(info);
 
-    if (info->flags & DEVICE_ISA)
+    if (info->flags & DEVICE_ISA16)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_isa);
     else if (info->flags & DEVICE_PCI)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
@@ -4617,7 +4617,7 @@ mach64gx_init(const device_t *info)
         mach64->config_stat0 |= 6; /*VLB, 256Kx16 DRAM*/
         ati_eeprom_load(&mach64->eeprom, "mach64_vlb.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-    } else if (info->flags & DEVICE_ISA) {
+    } else if (info->flags & DEVICE_ISA16) {
         mach64->config_stat0 |= 0; /*ISA 16-bit, 256k16 DRAM*/
         ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);

@@ -4382,7 +4382,7 @@ gd54xx_init(const device_t *info)
         rom_init_interleaved(&gd54xx->bios_rom, BIOS_GD5428_BOCA_ISA_PATH_1, BIOS_GD5428_BOCA_ISA_PATH_2, 0xc0000,
                              0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    if (info->flags & DEVICE_ISA)
+    if ((info->flags & DEVICE_ISA) || (info->flags & DEVICE_ISA16))
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
     else if (info->flags & DEVICE_PCI)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_pci);
