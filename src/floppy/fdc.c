@@ -740,7 +740,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 drive = real_drive(fdc, fdc->dor & 3);
                 fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
             }
-            /* Bit 2: FIFO test mode (PS/55 only? This is not documented in neither the PS/2 HITR nor the 82077AA datasheet.) 
+            /* Bit 2: FIFO test mode (PS/55 5550-S,T only. Undocumented) 
                The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
                If it fails, then floppy drives will be treated as DD drives. */
             if (fdc->flags & FDC_FLAG_PS2_MCA) {

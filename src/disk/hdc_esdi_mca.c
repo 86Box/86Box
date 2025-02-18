@@ -1471,16 +1471,28 @@ static device_config_t
           { .type = -1 }
 };
 
+/*
+Device for an IBM DBA (Direct Bus Attachment) hard disk.
+The Disk BIOS is included in the System ROM.
+Some models have an exclusive channel slot for the DBA hard disk.
+Following IBM machines are supported:
+  * PS/2 model 55SX
+  * PS/2 model 65SX
+  * PS/2 model 70 type 3 (Slot #4)
+  * PS/2 model 70 type 4 (Slot #4)
+  * PS/55 model 5550-T (Slot #5)
+  * PS/55 model 5550-V (Slot #5)
+*/
 const device_t
 esdi_integrated_device = {
-    .name = "IBM Integrated Fixed Disk Controller (MCA)",
+    .name = "IBM Integrated Fixed Disk and Controller (MCA)",
     .internal_name = "esdi_integrated_mca",
     .flags = DEVICE_MCA,
     .local = ESDI_IS_INTEGRATED,
     .init = esdi_init,
     .close = esdi_close,
     .reset = esdi_reset,
-    .available = NULL, /* The Disk BIOS is included in the System ROM */
+    .available = NULL,
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = esdi_integrated_config
