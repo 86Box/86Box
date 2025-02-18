@@ -1287,9 +1287,9 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
             acpi_set_nvr(dev->sis->acpi, dev->nvr);
 
             /* Set up the NVR file's name. */
-            c       = strlen(machine_get_internal_name()) + 9;
+            c       = strlen(machine_get_nvr_name()) + 9;
             dev->fn = (char *) malloc(c + 1);
-            sprintf(dev->fn, "%s_apc.nvr", machine_get_internal_name());
+            sprintf(dev->fn, "%s_apc.nvr", machine_get_nvr_name());
 
             fp = nvr_fopen(dev->fn, "rb");
 

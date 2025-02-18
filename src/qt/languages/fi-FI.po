@@ -2129,3 +2129,9 @@ msgstr "Yleinen PC/XT-muistilaajennus"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Yleinen PC/AT-muistilaajennus"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Pistematriisifontteja ei löydy"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "TrueType-fontteja kansiossa \"roms/printer/fonts\"-hakemistoon yleinen ESC/P pistematriisitulostin emulointiin."

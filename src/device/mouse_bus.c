@@ -680,6 +680,8 @@ bm_init(const device_t *info)
 
     mouse_set_sample_rate(0.0);
 
+    mouse_set_poll(bm_poll, dev);
+
     return dev;
 }
 
@@ -818,7 +820,7 @@ const device_t mouse_logibus_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    .poll          = bm_poll,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = lt_config
@@ -832,7 +834,7 @@ const device_t mouse_logibus_onboard_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    .poll          = bm_poll,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -846,7 +848,7 @@ const device_t mouse_msinport_device = {
     .init          = bm_init,
     .close         = bm_close,
     .reset         = NULL,
-    .poll          = bm_poll,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ms_config

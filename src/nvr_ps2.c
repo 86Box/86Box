@@ -122,9 +122,9 @@ ps2_nvr_init(const device_t *info)
         nvr->size = 8192;
 
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_internal_name()) + 9;
+    c       = strlen(machine_get_nvr_name()) + 9;
     nvr->fn = (char *) malloc(c + 1);
-    sprintf(nvr->fn, "%s_sec.nvr", machine_get_internal_name());
+    sprintf(nvr->fn, "%s_sec.nvr", machine_get_nvr_name());
 
     io_sethandler(0x0074, 3,
                   ps2_nvr_read, NULL, NULL, ps2_nvr_write, NULL, NULL, nvr);

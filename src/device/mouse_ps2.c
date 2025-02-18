@@ -352,6 +352,8 @@ mouse_ps2_init(const device_t *info)
     if (dev->port != NULL)
         kbc_at_dev_reset(dev, 0);
 
+    mouse_set_poll(ps2_poll, dev);
+
     /* Return our private data to the I/O layer. */
     return dev;
 }
@@ -392,12 +394,12 @@ static const device_config_t ps2_config[] = {
 const device_t mouse_ps2_device = {
     .name          = "PS/2 Mouse",
     .internal_name = "ps2",
-    .flags         = DEVICE_PS2,
+    .flags         = DEVICE_PS2_KBC,
     .local         = MOUSE_TYPE_PS2,
     .init          = mouse_ps2_init,
     .close         = ps2_close,
     .reset         = NULL,
-    .poll          = ps2_poll,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ps2_config

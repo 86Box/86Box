@@ -507,7 +507,7 @@ sst_init(const device_t *info)
     FILE  *fp;
     sst_t *dev = calloc(1, sizeof(sst_t));
 
-    sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
+    sprintf(flash_path, "%s.bin", machine_get_nvr_name_ex(machine));
 
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);

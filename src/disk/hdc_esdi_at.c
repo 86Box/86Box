@@ -984,7 +984,7 @@ wd1007vse1_available(void)
 const device_t esdi_at_wd1007vse1_device = {
     .name          = "Western Digital WD1007V-SE1 (ESDI)",
     .internal_name = "esdi_at",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = wd1007vse1_init,
     .close         = wd1007vse1_close,

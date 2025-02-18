@@ -4688,7 +4688,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 8192,
@@ -8257,8 +8257,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
@@ -8337,8 +8337,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 261120,
@@ -8539,8 +8539,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI | MACHINE_BUS_PS2_LATCH,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
@@ -9198,8 +9198,8 @@ const machine_t machines[] = {
             .min_multi = MACHINE_MULTIPLIER_FIXED,
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
-        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
-        .flags = MACHINE_APM,
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_PS2_KBC | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 196608,
@@ -9762,7 +9762,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3520,
@@ -9802,7 +9802,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3520,
@@ -9843,7 +9843,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -10087,7 +10087,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -10741,7 +10741,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -10824,7 +10824,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -10908,7 +10908,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -10989,7 +10989,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -11236,7 +11236,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
@@ -11245,7 +11245,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -11260,7 +11260,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
         .net_device = NULL
     },
 
@@ -11647,7 +11647,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -11687,7 +11688,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -11727,7 +11729,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -11767,7 +11770,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -11850,7 +11854,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -12177,7 +12182,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2500,
@@ -12299,7 +12305,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2200,
@@ -12308,7 +12315,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -12323,7 +12330,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
         .net_device = NULL
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
@@ -12382,7 +12389,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -12668,7 +12676,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 60000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -12709,7 +12718,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 60000000,
             .max_bus = 66666667,
             .min_voltage = 2800,
@@ -15268,7 +15278,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SLOT1,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_PENTIUMPRO),
             .min_bus = 66666667,
             .max_bus = 150000000,
             .min_voltage = 1300,
@@ -16153,7 +16163,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SLOT1,
-            .block = CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S),
+            .block = CPU_BLOCK(CPU_PENTIUMPRO, CPU_PENTIUM2, CPU_CYRIX3S),
             .min_bus = 0,
             .max_bus = 66666667,
             .min_voltage = 0,
@@ -16497,19 +16507,39 @@ machine_get_nvrmask(int m)
 int
 machine_has_flags(int m, int flags)
 {
-    return (machines[m].flags & flags);
+    int ret = machines[m].flags & flags;
+
+    /* Can't have PS/2 ports with an AT KBC. */
+    if ((flags & MACHINE_PS2_KBC) &&
+        (machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_PS2_KBC;
+
+    return ret;
 }
 
 int
 machine_has_bus(int m, int bus_flags)
 {
-    return (machines[m].bus_flags & bus_flags);
+    int ret = machines[m].bus_flags & bus_flags;
+
+    /* TODO: Move the KBD flags to the machine table! */
+    if ((bus_flags & MACHINE_BUS_XT_KBD) &&
+        !(machines[m].bus_flags & MACHINE_BUS_ISA16) &&
+        !(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_BUS_XT_KBD;
+
+    if ((bus_flags & MACHINE_BUS_AT_KBD) &&
+        (IS_AT(m)) &&
+        !(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_BUS_AT_KBD;
+
+    return ret;
 }
 
 int
 machine_has_cartridge(int m)
 {
-    return (machine_has_bus(m, MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 int
@@ -16564,4 +16594,27 @@ int
 machine_is_sony(void)
 {
     return (!strcmp(machines[machine].internal_name, "pcv90"));
+}
+
+const char *
+machine_get_nvr_name_ex(int m)
+{
+    const char     *ret = machines[m].internal_name;
+    const device_t *dev = machine_get_device(m);
+
+    if (dev != NULL) {
+        device_context(dev);
+        const char *bios = device_get_config_string("bios");
+        if ((bios != NULL) && (strcmp(bios, "") != 0))
+            ret = bios;
+        device_context_restore();
+    }
+
+    return ret;
+}
+
+const char *
+machine_get_nvr_name(void)
+{
+    return machine_get_nvr_name_ex(machine);
 }

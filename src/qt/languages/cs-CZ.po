@@ -2129,3 +2129,9 @@ msgstr "Obecné rozšíření paměti PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Nastala chyba při nachození jehličkových písem"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Pro emulaci obecné jehličkové tiskárny ESC/P jsou vyžadována písma TrueType ve složce \"roms/printer/fonts\"."

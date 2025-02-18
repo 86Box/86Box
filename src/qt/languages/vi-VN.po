@@ -2129,3 +2129,9 @@ msgstr "Chung mở rộng bộ nhớ qua PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Chung mở rộng bộ nhớ qua PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Không tìm thấy phông chữ ma trận chấm"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Cần có phông chữ TrueType trong thư mục \"roms/printer/fonts\" để mô phỏng máy in generic ESC/P ma trận chấm."

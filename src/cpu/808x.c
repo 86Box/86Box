@@ -154,6 +154,48 @@ x808x_log(const char *fmt, ...)
 static void pfq_add(int c, int add);
 static void set_pzs(int bits);
 
+void
+prefetch_queue_set_pos(int pos)
+{
+    pfq_pos = pos;
+}
+
+void
+prefetch_queue_set_ip(uint16_t ip)
+{
+    pfq_ip = ip;
+}
+
+void
+prefetch_queue_set_prefetching(int p)
+{
+    prefetching = p;
+}
+
+int
+prefetch_queue_get_pos(void)
+{
+    return pfq_pos;
+}
+
+uint16_t
+prefetch_queue_get_ip(void)
+{
+    return pfq_ip;
+}
+
+int
+prefetch_queue_get_prefetching(void)
+{
+    return prefetching;
+}
+
+int
+prefetch_queue_get_size(void)
+{
+    return pfq_size;
+}
+
 uint16_t
 get_last_addr(void)
 {
