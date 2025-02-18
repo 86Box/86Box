@@ -1919,7 +1919,7 @@ machine_ps55_model_50v_init(const machine_t* model)
     /*
     * Planar ID
     * F1FFh - PS/55 model 5551-V0x, V1x
-    * POST (P/N 38F6933) determination: FBxx -> 5 slots (ok), F1xx -> 5 slots (ok), others -> 8 (error)
+    * Verification in BIOS P/N 56F7416,56F7417: FBxx -> 5 slots (ok), F1xx -> 5 slots (ok), others -> 8 (error)
     */
     ps2.planar_id = 0xf1ff;
     ps55_mca_board_model_50v_init();

@@ -5680,7 +5680,7 @@ const machine_t machines[] = {
     },
     /* Has IBM PS/55 5551-V0x, V1x firmware. */
     {
-        .name = "[MCA] IBM PS/55 model 5550-V0",
+        .name = "[MCA] IBM PS/55 model 5550-V",
         .internal_name = "ibmps55_m50v",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
