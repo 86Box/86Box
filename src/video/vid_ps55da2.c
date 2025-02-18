@@ -369,8 +369,10 @@ typedef struct da2_t {
         int        raster_op;
         uint8_t    payload[DA2_BLT_MEMSIZE];
         int32_t    reg[DA2_BLT_REGSIZE]; // must be signed int
+#ifdef ENABLE_DA2_DEBUGBLT
         int32_t   *debug_reg;            // for debug
         int        debug_reg_ip;         // for debug
+#endif
         int        payload_addr;
         pc_timer_t timer;
         int64_t    timerspeed;
@@ -387,10 +389,12 @@ typedef struct da2_t {
         int        x, y;
     } bitblt;
 
+#ifdef ENABLE_DA2_DEBUGBLT
     FILE    *mmdbg_fp;
     FILE    *mmrdbg_fp;
     uint32_t mmdbg_vidaddr;
     uint32_t mmrdbg_vidaddr;
+#endif
 
     uint8_t pos_regs[8];
     svga_t *mb_vga;
@@ -2520,12 +2524,12 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                     for (int i = 0; i < 8; i++)
                         if (da2->writemask & (1 << i))
                             da2->vram[addr | i] = (((val & (1 << i)) ? 0xff : 0) & bitmask) | (da2->gdcsrc[i] & ~bitmask);
-                    fprintf(da2->mmdbg_fp, "m1-1");
+                    //fprintf(da2->mmdbg_fp, "m1-1");
                 } else {
                     for (int i = 0; i < 8; i++)
                         da2->gdcinput[i] = ((val & (1 << i)) ? 0xff : 0);
                     da2_gdcropB(addr, bitmask, da2);
-                    fprintf(da2->mmdbg_fp, "m1-2");
+                    //fprintf(da2->mmdbg_fp, "m1-2");
                 }
                 break;
             case 3:/* equiv to vga write mode 3 */
