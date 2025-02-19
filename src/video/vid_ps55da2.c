@@ -7,6 +7,17 @@
  *          This file is part of the 86Box distribution.
  *
  *          IBM PS/55 Display Adapter II (and its successors) emulation.
+ * 
+ *   Notes: There are some known issues that should be corrected.
+ *            - Incorrect foreground text color appears on an active window in OS/2 J1.3. 
+ *            - BitBlt's text drawing function does not work correctly.
+ *            - The screen resolution and blanking interval time maybe not correct.
+ * 
+ *          The code should be tested with following cases.
+ *            - Execute MODE 0, 1, 3 and 4 commands in DOS K3.3 to test various video modes.
+ *            - Run SAMPLE program with the BASIC interpreter in DOS K3.3.
+ *            - Run DOS J4.0 install program to test video mode 03.
+ *            - Run Win 3.1 (IBM-J OEM) and OS/2 J1.3 with 16 and 256 color driver to test BilBlt operations.
  *
  * Authors: Akamaki.
  *
@@ -662,9 +673,9 @@ da2_bitblt_load(da2_t *da2)
                 value64 |= da2->bitblt.payload[i + 3];
                 value64 <<= 8;
                 value64 |= da2->bitblt.payload[i + 2];
-                da2->bitblt.reg[da2->bitblt.payload[i + 1]] = value64;
                 da2_log("[%02x] %02x: %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], da2->bitblt.payload[i + 2], da2->bitblt.payload[i + 3],
                         da2->bitblt.payload[i + 4], da2->bitblt.payload[i + 5], da2->bitblt.payload[i + 6], da2->bitblt.payload[i + 7]);
+                da2->bitblt.reg[da2->bitblt.payload[i + 1]] = value64;
                 i += 7;
                 break;
             case 0x00:
@@ -699,9 +710,12 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x3] >> 4) & 0x0f); /* set bit shift */
         da2->bitblt.raster_op      = da2->bitblt.reg[0x0b] & 0x03;         /* 01 AND, 03 XOR */
         da2_log("bltload_exec: %x, rop: %x CS:PC=%4x:%4x\n", da2->bitblt.reg[0x5], da2->bitblt.reg[0x0b], CS, cpu_state.pc);
-        for (int i = 0; i <= 0xb; i++)
-            da2_log("%02x ", da2->gdcreg[i]);
-        da2_log("\n");
+        // for (int i = 0; i <= 0xb; i++)
+        // {
+        //     da2_log("%02x ", da2->gdcreg[i]);
+        //     da2->gdcreg[i] = da2->bitblt.reg[i] & 0xff;
+        // }
+        // da2_log("\n");
 
         da2->bitblt.destaddr  = da2->bitblt.reg[0x29];
         da2->bitblt.size_x    = da2->bitblt.reg[0x33];
@@ -919,7 +933,7 @@ da2_bitblt_exec(void *p)
             da2->bitblt.destaddr -= 2;
             da2->bitblt.srcaddr -= 2;
             break;
-        case DA2_BLT_CPUTCHAR:
+        case DA2_BLT_CPUTCHAR: /* used in OS/2 J1.3 wo ROM patch. TODO: still not work */
             // da2->bitblt.y += 2;
             da2->bitblt.destaddr = da2->bitblt.reg[0x29] + da2->bitblt.x * 2 + da2->bitblt.y * 130 + 0 + 260;
             // pclog("scr %x dest %x :", da2->bitblt.srcaddr, da2->bitblt.destaddr);
@@ -1346,7 +1360,7 @@ da2_in(uint16_t addr, void *p)
                 if (da2->cgastat & 0x01)
                     da2->cgastat &= ~0x30;
                 else
-                    da2->cgastat ^= 0x30;
+                    da2->cgastat ^= 0x30; /* toggle */
                 temp = da2->cgastat;
             } else
                 temp = da2->attrc[da2->attraddr];
@@ -1444,9 +1458,10 @@ da2_outw(uint16_t addr, uint16_t val, void *p)
             da2_out(addr, val, da2);
             da2->outflipflop = 0;
             break;
-        case 0x3EE:
+        case AC_REG:
+            /* no register is revealed */
             da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
-            da2->reg3ee[val & 0xff] = val >> 8;
+            da2->reg3ee[val & 0x0f] = val >> 8;
             break;
     }
 }
@@ -2444,17 +2459,16 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 break;
         }
     } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 8 color or 256 color mode */
-        uint8_t wm = da2->writemask;
         uint8_t bitmask;
         /* align bitmask to even address */
         if (addr & 1) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
         else  bitmask = da2->gdcreg[LG_BIT_MASK_LOW];
-        // da2_log("da2_gcB m%d a%x d%x\n", da2->writemode, addr, val);
 #ifdef ENABLE_DA2_DEBUGBLT
+        da2_log("da2_wB %x %02x\n", addr, val);
         // if (!(da2->gdcreg[LG_COMMAND] & 0x08))
         //{
         if (((int) addr - (int) da2->mmdbg_vidaddr) > 2 || (((int) da2->mmdbg_vidaddr - (int) addr) > 2) || da2->mmdbg_vidaddr == addr) {
-            fprintf(da2->mmdbg_fp, "\nB %x ", addr);
+            fprintf(da2->mmdbg_fp, "\nB %x %02x ", addr, val);
             for (int i = 0; i <= 0xb; i++)
                 fprintf(da2->mmdbg_fp, "%02x ", da2->gdcreg[i]);
         }
@@ -2535,13 +2549,11 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
             case 3:/* equiv to vga write mode 3 */
                 if (da2->gdcreg[LG_DATA_ROTATION] & 7)
                     val = svga_rotate[da2->gdcreg[LG_DATA_ROTATION] & 7][val];
-                wm = bitmask;
                 bitmask &= val;
 
                 for (int i = 0; i < 8; i++)
                     da2->gdcinput[i] = (da2->gdcreg[LG_SET_RESETJ] & (1 << i)) ? 0xff : 0;
                 da2_gdcropB(addr, bitmask, da2);
-                bitmask = wm;
                 break;
         }
         // da2_log("%02x%02x%02x%02x\n", da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]);
@@ -2560,7 +2572,6 @@ static void
 da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
 {
     da2_t   *da2     = (da2_t *) p;
-    uint8_t  wm      = da2->writemask;
     uint16_t bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
     bitmask <<= 8;
     bitmask |= (uint16_t) da2->gdcreg[LG_BIT_MASK_LOW];
@@ -2651,13 +2662,11 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
         case 3:
             if (da2->gdcreg[LG_DATA_ROTATION] & 15)
                 val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15); // val = svga_rotate[da2->gdcreg[LG_DATA_ROTATION] & 7][val];; TODO this wont work
-            wm = bitmask;
             bitmask &= val;
 
             for (int i = 0; i < 8; i++)
                 da2->gdcinput[i] = (da2->gdcreg[LG_SET_RESETJ] & (1 << i)) ? 0xffff : 0;
             da2_gdcropW(addr, bitmask, da2);
-            bitmask = wm;
             break;
     }
     // da2_log("%02x%02x%02x%02x,%02x%02x%02x%02x\n", da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]
@@ -3039,6 +3048,9 @@ da2_init()
             break;
         case DA2_DCONFIG_CHARSET_JPAN:
             da2_loadfont(DA2_FONTROM_PATH_JPAN, da2);
+            /* Add magic code for OS/2 J1.3. This disables BitBlt's text drawing function. */
+            da2->mmio.font[0x1AFFE] = 0x80;
+            da2->mmio.font[0x1AFFF] = 0x01;
             break;
     }
 
@@ -3065,7 +3077,7 @@ da2_init()
     mem_mapping_disable(&da2->cmapping);
 
     timer_add(&da2->timer, da2_poll, da2, 0);
-    da2->bitblt.timerspeed = 1 * TIMER_USEC; /* Todo: Async bitblt won't work in OS/2 J1.3 Command Prompt */
+    da2->bitblt.timerspeed = 1 * TIMER_USEC;
     timer_add(&da2->bitblt.timer, da2_bitblt_dopayload, da2, 0);
 
     return da2;
