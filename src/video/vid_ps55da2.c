@@ -872,7 +872,7 @@ da2_bitblt_exec(void *p)
             }
             da2->bitblt.destaddr += 2;
             break;
-        case DA2_BLT_CFILLTILE:
+        case DA2_BLT_CFILLTILE: {
             int32_t tileaddr = da2->bitblt.srcaddr + (da2->bitblt.y % da2->bitblt.tile_w) * 2;
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
                 DA2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
@@ -891,7 +891,7 @@ da2_bitblt_exec(void *p)
             }
             da2->bitblt.destaddr += 2;
             break;
-        case DA2_BLT_CCOPYF:
+        } case DA2_BLT_CCOPYF:
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
                 DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
                 if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
