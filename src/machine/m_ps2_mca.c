@@ -375,7 +375,7 @@ ps55_model_50t_read(uint16_t port)
             return ps2.planar_id >> 8;
         case 0x102:
             return ps2.option[0];
-        case 0x103:
+        case 0x103: {
             uint8_t val = 0xff;
             /*
             I/O 103h - Bit 7-4: Memory Card ID (Connector 1 or 3)
@@ -413,7 +413,7 @@ ps55_model_50t_read(uint16_t port)
             }
             ps2_mca_log(" Read MCA %04X %02X %04X:%04X mem_size = %d, ps2option1 = %2X\n", port, val, cs >> 4, cpu_state.pc, mem_size, ps2.option[1]);
             return val;
-        case 0x104:
+        } case 0x104:
             return ps2.option[2];
         case 0x105:
             return ps2.option[3];
@@ -435,7 +435,7 @@ ps55_model_50v_read(uint16_t port)
             return ps2.planar_id >> 8;
         case 0x102:
             return ps2.option[0];
-        case 0x103:
+        case 0x103: {
             uint8_t val = 0xff;
             /*
             I/O 103h - Bit 7-4: Reserved
@@ -460,7 +460,7 @@ ps55_model_50v_read(uint16_t port)
                     break;
             }
             return val;
-        case 0x104:
+        } case 0x104:
             /* Reading cache ID (bit 3-2) always returns zero */
             return ps2.option[2] & 0xf3;
         case 0x105:
