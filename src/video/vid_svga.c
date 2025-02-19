@@ -502,10 +502,25 @@ svga_in(uint16_t addr, void *priv)
             ret = svga->attrregs[svga->attraddr];
             break;
         case 0x3c2:
-            if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-                ret = 0;
-            else
-                ret = 0x10;
+            if (svga->cable_connected) {
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            /* Monitor is not connected to the planar VGA if the PS/55 Display Adapter is installed. */
+            } else {
+                /*
+                   The IBM PS/55 Display Adapter has own Monitor Type Detection bit in the different I/O port (I/O 3E0h, 3E1h).
+                   When the monitor cable is connected to the Display Adapter, the port 3C2h returns the value as 'no cable connection'.
+                   The POST of PS/55 has an extra code. If the monitor is not detected on the planar VGA,
+                   it reads the POS data in NVRAM set by the reference diskette, and writes the BIOS Data Area (Mem 487h, 489h).
+                   MONCHK.EXE in the reference diskette uses both I/O ports to determine the monitor type, updates the NVRAM and BDA.
+                */
+                if (svga->vgapal[0].r >= 10 || svga->vgapal[0].g >= 10 || svga->vgapal[0].b >= 10)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            }
             break;
         case 0x3c3:
             ret = 0x01;
@@ -1526,6 +1541,8 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 32;
 
     svga->translate_address         = NULL;
+    
+    svga->cable_connected = 1;
     svga->ksc5601_english_font_type = 0;
 
     /* TODO: Move DEVICE_MCA to 16-bit once the device flags have been appropriately corrected. */

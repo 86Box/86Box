@@ -5638,6 +5638,86 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has IBM PS/55 5551-Sxx, Txx stage 2 firmware. */
+    {
+        .name = "[MCA] IBM PS/55 model 5550-T",
+        .internal_name = "ibmps55_m50t",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps55_model_50t_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_486BL,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO | MACHINE_APM,
+        .ram = {
+            .min = 2048,
+            .max = 16384,
+            .step = 2048
+        },
+        .nvrmask = 63,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has IBM PS/55 5551-V0x, V1x firmware. */
+    {
+        .name = "[MCA] IBM PS/55 model 5550-V",
+        .internal_name = "ibmps55_m50v",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps55_model_50v_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_486BL,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO | MACHINE_APM,
+        .ram = {
+            .min = 4096,
+            .max = 16384,
+            .step = 4096
+        },
+        .nvrmask = 63,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* 386DX/486 machines */
     /* Has AMIKey F KBC firmware. */

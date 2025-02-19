@@ -48,6 +48,7 @@ extern const device_t st506_xt_toshiba_t1200_device;      /* st506_xt_toshiba_t1
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
+extern const device_t esdi_integrated_device;           /* esdi_mca */
 
 extern const device_t ide_isa_device;         /* isa_ide */
 extern const device_t ide_isa_sec_device;     /* isa_ide sec*/
