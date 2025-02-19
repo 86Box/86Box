@@ -120,6 +120,20 @@
      </property>
     </widget>
    </item>
+   <item row="7" column="0">
+    <widget class="QCheckBox" name="checkBoxDa2">
+     <property name="text">
+      <string>IBM PS/55 Display Adapter Graphics</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureDa2">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="2">
     <widget class="QPushButton" name="pushButtonConfigureSecondary">
      <property name="text">
@@ -140,7 +154,7 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="0" colspan="3">
+   <item row="8" column="0" colspan="3">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

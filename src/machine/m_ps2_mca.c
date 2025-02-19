@@ -67,6 +67,8 @@
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_vga.h>
 #include <86box/machine.h>
 #include <86box/plat_unused.h>
 
@@ -103,6 +105,9 @@ static struct ps2_t {
     int pending_cache_miss;
 
     serial_t *uart;
+
+    vga_t* mb_vga;
+    int has_e0000_hole;
 } ps2;
 
 /*The model 70 type 3/4 BIOS performs cache testing. Since 86Box doesn't have any
@@ -140,7 +145,8 @@ static struct ps2_t {
 
 static uint8_t ps2_cache[65536];
 static int     ps2_cache_valid[65536 / 8];
-
+static void mem_encoding_update(void);
+// #define ENABLE_PS2_MCA_LOG 1
 #ifdef ENABLE_PS2_MCA_LOG
 int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
 
@@ -358,6 +364,114 @@ model_80_read(uint16_t port)
     return 0xff;
 }
 
+static uint8_t
+ps55_model_50t_read(uint16_t port)
+{
+    ps2_mca_log(" Read SysBrd %04X xx %04X:%04X\n", port, cs >> 4, cpu_state.pc);
+    switch (port) {
+        case 0x100:
+            return ps2.planar_id & 0xff;
+        case 0x101:
+            return ps2.planar_id >> 8;
+        case 0x102:
+            return ps2.option[0];
+        case 0x103: {
+            uint8_t val = 0xff;
+            /*
+            I/O 103h - Bit 7-4: Memory Card ID (Connector 1 or 3)
+                       Bit 3-0: Memory Card ID (Connector 2)
+
+            Memory Card ID: 7h = 2 MB Memory Card 2 or 3 Installed
+                            5h = 4 MB Memory Card 2 Installed
+            */
+            switch (mem_size / 1024) {
+                case 2:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xff;
+                    else
+                        val = 0x7f;
+                    break;
+                case 4:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xff;
+                    else
+                        val = 0x77;
+                    break;
+                case 6:
+                    if (ps2.option[1] & 0x04)
+                        val = 0x7f;
+                    else
+                        val = 0x77;
+                    break;
+                case 8:
+                default:
+                    if (ps2.option[1] & 0x04)
+                        val = 0x5f;
+                    else
+                        val = 0x77;
+                    break;
+            }
+            ps2_mca_log(" Read MCA %04X %02X %04X:%04X mem_size = %d, ps2option1 = %2X\n", port, val, cs >> 4, cpu_state.pc, mem_size, ps2.option[1]);
+            return val;
+        } case 0x104:
+            return ps2.option[2];
+        case 0x105:
+            return ps2.option[3];
+        case 0x106:
+            return ps2.subaddr_lo;
+        case 0x107:
+            return ps2.subaddr_hi;
+    }
+    return 0xff;
+}
+
+static uint8_t
+ps55_model_50v_read(uint16_t port)
+{
+    switch (port) {
+        case 0x100:
+            return ps2.planar_id & 0xff;
+        case 0x101:
+            return ps2.planar_id >> 8;
+        case 0x102:
+            return ps2.option[0];
+        case 0x103: {
+            uint8_t val = 0xff;
+            /*
+            I/O 103h - Bit 7-4: Reserved
+                       Bit 3-0: Memory Card ID (Connector 3 or 1)
+
+            Memory Card ID: 8h = 4 MB Memory Card IV Installed
+                            Fh = No Card Installed
+            */
+            switch (mem_size / 1024) {
+                case 4:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xff;
+                    else
+                        val = 0xf8;
+                    break;
+                case 8:
+                default:
+                    if (ps2.option[1] & 0x04)
+                        val = 0xf8;
+                    else
+                        val = 0xf8;
+                    break;
+            }
+            return val;
+        } case 0x104:
+            /* Reading cache ID (bit 3-2) always returns zero */
+            return ps2.option[2] & 0xf3;
+        case 0x105:
+            return ps2.option[3];
+        case 0x106:
+            return ps2.subaddr_lo;
+        case 0x107:
+            return ps2.subaddr_hi;
+    }
+    return 0xff;
+}
 static void
 model_50_write(uint16_t port, uint8_t val)
 {
@@ -655,6 +769,62 @@ model_80_write(uint16_t port, uint8_t val)
     }
 }
 
+static void
+ps55_model_50tv_write(uint16_t port, uint8_t val)
+{
+    ps2_mca_log(" Write SysBrd %04X %02X %04X:%04X\n", port, val, cs >> 4, cpu_state.pc);
+    switch (port) {
+        case 0x102:
+            lpt1_remove();
+            serial_remove(ps2.uart);
+            if (val & 0x04) {
+                if (val & 0x08)
+                    serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
+                else
+                    serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
+            }
+            if (val & 0x10) {
+                switch ((val >> 5) & 3) {
+                    case 0:
+                        lpt1_setup(LPT_MDA_ADDR);
+                        break;
+                    case 1:
+                        lpt1_setup(LPT1_ADDR);
+                        break;
+                    case 2:
+                        lpt1_setup(LPT2_ADDR);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            ps2.option[0] = val;
+            break;
+        case 0x103:
+            ps2.option[1] = val;
+            break;
+        case 0x104:
+            if ((ps2.option[2] ^ val) & 1) {
+                /* Disable/Enable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
+                ps2.option[2] = val;
+                mem_encoding_update();
+            }
+            ps2.option[2] = val;
+            break;
+        case 0x105:
+            ps2.option[3] = val;
+            break;
+        case 0x106:
+            ps2.subaddr_lo = val;
+            break;
+        case 0x107:
+            ps2.subaddr_hi = val;
+            break;
+        default:
+            break;
+    }
+}
+
 uint8_t
 ps2_mca_read(uint16_t port, UNUSED(void *priv))
 {
@@ -772,8 +942,15 @@ ps2_mca_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             ps2.setup = val;
             break;
         case 0x96:
-            if ((val & 0x80) && !(ps2.adapter_setup & 0x80))
+            if ((val & 0x80) && !(ps2.adapter_setup & 0x80)) {
                 mca_reset();
+                if (ps2.has_e0000_hole) {
+                    /* Reset memstate for E0000 - E0FFFh hole (for PS/55 5550-V)
+                       5550-T does this in POST, but 5550-V doesn't. */
+                    ps2.option[2] &= 0xFE;
+                    mem_encoding_update();
+                }
+            }
             ps2.adapter_setup = val;
             mca_set_index(val & 7);
             break;
@@ -793,7 +970,16 @@ ps2_mca_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             if (!(ps2.setup & PS2_SETUP_IO))
                 ps2.planar_write(port, val);
             else if (!(ps2.setup & PS2_SETUP_VGA))
+            {
+                if (ps2.mb_vga)
+                {
+                    if (vga_isenabled(ps2.mb_vga))
+                        vga_disable(ps2.mb_vga);
+                    if (val & 1)
+                        vga_enable(ps2.mb_vga);
+                }
                 ps2.pos_vga = val;
+            }
             else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
                 mca_write(port, val);
             break;
@@ -1117,6 +1303,11 @@ mem_encoding_update(void)
         ps2_mca_log("PS/2 Model 80-111: Split memory block disabled\n");
     }
 
+    if (ps2.has_e0000_hole && (ps2.option[2] & 1)) {
+        /* Set memstate for E0000 - E0FFFh hole (PS/55 only) */
+        mem_set_mem_state(0xe0000, 0x1000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    }
+
     flushmmucache_nopc();
 }
 
@@ -1311,7 +1502,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
     }
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&ps1vga_mca_device);
+        ps2.mb_vga = device_add(&ps1vga_mca_device);
 }
 
 static void
@@ -1385,7 +1576,7 @@ ps2_mca_board_model_80_type2_init(void)
     }
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&ps1vga_mca_device);
+        ps2.mb_vga = device_add(&ps1vga_mca_device);
 
     ps2.split_size = 0;
 }
@@ -1409,6 +1600,8 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
+
+    ps2.has_e0000_hole = 0;
 }
 
 int
@@ -1573,6 +1766,163 @@ machine_ps2_model_70_type4_init(const machine_t *model)
 
     ps2.planar_id = 0xf9ff;
     ps2_mca_board_model_70_type34_init(1, 4);
+
+    return ret;
+}
+
+static void
+ps55_mca_board_model_50t_init(void)
+{
+    ps2_mca_board_common_init();
+
+    ps2.split_addr = mem_size * 1024;
+    /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
+    mca_init(5);
+    device_add(&keyboard_ps2_mca_1_device);
+
+    ps2.planar_read = ps55_model_50t_read;
+    ps2.planar_write = ps55_model_50tv_write;
+
+    device_add(&ps2_nvr_device);
+
+    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
+
+    ps2.mem_regs[1] = 2;
+    ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
+
+    mem_mapping_add(&ps2.split_mapping,
+        (mem_size + 256) * 1024,
+        256 * 1024,
+        ps2_read_split_ram,
+        ps2_read_split_ramw,
+        ps2_read_split_raml,
+        ps2_write_split_ram,
+        ps2_write_split_ramw,
+        ps2_write_split_raml,
+        &ram[0xa0000],
+        MEM_MAPPING_INTERNAL,
+        NULL);
+    mem_mapping_disable(&ps2.split_mapping);
+
+    if (mem_size > 8192) {
+        /* Only 8 MB supported on planar, create a memory expansion card for the rest */
+            ps2_mca_mem_fffc_init(8);
+    }
+
+    if (gfxcard[0] == VID_INTERNAL)
+        ps2.mb_vga = (vga_t *)device_add(&ps1vga_mca_device);
+}
+
+static void
+ps55_mca_board_model_50v_init(void)
+{
+    ps2_mca_board_common_init();
+
+    ps2.split_addr = mem_size * 1024;
+    /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
+    mca_init(5);
+    device_add(&keyboard_ps2_mca_1_device);
+
+    ps2.planar_read = ps55_model_50v_read;
+    ps2.planar_write = ps55_model_50tv_write;
+
+    device_add(&ps2_nvr_device);
+
+    io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
+
+    ps2.mem_regs[1] = 2;
+    ps2.option[2] &= 0xf2; /*   Bit 3-2: -Cache IDs, Bit 1: Reserved
+                                Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
+
+    mem_mapping_add(&ps2.split_mapping,
+        (mem_size + 256) * 1024,
+        256 * 1024,
+        ps2_read_split_ram,
+        ps2_read_split_ramw,
+        ps2_read_split_raml,
+        ps2_write_split_ram,
+        ps2_write_split_ramw,
+        ps2_write_split_raml,
+        &ram[0xa0000],
+        MEM_MAPPING_INTERNAL,
+        NULL);
+    mem_mapping_disable(&ps2.split_mapping);
+
+    mem_mapping_add(&ps2.cache_mapping,
+                    0,
+                    64 * 1024,
+                    ps2_read_cache_ram,
+                    ps2_read_cache_ramw,
+                    ps2_read_cache_raml,
+                    ps2_write_cache_ram,
+                    NULL,
+                    NULL,
+                    ps2_cache,
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+    mem_mapping_disable(&ps2.cache_mapping);
+
+    if (mem_size > 8192) {
+        /* Only 8 MB supported on planar, create a memory expansion card for the rest */
+            ps2_mca_mem_fffc_init(8);
+    }
+
+    if (gfxcard[0] == VID_INTERNAL)
+        ps2.mb_vga = (vga_t *)device_add(&ps1vga_mca_device);
+}
+
+int
+machine_ps55_model_50t_init(const machine_t* model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ibmps55_m50t/38F6933.BIN",
+        0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    /*
+    * Planar ID
+    * FFFAh - PS/55 model 5551-S0x, T0x (stage 1?)
+    * FFEEh - PS/55 model 5551-S1x, T1x (stage 2?)
+    * Verification in BIOS P/N 38F6933: FBxx -> 4 slots (error), xxEE -> 5 slots (ok), others -> 8 (error)
+    * 
+    * The only difference between S and T models is the CPU speed (16 MHz vs 20 MHz).
+    * The POST measures the speed, and sets a flag in the BIOS Data Area to indicate the sub model.
+    * The VM in 86Box runs faster than the real, so the POST always determines it as the T model.
+    */
+    ps2.planar_id = 0xffee;
+    ps55_mca_board_model_50t_init();
+
+    return ret;
+}
+
+int
+machine_ps55_model_50v_init(const machine_t* model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmps55_m50v/56F7416.BIN",
+                                "roms/machines/ibmps55_m50v/56F7417.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    /*
+    * Planar ID
+    * F1FFh - PS/55 model 5551-V0x, V1x
+    * Verification in BIOS P/N 56F7416,56F7417: FBxx -> 5 slots (ok), F1xx -> 5 slots (ok), others -> 8 (error)
+    */
+    ps2.planar_id = 0xf1ff;
+    ps55_mca_board_model_50v_init();
 
     return ret;
 }

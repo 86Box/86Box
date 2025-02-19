@@ -740,6 +740,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 drive = real_drive(fdc, fdc->dor & 3);
                 fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
             }
+            /* Bit 2: FIFO test mode (PS/55 5550-S,T only. Undocumented) 
+               The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
+               If it fails, then floppy drives will be treated as DD drives. */
+            if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                if (val & 0x04) {
+                    fdc->tfifo      = 8;
+                    fdc->fifointest = 1;
+                } else {
+                    fdc->tfifo      = 1;
+                    fdc->fifointest = 0;
+                }
+            }
             return;
         case 4: /* DSR */
             if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
@@ -753,6 +765,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             fdc->dsr = val;
             return;
         case 5: /*Command register*/
+            if (fdc->fifointest) {
+                /* Write FIFO buffer in the test mode (PS/55) */
+                fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
+                fifo_write(val, fdc->fifo_p);
+                if (fifo_get_full(fdc->fifo_p))
+                    fdc->stat &= ~0x80;
+                break;
+            }
             if ((fdc->stat & 0xf0) == 0xb0) {
                 if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
                     fdc->dat = val;
@@ -1335,6 +1355,7 @@ fdc_read(uint16_t addr, void *priv)
                     ret = 0x10;
                 else
                     ret = 0x00;
+                /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
             } else if (!fdc->enh_mode)
                 ret = 0x20;
             else
@@ -1344,6 +1365,11 @@ fdc_read(uint16_t addr, void *priv)
             ret = fdc->stat;
             break;
         case 5: /*Data*/
+            if (fdc->fifointest) {
+                /* Read FIFO buffer in the test mode (PS/55) */
+                ret = fifo_read(fdc->fifo_p);
+                break;
+            }
             if ((fdc->stat & 0xf0) == 0xf0) {
                 fdc->stat &= ~0x80;
                 if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
@@ -2249,6 +2275,7 @@ fdc_reset(void *priv)
 
     fdc->fifo  = 0;
     fdc->tfifo = 1;
+    fdc->fifointest = 0;
 
     if (fdc->flags & FDC_FLAG_PCJR) {
         fdc->dma        = 0;

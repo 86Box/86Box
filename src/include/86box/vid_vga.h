@@ -31,4 +31,8 @@ typedef struct vga_t {
 extern void vga_out(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t vga_in(uint16_t addr, void *priv);
 
+void vga_disable(void* p);
+void vga_enable(void* p);
+int vga_isenabled(void* p);
+
 #endif /*VIDEO_VGA_H*/

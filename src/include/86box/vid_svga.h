@@ -229,6 +229,11 @@ typedef struct svga_t {
     int   override;
     void *priv;
 
+    int vga_enabled;
+    /* The PS/55 POST BIOS has a special monitor detection for its internal VGA
+       when the monitor is connected to the Display Adapter. */
+    int cable_connected;
+
     uint8_t  crtc[256];
     uint8_t  gdcreg[256];
     uint8_t  attrregs[32];
