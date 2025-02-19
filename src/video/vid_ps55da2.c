@@ -1256,8 +1256,8 @@ da2_out(uint16_t addr, uint16_t val, void *p)
 uint16_t
 da2_in(uint16_t addr, void *p)
 {
-    da2_t   *da2 = (da2_t *) p;
-    uint16_t temp;
+    da2_t   *da2  = (da2_t *) p;
+    uint16_t temp = 0xff;
 
     switch (addr) {
         case 0x3c3:
@@ -3020,7 +3020,7 @@ da2_reset(void *priv)
 }
 
 static void *
-da2_init()
+da2_init(UNUSED(const device_t *info))
 {
     if (svga_get_pri() == NULL)
         return NULL;
@@ -3083,7 +3083,7 @@ da2_init()
     return da2;
 }
 static int
-da2_available()
+da2_available(void)
 {
     return (rom_present(DA2_FONTROM_PATH_HANT) || rom_present(DA2_FONTROM_PATH_JPAN));
 }
