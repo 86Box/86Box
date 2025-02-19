@@ -77,6 +77,7 @@ static const struct {
     { &xtide_acculogic_device      },
     { &xtide_device                },
     { &esdi_ps2_device             },
+    { &esdi_integrated_device      },
     { &ide_pci_device              },
     { &ide_pci_2ch_device          },
     { &ide_vlb_device              },
