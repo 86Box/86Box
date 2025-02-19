@@ -1770,8 +1770,8 @@ machine_ps2_model_70_type4_init(const machine_t *model)
     return ret;
 }
 
-void
-ps55_mca_board_model_50t_init()
+static void
+ps55_mca_board_model_50t_init(void)
 {
     ps2_mca_board_common_init();
 
@@ -1814,8 +1814,8 @@ ps55_mca_board_model_50t_init()
         ps2.mb_vga = (vga_t *)device_add(&ps1vga_mca_device);
 }
 
-void
-ps55_mca_board_model_50v_init()
+static void
+ps55_mca_board_model_50v_init(void)
 {
     ps2_mca_board_common_init();
 
