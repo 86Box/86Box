@@ -60,16 +60,19 @@ enum {
 };
 
 typedef struct net_slirp_t {
-    Slirp     *slirp;
-    uint8_t    mac_addr[6];
-    netcard_t *card; /* netcard attached to us */
-    thread_t  *poll_tid;
-    net_evt_t  tx_event;
-    net_evt_t  stop_event;
-    netpkt_t   pkt;
-    netpkt_t   pkt_tx_v[SLIRP_PKT_BATCH];
+    Slirp *        slirp;
+    uint8_t        mac_addr[6];
+    netcard_t *    card; /* netcard attached to us */
+    thread_t *     poll_tid;
+    net_evt_t      rx_event;
+    net_evt_t      tx_event;
+    net_evt_t      stop_event;
+    netpkt_t       pkt;
+    netpkt_t       pkt_tx_v[SLIRP_PKT_BATCH];
+    int            during_tx;
+    int            recv_on_tx;
 #ifdef _WIN32
-    HANDLE     sock_event;
+    HANDLE         sock_event;
 #else
     uint32_t       pfd_len;
     uint32_t       pfd_size;
@@ -184,7 +187,11 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 
     memcpy(slirp->pkt.data, (uint8_t *) qp, pkt_len);
     slirp->pkt.len = pkt_len;
-    network_rx_put_pkt(slirp->card, &slirp->pkt);
+    if (slirp->during_tx) {
+        network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
+        slirp->recv_on_tx = 1;
+    } else
+        network_rx_put_pkt(slirp->card, &slirp->pkt);
 
     return pkt_len;
 }
@@ -324,6 +331,21 @@ net_slirp_in_available(void *priv)
     net_event_set(&slirp->tx_event);
 }
 
+static void
+net_slirp_rx_deferred_packets(net_slirp_t *slirp)
+{
+    int packets = 0;
+
+    if (slirp->recv_on_tx) {
+        do {
+            packets = network_rx_on_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
+            for (int i = 0; i < packets; i++)
+                 network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
+        } while (packets > 0);
+        slirp->recv_on_tx = 0;
+    }
+}
+
 #ifdef _WIN32
 static void
 net_slirp_thread(void *priv)
@@ -352,10 +374,13 @@ net_slirp_thread(void *priv)
 
             case NET_EVENT_TX:
                 {
+                    slirp->during_tx = 1;
                     int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-                    for (int i = 0; i < packets; i++) {
+                    for (int i = 0; i < packets; i++)
                         net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
-                    }
+                    slirp->during_tx = 0;
+
+                    net_slirp_rx_deferred_packets(slirp);
                 }
                 break;
 
@@ -398,10 +423,13 @@ net_slirp_thread(void *priv)
         if (slirp->pfd[NET_EVENT_TX].revents & POLLIN) {
             net_event_clear(&slirp->tx_event);
 
+            slirp->during_tx = 1;
             int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            for (int i = 0; i < packets; i++) {
+            for (int i = 0; i < packets; i++)
                 net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
-            }
+            slirp->during_tx = 0;
+
+            net_slirp_rx_deferred_packets(slirp);
         }
     }
 
@@ -477,6 +505,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
         slirp->pkt_tx_v[i].data = calloc(1, NET_MAX_FRAME);
     }
     slirp->pkt.data = calloc(1, NET_MAX_FRAME);
+    net_event_init(&slirp->rx_event);
     net_event_init(&slirp->tx_event);
     net_event_init(&slirp->stop_event);
 #ifdef _WIN32
@@ -531,8 +560,9 @@ net_slirp_close(void *priv)
     slirp_log("SLiRP: waiting for thread to end...\n");
     thread_wait(slirp->poll_tid);
 
-    net_event_close(&slirp->tx_event);
     net_event_close(&slirp->stop_event);
+    net_event_close(&slirp->tx_event);
+    net_event_close(&slirp->rx_event);
     slirp_cleanup(slirp->slirp);
     for (int i = 0; i < SLIRP_PKT_BATCH; i++) {
         free(slirp->pkt_tx_v[i].data);

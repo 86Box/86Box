@@ -903,6 +903,8 @@ extern int machine_ps2_model_70_type3_init(const machine_t *);
 extern int machine_ps2_model_80_init(const machine_t *);
 extern int machine_ps2_model_80_axx_init(const machine_t *);
 extern int machine_ps2_model_70_type4_init(const machine_t *);
+extern int machine_ps55_model_50t_init(const machine_t*);
+extern int machine_ps55_model_50v_init(const machine_t*);
 
 /* m_tandy.c */
 extern int tandy1k_eeprom_read(void);

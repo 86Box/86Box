@@ -369,6 +369,8 @@ video_post_reset(void)
     if (xga_standalone_enabled)
         xga_device_add();
 
+    if (da2_standalone_enabled)
+        da2_device_add();
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */
     video_reset(gfxcard[0]);

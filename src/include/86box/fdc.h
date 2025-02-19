@@ -103,7 +103,6 @@ typedef struct fdc_t {
     uint8_t densel_force;
     uint8_t fifo;
     uint8_t tfifo;
-    uint8_t fifobufpos;
 
     uint8_t drv2en;
     uint8_t gap;
@@ -148,6 +147,7 @@ typedef struct fdc_t {
     int drvrate[4];
 
     void *fifo_p;
+    int fifointest;
 
     sector_id_t read_track_sector;
     sector_id_t format_sector_id;
