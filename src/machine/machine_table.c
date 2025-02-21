@@ -3286,7 +3286,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 1024,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 63,
         .kbc_device = NULL,
