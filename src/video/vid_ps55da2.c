@@ -3027,17 +3027,17 @@ da2_init(UNUSED(const device_t *info))
     svga_t *mb_vga          = svga_get_pri();
     mb_vga->cable_connected = 0;
 
-    da2_t *da2  = malloc(sizeof(da2_t));
+    da2_t *da2  = calloc(1, sizeof(da2_t));
     da2->mb_vga = mb_vga;
 
     da2->dispontime        = 1000ull << 32;
     da2->dispofftime       = 1000ull << 32;
     int memsize            = 1024 * 1024;
-    da2->vram              = malloc(memsize);
+    da2->vram              = calloc(1, memsize);
     da2->vram_mask         = memsize - 1;
-    da2->cram              = malloc(0x1000);
+    da2->cram              = calloc(1, 0x1000);
     da2->vram_display_mask = DA2_MASK_CRAM;
-    da2->changedvram       = malloc(/*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
+    da2->changedvram       = calloc(1, /*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
     da2->monitorid         = device_get_config_int("montype");                 /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
     da2->mmio.charset = device_get_config_int("charset");
