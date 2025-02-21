@@ -2129,3 +2129,9 @@ msgstr "Általános PC/XT memóriabővítők"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Általános PC/AT memóriabővítők"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Nem találja a Dot-Matrix betűtípusokat"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Az általános ESC/P pontmátrixnyomtató emulációjához a \"roms/printer/fonts\" könyvtárban található TrueType betűtípusok szükségesek."

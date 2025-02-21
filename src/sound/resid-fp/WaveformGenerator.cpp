@@ -43,7 +43,9 @@ namespace reSIDfp
 constexpr unsigned int FLOATING_OUTPUT_TTL_6581R3  =   54000;
 constexpr unsigned int FLOATING_OUTPUT_FADE_6581R3 =    1400;
 // ~1s
+#ifdef USE_RESID_UNUSED
 constexpr unsigned int FLOATING_OUTPUT_TTL_6581R4  = 1000000;
+#endif
 // ~1s
 constexpr unsigned int FLOATING_OUTPUT_TTL_8580R5  =  800000;
 constexpr unsigned int FLOATING_OUTPUT_FADE_8580R5 =   50000;
@@ -61,7 +63,9 @@ constexpr unsigned int FLOATING_OUTPUT_FADE_8580R5 =   50000;
 constexpr unsigned int SHIFT_REGISTER_RESET_6581R3 =   50000;
 constexpr unsigned int SHIFT_REGISTER_FADE_6581R3  =   15000;
 // ~2.15s
+#ifdef USE_RESID_UNUSED
 constexpr unsigned int SHIFT_REGISTER_RESET_6581R4 = 2150000;
+#endif
 // ~2.8s
 constexpr unsigned int SHIFT_REGISTER_RESET_8580R5 =  986000;
 constexpr unsigned int SHIFT_REGISTER_FADE_8580R5  =  314300;

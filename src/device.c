@@ -490,7 +490,7 @@ device_get_name(const device_t *dev, int bus, char *name)
     const char *sbus = NULL;
     const char *fbus;
     char       *tname;
-    char        pbus[12] = { 0 };
+    char        pbus[16] = { 0 };
 
     if (dev == NULL)
         return;

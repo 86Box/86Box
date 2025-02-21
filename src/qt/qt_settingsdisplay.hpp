@@ -31,10 +31,12 @@ private slots:
     void on_checkBoxVoodoo_stateChanged(int state);
     void on_checkBox8514_stateChanged(int state);
     void on_checkBoxXga_stateChanged(int state);
+    void on_checkBoxDa2_stateChanged(int state);
     void on_comboBoxVideo_currentIndexChanged(int index);
     void on_pushButtonConfigureVoodoo_clicked();
     void on_pushButtonConfigure8514_clicked();
     void on_pushButtonConfigureXga_clicked();
+    void on_pushButtonConfigureDa2_clicked();
     void on_pushButtonConfigure_clicked();
 
 private:

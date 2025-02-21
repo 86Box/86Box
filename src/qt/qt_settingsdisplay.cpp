@@ -26,6 +26,7 @@ extern "C" {
 #include <86box/video.h>
 #include <86box/vid_8514a_device.h>
 #include <86box/vid_xga_device.h>
+#include <86box/vid_ps55da2.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -58,6 +59,7 @@ SettingsDisplay::save()
     voodoo_enabled             = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
     ibm8514_standalone_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_standalone_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
+    da2_standalone_enabled = ui->checkBoxDa2->isChecked() ? 1 : 0;
 }
 
 void
@@ -150,6 +152,12 @@ SettingsDisplay::on_pushButtonConfigureXga_clicked()
 }
 
 void
+SettingsDisplay::on_pushButtonConfigureDa2_clicked()
+{
+    DeviceConfig::ConfigureDevice(&ps55da2_device, 0, qobject_cast<Settings *>(Settings::settings));
+}
+
+void
 SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 {
     if (index < 0) {
@@ -174,6 +182,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = (((machineHasIsa16 && device_available(&xga_isa_device)) || (machineHasMca && device_available(&xga_device))) && !videoCardHasXga);
+    bool machineSupportsDa2 = machineHasMca && device_available(&ps55da2_device);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
     ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
@@ -183,7 +192,11 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     ui->checkBoxXga->setEnabled(machineSupportsXga);
     ui->checkBoxXga->setChecked(xga_standalone_enabled && machineSupportsXga);
 
+    ui->checkBoxDa2->setEnabled(machineSupportsDa2);
+    ui->checkBoxDa2->setChecked(da2_standalone_enabled && machineSupportsDa2);
+
     ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
+    ui->pushButtonConfigureDa2->setEnabled(ui->checkBoxDa2->isEnabled() && ui->checkBoxDa2->isChecked());
 
     int c = 2;
 
@@ -262,6 +275,12 @@ void
 SettingsDisplay::on_checkBoxXga_stateChanged(int state)
 {
     ui->pushButtonConfigureXga->setEnabled(state == Qt::Checked);
+}
+
+void
+SettingsDisplay::on_checkBoxDa2_stateChanged(int state)
+{
+    ui->pushButtonConfigureDa2->setEnabled(state == Qt::Checked);
 }
 
 void

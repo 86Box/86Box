@@ -2129,3 +2129,9 @@ msgstr "일반 PC/XT 메모리 확장 카드"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "일반 PC/AT 메모리 확장 카드"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "일반 ESC/P 도트 매트릭스 프린터의 에뮬레이션을 사용하려면 \"roms/printer/fonts\" 디렉터리에 있는 트루타입 글꼴이 필요합니다."
