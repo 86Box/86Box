@@ -332,6 +332,7 @@ machine_at_ibmxt286_init(const machine_t *model)
     return ret;
 }
 
+int
 machine_at_pb286_init(const machine_t *model)
 {
     int ret;
