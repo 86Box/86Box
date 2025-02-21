@@ -352,13 +352,32 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
     // TODO: WRITE IT!!!
     // Set the number of entries to search based on the ramht size (2*(size+1))
     // Not a switch statement in case newer gpus have larger ramins
-    uint32_t bucket_entries = 2 * (((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_SIZE) & 0x03) + 1); 
+
+    uint32_t bucket_entries = 2;
+
+    switch (nv3->pfifo.ramht_config)
+    {
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_4K:
+            // stays as is
+            break;
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_8K:
+            bucket_entries = 4; 
+            break;
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_16K:
+            bucket_entries = 8;
+            break;
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_32K:
+            bucket_entries = 16;
+            break;
+        
+    }
     
     // Calculate the address in the hashtable
     uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
-    uint32_t ramht_cur_address = ramht_base;
+    uint32_t ramht_cur_address = ramht_base + (nv3_ramht_hash(name, channel)) * bucket_entries * 8;
 
-    nv_log("Beginning search for graphics object at RAMHT base=0x%04x, Cache%d, channel=%d, subchannel=%d)", name, cache_num, channel, subchannel);
+    nv_log("Beginning search for graphics object at RAMHT base=0x%04x, name=0x%08x, Cache%d, channel=%d.%d)\n",
+        ramht_cur_address, name, cache_num, channel, subchannel);
 
     bool found_object = false;
     
@@ -385,19 +404,17 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 
     if (!found_object)
     {
+        nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE0_ERROR_PENDING;
+
         if (!cache_num)
         {
-            nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE0_ERROR_PENDING;
             nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE;
-
             //It turns itself off on failure, the drivers turn it back on
             nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
         } 
         else 
         {
-            nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE1_ERROR_PENDING;
             nv3->pfifo.cache1_settings.puller_control |= NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE;
-
             //It turns itself off on failure, the drivers turn it back on
             nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED;
         }

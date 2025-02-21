@@ -680,14 +680,14 @@ void nv3_pfifo_cache1_pull()
     if (nv3->pfifo.cache1_settings.put_address == nv3->pfifo.cache1_settings.get_address)
         return;
 
-    uint32_t get_address = nv3->pfifo.cache1_settings.get_address >> 2; // 32 bit aligned probably
+    uint32_t get_index = nv3->pfifo.cache1_settings.get_address >> 2; // 32 bit aligned probably
 
     uint8_t current_channel = nv3->pfifo.cache1_settings.channel;
-    uint8_t current_subchannel = nv3->pfifo.cache1_entries[get_address].subchannel;
-    uint32_t current_name = nv3->pfifo.cache1_entries[get_address].data;
-    uint16_t current_method = nv3->pfifo.cache1_entries[get_address].method;
+    uint8_t current_subchannel = nv3->pfifo.cache1_entries[get_index].subchannel;
+    uint32_t current_name = nv3->pfifo.cache1_entries[get_index].data;
+    uint16_t current_method = nv3->pfifo.cache1_entries[get_index].method;
   
-    // i.e. there is no method in cache1, so we have to find the object.
+    // NV_ROOT
     if (!current_method)
     {
         if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
@@ -707,7 +707,7 @@ void nv3_pfifo_cache1_pull()
     }
 
     // start by incrementing
-    uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_address) + 1;
+    uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_index) + 1;
     
     if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
         next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);

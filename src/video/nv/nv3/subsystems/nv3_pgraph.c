@@ -449,7 +449,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
             // Addresses should be aligned to 4 bytes.
             uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
 
-            nv_log("PGRAPH Context Cache Write (Entry=%04x Value=%04x)\n", entry, value);
+            nv_log("PGRAPH Context Cache Write (Entry=%04x Value=0x%08x)\n", entry, value);
             nv3->pgraph.context_cache[entry] = value;
         }
     }
@@ -477,7 +477,7 @@ void nv3_pgraph_submit(uint8_t name, uint16_t method, uint8_t channel, uint8_t s
     {
         // This method is how we figure out which methods exist.
         case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
-            nv_log("Hi, I'm an NV []");
+            nv_log("Hi, I'm an NVidia object :)\n");
             break;
     }
 }

@@ -46,7 +46,7 @@ DrvEnablePDEV										SUCCESS			23:28 09/02/2025
 	EngDeviceIoControl IOCTL 0x232044 (CHECK mini)					SUCCESS (eax=0)
 DrvCompletePDEV										SUCCESS			23:52 09/02/2025
 DrvEnableSurface				
-	bEnableHardware call
+	bEnableHardware call								SUCCESS			22:36 13/02/2025
 		EngCreateSemaphore call #1 csCrtc					SUCCESS			00:55 10/02/2025
 		EngCreateSemaphore call #2 csFifo					SUCCESS			00:57 10/02/2025
 		EngDeviceIoControl IOCTL 0x230460					SUCCESS			00:57 10/02/2025
@@ -54,8 +54,8 @@ DrvEnableSurface
 		NvAllocRoot								SUCCESS			01:03 10/02/2025
 		NvAllocDevice								SUCCESS			01:04 10/02/2025
 		NV3/NV4 architecture check						SUCCESS			01:14 10/02/2025
-		bAssertModeHardware call (bEnable=1)					FAILURE - HANG/LOOP
-			EngDeviceIoControl IOCTL 0x23040C]				FAILURE 		01:27 10/02/2025
+		bAssertModeHardware call (bEnable=1)					SUCCESS			Passing starting with build at 02:23 10/02/2025
+			EngDeviceIoControl IOCTL 0x23040C]				SUCCESS	 		Passing starting with build at 02:23 10/02/2025
 				nv3_mini NVStartIO ioctlcode=0x23040C
 					NVSetMode
 						NV3SetMode				SUCCESS			01:53 10/02/2025
@@ -65,19 +65,19 @@ DrvEnableSurface
 							UpdateArbitrationSettings	SUCCESS			01:52 10/02/2025
 							RmLoadState			SUCCESS			01:53 10/02/2025
 						NV3EnableCursor				SUCCESS			01:54 10/02/2025
-						NV3WaitUntilFinished			SUCCESS			Passing 02:23 10/02/2025
+						NV3WaitUntilFinished			SUCCESS			02:23 10/02/2025
 			EngDeviceIoControl IOCTL 0x230408				SUCCESS			02:26 10/02/2025
 			EngDeviceIoControl IOCTL 0x232024				SUCCESS			02:26 10/02/2025				
 			NvAllocHardware							SUCCESS			02:29 10/02/2025
-			bCreateStdPatches(?)						FAILURE			02:31 10/02/2025
-			CHECK - NV4
-			vDestroyStdPatches(?)
-			NV3_WaitForOneVerticalRefresh
-			EngDeviceIoControl IOCTL 0x230410
+			bCreateStdPatches(?)						SUCCESS (EAX=1!!!)	22:24 13/02/2025
+			CHECK - NV4							N/A
+			vDestroyStdPatches(?)						N/A
+			NV3_WaitForOneVerticalRefresh					SUCCESS
+			EngDeviceIoControl IOCTL 0x230410				SUCCESS
 				
 
 		SET UP CORRECT FUNCTION POINTERS
-		
+	Indirect call (call dword [edi]) to NV3_WaitWhileGraphicsEngineBusy		HANG			22:14 16/02/2025 
 	_heap_init call
 	bEnableOffscreenHeap call
 	bEnablePointer call
@@ -87,10 +87,4 @@ DrvEnableSurface
 	EngCreateBitmap call
 	EngAssociateBitmap call
 
-
-
-
-
 DrvDisableSurface: ONLY IN THE CASE OF FAILURE
-
-
