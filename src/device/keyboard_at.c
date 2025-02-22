@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/machine.h>
 
 #define FLAG_PS2       0x08  /* dev is AT or PS/2 */
 #define FLAG_AT        0x00  /* dev is AT or PS/2 */
@@ -1639,14 +1640,14 @@ static const scancode scancode_set3[512] = {
     5576 keyboards kept 101-key compatible scancode sets because PS/55 had to support western (PS/2) versions of operating systems.
     The default scancode set is 2.
     In Japanese DOS, the keyboard driver confirms its keyboard ID, and sends a command to switch the scancode set to 8Ah.
-    Japanese OS/2 and Windows use the scancode set 82h.
+    Japanese OS/2 and Windows use the scancode set 81h or 82h.
 
-    The OADG standard (1991-) and modern Japanese keyboards use the same keyboard ID and scancode set number as PS/2 keyboards use.
+    The OADG standard (1991-) and modern Japanese keyboards use the same keyboard ID and scancode set ID as PS/2 keyboards use.
     Three extra scancode sets are no longer available. Instead, language input keys are available in scancode set 1 and 2.
     However, their physical key layout is a bit-paired layout.
     Users have to choose the correct keyboard layout on setup, and the driver needs to remap keys.
 
-    Currently, scancode set 81h and 82h are not implemented yet. Also, the key layout is designed to match with the Japanese keyboard.
+    Currently, the key mapping is designed to match with the Japanese layout keyboard.
 
      [Japanese DOS and keyboard scancode set comparison]
     |                           | K3.3 | J4.0 | J5.0 | J4.0/V | J5.0/V | OS/2 J1.3 | DOS 5(US)|
@@ -3208,7 +3209,7 @@ static scancode scancode_set8a[512] =
       {.mk = {       0 }, .brk = {       0 } }  /* 1ff */
     // clang-format on
 };
-#define ENABLE_KEYBOARD_AT_LOG 1
+
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -3741,8 +3742,14 @@ keyboard_at_init(const device_t *info)
        Key 63  = Japanese key between right Ctrl and right Alt, scan code: 86 (Henkan/Zenkouho 79);
        Key 65? = Japanese key between right Ctrl and right Alt, scan code: 87 (Hiragana/Katakana 70).
      */
-    // dev->type = FLAG_PS2 | KBD_102_KEY /* device_get_config_int("type") */;
-    dev->type = FLAG_PS2 | KBD_JIS;
+    dev->type = FLAG_PS2 | KBD_102_KEY /* device_get_config_int("type") */;
+    /*
+        We assume that the IBM PS/55 machine uses the 5576-002 keyboard (JP/CN layout) here.
+        This is not smart but suitable for supporting a keyboard ID that is rarely used in standard PCs.
+        At least, the Taiwanese PS/55 uses the same keyboard ID and scancode set. The Korean one is unknown.
+    */
+    if (!!strstr(machine_getname(), "PS/55")) 
+        dev->type = FLAG_PS2 | KBD_JIS;
 
     keyboard_at_log("%s: type=%d\n", dev->name, dev->type);
 
