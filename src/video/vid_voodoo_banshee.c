@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/dma.h>
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/timer.h>
@@ -43,9 +44,11 @@
 #include <86box/vid_svga_render.h>
 #include <86box/vid_voodoo_common.h>
 #include <86box/vid_voodoo_display.h>
+#include <86box/vid_voodoo_fb.h>
 #include <86box/vid_voodoo_fifo.h>
 #include <86box/vid_voodoo_regs.h>
 #include <86box/vid_voodoo_render.h>
+#include <86box/vid_voodoo_texture.h>
 
 #define ROM_BANSHEE                 "roms/video/voodoo/Pci_sg.rom"
 #define ROM_CREATIVE_BANSHEE        "roms/video/voodoo/BlasterPCI.rom"
@@ -220,6 +223,7 @@ enum {
     Agp_agpHostAddressHigh = 0x08,
     Agp_agpGraphicsAddress = 0x0C,
     Agp_agpGraphicsStride  = 0x10,
+    Agp_agpMoveCMD         = 0x14,
 };
 
 #define VGAINIT0_RAMDAC_8BIT                (1 << 2)
@@ -1365,6 +1369,10 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
 
         case cmdBaseSize0:
             ret = voodoo->cmdfifo_size;
+            if (voodoo->cmdfifo_enabled)
+                ret |= 0x100;
+            if (voodoo->cmdfifo_in_agp)
+                ret |= 0x200;
             break;
 
         case cmdBaseAddr1:
@@ -1394,6 +1402,10 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
 
         case cmdBaseSize1:
             ret = voodoo->cmdfifo_size_2;
+            if (voodoo->cmdfifo_enabled_2)
+                ret |= 0x100;
+            if (voodoo->cmdfifo_in_agp_2)
+                ret |= 0x200;
             break;
 
         case 0x108:
@@ -1613,10 +1625,11 @@ banshee_reg_writew(uint32_t addr, uint16_t val, void *priv)
     }
 }
 
-static void
-banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
+void
+banshee_cmd_write(void *priv, uint32_t addr, uint32_t val)
 {
-    voodoo_t *voodoo = banshee->voodoo;
+    banshee_t *banshee = (banshee_t *) priv;
+    voodoo_t *voodoo   = banshee->voodoo;
 #if 0
     banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
 #endif
@@ -1641,6 +1654,62 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             banshee->agpReqSize = val;
             break;
 
+        case Agp_agpMoveCMD: {
+            uint32_t src_addr = banshee->agpHostAddressLow;
+            uint32_t src_width = banshee->agpHostAddressHigh & 0x3fff;
+            uint32_t src_stride = (banshee->agpHostAddressHigh >> 14) & 0x3fff;
+            uint32_t src_end = src_addr + (banshee->agpReqSize & 0xfffff); /* don't know whether or not stride is accounted for! */
+            uint32_t dest_addr = banshee->agpGraphicsAddress & 0x3ffffff;
+            uint32_t dest_stride = banshee->agpGraphicsStride & 0x7fff;
+#if 0
+            banshee_log("AGP: %d bytes W%d from %08x S%d to %d:%08x S%d\n", src_end - src_addr, src_width, src_addr, src_stride, (val >> 3) & 3, dest_addr, dest_stride);
+#endif
+            switch ((val >> 3) & 3) {
+                case 0: /*Linear framebuffer (Banshee)*/
+                case 1: /*Planar YUV*/
+                    if (voodoo->texture_present[0][(dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
+#if 0
+                        banshee_log("texture_present at %08x %i\n", dest_addr, (dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#endif
+                        flush_texture_cache(voodoo, dest_addr & voodoo->texture_mask, 0);
+                    }
+                    if (voodoo->texture_present[1][(dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
+#if 0
+                        banshee_log("texture_present at %08x %i\n", dest_addr, (dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#endif
+                        flush_texture_cache(voodoo, dest_addr & voodoo->texture_mask, 1);
+                    }
+                    while ((src_addr < src_end) && (dest_addr <= voodoo->fb_mask)) {
+                        dma_bm_read(src_addr, &voodoo->fb_mem[dest_addr], MIN(src_width, voodoo->fb_mask - dest_addr), 4);
+                        src_addr += src_stride;
+                        dest_addr += dest_stride;
+                    }
+                    break;
+                case 2: /*Framebuffer*/
+                    src_width &= ~3;
+                    while (src_addr < src_end) {
+                        for (uint32_t i = 0; i < src_width; i += 4)
+                            voodoo_fb_writel(dest_addr + i, mem_readl_phys(src_addr + i), voodoo);
+                        src_addr += src_stride;
+                        dest_addr += dest_stride;
+                    }
+                    break;
+                case 3: /*Texture*/
+                    src_width &= ~3;
+                    while (src_addr < src_end) {
+                        for (uint32_t i = 0; i < src_width; i += 4)
+                            voodoo_tex_writel(dest_addr + i, mem_readl_phys(src_addr + i), voodoo);
+                        src_addr += src_stride;
+                        dest_addr += dest_stride;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+        }
+
         case cmdBaseAddr0:
             voodoo->cmdfifo_base = (val & 0xfff) << 12;
             voodoo->cmdfifo_end  = voodoo->cmdfifo_base + (((voodoo->cmdfifo_size & 0xff) + 1) << 12);
@@ -1655,6 +1724,7 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             voodoo->cmdfifo_enabled = val & 0x100;
             if (!voodoo->cmdfifo_enabled)
                 voodoo->cmdfifo_in_sub = 0; /*Not sure exactly when this should be reset*/
+            voodoo->cmdfifo_in_agp = val & 0x200;
 #if 0
             banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
 #endif
@@ -1694,6 +1764,7 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             voodoo->cmdfifo_enabled_2 = val & 0x100;
             if (!voodoo->cmdfifo_enabled_2)
                 voodoo->cmdfifo_in_sub_2 = 0; /*Not sure exactly when this should be reset*/
+            voodoo->cmdfifo_in_agp_2 = val & 0x200;
 #if 0
             banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
 #endif

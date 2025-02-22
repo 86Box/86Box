@@ -872,7 +872,7 @@ da2_bitblt_exec(void *p)
             }
             da2->bitblt.destaddr += 2;
             break;
-        case DA2_BLT_CFILLTILE:
+        case DA2_BLT_CFILLTILE: {
             int32_t tileaddr = da2->bitblt.srcaddr + (da2->bitblt.y % da2->bitblt.tile_w) * 2;
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
                 DA2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
@@ -891,7 +891,7 @@ da2_bitblt_exec(void *p)
             }
             da2->bitblt.destaddr += 2;
             break;
-        case DA2_BLT_CCOPYF:
+        } case DA2_BLT_CCOPYF:
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
                 DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
                 if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
@@ -1256,8 +1256,8 @@ da2_out(uint16_t addr, uint16_t val, void *p)
 uint16_t
 da2_in(uint16_t addr, void *p)
 {
-    da2_t   *da2 = (da2_t *) p;
-    uint16_t temp;
+    da2_t   *da2  = (da2_t *) p;
+    uint16_t temp = 0xff;
 
     switch (addr) {
         case 0x3c3:
@@ -3020,24 +3020,24 @@ da2_reset(void *priv)
 }
 
 static void *
-da2_init()
+da2_init(UNUSED(const device_t *info))
 {
     if (svga_get_pri() == NULL)
         return NULL;
     svga_t *mb_vga          = svga_get_pri();
     mb_vga->cable_connected = 0;
 
-    da2_t *da2  = malloc(sizeof(da2_t));
+    da2_t *da2  = calloc(1, sizeof(da2_t));
     da2->mb_vga = mb_vga;
 
     da2->dispontime        = 1000ull << 32;
     da2->dispofftime       = 1000ull << 32;
     int memsize            = 1024 * 1024;
-    da2->vram              = malloc(memsize);
+    da2->vram              = calloc(1, memsize);
     da2->vram_mask         = memsize - 1;
-    da2->cram              = malloc(0x1000);
+    da2->cram              = calloc(1, 0x1000);
     da2->vram_display_mask = DA2_MASK_CRAM;
-    da2->changedvram       = malloc(/*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
+    da2->changedvram       = calloc(1, /*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
     da2->monitorid         = device_get_config_int("montype");                 /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
     da2->mmio.charset = device_get_config_int("charset");
@@ -3083,7 +3083,7 @@ da2_init()
     return da2;
 }
 static int
-da2_available()
+da2_available(void)
 {
     return (rom_present(DA2_FONTROM_PATH_HANT) || rom_present(DA2_FONTROM_PATH_JPAN));
 }

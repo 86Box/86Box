@@ -420,6 +420,7 @@ typedef struct voodoo_t {
     int        cmdfifo_rp;
     int        cmdfifo_ret_addr;
     int        cmdfifo_in_sub;
+    int        cmdfifo_in_agp;
     atomic_int cmdfifo_depth_rd;
     atomic_int cmdfifo_depth_wr;
     atomic_int cmdfifo_enabled;
@@ -433,6 +434,7 @@ typedef struct voodoo_t {
     int        cmdfifo_rp_2;
     int        cmdfifo_ret_addr_2;
     int        cmdfifo_in_sub_2;
+    int        cmdfifo_in_agp_2;
     atomic_int cmdfifo_depth_rd_2;
     atomic_int cmdfifo_depth_wr_2;
     atomic_int cmdfifo_enabled_2;

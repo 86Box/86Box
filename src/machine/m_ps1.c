@@ -320,30 +320,28 @@ ps1_setup(int model)
 
     mem_remap_top(384);
 
-    device_add(&ps_nvr_device);
-
     device_add(&fdc_ps2_device);
 
     if (model == 2011) {
-        if (!strcmp("english_us", device_get_config_bios("bios_language"))) {
-            /* US English */
-            rom_init(&ps->high_rom,
-                    device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 0),
-                    0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+        const device_t *d      = device_context_get_device();
+        const char *    bios   = device_get_config_bios("bios_language");
+        const char *    first  = device_get_bios_file(d, bios, 0);
+        const char *    second = device_get_bios_file(d, bios, 1);
 
-        } else if ((device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 1)) == NULL) {
+        if (!strcmp(bios, "english_us")) {
+            /* US English */
+            rom_init(&ps->high_rom, first,
+                    0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+        } else if (second == NULL) {
             /* Combined ROM. */
-            rom_init(&ps->high_rom,
-                        device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 0),
+            rom_init(&ps->high_rom, first,
                         0xf80000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL);
         } else {
             /* Split ROM. */
-            rom_init(&ps->mid_rom,
-                    device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 0),
+            rom_init(&ps->mid_rom, first,
                     0xf80000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 
-            rom_init(&ps->high_rom,
-                    device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 1),
+            rom_init(&ps->high_rom, second,
                     0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
         }
 
@@ -381,6 +379,8 @@ ps1_setup(int model)
 
         device_add(&ps1snd_device);
     }
+
+    device_add(&ps_nvr_device);
 }
 
 static void

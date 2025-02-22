@@ -85,6 +85,8 @@ typedef struct {
     const uint8_t brk[4];
 } scconvtbl;
 
+/* Is this a left-over of something planned earlier? */
+#ifdef USE_SCCONV55_82
 static scconvtbl scconv55_82[18 + 1] =
 {
     // clang-format off
@@ -109,6 +111,7 @@ static scconvtbl scconv55_82[18 + 1] =
       {.sc = 0 , .mk = { 0 }, .brk = { 0 } } /* end */
     // clang-format on
 };
+#endif
 
 static scconvtbl scconv55_8a[18 + 1] =
 {
