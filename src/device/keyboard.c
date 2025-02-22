@@ -85,34 +85,6 @@ typedef struct {
     const uint8_t brk[4];
 } scconvtbl;
 
-/* Is this a left-over of something planned earlier? */
-#ifdef USE_SCCONV55_82
-static scconvtbl scconv55_82[18 + 1] =
-{
-    // clang-format off
-      {.sc = 0x02 , .mk = {    0x5f,   0 }, .brk = { 0xf0, 0x5f,   0 } }, /* '1' -> 'Clear/ /SysRq' */
-      {.sc = 0x03 , .mk = {    0x48,   0 }, .brk = { 0xf0, 0x48,   0 } }, /* '2' -> '終了 (Exit)' */
-      {.sc = 0x04 , .mk = {    0x38,   0 }, .brk = { 0xf0, 0x38,   0 } }, /* '3' -> 'メッセージ (Message)/ /応答 (Respond)' */
-      {.sc = 0x05 , .mk = {    0x30,   0 }, .brk = { 0xf0, 0x30,   0 } }, /* '4' -> 'サイズ変換 (Change Size)/ /横倍角 (2x Width)' */
-      {.sc = 0x06 , .mk = {    0x20,   0 }, .brk = { 0xf0, 0x20,   0 } }, /* '5' -> '単語登録 (Register Word)/ /再交換 (Re-change)' */
-      {.sc = 0x07 , .mk = {    0x28,   0 }, .brk = { 0xf0, 0x28,   0 } }, /* '6' -> '漢字 (Kanji)/ /番号 (Number)' */
-      {.sc = 0x08 , .mk = {    0x60,   0 }, .brk = { 0xf0, 0x60,   0 } }, /* '7' -> '取消 (Cancel)' */
-      {.sc = 0x09 , .mk = {    0x40,   0 }, .brk = { 0xf0, 0x40,   0 } }, /* '8' -> 'コピー (Copy)/ /移動 (Move)' */
-      {.sc = 0x3d , .mk = {    0x1f,   0 }, .brk = { 0xf0, 0x1f,   0 } }, /* 'F3' -> 'Cr Bnk/領域呼出 (Call Range)/All Cr/登録 (Register)' */
-      {.sc = 0x3e , .mk = {    0x27,   0 }, .brk = { 0xf0, 0x27,   0 } }, /* 'F4' -> '割込み (Interrupt)' */
-      {.sc = 0x3f , .mk = {    0x2f,   0 }, .brk = { 0xf0, 0x2f,   0 } }, /* 'F5' -> 'UF1' */
-      {.sc = 0x40 , .mk = {    0x5e,   0 }, .brk = { 0xf0, 0x5e,   0 } }, /* 'F6' -> 'UF2' */
-      {.sc = 0x41 , .mk = {    0x08,   0 }, .brk = { 0xf0, 0x08,   0 } }, /* 'F7' -> 'UF3' */
-      {.sc = 0x42 , .mk = {    0x10,   0 }, .brk = { 0xf0, 0x10,   0 } }, /* 'F8' -> 'UF4' */
-      {.sc = 0x43 , .mk = {    0x50,   0 }, .brk = { 0xf0, 0x50,   0 } }, /* 'F9' -> 'EOF/Erase/ErInp' */
-      {.sc = 0x44 , .mk = {    0x18,   0 }, .brk = { 0xf0, 0x18,   0 } }, /* 'F10' -> 'Attn/ /CrSel' */
-      {.sc = 0x57 , .mk = {    0x17,   0 }, .brk = { 0xf0, 0x17,   0 } }, /* 'F11' -> 'PA1/ /DvCncl' */
-      {.sc = 0x58 , .mk = {    0x37,   0 }, .brk = { 0xf0, 0x37,   0 } }, /* 'F12' -> 'PA2/ /PA3' */
-      {.sc = 0 , .mk = { 0 }, .brk = { 0 } } /* end */
-    // clang-format on
-};
-#endif
-
 static scconvtbl scconv55_8a[18 + 1] =
 {
     // clang-format off
