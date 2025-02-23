@@ -437,11 +437,18 @@ typedef struct {
 
 /* safety read for internal functions */
 uint32_t
-DA2_readvram_s(uint32_t addr, da2_t *da2)
+DA2_vram_r(uint32_t addr, da2_t *da2)
 {
     if (addr & ~da2->vram_mask)
         return -1;
     return da2->vram[addr];
+}
+/* safety write for internal functions */
+void
+DA2_vram_w(uint32_t addr, uint8_t val, da2_t *da2)
+{
+    da2->vram[addr & da2->vram_mask] = val;
+    return;
 }
 
 void
@@ -455,10 +462,10 @@ DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
     destaddr <<= 3;
     /* read destination data with big endian order */
     for (int i = 0; i < 8; i++)
-        writepx[i] = DA2_readvram_s((destaddr + 24) | i, da2)
-            | (DA2_readvram_s((destaddr + 16) | i, da2) << 8)
-            | (DA2_readvram_s((destaddr + 8) | i, da2) << 16)
-            | (DA2_readvram_s((destaddr + 0) | i, da2) << 24);
+        writepx[i] = DA2_vram_r((destaddr + 24) | i, da2)
+            | (DA2_vram_r((destaddr + 16) | i, da2) << 8)
+            | (DA2_vram_r((destaddr + 8) | i, da2) << 16)
+            | (DA2_vram_r((destaddr + 0) | i, da2) << 24);
 
     DA2_VidSeq32 mask32in;
     mask32in.d = (uint32_t) mask;
@@ -487,8 +494,8 @@ DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
         }
     }
     for (int i = 0; i < 8; i++) {
-        da2->vram[(da2->vram_mask & destaddr) | i]       = (writepx[i] >> 24) & 0xff;
-        da2->vram[(da2->vram_mask & (destaddr + 8)) | i] = (writepx[i] >> 16) & 0xff;
+        DA2_vram_w(destaddr | i, (writepx[i] >> 24) & 0xff, da2);
+        DA2_vram_w((destaddr + 8) | i, (writepx[i] >> 16) & 0xff, da2);
     }
 }
 
@@ -531,10 +538,10 @@ DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask,
     srcaddr &= 0xfffffffe;
     srcaddr <<= 3;
     for (int i = 0; i < 8; i++)
-        srcpx.p8[i] = DA2_readvram_s((srcaddr + 24) | i, da2)
-            | (DA2_readvram_s((srcaddr + 16) | i, da2) << 8)
-            | (DA2_readvram_s((srcaddr + 8) | i, da2) << 16)
-            | (DA2_readvram_s((srcaddr + 0) | i, da2) << 24);
+        srcpx.p8[i] = DA2_vram_r((srcaddr + 24) | i, da2)
+            | (DA2_vram_r((srcaddr + 16) | i, da2) << 8)
+            | (DA2_vram_r((srcaddr + 8) | i, da2) << 16)
+            | (DA2_vram_r((srcaddr + 0) | i, da2) << 24);
 
     DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
 }
@@ -560,7 +567,7 @@ pixel1tohex(uint32_t addr, int index, da2_t *da2)
 {
     uint8_t pixeldata = 0;
     for (int j = 0; j < 8; j++) {
-        if (da2->vram[(da2->vram_mask & (addr << 3)) | j] & (1 << (7 - index)))
+        if (DA2_vram_r(((addr << 3) | j) & (1 << (7 - index)), da2))
             pixeldata++;
     }
     return pixeldata;
@@ -1724,8 +1731,8 @@ da2_render_text(da2_t *da2)
         int       chr_wide = 0;
         // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
         for (x = 0; x < da2->hdisp; x += 13) {
-            chr  = da2->cram[(da2->ma) & da2->vram_display_mask];
-            attr = da2->cram[((da2->ma) + 1) & da2->vram_display_mask];
+            chr  = da2->cram[(da2->ma) & DA2_MASK_CRAM];
+            attr = da2->cram[((da2->ma) + 1) & DA2_MASK_CRAM];
             // if(chr!=0x20) da2_log("chr: %x, attr: %x    ", chr, attr);
             if (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) /* IO 3E8h, Index 1Dh */
             {                                           /* --Parse attribute byte in color mode-- */
@@ -1860,9 +1867,9 @@ da2_render_textm3(da2_t *da2)
         int       chr_wide = 0;
         // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
         for (x = 0; x < da2->hdisp; x += 13) {
-            chr     = da2->vram[(DA2_VM03_BASECHR + (da2->ma)) & da2->vram_mask];
-            attr    = da2->vram[((DA2_VM03_BASECHR + (da2->ma)) + 1) & da2->vram_mask];
-            extattr = da2->vram[((DA2_VM03_BASEEXATTR + (da2->ma)) + 1) & da2->vram_mask];
+            chr     = DA2_vram_r(DA2_VM03_BASECHR + (da2->ma), da2);
+            attr    = DA2_vram_r(DA2_VM03_BASECHR + (da2->ma) + 1, da2);
+            extattr = DA2_vram_r(DA2_VM03_BASEEXATTR + (da2->ma) + 1, da2);
             // if(chr!=0x20) da2_log("addr: %x, chr: %x, attr: %x    ", (DA2_VM03_BASECHR + da2->ma << 1) & da2->vram_mask, chr, attr);
             bg = attr >> 4;
             // if (da2->blink) bg &= ~0x8;
@@ -1880,7 +1887,7 @@ da2_render_textm3(da2_t *da2)
                 /* Stay drawing if the char code is DBCS and not at last column. */
                 if (chr_wide) {
                     /* Get high DBCS code from the next video address */
-                    chr_dbcs = da2->vram[(DA2_VM03_BASECHR + (da2->ma) + 2) & da2->vram_mask];
+                    chr_dbcs = DA2_vram_r(DA2_VM03_BASECHR + (da2->ma) + 2, da2);
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
                     /* Get the font pattern */
@@ -2116,9 +2123,7 @@ da2_recalctimings(da2_t *da2)
             da2_log("Set videomode to PS/55 Mode 03 text.\n");
             da2->render            = da2_render_textm3;
             da2->vram_display_mask = DA2_MASK_CRAM;
-        }
-        /* PS/55 text(color/mono) */
-        else {
+        } else { /* PS/55 text(color/mono) */
             da2_log("Set videomode to PS/55 Mode 8/E text.\n");
             da2->render            = da2_render_text;
             da2->vram_display_mask = DA2_MASK_CRAM;
@@ -2243,19 +2248,19 @@ da2_gdcropB(uint32_t addr,uint8_t bitmask, da2_t *da2)
                 case 0: /*Set*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | (da2->gdcsrc[i] & ~bitmask);
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | (da2->vram[addr | i] & ~bitmask);
-                    da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | (da2->vram[addr | i] & ~bitmask);
+                    DA2_vram_w(addr | i, (da2->gdcinput[i] & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
                 case 1: /*AND*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] | ~bitmask) & da2->gdcsrc[i];
-                    da2->vram[addr | i] = ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask);
+                    DA2_vram_w(addr | i, ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
                 case 2: /*OR*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | da2->gdcsrc[i];
-                    da2->vram[addr | i] = ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask);
+                    DA2_vram_w(addr | i,  ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
                 case 3: /*XOR*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) ^ da2->gdcsrc[i];
-                    da2->vram[addr | i] = ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask);
+                    DA2_vram_w(addr | i,  ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
             }
         }
@@ -2273,30 +2278,30 @@ da2_gdcropW(uint32_t addr, uint16_t bitmask, da2_t *da2)
                 case 0: /*Set*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) | (da2->gdcsrc[i] & ~bitmask_l);
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h) | ((da2->gdcsrc[i] >> 8) & ~bitmask_h);
-                    da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l);
-                    da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h)
-                        | (da2->vram[(addr + 8) | i] & ~bitmask_h);
+                    DA2_vram_w(addr | i, (da2->gdcinput[i] & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    DA2_vram_w((addr + 8) | i, ((da2->gdcinput[i] >> 8) & bitmask_h)
+                        | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
                 case 1: /*AND*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] | ~bitmask_l) & da2->gdcsrc[i];
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) | ~bitmask_h) & (da2->gdcsrc[i] >> 8);
-                    da2->vram[addr | i]       = ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l);
-                    da2->vram[(addr + 8) | i] = (((da2->gdcinput[i] >> 8) & (da2->gdcsrc[i] >> 8)) & bitmask_h)
-                        | (da2->vram[(addr + 8) | i] & ~bitmask_h);
+                    DA2_vram_w(addr | i, ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    DA2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) & (da2->gdcsrc[i] >> 8)) & bitmask_h)
+                        | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
                 case 2: /*OR*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) | da2->gdcsrc[i];
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h) | (da2->gdcsrc[i] >> 8);
-                    da2->vram[addr | i]       = ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l);
-                    da2->vram[(addr + 8) | i] = (((da2->gdcinput[i] >> 8) | (da2->gdcsrc[i] >> 8)) & bitmask_h)
-                        | (da2->vram[(addr + 8) | i] & ~bitmask_h);
+                    DA2_vram_w(addr | i, ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    DA2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) | (da2->gdcsrc[i] >> 8)) & bitmask_h)
+                        | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
                 case 3: /*XOR*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) ^ da2->gdcsrc[i];
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h) ^ (da2->gdcsrc[i] >> 8);
-                    da2->vram[addr | i]       = ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l);
-                    da2->vram[(addr + 8) | i] = (((da2->gdcinput[i] >> 8) ^ (da2->gdcsrc[i] >> 8)) & bitmask_h)
-                        | (da2->vram[(addr + 8) | i] & ~bitmask_h);
+                    DA2_vram_w(addr | i, ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    DA2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) ^ (da2->gdcsrc[i] >> 8)) & bitmask_h)
+                        | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
             }
         }
@@ -2359,7 +2364,6 @@ da2_mmio_read(uint32_t addr, void *p)
         } else
             return da2->gdcla[da2->readplane];
     } else { /* text mode 3 */
-
         cycles -= video_timing_read_b;
         return da2->vram[addr];
     }
@@ -2371,8 +2375,7 @@ da2_mmio_readw(uint32_t addr, void *p)
     //da2_log("da2_readW: %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
     if (da2->ioctl[LS_MMIO] & 0x10) {
         return (uint16_t) da2_mmio_read(addr, da2) | (uint16_t) (da2_mmio_read(addr + 1, da2) << 8);
-    } else if (!(da2->ioctl[LS_MODE] & 1)) /* 16 color or 256 color mode */
-    {
+    } else if (!(da2->ioctl[LS_MODE] & 1)) {/* 16 color or 256 color mode */
         cycles -= video_timing_read_w;
         addr &= DA2_MASK_MMIO;
         for (int i = 0; i < 8; i++)
@@ -2417,8 +2420,8 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
     da2_t *da2 = (da2_t *) p;
     // da2_log("da2_mmio_write %x %x\n", addr, val);
-    if ((addr & ~DA2_MASK_MMIO) != 0xA0000)
-        return;
+    // if ((addr & ~DA2_MASK_MMIO) != 0xA0000)
+    //     return;
     addr &= DA2_MASK_MMIO;
 
     if (da2->ioctl[LS_MMIO] & 0x10) {
@@ -2434,8 +2437,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
         }
         switch (da2->fctl[LF_MMIO_MODE]) {
             case 0xb0:                     /* Gaiji RAM 1011 0000 */
-                addr &= DA2_MASK_GAIJIRAM; /* safety access */
-                da2->mmio.ram[addr] = val;
+                da2->mmio.ram[addr & DA2_MASK_GAIJIRAM] = val;
                 break;
             case 0x10: /* Font ROM  0001 0000 */
                 /* Read-Only */
@@ -2509,7 +2511,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
             case 2: /* equiv to vga write mode 1 */
                 for (int i = 0; i < 8; i++)
                     if (da2->writemask & (1 << i))
-                        da2->vram[addr | i] = da2->gdcsrc[i];
+                        DA2_vram_w(addr | i, da2->gdcsrc[i], da2);
                 break;
             case 0:/* equiv to vga write mode 0 */
                 if (da2->gdcreg[LG_DATA_ROTATION] & 7)
@@ -2517,7 +2519,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 if (bitmask == 0xff && !(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                     for (int i = 0; i < 8; i++)
                         if (da2->writemask & (1 << i))
-                            da2->vram[addr | i] = val;
+                            DA2_vram_w(addr | i, val, da2);
                 } else {
                     for (int i = 0; i < 8; i++)
                         if (da2->gdcreg[LG_ENABLE_SRJ] & (1 << i))
@@ -2537,7 +2539,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 if (!(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                     for (int i = 0; i < 8; i++)
                         if (da2->writemask & (1 << i))
-                            da2->vram[addr | i] = (((val & (1 << i)) ? 0xff : 0) & bitmask) | (da2->gdcsrc[i] & ~bitmask);
+                            DA2_vram_w(addr | i, (((val & (1 << i)) ? 0xff : 0) & bitmask) | (da2->gdcsrc[i] & ~bitmask), da2);
                     //fprintf(da2->mmdbg_fp, "m1-1");
                 } else {
                     for (int i = 0; i < 8; i++)
@@ -2559,7 +2561,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
         // da2_log("%02x%02x%02x%02x\n", da2->vram[addr + 0], da2->vram[addr + 1], da2->vram[addr + 2], da2->vram[addr + 3]);
     } else { /*  mode 3h text */
         cycles -= video_timing_write_b;
-        da2->vram[addr] = val;
+        DA2_vram_w(addr, val, da2);
         da2->fullchange = 2;
     }
 }
@@ -2622,8 +2624,8 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
         case 2:
             for (int i = 0; i < 8; i++)
                 if (da2->writemask & (1 << i)) {
-                    da2->vram[addr | i]       = da2->gdcsrc[i] & 0xff;
-                    da2->vram[(addr + 8) | i] = da2->gdcsrc[i] >> 8;
+                    DA2_vram_w(addr | i, da2->gdcsrc[i] & 0xff, da2);
+                    DA2_vram_w((addr + 8) | i, da2->gdcsrc[i] >> 8, da2);
                 }
             break;
         case 0:
@@ -2632,8 +2634,8 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
             if (bitmask == 0xffff && !(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                 for (int i = 0; i < 8; i++)
                     if (da2->writemask & (1 << i)) {
-                        da2->vram[addr | i]       = val & 0xff;
-                        da2->vram[(addr + 8) | i] = val >> 8;
+                        DA2_vram_w(addr | i, val & 0xff, da2);
+                        DA2_vram_w((addr + 8) | i, val >> 8, da2);
                     }
             } else {
                 for (int i = 0; i < 8; i++)
@@ -2649,9 +2651,9 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
             if (!(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                 for (int i = 0; i < 8; i++)
                     if (da2->writemask & (1 << i)) {
-                        uint16_t wdata            = (((val & (1 << i)) ? 0xffff : 0) & bitmask) | (da2->gdcsrc[i] & ~bitmask);
-                        da2->vram[addr | i]       = wdata & 0xff;
-                        da2->vram[(addr + 8) | i] = wdata >> 8;
+                        uint16_t wdata = (((val & (1 << i)) ? 0xffff : 0) & bitmask) | (da2->gdcsrc[i] & ~bitmask);
+                        DA2_vram_w(addr | i, wdata & 0xff, da2);
+                        DA2_vram_w((addr + 8) | i, wdata >> 8, da2);
                     }
             } else {
                 for (int i = 0; i < 8; i++)
