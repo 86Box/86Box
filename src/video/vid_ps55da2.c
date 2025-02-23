@@ -54,9 +54,14 @@
 #define DA2_FONTROM_BASESBCS     0x98000
 #define DA2_GAIJIRAM_SBCS        0x34000
 #define DA2_GAIJIRAM_SBEX        0x3c000
+#define DA2_VM03_BASECHR         0x18000
+#define DA2_VM03_BASEEXATTR      0x10000
 #define DA2_INVALIDACCESS8       0xff
 #define DA2_MASK_MMIO            0x1ffff
-#define DA2_MASK_GRAM            0x1ffff
+#define DA2_SIZE_VRAM            1024 * 1024 /* 0x100000 */
+#define DA2_SIZE_CRAM            4 * 1024 /* 0x1000 */
+#define DA2_SIZE_GAIJIRAM        256 * 1024 /* 0x40000 */
+#define DA2_MASK_A000            0x1ffff
 #define DA2_MASK_CRAM            0xfff
 #define DA2_MASK_GAIJIRAM        0x3ffff
 #define DA2_PIXELCLOCK           58000000.0
@@ -243,7 +248,7 @@
 #define LG_SET_RESET_2          0x10
 
 #ifndef RELEASE_BUILD
-// #define ENABLE_DA2_LOG 1
+#define ENABLE_DA2_LOG 1
 #endif
 
 #ifdef ENABLE_DA2_LOG
@@ -370,7 +375,7 @@ typedef struct da2_t {
     {
         int           enable;
         mem_mapping_t mapping;
-        uint8_t       ram[256 * 1024];
+        uint8_t       ram[DA2_SIZE_GAIJIRAM];
         uint8_t      *font;
         int           charset;
     } mmio;
@@ -1855,10 +1860,10 @@ da2_render_textm3(da2_t *da2)
         int       chr_wide = 0;
         // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
         for (x = 0; x < da2->hdisp; x += 13) {
-            chr     = da2->vram[(0x18000 + (da2->ma)) & da2->vram_mask];
-            attr    = da2->vram[((0x18000 + (da2->ma)) + 1) & da2->vram_mask];
-            extattr = da2->vram[((0x10000 + (da2->ma)) + 1) & da2->vram_mask];
-            // if(chr!=0x20) da2_log("addr: %x, chr: %x, attr: %x    ", (0x18000 + da2->ma << 1) & da2->vram_mask, chr, attr);
+            chr     = da2->vram[(DA2_VM03_BASECHR + (da2->ma)) & da2->vram_mask];
+            attr    = da2->vram[((DA2_VM03_BASECHR + (da2->ma)) + 1) & da2->vram_mask];
+            extattr = da2->vram[((DA2_VM03_BASEEXATTR + (da2->ma)) + 1) & da2->vram_mask];
+            // if(chr!=0x20) da2_log("addr: %x, chr: %x, attr: %x    ", (DA2_VM03_BASECHR + da2->ma << 1) & da2->vram_mask, chr, attr);
             bg = attr >> 4;
             // if (da2->blink) bg &= ~0x8;
             // fg = (da2->blink || (!(attr & 0x80))) ? (attr & 0xf) : bg;
@@ -1875,7 +1880,7 @@ da2_render_textm3(da2_t *da2)
                 /* Stay drawing if the char code is DBCS and not at last column. */
                 if (chr_wide) {
                     /* Get high DBCS code from the next video address */
-                    chr_dbcs = da2->vram[(0x18000 + (da2->ma) + 2) & da2->vram_mask];
+                    chr_dbcs = da2->vram[(DA2_VM03_BASECHR + (da2->ma) + 2) & da2->vram_mask];
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
                     /* Get the font pattern */
@@ -1887,11 +1892,9 @@ da2_render_textm3(da2_t *da2)
                     }
                 } else {
                     /* the char code is SBCS (ANK) */
-                    uint32_t fontbase;
-                    fontbase      = DA2_GAIJIRAM_SBCS;
-                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2]; /* w13xh29 font */
+                    uint16_t font = da2->mmio.ram[DA2_GAIJIRAM_SBCS + chr * 0x40 + da2->sc * 2]; /* w13xh29 font */
                     font <<= 8;
-                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1]; /* w13xh29 font */
+                    font |= da2->mmio.ram[DA2_GAIJIRAM_SBCS+ chr * 0x40 + da2->sc * 2 + 1]; /* w13xh29 font */
                     // if(chr!=0x20) da2_log("ma: %x, sc: %x, chr: %x, font: %x    ", da2->ma, da2->sc, chr, font);
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
@@ -2101,10 +2104,10 @@ da2_recalctimings(da2_t *da2)
         if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
             da2_log("Set videomode to PS/55 8 bpp graphics.\n");
             da2->render            = da2_render_color_8bpp;
-            da2->vram_display_mask = DA2_MASK_GRAM;
+            da2->vram_display_mask = DA2_MASK_A000;
         } else { /* PS/55 8-color */
             da2_log("Set videomode to PS/55 4 bpp graphics.\n");
-            da2->vram_display_mask = DA2_MASK_GRAM;
+            da2->vram_display_mask = DA2_MASK_A000;
             da2->render            = da2_render_color_4bpp;
         }
     } else {
@@ -3029,12 +3032,11 @@ da2_init(UNUSED(const device_t *info))
 
     da2->dispontime        = 1000ull << 32;
     da2->dispofftime       = 1000ull << 32;
-    int memsize            = 1024 * 1024;
-    da2->vram              = calloc(1, memsize);
-    da2->vram_mask         = memsize - 1;
-    da2->cram              = calloc(1, 0x1000);
+    da2->vram              = calloc(1, DA2_SIZE_VRAM);
+    da2->vram_mask         = DA2_SIZE_VRAM - 1;
+    da2->cram              = calloc(1, DA2_SIZE_CRAM);
     da2->vram_display_mask = DA2_MASK_CRAM;
-    da2->changedvram       = calloc(1, /*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
+    da2->changedvram       = calloc(1, /*(memsize >> 12) << 1*/ DA2_SIZE_VRAM >> 12); /* XX000h */
     da2->monitorid         = device_get_config_int("montype");                 /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
     da2->mmio.charset = device_get_config_int("charset");
@@ -3095,17 +3097,17 @@ da2_close(void *p)
     FILE *f;
     f = fopen("da2_cram.dmp", "wb");
     if (f != NULL) {
-        fwrite(da2->cram, 0x1000, 1, f);
+        fwrite(da2->cram, DA2_SIZE_CRAM, 1, f);
         fclose(f);
     }
     f = fopen("da2_vram.dmp", "wb");
     if (f != NULL) {
-        fwrite(da2->vram, 1024 * 1024, 1, f);
+        fwrite(da2->vram, DA2_SIZE_VRAM, 1, f);
         fclose(f);
     }
     f = fopen("da2_gram.dmp", "wb");
     if (f != NULL) {
-        fwrite(da2->mmio.ram, 256 * 1024, 1, f);
+        fwrite(da2->mmio.ram, DA2_SIZE_GAIJIRAM, 1, f);
         fclose(f);
     }
     f = fopen("da2_attrpal.dmp", "wb");
