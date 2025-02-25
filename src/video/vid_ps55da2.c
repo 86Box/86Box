@@ -532,7 +532,7 @@ Param   Desc
 0A      Plane Mask?
 0B      ROP?(8h or 200h) + Bitop (0 None, 1 AND, 2 OR, 3 XOR)
 0D
-20      Exec (1) or Exec without reset regs (21h)
+20      Exec (1) or Exec without reset regs? (21h)
 21      ?
 22      ?
 23      Tile W
@@ -762,12 +762,6 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.exec   = DA2_BLT_CDONE;
         timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
 
-        // if (da2->bitblt.reg[0x2f] < 0x80) /* MS Paint 3.1 will cause hang up in 256 color mode */
-        // {
-        //     da2_log("bitblt not executed 2f:%x\n", da2->bitblt.reg[0x2f]);
-        //     da2->bitblt.exec = DA2_BLT_CDONE;
-        // } else
-
         /* Put DBCS char used by OS/2 (i'm not sure what the condition is) */
         if (da2->bitblt.reg[0x10] == 0xbc04) {
             da2->bitblt.exec = DA2_BLT_CPUTCHAR;
@@ -810,15 +804,11 @@ da2_bitblt_load(da2_t *da2)
         }
         /* Draw a line */
         else if (da2->bitblt.reg[0x5] == 0x43) {
-            // da2_log("drawline x=%d, y=%d, 24=%d, 2A=%d, 2B=%d, 2D=%d\n",
-            //         da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-            //         n24, n2a, n2b, da2->bitblt.reg[0x2D]);
             da2->bitblt.exec = DA2_BLT_CLINE;
             da2->bitblt.dest_x    = (da2->bitblt.reg[0x32] & 0x7ff);
             da2->bitblt.dest_y    = (da2->bitblt.reg[0x34] & 0x7ff);
             da2->bitblt.size_x    = abs((da2->bitblt.reg[0x33] & 0x7ff) - (da2->bitblt.reg[0x32] & 0x7ff));
             da2->bitblt.size_y    = abs((da2->bitblt.reg[0x35] & 0x7ff) - (da2->bitblt.reg[0x34] & 0x7ff));
-            // da2->bitblt.raster_op = 0;
             da2->bitblt.count    = 0;
             da2->bitblt.octdir    = da2->bitblt.reg[0x2D];
             da2->bitblt.bitshift_destr = 0;
@@ -829,13 +819,6 @@ da2_bitblt_load(da2_t *da2)
             da2_log("drawline x=%d, y=%d, dx=%d, dy=%d, oct=%d\n",
                     da2->bitblt.dest_x, da2->bitblt.dest_y,
                     da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.octdir);
-            // FILE *f = fopen("da2_drawline.csv", "a");
-            // if (f != NULL) {
-            //     fprintf(f,"drawline,%d,%d,%d,%d,%d,%d\n",
-            //         da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-            //         n24, n2a, n2b, da2->bitblt.reg[0x2D]);
-            //     fclose(f);
-            // }
         }
         /* Fill a rectangle (or draw a horizontal / vertical line) */
         else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {
@@ -922,7 +905,7 @@ da2_bitblt_exec(void *p)
 
             /* Draw a dot */
             // outb(0x680, da2->bitblt.octdir);
-            // da2_log("point: %d %d %d %d %d\n", pos_x, pos_y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
+            da2_log("point: %d %d %d %d %d\n", pos_x, pos_y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
             int destaddr = pos_y * (da2->rowoffset * 2) + pos_x / 8;
             int pixelmask = pos_x % 16;
             if (pixelmask >= 8)
@@ -1107,26 +1090,15 @@ da2_bitblt_dopayload(void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
     timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
-    // if (da2->bitblt.indata) /* for OS/2 J1.3 */
-    // {
-    //     if (da2->bitblt.exec == DA2_BLT_CIDLE) {
-    //         da2->bitblt.exec = DA2_BLT_CLOAD;
-    //         /* do all queues (ignore async executing) for OS/2 J1.3 commannd prompt that doesn't wait for idle */
-    //         da2_log("da2 Do bitblt\n");
-    //         while (da2->bitblt.exec != DA2_BLT_CIDLE) {
-    //             da2_bitblt_exec(da2);
-    //         }
-    //         da2_log("da2 End bitblt %x\n", da2->bitblt.exec);
-    //     }
-    // }
     if (da2->bitblt.exec != DA2_BLT_CIDLE)
         da2_bitblt_exec(da2);
-    else if (da2->bitblt.indata)
-    {
+    else if (da2->bitblt.indata) {
         if (da2->bitblt.exec == DA2_BLT_CIDLE) {
             da2->bitblt.exec = DA2_BLT_CLOAD;
             da2_bitblt_exec(da2);
         }
+    } else {
+        // timer_disable(&da2->bitblt.timer);
     }
 }
 
@@ -3189,7 +3161,7 @@ da2_init(UNUSED(const device_t *info))
     mem_mapping_disable(&da2->cmapping);
 
     timer_add(&da2->timer, da2_poll, da2, 0);
-    da2->bitblt.timerspeed = 1 * TIMER_USEC;
+    da2->bitblt.timerspeed = 10 * TIMER_USEC;
     timer_add(&da2->bitblt.timer, da2_bitblt_dopayload, da2, 0);
 
     return da2;
