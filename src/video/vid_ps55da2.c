@@ -502,6 +502,8 @@ DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
                 writepx[i] ^= srcpx->p8[i] & mask32.d;
                 break;
         }
+        if (da2->bitblt.raster_op & 0x20) /* NOT */
+            writepx[i] ^= 0xFFFFFFFF & mask32.d;
     }
     for (int i = 0; i < 8; i++) {
         DA2_vram_w(destaddr | i, (writepx[i] >> 24) & 0xff, da2);
@@ -524,11 +526,11 @@ Param   Desc
 01      Color
 03      Bit Shift
 04      Select plane?
-05      Dir(10 or 11) + Command?(40 or 48)
+05      Dir(1000h or 1100h) + Command?(40 or 48)
 08      Mask Left
 09      Mask Right
 0A      Plane Mask?
-0B      ROP?(8h or 200h + 0-3h)
+0B      ROP?(8h or 200h) + Bitop (0 None, 1 AND, 2 OR, 3 XOR)
 0D
 20      Exec (1) or Exec without reset regs (21h)
 21      ?
@@ -709,9 +711,9 @@ da2_bitblt_load(da2_t *da2)
         i++;
     }
     da2->bitblt.exec = DA2_BLT_CIDLE;
-    // /* clear payload memory */
-    // memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
-    // da2->bitblt.payload_addr = 0;
+    /* clear payload memory */
+    memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
+    da2->bitblt.payload_addr = 0;
     /* [89] 20: 0001 (1) then execute payload */
     if (da2->bitblt.reg[0x20] & 0x1) {
         /* clear payload memory */
@@ -731,7 +733,7 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.debug_exesteps = 0;
 #endif
         da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x3] >> 4) & 0x0f); /* set bit shift */
-        da2->bitblt.raster_op      = da2->bitblt.reg[0x0b] & 0x03;         /* 01 AND, 03 XOR */
+        da2->bitblt.raster_op      = da2->bitblt.reg[0x0b] & 0x23;         /* 01 AND, 03 XOR */
         da2_log("bltload_exec: %x, rop: %x CS:PC=%4x:%4x\n", da2->bitblt.reg[0x5], da2->bitblt.reg[0x0b], CS, cpu_state.pc);
         // for (int i = 0; i <= 0xb; i++)
         // {
@@ -780,7 +782,6 @@ da2_bitblt_load(da2_t *da2)
             da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 72 + 2;
             da2->bitblt.destaddr += 2;
             da2->bitblt.srcpitch  = 0;
-            da2->bitblt.raster_op = da2->bitblt.reg[0x05] & 0x03; /* XOR */
             da2->bitblt.bitshift_destr += 1;
 #ifdef ENABLE_DA2_DEBUGBLT
             uint32_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
@@ -797,7 +798,6 @@ da2_bitblt_load(da2_t *da2)
             da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 64 + 2 + DA2_FONTROM_BASESBCS;
             da2->bitblt.destaddr += 2;
             da2->bitblt.srcpitch  = 0;
-            da2->bitblt.raster_op = da2->bitblt.reg[0x05] & 0x03; /* XOR */
             da2->bitblt.bitshift_destr += 1;
 #ifdef ENABLE_DA2_DEBUGBLT
             uint32_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
