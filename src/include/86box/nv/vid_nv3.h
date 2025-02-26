@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   13 February 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   26 February 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -40,6 +40,8 @@ extern const device_config_t nv3_config[];
 // Subchannels deal with specific parts of the GPU and are manipulated by the driver to manipulate the gpu.
 #define NV3_DMA_CHANNELS                                8
 #define NV3_DMA_SUBCHANNELS_PER_CHANNEL                 8
+
+#define NV3_DMA_CHANNELS_TOTAL                          0x7F            // This is also used somewhere despite there only being 8*8 = 64 channels
 
 #define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             1               // The amount by which we have to ration out the memory clock because it's not fast enough...
                                                                         // Multiply by this value to get the real clock speed.

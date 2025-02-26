@@ -32,13 +32,14 @@
 It is used to get the offset within RAMHT of a graphics object.
  */
 
+
 uint32_t nv3_ramht_hash(uint32_t name, uint32_t channel)
 {
-    // convert the name to an array of bytes
-    uint8_t* hash_bytes = (uint8_t*)&name;
+    // the official nvidia hash algorithm, tweaked for readability
+    uint32_t hash = ((name ^ (name >> 8) ^ (name >> 16) ^ (name >> 24)) & 0xFF) ^ (channel & NV3_DMA_CHANNELS_TOTAL); 
+
 
     // is this the right endianness?
-    uint32_t hash = (hash_bytes[0] ^ hash_bytes[1] ^ hash_bytes[2] ^ hash_bytes[3] ^ (uint8_t)channel);
     nv_log("Generated RAMHT hash 0x%04x (RAMHT slot=0x%04x (from name 0x%08x for DMA channel 0x%04x)\n)\n", hash, (hash/8), name, channel);
     return hash;
 }

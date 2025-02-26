@@ -127,8 +127,8 @@ void nv3_pbus_write(uint32_t address, uint32_t value)
 uint8_t nv3_pbus_rma_read(uint16_t addr)
 {
     addr &= 0xFF;
-    uint32_t real_final_address;
-    uint8_t ret;
+    uint32_t real_final_address = 0x0;
+    uint8_t ret = 0x0;
 
     switch (addr)
     {

@@ -114,7 +114,7 @@ uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
     {
         val = vram_32bit[addr];
 
-        nv_log("Read dword from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log("Read dword from PRAMIN 0x%08x <- 0x%08x (raw address=0x%08x)\n", val, addr, raw_addr);
     }
 
     return val;
@@ -134,7 +134,7 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
     // reversal unit size in this case is 16 bytes, vram size is 2-8mb (but 8mb is zx/nv3t only and 2mb...i haven't found a 22mb card)
     addr ^= (nv3->nvbase.svga.vram_max - 0x10);
 
-    uint32_t val32 = 0x00;
+    uint32_t val32 = (uint32_t)val;
 
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
@@ -160,7 +160,7 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
     addr ^= (nv3->nvbase.svga.vram_max - 0x10);
     addr >>= 1; // what
 
-    uint32_t val32 = 0x00;
+    uint32_t val32 = (uint32_t)val;
 
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
@@ -186,9 +186,7 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
     addr ^= (nv3->nvbase.svga.vram_max - 0x10);
     addr >>= 2; // what
 
-    uint32_t val32 = 0x00;
-
-    if (!nv3_ramin_arbitrate_write(addr, val32))
+    if (!nv3_ramin_arbitrate_write(addr, val))
     {
         vram_32bit[addr] = val;
         nv_log("Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
@@ -354,8 +352,9 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
     // Not a switch statement in case newer gpus have larger ramins
 
     uint32_t bucket_entries = 2;
+    uint8_t ramht_size = (nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_SIZE) & 0x03;
 
-    switch (nv3->pfifo.ramht_config)
+    switch (ramht_size)
     {
         case NV3_PFIFO_CONFIG_RAMHT_SIZE_4K:
             // stays as is
@@ -374,7 +373,10 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
     
     // Calculate the address in the hashtable
     uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
-    uint32_t ramht_cur_address = ramht_base + (nv3_ramht_hash(name, channel)) * bucket_entries * 8;
+
+    // This is certainly wrong. But the objects seem to be written to 4600? So I just multiply it by 80 to multiply the final address by 10.
+    // Why does this work?
+    uint32_t ramht_cur_address = ramht_base + (nv3_ramht_hash(name, channel) * bucket_entries * 8);
 
     nv_log("Beginning search for graphics object at RAMHT base=0x%04x, name=0x%08x, Cache%d, channel=%d.%d)\n",
         ramht_cur_address, name, cache_num, channel, subchannel);
@@ -382,8 +384,8 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
     bool found_object = false;
     
     // set up some variables
-    uint32_t found_obj_name;
-    nv3_ramin_context_t obj_context_struct;
+    uint32_t found_obj_name = 0x00;
+    nv3_ramin_context_t obj_context_struct = {0};
 
     for (uint32_t bucket_entry = 0; bucket_entry < bucket_entries; bucket_entry++)
     {

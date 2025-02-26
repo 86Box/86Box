@@ -290,6 +290,11 @@ uint32_t nv3_pfifo_read(uint32_t address)
     return ret; 
 }
 
+void nv3_pfifo_trigger_dma_if_required()
+{
+
+}
+
 void nv3_pfifo_write(uint32_t address, uint32_t value) 
 {
     // before doing anything, check the subsystem enablement
@@ -481,6 +486,9 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
 
         nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x", ctx_entry_id, value);
     }
+
+    /* Trigger DMA for notifications if we need to */
+    nv3_pfifo_trigger_dma_if_required();
 }
 
 /* 
@@ -690,7 +698,7 @@ void nv3_pfifo_cache1_pull()
     // NV_ROOT
     if (!current_method)
     {
-        if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
+        if (!nv3_ramin_find_object(current_name, 1, current_channel, current_subchannel))
             return; // interrupt was fired, and we went to ramro
     }
 
