@@ -336,7 +336,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
     }
 
     if ((dev->accel_bpp == 8) || (dev->accel_bpp == 15) || (dev->accel_bpp == 16) || (dev->accel_bpp == 24))
-        mach_log("RdMask=%04x, DPCONFIG=%04x, Clipping: l=%d, r=%d, t=%d, b=%d, LineDrawOpt=%04x, BPP=%d, CMDType = %d, offs=%08x, cnt = %d, input = %d, mono_src = %d, frgdsel = %d, d(%d,%d), dstxend = %d, pitch = %d, extcrt = %d, rw = %x, monpattern = %x.\n",
+        mach_log("RdMask=%04x, DPCONFIG=%04x, Clipping: l=%d, r=%d, t=%d, b=%d, LineDrawOpt=%04x, BPP=%d, CMDType = %d, offs=%08x, cnt = %d, input = %d, mono_src = %d, frgdsel = %d, d(%d,%d), dstxend = %d, pitch = %d, extcrt = %d, rw = %x, monopattern = %x.\n",
                  dev->accel.rd_mask, mach->accel.dp_config, clip_l, clip_r, clip_t, clip_b, mach->accel.linedraw_opt, dev->accel_bpp, cmd_type, mach->accel.ge_offset, count, cpu_input, mono_src, frgd_sel, dev->accel.cur_x, dev->accel.cur_y,
                  mach->accel.dest_x_end, dev->ext_pitch, dev->ext_crt_pitch, mach->accel.dp_config & 1, mach->accel.mono_pattern_enable);
 
@@ -1039,7 +1039,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         }
                         break;
                     case 2:
-                        if (mach->accel.dp_config & 0x1000) {
+                        if ((mach->accel.dp_config & 0x1000) || (mach->accel.dp_config & 0x04)) {
                             mix = mix_dat >> 0x1f;
                             mix_dat <<= 1;
                         } else {
@@ -2185,7 +2185,7 @@ mach_accel_out_pixtrans(svga_t *svga, mach_t *mach, ibm8514_t *dev, uint16_t val
         case 0x200: /*16-bit size*/
             if (mono_src == 2) {
                 if ((frgd_sel != 2) && (bkgd_sel != 2)) {
-                    if ((mach->accel.dp_config & 0x1000) && !swap) {
+                    if (((mach->accel.dp_config & 0x1000) && !swap) || swap) {
                         mach_log("16-bit bus size swap.\n");
                         val = (val >> 8) | (val << 8);
                     }
@@ -5184,11 +5184,11 @@ mach32_ap_writeb(uint32_t addr, uint8_t val, void *priv)
     mach_t          *mach  = (mach_t *) priv;
     svga_t          *svga  = &mach->svga;
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
-    uint8_t port_dword     = addr & 0xfc;
+    uint8_t port_dword     = (addr - mach->linear_base) & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
-        if (addr & 0x100) {
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+        if ((addr - mach->linear_base) & 0x100) {
             mach_log("Port WORDB Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outb(0x02ee + (addr & 1) + (port_dword << 8), val, mach);
         } else {
@@ -5199,9 +5199,9 @@ mach32_ap_writeb(uint32_t addr, uint8_t val, void *priv)
         mach_log("Linear WORDB Write=%08x, val=%02x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
                  addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
-            mach32_write_common(addr, val, 1, mach, svga);
+            mach32_write_common(addr - mach->linear_base, val, 1, mach, svga);
         else
-            svga_write_linear(addr, val, svga);
+            svga_write_linear(addr - mach->linear_base, val, svga);
     }
 }
 
@@ -5211,11 +5211,11 @@ mach32_ap_writew(uint32_t addr, uint16_t val, void *priv)
     mach_t          *mach  = (mach_t *) priv;
     svga_t          *svga  = &mach->svga;
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
-    uint8_t port_dword     = addr & 0xfc;
+    uint8_t port_dword     = (addr - mach->linear_base) & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
-        if (addr & 0x100) {
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
+        if ((addr - mach->linear_base) & 0x100) {
             mach_log("Port WORDW Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outw(0x02ee + (port_dword << 8), val, mach);
         } else {
@@ -5224,11 +5224,11 @@ mach32_ap_writew(uint32_t addr, uint16_t val, void *priv)
         }
     } else {
         mach_log("Linear WORDW Write=%08x, val=%04x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
-                 addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
+                 addr - mach->linear_base, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
-            mach32_writew_linear(addr, val, mach);
+            mach32_writew_linear(addr - mach->linear_base, val, mach);
         else
-            svga_writew_linear(addr, val, svga);
+            svga_writew_linear(addr - mach->linear_base, val, svga);
     }
 }
 
@@ -5238,11 +5238,11 @@ mach32_ap_writel(uint32_t addr, uint32_t val, void *priv)
     mach_t          *mach  = (mach_t *) priv;
     svga_t          *svga  = &mach->svga;
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
-    uint8_t port_dword     = addr & 0xfc;
+    uint8_t port_dword     = (addr - mach->linear_base) & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
-        if (addr & 0x100) {
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
+        if ((addr - mach->linear_base) & 0x100) {
             mach_log("Port WORDL Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outw(0x02ee + (port_dword << 8), val & 0xffff, mach);
             mach_accel_outw(0x02ee + (port_dword << 8) + 4, val >> 16, mach);
@@ -5253,11 +5253,11 @@ mach32_ap_writel(uint32_t addr, uint32_t val, void *priv)
         }
     } else {
         mach_log("Linear WORDL Write=%08x, val=%08x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
-                 addr & dev->vram_mask, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
+                 addr - mach->linear_base, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
-            mach32_writel_linear(addr, val, mach);
+            mach32_writel_linear(addr - mach->linear_base, val, mach);
         else
-            svga_writel_linear(addr, val, svga);
+            svga_writel_linear(addr - mach->linear_base, val, svga);
     }
 }
 
@@ -5268,19 +5268,19 @@ mach32_ap_readb(uint32_t addr, void *priv)
     svga_t          *svga  = &mach->svga;
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
     uint8_t temp;
-    uint8_t port_dword     = addr & 0xfc;
+    uint8_t port_dword     = (addr - mach->linear_base) & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
-        if (addr & 0x100)
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
+        if ((addr - mach->linear_base) & 0x100)
             temp = mach_accel_inb(0x02ee + (addr & 1) + (port_dword << 8), mach);
         else
             temp = mach_accel_inb(0x02e8 + (addr & 1) + (port_dword << 8), mach);
     } else {
         if (dev->on)
-            temp = mach32_read_common(addr, 1, mach, svga);
+            temp = mach32_read_common(addr - mach->linear_base, 1, mach, svga);
         else
-            temp = svga_read_linear(addr, svga);
+            temp = svga_read_linear(addr - mach->linear_base, svga);
 
         mach_log("Linear WORDB Read=%08x, ret=%02x, fast=%d.\n", addr, temp, svga->fast);
     }
@@ -5295,19 +5295,19 @@ mach32_ap_readw(uint32_t addr, void *priv)
     svga_t          *svga  = &mach->svga;
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
     uint16_t temp;
-    uint8_t port_dword     = addr & 0xfc;
+    uint8_t port_dword     = (addr - mach->linear_base) & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
-        if (addr & 0x100)
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
+        if ((addr - mach->linear_base) & 0x100)
             temp = mach_accel_inw(0x02ee + (port_dword << 8), mach);
         else
             temp = mach_accel_inw(0x02e8 + (port_dword << 8), mach);
     } else {
         if (dev->on)
-            temp = mach32_readw_linear(addr, mach);
+            temp = mach32_readw_linear(addr - mach->linear_base, mach);
         else
-            temp = svga_readw_linear(addr, svga);
+            temp = svga_readw_linear(addr - mach->linear_base, svga);
 
         mach_log("Linear WORDW Read=%08x, ret=%04x.\n", addr, temp);
     }
@@ -5322,11 +5322,11 @@ mach32_ap_readl(uint32_t addr, void *priv)
     svga_t          *svga  = &mach->svga;
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
     uint32_t temp;
-    uint8_t port_dword     = addr & 0xfc;
+    uint8_t port_dword     = (addr - mach->linear_base) & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
-        if (addr & 0x100) {
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
+        if ((addr - mach->linear_base) & 0x100) {
             temp = mach_accel_inw(0x02ee + (port_dword << 8), mach);
             temp |= (mach_accel_inw(0x02ee + (port_dword << 8) + 4, mach) << 8);
         } else {
@@ -5335,9 +5335,9 @@ mach32_ap_readl(uint32_t addr, void *priv)
         }
     } else {
         if (dev->on)
-            temp = mach32_readl_linear(addr, mach);
+            temp = mach32_readl_linear(addr - mach->linear_base, mach);
         else
-            temp = svga_readl_linear(addr, svga);
+            temp = svga_readl_linear(addr - mach->linear_base, svga);
 
         mach_log("Linear WORDL Read=%08x, ret=%08x, ON%d.\n", addr, temp, dev->on);
     }

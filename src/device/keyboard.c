@@ -18,10 +18,13 @@
  *          Copyright 2015-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include <86box/keyboard.h>
@@ -41,6 +44,24 @@ uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
 uint16_t key_uncapture_1 = 0x058;    /* F12 */
 uint16_t key_uncapture_2 = 0x000;    /* Invalid */
 
+#ifdef ENABLE_KBC_AT_LOG
+int kbc_at_do_log = ENABLE_KBC_AT_LOG;
+
+static void
+kbc_at_log(const char* fmt, ...)
+{
+    va_list ap;
+
+    if (kbc_at_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define kbc_at_log(fmt, ...)
+#endif
+
 void (*keyboard_send)(uint16_t val);
 
 static int recv_key[512] = { 0 }; /* keyboard input buffer */
@@ -55,6 +76,39 @@ static uint8_t caps_lock   = 0;
 static uint8_t num_lock    = 0;
 static uint8_t scroll_lock = 0;
 static uint8_t shift       = 0;
+
+static int key5576mode = 0;
+
+typedef struct {
+    const uint16_t sc;
+    const uint8_t mk[4];
+    const uint8_t brk[4];
+} scconvtbl;
+
+static scconvtbl scconv55_8a[18 + 1] =
+{
+    // clang-format off
+      {.sc = 0x02 , .mk = {    0x48 }, .brk = {       0 } }, /* '1' -> 'Clear/ /SysRq' */
+      {.sc = 0x03 , .mk = {    0x49 }, .brk = {       0 } }, /* '2' -> '終了 (Exit)' */
+      {.sc = 0x04 , .mk = {    0x46 }, .brk = {       0 } }, /* '3' -> 'メッセージ (Message)/ /応答 (Respond)' */
+      {.sc = 0x05 , .mk = {    0x44 }, .brk = {       0 } }, /* '4' -> 'サイズ変換 (Change Size)/ /横倍角 (2x Width)' */
+      {.sc = 0x06 , .mk = {    0x42 }, .brk = {       0 } }, /* '5' -> '単語登録 (Register Word)/ /再交換 (Re-change)' */
+      {.sc = 0x07 , .mk = {    0x43 }, .brk = {       0 } }, /* '6' -> '漢字 (Kanji)/ /番号 (Number)' */
+      {.sc = 0x08 , .mk = {    0x40 }, .brk = {       0 } }, /* '7' -> '取消 (Cancel)' */
+      {.sc = 0x09 , .mk = {    0x51 }, .brk = {       0 } }, /* '8' -> 'コピー (Copy)/ /移動 (Move)' */
+      {.sc = 0x3d , .mk = {    0x76 }, .brk = {       0 } }, /* 'F3' -> 'Cr Bnk/領域呼出 (Call Range)/All Cr/登録 (Register)' */
+      {.sc = 0x3e , .mk = {    0x77 }, .brk = {       0 } }, /* 'F4' -> '割込み (Interrupt)' */
+      {.sc = 0x3f , .mk = {    0x78 }, .brk = {       0 } }, /* 'F5' -> 'UF1' */
+      {.sc = 0x40 , .mk = {    0x79 }, .brk = {       0 } }, /* 'F6' -> 'UF2' */
+      {.sc = 0x41 , .mk = {    0x7a }, .brk = {       0 } }, /* 'F7' -> 'UF3' */
+      {.sc = 0x42 , .mk = {    0x7b }, .brk = {       0 } }, /* 'F8' -> 'UF4' */
+      {.sc = 0x43 , .mk = {    0x7c }, .brk = {       0 } }, /* 'F9' -> 'EOF/Erase/ErInp' */
+      {.sc = 0x44 , .mk = {    0x7d }, .brk = {       0 } }, /* 'F10' -> 'Attn/ /CrSel' */
+      {.sc = 0x57 , .mk = {    0x7e }, .brk = {       0 } }, /* 'F11' -> 'PA1/ /DvCncl' */
+      {.sc = 0x58 , .mk = {    0x7f }, .brk = {       0 } }, /* 'F12' -> 'PA2/ /PA3' */
+      {.sc = 0 , .mk = { 0 }, .brk = { 0 } } /* end */
+    // clang-format on
+};
 
 void
 keyboard_init(void)
@@ -111,6 +165,36 @@ key_process(uint16_t scan, int down)
 
     oldkey[scan] = down;
 
+    kbc_at_log("Key %04X,%d in process\n", scan, down);
+
+    c = 0;
+    /* According to Japanese DOS K3.3 manual (N:SC18-2194-1),
+      IBM 5576-002, -003 keyboards have the one-time key conversion mode
+      that emulates 18 out of 131 keys on IBM 5576-001 keyboard.
+      It is triggered by pressing L-Shift (⇧) + L-Ctrl + R-Alt (前面キー)
+      when the scancode set is 82h or 8ah.
+    */
+    if (key5576mode) {
+        int i = 0;
+        if (!down) {
+            /* Do and exit the 5576-001 emulation when a key is pressed other than trigger keys. */
+            if (scan != 0x1d && scan != 0x2a && scan != 0x138)
+            {
+                key5576mode = 0;
+                kbc_at_log("5576-001 key emulation disabled.\n");
+            }
+        }
+        while (scconv55_8a[i].sc != 0)
+        {
+            if (scconv55_8a[i].sc == scan) {
+                while (scconv55_8a[i].mk[c] != 0)
+                    keyboard_send(scconv55_8a[i].mk[c++]);
+                return;
+            }
+            i++;
+        }
+    }
+
     if (down && (codes[scan].mk[0] == 0))
         return;
 
@@ -136,6 +220,13 @@ key_process(uint16_t scan, int down)
         /* Send the special code indicating a closing fake shift might be needed. */
         if (fake_shift_needed(scan))
             keyboard_send(0x101);
+    }
+
+    /* Enter the 5576-001 emulation mode. */
+    if (keyboard_mode == 0x8a && down && ((keyboard_get_shift() & 0x43) == 0x43))
+    {
+        key5576mode = 1;
+        kbc_at_log("5576-001 key emulation enabled.\n");
     }
 }
 
@@ -232,12 +323,26 @@ keyboard_input(int down, uint16_t scan)
         }
     }
 
-    /* pclog("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
+    /* kbc_at_log("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
     recv_key_ui[scan & 0x1ff] = down;
 
     if (mouse_capture || !kbd_req_capture || video_fullscreen) {
         recv_key[scan & 0x1ff] = down;
         key_process(scan & 0x1ff, down);
+    }
+}
+
+void
+keyboard_all_up(void)
+{
+    for (unsigned short i = 0; i < 0x200; i++) {
+        if (recv_key_ui[i]) {
+            recv_key_ui[i] = 0;
+        }
+        if (recv_key[i]) {
+            recv_key[i] = 0;
+            key_process(i, 0);
+        }
     }
 }
 

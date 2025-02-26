@@ -150,6 +150,11 @@ typedef struct esdi_t {
     uint8_t pos_regs[8];
 } esdi_t;
 
+enum {
+    ESDI_IS_ADAPTER,
+    ESDI_IS_INTEGRATED
+};
+
 #define STATUS_DMA_ENA             (1 << 7)
 #define STATUS_IRQ_PENDING         (1 << 6)
 #define STATUS_CMD_IN_PROGRESS     (1 << 5)
@@ -694,32 +699,48 @@ esdi_callback(void *priv)
             break;
 
         case CMD_GET_DEV_CONFIG:
-            ESDI_DRIVE_ONLY();
-
-            if (!drive->present) {
-                device_not_present(dev);
-                return;
+            if (dev->cmd_dev == ATTN_HOST_ADAPTER)
+            {
+                if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
+                    fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
+                /* INT 13, AX=1C0B - ESDI FIXED DISK - GET ADAPTER CONFIGURATION */
+                /* The PS/55 will test sector buffer after this request is done. */
+                dev->status_len = 6;
+                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
+                dev->status_data[1] = 0;
+                dev->status_data[2] = 0;
+                /* bit 15-12: chip revision = 0011b, bit 11-8: sector buffer size = n * 256 bytes (n must be < 6) */
+                dev->status_data[3] = 0x3200;
+                dev->status_data[4] = 0;
+                dev->status_data[5] = 0;
             }
+            else
+            {
+                ESDI_DRIVE_ONLY();
+                if (!drive->present) {
+                    device_not_present(dev);
+                    return;
+                }
 
-            if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
-                fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
+                if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
+                    fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 6;
-            dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
-            dev->status_data[1] = 0x10; /*Zero defect*/
-            dev->status_data[2] = drive->sectors & 0xffff;
-            dev->status_data[3] = drive->sectors >> 16;
-            dev->status_data[4] = drive->tracks;
-            dev->status_data[5] = drive->hpc | (drive->spt << 16);
-
+                dev->status_len = 6;
+                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
+                dev->status_data[1] = 0x10; /*Zero defect*/
+                dev->status_data[2] = drive->sectors & 0xffff;
+                dev->status_data[3] = drive->sectors >> 16;
+                dev->status_data[4] = drive->tracks;
+                dev->status_data[5] = drive->hpc | (drive->spt << 16);
+            }
             esdi_mca_log("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
-                         drive->sectors,
-                         dev->status_data[0], dev->status_data[1],
-                         dev->status_data[2], dev->status_data[3],
-                         dev->status_data[4], dev->status_data[5]);
+                drive->sectors,
+                dev->status_data[0], dev->status_data[1],
+                dev->status_data[2], dev->status_data[3],
+                dev->status_data[4], dev->status_data[5]);
 
-            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+            dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+            dev->irq_status = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
@@ -733,7 +754,7 @@ esdi_callback(void *priv)
 
             dev->status_len     = 5;
             dev->status_data[0] = CMD_GET_POS_INFO | STATUS_LEN(5) | STATUS_DEVICE_HOST_ADAPTER;
-            dev->status_data[1] = 0xffdd; /*MCA ID*/
+            dev->status_data[1] = dev->pos_regs[1] | (dev->pos_regs[0] << 8); /*MCA ID*/
             dev->status_data[2] = dev->pos_regs[3] | (dev->pos_regs[2] << 8);
             dev->status_data[3] = 0xff;
             dev->status_data[4] = 0xff;
@@ -1233,12 +1254,78 @@ esdi_mca_write(int port, uint8_t val, void *priv)
     }
 }
 
+static void
+esdi_integrated_mca_write(int port, uint8_t val, void* priv)
+{
+    esdi_t* dev = (esdi_t*)priv;
+
+    esdi_mca_log("ESDI: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
+        port, val, dev->pos_regs[2], dev->pos_regs[3]);
+
+    if (port < 0x102)
+        return;
+
+    /* Save the new value. */
+    dev->pos_regs[port & 7] = val;
+
+    io_removehandler(ESDI_IOADDR_PRI, 8,
+        esdi_read, esdi_readw, NULL,
+        esdi_write, esdi_writew, NULL, dev);
+
+    switch (dev->pos_regs[2] & 0x3c) {
+    case 0x14:
+        dev->dma = 5;
+        break;
+    case 0x18:
+        dev->dma = 6;
+        break;
+    case 0x1c:
+        dev->dma = 7;
+        break;
+    case 0x00:
+        dev->dma = 0;
+        break;
+    case 0x04:
+        dev->dma = 1;
+        break;
+    case 0x0c:
+        dev->dma = 3;
+        break;
+    case 0x10:
+        dev->dma = 4;
+        break;
+
+    default:
+        break;
+    }
+
+    if (dev->pos_regs[2] & 1) {
+        io_sethandler(ESDI_IOADDR_PRI, 8,
+            esdi_read, esdi_readw, NULL,
+            esdi_write, esdi_writew, NULL, dev);
+
+        /* Say hello. */
+        esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d\n",
+            dev->dma);
+    }
+}
+
 static uint8_t
 esdi_mca_feedb(void *priv)
 {
     const esdi_t *dev = (esdi_t *) priv;
 
     return (dev->pos_regs[2] & 1);
+}
+
+static void esdi_reset(void* priv)
+{
+    esdi_t* dev = (esdi_t*)priv;
+    if (!dev->in_reset) {
+        dev->in_reset = 1;
+        esdi_mca_set_callback(dev, ESDI_TIME * 50);
+        dev->status = STATUS_BUSY;
+    }
 }
 
 static void *
@@ -1256,10 +1343,12 @@ esdi_init(UNUSED(const device_t *info))
     /* Mark as unconfigured. */
     dev->irq_status = 0xff;
 
-    rom_init_interleaved(&dev->bios_rom,
-                         BIOS_FILE_H, BIOS_FILE_L,
-                         0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-    mem_mapping_disable(&dev->bios_rom.mapping);
+    if (info->local == ESDI_IS_ADAPTER) {
+        rom_init_interleaved(&dev->bios_rom,
+            BIOS_FILE_H, BIOS_FILE_L,
+            0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        mem_mapping_disable(&dev->bios_rom.mapping);
+    }
 
     dev->drives[0].present = dev->drives[1].present = 0;
 
@@ -1292,12 +1381,25 @@ esdi_init(UNUSED(const device_t *info))
             break;
     }
 
-    /* Set the MCA ID for this controller, 0xFFDD. */
-    dev->pos_regs[0] = 0xff;
-    dev->pos_regs[1] = 0xdd;
+    /* Set the MCA ID for this controller. */
+    if (info->local == ESDI_IS_ADAPTER) {
+        dev->pos_regs[0] = 0xff;
+        dev->pos_regs[1] = 0xdd;
+    } else if (info->local == ESDI_IS_INTEGRATED) {
+        dev->pos_regs[0] = 0x9f;
+        dev->pos_regs[1] = 0xdf;
+    }
 
     /* Enable the device. */
-    mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, NULL, dev);
+    if (info->local == ESDI_IS_INTEGRATED) {
+        /* The slot number of this controller is fixed by the planar. IBM PS/55 5551-T assigns it #5. */
+        int slotno = device_get_config_int("in_esdi_slot");
+        if (slotno)
+            mca_add_to_slot(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev, slotno - 1);
+        else
+            mca_add(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev);
+    } else
+        mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, NULL, dev);
 
     /* Mark for a reset. */
     dev->in_reset = 1;
@@ -1337,7 +1439,7 @@ const device_t esdi_ps2_device = {
     .name          = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
     .internal_name = "esdi_mca",
     .flags         = DEVICE_MCA,
-    .local         = 0,
+    .local         = ESDI_IS_ADAPTER,
     .init          = esdi_init,
     .close         = esdi_close,
     .reset         = NULL,
@@ -1345,4 +1447,53 @@ const device_t esdi_ps2_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+static device_config_t
+    esdi_integrated_config[] = {
+          {
+           .name        = "in_esdi_slot",
+           .description = "Slot #",
+           .type        = CONFIG_SELECTION,
+           .selection   = {
+                { .description = "Auto", .value = 0 },
+                { .description = "1", .value = 1 },
+                { .description = "2", .value = 2 },
+                { .description = "3", .value = 3 },
+                { .description = "4", .value = 4 },
+                { .description = "5", .value = 5 },
+                { .description = "6", .value = 6 },
+                { .description = "7", .value = 7 },
+                { .description = "8", .value = 8 }
+            },
+           .default_int = 0
+        },
+          { .type = -1 }
+};
+
+/*
+Device for an IBM DBA (Direct Bus Attachment) hard disk.
+The Disk BIOS is included in the System ROM.
+Some models have an exclusive channel slot for the DBA hard disk.
+Following IBM machines are supported:
+  * PS/2 model 55SX
+  * PS/2 model 65SX
+  * PS/2 model 70 type 3 (Slot #4)
+  * PS/2 model 70 type 4 (Slot #4)
+  * PS/55 model 5550-T (Slot #5)
+  * PS/55 model 5550-V (Slot #5)
+*/
+const device_t
+esdi_integrated_device = {
+    .name = "IBM Integrated Fixed Disk and Controller (MCA)",
+    .internal_name = "esdi_integrated_mca",
+    .flags = DEVICE_MCA,
+    .local = ESDI_IS_INTEGRATED,
+    .init = esdi_init,
+    .close = esdi_close,
+    .reset = esdi_reset,
+    .available = NULL,
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = esdi_integrated_config
 };

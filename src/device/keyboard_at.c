@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/machine.h>
 
 #define FLAG_PS2       0x08  /* dev is AT or PS/2 */
 #define FLAG_AT        0x00  /* dev is AT or PS/2 */
@@ -53,10 +54,10 @@ const uint8_t id_bytes[16][4] = { { 0x00, 0x00, 0x00, 0x00 },    /* AT 84-key */
                                   { 0x00, 0x00, 0x00, 0x00 },
                                   { 0x00, 0x00, 0x00, 0x00 },
                                   { 0x00, 0x00, 0x00, 0x00 },
-                                  { 0x00, 0x00, 0x00, 0x00 },
+                                  { 0x00, 0x00, 0x00, 0x00 },    /* FLAG_PS2 = 0x08 */
                                   { 0xab, 0x83, 0x00, 0x00 },    /* PS/2 101-key */
                                   { 0xab, 0x83, 0x00, 0x00 },    /* PS/2 102-key */
-                                  { 0xab, 0x90, 0x00, 0x00 },    /* PS/2 106-key JIS */
+                                  { 0xab, 0x90, 0x00, 0x00 },    /* PS/55 106-key JIS (IBM-J 5576-002) */
                                   /* Japanese keyboard ID - TODO: Find the actual Korean one. */
                                   { 0xab, 0x90, 0x00, 0x00 },    /* PS/2 Korean */
                                   { 0x00, 0x00, 0x00, 0x00 },
@@ -1630,6 +1631,1585 @@ static const scancode scancode_set3[512] = {
   // clang-format on
 };
 
+/*  IBM Japan 5576-001, 002 and 003 keyboards have three extra scancode sets; 81h, 82h, 8ah.
+    To implement them, we need take the following into consideration.
+        * Add a UI to switch the type of keyboards and keyboard IDs.
+        * Add modified scancode set 1 and 2 (in these modes, language input keys are used as an alternative key).
+        * Japanese keyboards traditionally use a bit-paired layout. Its key mapping doesn't match with foreign keyboards.
+
+    5576 keyboards kept 101-key compatible scancode sets because PS/55 had to support western (PS/2) versions of operating systems.
+    The default scancode set is 2.
+    In Japanese DOS, the keyboard driver confirms its keyboard ID, and sends a command to switch the scancode set to 8Ah.
+    Japanese OS/2 and Windows use the scancode set 81h or 82h.
+
+    The OADG standard (1991-) and modern Japanese keyboards use the same keyboard ID and scancode set ID as PS/2 keyboards use.
+    Three extra scancode sets are no longer available. Instead, language input keys are available in scancode set 1 and 2.
+    However, their physical key layout is a bit-paired layout.
+    Users have to choose the correct keyboard layout on setup, and the driver needs to remap keys.
+
+    Currently, the key mapping is designed to match with the Japanese layout keyboard.
+
+     [Japanese DOS and keyboard scancode set comparison]
+    |                           | K3.3 | J4.0 | J5.0 | J4.0/V | J5.0/V | OS/2 J1.3 | DOS 5(US)|
+    |---------------------------|:----:|:----:|:----:|:------:|:------:|:---------:|:--------:|
+    | IBM 101 US English        |  n/a |  n/a |  n/a |    2   |    2   |      2    |     2    |
+    | IBM-J 5576-00x (obsolete) |  8Ah |  8Ah |  8Ah |   82h  |   82h  |     81h   |     2    |
+    | OADG (modern Japanese)    |  n/a |  n/a |  n/a |    2   |    2   |      2    |     2    |
+*/
+
+/* Scancode set 81h : Set 01 with language specific keys support used by OS/2 */
+static const scancode scancode_set81[512] = {
+    // clang-format off
+      { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
+      { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
+      { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
+      { .mk = {      0x03, 0 }, .brk = {             0x83, 0 } }, /* 003 */
+      { .mk = {      0x04, 0 }, .brk = {             0x84, 0 } }, /* 004 */
+      { .mk = {      0x05, 0 }, .brk = {             0x85, 0 } }, /* 005 */
+      { .mk = {      0x06, 0 }, .brk = {             0x86, 0 } }, /* 006 */
+      { .mk = {      0x07, 0 }, .brk = {             0x87, 0 } }, /* 007 */
+      { .mk = {      0x08, 0 }, .brk = {             0x88, 0 } }, /* 008 */
+      { .mk = {      0x09, 0 }, .brk = {             0x89, 0 } }, /* 009 */
+      { .mk = {      0x0a, 0 }, .brk = {             0x8a, 0 } }, /* 00a */
+      { .mk = {      0x0b, 0 }, .brk = {             0x8b, 0 } }, /* 00b */
+      { .mk = {      0x0c, 0 }, .brk = {             0x8c, 0 } }, /* 00c */
+      { .mk = {      0x0d, 0 }, .brk = {             0x8d, 0 } }, /* 00d */
+      { .mk = {      0x0e, 0 }, .brk = {             0x8e, 0 } }, /* 00e */
+      { .mk = {      0x0f, 0 }, .brk = {             0x8f, 0 } }, /* 00f */
+      { .mk = {      0x10, 0 }, .brk = {             0x90, 0 } }, /* 010 */
+      { .mk = {      0x11, 0 }, .brk = {             0x91, 0 } }, /* 011 */
+      { .mk = {      0x12, 0 }, .brk = {             0x92, 0 } }, /* 012 */
+      { .mk = {      0x13, 0 }, .brk = {             0x93, 0 } }, /* 013 */
+      { .mk = {      0x14, 0 }, .brk = {             0x94, 0 } }, /* 014 */
+      { .mk = {      0x15, 0 }, .brk = {             0x95, 0 } }, /* 015 */
+      { .mk = {      0x16, 0 }, .brk = {             0x96, 0 } }, /* 016 */
+      { .mk = {      0x17, 0 }, .brk = {             0x97, 0 } }, /* 017 */
+      { .mk = {      0x18, 0 }, .brk = {             0x98, 0 } }, /* 018 */
+      { .mk = {      0x19, 0 }, .brk = {             0x99, 0 } }, /* 019 */
+      { .mk = {      0x1a, 0 }, .brk = {             0x9a, 0 } }, /* 01a */
+      { .mk = {      0x1b, 0 }, .brk = {             0x9b, 0 } }, /* 01b */
+      { .mk = {      0x1c, 0 }, .brk = {             0x9c, 0 } }, /* 01c */
+      { .mk = {      0x1d, 0 }, .brk = {             0x9d, 0 } }, /* 01d */
+      { .mk = {      0x1e, 0 }, .brk = {             0x9e, 0 } }, /* 01e */
+      { .mk = {      0x1f, 0 }, .brk = {             0x9f, 0 } }, /* 01f */
+      { .mk = {      0x20, 0 }, .brk = {             0xa0, 0 } }, /* 020 */
+      { .mk = {      0x21, 0 }, .brk = {             0xa1, 0 } }, /* 021 */
+      { .mk = {      0x22, 0 }, .brk = {             0xa2, 0 } }, /* 022 */
+      { .mk = {      0x23, 0 }, .brk = {             0xa3, 0 } }, /* 023 */
+      { .mk = {      0x24, 0 }, .brk = {             0xa4, 0 } }, /* 024 */
+      { .mk = {      0x25, 0 }, .brk = {             0xa5, 0 } }, /* 025 */
+      { .mk = {      0x26, 0 }, .brk = {             0xa6, 0 } }, /* 026 */
+      { .mk = {      0x27, 0 }, .brk = {             0xa7, 0 } }, /* 027 */
+      { .mk = {      0x28, 0 }, .brk = {             0xa8, 0 } }, /* 028* */
+      { .mk = {      0x77, 0 }, .brk = {             0xf7, 0 } }, /* 029 0x45 Hankaku, Zenkaku */
+      { .mk = {      0x2a, 0 }, .brk = {             0xaa, 0 } }, /* 02a */
+      { .mk = {      0x1b, 0 }, .brk = {             0x9b, 0 } }, /* 02b 0x17 Mu */
+      { .mk = {      0x2c, 0 }, .brk = {             0xac, 0 } }, /* 02c */
+      { .mk = {      0x2d, 0 }, .brk = {             0xad, 0 } }, /* 02d */
+      { .mk = {      0x2e, 0 }, .brk = {             0xae, 0 } }, /* 02e */
+      { .mk = {      0x2f, 0 }, .brk = {             0xaf, 0 } }, /* 02f */
+      { .mk = {      0x30, 0 }, .brk = {             0xb0, 0 } }, /* 030 */
+      { .mk = {      0x31, 0 }, .brk = {             0xb1, 0 } }, /* 031 */
+      { .mk = {      0x32, 0 }, .brk = {             0xb2, 0 } }, /* 032 */
+      { .mk = {      0x33, 0 }, .brk = {             0xb3, 0 } }, /* 033 */
+      { .mk = {      0x34, 0 }, .brk = {             0xb4, 0 } }, /* 034 */
+      { .mk = {      0x35, 0 }, .brk = {             0xb5, 0 } }, /* 035 */
+      { .mk = {      0x36, 0 }, .brk = {             0xb6, 0 } }, /* 036 */
+      { .mk = {      0x37, 0 }, .brk = {             0xb7, 0 } }, /* 037 * (asterisk) */
+      { .mk = {      0x70, 0 }, .brk = {             0xf0, 0 } }, /* 038 0x3A LALT = Kanji */
+      { .mk = {      0x39, 0 }, .brk = {             0xb9, 0 } }, /* 039 */
+      { .mk = {      0x3a, 0 }, .brk = {             0xba, 0 } }, /* 03a */
+      { .mk = {      0x3b, 0 }, .brk = {             0xbb, 0 } }, /* 03b */
+      { .mk = {      0x3c, 0 }, .brk = {             0xbc, 0 } }, /* 03c */
+      { .mk = {      0x3d, 0 }, .brk = {             0xbd, 0 } }, /* 03d */
+      { .mk = {      0x3e, 0 }, .brk = {             0xbe, 0 } }, /* 03e */
+      { .mk = {      0x3f, 0 }, .brk = {             0xbf, 0 } }, /* 03f */
+      { .mk = {      0x40, 0 }, .brk = {             0xc0, 0 } }, /* 040 */
+      { .mk = {      0x41, 0 }, .brk = {             0xc1, 0 } }, /* 041 */
+      { .mk = {      0x42, 0 }, .brk = {             0xc2, 0 } }, /* 042 */
+      { .mk = {      0x43, 0 }, .brk = {             0xc3, 0 } }, /* 043 */
+      { .mk = {      0x44, 0 }, .brk = {             0xc4, 0 } }, /* 044 */
+      { .mk = {      0x45, 0 }, .brk = {             0xc5, 0 } }, /* 045 NUMLOCKCLEAR -> Shift + SCRLOCK :TODO */
+      { .mk = {      0x46, 0 }, .brk = {             0xc6, 0 } }, /* 046 0x75 SCROLLLOCK */
+      { .mk = {      0x47, 0 }, .brk = {             0xc7, 0 } }, /* 047 */
+      { .mk = {      0x48, 0 }, .brk = {             0xc8, 0 } }, /* 048 */
+      { .mk = {      0x49, 0 }, .brk = {             0xc9, 0 } }, /* 049 */
+      { .mk = {      0x4a, 0 }, .brk = {             0xca, 0 } }, /* 04a */
+      { .mk = {      0x4b, 0 }, .brk = {             0xcb, 0 } }, /* 04b */
+      { .mk = {      0x4c, 0 }, .brk = {             0xcc, 0 } }, /* 04c */
+      { .mk = {      0x4d, 0 }, .brk = {             0xcd, 0 } }, /* 04d */
+      { .mk = {      0x4e, 0 }, .brk = {             0xce, 0 } }, /* 04e */
+      { .mk = {      0x4f, 0 }, .brk = {             0xcf, 0 } }, /* 04f */
+      { .mk = {      0x50, 0 }, .brk = {             0xd0, 0 } }, /* 050 */
+      { .mk = {      0x51, 0 }, .brk = {             0xd1, 0 } }, /* 051 */
+      { .mk = {      0x52, 0 }, .brk = {             0xd2, 0 } }, /* 052 */
+      { .mk = {      0x53, 0 }, .brk = {             0xd3, 0 } }, /* 053 */
+      { .mk = {      0x54, 0 }, .brk = {             0xd4, 0 } }, /* 054 */
+      { .mk = {      0x55, 0 }, .brk = {             0xd5, 0 } }, /* 055 */
+      { .mk = {      0x56, 0 }, .brk = {             0xd6, 0 } }, /* 056 */
+      { .mk = {      0x57, 0 }, .brk = {             0xd7, 0 } }, /* 057 F11 */
+      { .mk = {      0x58, 0 }, .brk = {             0xd8, 0 } }, /* 058 F12 */
+      { .mk = {      0x59, 0 }, .brk = {             0xd9, 0 } }, /* 059 */
+      { .mk = {      0x5a, 0 }, .brk = {             0xda, 0 } }, /* 05a */
+      { .mk = {      0x5b, 0 }, .brk = {             0xdb, 0 } }, /* 05b */
+      { .mk = {      0x5c, 0 }, .brk = {             0xdc, 0 } }, /* 05c */
+      { .mk = {      0x5d, 0 }, .brk = {             0xdd, 0 } }, /* 05d */
+      { .mk = {      0x5e, 0 }, .brk = {             0xde, 0 } }, /* 05e */
+      { .mk = {      0x5f, 0 }, .brk = {             0xdf, 0 } }, /* 05f */
+      { .mk = {      0x60, 0 }, .brk = {             0xe0, 0 } }, /* 060 */
+      { .mk = {      0x61, 0 }, .brk = {             0xe1, 0 } }, /* 061 */
+      { .mk = {      0x62, 0 }, .brk = {             0xe2, 0 } }, /* 062 */
+      { .mk = {      0x63, 0 }, .brk = {             0xe3, 0 } }, /* 063 */
+      { .mk = {      0x64, 0 }, .brk = {             0xe4, 0 } }, /* 064 */
+      { .mk = {      0x65, 0 }, .brk = {             0xe5, 0 } }, /* 065 */
+      { .mk = {      0x66, 0 }, .brk = {             0xe6, 0 } }, /* 066 */
+      { .mk = {      0x67, 0 }, .brk = {             0xe7, 0 } }, /* 067 */
+      { .mk = {      0x68, 0 }, .brk = {             0xe8, 0 } }, /* 068 */
+      { .mk = {      0x69, 0 }, .brk = {             0xe9, 0 } }, /* 069 */
+      { .mk = {      0x6a, 0 }, .brk = {             0xea, 0 } }, /* 06a */
+      { .mk = {      0x6b, 0 }, .brk = {             0xeb, 0 } }, /* 06b */
+      { .mk = {      0x6c, 0 }, .brk = {             0xec, 0 } }, /* 06c */
+      { .mk = {      0x6d, 0 }, .brk = {             0xed, 0 } }, /* 06d */
+      { .mk = {      0x6e, 0 }, .brk = {             0xee, 0 } }, /* 06e */
+      { .mk = {      0x6f, 0 }, .brk = {             0xef, 0 } }, /* 06f */
+      { .mk = {0xe0, 0x38, 0 }, .brk = { 0xe0,       0xb8, 0 } }, /* 070 0x36 Kana */
+      { .mk = {      0x71, 0 }, .brk = {             0xf1, 0 } }, /* 071 */
+      { .mk = {      0x72, 0 }, .brk = {             0xf2, 0 } }, /* 072 */
+      { .mk = {      0x73, 0 }, .brk = {             0xf3, 0 } }, /* 073 0x0b Ro, Underline */
+      { .mk = {      0x74, 0 }, .brk = {             0xf4, 0 } }, /* 074 */
+      { .mk = {      0x75, 0 }, .brk = {             0xf5, 0 } }, /* 075 */
+      { .mk = {      0x76, 0 }, .brk = {             0xf6, 0 } }, /* 076 */
+      { .mk = {      0x77, 0 }, .brk = {             0xf7, 0 } }, /* 077 */
+      { .mk = {      0x78, 0 }, .brk = {             0xf8, 0 } }, /* 078 */
+      { .mk = {      0x79, 0 }, .brk = {             0xf9, 0 } }, /* 079 0x35 Henkan */
+      { .mk = {      0x7a, 0 }, .brk = {             0xfa, 0 } }, /* 07a */
+      { .mk = {      0x7b, 0 }, .brk = {             0xfb, 0 } }, /* 07b 0x33 Muhenkan */
+      { .mk = {      0x7c, 0 }, .brk = {             0xfc, 0 } }, /* 07c */
+      { .mk = {      0x2b, 0 }, .brk = {             0xab, 0 } }, /* 07d 0x30 Yen, Vertical line */
+      { .mk = {      0x7e, 0 }, .brk = {             0xfe, 0 } }, /* 07e */
+      { .mk = {      0x7f, 0 }, .brk = {             0xff, 0 } }, /* 07f */
+      { .mk = {      0x80, 0 }, .brk = {                   0 } }, /* 080 */
+      { .mk = {      0x81, 0 }, .brk = {                   0 } }, /* 081 */
+      { .mk = {      0x82, 0 }, .brk = {                   0 } }, /* 082 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 083 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 084 */
+      { .mk = {      0x85, 0 }, .brk = {                   0 } }, /* 085 */
+      { .mk = {      0x86, 0 }, .brk = {                   0 } }, /* 086 */
+      { .mk = {      0x87, 0 }, .brk = {                   0 } }, /* 087 */
+      { .mk = {      0x88, 0 }, .brk = {                   0 } }, /* 088 */
+      { .mk = {      0x89, 0 }, .brk = {                   0 } }, /* 089 */
+      { .mk = {      0x8a, 0 }, .brk = {                   0 } }, /* 08a */
+      { .mk = {      0x8b, 0 }, .brk = {                   0 } }, /* 08b */
+      { .mk = {      0x8c, 0 }, .brk = {                   0 } }, /* 08c */
+      { .mk = {      0x8d, 0 }, .brk = {                   0 } }, /* 08d */
+      { .mk = {      0x8e, 0 }, .brk = {                   0 } }, /* 08e */
+      { .mk = {      0x8f, 0 }, .brk = {                   0 } }, /* 08f */
+      { .mk = {      0x90, 0 }, .brk = {                   0 } }, /* 090 */
+      { .mk = {      0x91, 0 }, .brk = {                   0 } }, /* 091 */
+      { .mk = {      0x92, 0 }, .brk = {                   0 } }, /* 092 */
+      { .mk = {      0x93, 0 }, .brk = {                   0 } }, /* 093 */
+      { .mk = {      0x94, 0 }, .brk = {                   0 } }, /* 094 */
+      { .mk = {      0x95, 0 }, .brk = {                   0 } }, /* 095 */
+      { .mk = {      0x96, 0 }, .brk = {                   0 } }, /* 096 */
+      { .mk = {      0x97, 0 }, .brk = {                   0 } }, /* 097 */
+      { .mk = {      0x98, 0 }, .brk = {                   0 } }, /* 098 */
+      { .mk = {      0x99, 0 }, .brk = {                   0 } }, /* 099 */
+      { .mk = {      0x9a, 0 }, .brk = {                   0 } }, /* 09a */
+      { .mk = {      0x9b, 0 }, .brk = {                   0 } }, /* 09b */
+      { .mk = {      0x9c, 0 }, .brk = {                   0 } }, /* 09c */
+      { .mk = {      0x9d, 0 }, .brk = {                   0 } }, /* 09d */
+      { .mk = {      0x9e, 0 }, .brk = {                   0 } }, /* 09e */
+      { .mk = {      0x9f, 0 }, .brk = {                   0 } }, /* 09f */
+      { .mk = {      0xa0, 0 }, .brk = {                   0 } }, /* 0a0 */
+      { .mk = {      0xa1, 0 }, .brk = {                   0 } }, /* 0a1 */
+      { .mk = {      0xa2, 0 }, .brk = {                   0 } }, /* 0a2 */
+      { .mk = {      0xa3, 0 }, .brk = {                   0 } }, /* 0a3 */
+      { .mk = {      0xa4, 0 }, .brk = {                   0 } }, /* 0a4 */
+      { .mk = {      0xa5, 0 }, .brk = {                   0 } }, /* 0a5 */
+      { .mk = {      0xa6, 0 }, .brk = {                   0 } }, /* 0a6 */
+      { .mk = {      0xa7, 0 }, .brk = {                   0 } }, /* 0a7 */
+      { .mk = {      0xa8, 0 }, .brk = {                   0 } }, /* 0a8 */
+      { .mk = {      0xa9, 0 }, .brk = {                   0 } }, /* 0a9 */
+      { .mk = {      0xaa, 0 }, .brk = {                   0 } }, /* 0aa */
+      { .mk = {      0xab, 0 }, .brk = {                   0 } }, /* 0ab */
+      { .mk = {      0xac, 0 }, .brk = {                   0 } }, /* 0ac */
+      { .mk = {      0xad, 0 }, .brk = {                   0 } }, /* 0ad */
+      { .mk = {      0xae, 0 }, .brk = {                   0 } }, /* 0ae */
+      { .mk = {      0xaf, 0 }, .brk = {                   0 } }, /* 0af */
+      { .mk = {      0xb0, 0 }, .brk = {                   0 } }, /* 0b0 */
+      { .mk = {      0xb1, 0 }, .brk = {                   0 } }, /* 0b1 */
+      { .mk = {      0xb2, 0 }, .brk = {                   0 } }, /* 0b2 */
+      { .mk = {      0xb3, 0 }, .brk = {                   0 } }, /* 0b3 */
+      { .mk = {      0xb4, 0 }, .brk = {                   0 } }, /* 0b4 */
+      { .mk = {      0xb5, 0 }, .brk = {                   0 } }, /* 0b5 */
+      { .mk = {      0xb6, 0 }, .brk = {                   0 } }, /* 0b6 */
+      { .mk = {      0xb7, 0 }, .brk = {                   0 } }, /* 0b7 */
+      { .mk = {      0xb8, 0 }, .brk = {                   0 } }, /* 0b8 */
+      { .mk = {      0xb9, 0 }, .brk = {                   0 } }, /* 0b9 */
+      { .mk = {      0xba, 0 }, .brk = {                   0 } }, /* 0ba */
+      { .mk = {      0xbb, 0 }, .brk = {                   0 } }, /* 0bb */
+      { .mk = {      0xbc, 0 }, .brk = {                   0 } }, /* 0bc */
+      { .mk = {      0xbd, 0 }, .brk = {                   0 } }, /* 0bd */
+      { .mk = {      0xbe, 0 }, .brk = {                   0 } }, /* 0be */
+      { .mk = {      0xbf, 0 }, .brk = {                   0 } }, /* 0bf */
+      { .mk = {      0xc0, 0 }, .brk = {                   0 } }, /* 0c0 */
+      { .mk = {      0xc1, 0 }, .brk = {                   0 } }, /* 0c1 */
+      { .mk = {      0xc2, 0 }, .brk = {                   0 } }, /* 0c2 */
+      { .mk = {      0xc3, 0 }, .brk = {                   0 } }, /* 0c3 */
+      { .mk = {      0xc4, 0 }, .brk = {                   0 } }, /* 0c4 */
+      { .mk = {      0xc5, 0 }, .brk = {                   0 } }, /* 0c5 */
+      { .mk = {      0xc6, 0 }, .brk = {                   0 } }, /* 0c6 */
+      { .mk = {      0xc7, 0 }, .brk = {                   0 } }, /* 0c7 */
+      { .mk = {      0xc8, 0 }, .brk = {                   0 } }, /* 0c8 */
+      { .mk = {      0xc9, 0 }, .brk = {                   0 } }, /* 0c9 */
+      { .mk = {      0xca, 0 }, .brk = {                   0 } }, /* 0ca */
+      { .mk = {      0xcb, 0 }, .brk = {                   0 } }, /* 0cb */
+      { .mk = {      0xcc, 0 }, .brk = {                   0 } }, /* 0cc */
+      { .mk = {      0xcd, 0 }, .brk = {                   0 } }, /* 0cd */
+      { .mk = {      0xce, 0 }, .brk = {                   0 } }, /* 0ce */
+      { .mk = {      0xcf, 0 }, .brk = {                   0 } }, /* 0cf */
+      { .mk = {      0xd0, 0 }, .brk = {                   0 } }, /* 0d0 */
+      { .mk = {      0xd1, 0 }, .brk = {                   0 } }, /* 0d1 */
+      { .mk = {      0xd2, 0 }, .brk = {                   0 } }, /* 0d2 */
+      { .mk = {      0xd3, 0 }, .brk = {                   0 } }, /* 0d3 */
+      { .mk = {      0xd4, 0 }, .brk = {                   0 } }, /* 0d4 */
+      { .mk = {      0xd5, 0 }, .brk = {                   0 } }, /* 0d5 */
+      { .mk = {      0xd6, 0 }, .brk = {                   0 } }, /* 0d6 */
+      { .mk = {      0xd7, 0 }, .brk = {                   0 } }, /* 0d7 */
+      { .mk = {      0xd8, 0 }, .brk = {                   0 } }, /* 0d8 */
+      { .mk = {      0xd9, 0 }, .brk = {                   0 } }, /* 0d9 */
+      { .mk = {      0xda, 0 }, .brk = {                   0 } }, /* 0da */
+      { .mk = {      0xdb, 0 }, .brk = {                   0 } }, /* 0db */
+      { .mk = {      0xdc, 0 }, .brk = {                   0 } }, /* 0dc */
+      { .mk = {      0xdd, 0 }, .brk = {                   0 } }, /* 0dd */
+      { .mk = {      0xde, 0 }, .brk = {                   0 } }, /* 0de */
+      { .mk = {      0xdf, 0 }, .brk = {                   0 } }, /* 0df */
+      { .mk = {      0xe0, 0 }, .brk = {                   0 } }, /* 0e0 */
+      { .mk = {      0xe1, 0 }, .brk = {                   0 } }, /* 0e1 */
+      { .mk = {      0xe2, 0 }, .brk = {                   0 } }, /* 0e2 */
+      { .mk = {      0xe3, 0 }, .brk = {                   0 } }, /* 0e3 */
+      { .mk = {      0xe4, 0 }, .brk = {                   0 } }, /* 0e4 */
+      { .mk = {      0xe5, 0 }, .brk = {                   0 } }, /* 0e5 */
+      { .mk = {      0xe6, 0 }, .brk = {                   0 } }, /* 0e6 */
+      { .mk = {      0xe7, 0 }, .brk = {                   0 } }, /* 0e7 */
+      { .mk = {      0xe8, 0 }, .brk = {                   0 } }, /* 0e8 */
+      { .mk = {      0xe9, 0 }, .brk = {                   0 } }, /* 0e9 */
+      { .mk = {      0xea, 0 }, .brk = {                   0 } }, /* 0ea */
+      { .mk = {      0xeb, 0 }, .brk = {                   0 } }, /* 0eb */
+      { .mk = {      0xec, 0 }, .brk = {                   0 } }, /* 0ec */
+      { .mk = {      0xed, 0 }, .brk = {                   0 } }, /* 0ed */
+      { .mk = {      0xee, 0 }, .brk = {                   0 } }, /* 0ee */
+      { .mk = {      0xef, 0 }, .brk = {                   0 } }, /* 0ef */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 0f0 */
+      { .mk = {      0xf1, 0 }, .brk = {                   0 } }, /* 0f1 */
+      { .mk = {      0xf2, 0 }, .brk = {                   0 } }, /* 0f2 */
+      { .mk = {      0xf3, 0 }, .brk = {                   0 } }, /* 0f3 */
+      { .mk = {      0xf4, 0 }, .brk = {                   0 } }, /* 0f4 */
+      { .mk = {      0xf5, 0 }, .brk = {                   0 } }, /* 0f5 */
+      { .mk = {      0xf6, 0 }, .brk = {                   0 } }, /* 0f6 */
+      { .mk = {      0xf7, 0 }, .brk = {                   0 } }, /* 0f7 */
+      { .mk = {      0xf8, 0 }, .brk = {                   0 } }, /* 0f8 */
+      { .mk = {      0xf9, 0 }, .brk = {                   0 } }, /* 0f9 */
+      { .mk = {      0xfa, 0 }, .brk = {                   0 } }, /* 0fa */
+      { .mk = {      0xfb, 0 }, .brk = {                   0 } }, /* 0fb */
+      { .mk = {      0xfc, 0 }, .brk = {                   0 } }, /* 0fc */
+      { .mk = {      0xfd, 0 }, .brk = {                   0 } }, /* 0fd */
+      { .mk = {      0xfe, 0 }, .brk = {                   0 } }, /* 0fe */
+      { .mk = {      0xff, 0 }, .brk = {                   0 } }, /* 0ff */
+      { .mk = {0xe1, 0x1d, 0 }, .brk = { 0xe1,       0x9d, 0 } }, /* 100 */
+      { .mk = {0xe0, 0x01, 0 }, .brk = { 0xe0,       0x81, 0 } }, /* 101 */
+      { .mk = {0xe0, 0x02, 0 }, .brk = { 0xe0,       0x82, 0 } }, /* 102 */
+      { .mk = {0xe0, 0x03, 0 }, .brk = { 0xe0,       0x83, 0 } }, /* 103 */
+      { .mk = {0xe0, 0x04, 0 }, .brk = { 0xe0,       0x84, 0 } }, /* 104 */
+      { .mk = {0xe0, 0x05, 0 }, .brk = { 0xe0,       0x85, 0 } }, /* 105 */
+      { .mk = {0xe0, 0x06, 0 }, .brk = { 0xe0,       0x86, 0 } }, /* 106 */
+      { .mk = {0xe0, 0x07, 0 }, .brk = { 0xe0,       0x87, 0 } }, /* 107 */
+      { .mk = {0xe0, 0x08, 0 }, .brk = { 0xe0,       0x88, 0 } }, /* 108 */
+      { .mk = {0xe0, 0x09, 0 }, .brk = { 0xe0,       0x89, 0 } }, /* 109 */
+      { .mk = {0xe0, 0x0a, 0 }, .brk = { 0xe0,       0x8a, 0 } }, /* 10a */
+      { .mk = {0xe0, 0x0b, 0 }, .brk = { 0xe0,       0x8b, 0 } }, /* 10b */
+      { .mk = {0xe0, 0x0c, 0 }, .brk = { 0xe0,       0x8c, 0 } }, /* 10c */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 10d */
+      { .mk = {0xe0, 0x0e, 0 }, .brk = { 0xe0,       0x8e, 0 } }, /* 10e */
+      { .mk = {0xe0, 0x0f, 0 }, .brk = { 0xe0,       0x8f, 0 } }, /* 10f */
+      { .mk = {0xe0, 0x10, 0 }, .brk = { 0xe0,       0x90, 0 } }, /* 110 */
+      { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0,       0x91, 0 } }, /* 112 */
+      { .mk = {0xe0, 0x12, 0 }, .brk = { 0xe0,       0x92, 0 } }, /* 113 */
+      { .mk = {0xe0, 0x13, 0 }, .brk = { 0xe0,       0x93, 0 } }, /* 113 */
+      { .mk = {0xe0, 0x14, 0 }, .brk = { 0xe0,       0x94, 0 } }, /* 114 */
+      { .mk = {0xe0, 0x15, 0 }, .brk = { 0xe0,       0x95, 0 } }, /* 115 */
+      { .mk = {0xe0, 0x16, 0 }, .brk = { 0xe0,       0x96, 0 } }, /* 116 */
+      { .mk = {0xe0, 0x17, 0 }, .brk = { 0xe0,       0x97, 0 } }, /* 117 */
+      { .mk = {0xe0, 0x18, 0 }, .brk = { 0xe0,       0x98, 0 } }, /* 118 */
+      { .mk = {0xe0, 0x19, 0 }, .brk = { 0xe0,       0x99, 0 } }, /* 119 */
+      { .mk = {0xe0, 0x1a, 0 }, .brk = { 0xe0,       0x9a, 0 } }, /* 11a */
+      { .mk = {0xe0, 0x1b, 0 }, .brk = { 0xe0,       0x9b, 0 } }, /* 11b */
+      { .mk = {0xe0, 0x1c, 0 }, .brk = { 0xe0,       0x9c, 0 } }, /* 11c */
+      { .mk = {0xe0, 0x1d, 0 }, .brk = { 0xe0,       0x9d, 0 } }, /* 11d */
+      { .mk = {0xe0, 0x1e, 0 }, .brk = { 0xe0,       0x9e, 0 } }, /* 11e */
+      { .mk = {0xe0, 0x1f, 0 }, .brk = { 0xe0,       0x9f, 0 } }, /* 11f */
+      { .mk = {0xe0, 0x20, 0 }, .brk = { 0xe0,       0xa0, 0 } }, /* 120 */
+      { .mk = {0xe0, 0x21, 0 }, .brk = { 0xe0,       0xa1, 0 } }, /* 121 */
+      { .mk = {0xe0, 0x22, 0 }, .brk = { 0xe0,       0xa2, 0 } }, /* 122 */
+      { .mk = {0xe0, 0x23, 0 }, .brk = { 0xe0,       0xa3, 0 } }, /* 123 */
+      { .mk = {0xe0, 0x24, 0 }, .brk = { 0xe0,       0xa4, 0 } }, /* 124 */
+      { .mk = {0xe0, 0x25, 0 }, .brk = { 0xe0,       0xa5, 0 } }, /* 125 */
+      { .mk = {0xe0, 0x26, 0 }, .brk = { 0xe0,       0xa6, 0 } }, /* 126 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 127 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 128 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 129 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 12a */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 12b */
+      { .mk = {0xe0, 0x2c, 0 }, .brk = { 0xe0,       0xac, 0 } }, /* 12c */
+      { .mk = {0xe0, 0x2d, 0 }, .brk = { 0xe0,       0xad, 0 } }, /* 12d */
+      { .mk = {0xe0, 0x2e, 0 }, .brk = { 0xe0,       0xae, 0 } }, /* 12e */
+      { .mk = {0xe0, 0x2f, 0 }, .brk = { 0xe0,       0xaf, 0 } }, /* 12f */
+      { .mk = {0xe0, 0x30, 0 }, .brk = { 0xe0,       0xb0, 0 } }, /* 130 */
+      { .mk = {0xe0, 0x31, 0 }, .brk = { 0xe0,       0xb1, 0 } }, /* 131 */
+      { .mk = {0xe0, 0x32, 0 }, .brk = { 0xe0,       0xb2, 0 } }, /* 132 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 133 */
+      { .mk = {0xe0, 0x34, 0 }, .brk = { 0xe0,       0xb4, 0 } }, /* 134 */
+      { .mk = {0xe0, 0x35, 0 }, .brk = { 0xe0,       0xb5, 0 } }, /* 135 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 136 */
+      { .mk = {0xe0, 0x37, 0 }, .brk = { 0xe0,       0xb7, 0 } }, /* 137 */
+      { .mk = {      0x38, 0 }, .brk = {             0xb8, 0 } }, /* 138* 0x31 R-Alt */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 139 */
+      { .mk = {0xe0, 0x3a, 0 }, .brk = { 0xe0,       0xba, 0 } }, /* 13a */
+      { .mk = {0xe0, 0x3b, 0 }, .brk = { 0xe0,       0xbb, 0 } }, /* 13b */
+      { .mk = {0xe0, 0x3c, 0 }, .brk = { 0xe0,       0xbc, 0 } }, /* 13c */
+      { .mk = {0xe0, 0x3d, 0 }, .brk = { 0xe0,       0xbd, 0 } }, /* 13d */
+      { .mk = {0xe0, 0x3e, 0 }, .brk = { 0xe0,       0xbe, 0 } }, /* 13e */
+      { .mk = {0xe0, 0x3f, 0 }, .brk = { 0xe0,       0xbf, 0 } }, /* 13f */
+      { .mk = {0xe0, 0x40, 0 }, .brk = { 0xe0,       0xc0, 0 } }, /* 140 */
+      { .mk = {0xe0, 0x41, 0 }, .brk = { 0xe0,       0xc1, 0 } }, /* 141 */
+      { .mk = {0xe0, 0x42, 0 }, .brk = { 0xe0,       0xc2, 0 } }, /* 142 */
+      { .mk = {0xe0, 0x43, 0 }, .brk = { 0xe0,       0xc3, 0 } }, /* 143 */
+      { .mk = {0xe0, 0x44, 0 }, .brk = { 0xe0,       0xc4, 0 } }, /* 144 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 145 */
+      { .mk = {0xe0, 0x46, 0 }, .brk = { 0xe0,       0xc6, 0 } }, /* 146 */
+      { .mk = {0xe0, 0x47, 0 }, .brk = { 0xe0,       0xc7, 0 } }, /* 147 */
+      { .mk = {0xe0, 0x48, 0 }, .brk = { 0xe0,       0xc8, 0 } }, /* 148 */
+      { .mk = {0xe0, 0x49, 0 }, .brk = { 0xe0,       0xc9, 0 } }, /* 149 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 14a */
+      { .mk = {0xe0, 0x4b, 0 }, .brk = { 0xe0,       0xcb, 0 } }, /* 14b */
+      { .mk = {0xe0, 0x4c, 0 }, .brk = { 0xe0,       0xcc, 0 } }, /* 14c */
+      { .mk = {0xe0, 0x4d, 0 }, .brk = { 0xe0,       0xcd, 0 } }, /* 14d */
+      { .mk = {0xe0, 0x4e, 0 }, .brk = { 0xe0,       0xce, 0 } }, /* 14e */
+      { .mk = {0xe0, 0x4f, 0 }, .brk = { 0xe0,       0xcf, 0 } }, /* 14f */
+      { .mk = {0xe0, 0x50, 0 }, .brk = { 0xe0,       0xd0, 0 } }, /* 150 */
+      { .mk = {0xe0, 0x51, 0 }, .brk = { 0xe0,       0xd1, 0 } }, /* 151 */
+      { .mk = {0xe0, 0x52, 0 }, .brk = { 0xe0,       0xd2, 0 } }, /* 152 */
+      { .mk = {0xe0, 0x53, 0 }, .brk = { 0xe0,       0xd3, 0 } }, /* 153 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 154 */
+      { .mk = {0xe0, 0x55, 0 }, .brk = { 0xe0,       0xd5, 0 } }, /* 155 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 156 */
+      { .mk = {0xe0, 0x57, 0 }, .brk = { 0xe0,       0xd7, 0 } }, /* 157 */
+      { .mk = {0xe0, 0x58, 0 }, .brk = { 0xe0,       0xd8, 0 } }, /* 158 */
+      { .mk = {0xe0, 0x59, 0 }, .brk = { 0xe0,       0xd9, 0 } }, /* 159 */
+      { .mk = {0xe0, 0x5a, 0 }, .brk = { 0xe0,       0xaa, 0 } }, /* 15a */
+      { .mk = {      0x7b, 0 }, .brk = {             0xfb, 0 } }, /* 15b 0x33 LGUI->Muhenkan (in emulator only) */
+      { .mk = {      0x79, 0 }, .brk = {             0xf9, 0 } }, /* 15c 0x35 RGUI->Henkan (in emulator only) */
+      { .mk = {0xe0, 0x38, 0 }, .brk = { 0xe0,       0xb8, 0 } }, /* 15d 0x36 APPLICATION->Kana (in emulator only) */
+      { .mk = {0xe0, 0x5e, 0 }, .brk = { 0xe0,       0xee, 0 } }, /* 15e */
+      { .mk = {0xe0, 0x5f, 0 }, .brk = { 0xe0,       0xdf, 0 } }, /* 15f */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 160 */
+      { .mk = {0xe0, 0x61, 0 }, .brk = { 0xe0,       0xe1, 0 } }, /* 161 */
+      { .mk = {0xe0, 0x62, 0 }, .brk = { 0xe0,       0xe2, 0 } }, /* 162 */
+      { .mk = {0xe0, 0x63, 0 }, .brk = { 0xe0,       0xe3, 0 } }, /* 163 */
+      { .mk = {0xe0, 0x64, 0 }, .brk = { 0xe0,       0xe4, 0 } }, /* 164 */
+      { .mk = {0xe0, 0x65, 0 }, .brk = { 0xe0,       0xe5, 0 } }, /* 165 */
+      { .mk = {0xe0, 0x66, 0 }, .brk = { 0xe0,       0xe6, 0 } }, /* 166 */
+      { .mk = {0xe0, 0x67, 0 }, .brk = { 0xe0,       0xe7, 0 } }, /* 167 */
+      { .mk = {0xe0, 0x68, 0 }, .brk = { 0xe0,       0xe8, 0 } }, /* 168 */
+      { .mk = {0xe0, 0x69, 0 }, .brk = { 0xe0,       0xe9, 0 } }, /* 169 */
+      { .mk = {0xe0, 0x6a, 0 }, .brk = { 0xe0,       0xea, 0 } }, /* 16a */
+      { .mk = {0xe0, 0x6b, 0 }, .brk = { 0xe0,       0xeb, 0 } }, /* 16b */
+      { .mk = {0xe0, 0x6c, 0 }, .brk = { 0xe0,       0xec, 0 } }, /* 16c */
+      { .mk = {0xe0, 0x6d, 0 }, .brk = { 0xe0,       0xed, 0 } }, /* 16d */
+      { .mk = {0xe0, 0x6e, 0 }, .brk = { 0xe0,       0xee, 0 } }, /* 16e */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 16f */
+      { .mk = {0xe0, 0x70, 0 }, .brk = { 0xe0,       0xf0, 0 } }, /* 170 */
+      { .mk = {0xe0, 0x71, 0 }, .brk = { 0xe0,       0xf1, 0 } }, /* 171 */
+      { .mk = {0xe0, 0x72, 0 }, .brk = { 0xe0,       0xf2, 0 } }, /* 172 */
+      { .mk = {0xe0, 0x73, 0 }, .brk = { 0xe0,       0xf3, 0 } }, /* 173 */
+      { .mk = {0xe0, 0x74, 0 }, .brk = { 0xe0,       0xf4, 0 } }, /* 174 */
+      { .mk = {0xe0, 0x75, 0 }, .brk = { 0xe0,       0xf5, 0 } }, /* 175 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 176 */
+      { .mk = {0xe0, 0x77, 0 }, .brk = { 0xe0,       0xf7, 0 } }, /* 177 */
+      { .mk = {0xe0, 0x78, 0 }, .brk = { 0xe0,       0xf8, 0 } }, /* 178 */
+      { .mk = {0xe0, 0x79, 0 }, .brk = { 0xe0,       0xf9, 0 } }, /* 179 */
+      { .mk = {0xe0, 0x7a, 0 }, .brk = { 0xe0,       0xfa, 0 } }, /* 17a */
+      { .mk = {0xe0, 0x7b, 0 }, .brk = { 0xe0,       0xfb, 0 } }, /* 17b */
+      { .mk = {0xe0, 0x7c, 0 }, .brk = { 0xe0,       0xfc, 0 } }, /* 17c */
+      { .mk = {0xe0, 0x7d, 0 }, .brk = { 0xe0,       0xfd, 0 } }, /* 17d */
+      { .mk = {0xe0, 0x7e, 0 }, .brk = { 0xe0,       0xfe, 0 } }, /* 17e */
+      { .mk = {0xe0, 0x7f, 0 }, .brk = { 0xe0,       0xff, 0 } }, /* 17f */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 180 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 181 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 182 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 183 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 184 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 185 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 186 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 187 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 188 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 189 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 18a */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 18b */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 18c */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 18d */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 18e */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 18f */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 190 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 191 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 192 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 193 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 194 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 195 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 196 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 197 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 198 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 199 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 19a */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 19b */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 19c */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 19d */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 19e */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 19f */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a0 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a1 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a2 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a3 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a4 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a5 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a6 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a7 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a8 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1a9 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1aa */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ab */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ac */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ad */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ae */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1af */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b0 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b1 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b2 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b3 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b4 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b5 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b6 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b7 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b8 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1b9 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ba */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1bb */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1bc */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1bd */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1be */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1bf */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c0 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c1 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c2 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c3 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c4 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c5 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c6 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c7 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c8 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1c9 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ca */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1cb */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1cv */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1cd */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ce */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1cf */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d0 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d1 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d2 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d3 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d4 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d5 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d6 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d7 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d8 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1d9 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1da */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1db */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1dc */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1dd */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1de */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1df */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e0 */
+      { .mk = {0xe0, 0xe1, 0 }, .brk = {                   0 } }, /* 1e1 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e2 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e3 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e4 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e5 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e6 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e7 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e8 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1e9 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ea */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1eb */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ec */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ed */
+      { .mk = {0xe0, 0xee, 0 }, .brk = {                   0 } }, /* 1ee */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1ef */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f0 */
+      { .mk = {0xe0, 0xf1, 0 }, .brk = {                   0 } }, /* 1f1 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f2 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f3 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f4 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f5 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f6 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f7 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f8 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1f9 */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1fa */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1fb */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1fc */
+      { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
+      { .mk = {0xe0, 0xfe, 0 }, .brk = {                   0 } }, /* 1fe */
+      { .mk = {0xe0, 0xff, 0 }, .brk = {                   0 } }  /* 1ff */
+    // clang-format on
+    };
+/* Scancode set 82h : Set 02 with language specific keys support used by DOS/V */
+static const scancode scancode_set82[512] = {
+  // clang-format off
+    { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
+    { .mk = {      0x76, 0 }, .brk = {       0xF0, 0x76, 0 } }, /* 001 */
+    { .mk = {      0x16, 0 }, .brk = {       0xF0, 0x16, 0 } }, /* 002 */
+    { .mk = {      0x1E, 0 }, .brk = {       0xF0, 0x1E, 0 } }, /* 003 */
+    { .mk = {      0x26, 0 }, .brk = {       0xF0, 0x26, 0 } }, /* 004 */
+    { .mk = {      0x25, 0 }, .brk = {       0xF0, 0x25, 0 } }, /* 005 */
+    { .mk = {      0x2E, 0 }, .brk = {       0xF0, 0x2E, 0 } }, /* 006 */
+    { .mk = {      0x36, 0 }, .brk = {       0xF0, 0x36, 0 } }, /* 007 */
+    { .mk = {      0x3D, 0 }, .brk = {       0xF0, 0x3D, 0 } }, /* 008 */
+    { .mk = {      0x3E, 0 }, .brk = {       0xF0, 0x3E, 0 } }, /* 009 */
+    { .mk = {      0x46, 0 }, .brk = {       0xF0, 0x46, 0 } }, /* 00a */
+    { .mk = {      0x45, 0 }, .brk = {       0xF0, 0x45, 0 } }, /* 00b */
+    { .mk = {      0x4E, 0 }, .brk = {       0xF0, 0x4E, 0 } }, /* 00c */
+    { .mk = {      0x55, 0 }, .brk = {       0xF0, 0x55, 0 } }, /* 00d */
+    { .mk = {      0x66, 0 }, .brk = {       0xF0, 0x66, 0 } }, /* 00e */
+    { .mk = {      0x0D, 0 }, .brk = {       0xF0, 0x0D, 0 } }, /* 00f */
+    { .mk = {      0x15, 0 }, .brk = {       0xF0, 0x15, 0 } }, /* 010 */
+    { .mk = {      0x1D, 0 }, .brk = {       0xF0, 0x1D, 0 } }, /* 011 */
+    { .mk = {      0x24, 0 }, .brk = {       0xF0, 0x24, 0 } }, /* 012 */
+    { .mk = {      0x2D, 0 }, .brk = {       0xF0, 0x2D, 0 } }, /* 013 */
+    { .mk = {      0x2C, 0 }, .brk = {       0xF0, 0x2C, 0 } }, /* 014 */
+    { .mk = {      0x35, 0 }, .brk = {       0xF0, 0x35, 0 } }, /* 015 */
+    { .mk = {      0x3C, 0 }, .brk = {       0xF0, 0x3C, 0 } }, /* 016 */
+    { .mk = {      0x43, 0 }, .brk = {       0xF0, 0x43, 0 } }, /* 017 */
+    { .mk = {      0x44, 0 }, .brk = {       0xF0, 0x44, 0 } }, /* 018 */
+    { .mk = {      0x4D, 0 }, .brk = {       0xF0, 0x4D, 0 } }, /* 019 */
+    { .mk = {      0x54, 0 }, .brk = {       0xF0, 0x54, 0 } }, /* 01a */
+    { .mk = {      0x5B, 0 }, .brk = {       0xF0, 0x5B, 0 } }, /* 01b */
+    { .mk = {      0x5A, 0 }, .brk = {       0xF0, 0x5A, 0 } }, /* 01c */
+    { .mk = {      0x14, 0 }, .brk = {       0xF0, 0x14, 0 } }, /* 01d */
+    { .mk = {      0x1C, 0 }, .brk = {       0xF0, 0x1C, 0 } }, /* 01e */
+    { .mk = {      0x1B, 0 }, .brk = {       0xF0, 0x1B, 0 } }, /* 01f */
+    { .mk = {      0x23, 0 }, .brk = {       0xF0, 0x23, 0 } }, /* 020 */
+    { .mk = {      0x2B, 0 }, .brk = {       0xF0, 0x2B, 0 } }, /* 021 */
+    { .mk = {      0x34, 0 }, .brk = {       0xF0, 0x34, 0 } }, /* 022 */
+    { .mk = {      0x33, 0 }, .brk = {       0xF0, 0x33, 0 } }, /* 023 */
+    { .mk = {      0x3B, 0 }, .brk = {       0xF0, 0x3B, 0 } }, /* 024 */
+    { .mk = {      0x42, 0 }, .brk = {       0xF0, 0x42, 0 } }, /* 025 */
+    { .mk = {      0x4B, 0 }, .brk = {       0xF0, 0x4B, 0 } }, /* 026 */
+    { .mk = {      0x4C, 0 }, .brk = {       0xF0, 0x4C, 0 } }, /* 027 */
+    { .mk = {      0x52, 0 }, .brk = {       0xF0, 0x52, 0 } }, /* 028* */
+    { .mk = {      0x62, 0 }, .brk = {       0xf0, 0x62, 0 } }, /* 029 0x45 Hankaku, Zenkaku */
+    { .mk = {      0x12, 0 }, .brk = {       0xF0, 0x12, 0 } }, /* 02a */
+    { .mk = {      0x5b, 0 }, .brk = {       0xf0, 0x5b, 0 } }, /* 02b 0x17 Mu */
+    { .mk = {      0x1A, 0 }, .brk = {       0xF0, 0x1A, 0 } }, /* 02c */
+    { .mk = {      0x22, 0 }, .brk = {       0xF0, 0x22, 0 } }, /* 02d */
+    { .mk = {      0x21, 0 }, .brk = {       0xF0, 0x21, 0 } }, /* 02e */
+    { .mk = {      0x2A, 0 }, .brk = {       0xF0, 0x2A, 0 } }, /* 02f */
+    { .mk = {      0x32, 0 }, .brk = {       0xF0, 0x32, 0 } }, /* 030 */
+    { .mk = {      0x31, 0 }, .brk = {       0xF0, 0x31, 0 } }, /* 031 */
+    { .mk = {      0x3A, 0 }, .brk = {       0xF0, 0x3A, 0 } }, /* 032 */
+    { .mk = {      0x41, 0 }, .brk = {       0xF0, 0x41, 0 } }, /* 033 */
+    { .mk = {      0x49, 0 }, .brk = {       0xF0, 0x49, 0 } }, /* 034 */
+    { .mk = {      0x4A, 0 }, .brk = {       0xF0, 0x4A, 0 } }, /* 035 */
+    { .mk = {      0x59, 0 }, .brk = {       0xF0, 0x59, 0 } }, /* 036 */
+    { .mk = {      0x7C, 0 }, .brk = {       0xF0, 0x7C, 0 } }, /* 037 */
+    { .mk = {      0x13, 0 }, .brk = {       0xF0, 0x13, 0 } }, /* 038 0x3A LALT = Kanji */
+    { .mk = {      0x29, 0 }, .brk = {       0xF0, 0x29, 0 } }, /* 039 */
+    { .mk = {      0x58, 0 }, .brk = {       0xF0, 0x58, 0 } }, /* 03a */
+    { .mk = {      0x05, 0 }, .brk = {       0xF0, 0x05, 0 } }, /* 03b */
+    { .mk = {      0x06, 0 }, .brk = {       0xF0, 0x06, 0 } }, /* 03c */
+    { .mk = {      0x04, 0 }, .brk = {       0xF0, 0x04, 0 } }, /* 03d */
+    { .mk = {      0x0C, 0 }, .brk = {       0xF0, 0x0C, 0 } }, /* 03e */
+    { .mk = {      0x03, 0 }, .brk = {       0xF0, 0x03, 0 } }, /* 03f */
+    { .mk = {      0x0B, 0 }, .brk = {       0xF0, 0x0B, 0 } }, /* 040 */
+    { .mk = {      0x83, 0 }, .brk = {       0xF0, 0x83, 0 } }, /* 041 */
+    { .mk = {      0x0A, 0 }, .brk = {       0xF0, 0x0A, 0 } }, /* 042 */
+    { .mk = {      0x01, 0 }, .brk = {       0xF0, 0x01, 0 } }, /* 043 */
+    { .mk = {      0x09, 0 }, .brk = {       0xF0, 0x09, 0 } }, /* 044 */
+    { .mk = {      0x77, 0 }, .brk = {       0xF0, 0x77, 0 } }, /* 045 NUMLOCKCLEAR -> Shift + SCRLOCK :TODO */
+    { .mk = {      0x7E, 0 }, .brk = {       0xF0, 0x7E, 0 } }, /* 046 0x75 SCROLLLOCK */
+    { .mk = {      0x6C, 0 }, .brk = {       0xF0, 0x6C, 0 } }, /* 047 */
+    { .mk = {      0x75, 0 }, .brk = {       0xF0, 0x75, 0 } }, /* 048 */
+    { .mk = {      0x7D, 0 }, .brk = {       0xF0, 0x7D, 0 } }, /* 049 */
+    { .mk = {      0x7B, 0 }, .brk = {       0xF0, 0x7B, 0 } }, /* 04a */
+    { .mk = {      0x6B, 0 }, .brk = {       0xF0, 0x6B, 0 } }, /* 04b */
+    { .mk = {      0x73, 0 }, .brk = {       0xF0, 0x73, 0 } }, /* 04c */
+    { .mk = {      0x74, 0 }, .brk = {       0xF0, 0x74, 0 } }, /* 04d */
+    { .mk = {      0x79, 0 }, .brk = {       0xF0, 0x79, 0 } }, /* 04e */
+    { .mk = {      0x69, 0 }, .brk = {       0xF0, 0x69, 0 } }, /* 04f */
+    { .mk = {      0x72, 0 }, .brk = {       0xF0, 0x72, 0 } }, /* 050 */
+    { .mk = {      0x7A, 0 }, .brk = {       0xF0, 0x7A, 0 } }, /* 051 */
+    { .mk = {      0x70, 0 }, .brk = {       0xF0, 0x70, 0 } }, /* 052 */
+    { .mk = {      0x71, 0 }, .brk = {       0xF0, 0x71, 0 } }, /* 053 */
+    { .mk = {      0x84, 0 }, .brk = {       0xF0, 0x84, 0 } }, /* 054 */
+    { .mk = {      0x60, 0 }, .brk = {       0xF0, 0x60, 0 } }, /* 055 */
+    { .mk = {      0x61, 0 }, .brk = {       0xF0, 0x61, 0 } }, /* 056 */
+    { .mk = {      0x78, 0 }, .brk = {       0xF0, 0x78, 0 } }, /* 057 */
+    { .mk = {      0x07, 0 }, .brk = {       0xF0, 0x07, 0 } }, /* 058 */
+    { .mk = {      0x0F, 0 }, .brk = {       0xF0, 0x0F, 0 } }, /* 059 */
+    { .mk = {      0x17, 0 }, .brk = {       0xF0, 0x17, 0 } }, /* 05a */
+    { .mk = {      0x1F, 0 }, .brk = {       0xF0, 0x1F, 0 } }, /* 05b */
+    { .mk = {      0x27, 0 }, .brk = {       0xF0, 0x27, 0 } }, /* 05c */
+    { .mk = {      0x2F, 0 }, .brk = {       0xF0, 0x2F, 0 } }, /* 05d */
+    { .mk = {      0x37, 0 }, .brk = {       0xF0, 0x37, 0 } }, /* 05e */
+    { .mk = {      0x3F, 0 }, .brk = {       0xF0, 0x3F, 0 } }, /* 05f */
+    { .mk = {      0x47, 0 }, .brk = {       0xF0, 0x47, 0 } }, /* 060 */
+    { .mk = {      0x4F, 0 }, .brk = {       0xF0, 0x4F, 0 } }, /* 061 */
+    { .mk = {      0x56, 0 }, .brk = {       0xF0, 0x56, 0 } }, /* 062 */
+    { .mk = {      0x5E, 0 }, .brk = {       0xF0, 0x5E, 0 } }, /* 063 */
+    { .mk = {      0x08, 0 }, .brk = {       0xF0, 0x08, 0 } }, /* 064 */
+    { .mk = {      0x10, 0 }, .brk = {       0xF0, 0x10, 0 } }, /* 065 */
+    { .mk = {      0x18, 0 }, .brk = {       0xF0, 0x18, 0 } }, /* 066 */
+    { .mk = {      0x20, 0 }, .brk = {       0xF0, 0x20, 0 } }, /* 067 */
+    { .mk = {      0x28, 0 }, .brk = {       0xF0, 0x28, 0 } }, /* 068 */
+    { .mk = {      0x30, 0 }, .brk = {       0xF0, 0x30, 0 } }, /* 069 */
+    { .mk = {      0x38, 0 }, .brk = {       0xF0, 0x38, 0 } }, /* 06a */
+    { .mk = {      0x40, 0 }, .brk = {       0xF0, 0x40, 0 } }, /* 06b */
+    { .mk = {      0x48, 0 }, .brk = {       0xF0, 0x48, 0 } }, /* 06c */
+    { .mk = {      0x50, 0 }, .brk = {       0xF0, 0x50, 0 } }, /* 06d */
+    { .mk = {      0x57, 0 }, .brk = {       0xF0, 0x57, 0 } }, /* 06e */
+    { .mk = {      0x6F, 0 }, .brk = {       0xF0, 0x6F, 0 } }, /* 06f */
+    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xf0, 0x11, 0 } }, /* 070 0x36 Kana */
+    { .mk = {      0x19, 0 }, .brk = {       0xF0, 0x19, 0 } }, /* 071 */
+    { .mk = {      0x39, 0 }, .brk = {       0xF0, 0x39, 0 } }, /* 072 */
+    { .mk = {      0x51, 0 }, .brk = {       0xF0, 0x51, 0 } }, /* 073 0x0b Ro, Underline */
+    { .mk = {      0x53, 0 }, .brk = {       0xF0, 0x53, 0 } }, /* 074 */
+    { .mk = {      0x5C, 0 }, .brk = {       0xF0, 0x5C, 0 } }, /* 075 */
+    { .mk = {      0x5F, 0 }, .brk = {       0xF0, 0x5F, 0 } }, /* 076 */
+    { .mk = {      0x62, 0 }, .brk = {       0xF0, 0x62, 0 } }, /* 077 */
+    { .mk = {      0x63, 0 }, .brk = {       0xF0, 0x63, 0 } }, /* 078 */
+    { .mk = {      0x64, 0 }, .brk = {       0xF0, 0x64, 0 } }, /* 079 0x35 Henkan */
+    { .mk = {      0x65, 0 }, .brk = {       0xF0, 0x65, 0 } }, /* 07a */
+    { .mk = {      0x67, 0 }, .brk = {       0xF0, 0x67, 0 } }, /* 07b 0x33 Muhenkan */
+    { .mk = {      0x68, 0 }, .brk = {       0xF0, 0x68, 0 } }, /* 07c */
+    { .mk = {      0x5d, 0 }, .brk = {       0xf0, 0x5d, 0 } }, /* 07d 0x30 Yen, Vertical line */
+    { .mk = {      0x6D, 0 }, .brk = {       0xF0, 0x6D, 0 } }, /* 07e */
+    { .mk = {      0x6E, 0 }, .brk = {       0xF0, 0x6E, 0 } }, /* 07f */
+    { .mk = {      0x80, 0 }, .brk = {       0xf0, 0x80, 0 } }, /* 080 */
+    { .mk = {      0x81, 0 }, .brk = {       0xf0, 0x81, 0 } }, /* 081 */
+    { .mk = {      0x82, 0 }, .brk = {       0xf0, 0x82, 0 } }, /* 082 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 083 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 084 */
+    { .mk = {      0x85, 0 }, .brk = {       0xf0, 0x54, 0 } }, /* 085 */
+    { .mk = {      0x86, 0 }, .brk = {       0xf0, 0x86, 0 } }, /* 086 */
+    { .mk = {      0x87, 0 }, .brk = {       0xf0, 0x87, 0 } }, /* 087 */
+    { .mk = {      0x88, 0 }, .brk = {       0xf0, 0x88, 0 } }, /* 088 */
+    { .mk = {      0x89, 0 }, .brk = {       0xf0, 0x89, 0 } }, /* 089 */
+    { .mk = {      0x8a, 0 }, .brk = {       0xf0, 0x8a, 0 } }, /* 08a */
+    { .mk = {      0x8b, 0 }, .brk = {       0xf0, 0x8b, 0 } }, /* 08b */
+    { .mk = {      0x8c, 0 }, .brk = {       0xf0, 0x8c, 0 } }, /* 08c */
+    { .mk = {      0x8d, 0 }, .brk = {       0xf0, 0x8d, 0 } }, /* 08d */
+    { .mk = {      0x8e, 0 }, .brk = {       0xf0, 0x8e, 0 } }, /* 08e */
+    { .mk = {      0x8f, 0 }, .brk = {       0xf0, 0x8f, 0 } }, /* 08f */
+    { .mk = {      0x90, 0 }, .brk = {       0xf0, 0x90, 0 } }, /* 090 */
+    { .mk = {      0x91, 0 }, .brk = {       0xf0, 0x91, 0 } }, /* 091 */
+    { .mk = {      0x92, 0 }, .brk = {       0xf0, 0x92, 0 } }, /* 092 */
+    { .mk = {      0x93, 0 }, .brk = {       0xf0, 0x93, 0 } }, /* 093 */
+    { .mk = {      0x94, 0 }, .brk = {       0xf0, 0x94, 0 } }, /* 094 */
+    { .mk = {      0x95, 0 }, .brk = {       0xf0, 0x95, 0 } }, /* 095 */
+    { .mk = {      0x96, 0 }, .brk = {       0xf0, 0x96, 0 } }, /* 096 */
+    { .mk = {      0x97, 0 }, .brk = {       0xf0, 0x97, 0 } }, /* 097 */
+    { .mk = {      0x98, 0 }, .brk = {       0xf0, 0x98, 0 } }, /* 098 */
+    { .mk = {      0x99, 0 }, .brk = {       0xf0, 0x99, 0 } }, /* 099 */
+    { .mk = {      0x9a, 0 }, .brk = {       0xf0, 0x9a, 0 } }, /* 09a */
+    { .mk = {      0x9b, 0 }, .brk = {       0xf0, 0x9b, 0 } }, /* 09b */
+    { .mk = {      0x9c, 0 }, .brk = {       0xf0, 0x9c, 0 } }, /* 09c */
+    { .mk = {      0x9d, 0 }, .brk = {       0xf0, 0x9d, 0 } }, /* 09d */
+    { .mk = {      0x9e, 0 }, .brk = {       0xf0, 0x9e, 0 } }, /* 09e */
+    { .mk = {      0x9f, 0 }, .brk = {       0xf0, 0x9f, 0 } }, /* 09f */
+    { .mk = {      0xa0, 0 }, .brk = {       0xf0, 0xa0, 0 } }, /* 0a0 */
+    { .mk = {      0xa1, 0 }, .brk = {       0xf0, 0xa1, 0 } }, /* 0a1 */
+    { .mk = {      0xa2, 0 }, .brk = {       0xf0, 0xa2, 0 } }, /* 0a2 */
+    { .mk = {      0xa3, 0 }, .brk = {       0xf0, 0xa3, 0 } }, /* 0a3 */
+    { .mk = {      0xa4, 0 }, .brk = {       0xf0, 0xa4, 0 } }, /* 0a4 */
+    { .mk = {      0xa5, 0 }, .brk = {       0xf0, 0xa5, 0 } }, /* 0a5 */
+    { .mk = {      0xa6, 0 }, .brk = {       0xf0, 0xa6, 0 } }, /* 0a6 */
+    { .mk = {      0xa7, 0 }, .brk = {       0xf0, 0xa7, 0 } }, /* 0a7 */
+    { .mk = {      0xa8, 0 }, .brk = {       0xf0, 0xa8, 0 } }, /* 0a8 */
+    { .mk = {      0xa9, 0 }, .brk = {       0xf0, 0xa9, 0 } }, /* 0a9 */
+    { .mk = {      0xaa, 0 }, .brk = {       0xf0, 0xaa, 0 } }, /* 0aa */
+    { .mk = {      0xab, 0 }, .brk = {       0xf0, 0xab, 0 } }, /* 0ab */
+    { .mk = {      0xac, 0 }, .brk = {       0xf0, 0xac, 0 } }, /* 0ac */
+    { .mk = {      0xad, 0 }, .brk = {       0xf0, 0xad, 0 } }, /* 0ad */
+    { .mk = {      0xae, 0 }, .brk = {       0xf0, 0xae, 0 } }, /* 0ae */
+    { .mk = {      0xaf, 0 }, .brk = {       0xf0, 0xaf, 0 } }, /* 0af */
+    { .mk = {      0xb0, 0 }, .brk = {       0xf0, 0xb0, 0 } }, /* 0b0 */
+    { .mk = {      0xb1, 0 }, .brk = {       0xf0, 0xb1, 0 } }, /* 0b1 */
+    { .mk = {      0xb2, 0 }, .brk = {       0xf0, 0xb2, 0 } }, /* 0b2 */
+    { .mk = {      0xb3, 0 }, .brk = {       0xf0, 0xb3, 0 } }, /* 0b3 */
+    { .mk = {      0xb4, 0 }, .brk = {       0xf0, 0xb4, 0 } }, /* 0b4 */
+    { .mk = {      0xb5, 0 }, .brk = {       0xf0, 0xb5, 0 } }, /* 0b5 */
+    { .mk = {      0xb6, 0 }, .brk = {       0xf0, 0xb6, 0 } }, /* 0b6 */
+    { .mk = {      0xb7, 0 }, .brk = {       0xf0, 0xb7, 0 } }, /* 0b7 */
+    { .mk = {      0xb8, 0 }, .brk = {       0xf0, 0xb8, 0 } }, /* 0b8 */
+    { .mk = {      0xb9, 0 }, .brk = {       0xf0, 0xb9, 0 } }, /* 0b9 */
+    { .mk = {      0xba, 0 }, .brk = {       0xf0, 0xba, 0 } }, /* 0ba */
+    { .mk = {      0xbb, 0 }, .brk = {       0xf0, 0xbb, 0 } }, /* 0bb */
+    { .mk = {      0xbc, 0 }, .brk = {       0xf0, 0xbc, 0 } }, /* 0bc */
+    { .mk = {      0xbd, 0 }, .brk = {       0xf0, 0xbd, 0 } }, /* 0bd */
+    { .mk = {      0xbe, 0 }, .brk = {       0xf0, 0xbe, 0 } }, /* 0be */
+    { .mk = {      0xbf, 0 }, .brk = {       0xf0, 0xbf, 0 } }, /* 0bf */
+    { .mk = {      0xc0, 0 }, .brk = {       0xf0, 0xc0, 0 } }, /* 0c0 */
+    { .mk = {      0xc1, 0 }, .brk = {       0xf0, 0xc1, 0 } }, /* 0c1 */
+    { .mk = {      0xc2, 0 }, .brk = {       0xf0, 0xc2, 0 } }, /* 0c2 */
+    { .mk = {      0xc3, 0 }, .brk = {       0xf0, 0xc3, 0 } }, /* 0c3 */
+    { .mk = {      0xc4, 0 }, .brk = {       0xf0, 0xc4, 0 } }, /* 0c4 */
+    { .mk = {      0xc5, 0 }, .brk = {       0xf0, 0xc5, 0 } }, /* 0c5 */
+    { .mk = {      0xc6, 0 }, .brk = {       0xf0, 0xc6, 0 } }, /* 0c6 */
+    { .mk = {      0xc7, 0 }, .brk = {       0xf0, 0xc7, 0 } }, /* 0c7 */
+    { .mk = {      0xc8, 0 }, .brk = {       0xf0, 0xc8, 0 } }, /* 0c8 */
+    { .mk = {      0xc9, 0 }, .brk = {       0xf0, 0xc9, 0 } }, /* 0c9 */
+    { .mk = {      0xca, 0 }, .brk = {       0xf0, 0xca, 0 } }, /* 0ca */
+    { .mk = {      0xcb, 0 }, .brk = {       0xf0, 0xcb, 0 } }, /* 0cb */
+    { .mk = {      0xcc, 0 }, .brk = {       0xf0, 0xcc, 0 } }, /* 0cc */
+    { .mk = {      0xcd, 0 }, .brk = {       0xf0, 0xcd, 0 } }, /* 0cd */
+    { .mk = {      0xce, 0 }, .brk = {       0xf0, 0xce, 0 } }, /* 0ce */
+    { .mk = {      0xcf, 0 }, .brk = {       0xf0, 0xcf, 0 } }, /* 0cf */
+    { .mk = {      0xd0, 0 }, .brk = {       0xf0, 0xd0, 0 } }, /* 0d0 */
+    { .mk = {      0xd1, 0 }, .brk = {       0xf0, 0xd0, 0 } }, /* 0d1 */
+    { .mk = {      0xd2, 0 }, .brk = {       0xf0, 0xd2, 0 } }, /* 0d2 */
+    { .mk = {      0xd3, 0 }, .brk = {       0xf0, 0xd3, 0 } }, /* 0d3 */
+    { .mk = {      0xd4, 0 }, .brk = {       0xf0, 0xd4, 0 } }, /* 0d4 */
+    { .mk = {      0xd5, 0 }, .brk = {       0xf0, 0xd5, 0 } }, /* 0d5 */
+    { .mk = {      0xd6, 0 }, .brk = {       0xf0, 0xd6, 0 } }, /* 0d6 */
+    { .mk = {      0xd7, 0 }, .brk = {       0xf0, 0xd7, 0 } }, /* 0d7 */
+    { .mk = {      0xd8, 0 }, .brk = {       0xf0, 0xd8, 0 } }, /* 0d8 */
+    { .mk = {      0xd9, 0 }, .brk = {       0xf0, 0xd9, 0 } }, /* 0d9 */
+    { .mk = {      0xda, 0 }, .brk = {       0xf0, 0xda, 0 } }, /* 0da */
+    { .mk = {      0xdb, 0 }, .brk = {       0xf0, 0xdb, 0 } }, /* 0db */
+    { .mk = {      0xdc, 0 }, .brk = {       0xf0, 0xdc, 0 } }, /* 0dc */
+    { .mk = {      0xdd, 0 }, .brk = {       0xf0, 0xdd, 0 } }, /* 0dd */
+    { .mk = {      0xde, 0 }, .brk = {       0xf0, 0xde, 0 } }, /* 0de */
+    { .mk = {      0xdf, 0 }, .brk = {       0xf0, 0xdf, 0 } }, /* 0df */
+    { .mk = {      0xe0, 0 }, .brk = {       0xf0, 0xe0, 0 } }, /* 0e0 */
+    { .mk = {      0xe1, 0 }, .brk = {       0xf0, 0xe1, 0 } }, /* 0e1 */
+    { .mk = {      0xe2, 0 }, .brk = {       0xf0, 0xe2, 0 } }, /* 0e2 */
+    { .mk = {      0xe3, 0 }, .brk = {       0xf0, 0xe3, 0 } }, /* 0e3 */
+    { .mk = {      0xe4, 0 }, .brk = {       0xf0, 0xe4, 0 } }, /* 0e4 */
+    { .mk = {      0xe5, 0 }, .brk = {       0xf0, 0xe5, 0 } }, /* 0e5 */
+    { .mk = {      0xe6, 0 }, .brk = {       0xf0, 0xe6, 0 } }, /* 0e6 */
+    { .mk = {      0xe7, 0 }, .brk = {       0xf0, 0xe7, 0 } }, /* 0e7 */
+    { .mk = {      0xe8, 0 }, .brk = {       0xf0, 0xe8, 0 } }, /* 0e8 */
+    { .mk = {      0xe9, 0 }, .brk = {       0xf0, 0xe9, 0 } }, /* 0e9 */
+    { .mk = {      0xea, 0 }, .brk = {       0xf0, 0xea, 0 } }, /* 0ea */
+    { .mk = {      0xeb, 0 }, .brk = {       0xf0, 0xeb, 0 } }, /* 0eb */
+    { .mk = {      0xec, 0 }, .brk = {       0xf0, 0xec, 0 } }, /* 0ec */
+    { .mk = {      0xed, 0 }, .brk = {       0xf0, 0xed, 0 } }, /* 0ed */
+    { .mk = {      0xee, 0 }, .brk = {       0xf0, 0xee, 0 } }, /* 0ee */
+    { .mk = {      0xef, 0 }, .brk = {       0xf0, 0xef, 0 } }, /* 0ef */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 0f0 */
+    { .mk = {      0xf1, 0 }, .brk = {       0xf0, 0xf1, 0 } }, /* 0f1 */
+    { .mk = {      0xf2, 0 }, .brk = {       0xf0, 0xf2, 0 } }, /* 0f2 */
+    { .mk = {      0xf3, 0 }, .brk = {       0xf0, 0xf3, 0 } }, /* 0f3 */
+    { .mk = {      0xf4, 0 }, .brk = {       0xf0, 0xf4, 0 } }, /* 0f4 */
+    { .mk = {      0xf5, 0 }, .brk = {       0xf0, 0xf5, 0 } }, /* 0f5 */
+    { .mk = {      0xf6, 0 }, .brk = {       0xf0, 0xf6, 0 } }, /* 0f6 */
+    { .mk = {      0xf7, 0 }, .brk = {       0xf0, 0xf7, 0 } }, /* 0f7 */
+    { .mk = {      0xf8, 0 }, .brk = {       0xf0, 0xf8, 0 } }, /* 0f8 */
+    { .mk = {      0xf9, 0 }, .brk = {       0xf0, 0xf9, 0 } }, /* 0f9 */
+    { .mk = {      0xfa, 0 }, .brk = {       0xf0, 0xfa, 0 } }, /* 0fa */
+    { .mk = {      0xfb, 0 }, .brk = {       0xf0, 0xfb, 0 } }, /* 0fb */
+    { .mk = {      0xfc, 0 }, .brk = {       0xf0, 0xfc, 0 } }, /* 0fc */
+    { .mk = {      0xfd, 0 }, .brk = {       0xf0, 0xfd, 0 } }, /* 0fd */
+    { .mk = {      0xfe, 0 }, .brk = {       0xf0, 0xfe, 0 } }, /* 0fe */
+    { .mk = {      0xff, 0 }, .brk = {       0xf0, 0xff, 0 } }, /* 0ff */
+    { .mk = {0xe1, 0x14, 0 }, .brk = { 0xe1, 0xf0, 0x14, 0 } }, /* 100 */
+    { .mk = {0xe0, 0x76, 0 }, .brk = { 0xe0, 0xF0, 0x76, 0 } }, /* 101 */
+    { .mk = {0xe0, 0x16, 0 }, .brk = { 0xe0, 0xF0, 0x16, 0 } }, /* 102 */
+    { .mk = {0xe0, 0x1E, 0 }, .brk = { 0xe0, 0xF0, 0x1E, 0 } }, /* 103 */
+    { .mk = {0xe0, 0x26, 0 }, .brk = { 0xe0, 0xF0, 0x26, 0 } }, /* 104 */
+    { .mk = {0xe0, 0x25, 0 }, .brk = { 0xe0, 0xF0, 0x25, 0 } }, /* 105 */
+    { .mk = {0xe0, 0x2E, 0 }, .brk = { 0xe0, 0xF0, 0x2E, 0 } }, /* 106 */
+    { .mk = {0xe0, 0x36, 0 }, .brk = { 0xe0, 0xF0, 0x36, 0 } }, /* 107 */
+    { .mk = {0xe0, 0x3D, 0 }, .brk = { 0xe0, 0xF0, 0x3D, 0 } }, /* 108 */
+    { .mk = {0xe0, 0x3E, 0 }, .brk = { 0xe0, 0xF0, 0x3E, 0 } }, /* 109 */
+    { .mk = {0xe0, 0x46, 0 }, .brk = { 0xe0, 0xF0, 0x46, 0 } }, /* 10a */
+    { .mk = {0xe0, 0x45, 0 }, .brk = { 0xe0, 0xF0, 0x45, 0 } }, /* 10b */
+    { .mk = {0xe0, 0x4E, 0 }, .brk = { 0xe0, 0xF0, 0x4E, 0 } }, /* 10c */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 10d */
+    { .mk = {0xe0, 0x66, 0 }, .brk = { 0xe0, 0xF0, 0x66, 0 } }, /* 10e */
+    { .mk = {0xe0, 0x0D, 0 }, .brk = { 0xe0, 0xF0, 0x0D, 0 } }, /* 10f */
+    { .mk = {0xe0, 0x15, 0 }, .brk = { 0xe0, 0xF0, 0x15, 0 } }, /* 110 */
+    { .mk = {0xe0, 0x1D, 0 }, .brk = { 0xe0, 0xF0, 0x1D, 0 } }, /* 112 */
+    { .mk = {0xe0, 0x24, 0 }, .brk = { 0xe0, 0xF0, 0x24, 0 } }, /* 113 */
+    { .mk = {0xe0, 0x2D, 0 }, .brk = { 0xe0, 0xF0, 0x2D, 0 } }, /* 113 */
+    { .mk = {0xe0, 0x2C, 0 }, .brk = { 0xe0, 0xF0, 0x2C, 0 } }, /* 114 */
+    { .mk = {0xe0, 0x35, 0 }, .brk = { 0xe0, 0xF0, 0x35, 0 } }, /* 115 */
+    { .mk = {0xe0, 0x3C, 0 }, .brk = { 0xe0, 0xF0, 0x3C, 0 } }, /* 116 */
+    { .mk = {0xe0, 0x43, 0 }, .brk = { 0xe0, 0xF0, 0x43, 0 } }, /* 117 */
+    { .mk = {0xe0, 0x44, 0 }, .brk = { 0xe0, 0xF0, 0x44, 0 } }, /* 118 */
+    { .mk = {0xe0, 0x4D, 0 }, .brk = { 0xe0, 0xF0, 0x4D, 0 } }, /* 119 */
+    { .mk = {0xe0, 0x54, 0 }, .brk = { 0xe0, 0xF0, 0x54, 0 } }, /* 11a */
+    { .mk = {0xe0, 0x5B, 0 }, .brk = { 0xe0, 0xF0, 0x5B, 0 } }, /* 11b */
+    { .mk = {0xe0, 0x5A, 0 }, .brk = { 0xe0, 0xF0, 0x5A, 0 } }, /* 11c */
+    { .mk = {0xe0, 0x14, 0 }, .brk = { 0xe0, 0xF0, 0x14, 0 } }, /* 11d */
+    { .mk = {0xe0, 0x1C, 0 }, .brk = { 0xe0, 0xF0, 0x1C, 0 } }, /* 11e */
+    { .mk = {0xe0, 0x1B, 0 }, .brk = { 0xe0, 0xF0, 0x1B, 0 } }, /* 11f */
+    { .mk = {0xe0, 0x23, 0 }, .brk = { 0xe0, 0xF0, 0x23, 0 } }, /* 120 */
+    { .mk = {0xe0, 0x2B, 0 }, .brk = { 0xe0, 0xF0, 0x2B, 0 } }, /* 121 */
+    { .mk = {0xe0, 0x34, 0 }, .brk = { 0xe0, 0xF0, 0x34, 0 } }, /* 122 */
+    { .mk = {0xe0, 0x33, 0 }, .brk = { 0xe0, 0xF0, 0x33, 0 } }, /* 123 */
+    { .mk = {0xe0, 0x3B, 0 }, .brk = { 0xe0, 0xF0, 0x3B, 0 } }, /* 124 */
+    { .mk = {0xe0, 0x42, 0 }, .brk = { 0xe0, 0xF0, 0x42, 0 } }, /* 125 */
+    { .mk = {0xe0, 0x4B, 0 }, .brk = { 0xe0, 0xF0, 0x4B, 0 } }, /* 126 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 127 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 128 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 129 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 12a */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 12b */
+    { .mk = {0xe0, 0x1A, 0 }, .brk = { 0xe0, 0xF0, 0x1A, 0 } }, /* 12c */
+    { .mk = {0xe0, 0x22, 0 }, .brk = { 0xe0, 0xF0, 0x22, 0 } }, /* 12d */
+    { .mk = {0xe0, 0x21, 0 }, .brk = { 0xe0, 0xF0, 0x21, 0 } }, /* 12e */
+    { .mk = {0xe0, 0x2A, 0 }, .brk = { 0xe0, 0xF0, 0x2A, 0 } }, /* 12f */
+    { .mk = {0xe0, 0x32, 0 }, .brk = { 0xe0, 0xF0, 0x32, 0 } }, /* 130 */
+    { .mk = {0xe0, 0x31, 0 }, .brk = { 0xe0, 0xF0, 0x31, 0 } }, /* 131 */
+    { .mk = {0xe0, 0x3A, 0 }, .brk = { 0xe0, 0xF0, 0x3A, 0 } }, /* 132 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 133 */
+    { .mk = {0xe0, 0x49, 0 }, .brk = { 0xe0, 0xF0, 0x49, 0 } }, /* 134 */
+    { .mk = {0xe0, 0x4A, 0 }, .brk = { 0xe0, 0xF0, 0x4A, 0 } }, /* 135 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 136 */
+    { .mk = {0xe0, 0x7C, 0 }, .brk = { 0xe0, 0xF0, 0x7C, 0 } }, /* 137 */
+    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xF0, 0x11, 0 } }, /* 138* 0x31 R-Alt */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 139 */
+    { .mk = {0xe0, 0x58, 0 }, .brk = { 0xe0, 0xF0, 0x58, 0 } }, /* 13a */
+    { .mk = {0xe0, 0x05, 0 }, .brk = { 0xe0, 0xF0, 0x05, 0 } }, /* 13b */
+    { .mk = {0xe0, 0x06, 0 }, .brk = { 0xe0, 0xF0, 0x06, 0 } }, /* 13c */
+    { .mk = {0xe0, 0x04, 0 }, .brk = { 0xe0, 0xF0, 0x04, 0 } }, /* 13d */
+    { .mk = {0xe0, 0x0C, 0 }, .brk = { 0xe0, 0xF0, 0x0C, 0 } }, /* 13e */
+    { .mk = {0xe0, 0x03, 0 }, .brk = { 0xe0, 0xF0, 0x03, 0 } }, /* 13f */
+    { .mk = {0xe0, 0x0B, 0 }, .brk = { 0xe0, 0xF0, 0x0B, 0 } }, /* 140 */
+    { .mk = {0xe0, 0x02, 0 }, .brk = { 0xe0, 0xF0, 0x02, 0 } }, /* 141 */
+    { .mk = {0xe0, 0x0A, 0 }, .brk = { 0xe0, 0xF0, 0x0A, 0 } }, /* 142 */
+    { .mk = {0xe0, 0x01, 0 }, .brk = { 0xe0, 0xF0, 0x01, 0 } }, /* 143 */
+    { .mk = {0xe0, 0x09, 0 }, .brk = { 0xe0, 0xF0, 0x09, 0 } }, /* 144 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 145 */
+    { .mk = {0xe0, 0x7E, 0 }, .brk = { 0xe0, 0xF0, 0x7E, 0 } }, /* 146 */
+    { .mk = {0xe0, 0x6C, 0 }, .brk = { 0xe0, 0xF0, 0x6C, 0 } }, /* 147 */
+    { .mk = {0xe0, 0x75, 0 }, .brk = { 0xe0, 0xF0, 0x75, 0 } }, /* 148 */
+    { .mk = {0xe0, 0x7D, 0 }, .brk = { 0xe0, 0xF0, 0x7D, 0 } }, /* 149 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 14a */
+    { .mk = {0xe0, 0x6B, 0 }, .brk = { 0xe0, 0xF0, 0x6B, 0 } }, /* 14b */
+    { .mk = {0xe0, 0x73, 0 }, .brk = { 0xe0, 0xF0, 0x73, 0 } }, /* 14c */
+    { .mk = {0xe0, 0x74, 0 }, .brk = { 0xe0, 0xF0, 0x74, 0 } }, /* 14d */
+    { .mk = {0xe0, 0x79, 0 }, .brk = { 0xe0, 0xF0, 0x79, 0 } }, /* 14e */
+    { .mk = {0xe0, 0x69, 0 }, .brk = { 0xe0, 0xF0, 0x69, 0 } }, /* 14f */
+    { .mk = {0xe0, 0x72, 0 }, .brk = { 0xe0, 0xF0, 0x72, 0 } }, /* 150 */
+    { .mk = {0xe0, 0x7A, 0 }, .brk = { 0xe0, 0xF0, 0x7A, 0 } }, /* 151 */
+    { .mk = {0xe0, 0x70, 0 }, .brk = { 0xe0, 0xF0, 0x70, 0 } }, /* 152 */
+    { .mk = {0xe0, 0x71, 0 }, .brk = { 0xe0, 0xF0, 0x71, 0 } }, /* 153 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 154 */
+    { .mk = {0xe0, 0x60, 0 }, .brk = { 0xe0, 0xF0, 0x60, 0 } }, /* 155 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 156 */
+    { .mk = {0xe0, 0x78, 0 }, .brk = { 0xe0, 0xF0, 0x78, 0 } }, /* 157 */
+    { .mk = {0xe0, 0x07, 0 }, .brk = { 0xe0, 0xF0, 0x07, 0 } }, /* 158 */
+    { .mk = {0xe0, 0x0F, 0 }, .brk = { 0xe0, 0xF0, 0x0F, 0 } }, /* 159 */
+    { .mk = {0xe0, 0x17, 0 }, .brk = { 0xe0, 0xF0, 0x17, 0 } }, /* 15a */
+    { .mk = {      0x67, 0 }, .brk = {       0xf0, 0x67, 0 } }, /* 15b 0x33 LGUI->Muhenkan (in emulator only) */
+    { .mk = {      0x64, 0 }, .brk = {       0xf0, 0x64, 0 } }, /* 15c 0x35 RGUI->Henkan (in emulator only) */
+    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xf0, 0x11, 0 } }, /* 15d 0x36 APPLICATION->Kana (in emulator 
+    { .mk = {0xe0, 0x37, 0 }, .brk = { 0xe0, 0xF0, 0x37, 0 } }, /* 15e */
+    { .mk = {0xe0, 0x3F, 0 }, .brk = { 0xe0, 0xF0, 0x3F, 0 } }, /* 15f */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 160 */
+    { .mk = {0xe0, 0x4F, 0 }, .brk = { 0xe0, 0xF0, 0x4F, 0 } }, /* 161 */
+    { .mk = {0xe0, 0x56, 0 }, .brk = { 0xe0, 0xF0, 0x56, 0 } }, /* 162 */
+    { .mk = {0xe0, 0x5E, 0 }, .brk = { 0xe0, 0xF0, 0x5E, 0 } }, /* 163 */
+    { .mk = {0xe0, 0x08, 0 }, .brk = { 0xe0, 0xF0, 0x08, 0 } }, /* 164 */
+    { .mk = {0xe0, 0x10, 0 }, .brk = { 0xe0, 0xF0, 0x10, 0 } }, /* 165 */
+    { .mk = {0xe0, 0x18, 0 }, .brk = { 0xe0, 0xF0, 0x18, 0 } }, /* 166 */
+    { .mk = {0xe0, 0x20, 0 }, .brk = { 0xe0, 0xF0, 0x20, 0 } }, /* 167 */
+    { .mk = {0xe0, 0x28, 0 }, .brk = { 0xe0, 0xF0, 0x28, 0 } }, /* 168 */
+    { .mk = {0xe0, 0x30, 0 }, .brk = { 0xe0, 0xF0, 0x30, 0 } }, /* 169 */
+    { .mk = {0xe0, 0x38, 0 }, .brk = { 0xe0, 0xF0, 0x38, 0 } }, /* 16a */
+    { .mk = {0xe0, 0x40, 0 }, .brk = { 0xe0, 0xF0, 0x40, 0 } }, /* 16b */
+    { .mk = {0xe0, 0x48, 0 }, .brk = { 0xe0, 0xF0, 0x48, 0 } }, /* 16c */
+    { .mk = {0xe0, 0x50, 0 }, .brk = { 0xe0, 0xF0, 0x50, 0 } }, /* 16d */
+    { .mk = {0xe0, 0x57, 0 }, .brk = { 0xe0, 0xF0, 0x57, 0 } }, /* 16e */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 16f */
+    { .mk = {0xe0, 0x13, 0 }, .brk = { 0xe0, 0xF0, 0x13, 0 } }, /* 170 */
+    { .mk = {0xe0, 0x19, 0 }, .brk = { 0xe0, 0xF0, 0x19, 0 } }, /* 171 */
+    { .mk = {0xe0, 0x39, 0 }, .brk = { 0xe0, 0xF0, 0x39, 0 } }, /* 172 */
+    { .mk = {0xe0, 0x51, 0 }, .brk = { 0xe0, 0xF0, 0x51, 0 } }, /* 173 */
+    { .mk = {0xe0, 0x53, 0 }, .brk = { 0xe0, 0xF0, 0x53, 0 } }, /* 174 */
+    { .mk = {0xe0, 0x5C, 0 }, .brk = { 0xe0, 0xF0, 0x5C, 0 } }, /* 175 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 176 */
+    { .mk = {0xe0, 0x62, 0 }, .brk = { 0xe0, 0xF0, 0x62, 0 } }, /* 177 */
+    { .mk = {0xe0, 0x63, 0 }, .brk = { 0xe0, 0xF0, 0x63, 0 } }, /* 178 */
+    { .mk = {0xe0, 0x64, 0 }, .brk = { 0xe0, 0xF0, 0x64, 0 } }, /* 179 */
+    { .mk = {0xe0, 0x65, 0 }, .brk = { 0xe0, 0xF0, 0x65, 0 } }, /* 17a */
+    { .mk = {0xe0, 0x67, 0 }, .brk = { 0xe0, 0xF0, 0x67, 0 } }, /* 17b */
+    { .mk = {0xe0, 0x68, 0 }, .brk = { 0xe0, 0xF0, 0x68, 0 } }, /* 17c */
+    { .mk = {0xe0, 0x6A, 0 }, .brk = { 0xe0, 0xF0, 0x6A, 0 } }, /* 17d */
+    { .mk = {0xe0, 0x6D, 0 }, .brk = { 0xe0, 0xF0, 0x6D, 0 } }, /* 17e */
+    { .mk = {0xe0, 0x6E, 0 }, .brk = { 0xe0, 0xF0, 0x6E, 0 } }, /* 17f */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 180 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 181 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 182 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 183 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 184 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 185 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 186 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 187 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 188 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 189 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 18a */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 18b */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 18c */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 18d */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 18e */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 18f */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 190 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 191 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 192 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 193 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 194 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 195 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 196 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 197 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 198 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 199 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 19a */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 19b */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 19c */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 19d */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 19e */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 19f */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a0 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a1 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a2 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a3 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a4 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a5 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a6 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a7 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a8 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1a9 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1aa */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ab */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ac */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ad */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ae */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1af */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b0 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b1 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b2 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b3 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b4 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b5 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b6 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b7 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b8 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1b9 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ba */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1bb */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1bc */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1bd */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1be */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1bf */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c0 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c1 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c2 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c3 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c4 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c5 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c6 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c7 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c8 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1c9 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ca */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1cb */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1cv */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1cd */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ce */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1cf */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d0 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d1 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d2 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d3 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d4 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d5 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d6 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d7 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d8 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1d9 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1da */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1db */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1dc */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1dd */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1de */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1df */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e0 */
+    { .mk = {0xe0, 0xe1, 0 }, .brk = { 0xe0, 0xF0, 0xE1, 0 } }, /* 1e1 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e2 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e3 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e4 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e5 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e6 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e7 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e8 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1e9 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ea */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1eb */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ec */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ed */
+    { .mk = {0xe0, 0xee, 0 }, .brk = { 0xe0, 0xF0, 0xEE, 0 } }, /* 1ee */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1ef */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f0 */
+    { .mk = {0xe0, 0xf1, 0 }, .brk = { 0xe0, 0xF0, 0xF1, 0 } }, /* 1f1 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f2 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f3 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f4 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f5 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f6 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f7 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f8 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1f9 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1fa */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1fb */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1fc */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
+    { .mk = {0xe0, 0xfe, 0 }, .brk = { 0xe0, 0xF0, 0xFE, 0 } }, /* 1fe */
+    { .mk = {0xe0, 0xff, 0 }, .brk = { 0xe0, 0xF0, 0xFF, 0 } }  /* 1ff */
+  // clang-format on
+};
+/* Scancode set 8Ah : IBM 5556 keyboard compatible scancode set used by J-DOS */
+static scancode scancode_set8a[512] =
+{
+    // clang-format off                     
+      {.mk = {       0 }, .brk = {       0 } }, /* 000 */
+      {.mk = { 0x3d, 0 }, .brk = {       0 } }, /* 001 */
+      {.mk = { 0x24, 0 }, .brk = {       0 } }, /* 002 */
+      {.mk = { 0x25, 0 }, .brk = {       0 } }, /* 003 */
+      {.mk = { 0x26, 0 }, .brk = {       0 } }, /* 004 */
+      {.mk = { 0x27, 0 }, .brk = {       0 } }, /* 005 */
+      {.mk = { 0x28, 0 }, .brk = {       0 } }, /* 006 */
+      {.mk = { 0x29, 0 }, .brk = {       0 } }, /* 007 */
+      {.mk = { 0x2a, 0 }, .brk = {       0 } }, /* 008 */
+      {.mk = { 0x2b, 0 }, .brk = {       0 } }, /* 009 */
+      {.mk = { 0x2c, 0 }, .brk = {       0 } }, /* 00a */
+      {.mk = { 0x2d, 0 }, .brk = {       0 } }, /* 00b */
+      {.mk = { 0x2e, 0 }, .brk = {       0 } }, /* 00c */
+      {.mk = { 0x2f, 0 }, .brk = {       0 } }, /* 00d */
+      {.mk = { 0x3e, 0 }, .brk = {       0 } }, /* 00e */
+      {.mk = { 0x3c, 0 }, .brk = {       0 } }, /* 00f */
+      {.mk = { 0x18, 0 }, .brk = {       0 } }, /* 010 */
+      {.mk = { 0x19, 0 }, .brk = {       0 } }, /* 011 */
+      {.mk = { 0x1a, 0 }, .brk = {       0 } }, /* 012 */
+      {.mk = { 0x1b, 0 }, .brk = {       0 } }, /* 013 */
+      {.mk = { 0x1c, 0 }, .brk = {       0 } }, /* 014 */
+      {.mk = { 0x1d, 0 }, .brk = {       0 } }, /* 015 */
+      {.mk = { 0x1e, 0 }, .brk = {       0 } }, /* 016 */
+      {.mk = { 0x1f, 0 }, .brk = {       0 } }, /* 017 */
+      {.mk = { 0x20, 0 }, .brk = {       0 } }, /* 018 */
+      {.mk = { 0x21, 0 }, .brk = {       0 } }, /* 019 */
+      {.mk = { 0x22, 0 }, .brk = {       0 } }, /* 01a */
+      {.mk = { 0x23, 0 }, .brk = {       0 } }, /* 01b */
+      {.mk = { 0x3b, 0 }, .brk = {       0 } }, /* 01c */
+      {.mk = { 0x41, 0 }, .brk = { 0xc1, 0 } }, /* 01d LCTRL */
+      {.mk = { 0x0c, 0 }, .brk = {       0 } }, /* 01e */
+      {.mk = { 0x0d, 0 }, .brk = {       0 } }, /* 01f */
+      {.mk = { 0x0e, 0 }, .brk = {       0 } }, /* 020 */
+      {.mk = { 0x0f, 0 }, .brk = {       0 } }, /* 021 */
+      {.mk = { 0x10, 0 }, .brk = {       0 } }, /* 022 */
+      {.mk = { 0x11, 0 }, .brk = {       0 } }, /* 023 */
+      {.mk = { 0x12, 0 }, .brk = {       0 } }, /* 024 */
+      {.mk = { 0x13, 0 }, .brk = {       0 } }, /* 025 */
+      {.mk = { 0x14, 0 }, .brk = {       0 } }, /* 026 */
+      {.mk = { 0x15, 0 }, .brk = {       0 } }, /* 027 */
+      {.mk = { 0x16, 0 }, .brk = {       0 } }, /* 028* */
+      {.mk = { 0x45, 0 }, .brk = {       0 } }, /* 029 0x45 Hankaku, Zenkaku */
+      {.mk = { 0x38, 0 }, .brk = { 0xb8, 0 } }, /* 02a LSHIFT */
+      {.mk = { 0x17, 0 }, .brk = {       0 } }, /* 02b 0x17 Mu */
+      {.mk = { 0x01, 0 }, .brk = {       0 } }, /* 02c */
+      {.mk = { 0x02, 0 }, .brk = {       0 } }, /* 02d */
+      {.mk = { 0x03, 0 }, .brk = {       0 } }, /* 02e */
+      {.mk = { 0x04, 0 }, .brk = {       0 } }, /* 02f */
+      {.mk = { 0x05, 0 }, .brk = {       0 } }, /* 030 */
+      {.mk = { 0x06, 0 }, .brk = {       0 } }, /* 031 */
+      {.mk = { 0x07, 0 }, .brk = {       0 } }, /* 032 */
+      {.mk = { 0x08, 0 }, .brk = {       0 } }, /* 033 */
+      {.mk = { 0x09, 0 }, .brk = {       0 } }, /* 034 */
+      {.mk = { 0x0a, 0 }, .brk = {       0 } }, /* 035 */
+      {.mk = { 0x39, 0 }, .brk = { 0xb9, 0 } }, /* 036 RSHIFT */
+      {.mk = { 0x64, 0 }, .brk = {       0 } }, /* 037 * (asterisk) */
+      {.mk = { 0x3A, 0 }, .brk = { 0xba, 0 } }, /* 038 0x3A LALT = Kanji */
+      {.mk = { 0x34, 0 }, .brk = {       0 } }, /* 039 */
+      {.mk = { 0x32, 0 }, .brk = { 0xb2, 0 } }, /* 03a CAPSLOCK */
+      {.mk = { 0x68, 0 }, .brk = {       0 } }, /* 03b F1 */
+      {.mk = { 0x69, 0 }, .brk = {       0 } }, /* 03c */
+      {.mk = { 0x6a, 0 }, .brk = {       0 } }, /* 03d */
+      {.mk = { 0x6b, 0 }, .brk = {       0 } }, /* 03e */
+      {.mk = { 0x6c, 0 }, .brk = {       0 } }, /* 03f */
+      {.mk = { 0x6d, 0 }, .brk = {       0 } }, /* 040 */
+      {.mk = { 0x6e, 0 }, .brk = {       0 } }, /* 041 */
+      {.mk = { 0x6f, 0 }, .brk = {       0 } }, /* 042 */
+      {.mk = { 0x70, 0 }, .brk = {       0 } }, /* 043 */
+      {.mk = { 0x71, 0 }, .brk = {       0 } }, /* 044 F10 */
+      {.mk = { 0x47, 0 }, .brk = {       0 } }, /* 045 NUMLOCKCLEAR -> Shift + SCRLOCK :TODO */
+      {.mk = { 0x75, 0 }, .brk = {       0 } }, /* 046 0x75 SCROLLLOCK */
+      {.mk = { 0x5d, 0 }, .brk = {       0 } }, /* 047 KP7 */
+      {.mk = { 0x5e, 0 }, .brk = {       0 } }, /* 048 */
+      {.mk = { 0x5f, 0 }, .brk = {       0 } }, /* 049 */
+      {.mk = { 0x67, 0 }, .brk = {       0 } }, /* 04a KP_MINUS */
+      {.mk = { 0x5a, 0 }, .brk = {       0 } }, /* 04b */
+      {.mk = { 0x5b, 0 }, .brk = {       0 } }, /* 04c */
+      {.mk = { 0x5c, 0 }, .brk = {       0 } }, /* 04d */
+      {.mk = { 0x63, 0 }, .brk = {       0 } }, /* 04e */
+      {.mk = { 0x57, 0 }, .brk = {       0 } }, /* 04f */
+      {.mk = { 0x58, 0 }, .brk = {       0 } }, /* 050 */
+      {.mk = { 0x59, 0 }, .brk = {       0 } }, /* 051 */
+      {.mk = { 0x55, 0 }, .brk = {       0 } }, /* 052 KP0 */
+      {.mk = { 0x56, 0 }, .brk = {       0 } }, /* 053 KP_PERIOD */
+      {.mk = {       0 }, .brk = {       0 } }, /* 054 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 055 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 056 */
+      {.mk = { 0x72, 0 }, .brk = {       0 } }, /* 057 F11 */
+      {.mk = { 0x73, 0 }, .brk = {       0 } }, /* 058 F12 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 059 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 05a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 05b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 05c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 05d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 05e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 05f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 060 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 061 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 062 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 063 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 064 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 065 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 066 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 067 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 068 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 069 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 06a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 06b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 06c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 06d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 06e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 06f */
+      {.mk = { 0x36, 0 }, .brk = { 0xb6, 0 } }, /* 070 0x36 Kana */
+      {.mk = {       0 }, .brk = {       0 } }, /* 071 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 072 */
+      {.mk = { 0x0b, 0 }, .brk = {       0 } }, /* 073 0x0b Ro, Underline */
+      {.mk = {       0 }, .brk = {       0 } }, /* 074 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 075 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 076 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 077 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 078 */
+      {.mk = { 0x35, 0 }, .brk = {       0 } }, /* 079 0x35 Henkan */
+      {.mk = {       0 }, .brk = {       0 } }, /* 07a */
+      {.mk = { 0x33, 0 }, .brk = {       0 } }, /* 07b 0x33 Muhenkan */
+      {.mk = {       0 }, .brk = {       0 } }, /* 07c */
+      {.mk = { 0x30, 0 }, .brk = {       0 } }, /* 07d 0x30 Yen, Vertical line */
+      {.mk = {       0 }, .brk = {       0 } }, /* 07e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 07f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 080 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 081 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 082 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 083 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 084 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 085 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 086 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 087 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 088 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 089 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 08a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 08b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 08c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 08d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 08e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 08f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 090 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 091 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 092 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 093 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 094 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 095 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 096 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 097 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 098 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 099 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 09a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 09b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 09c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 09d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 09e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 09f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0a9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0aa */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ab */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ac */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ad */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ae */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0af */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0b9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ba */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0bb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0bc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0bd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0be */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0bf */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0c9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ca */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0cb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0cc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0cd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ce */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0cf */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0d9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0da */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0db */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0dc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0dd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0de */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0df */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0e9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ea */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0eb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ec */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ed */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ee */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ef */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0f9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0fa */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0fb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0fc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0fd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0fe */
+      {.mk = {       0 }, .brk = {       0 } }, /* 0ff */
+      {.mk = {       0 }, .brk = {       0 } }, /* 100 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 101 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 102 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 103 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 104 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 105 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 106 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 107 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 108 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 109 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 10a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 10b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 10c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 10d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 10e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 10f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 110 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 112 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 113 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 113 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 114 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 115 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 116 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 117 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 118 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 119 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 11a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 11b */
+      {.mk = { 0x60, 0 }, .brk = {       0 } }, /* 11c KP_Enter */
+      {.mk = { 0x37, 0 }, .brk = { 0xb7, 0 } }, /* 11d R-Ctrl */
+      {.mk = {       0 }, .brk = {       0 } }, /* 11e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 11f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 120 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 121 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 122 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 123 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 124 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 125 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 126 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 127 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 128 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 129 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 12a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 12b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 12c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 12d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 12e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 12f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 130 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 131 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 132 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 133 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 134 */
+      {.mk = { 0x65, 0 }, .brk = {       0 } }, /* 135 KP_DIVIDE */
+      {.mk = {       0 }, .brk = {       0 } }, /* 136 */
+      {.mk = { 0x74, 0 }, .brk = {       0 } }, /* 137 PRINTSCREEN */
+      {.mk = { 0x31, 0 }, .brk = { 0xb1, 0 } }, /* 138* 0x31 R-Alt */
+      {.mk = {       0 }, .brk = {       0 } }, /* 139 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 13a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 13b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 13c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 13d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 13e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 13f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 140 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 141 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 142 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 143 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 144 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 145 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 146 */
+      {.mk = { 0x4c, 0 }, .brk = {       0 } }, /* 147 Home */
+      {.mk = { 0x4e, 0 }, .brk = {       0 } }, /* 148 Up */
+      {.mk = { 0x52, 0 }, .brk = {       0 } }, /* 149 PageUp */
+      {.mk = {       0 }, .brk = {       0 } }, /* 14a */
+      {.mk = { 0x4b, 0 }, .brk = {       0 } }, /* 14b Left */
+      {.mk = {       0 }, .brk = {       0 } }, /* 14c */
+      {.mk = { 0x4d, 0 }, .brk = {       0 } }, /* 14d Right */
+      {.mk = {       0 }, .brk = {       0 } }, /* 14e */
+      {.mk = { 0x53, 0 }, .brk = {       0 } }, /* 14f End */
+      {.mk = { 0x4a, 0 }, .brk = {       0 } }, /* 150 Down */
+      {.mk = { 0x54, 0 }, .brk = {       0 } }, /* 151 PageDown */
+      {.mk = { 0x4f, 0 }, .brk = {       0 } }, /* 152 Ins */
+      {.mk = { 0x50, 0 }, .brk = {       0 } }, /* 153 Del */
+      {.mk = {       0 }, .brk = {       0 } }, /* 154 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 155 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 156 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 157 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 158 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 159 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 15a */
+      {.mk = { 0x33, 0 }, .brk = {       0 } }, /* 15b 0x33 LGUI->Muhenkan (in emulator only) */
+      {.mk = { 0x35, 0 }, .brk = {       0 } }, /* 15c 0x35 RGUI->Henkan (in emulator only) */
+      {.mk = { 0x36, 0 }, .brk = { 0xb6, 0 } }, /* 15d 0x36 APPLICATION->Kana (in emulator only) */
+      {.mk = {       0 }, .brk = {       0 } }, /* 15e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 15f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 160 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 161 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 162 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 163 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 164 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 165 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 166 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 167 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 168 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 169 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 16a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 16b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 16c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 16d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 16e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 16f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 170 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 171 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 172 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 173 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 174 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 175 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 176 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 177 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 178 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 179 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 17a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 17b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 17c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 17d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 17e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 17f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 180 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 181 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 182 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 183 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 184 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 185 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 186 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 187 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 188 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 189 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 18a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 18b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 18c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 18d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 18e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 18f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 190 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 191 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 192 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 193 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 194 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 195 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 196 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 197 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 198 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 199 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 19a */
+      {.mk = {       0 }, .brk = {       0 } }, /* 19b */
+      {.mk = {       0 }, .brk = {       0 } }, /* 19c */
+      {.mk = {       0 }, .brk = {       0 } }, /* 19d */
+      {.mk = {       0 }, .brk = {       0 } }, /* 19e */
+      {.mk = {       0 }, .brk = {       0 } }, /* 19f */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1a9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1aa */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ab */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ac */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ad */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ae */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1af */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1b9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ba */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1bb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1bc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1bd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1be */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1bf */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1c9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ca */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1cb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1cv */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1cd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ce */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1cf */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1d9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1da */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1db */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1dc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1dd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1de */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1df */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1e9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ea */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1eb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ec */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ed */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ee */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1ef */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f0 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f1 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f2 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f3 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f4 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f5 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f6 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f7 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f8 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1f9 */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1fa */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1fb */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1fc */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1fd */
+      {.mk = {       0 }, .brk = {       0 } }, /* 1fe */
+      {.mk = {       0 }, .brk = {       0 } }  /* 1ff */
+    // clang-format on
+};
+
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -1663,6 +3243,18 @@ keyboard_at_set_scancode_set(void)
 
         case 0x03:
             keyboard_set_table(scancode_set3);
+            break;
+
+        case 0x81:
+            keyboard_set_table(scancode_set81);
+            break;
+
+        case 0x82:
+            keyboard_set_table(scancode_set82);
+            break;
+
+        case 0x8a:
+            keyboard_set_table(scancode_set8a);
             break;
     }
 }
@@ -1922,19 +3514,24 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf0: /* Get/set scancode set */
-                kbc_at_dev_queue_add(dev, (val > 3) ? 0xfe : 0xfa, 0);
                 switch (val) {
                     case 0x00:
+                        kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK */
                         keyboard_at_log("%s: Get scan code set [%02X]\n", dev->name, keyboard_mode);
                         kbc_at_dev_queue_add(dev, keyboard_mode, 0);
                         break;
                     case 0x01 ... 0x03:
+                    case 0x81:
+                    case 0x82:
+                    case 0x8a:
+                        kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK */
                         keyboard_mode = val;
                         keyboard_at_log("%s: Set scan code set [%02X]\n", dev->name, keyboard_mode);
                         keyboard_at_set_scancode_set();
                         break;
                     default:
                         /* Fatal so any instance of anything attempting to set scan code > 3 can be reported to us. */
+                        kbc_at_dev_queue_add(dev, 0xfe, 0); /* Resend */
                         fatal("%s: Scan code set [%02X] invalid, resend\n", dev->name, val);
                         dev->flags |= FLAG_CTRLDAT;
                         dev->state = DEV_STATE_MAIN_WANT_IN;
@@ -2009,7 +3606,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf2: /* read ID */
-                keyboard_at_log("%s: read keyboard id\n", dev->name);
+                keyboard_at_log("%s: read keyboard id: ", dev->name);
                 /* TODO: After keyboard type selection is implemented, make this
                          return the correct keyboard ID for the selected type. */
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
@@ -2018,7 +3615,9 @@ keyboard_at_write(void *priv)
                         break;
 
                     kbc_at_dev_queue_add(dev, id_bytes[dev->type][i], 0);
+                    keyboard_at_log("%02X ", id_bytes[dev->type][i]);
                 }
+                keyboard_at_log("\n");
                 break;
 
             case 0xf3: /* set command mode */
@@ -2144,6 +3743,13 @@ keyboard_at_init(const device_t *info)
        Key 65? = Japanese key between right Ctrl and right Alt, scan code: 87 (Hiragana/Katakana 70).
      */
     dev->type = FLAG_PS2 | KBD_102_KEY /* device_get_config_int("type") */;
+    /*
+        We assume that the IBM PS/55 machine uses the 5576-002 keyboard (JP/CN layout) here.
+        This is not smart but suitable for supporting a keyboard ID that is rarely used in standard PCs.
+        At least, the Taiwanese PS/55 uses the same keyboard ID and scancode set. The Korean one is unknown.
+    */
+    if (!!strstr(machine_getname(), "PS/55")) 
+        dev->type = FLAG_PS2 | KBD_JIS;
 
     keyboard_at_log("%s: type=%d\n", dev->name, dev->type);
 

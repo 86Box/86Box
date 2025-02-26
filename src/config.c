@@ -454,6 +454,7 @@ load_video(void)
     ibm8514_active                   = ibm8514_standalone_enabled;
     xga_standalone_enabled           = !!ini_section_get_int(cat, "xga", 0);
     xga_active                       = xga_standalone_enabled;
+    da2_standalone_enabled           = !!ini_section_get_int(cat, "da2", 0);
     show_second_monitors             = !!ini_section_get_int(cat, "show_second_monitors", 1);
     video_fullscreen_scale_maximized = !!ini_section_get_int(cat, "video_fullscreen_scale_maximized", 0);
 
@@ -2138,6 +2139,11 @@ save_video(void)
         ini_section_delete_var(cat, "xga");
     else
         ini_section_set_int(cat, "xga", xga_standalone_enabled);
+
+    if (da2_standalone_enabled == 0)
+        ini_section_delete_var(cat, "da2");
+    else
+        ini_section_set_int(cat, "da2", da2_standalone_enabled);
 
     // TODO
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {

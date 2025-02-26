@@ -48,7 +48,7 @@
 #define MACHINE_BUS_AGP       0x00080000 /* sys has AGP bus */
 #define MACHINE_BUS_AC97      0x00100000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Aliases. */
-#define MACHINE_CASSETTE    (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
+#define MACHINE_CASSETTE    (MACHINE_BUS_CASSETTE) /* sys has cassette port */
 /* Combined flags. */
 #define MACHINE_PC          (MACHINE_BUS_ISA)                     /* sys is PC/XT-compatible (ISA) */
 #define MACHINE_AT          (MACHINE_BUS_ISA | MACHINE_BUS_ISA16) /* sys is AT-compatible (ISA + ISA16) */
@@ -67,18 +67,19 @@
 #define MACHINE_AGP         (MACHINE_BUS_AGP | MACHINE_PCI)       /* sys is AT-compatible with AGP  */
 #define MACHINE_AGP98       (MACHINE_BUS_AGP | MACHINE_PCI98)     /* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 
-#define MACHINE_PC5150      (MACHINE_PC | MACHINE_CASSETTE)                       /* sys is IBM PC 5150 */
-#define MACHINE_PCJR        (MACHINE_PC | MACHINE_CASSETTE | MACHINE_BUS_SIDECAR) /* sys is PCjr */
-#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)                        /* sys is PS/2 */
-#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)                       /* sys is MCA PS/2 */
-#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)                       /* sys is VLB PS/2 */
-#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)                       /* sys is PCI PS/2 */
-#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)                      /* sys is VLB/PCI PS/2 */
-#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)                       /* sys is AGP PS/2 */
-#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                  /* sys is AGP/AC97 PS/2 */
-#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)                       /* sys is AGP PS/2 without ISA */
-#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)                /* sys is PCI PS/2 without ISA */
-#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)                       /* sys is AGP/AC97 PS/2 without ISA */
+#define MACHINE_PC5150      (MACHINE_CASSETTE | MACHINE_PC)          /* sys is IBM PC 5150 */
+#define MACHINE_PCJR        (MACHINE_CASSETTE | MACHINE_BUS_SIDECAR) /* sys is PCjr */
+#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)           /* sys is PS/2 */
+#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)          /* sys is MCA PS/2 */
+#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)          /* sys is VLB PS/2 */
+#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)          /* sys is PCI PS/2 */
+#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)         /* sys is VLB/PCI PS/2 */
+#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)          /* sys is AGP PS/2 */
+#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)     /* sys is AGP/AC97 PS/2 */
+#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)          /* sys is AGP PS/2 without ISA */
+#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)   /* sys is PCI PS/2 without ISA */
+#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)          /* sys is AGP/AC97 PS/2 without ISA */
+
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_FLAGS_NONE        0x00000000 /* sys has no int devices */
 #define MACHINE_SOFTFLOAT_ONLY    0x00000001 /* sys requires SoftFloat FPU */
@@ -903,6 +904,8 @@ extern int machine_ps2_model_70_type3_init(const machine_t *);
 extern int machine_ps2_model_80_init(const machine_t *);
 extern int machine_ps2_model_80_axx_init(const machine_t *);
 extern int machine_ps2_model_70_type4_init(const machine_t *);
+extern int machine_ps55_model_50t_init(const machine_t*);
+extern int machine_ps55_model_50v_init(const machine_t*);
 
 /* m_tandy.c */
 extern int tandy1k_eeprom_read(void);

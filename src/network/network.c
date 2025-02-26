@@ -644,6 +644,43 @@ network_rx_put(netcard_t *card, uint8_t *bufp, int len)
 }
 
 int
+network_rx_on_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
+{
+    int pkt_count = 0;
+
+    netqueue_t *queue = &card->queues[NET_QUEUE_RX_ON_TX];
+    for (int i = 0; i < vec_size; i++) {
+        if (!network_queue_get_swap(queue, pkt_vec))
+            break;
+        network_dump_packet(pkt_vec);
+        pkt_count++;
+        pkt_vec++;
+    }
+
+    return pkt_count;
+}
+
+int
+network_rx_on_tx_put(netcard_t *card, uint8_t *bufp, int len)
+{
+    int ret = 0;
+
+    ret = network_queue_put(&card->queues[NET_QUEUE_RX_ON_TX], bufp, len);
+
+    return ret;
+}
+
+int
+network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt)
+{
+    int ret = 0;
+
+    ret = network_queue_put_swap(&card->queues[NET_QUEUE_RX_ON_TX], pkt);
+
+    return ret;
+}
+
+int
 network_rx_put_pkt(netcard_t *card, netpkt_t *pkt)
 {
     int ret = 0;
