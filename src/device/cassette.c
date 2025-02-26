@@ -715,7 +715,7 @@ cassette_init(UNUSED(const device_t *info))
 const device_t cassette_device = {
     .name          = "IBM PC/PCjr Cassette Device",
     .internal_name = "cassette",
-    .flags         = 0,
+    .flags         = DEVICE_CASETTE,
     .local         = 0,
     .init          = cassette_init,
     .close         = cassette_close,
