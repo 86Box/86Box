@@ -277,6 +277,8 @@ MainWindow::MainWindow(QWidget *parent)
             if (mouse_capture)
                 emit setMouseCapture(false);
 
+            keyboard_all_up();
+
             if (do_auto_pause && !dopause) {
                 auto_paused = 1;
                 plat_pause(1);
