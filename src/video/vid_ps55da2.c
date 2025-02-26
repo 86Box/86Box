@@ -387,13 +387,13 @@ typedef struct da2_t {
         int        bitshift_destr;
         int        raster_op;
         uint8_t    payload[DA2_BLT_MEMSIZE];
+        int        payload_addr;
         int32_t    reg[DA2_BLT_REGSIZE]; // must be signed int
 #ifdef ENABLE_DA2_DEBUGBLT
         int32_t   *debug_reg;            // for debug
         int        debug_reg_ip;         // for debug
         int        debug_exesteps;
 #endif
-        int        payload_addr;
         pc_timer_t timer;
         int64_t    timerspeed;
         int        exec;
@@ -409,7 +409,6 @@ typedef struct da2_t {
         int32_t    fcolor;
         int32_t    maskl, maskr;
         int32_t    count;
-        // int32_t    countj;
         int32_t    d;
         int        octdir;
         int        x, y;
@@ -460,7 +459,7 @@ DA2_vram_w(uint32_t addr, uint8_t val, da2_t *da2)
     da2->vram[addr & da2->vram_mask] = val;
     return;
 }
-
+/* write pixel data with rop (Note: bitmask must be in big endian) */
 void
 DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *srcpx, da2_t *da2)
 {
@@ -487,7 +486,11 @@ DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
     for (int i = 0; i < 8; i++) {
         if (da2->bitblt.bitshift_destr > 0)
             srcpx->p8[i] <<= 16 - da2->bitblt.bitshift_destr;
-        switch (da2->bitblt.raster_op) {
+        if (da2->bitblt.raster_op & 0x2010) /* NOT Src or NOT Pattern */
+            srcpx->p8[i] = ~srcpx->p8[i] & mask32.d;
+        if (da2->bitblt.raster_op & 0x20) /* Dest NOT */
+            writepx[i] = (~writepx[i] & mask32.d) | (writepx[i] & ~mask32.d);
+        switch (da2->bitblt.raster_op & 0x03) {
             case 0x00: /* None */
                 writepx[i] &= ~mask32.d;
                 writepx[i] |= srcpx->p8[i] & mask32.d;
@@ -502,8 +505,6 @@ DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
                 writepx[i] ^= srcpx->p8[i] & mask32.d;
                 break;
         }
-        if (da2->bitblt.raster_op & 0x20) /* NOT */
-            writepx[i] ^= 0xFFFFFFFF & mask32.d;
     }
     for (int i = 0; i < 8; i++) {
         DA2_vram_w(destaddr | i, (writepx[i] >> 24) & 0xff, da2);
@@ -530,7 +531,13 @@ Param   Desc
 08      Mask Left
 09      Mask Right
 0A      Plane Mask?
-0B      ROP?(8h or 200h) + Bitop (0 None, 1 AND, 2 OR, 3 XOR)
+0B      ROP
+            2000 NOT Source
+            200  Source / Pattern
+            20   NOT Dest
+            10   NOT Pattern
+            8    ?
+            0-3  Bit op (0 None, 1 AND, 2 OR, 3 XOR)
 0D
 20      Exec (1) or Exec without reset regs? (21h)
 21      ?
@@ -602,7 +609,7 @@ print_bytetobin(uint8_t b)
         b <<= 1;
     }
 }
-// Convert internal char code to Shift JIS code
+/* Convert internal char code to Shift JIS code */
 inline int
 isKanji1(uint8_t chr)
 {
@@ -649,17 +656,19 @@ da2_bitblt_load(da2_t *da2)
 {
     uint32_t value32;
     uint64_t value64;
+#ifdef ENABLE_DA2_DEBUGBLT
     da2_log("bltload: loading params\n");
-    // da2_log("BitBlt memory:\n");
-    // if (da2->bitblt.payload[0] != 0)
-    //     for (int j = 0; j < DA2_BLT_MEMSIZE / 8; j++)
-    //     {
-    //         int i = j * 8;
-    //         da2_log("%02x %02x %02x %02x %02x %02x %02x %02x \n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], da2->bitblt.payload[i + 2], da2->bitblt.payload[i + 3],
-    //             da2->bitblt.payload[i + 4], da2->bitblt.payload[i + 5], da2->bitblt.payload[i + 6], da2->bitblt.payload[i + 7]);
-    //     }
+    da2_log("BitBlt memory:\n");
+    if (da2->bitblt.payload[0] != 0)
+        for (int j = 0; j < DA2_BLT_MEMSIZE / 8; j++)
+        {
+            int i = j * 8;
+            da2_log("%02x %02x %02x %02x %02x %02x %02x %02x \n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], da2->bitblt.payload[i + 2], da2->bitblt.payload[i + 3],
+                da2->bitblt.payload[i + 4], da2->bitblt.payload[i + 5], da2->bitblt.payload[i + 6], da2->bitblt.payload[i + 7]);
+        }
+#endif
     int i = 0;
-    while (i < DA2_BLT_MEMSIZE) {
+    while (i < da2->bitblt.payload_addr) {
         if (da2->bitblt.reg[0x20] & 0x1)
             break;
         switch (da2->bitblt.payload[i]) {
@@ -712,8 +721,8 @@ da2_bitblt_load(da2_t *da2)
     }
     da2->bitblt.exec = DA2_BLT_CIDLE;
     /* clear payload memory */
-    memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
-    da2->bitblt.payload_addr = 0;
+    // memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
+    // da2->bitblt.payload_addr = 0;
     /* [89] 20: 0001 (1) then execute payload */
     if (da2->bitblt.reg[0x20] & 0x1) {
         /* clear payload memory */
@@ -721,27 +730,17 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.payload_addr = 0;
 #ifdef ENABLE_DA2_DEBUGBLT
         for (i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
-            // if(da2->bitblt.reg[i] != 0xfefe && da2->bitblt.reg[i] != DA2_DEBUG_BLT_NEVERUSED) da2_log("%02x: %04x (%d)\n",i, da2->bitblt.reg[i], da2->bitblt.reg[i]);
-        }
-        for (i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
             da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip + i] = da2->bitblt.reg[i];
         }
         da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * (da2->bitblt.debug_reg_ip + 1) - 1] = 0;
         da2->bitblt.debug_reg_ip++;
-        if (da2->bitblt.debug_reg_ip >= DA2_DEBUG_BLTLOG_MAX)
+        if ((DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip) >= DA2_DEBUG_BLTLOG_MAX)
             da2->bitblt.debug_reg_ip = 0;
         da2->bitblt.debug_exesteps = 0;
 #endif
-        da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x3] >> 4) & 0x0f); /* set bit shift */
-        da2->bitblt.raster_op      = da2->bitblt.reg[0x0b] & 0x23;         /* 01 AND, 03 XOR */
         da2_log("bltload_exec: %x, rop: %x CS:PC=%4x:%4x\n", da2->bitblt.reg[0x5], da2->bitblt.reg[0x0b], CS, cpu_state.pc);
-        // for (int i = 0; i <= 0xb; i++)
-        // {
-        //     da2_log("%02x ", da2->gdcreg[i]);
-        //     da2->gdcreg[i] = da2->bitblt.reg[i] & 0xff;
-        // }
-        // da2_log("\n");
-
+        da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x3] >> 4) & 0x0f); /* set bit shift */
+        da2->bitblt.raster_op      = da2->bitblt.reg[0x0b];
         da2->bitblt.destaddr  = da2->bitblt.reg[0x29];
         da2->bitblt.size_x    = da2->bitblt.reg[0x33];
         da2->bitblt.size_y    = da2->bitblt.reg[0x35];
@@ -890,14 +889,13 @@ da2_bitblt_exec(void *p)
 #else
     da2_log("bitblt_exec: %d\n", da2->bitblt.exec);
 #endif
-    // da2_log("blt %x %x %x %x\n", da2->bitblt.destaddr, da2->bitblt.x, da2->bitblt.y);
     switch (da2->bitblt.exec) {
         case DA2_BLT_CIDLE:
             // timer_disable(&da2->bitblt.timer);
             break;
         case DA2_BLT_CLOAD:
-            da2->bitblt.indata = 0;
             da2_bitblt_load(da2);
+            da2->bitblt.indata = 0;
             break;
         case DA2_BLT_CLINE:
             int pos_x = da2->bitblt.dest_x + da2->bitblt.x;
@@ -1512,7 +1510,7 @@ da2_outb(uint16_t addr, uint8_t val, void *p)
 void
 da2_outw(uint16_t addr, uint16_t val, void *p)
 {
-    da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
+    // da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
     da2_t *da2      = (da2_t *) p;
     da2->inflipflop = 0;
     switch (addr) {
@@ -2534,8 +2532,10 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 da2->bitblt.indata = 1;
                 if (da2->bitblt.payload_addr >= DA2_BLT_MEMSIZE)
                     da2_log("da2_mmio_write payload overflow! mem %x, addr %x, val %x\n", da2->fctl[LF_MMIO_MODE], addr, val);
-                da2->bitblt.payload[da2->bitblt.payload_addr] = val;
-                da2->bitblt.payload_addr++;
+                else {
+                    da2->bitblt.payload[da2->bitblt.payload_addr] = val;
+                    da2->bitblt.payload_addr++;
+                }
                 break;
             default:
                 da2_log("da2_mmio_write failed mem %x, addr %x, val %x\n", da2->fctl[LF_MMIO_MODE], addr, val);
@@ -3008,7 +3008,6 @@ da2_loadfont(char *fname, void *p)
 {
     da2_t  *da2 = (da2_t *) p;
     uint8_t buf;
-    // uint32_t code = 0;
     uint64_t fsize;
     if (!fname)
         return;
