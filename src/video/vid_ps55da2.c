@@ -273,6 +273,11 @@ da2_log(const char *fmt, ...)
 #else
 #    define da2_log(fmt, ...)
 #endif
+#ifdef ENABLE_DA2_DEBUGBLT
+#    define da2_bltlog da2_log
+#else
+#    define da2_bltlog(fmt, ...)
+#endif
 
 typedef struct da2_t {
     // mem_mapping_t vmapping;
@@ -678,7 +683,7 @@ da2_bitblt_load(da2_t *da2)
                 value32 = da2->bitblt.payload[i + 3];
                 value32 <<= 8;
                 value32 |= da2->bitblt.payload[i + 2];
-                da2_log("[%02x] %02x: %04x (%d)\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], value32, value32);
+                da2_bltlog("[%02x] %02x: %04x (%d)\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], value32, value32);
                 da2->bitblt.reg[da2->bitblt.payload[i + 1]] = value32;
                 i += 3;
                 break;
@@ -690,7 +695,7 @@ da2_bitblt_load(da2_t *da2)
                 value32 |= da2->bitblt.payload[i + 3];
                 value32 <<= 8;
                 value32 |= da2->bitblt.payload[i + 2];
-                da2_log("[%02x] %02x: %08x (%d)\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], value32, value32);
+                da2_bltlog("[%02x] %02x: %08x (%d)\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], value32, value32);
                 da2->bitblt.reg[da2->bitblt.payload[i + 1]] = value32;
                 i += 5;
                 break;
@@ -706,7 +711,7 @@ da2_bitblt_load(da2_t *da2)
                 value64 |= da2->bitblt.payload[i + 3];
                 value64 <<= 8;
                 value64 |= da2->bitblt.payload[i + 2];
-                da2_log("[%02x] %02x: %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], da2->bitblt.payload[i + 2], da2->bitblt.payload[i + 3],
+                da2_bltlog("[%02x] %02x: %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[i], da2->bitblt.payload[i + 1], da2->bitblt.payload[i + 2], da2->bitblt.payload[i + 3],
                         da2->bitblt.payload[i + 4], da2->bitblt.payload[i + 5], da2->bitblt.payload[i + 6], da2->bitblt.payload[i + 7]);
                 da2->bitblt.reg[da2->bitblt.payload[i + 1]] = value64;
                 i += 7;
@@ -721,13 +726,10 @@ da2_bitblt_load(da2_t *da2)
     }
     da2->bitblt.exec = DA2_BLT_CIDLE;
     /* clear payload memory */
-    // memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
-    // da2->bitblt.payload_addr = 0;
+    memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
+    da2->bitblt.payload_addr = 0;
     /* [89] 20: 0001 (1) then execute payload */
     if (da2->bitblt.reg[0x20] & 0x1) {
-        /* clear payload memory */
-        memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
-        da2->bitblt.payload_addr = 0;
 #ifdef ENABLE_DA2_DEBUGBLT
         for (i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
             da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip + i] = da2->bitblt.reg[i];
@@ -759,7 +761,6 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.x      = 0;
         da2->bitblt.y      = 0;
         da2->bitblt.exec   = DA2_BLT_CDONE;
-        timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
 
         /* Put DBCS char used by OS/2 (i'm not sure what the condition is) */
         if (da2->bitblt.reg[0x10] == 0xbc04) {
@@ -886,8 +887,6 @@ da2_bitblt_exec(void *p)
     if(!(da2->bitblt.debug_exesteps & 0xf))
         da2_log("bitblt_exec: %d %d\n", da2->bitblt.exec, da2->bitblt.debug_exesteps);
     da2->bitblt.debug_exesteps++;
-#else
-    da2_log("bitblt_exec: %d\n", da2->bitblt.exec);
 #endif
     switch (da2->bitblt.exec) {
         case DA2_BLT_CIDLE:
@@ -903,7 +902,7 @@ da2_bitblt_exec(void *p)
 
             /* Draw a dot */
             // outb(0x680, da2->bitblt.octdir);
-            da2_log("point: %d %d %d %d %d\n", pos_x, pos_y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
+            da2_bltlog("point: %d %d %d %d %d\n", pos_x, pos_y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
             int destaddr = pos_y * (da2->rowoffset * 2) + pos_x / 8;
             int pixelmask = pos_x % 16;
             if (pixelmask >= 8)
@@ -1090,11 +1089,9 @@ da2_bitblt_dopayload(void *priv)
     timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
     if (da2->bitblt.exec != DA2_BLT_CIDLE)
         da2_bitblt_exec(da2);
-    else if (da2->bitblt.indata) {
-        if (da2->bitblt.exec == DA2_BLT_CIDLE) {
+    else if (da2->bitblt.indata && !(da2->ioctl[LS_MMIO] & 0x10) && (da2->bitblt.exec == DA2_BLT_CIDLE)) {
             da2->bitblt.exec = DA2_BLT_CLOAD;
             da2_bitblt_exec(da2);
-        }
     } else {
         // timer_disable(&da2->bitblt.timer);
     }
@@ -2656,6 +2653,7 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
 {
     da2_t   *da2     = (da2_t *) p;
     uint16_t bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
+    addr &= DA2_MASK_MMIO;
     bitmask <<= 8;
     bitmask |= (uint16_t) da2->gdcreg[LG_BIT_MASK_LOW];
 #ifdef ENABLE_DA2_DEBUGVRAM
@@ -2676,7 +2674,6 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
     //}
 #endif
     cycles -= video_timing_write_w;
-    // cycles_lost += video_timing_write_w;
 
     // da2_log("da2_gcW m%d a%x d%x\n", da2->writemode, addr, val);
     // da2_log("da2_gcW %05X %02X %04X:%04X esdi %04X:%04X dssi %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc, ES, DI, DS, SI);
@@ -2765,7 +2762,6 @@ da2_mmio_writew(uint32_t addr, uint16_t val, void *p)
         da2_mmio_write(addr, val & 0xff, da2);
         da2_mmio_write(addr + 1, val >> 8, da2);
     } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 color or 256 color mode */
-        addr &= DA2_MASK_MMIO;
         // return;
         // da2_log("da2_mmio_writeGW %x %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, val);
         da2_mmio_gc_writeW(addr, val, da2);
@@ -2808,8 +2804,8 @@ static uint8_t
 da2_code_read(uint32_t addr, void *p)
 {
     da2_t *da2 = (da2_t *) p;
-    if ((addr & ~DA2_MASK_CRAM) != 0xE0000)
-        return DA2_INVALIDACCESS8;
+    // if ((addr & ~DA2_MASK_CRAM) != 0xE0000)
+    //     return DA2_INVALIDACCESS8;
     addr &= DA2_MASK_CRAM;
     return da2->cram[addr];
 }
