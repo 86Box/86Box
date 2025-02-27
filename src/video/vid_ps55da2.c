@@ -405,10 +405,11 @@ typedef struct da2_t {
         int        indata;
         int32_t    destaddr;
         int32_t    srcaddr;
-        int32_t    size_x, tile_w;
-        int32_t    size_y;
-        int32_t    dest_x;
-        int32_t    dest_y;
+        int16_t    size_x;
+        int16_t    tile_w;
+        int16_t    size_y;
+        int16_t    dest_x;
+        int16_t    dest_y;
         int16_t    destpitch;
         int16_t    srcpitch;
         int32_t    fcolor;
@@ -416,7 +417,7 @@ typedef struct da2_t {
         int32_t    count;
         int32_t    d;
         int        octdir;
-        int        x, y;
+        int        x, y, wx1, wx2, wy1, wy2;
     } bitblt;
 
 #ifdef ENABLE_DA2_DEBUGVRAM
@@ -805,20 +806,32 @@ da2_bitblt_load(da2_t *da2)
         /* Draw a line */
         else if (da2->bitblt.reg[0x5] == 0x43) {
             da2->bitblt.exec = DA2_BLT_CLINE;
-            da2->bitblt.dest_x    = (da2->bitblt.reg[0x32] & 0x7ff);
-            da2->bitblt.dest_y    = (da2->bitblt.reg[0x34] & 0x7ff);
-            da2->bitblt.size_x    = abs((da2->bitblt.reg[0x33] & 0x7ff) - (da2->bitblt.reg[0x32] & 0x7ff));
-            da2->bitblt.size_y    = abs((da2->bitblt.reg[0x35] & 0x7ff) - (da2->bitblt.reg[0x34] & 0x7ff));
-            da2->bitblt.count    = 0;
-            da2->bitblt.octdir    = da2->bitblt.reg[0x2D];
+            da2->bitblt.dest_x    = (da2->bitblt.reg[0x32] & 0xffff);
+            da2->bitblt.dest_y    = (da2->bitblt.reg[0x34] & 0xffff);
+            da2->bitblt.wx1 = (da2->bitblt.reg[0x32]) >> 16;
+            da2->bitblt.wx2 = (da2->bitblt.reg[0x33]) >> 16;
+            da2->bitblt.wy1       = (da2->bitblt.reg[0x34]) >> 16;
+            da2->bitblt.wy2       = (da2->bitblt.reg[0x35]) >> 16;
+            da2->bitblt.size_x    = abs((int16_t)(da2->bitblt.reg[0x33] & 0xffff) - da2->bitblt.dest_x);
+            da2->bitblt.size_y    = abs((int16_t)(da2->bitblt.reg[0x35] & 0xffff) - da2->bitblt.dest_y);
+            da2->bitblt.count     = 0;
+            da2->bitblt.octdir         = da2->bitblt.reg[0x2D];
             da2->bitblt.bitshift_destr = 0;
             if (da2->bitblt.octdir & 0x04) /* dX > dY */
                 da2->bitblt.d = 2 * da2->bitblt.size_y - da2->bitblt.size_x;
             else
                 da2->bitblt.d = 2 * da2->bitblt.size_x - da2->bitblt.size_y;
-            da2_log("drawline x=%d, y=%d, dx=%d, dy=%d, oct=%d\n",
+            da2->bitblt.x = da2->bitblt.dest_x;
+            da2->bitblt.y = da2->bitblt.dest_y;
+            da2_log("drawline x=%d, y=%d, dx=%d, dy=%d, oct=%dn",
                     da2->bitblt.dest_x, da2->bitblt.dest_y,
                     da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.octdir);
+            da2_log("         x1=%d, x2=%d, y1=%d, y2=%d\n",
+                    da2->bitblt.reg[0x32] & 0x7ff, da2->bitblt.reg[0x33] & 0x7ff,
+                    da2->bitblt.reg[0x34] & 0x7ff, da2->bitblt.reg[0x35] & 0x7ff);
+            da2_log("        ux1=%d,ux2=%d,uy1=%d,uy2=%d\n",
+                    (da2->bitblt.reg[0x32] >> 16) & 0x7ff, (da2->bitblt.reg[0x33] >> 16) & 0x7ff,
+                    (da2->bitblt.reg[0x34] >> 16) & 0x7ff, (da2->bitblt.reg[0x35] >> 16) & 0x7ff);
         }
         /* Fill a rectangle (or draw a horizontal / vertical line) */
         else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {
@@ -884,7 +897,7 @@ da2_bitblt_exec(void *p)
     da2_t *da2 = (da2_t *) p;
     // timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
 #ifdef ENABLE_DA2_DEBUGBLT
-    if(!(da2->bitblt.debug_exesteps & 0xf))
+    if(!(da2->bitblt.debug_exesteps & 0xff))
         da2_log("bitblt_exec: %d %d\n", da2->bitblt.exec, da2->bitblt.debug_exesteps);
     da2->bitblt.debug_exesteps++;
 #endif
@@ -897,23 +910,26 @@ da2_bitblt_exec(void *p)
             da2->bitblt.indata = 0;
             break;
         case DA2_BLT_CLINE:
-            int pos_x = da2->bitblt.dest_x + da2->bitblt.x;
-            int pos_y = da2->bitblt.dest_y + da2->bitblt.y;
-
             /* Draw a dot */
             // outb(0x680, da2->bitblt.octdir);
-            da2_bltlog("point: %d %d %d %d %d\n", pos_x, pos_y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
-            int destaddr = pos_y * (da2->rowoffset * 2) + pos_x / 8;
-            int pixelmask = pos_x % 16;
+            da2_bltlog("point: %d %d %d %d %d\n", da2->bitblt.x, da2->bitblt.y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
+            int destaddr = da2->bitblt.y * (da2->rowoffset * 2) + da2->bitblt.x / 8;
+            int pixelmask = da2->bitblt.x % 16;
             if (pixelmask >= 8)
                 pixelmask = (0x8000 >> (pixelmask - 8));
             else
                 pixelmask = (0x80 >> pixelmask);
-            DA2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
+                
+            /* check the current position is inside the window */
+            if (da2->bitblt.x < da2->bitblt.wx1 || da2->bitblt.x > da2->bitblt.wx2
+                || da2->bitblt.y < da2->bitblt.wy1 || da2->bitblt.y > da2->bitblt.wy2)
+                ;
+            else
+                DA2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
             // da2_log("draw: %x %x %x\n", destaddr, da2->bitblt.fcolor, pixelmask);
             da2->bitblt.count++;
 
-            /* Bresenham's line */
+            /* calculate the next position with Bresenham's line algorithm */
             if (da2->bitblt.octdir & 0x04) { /* dX > dY */
                 if (da2->bitblt.octdir & 0x02) {
                     da2->bitblt.x++;
