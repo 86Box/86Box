@@ -211,8 +211,121 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
                          (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
     }
 
-    if ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window)
+    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window);
+
+    if (skip)
         return CallNextHookEx(NULL, nCode, wParam, lParam);
+
+    /* USB keyboards send a scancode of 0x00 for multimedia keys. */
+    if (lpKdhs->scanCode == 0x00) {
+        /* Handle USB keyboard multimedia keys where possible.
+           Only a handful of keys can be handled via Virtual Key
+           detection; rest can't be reliably detected. */
+        DWORD vkCode = lpKdhs->vkCode;
+        bool up = !!(lpKdhs->flags & LLKHF_UP);
+        ret = CallNextHookEx(NULL, nCode, wParam, lParam);;
+
+        switch (vkCode)
+        {
+            case VK_MEDIA_PLAY_PAUSE:
+            {
+                win_keyboard_handle(0x22, up, 1, 0);
+                break;
+            }
+            case VK_MEDIA_STOP:
+            {
+                win_keyboard_handle(0x24, up, 1, 0);
+                break;
+            }
+            case VK_VOLUME_UP:
+            {
+                win_keyboard_handle(0x30, up, 1, 0);
+                break;
+            }
+            case VK_VOLUME_DOWN:
+            {
+                win_keyboard_handle(0x2E, up, 1, 0);
+                break;
+            }
+            case VK_VOLUME_MUTE:
+            {
+                win_keyboard_handle(0x20, up, 1, 0);
+                break;
+            }
+            case VK_MEDIA_NEXT_TRACK:
+            {
+                win_keyboard_handle(0x19, up, 1, 0);
+                break;
+            }
+            case VK_MEDIA_PREV_TRACK:
+            {
+                win_keyboard_handle(0x10, up, 1, 0);
+                break;
+            }
+            case VK_LAUNCH_MEDIA_SELECT:
+            {
+                win_keyboard_handle(0x6D, up, 1, 0);
+                break;
+            }
+            case VK_LAUNCH_MAIL:
+            {
+                win_keyboard_handle(0x6C, up, 1, 0);
+                break;
+            }
+            case VK_LAUNCH_APP1:
+            {
+                win_keyboard_handle(0x6B, up, 1, 0);
+                break;
+            }
+            case VK_LAUNCH_APP2:
+            {
+                win_keyboard_handle(0x21, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_BACK:
+            {
+                win_keyboard_handle(0x6A, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_FORWARD:
+            {
+                win_keyboard_handle(0x69, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_STOP:
+            {
+                win_keyboard_handle(0x68, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_HOME:
+            {
+                win_keyboard_handle(0x32, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_SEARCH:
+            {
+                win_keyboard_handle(0x65, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_REFRESH:
+            {
+                win_keyboard_handle(0x67, up, 1, 0);
+                break;
+            }
+            case VK_BROWSER_FAVORITES:
+            {
+                win_keyboard_handle(0x66, up, 1, 0);
+                break;
+            }
+            case VK_HELP:
+            {
+                win_keyboard_handle(0x3b, up, 1, 0);
+                break;
+            }
+        }
+
+        return ret;
+    }
     else if ((lpKdhs->scanCode == 0x01) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
         !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
         ret = TRUE;
