@@ -74,51 +74,6 @@ x386_dynarec_log(const char *fmt, ...)
 #    define x386_dynarec_log(fmt, ...)
 #endif
 
-/* Deliberately stashed here; this function is only relevant for dynamic recompilers. */
-#if defined(_MSC_VER) && !defined(__clang__)
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-#        define X87_INLINE_ASM
-#    endif
-#else
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
-#        define X87_INLINE_ASM
-#    endif
-#endif
-
-#ifdef USE_NEW_DYNAREC
-void
-x87_to_mmxreg(uint16_t reg)
-#else
-void
-x87_to_mmxreg(void)
-#endif
-{
-#ifndef USE_NEW_DYNAREC
-    uint32_t reg = cpu_state.TOP & 7;
-#endif
-    double val = cpu_state.ST[reg & 7];
-#ifdef X87_INLINE_ASM
-    unsigned char buffer[10];
-#else
-    x87_conv_t test;
-#endif
-
-#ifdef X87_INLINE_ASM
-    __asm volatile(""
-        :
-        :
-        : "memory");
-
-    __asm volatile("fldl %1\n"
-                    "fstpt %0\n" : "=m"(buffer) : "m"(val));
-
-    cpu_state.MM[reg & 7].q = (*(uint64_t*)buffer);
-#else
-    x87_to80(val, &test);
-    cpu_state.MM[reg & 7].q = test.eind.ll;
-#endif
-}
-
 static __inline void
 fetch_ea_32_long(uint32_t rmdat)
 {

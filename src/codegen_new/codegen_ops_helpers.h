@@ -64,9 +64,6 @@ fpu_POP2(codeblock_t *block, ir_data_t *ir)
 static inline void
 fpu_PUSH(codeblock_t *block, ir_data_t *ir)
 {
-    uop_LOAD_FUNC_ARG_IMM(ir, 0, ((uint16_t)cpu_state.TOP - 1));
-    uop_CALL_FUNC(ir, x87_to_mmxreg);
-
     if (block->flags & CODEBLOCK_STATIC_TOP)
         uop_MOV_IMM(ir, IREG_FPU_TOP, cpu_state.TOP - 1);
     else

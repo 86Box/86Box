@@ -829,12 +829,6 @@ extern uint16_t prefetch_queue_get_ip(void);
 extern int      prefetch_queue_get_prefetching(void);
 extern int      prefetch_queue_get_size(void);
 
-#ifdef USE_NEW_DYNAREC
-extern void     x87_to_mmxreg(uint16_t reg);
-#else
-extern void     x87_to_mmxreg(void);
-#endif
-
 #define prefetch_queue_set_suspended(s) prefetch_queue_set_prefetching(!s)
 #define prefetch_queue_get_suspended !prefetch_queue_get_prefetching
 

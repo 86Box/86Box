@@ -1794,7 +1794,6 @@ FP_FLD(int reg)
         addbyte(0x5d);
         addbyte((uint8_t) cpu_state_offset(TOP));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 
 static __inline void
@@ -2038,7 +2037,6 @@ FP_LOAD_S(void)
         addbyte(0x1d);
         addbyte((uint8_t) cpu_state_offset(tag[0]));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 static __inline void
 FP_LOAD_D(void)
@@ -2098,7 +2096,6 @@ FP_LOAD_D(void)
         addbyte(0x1d);
         addbyte((uint8_t) cpu_state_offset(tag[0]));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 static __inline void
 FP_LOAD_IW(void)
@@ -2157,7 +2154,6 @@ FP_LOAD_IW(void)
         addbyte(0x1d);
         addbyte((uint8_t) cpu_state_offset(tag[0]));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 static __inline void
 FP_LOAD_IL(void)
@@ -2214,7 +2210,6 @@ FP_LOAD_IL(void)
         addbyte(0x1d);
         addbyte((uint8_t) cpu_state_offset(tag[0]));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 static __inline void
 FP_LOAD_IQ(void)
@@ -2290,7 +2285,6 @@ FP_LOAD_IQ(void)
         addbyte(0x1d);
         addbyte((uint8_t) cpu_state_offset(tag[0]));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 
 static __inline void
@@ -2342,7 +2336,6 @@ FP_LOAD_IMM_Q(uint64_t v)
         addbyte(0x5d);
         addbyte((uint8_t) cpu_state_offset(TOP));
     }
-    CALL_FUNC((uintptr_t) x87_to_mmxreg);
 }
 
 static __inline int
