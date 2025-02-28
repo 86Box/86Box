@@ -72,8 +72,9 @@ SettingsPorts::SettingsPorts(QWidget *parent)
         if (checkBox != NULL)
             checkBox->setChecked(com_ports[i].enabled > 0);
         if (checkBoxPass != NULL) {
+            checkBoxPass->setEnabled(com_ports[i].enabled > 0);
             checkBoxPass->setChecked(serial_passthrough_enabled[i]);
-            buttonPass->setEnabled(serial_passthrough_enabled[i]);
+            buttonPass->setEnabled((com_ports[i].enabled > 0) && serial_passthrough_enabled[i]);
         }
     }
 }
@@ -170,6 +171,57 @@ void
 SettingsPorts::on_pushButtonSerialPassThru7_clicked()
 {
     DeviceConfig::ConfigureDevice(&serial_passthrough_device, 7, qobject_cast<Settings *>(Settings::settings));
+}
+#endif
+
+void
+SettingsPorts::on_checkBoxSerial1_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru1->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru1->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru1->isChecked());
+}
+
+void
+SettingsPorts::on_checkBoxSerial2_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru2->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru2->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru2->isChecked());
+}
+
+void
+SettingsPorts::on_checkBoxSerial3_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru3->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru3->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru3->isChecked());
+}
+
+void
+SettingsPorts::on_checkBoxSerial4_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru4->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru4->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru4->isChecked());
+}
+
+#if 0
+void
+SettingsPorts::on_checkBoxSerial5_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru5->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru5->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru5->isChecked());
+}
+
+void
+SettingsPorts::on_checkBoxSerial6_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru6->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru6->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru6->isChecked());
+}
+
+void
+SettingsPorts::on_checkBoxSerial7_stateChanged(int state)
+{
+    ui->checkBoxSerialPassThru7->setEnabled(state == Qt::Checked);
+    ui->pushButtonSerialPassThru7->setEnabled((state == Qt::Checked) && ui->checkBoxSerialPassThru7->isChecked());
 }
 #endif
 
