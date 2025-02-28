@@ -18,14 +18,14 @@ public:
 
 #if 0
 private slots:
-    void on_checkBoxSerialPassThru7_clicked(bool checked);
-    void on_checkBoxSerialPassThru6_clicked(bool checked);
-    void on_checkBoxSerialPassThru5_clicked(bool checked);
+    void on_checkBoxSerialPassThru7_stateChanged(int state);
+    void on_checkBoxSerialPassThru6_stateChanged(int state);
+    void on_checkBoxSerialPassThru5_stateChanged(int state);
 #endif
-    void on_checkBoxSerialPassThru4_clicked(bool checked);
-    void on_checkBoxSerialPassThru3_clicked(bool checked);
-    void on_checkBoxSerialPassThru2_clicked(bool checked);
-    void on_checkBoxSerialPassThru1_clicked(bool checked);
+    void on_checkBoxSerialPassThru4_stateChanged(int state);
+    void on_checkBoxSerialPassThru3_stateChanged(int state);
+    void on_checkBoxSerialPassThru2_stateChanged(int state);
+    void on_checkBoxSerialPassThru1_stateChanged(int state);
 
 private slots:
 #if 0

@@ -68,21 +68,14 @@ SettingsPorts::SettingsPorts(QWidget *parent)
     for (int i = 0; i < SERIAL_MAX; i++) {
         auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
+        auto *buttonPass   = findChild<QPushButton *>(QString("pushButtonSerialPassThru%1").arg(i + 1));
         if (checkBox != NULL)
             checkBox->setChecked(com_ports[i].enabled > 0);
-        if (checkBoxPass != NULL)
+        if (checkBoxPass != NULL) {
             checkBoxPass->setChecked(serial_passthrough_enabled[i]);
+            buttonPass->setEnabled(serial_passthrough_enabled[i]);
+        }
     }
-
-    ui->pushButtonSerialPassThru1->setEnabled(serial_passthrough_enabled[0]);
-    ui->pushButtonSerialPassThru2->setEnabled(serial_passthrough_enabled[1]);
-    ui->pushButtonSerialPassThru3->setEnabled(serial_passthrough_enabled[2]);
-    ui->pushButtonSerialPassThru4->setEnabled(serial_passthrough_enabled[3]);
-#if 0
-    ui->pushButtonSerialPassThru5->setEnabled(serial_passthrough_enabled[4]);
-    ui->pushButtonSerialPassThru6->setEnabled(serial_passthrough_enabled[5]);
-    ui->pushButtonSerialPassThru7->setEnabled(serial_passthrough_enabled[6]);
-#endif
 }
 
 SettingsPorts::~SettingsPorts()
@@ -181,45 +174,45 @@ SettingsPorts::on_pushButtonSerialPassThru7_clicked()
 #endif
 
 void
-SettingsPorts::on_checkBoxSerialPassThru1_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru1_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru1->setEnabled(checked);
+    ui->pushButtonSerialPassThru1->setEnabled(state == Qt::Checked);
 }
 
 void
-SettingsPorts::on_checkBoxSerialPassThru2_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru2_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru2->setEnabled(checked);
+    ui->pushButtonSerialPassThru2->setEnabled(state == Qt::Checked);
 }
 
 void
-SettingsPorts::on_checkBoxSerialPassThru3_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru3_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru3->setEnabled(checked);
+    ui->pushButtonSerialPassThru3->setEnabled(state == Qt::Checked);
 }
 
 void
-SettingsPorts::on_checkBoxSerialPassThru4_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru4_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru4->setEnabled(checked);
+    ui->pushButtonSerialPassThru4->setEnabled(state == Qt::Checked);
 }
 
 #if 0
 void
-SettingsPorts::on_checkBoxSerialPassThru5_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru5_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru5->setEnabled(checked);
+    ui->pushButtonSerialPassThru5->setEnabled(state == Qt::Checked);
 }
 
 void
-SettingsPorts::on_checkBoxSerialPassThru6_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru6_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru6->setEnabled(checked);
+    ui->pushButtonSerialPassThru6->setEnabled(state == Qt::Checked);
 }
 
 void
-SettingsPorts::on_checkBoxSerialPassThru7_clicked(bool checked)
+SettingsPorts::on_checkBoxSerialPassThru7_stateChanged(int state)
 {
-    ui->pushButtonSerialPassThru7->setEnabled(checked);
+    ui->pushButtonSerialPassThru7->setEnabled(state == Qt::Checked);
 }
 #endif
