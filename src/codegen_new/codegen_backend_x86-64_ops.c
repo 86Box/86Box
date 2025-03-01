@@ -509,6 +509,11 @@ host_x86_MOV8_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data)
         codegen_alloc_bytes(block, 4);
         codegen_addbyte3(block, 0xc6, 0x45, offset); /*MOVB offset[RBP], imm_data*/
         codegen_addbyte(block, imm_data);
+    } else if (offset < (1ULL << 32)) {
+        codegen_alloc_bytes(block, 7);
+        codegen_addbyte2(block, 0xc6, 0x85); /*MOVB offset[RBP], imm_data*/
+        codegen_addlong(block, offset);
+        codegen_addbyte(block, imm_data);
     } else {
         if ((uintptr_t) p >> 32)
             fatal("host_x86_MOV8_ABS_IMM - out of range %p\n", p);
@@ -527,6 +532,11 @@ host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data)
         codegen_alloc_bytes(block, 6);
         codegen_addbyte4(block, 0x66, 0xc7, 0x45, offset); /*MOV offset[RBP], imm_data*/
         codegen_addword(block, imm_data);
+    } else if (offset < (1ULL << 32)) {
+        codegen_alloc_bytes(block, 8);
+        codegen_addbyte3(block, 0x66, 0xc7, 0x85); /*MOV offset[RBP], imm_data*/
+        codegen_addlong(block, offset);
+        codegen_addword(block, imm_data);
     } else {
         if ((uintptr_t) p >> 32)
             fatal("host_x86_MOV32_ABS_IMM - out of range %p\n", p);
@@ -544,6 +554,11 @@ host_x86_MOV32_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data)
     if (offset >= -128 && offset < 127) {
         codegen_alloc_bytes(block, 7);
         codegen_addbyte3(block, 0xc7, 0x45, offset); /*MOV offset[RBP], imm_data*/
+        codegen_addlong(block, imm_data);
+    } else if (offset < (1ULL << 32)) {
+        codegen_alloc_bytes(block, 10);
+        codegen_addbyte2(block, 0xc7, 0x85); /*MOV offset[RBP], imm_data*/
+        codegen_addlong(block, offset);
         codegen_addlong(block, imm_data);
     } else {
         if ((uintptr_t) p >> 32)
@@ -566,6 +581,10 @@ host_x86_MOV8_ABS_REG(codeblock_t *block, void *p, int src_reg)
     if (offset >= -128 && offset < 127) {
         codegen_alloc_bytes(block, 3);
         codegen_addbyte3(block, 0x88, 0x45 | ((src_reg & 7) << 3), offset); /*MOVB offset[RBP], src_reg*/
+    } else if (offset < (1ULL << 32)) {
+        codegen_alloc_bytes(block, 6);
+        codegen_addbyte2(block, 0x88, 0x85 | ((src_reg & 7) << 3)); /*MOVB offset[RBP], src_reg*/
+        codegen_addlong(block, offset);
     } else {
         if ((uintptr_t) p >> 32)
             fatal("host_x86_MOV8_ABS_REG - out of range %p\n", p);
@@ -630,6 +649,10 @@ host_x86_MOV64_ABS_REG(codeblock_t *block, void *p, int src_reg)
     if (offset >= -128 && offset < 127) {
         codegen_alloc_bytes(block, 4);
         codegen_addbyte4(block, 0x48, 0x89, 0x45 | ((src_reg & 7) << 3), offset); /*MOV offset[RBP], src_reg*/
+    } else if (offset < (1ULL << 32)) {
+        codegen_alloc_bytes(block, 7);
+        codegen_addbyte3(block, 0x48, 0x89, 0x85 | ((src_reg & 7) << 3)); /*MOV offset[RBP], src_reg*/
+        codegen_addlong(block, offset);
     } else {
         if ((uintptr_t) p >> 32)
             fatal("host_x86_MOV64_ABS_REG - out of range %p\n", p);

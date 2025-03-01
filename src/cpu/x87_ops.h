@@ -113,33 +113,12 @@ typedef union {
 static __inline void
 x87_push(double i)
 {
-#ifdef X87_INLINE_ASM
-    unsigned char buffer[10];
-#else
-    x87_conv_t test;
-#endif
 #ifdef USE_NEW_DYNAREC
     cpu_state.TOP--;
 #else
     cpu_state.TOP                    = (cpu_state.TOP - 1) & 7;
 #endif
     cpu_state.ST[cpu_state.TOP & 7] = i;
-
-#ifdef X87_INLINE_ASM
-    __asm volatile(""
-        :
-        :
-        : "memory");
-
-    __asm volatile("fldl %1\n"
-                    "fstpt %0\n" : "=m"(buffer) : "m"(i));
-
-    cpu_state.MM[cpu_state.TOP & 7].q = (*(uint64_t*)buffer);
-#else
-    x87_to80(i, &test);
-    cpu_state.MM[cpu_state.TOP & 7].q = test.eind.ll;
-#endif
-
 #ifdef USE_NEW_DYNAREC
     cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
 #else
@@ -150,11 +129,6 @@ x87_push(double i)
 static __inline void
 x87_push_u64(uint64_t i)
 {
-#ifdef X87_INLINE_ASM
-    unsigned char buffer[10];
-#else
-    x87_conv_t test;
-#endif
     union {
         double   d;
         uint64_t ll;
@@ -168,21 +142,6 @@ x87_push_u64(uint64_t i)
     cpu_state.TOP                    = (cpu_state.TOP - 1) & 7;
 #endif
     cpu_state.ST[cpu_state.TOP & 7] = td.d;
-
-#ifdef X87_INLINE_ASM
-    __asm volatile(""
-        :
-        :
-        : "memory");
-
-    __asm volatile("fldl %1\n"
-                    "fstpt %0\n" : "=m"(buffer) : "m"(td.d));
-
-    cpu_state.MM[cpu_state.TOP & 7].q = (*(uint64_t*)buffer);
-#else
-    x87_to80(td.d, &test);
-    cpu_state.MM[cpu_state.TOP & 7].q = test.eind.ll;
-#endif
 #ifdef USE_NEW_DYNAREC
     cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
 #else
