@@ -360,7 +360,7 @@ codegen_backend_prologue(codeblock_t *block)
         host_x86_MOV32_BASE_OFFSET_REG(block, REG_RSP, IREG_TOP_diff_stack_offset, REG_EAX);
     }
     if (block->flags & CODEBLOCK_NO_IMMEDIATES)
-        host_x86_MOV64_REG_IMM(block, REG_R12, (uintptr_t) ram);
+        host_x86_MOV64_REG_IMM(block, REG_R12, ((uintptr_t) ram) + 2147483648ULL);
 }
 
 void
