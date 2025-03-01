@@ -257,9 +257,9 @@
 #endif
 
 #ifdef ENABLE_DA2_LOG
-// #    define ENABLE_DA2_DEBUGBLT 1
-// #    define ENABLE_DA2_DEBUGVRAM 1
-// #    define ENABLE_DA2_DEBUGFULLSCREEN 1
+#    define ENABLE_DA2_DEBUGBLT 1
+#    define ENABLE_DA2_DEBUGVRAM 1
+#    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
 int da2_do_log = ENABLE_DA2_LOG;
 
@@ -1208,8 +1208,8 @@ da2_out(uint16_t addr, uint16_t val, void *p)
         case LC_DATA:
             if (da2->crtcaddr > 0x1f)
                 return;
-            // if (!(da2->crtcaddr == LC_CURSOR_LOC_HIGH || da2->crtcaddr == LC_CURSOR_LOC_LOWJ))
-            //     da2_log("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->crtcaddr, val, cs >> 4, cpu_state.pc);
+            if (!(da2->crtcaddr == LC_CURSOR_LOC_HIGH || da2->crtcaddr == LC_CURSOR_LOC_LOWJ))
+                da2_log("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->crtcaddr, val, cs >> 4, cpu_state.pc);
             if (!(da2->crtc[da2->crtcaddr] ^ val))
                 return;
             switch (da2->crtcaddr) {
@@ -1325,6 +1325,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             break;
         case LG_DATA:
             // if(da2->gdcaddr != 8 && da2->gdcaddr != 9) da2_log("DA2 Out addr %03X idx %02X val %02X\n", addr, da2->gdcaddr, val);
+            da2_log("DA2 Out addr %03X idx %02X val %02X\n", addr, da2->gdcaddr, val);
             // if(da2->gdcaddr != 8 && da2->gdcaddr != 9) da2_log("DA2 GCOut idx %X val %02X %04X:%04X esdi %04X:%04X\n", da2->gdcaddr, val, cs >> 4, cpu_state.pc, ES, DI);
             switch (da2->gdcaddr & 0x1f) {
                 case LG_READ_MAP_SELECT:
@@ -1332,6 +1333,11 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     break;
                 case LG_MODE:
                     da2->writemode = val & 3;
+                     /* reset bit mask and plane mask (? idk when) */
+                    da2->gdcreg[LG_BIT_MASK_LOW] = 0xff;
+                    da2->gdcreg[LG_BIT_MASK_HIGH] = 0xff;
+                    da2->writemask = 0xff;
+                    da2->gdcreg[LG_MAP_MASKJ] = 0xff;
                     break;
                 case LG_MAP_MASKJ:
                     da2->writemask = val & 0xff;
@@ -1429,8 +1435,7 @@ da2_in(uint16_t addr, void *p)
                     //     timer_advance_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
                     // }
                 }
-                if (da2->bitblt.indata)
-                    temp |= 0x08;
+                if (da2->bitblt.indata) temp |= 0x09;
 #ifdef ENABLE_DA2_DEBUGMONWAIT
                 da2_log("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->ioctladdr, temp, cs >> 4, cpu_state.pc);
 #endif
@@ -1524,7 +1529,7 @@ da2_outb(uint16_t addr, uint8_t val, void *p)
 void
 da2_outw(uint16_t addr, uint16_t val, void *p)
 {
-    // da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
+    da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
     da2_t *da2      = (da2_t *) p;
     da2->inflipflop = 0;
     switch (addr) {
@@ -1794,14 +1799,17 @@ void
 da2_render_blank(da2_t *da2)
 {
     int x, xx;
+    int cwidth;
+    if (da2->ioctl[LS_MODE] & 0x01) cwidth = 13; /* in character mode */
+    else cwidth = 16;
 
     if (da2->firstline_draw == 2000)
         da2->firstline_draw = da2->displine;
     da2->lastline_draw = da2->displine;
 
     for (x = 0; x < da2->hdisp; x++) {
-        for (xx = 0; xx < 13; xx++)
-            ((uint32_t *) buffer32->line[da2->displine])[(x * 13) + xx + 32] = 0;
+        for (xx = 0; xx < cwidth; xx++)
+            ((uint32_t *) buffer32->line[da2->displine])[(x * cwidth) + xx + 32] = 0;
     }
 }
 /* Display Adapter Mode 8, E Drawing */
@@ -2152,8 +2160,10 @@ da2_recalctimings(da2_t *da2)
     double _dispontime, _dispofftime, disptime;
     
     /* if output disabled or VGA passthrough */
-    if (!(da2->attrc[LV_COMPATIBILITY] & 0x08) || da2->ioctl[LS_MODE] & 0x02)
+    if (da2->ioctl[LS_MODE] & 0x02 || !(da2->attrc[LV_COMPATIBILITY] & 0x08)) {
+        da2->render = da2_render_blank;
         return;
+    }
 
     da2->vtotal      = da2->crtc[LC_VERTICAL_TOTALJ] & 0xfff;
     da2->dispend     = da2->crtc[LC_V_DISPLAY_ENABLE_END] & 0xfff;
@@ -3171,7 +3181,7 @@ da2_init(UNUSED(const device_t *info))
     mem_mapping_disable(&da2->cmapping);
 
     timer_add(&da2->timer, da2_poll, da2, 0);
-    da2->bitblt.timerspeed = 10ull * TIMER_USEC;
+    da2->bitblt.timerspeed = 8ull * TIMER_USEC; /* Bitblt execution speed */
     timer_add(&da2->bitblt.timer, da2_bitblt_dopayload, da2, 0);
 
     return da2;
