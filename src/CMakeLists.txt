@@ -223,6 +223,9 @@ elseif(APPLE AND NOT QT)
     COMPONENT Runtime)
 endif()
 
+if(NEW_DYNAREC AND (ARCH STREQUAL "x86_64") AND (NOT WIN32))
+    add_compile_options(-mno-red-zone -fno-omit-frame-pointer)
+endif()
 
 # Install the PDB file on Windows builds
 if(MSVC)
