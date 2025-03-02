@@ -315,13 +315,19 @@ codegen_backend_init(void)
 #    endif
     host_x86_CALL(block, (void *) x86gpf);
     codegen_exit_rout = &codeblock[block_current].data[block_pos];
+#ifdef _WIN64
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);
+#else
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x48);
+#endif
     host_x86_POP(block, REG_R15);
     host_x86_POP(block, REG_R14);
     host_x86_POP(block, REG_R13);
     host_x86_POP(block, REG_R12);
+#ifdef _WIN64
     host_x86_POP(block, REG_RDI);
     host_x86_POP(block, REG_RSI);
+#endif
     host_x86_POP(block, REG_RBP);
     host_x86_POP(block, REG_RDX);
     host_x86_RET(block);
@@ -346,13 +352,19 @@ codegen_backend_prologue(codeblock_t *block)
     block_pos = BLOCK_START; /*Entry code*/
     host_x86_PUSH(block, REG_RBX);
     host_x86_PUSH(block, REG_RBP);
+#ifdef _WIN64
     host_x86_PUSH(block, REG_RSI);
     host_x86_PUSH(block, REG_RDI);
+#endif
     host_x86_PUSH(block, REG_R12);
     host_x86_PUSH(block, REG_R13);
     host_x86_PUSH(block, REG_R14);
     host_x86_PUSH(block, REG_R15);
+#ifdef _WIN64
     host_x86_SUB64_REG_IMM(block, REG_RSP, 0x38);
+#else
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x48);
+#endif
     host_x86_MOV64_REG_IMM(block, REG_RBP, ((uintptr_t) &cpu_state) + 128);
     if (block->flags & CODEBLOCK_HAS_FPU) {
         host_x86_MOV32_REG_ABS(block, REG_EAX, &cpu_state.TOP);
@@ -366,13 +378,19 @@ codegen_backend_prologue(codeblock_t *block)
 void
 codegen_backend_epilogue(codeblock_t *block)
 {
+#ifdef _WIN64
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);
+#else
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x48);
+#endif
     host_x86_POP(block, REG_R15);
     host_x86_POP(block, REG_R14);
     host_x86_POP(block, REG_R13);
     host_x86_POP(block, REG_R12);
+#ifdef _WIN64
     host_x86_POP(block, REG_RDI);
     host_x86_POP(block, REG_RSI);
+#endif
     host_x86_POP(block, REG_RBP);
     host_x86_POP(block, REG_RDX);
     host_x86_RET(block);
