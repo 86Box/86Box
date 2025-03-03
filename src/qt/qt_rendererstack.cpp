@@ -155,7 +155,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     }
     if (mouse_capture && (event->button() == Qt::MiddleButton) && (mouse_get_buttons() < 3)) {
         plat_mouse_capture(0);
-        this->setCursor(Qt::ArrowCursor);
+        this->unsetCursor();
         isMouseDown &= ~1;
         return;
     }
