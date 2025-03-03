@@ -2256,8 +2256,6 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     const uint32_t *pattern_data;
     int             x;
     int             y;
-    int             c;
-    int             d;
     uint32_t        out;
     uint32_t        src_dat   = 0;
     uint32_t        dst_dat;
