@@ -406,16 +406,16 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 
     if (!found_object)
     {
-        nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE0_ERROR_PENDING;
-
         if (!cache_num)
         {
+            nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE0_ERROR_PENDING;
             nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE;
             //It turns itself off on failure, the drivers turn it back on
             nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
         } 
         else 
         {
+            nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE1_ERROR_PENDING;
             nv3->pfifo.cache1_settings.puller_control |= NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE;
             //It turns itself off on failure, the drivers turn it back on
             nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED;
