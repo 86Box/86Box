@@ -431,6 +431,7 @@ typedef struct da2_t {
     uint8_t pos_regs[8];
     svga_t *mb_vga;
     uint8_t monitorid;
+    pc_timer_t timer_vidupd;
 
     int old_pos2;
 } da2_t;
@@ -1108,11 +1109,13 @@ da2_bitblt_dopayload(void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
     timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
-    if (da2->bitblt.exec != DA2_BLT_CIDLE)
-        da2_bitblt_exec(da2);
-    else if (da2->bitblt.indata && !(da2->ioctl[LS_MMIO] & 0x10) && (da2->bitblt.exec == DA2_BLT_CIDLE)) {
-            da2->bitblt.exec = DA2_BLT_CLOAD;
+    /* do async operation but it causes the scrolling text glitch in OS/2 J1.3 Command Prompt (TODO) */
+    if (da2->bitblt.exec != DA2_BLT_CIDLE) {
+        while (da2->bitblt.exec != DA2_BLT_CIDLE) 
             da2_bitblt_exec(da2);
+    } else if (da2->bitblt.indata && !(da2->ioctl[LS_MMIO] & 0x10) && (da2->bitblt.exec == DA2_BLT_CIDLE)) {
+        da2->bitblt.exec = DA2_BLT_CLOAD;
+        da2_bitblt_exec(da2);
     } else {
         // timer_disable(&da2->bitblt.timer);
     }
@@ -1202,8 +1205,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             oldval                   = da2->fctl[da2->fctladdr];
             da2->fctl[da2->fctladdr] = val;
             if (da2->fctladdr == 0 && oldval != val) {
-                da2->fullchange = changeframecount;
-                da2_recalctimings(da2);
+                da2_log("DA2 Out FCTL addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->fctladdr, val, cs >> 4, cpu_state.pc);
             }
             break;
         case LC_INDEX:
@@ -1338,7 +1340,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     break;
                 case LG_MODE:
                     da2->writemode = val & 3;
-                     /* Resettting masks here gliches the screen in IBM Multitool Chart K3.1 */
+                     /* Resettting masks here gliches chart drawing in IBM Multitool Chart K3.1 */
                     // da2->gdcreg[LG_BIT_MASK_LOW] = 0xff;
                     // da2->gdcreg[LG_BIT_MASK_HIGH] = 0xff;
                     // da2->planemask = 0xff;
@@ -1558,11 +1560,13 @@ da2_outw(uint16_t addr, uint16_t val, void *p)
             // val = rightRotate(val, 8);
             // da2_out(LG_DATA, val, da2);
             da2_out(LG_DATA, val >> 8, da2);
-            /* reset masks */
-            da2->gdcreg[LG_BIT_MASK_LOW] = 0xff;
-            da2->gdcreg[LG_BIT_MASK_HIGH] = 0xff;
-            da2->planemask = 0xff;
-            da2->gdcreg[LG_MAP_MASKJ] = 0xff;
+            /* reset masks for compatibility with Win 3.1 solitaire */
+            if (da2->gdcaddr == LG_MODE) {
+                da2->gdcreg[LG_BIT_MASK_LOW]  = 0xff;
+                da2->gdcreg[LG_BIT_MASK_HIGH] = 0xff;
+                da2->planemask                = 0xff;
+                da2->gdcreg[LG_MAP_MASKJ]     = 0xff;
+            }
             break;
         case 0x3ED:
             da2->gdcaddr = LG_MODE;
@@ -2151,8 +2155,9 @@ da2_render_color_8bpp(da2_t *da2)
 }
 
 void
-da2_updatevidselector(da2_t *da2)
+da2_updatevidselector_tick(void *priv)
 {
+    da2_t *da2 = (da2_t *) priv;
     if (da2->ioctl[LS_MODE] & 0x02) {
         /* VGA passthrough mode */
         da2->override = 1;
@@ -2163,6 +2168,12 @@ da2_updatevidselector(da2_t *da2)
         da2->override = 0;
         da2_log("DA2 selector: DA2\n");
     }
+}
+
+void
+da2_updatevidselector(da2_t *da2)
+{
+    timer_set_delay_u64(&da2->timer_vidupd, 100000ull * TIMER_USEC);
 }
 
 void
@@ -2386,6 +2397,7 @@ static void
 da2_gdcropW(uint32_t addr, uint16_t bitmask, da2_t *da2)
 {
     if((addr & 8) && !(da2->gdcreg[LG_COMMAND] & 0x08)) bitmask = rightRotate(bitmask, 8);
+    // if((addr & 8)) bitmask = rightRotate(bitmask, 8);
     uint8_t bitmask_l = bitmask & 0xff;
     uint8_t bitmask_h = bitmask >> 8;
     for (int i = 0; i < 8; i++) {
@@ -2582,9 +2594,15 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
         }
     } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 color or 256 color mode */
         uint8_t bitmask;
-        /* align bitmask with even address for OS/2 J2.0 (need to verify the condition with Win 3.x) */
-        if ((addr & 1)  && !(da2->gdcreg[LG_COMMAND] & 0x08)) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
-        else  bitmask = da2->gdcreg[LG_BIT_MASK_LOW];
+        /* align bitmask with even address (need to verify the condition with OS/2 J2.x, Win 3.x and A-Train IV Win) */
+        /* With byte align: Win 3.1 (Window Title) - ok, Solitaire 3.1 - ok, A-Train IV (splash): bad,  OS/2 J2.0(cmd) - ok */
+        // if ((addr & 1)  && !(da2->gdcreg[LG_COMMAND] & 0x08)) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
+        /* Without byte align: Win 3.1 (Window Title) - bad, Solitaire 3.1 - ok, A-Train IV (splash): ok,  OS/2 J2.0(cmd) - ok */
+        /* With byte align: Win 3.1 (Window Title) - ok, Solitaire 3.1 - ok, A-Train IV (splash): ok,  OS/2 J2.0(cmd) - ok, DOS J4.0 MC - ok */
+        if ((addr & 1)) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
+        else  
+        /* No align: Win 3.1 (Window Title) - ok, Solitaire 3.1 - ok, A-Train IV (splash): bad,  OS/2 J2.0(cmd) - bad */
+            bitmask = da2->gdcreg[LG_BIT_MASK_LOW];
         
 #ifdef ENABLE_DA2_DEBUGVRAM
         // da2_log("da2_wB %x %02x\n", addr, val);
@@ -2756,7 +2774,7 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
             break;
         case 0:
             if (da2->gdcreg[LG_DATA_ROTATION] & 15)
-                val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15); // val = svga_rotate[da2->gdcreg[LG_DATA_ROTATION] & 7][val]; TODO this wont work
+                val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);
             if (bitmask == 0xffff && !(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                 for (int i = 0; i < 8; i++)
                     if (da2->planemask & (1 << i)) {
@@ -2774,22 +2792,13 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
             }
             break;
         case 1:
-            // if (!(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
-            //     for (int i = 0; i < 8; i++)
-            //         if (da2->planemask & (1 << i)) {
-            //             uint16_t wdata = (((val & (1 << i)) ? 0xffff : 0) & bitmask) | (da2->gdcsrc[i] & ~bitmask);
-            //             DA2_vram_w(addr | i, wdata & 0xff, da2);
-            //             DA2_vram_w((addr + 8) | i, wdata >> 8, da2);
-            //         }
-            // } else {
-                for (int i = 0; i < 8; i++)
-                    da2->gdcinput[i] = ((val & (1 << i)) ? 0xffff : 0);
-                da2_gdcropW(addr, bitmask, da2);
-            // }
+            for (int i = 0; i < 8; i++)
+                da2->gdcinput[i] = ((val & (1 << i)) ? 0xffff : 0);
+            da2_gdcropW(addr, bitmask, da2);
             break;
         case 3:
             if (da2->gdcreg[LG_DATA_ROTATION] & 15)
-                val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15); // val = svga_rotate[da2->gdcreg[LG_DATA_ROTATION] & 7][val];; TODO this wont work
+                val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);
             bitmask &= val;
 
             for (int i = 0; i < 8; i++)
@@ -3117,7 +3126,6 @@ da2_reset(void *priv)
 
     /* Initialize drawing */
     da2->bitblt.exec = DA2_BLT_CIDLE;
-    da2->render      = da2_render_blank;
     da2_reset_ioctl(da2);
 
     da2->pos_regs[0]       = DA2_POSID_L;                    /* Adapter Identification Byte (Low byte) */
@@ -3192,6 +3200,8 @@ da2_init(UNUSED(const device_t *info))
     da2->mmrdbg_fp           = fopen("da2_mmiordat.txt", "w");
 #endif
     da2->bitblt.payload_addr = 0;
+
+    timer_add(&da2->timer_vidupd, da2_updatevidselector_tick, da2, 0);/* Init timer before executing reset */
     da2_reset(da2);
 
     mem_mapping_add(&da2->mmio.mapping, 0xA0000, 0x20000, da2_mmio_read, da2_mmio_readw, NULL, da2_mmio_write, da2_mmio_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, da2);
