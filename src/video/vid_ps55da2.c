@@ -1075,14 +1075,10 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             if (oldval != val) {
                 if (da2->ioctladdr == LS_RESET && val & 0x01) /* Reset register */
                     da2_reset_ioctl(da2);
-                else if (da2->ioctladdr == LS_MODE && ((oldval ^ val) & 0x03)) /* Mode register */
-                {
+                else if (da2->ioctladdr == LS_MODE && ((oldval ^ val) & 0x03)) { /* Mode register */
                     da2->fullchange = changeframecount;
                     da2_recalctimings(da2);
                     da2_updatevidselector(da2);
-                } else if (da2->ioctladdr == LS_MMIO && (!(val & 0x01))) /* MMIO register */
-                {
-                    // da2->bitblt.indata = 1;
                 }
             }
             break;
@@ -1117,7 +1113,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     // return;
                     break;
                 case LC_MAXIMUM_SCAN_LINE:
-                    if (!(da2->ioctl[LS_MODE] & 0x01))
+                    if (!(da2->ioctl[LS_MODE] & 0x01)) /* 16 or 256 color graphics mode */
                         val = 0;
                     break;
                 case LC_START_ADDRESS_HIGH:
@@ -2035,14 +2031,15 @@ da2_render_color_8bpp(da2_t *da2)
 void
 da2_updatevidselector(da2_t *da2)
 {
-    da2_log("DA2 selector: %d\n", da2->ioctl[LS_MODE]);
     if (da2->ioctl[LS_MODE] & 0x02) {
         /* VGA passthrough mode */
         da2->override = 1;
         svga_set_override(da2->mb_vga, 0);
+        da2_log("DA2 selector: VGA\n");
     } else {
         svga_set_override(da2->mb_vga, 1);
         da2->override = 0;
+        da2_log("DA2 selector: DA2\n");
     }
 }
 
@@ -2051,6 +2048,10 @@ da2_recalctimings(da2_t *da2)
 {
     double crtcconst;
     double _dispontime, _dispofftime, disptime;
+    
+    /* if output disabled or VGA passthrough */
+    if (!(da2->attrc[LV_COMPATIBILITY] & 0x08) || da2->ioctl[LS_MODE] & 0x02)
+        return;
 
     da2->vtotal      = da2->crtc[LC_VERTICAL_TOTALJ] & 0xfff;
     da2->dispend     = da2->crtc[LC_V_DISPLAY_ENABLE_END] & 0xfff;
@@ -2092,40 +2093,36 @@ da2_recalctimings(da2_t *da2)
     da2->render     = da2_render_blank;
     /* determine display mode */
     // if (da2->attr_palette_enable && (da2->attrc[0x1f] & 0x08))
-    if (da2->attrc[LV_COMPATIBILITY] & 0x08) {
-        /* 16 color graphics mode */
-        if (!(da2->ioctl[LS_MODE] & 0x01)) {
-            da2->hdisp *= 16;
-            da2->char_width = 13;
-            da2->hdisp_old  = da2->hdisp;
-            if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
-                da2_log("Set videomode to PS/55 8 bpp graphics.\n");
-                da2->render            = da2_render_color_8bpp;
-                da2->vram_display_mask = DA2_MASK_GRAM;
-            } else { /* PS/55 8-color */
-                da2_log("Set videomode to PS/55 4 bpp graphics.\n");
-                da2->vram_display_mask = DA2_MASK_GRAM;
-                da2->render            = da2_render_color_4bpp;
-            }
-        } else {
-            /* text mode */
-            if (da2->attrc[LV_ATTRIBUTE_CNTL] & 1) {
-                da2_log("Set videomode to PS/55 Mode 03 text.\n");
-                da2->render            = da2_render_textm3;
-                da2->vram_display_mask = DA2_MASK_CRAM;
-            }
-            /* PS/55 text(color/mono) */
-            else {
-                da2_log("Set videomode to PS/55 Mode 8/E text.\n");
-                da2->render            = da2_render_text;
-                da2->vram_display_mask = DA2_MASK_CRAM;
-            }
-            da2->hdisp *= 13;
-            da2->hdisp_old  = da2->hdisp;
-            da2->char_width = 13;
+    /* 16 color graphics mode */
+    if (!(da2->ioctl[LS_MODE] & 0x01)) {
+        da2->hdisp *= 16;
+        da2->char_width = 13;
+        da2->hdisp_old  = da2->hdisp;
+        if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
+            da2_log("Set videomode to PS/55 8 bpp graphics.\n");
+            da2->render            = da2_render_color_8bpp;
+            da2->vram_display_mask = DA2_MASK_GRAM;
+        } else { /* PS/55 8-color */
+            da2_log("Set videomode to PS/55 4 bpp graphics.\n");
+            da2->vram_display_mask = DA2_MASK_GRAM;
+            da2->render            = da2_render_color_4bpp;
         }
     } else {
-        da2_log("Set videomode to blank.\n");
+        /* text mode */
+        if (da2->attrc[LV_ATTRIBUTE_CNTL] & 1) {
+            da2_log("Set videomode to PS/55 Mode 03 text.\n");
+            da2->render            = da2_render_textm3;
+            da2->vram_display_mask = DA2_MASK_CRAM;
+        }
+        /* PS/55 text(color/mono) */
+        else {
+            da2_log("Set videomode to PS/55 Mode 8/E text.\n");
+            da2->render            = da2_render_text;
+            da2->vram_display_mask = DA2_MASK_CRAM;
+        }
+        da2->hdisp *= 13;
+        da2->hdisp_old  = da2->hdisp;
+        da2->char_width = 13;
     }
     // if (!da2->scrblank && da2->attr_palette_enable)
     //{
@@ -2344,7 +2341,7 @@ da2_mmio_read(uint32_t addr, void *p)
                 return DA2_INVALIDACCESS8; /* invalid memory access */
                 break;
         }
-    } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 8 or 256 color mode */
+    } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 or 256 color mode */
         cycles -= video_timing_read_b;
         for (int i = 0; i < 8; i++)
             da2->gdcla[i] = da2->vram[(addr << 3) | i]; /* read in byte */
@@ -2371,7 +2368,7 @@ da2_mmio_readw(uint32_t addr, void *p)
     //da2_log("da2_readW: %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
     if (da2->ioctl[LS_MMIO] & 0x10) {
         return (uint16_t) da2_mmio_read(addr, da2) | (uint16_t) (da2_mmio_read(addr + 1, da2) << 8);
-    } else if (!(da2->ioctl[LS_MODE] & 1)) /* 8 color or 256 color mode */
+    } else if (!(da2->ioctl[LS_MODE] & 1)) /* 16 color or 256 color mode */
     {
         cycles -= video_timing_read_w;
         addr &= DA2_MASK_MMIO;
@@ -2458,7 +2455,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 da2_log("da2_mmio_write failed mem %x, addr %x, val %x\n", da2->fctl[LF_MMIO_MODE], addr, val);
                 break;
         }
-    } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 8 color or 256 color mode */
+    } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 color or 256 color mode */
         uint8_t bitmask;
         /* align bitmask to even address */
         if (addr & 1) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
@@ -2681,7 +2678,7 @@ da2_mmio_writew(uint32_t addr, uint16_t val, void *p)
         // da2_log("da2_mmio_writeW %x %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, val);
         da2_mmio_write(addr, val & 0xff, da2);
         da2_mmio_write(addr + 1, val >> 8, da2);
-    } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 8 color or 256 color mode */
+    } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 color or 256 color mode */
         addr &= DA2_MASK_MMIO;
         // return;
         // da2_log("da2_mmio_writeGW %x %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, val);
@@ -3027,17 +3024,17 @@ da2_init(UNUSED(const device_t *info))
     svga_t *mb_vga          = svga_get_pri();
     mb_vga->cable_connected = 0;
 
-    da2_t *da2  = malloc(sizeof(da2_t));
+    da2_t *da2  = calloc(1, sizeof(da2_t));
     da2->mb_vga = mb_vga;
 
     da2->dispontime        = 1000ull << 32;
     da2->dispofftime       = 1000ull << 32;
     int memsize            = 1024 * 1024;
-    da2->vram              = malloc(memsize);
+    da2->vram              = calloc(1, memsize);
     da2->vram_mask         = memsize - 1;
-    da2->cram              = malloc(0x1000);
+    da2->cram              = calloc(1, 0x1000);
     da2->vram_display_mask = DA2_MASK_CRAM;
-    da2->changedvram       = malloc(/*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
+    da2->changedvram       = calloc(1, /*(memsize >> 12) << 1*/ 0x1000000 >> 12); /* XX000h */
     da2->monitorid         = device_get_config_int("montype");                 /* Configuration for Monitor ID (aaaa) -> (xxax xxxx, xxxx xaaa) */
 
     da2->mmio.charset = device_get_config_int("charset");

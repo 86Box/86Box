@@ -1461,6 +1461,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_WRITE_SAME_10:
+            mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
             alloc_length = 512;
 
             if ((cdb[1] & 6) == 6)

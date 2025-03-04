@@ -269,6 +269,7 @@ extern void     keyboard_poll_host(void);
 extern void     keyboard_process(void);
 extern uint16_t keyboard_convert(int ch);
 extern void     keyboard_input(int down, uint16_t scan);
+extern void     keyboard_all_up(void);
 extern void     keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern uint8_t  keyboard_get_shift(void);
 extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
