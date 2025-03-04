@@ -1111,7 +1111,7 @@ da2_bitblt_dopayload(void *priv)
     timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
     /* do async operation but it causes the scrolling text glitch in OS/2 J1.3 Command Prompt (TODO) */
     if (da2->bitblt.exec != DA2_BLT_CIDLE) {
-        while (da2->bitblt.exec != DA2_BLT_CIDLE) 
+        while (da2->bitblt.exec != DA2_BLT_CIDLE) /* this disables async operation */
             da2_bitblt_exec(da2);
     } else if (da2->bitblt.indata && !(da2->ioctl[LS_MMIO] & 0x10) && (da2->bitblt.exec == DA2_BLT_CIDLE)) {
         da2->bitblt.exec = DA2_BLT_CLOAD;
@@ -2015,9 +2015,14 @@ da2_render_textm3(da2_t *da2)
                     }
                 } else {
                     /* the char code is SBCS (ANK) */
-                    uint16_t font = da2->mmio.ram[DA2_GAIJIRAM_SBCS + chr * 0x40 + da2->sc * 2]; /* w13xh29 font */
+                    uint32_t fontbase;
+                    if (extattr & 0x80) /* second map of SBCS font */
+                        fontbase = DA2_GAIJIRAM_SBEX;
+                    else
+                        fontbase = DA2_GAIJIRAM_SBCS;
+                    uint16_t font = da2->mmio.ram[fontbase+ chr * 0x40 + da2->sc * 2]; /* w13xh29 font */
                     font <<= 8;
-                    font |= da2->mmio.ram[DA2_GAIJIRAM_SBCS+ chr * 0x40 + da2->sc * 2 + 1]; /* w13xh29 font */
+                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1]; /* w13xh29 font */
                     // if(chr!=0x20) da2_log("ma: %x, sc: %x, chr: %x, font: %x    ", da2->ma, da2->sc, chr, font);
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
@@ -2176,6 +2181,17 @@ da2_updatevidselector(da2_t *da2)
     timer_set_delay_u64(&da2->timer_vidupd, 100000ull * TIMER_USEC);
 }
 
+/*
+    Video modes supported by DOS J4.0 for the DA-2 (The DA-2 doesn't have a video BIOS on its card.)
+    Mode (hex)  Type    Colors  Format  Base Address    PELs
+    3           A/N/K   16      80 x 25 B8000h          1040 x 725
+    8           A/N/K   1       80 x 25 E0000h          1040 x 725
+    A           APA     1       78 x 25 A0000h          1024 x 768
+    D           APA     16      78 x 25 A0000h          1024 x 768
+    E           A/N/K   16      80 x 25 E0000h          1040 x 725
+    F           APA     256             A0000h          1024 x 768
+    45 (undoc)  APA     16              A0000h          1040 x 768
+*/
 void
 da2_recalctimings(da2_t *da2)
 {
