@@ -259,7 +259,7 @@
 #ifdef ENABLE_DA2_LOG
 #    define ENABLE_DA2_DEBUGBLT 1
 #    define ENABLE_DA2_DEBUGVRAM 1
-#    define ENABLE_DA2_DEBUGFULLSCREEN 1
+// #    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
 int da2_do_log = ENABLE_DA2_LOG;
 
@@ -1227,7 +1227,9 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                         val = 0;
                     break;
                 case LC_START_ADDRESS_HIGH:
-                    // if (da2->crtc[0x1c] & 0x40) return;
+                case LC_START_ADDRESS_LOW:
+                /* OS/2 DOS in MODE 1 read this to set the base line, but it does not work correctly. */
+                    val = 0;
                     break;
                 case LC_VERTICAL_TOTALJ:      /* Vertical Total */
                 case LC_VERTICAL_SYNC_START:  /* Vertical Retrace Start Register */
@@ -1248,8 +1250,8 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                 case LC_H_DISPLAY_ENABLE_END:
                 case LC_VERTICAL_TOTALJ:
                 case LC_MAXIMUM_SCAN_LINE:
-                case LC_START_ADDRESS_HIGH:
-                case LC_START_ADDRESS_LOW:
+                // case LC_START_ADDRESS_HIGH:
+                // case LC_START_ADDRESS_LOW:
                 case LC_VERTICAL_SYNC_START:
                 case LC_V_DISPLAY_ENABLE_END:
                 case LC_START_VERTICAL_BLANK:
@@ -2235,7 +2237,7 @@ da2_recalctimings(da2_t *da2)
 
     // da2->interlace = 0;
 
-    // da2->ma_latch = ((da2->crtc[0xc] & 0x3ff) << 8) | da2->crtc[0xd];//w + b
+    // da2->ma_latch = ((da2->crtc[LC_START_ADDRESS_HIGH] & 0x3ff) << 8) | da2->crtc[LC_START_ADDRESS_LOW];//w + b
     da2->ca_adj = 0;
 
     da2->rowcount = da2->crtc[LC_MAXIMUM_SCAN_LINE];
@@ -2517,7 +2519,7 @@ da2_mmio_readw(uint32_t addr, void *p)
 {
     da2_t *da2 = (da2_t *) p;
     // da2_log("da2_readW: %x %x %x %x %x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
-    da2_log("da2_readW: %x %x %x %x %x CS:PC=%4x:%4x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, CS, cpu_state.pc);
+    // da2_log("da2_readW: %x %x %x %x %x CS:PC=%4x:%4x\n", da2->ioctl[LS_MMIO], da2->fctl[LF_MMIO_SEL], da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr, CS, cpu_state.pc);
 
     if (da2->ioctl[LS_MMIO] & 0x10) {
         return (uint16_t) da2_mmio_read(addr, da2) | (uint16_t) (da2_mmio_read(addr + 1, da2) << 8);
@@ -2553,7 +2555,7 @@ da2_mmio_readw(uint32_t addr, void *p)
             }
             return ~ret;
         } else {
-            // da2_log("da2_Rw: %05x=%04x\n", addr, da2->gdcla[da2->readplane]);
+            da2_log("da2_Rw: %05x(%d) = %04x\n", addr, da2->readplane, da2->gdcla[da2->readplane]);
             return da2->gdcla[da2->readplane];
         }
     } else {
@@ -3050,11 +3052,11 @@ da2_poll(void *priv)
                 = da2->maback = da2->ma_latch;
             da2->ca           = ((da2->crtc[LC_CURSOR_LOC_HIGH] << 8) | da2->crtc[LC_CURSOR_LOC_LOWJ]) + da2->ca_adj;
 
-            da2->ma <<= 1;
-            da2->maback <<= 1;
+            // da2->ma <<= 1;
+            // da2->maback <<= 1;
             da2->ca <<= 1;
 
-            // da2_log("Addr %08X vson %03X vsoff %01X  %02X %02X %02X %i %i\n",ma,da2_vsyncstart,crtc[0x11]&0xF,crtc[0xD],crtc[0xC],crtc[0x33], da2_interlace, oddeven);
+            // da2_log("Addr %08X vson %03X vsoff %01X\n",da2->ma,da2->vsyncstart,da2->crtc[0x11]&0xF);
         }
         if (da2->vc == da2->vtotal) {
             // da2_log("VC vtotal\n");
