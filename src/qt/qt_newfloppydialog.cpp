@@ -244,7 +244,7 @@ NewFloppyDialog::onCreate()
             break;
         case MediaType::SuperDisk:
             {
-                fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi: FileType::Img;
+                fileType = fi.suffix().toLower() == QStringLiteral("sdi") ? FileType::Sdi: FileType::Img;
 
                 std::atomic_bool res;
                 std::thread      t([this, &res, filename, fileType, &progress] {

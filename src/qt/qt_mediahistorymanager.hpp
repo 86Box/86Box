@@ -44,6 +44,7 @@ enum class MediaType {
     Optical,
     RDisk,
     Mo,
+    SuperDisk,
     Cassette,
     Cartridge
 };
@@ -57,10 +58,10 @@ typedef QHash<ui::MediaType, device_media_history_t> master_list_t;
 // Used to iterate over all supported types when preparing data structures
 // Also useful to indicate which types support history
 static const MediaType AllSupportedMediaHistoryTypes[] = {
-    MediaType::Optical,
     MediaType::Floppy,
     MediaType::RDisk,
     MediaType::Mo,
+    MediaType::SuperDisk,
     MediaType::Cassette,
     MediaType::Cartridge
 };

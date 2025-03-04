@@ -1986,7 +1986,7 @@ go_to_mo:
             ini_section_delete_var(cat, temp);
         }
 
-        sprintf(temp, "superdiske_%02i_scsi_id", c + 1);
+        sprintf(temp, "superdisk_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
         sprintf(temp, "superdisk_%02i_image_path", c + 1);
@@ -1998,8 +1998,7 @@ go_to_mo:
         if (p[0] != 0x00) {
             if (path_abs(p)) {
                 if (strlen(p) > 511)
-                    fatal("load_other_removable_devices(): strlen(p) > 511 (superdisk_drives[%i].image_path)\n",
-                          c);
+                    fatal("Configuration: Length of superdisk_%02i_image_path is more than 511\n", c + 1);
                 else
                     strncpy(superdisk_drives[c].image_path, p, 511);
             } else
@@ -2008,18 +2007,18 @@ go_to_mo:
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            superdisk_drives[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            superdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "superdisk_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
                 if (path_abs(p)) {
-                    if (strlen(p) > 511)
-                        fatal("load_other_removable_devices(): strlen(p) > 511 "
-                              "(superdisk_drives[%i].image_history[%i])\n", c, i);
+                    if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+                        fatal("Configuration: Length of superdisk_%02i_image_history_%02i is more than %i\n",
+                              c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
                     else
-                        snprintf(superdisk_drives[c].image_history[i], 511, "%s", p);
+                        snprintf(superdisk_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
                 } else
-                    snprintf(superdisk_drives[c].image_history[i], 511, "%s%s%s", usr_path,
+                    snprintf(superdisk_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
                              path_get_slash(usr_path), p);
                 path_normalize(superdisk_drives[c].image_history[i]);
             }
@@ -2027,16 +2026,13 @@ go_to_mo:
 
         /* If the SuperDisk drive is disabled, delete all its variables. */
         if (superdisk_drives[c].bus_type == SUPERDISK_BUS_DISABLED) {
-            sprintf(temp, "superdisk_%02i_host_drive", c + 1);
-            ini_section_delete_var(cat, temp);
-
             sprintf(temp, "superdisk_%02i_parameters", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "superdisk_%02i_ide_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
-            sprintf(temp, "superdisk_%02i_scsi_id", c + 1);
+            sprintf(temp, "superdisk_%02i_scsi_location", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "superdisk_%02i_image_path", c + 1);

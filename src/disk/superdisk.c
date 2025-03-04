@@ -9,32 +9,28 @@
  *          Implementation of the Imation superdisk drive with SCSI(-like)
  *          commands, for both ATAPI and SCSI usage.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2018-2019 Miran Grca.
- *          Copyright 2022-2023 Jasmine Iwanek.
+ *          Copyright 2018-2025 Miran Grca.
+ *          Copyright 2022-2025 Jasmine Iwanek.
  */
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
+#ifdef ENABLE_SUPERDISK_LOG
 #include <stdarg.h>
-#include <wchar.h>
-#define HAVE_STDARG_H
+#endif
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <86box/86box.h>
-#include <86box/timer.h>
-#include <86box/config.h>
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/superdisk.h>
 
@@ -42,402 +38,107 @@
 
 superdisk_drive_t superdisk_drives[SUPERDISK_NUM];
 
-/* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
+// clang-format off
+/*
+   Table of all SCSI commands and their flags, needed for the new disc change /
+   not ready handler.
+ */
 const uint8_t superdisk_command_flags[0x100] = {
-    IMPLEMENTED | CHECK_READY | NONDATA,          /* 0x00 */
-    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY, /* 0x01 */
-    0,
-    IMPLEMENTED | ALLOW_UA,                                     /* 0x03 */
-    IMPLEMENTED | CHECK_READY | ALLOW_UA | NONDATA | SCSI_ONLY, /* 0x04 */
-    0,
-    IMPLEMENTED, /* 0x06 */
-    0,
-    IMPLEMENTED | CHECK_READY, /* 0x08 */
-    0,
-    IMPLEMENTED | CHECK_READY,           /* 0x0A */
-    IMPLEMENTED | CHECK_READY | NONDATA, /* 0x0B */
-    IMPLEMENTED,                         /* 0x0C */
-    IMPLEMENTED | ATAPI_ONLY,            /* 0x0D */
-    0, 0, 0, 0,
-    IMPLEMENTED | ALLOW_UA,                          /* 0x12 */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0x13 */
-    0,
-    IMPLEMENTED,             /* 0x15 */
-    IMPLEMENTED | SCSI_ONLY, /* 0x16 */
-    IMPLEMENTED | SCSI_ONLY, /* 0x17 */
-    0, 0,
-    IMPLEMENTED,               /* 0x1A */
-    IMPLEMENTED | CHECK_READY, /* 0x1B */
-    0,
-    IMPLEMENTED,               /* 0x1D */
-    IMPLEMENTED | CHECK_READY, /* 0x1E */
-    0, 0, 0, 0,
-    IMPLEMENTED | ATAPI_ONLY, /* 0x23 */
-    0,
-    IMPLEMENTED | CHECK_READY, /* 0x25 */
-    0, 0,
-    IMPLEMENTED | CHECK_READY, /* 0x28 */
-    0,
-    IMPLEMENTED | CHECK_READY,           /* 0x2A */
-    IMPLEMENTED | CHECK_READY | NONDATA, /* 0x2B */
-    0, 0,
-    IMPLEMENTED | CHECK_READY,                       /* 0x2E */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0x2F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0,
-    IMPLEMENTED | CHECK_READY, /* 0x41 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    IMPLEMENTED, /* 0x55 */
-    0, 0, 0, 0,
-    IMPLEMENTED, /* 0x5A */
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    IMPLEMENTED | CHECK_READY, /* 0xA8 */
-    0,
-    IMPLEMENTED | CHECK_READY, /* 0xAA */
-    0, 0, 0,
-    IMPLEMENTED | CHECK_READY,                       /* 0xAE */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0xAF */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    IMPLEMENTED, /* 0xBD */
-    0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    [0x00]          = IMPLEMENTED | CHECK_READY,
+    [0x01]          = IMPLEMENTED | ALLOW_UA | SCSI_ONLY,
+    [0x03]          = IMPLEMENTED | ALLOW_UA,
+    [0x04]          = IMPLEMENTED | CHECK_READY | ALLOW_UA | SCSI_ONLY,
+    [0x06]          = IMPLEMENTED,
+    [0x08]          = IMPLEMENTED | CHECK_READY,
+    [0x0a ... 0x0b] = IMPLEMENTED | CHECK_READY,
+    [0x0c]          = IMPLEMENTED,
+    [0x0d]          = IMPLEMENTED | ATAPI_ONLY,
+    [0x12]          = IMPLEMENTED | ALLOW_UA,
+    [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x15]          = IMPLEMENTED,
+    [0x16 ... 0x17] = IMPLEMENTED | SCSI_ONLY,
+    [0x1a]          = IMPLEMENTED,
+    [0x1b]          = IMPLEMENTED | CHECK_READY,
+    [0x1d]          = IMPLEMENTED,
+    [0x1e]          = IMPLEMENTED | CHECK_READY,
+    [0x23]          = IMPLEMENTED | ATAPI_ONLY,
+    [0x25]          = IMPLEMENTED | CHECK_READY,
+    [0x28]          = IMPLEMENTED | CHECK_READY,
+    [0x2a ... 0x2b] = IMPLEMENTED | CHECK_READY,
+    [0x2e]          = IMPLEMENTED | CHECK_READY,
+    [0x2f]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x41]          = IMPLEMENTED | CHECK_READY,
+    [0x55]          = IMPLEMENTED,
+    [0x5a]          = IMPLEMENTED,
+    [0xa8]          = IMPLEMENTED | CHECK_READY,
+    [0xaa]          = IMPLEMENTED | CHECK_READY,
+    [0xae]          = IMPLEMENTED | CHECK_READY,
+    [0xaf]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0xbd]          = IMPLEMENTED
 };
 
-static uint64_t superdisk_mode_sense_page_flags     = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_IMATION_PAGE | GPMODEP_ALL_PAGES);
-static uint64_t superdisk_240_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FLEXIBLE_DISK_PAGE | GPMODEP_CACHING_PAGE | GPMODEP_IMATION_PAGE | GPMODEP_ALL_PAGES);
+static uint64_t superdisk_mode_sense_page_flags     = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE |
+                                                       GPMODEP_IMATION_PAGE | GPMODEP_ALL_PAGES);
+static uint64_t superdisk_240_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FLEXIBLE_DISK_PAGE |
+                                                       GPMODEP_CACHING_PAGE | GPMODEP_IMATION_PAGE |
+                                                       GPMODEP_ALL_PAGES);
 
-static const mode_sense_pages_t superdisk_mode_sense_pages_default =
-    // clang-format off
-{   {
-    {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xc8, 22, 0,  0, 0, 0, 90, 0, 0x50, 0x20 },
-    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {       GPMODE_IMATION_PAGE,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
-}   };
-// clang-format on
+static const mode_sense_pages_t superdisk_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
+                 0x5a,                                0x00, 0x50, 0x20                         },
+      [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0xff, 0x0f             } }
+};
 
-static const mode_sense_pages_t superdisk_240_mode_sense_pages_default =
-    // clang-format off
-{   {
-    {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x06, 0xc8, 0x64, 0,  0, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {GPMODE_FLEXIBLE_DISK_PAGE, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {      GPMODE_CACHING_PAGE, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {       GPMODE_IMATION_PAGE,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
-}   };
-// clang-format on
+static const mode_sense_pages_t superdisk_240_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x06, 0xc8, 0x64, 0x00, 0x00, 0x00, 0x00 },
+      [0x05] = { GPMODE_FLEXIBLE_DISK_PAGE,           0x1e, 0x80, 0x00, 0x40, 0x20, 0x02, 0x00,
+                 0x00,                                0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x0b, 0x7d, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
+                 0xff,                                0xff, 0xff, 0xff                         },
+      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0x3c, 0x0f             } }
+};
 
-static const mode_sense_pages_t superdisk_mode_sense_pages_default_scsi =
-    // clang-format off
-{   {
-    {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xc8, 22, 0,  0, 0, 0, 90, 0, 0x50, 0x20 },
-    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {       GPMODE_IMATION_PAGE,    0x04, 0x5c, 0x0f, 0xff, 0x0f }
-}   };
-// clang-format on
+static const mode_sense_pages_t superdisk_mode_sense_pages_default_scsi = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
+                 0x5a,                                0x00, 0x50, 0x20                         },
+      [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0xff, 0x0f             } }
+};
 
-static const mode_sense_pages_t superdisk_240_mode_sense_pages_default_scsi =
-    // clang-format off
-{   {
-    {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x06, 0xc8, 0x64, 0,  0, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {GPMODE_FLEXIBLE_DISK_PAGE, 0x1e, 0x80, 0, 0x40, 0x20, 2, 0, 0, 0xef, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0b, 0x7d, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {      GPMODE_CACHING_PAGE, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {       GPMODE_IMATION_PAGE,    0x04, 0x5c, 0x0f, 0x3c, 0x0f }
-}   };
-// clang-format on
+static const mode_sense_pages_t superdisk_240_mode_sense_pages_default_scsi = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x06, 0xc8, 0x64, 0x00, 0x00, 0x00, 0x00 },
+      [0x05] = { GPMODE_FLEXIBLE_DISK_PAGE,           0x1e, 0x80, 0x00, 0x40, 0x20, 0x02, 0x00,
+                 0x00,                                0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x0b, 0x7d, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
+                 0xff,                                0xff, 0xff, 0xff                         },
+      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0x3c, 0x0f             } }
+};
 
-static const mode_sense_pages_t superdisk_mode_sense_pages_changeable =
-    // clang-format off
-{   {
-    {                        0,    0 },
+static const mode_sense_pages_t superdisk_mode_sense_pages_changeable = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xff, 0xff, 0x00, 0x00, 0x00, 0xff,
+                                                      0xff, 0xff, 0xff                         },
+      [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0xff, 0xff, 0xff, 0xff             } }
+};
 
-    {    GPMODE_R_W_ERROR_PAGE, 0x0a, 0xFF, 0xFF, 0,  0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF },
-    {   GPMODE_DISCONNECT_PAGE, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {       GPMODE_IMATION_PAGE,    0x04, 0xff, 0xff, 0xff, 0xff }
-}   };
-// clang-format on
-
-static const mode_sense_pages_t superdisk_240_mode_sense_pages_changeable =
-    // clang-format off
-{   {
-    {                        0,    0 },
-    {    GPMODE_R_W_ERROR_PAGE, 0x06, 0xFF, 0xFF, 0,  0, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {GPMODE_FLEXIBLE_DISK_PAGE, 0x1e, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {      GPMODE_CACHING_PAGE, 0x0a, 4, 0, 0xff, 0xff, 0, 0, 0xff, 0xff, 0xff, 0xff },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {                        0,    0 },
-    {       GPMODE_IMATION_PAGE,    0x04, 0xff, 0xff, 0xff, 0xff }
-}   };
+static const mode_sense_pages_t superdisk_240_mode_sense_pages_changeable = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x06, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 },
+      [0x05] = { GPMODE_FLEXIBLE_DISK_PAGE,           0x1e, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
+                 0xff,                                0xff, 0xff, 0xff                         },
+      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0xff, 0xff, 0xff, 0xff             } }
+};
 // clang-format on
 
 static void superdisk_command_complete(superdisk_t *dev);
@@ -461,18 +162,8 @@ superdisk_log(const char *fmt, ...)
 #    define superdisk_log(fmt, ...)
 #endif
 
-int
-find_superdisk_for_channel(uint8_t channel)
-{
-    for (uint8_t i = 0; i < SUPERDISK_NUM; i++) {
-        if ((superdisk_drives[i].bus_type == SUPERDISK_BUS_ATAPI) && (superdisk_drives[i].ide_channel == channel))
-            return i;
-    }
-    return 0xff;
-}
-
 static int
-superdisk_load_abort(superdisk_t *dev)
+superdisk_load_abort(const superdisk_t *dev)
 {
     if (dev->drv->fp)
         fclose(dev->drv->fp);
@@ -482,105 +173,141 @@ superdisk_load_abort(superdisk_t *dev)
     return 0;
 }
 
+static int
+image_is_sdi(const char *s)
+{
+    return !strcasecmp(path_get_extension((char *) s), "SDI");
+}
+
 int
-superdisk_load(superdisk_t *dev, char *fn)
+superdisk_is_empty(const uint8_t id)
 {
-    int size = 0;
+    const superdisk_t *dev = (const superdisk_t *) superdisk_drives[id].priv;
+    int          ret = 0;
 
-    if (!dev->drv) {
+    if ((dev->drv == NULL) || (dev->drv->fp == NULL))
+        ret = 1;
+
+    return ret;
+}
+
+void
+superdisk_load(const superdisk_t *dev, const char *fn, const int skip_insert)
+{
+    const int was_empty = superdisk_is_empty(dev->id);
+    int       ret       = 0;
+
+    if (dev->drv == NULL)
         superdisk_eject(dev->id);
-        return 0;
-    }
+    else {
+        const int is_sdi = image_is_sdi(fn);
 
-    dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
-    if (!dev->drv->fp) {
-        if (!dev->drv->read_only) {
-            dev->drv->fp = plat_fopen(fn, "rb");
-            if (dev->drv->fp)
-                dev->drv->read_only = 1;
-            else
-                return superdisk_load_abort(dev);
-        } else
-            return superdisk_load_abort(dev);
-    }
+        dev->drv->fp     = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
+        ret              = 1;
 
-    fseek(dev->drv->fp, 0, SEEK_END);
-    size = ftell(dev->drv->fp);
-
-    if ((size == ((SUPERDISK_240_SECTORS << 9) + 0x1000)) || (size == ((SUPERDISK_SECTORS << 9) + 0x1000))) {
-        /* This is a ZDI image. */
-        size -= 0x1000;
-        dev->drv->base = 0x1000;
-    } else
-        dev->drv->base = 0;
-
-    if (dev->drv->is_240) {
-        if ((size != (SUPERDISK_240_SECTORS << 9)) && (size != (SUPERDISK_SECTORS << 9))) {
-            superdisk_log("File is incorrect size for a LS-120/LS-240 image\nMust be exactly %i or %i bytes\n",
-                    SUPERDISK_240_SECTORS << 9, SUPERDISK_SECTORS << 9);
-            return superdisk_load_abort(dev);
+        if (dev->drv->fp == NULL) {
+            if (!dev->drv->read_only) {
+                dev->drv->fp = plat_fopen(fn, "rb");
+                if (dev->drv->fp == NULL)
+                    ret = superdisk_load_abort(dev);
+                else
+                    dev->drv->read_only = 1;
+            } else
+                ret = superdisk_load_abort(dev);
         }
-    } else {
-        if (size != (SUPERDISK_SECTORS << 9)) {
-            superdisk_log("File is incorrect size for a LS-120/LS-240 image\nMust be exactly %i bytes\n",
-                    SUPERDISK_SECTORS << 9);
-            return superdisk_load_abort(dev);
+
+        if (ret) {
+            fseek(dev->drv->fp, 0, SEEK_END);
+            int size = ftell(dev->drv->fp);
+
+            if (is_sdi) {
+                /* This is a SDI image. */
+                size -= 0x1000;
+                dev->drv->base = 0x1000;
+            } else
+                dev->drv->base = 0;
+
+            if (dev->drv->is_240) {
+                if ((size != (SUPERDISK_240_SECTORS << 9)) && (size != (SUPERDISK_SECTORS << 9))) {
+                    superdisk_log("File is incorrect size for a LS-120/LS-240 image\n");
+                    superdisk_log("Must be exactly %i or %i bytes\n",
+                            SUPERDISK_240_SECTORS << 9, SUPERDISK_SECTORS << 9);
+                    ret = superdisk_load_abort(dev);
+                }
+            } else if (size != (SUPERDISK_SECTORS << 9)) {
+                superdisk_log("File is incorrect size for a LS-120/LS-240 image\n");
+                superdisk_log("Must be exactly %i bytes\n", SUPERDISK_SECTORS << 9);
+                ret = superdisk_load_abort(dev);
+            }
+
+            if (ret)
+                dev->drv->medium_size = size >> 9;
+        }
+
+         if (ret) {
+             if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
+                 fatal("superdisk_load(): Error seeking to the beginning of "
+                           "the file\n");
+
+             strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+             /*
+                After using strncpy, dev->drv->image_path needs to be explicitly null
+                terminated to make gcc happy.
+                In the event strlen(dev->drv->image_path) == sizeof(dev->drv->image_path)
+                (no null terminator) it is placed at the very end. Otherwise, it is placed
+                right after the string.
+              */
+             const size_t term = strlen(dev->drv->image_path) ==
+                 sizeof(dev->drv->image_path) ? sizeof(dev->drv->image_path) - 1 :
+                                                strlen(dev->drv->image_path);
+             dev->drv->image_path[term] = '\0';
         }
     }
 
-    dev->drv->medium_size = size >> 9;
+    if (ret && !skip_insert) {
+        /* Signal media change to the emulated machine. */
+        superdisk_insert((superdisk_t *) dev);
 
-    if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
-        fatal("superdisk_load(): Error seeking to the beginning of the file\n");
-
-    strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
-    // After using strncpy, dev->drv->image_path needs to be explicitly null terminated to make gcc happy.
-    // In the event strlen(dev->drv->image_path) == sizeof(dev->drv->image_path) (no null terminator)
-    // it is placed at the very end. Otherwise, it is placed right after the string.
-    const size_t term = strlen(dev->drv->image_path) == sizeof(dev->drv->image_path) ? sizeof(dev->drv->image_path) - 1 : strlen(dev->drv->image_path);
-    dev->drv->image_path[term] = '\0';
-
-    return 1;
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            superdisk_insert((superdisk_t *) dev);
+    }
 }
 
 void
-superdisk_disk_reload(superdisk_t *dev)
+superdisk_disk_reload(const superdisk_t *dev)
 {
-    int ret = 0;
-
-    if (strlen(dev->drv->prev_image_path) == 0)
-        return;
-    else
-        ret = superdisk_load(dev, dev->drv->prev_image_path);
-
-    if (ret)
-        dev->unit_attention = 1;
+    if (strlen(dev->drv->prev_image_path) != 0)
+        (void) superdisk_load(dev, dev->drv->prev_image_path, 0);
 }
 
-void
-superdisk_disk_unload(superdisk_t *dev)
+static void
+superdisk_disk_unload(const superdisk_t *dev)
 {
-    if (dev->drv && dev->drv->fp) {
+    if ((dev->drv != NULL) && (dev->drv->fp != NULL)) {
         fclose(dev->drv->fp);
         dev->drv->fp = NULL;
     }
 }
 
 void
-superdisk_disk_close(superdisk_t *dev)
+superdisk_disk_close(const superdisk_t *dev)
 {
-    if (dev->drv && dev->drv->fp) {
+    if ((dev->drv != NULL) && (dev->drv->fp != NULL)) {
         superdisk_disk_unload(dev);
 
-        memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
+        memcpy(dev->drv->prev_image_path, dev->drv->image_path,
+               sizeof(dev->drv->prev_image_path));
         memset(dev->drv->image_path, 0, sizeof(dev->drv->image_path));
 
         dev->drv->medium_size = 0;
+
+        superdisk_insert((superdisk_t *) dev);
     }
 }
 
 static void
-superdisk_set_callback(superdisk_t *dev)
+superdisk_set_callback(const superdisk_t *dev)
 {
     if (dev->drv->bus_type != SUPERDISK_BUS_SCSI)
         ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
@@ -589,43 +316,43 @@ superdisk_set_callback(superdisk_t *dev)
 static void
 superdisk_init(superdisk_t *dev)
 {
-    if (dev->id >= SUPERDISK_NUM)
-        return;
-
-    dev->requested_blocks = 1;
-    dev->sense[0]         = 0xf0;
-    dev->sense[7]         = 10;
-    dev->drv->bus_mode    = 0;
-    if (dev->drv->bus_type >= SUPERDISK_BUS_ATAPI)
-        dev->drv->bus_mode |= 2;
-    if (dev->drv->bus_type < SUPERDISK_BUS_SCSI)
-        dev->drv->bus_mode |= 1;
-    superdisk_log("SuperDisk %i: Bus type %i, bus mode %i\n", dev->id, dev->drv->bus_type, dev->drv->bus_mode);
-    if (dev->drv->bus_type < SUPERDISK_BUS_SCSI) {
-        dev->tf->phase          = 1;
-        dev->tf->request_length = 0xEB14;
+    if (dev->id < SUPERDISK_NUM) {
+        dev->requested_blocks = 1;
+        dev->sense[0]         = 0xf0;
+        dev->sense[7]         = 10;
+        dev->drv->bus_mode    = 0;
+        if (dev->drv->bus_type >= SUPERDISK_BUS_ATAPI)
+            dev->drv->bus_mode |= 2;
+        if (dev->drv->bus_type < SUPERDISK_BUS_SCSI)
+            dev->drv->bus_mode |= 1;
+        superdisk_log("SuperDisk %i: Bus type %i, bus mode %i\n", dev->id, dev->drv->bus_type, dev->drv->bus_mode);
+        if (dev->drv->bus_type < SUPERDISK_BUS_SCSI) {
+            dev->tf->phase          = 1;
+            dev->tf->request_length = 0xEB14;
+        }
+        dev->tf->status    = READY_STAT | DSC_STAT;
+        dev->tf->pos       = 0;
+        dev->packet_status = PHASE_NONE;
+        superdisk_sense_key = superdisk_asc = superdisk_ascq = dev->unit_attention = dev->transition = 0;
+        superdisk_info      = 0x00000000;
     }
-    dev->tf->status    = READY_STAT | DSC_STAT;
-    dev->tf->pos       = 0;
-    dev->packet_status = PHASE_NONE;
-    superdisk_sense_key = superdisk_asc = superdisk_ascq = dev->unit_attention = 0;
 }
 
 static int
-superdisk_supports_pio(superdisk_t *dev)
+superdisk_supports_pio(const superdisk_t *dev)
 {
     return (dev->drv->bus_mode & 1);
 }
 
 static int
-superdisk_supports_dma(superdisk_t *dev)
+superdisk_supports_dma(const superdisk_t *dev)
 {
     return (dev->drv->bus_mode & 2);
 }
 
 /* Returns: 0 for none, 1 for PIO, 2 for DMA. */
 static int
-superdisk_current_mode(superdisk_t *dev)
+superdisk_current_mode(const superdisk_t *dev)
 {
     if (!superdisk_supports_pio(dev) && !superdisk_supports_dma(dev))
         return 0;
@@ -647,8 +374,7 @@ superdisk_current_mode(superdisk_t *dev)
 static void
 superdisk_mode_sense_load(superdisk_t *dev)
 {
-    FILE *fp;
-    char  fn[512];
+    char  fn[512] = { 0 };
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     if (dev->drv->is_240) {
@@ -663,12 +389,11 @@ superdisk_mode_sense_load(superdisk_t *dev)
             memcpy(&dev->ms_pages_saved, &superdisk_mode_sense_pages_default, sizeof(mode_sense_pages_t));
     }
 
-    memset(fn, 0, 512);
     if (dev->drv->bus_type == SUPERDISK_BUS_SCSI)
         sprintf(fn, "scsi_superdisk_%02i_mode_sense_bin", dev->id);
     else
         sprintf(fn, "superdisk_%02i_mode_sense_bin", dev->id);
-    fp = plat_fopen(nvr_path(fn), "rb");
+    FILE *fp = plat_fopen(nvr_path(fn), "rb");
     if (fp) {
         /* Nothing to read, not used by SuperDisk. */
         fclose(fp);
@@ -676,31 +401,31 @@ superdisk_mode_sense_load(superdisk_t *dev)
 }
 
 static void
-superdisk_mode_sense_save(superdisk_t *dev)
+superdisk_mode_sense_save(const superdisk_t *dev)
 {
-    FILE *fp;
-    char  fn[512];
+    char  fn[512] = { 0 };
 
-    memset(fn, 0, 512);
     if (dev->drv->bus_type == SUPERDISK_BUS_SCSI)
         sprintf(fn, "scsi_superdisk_%02i_mode_sense_bin", dev->id);
     else
         sprintf(fn, "superdisk_%02i_mode_sense_bin", dev->id);
-    fp = plat_fopen(nvr_path(fn), "wb");
+    FILE *fp = plat_fopen(nvr_path(fn), "wb");
     if (fp) {
         /* Nothing to write, not used by SuperDisk. */
         fclose(fp);
     }
 }
 
-/*SCSI Mode Sense 6/10*/
+/* SCSI Mode Sense 6/10. */
 static uint8_t
-superdisk_mode_sense_read(superdisk_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
+superdisk_mode_sense_read(const superdisk_t *dev, const uint8_t pgctl,
+                          const uint8_t page, const uint8_t pos)
 {
-    switch (page_control) {
+    switch (pgctl) {
         case 0:
         case 3:
-            if (dev->drv->is_240 && (page == 5) && (pos == 9) && (dev->drv->medium_size == SUPERDISK_SECTORS))
+            if (dev->drv->is_240 && (page == 5) && (pos == 9) &&
+                (dev->drv->medium_size == SUPERDISK_SECTORS))
                 return 0x60;
             return dev->ms_pages_saved.pages[page][pos];
         case 1:
@@ -731,17 +456,16 @@ superdisk_mode_sense_read(superdisk_t *dev, uint8_t page_control, uint8_t page, 
 }
 
 static uint32_t
-superdisk_mode_sense(superdisk_t *dev, uint8_t *buf, uint32_t pos, uint8_t page, uint8_t block_descriptor_len)
+superdisk_mode_sense(const superdisk_t *dev, uint8_t *buf, uint32_t pos,
+                     uint8_t page, const uint8_t block_descriptor_len)
 {
-    uint64_t pf;
-    uint8_t  page_control = (page >> 6) & 3;
+    uint64_t      pf;
+    const uint8_t pgctl = (page >> 6) & 3;
 
     if (dev->drv->is_240)
         pf = superdisk_240_mode_sense_page_flags;
     else
         pf = superdisk_mode_sense_page_flags;
-
-    uint8_t msplen;
 
     page &= 0x3f;
 
@@ -759,12 +483,12 @@ superdisk_mode_sense(superdisk_t *dev, uint8_t *buf, uint32_t pos, uint8_t page,
     for (uint8_t i = 0; i < 0x40; i++) {
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
             if (pf & (1LL << ((uint64_t) page))) {
-                buf[pos++] = superdisk_mode_sense_read(dev, page_control, i, 0);
-                msplen     = superdisk_mode_sense_read(dev, page_control, i, 1);
-                buf[pos++] = msplen;
+                const uint8_t msplen = superdisk_mode_sense_read(dev, pgctl, i, 1);
+                buf[pos++]           = superdisk_mode_sense_read(dev, pgctl, i, 0);
+                buf[pos++]           = msplen;
                 superdisk_log("SuperDisk %i: MODE SENSE: Page [%02X] length %i\n", dev->id, i, msplen);
                 for (uint8_t j = 0; j < msplen; j++)
-                    buf[pos++] = superdisk_mode_sense_read(dev, page_control, i, 2 + j);
+                    buf[pos++] = superdisk_mode_sense_read(dev, pgctl, i, 2 + j);
             }
         }
     }
@@ -780,7 +504,10 @@ superdisk_update_request_length(superdisk_t *dev, int len, int block_len)
 
     dev->max_transfer_len = dev->tf->request_length;
 
-    /* For media access commands, make sure the requested DRQ length matches the block length. */
+    /*
+       For media access commands, make sure the requested DRQ length matches the
+       block length.
+     */
     switch (dev->current_cdb[0]) {
         case 0x08:
         case 0x0a:
@@ -791,8 +518,10 @@ superdisk_update_request_length(superdisk_t *dev, int len, int block_len)
             /* Round it to the nearest 2048 bytes. */
             dev->max_transfer_len = (dev->max_transfer_len >> 9) << 9;
 
-            /* Make sure total length is not bigger than sum of the lengths of
-               all the requested blocks. */
+            /*
+               Make sure total length is not bigger than sum of the lengths of
+               all the requested blocks.
+             */
             bt = (dev->requested_blocks * block_len);
             if (len > bt)
                 len = bt;
@@ -814,10 +543,16 @@ superdisk_update_request_length(superdisk_t *dev, int len, int block_len)
             dev->packet_len = len;
             break;
     }
-    /* If the DRQ length is odd, and the total remaining length is bigger, make sure it's even. */
+    /*
+       If the DRQ length is odd, and the total remaining length is bigger,
+       make sure it's even.
+     */
     if ((dev->max_transfer_len & 1) && (dev->max_transfer_len < len))
         dev->max_transfer_len &= 0xfffe;
-    /* If the DRQ length is smaller or equal in size to the total remaining length, set it to that. */
+    /*
+       If the DRQ length is smaller or equal in size to the total remaining length,
+       set it to that.
+     */
     if (!dev->max_transfer_len)
         dev->max_transfer_len = 65534;
 
@@ -852,23 +587,22 @@ superdisk_bus_speed(superdisk_t *dev)
 static void
 superdisk_command_common(superdisk_t *dev)
 {
-    double bytes_per_second;
-    double period;
-
     dev->tf->status = BUSY_STAT;
     dev->tf->phase  = 1;
     dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
     else {
+        double bytes_per_second;
+
         if (dev->drv->bus_type == SUPERDISK_BUS_SCSI) {
             dev->callback = -1.0; /* Speed depends on SCSI controller */
             return;
         } else
             bytes_per_second = superdisk_bus_speed(dev);
 
-        period        = 1000000.0 / bytes_per_second;
-        dev->callback = period * (double) (dev->packet_len);
+        double period        = 1000000.0 / bytes_per_second;
+        dev->callback        = period * (double) (dev->packet_len);
     }
 
     superdisk_set_callback(dev);
@@ -877,7 +611,6 @@ superdisk_command_common(superdisk_t *dev)
 static void
 superdisk_command_complete(superdisk_t *dev)
 {
-    ui_sb_update_icon(SB_SUPERDISK | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     superdisk_command_common(dev);
 }
@@ -910,16 +643,20 @@ superdisk_command_write_dma(superdisk_t *dev)
     superdisk_command_common(dev);
 }
 
-/* id = Current SuperDisk device ID;
+/*
+   dev = Pointer to current SuperDisk device;
    len = Total transfer length;
    block_len = Length of a single block (why does it matter?!);
    alloc_len = Allocated transfer length;
-   direction = Transfer direction (0 = read from host, 1 = write to host). */
+   direction = Transfer direction (0 = read from host, 1 = write to host).
+ */
 static void
-superdisk_data_command_finish(superdisk_t *dev, int len, int block_len, int alloc_len, int direction)
+superdisk_data_command_finish(superdisk_t *dev, int len, const int block_len,
+                        const int alloc_len, const int direction)
 {
-    superdisk_log("SuperDisk %i: Finishing command (%02X): %i, %i, %i, %i, %i\n",
-            dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->tf->request_length);
+    superdisk_log("SuperDisk %i: Finishing command (%02X): %i, %i, %i, %i, %i\n", dev->id,
+            dev->current_cdb[0], len, block_len, alloc_len,
+            direction, dev->tf->request_length);
     dev->tf->pos = 0;
     if (alloc_len >= 0) {
         if (alloc_len < len)
@@ -948,27 +685,26 @@ superdisk_data_command_finish(superdisk_t *dev, int len, int block_len, int allo
         }
     }
 
-    superdisk_log("SuperDisk %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n",
-            dev->id, dev->packet_status, dev->tf->request_length, dev->packet_len, dev->tf->pos,
-            dev->tf->phase);
+    superdisk_log("SuperDisk %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n", dev->id,
+            dev->packet_status, dev->tf->request_length, dev->packet_len,
+            dev->tf->pos, dev->tf->phase);
 }
 
 static void
 superdisk_sense_clear(superdisk_t *dev, UNUSED(int command))
 {
     superdisk_sense_key = superdisk_asc = superdisk_ascq = 0;
+    superdisk_info      = 0x00000000;
 }
 
 static void
-superdisk_set_phase(superdisk_t *dev, uint8_t phase)
+superdisk_set_phase(const superdisk_t *dev, const uint8_t phase)
 {
-    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
-    uint8_t scsi_id  = dev->drv->scsi_device_id & 0x0f;
+    const uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    const uint8_t scsi_id  = dev->drv->scsi_device_id & 0x0f;
 
-    if (dev->drv->bus_type != SUPERDISK_BUS_SCSI)
-        return;
-
-    scsi_devices[scsi_bus][scsi_id].phase = phase;
+    if (dev->drv->bus_type == SUPERDISK_BUS_SCSI)
+        scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 static void
@@ -976,8 +712,6 @@ superdisk_cmd_error(superdisk_t *dev)
 {
     superdisk_set_phase(dev, SCSI_PHASE_STATUS);
     dev->tf->error = ((superdisk_sense_key & 0xf) << 4) | ABRT_ERR;
-    if (dev->unit_attention)
-        dev->tf->error |= MCR_ERR;
     dev->tf->status    = READY_STAT | ERR_STAT;
     dev->tf->phase     = 3;
     dev->tf->pos       = 0;
@@ -985,7 +719,8 @@ superdisk_cmd_error(superdisk_t *dev)
     dev->callback      = 50.0 * SUPERDISK_TIME;
     superdisk_set_callback(dev);
     ui_sb_update_icon(SB_SUPERDISK | dev->id, 0);
-    superdisk_log("SuperDisk %i: [%02X] ERROR: %02X/%02X/%02X\n", dev->id, dev->current_cdb[0], superdisk_sense_key, superdisk_asc, superdisk_ascq);
+    superdisk_log("SuperDisk %i: [%02X] ERROR: %02X/%02X/%02X\n", dev->id, dev->current_cdb[0], superdisk_sense_key,
+            superdisk_asc, superdisk_ascq);
 }
 
 static void
@@ -993,8 +728,6 @@ superdisk_unit_attention(superdisk_t *dev)
 {
     superdisk_set_phase(dev, SCSI_PHASE_STATUS);
     dev->tf->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
-    if (dev->unit_attention)
-        dev->tf->error |= MCR_ERR;
     dev->tf->status    = READY_STAT | ERR_STAT;
     dev->tf->phase     = 3;
     dev->tf->pos       = 0;
@@ -1006,17 +739,17 @@ superdisk_unit_attention(superdisk_t *dev)
 }
 
 static void
-superdisk_buf_alloc(superdisk_t *dev, uint32_t len)
+superdisk_buf_alloc(superdisk_t *dev, const uint32_t len)
 {
     superdisk_log("SuperDisk %i: Allocated buffer length: %i\n", dev->id, len);
-    if (!dev->buffer)
+    if (dev->buffer == NULL)
         dev->buffer = (uint8_t *) malloc(len);
 }
 
 static void
 superdisk_buf_free(superdisk_t *dev)
 {
-    if (dev->buffer) {
+    if (dev->buffer != NULL) {
         superdisk_log("SuperDisk %i: Freeing buffer...\n", dev->id);
         free(dev->buffer);
         dev->buffer = NULL;
@@ -1030,6 +763,10 @@ superdisk_bus_master_error(scsi_common_t *sc)
 
     superdisk_buf_free(dev);
     superdisk_sense_key = superdisk_asc = superdisk_ascq = 0;
+    superdisk_info      =  (dev->sector_pos >> 24)        |
+                    ((dev->sector_pos >> 16) <<  8) |
+                    ((dev->sector_pos >> 8)  << 16) |
+                    ( dev->sector_pos        << 24);
     superdisk_cmd_error(dev);
 }
 
@@ -1039,6 +776,7 @@ superdisk_not_ready(superdisk_t *dev)
     superdisk_sense_key = SENSE_NOT_READY;
     superdisk_asc       = ASC_MEDIUM_NOT_PRESENT;
     superdisk_ascq      = 0;
+    superdisk_info      = 0x00000000;
     superdisk_cmd_error(dev);
 }
 
@@ -1048,6 +786,10 @@ superdisk_write_protected(superdisk_t *dev)
     superdisk_sense_key = SENSE_UNIT_ATTENTION;
     superdisk_asc       = ASC_WRITE_PROTECTED;
     superdisk_ascq      = 0;
+    superdisk_info      =  (dev->sector_pos >> 24)        |
+                    ((dev->sector_pos >> 16) <<  8) |
+                    ((dev->sector_pos >> 8)  << 16) |
+                    ( dev->sector_pos        << 24);
     superdisk_cmd_error(dev);
 }
 
@@ -1057,6 +799,10 @@ superdisk_write_error(superdisk_t *dev)
     superdisk_sense_key = SENSE_MEDIUM_ERROR;
     superdisk_asc       = ASC_WRITE_ERROR;
     superdisk_ascq      = 0;
+    superdisk_info      =  (dev->sector_pos >> 24)        |
+                    ((dev->sector_pos >> 16) <<  8) |
+                    ((dev->sector_pos >> 8)  << 16) |
+                    ( dev->sector_pos        << 24);
     superdisk_cmd_error(dev);
 }
 
@@ -1066,24 +812,30 @@ superdisk_read_error(superdisk_t *dev)
     superdisk_sense_key = SENSE_MEDIUM_ERROR;
     superdisk_asc       = ASC_UNRECOVERED_READ_ERROR;
     superdisk_ascq      = 0;
+    superdisk_info      =  (dev->sector_pos >> 24)        |
+                    ((dev->sector_pos >> 16) <<  8) |
+                    ((dev->sector_pos >> 8)  << 16) |
+                    ( dev->sector_pos        << 24);
     superdisk_cmd_error(dev);
 }
 
 static void
-superdisk_invalid_lun(superdisk_t *dev)
+superdisk_invalid_lun(superdisk_t *dev, const uint8_t lun)
 {
     superdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     superdisk_asc       = ASC_INV_LUN;
     superdisk_ascq      = 0;
+    superdisk_info      = lun << 24;
     superdisk_cmd_error(dev);
 }
 
 static void
-superdisk_illegal_opcode(superdisk_t *dev)
+superdisk_illegal_opcode(superdisk_t *dev, const uint8_t opcode)
 {
     superdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     superdisk_asc       = ASC_ILLEGAL_OPCODE;
     superdisk_ascq      = 0;
+    superdisk_info      = opcode << 24;
     superdisk_cmd_error(dev);
 }
 
@@ -1093,195 +845,244 @@ superdisk_lba_out_of_range(superdisk_t *dev)
     superdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     superdisk_asc       = ASC_LBA_OUT_OF_RANGE;
     superdisk_ascq      = 0;
+    superdisk_info      =  (dev->sector_pos >> 24)        |
+                    ((dev->sector_pos >> 16) <<  8) |
+                    ((dev->sector_pos >> 8)  << 16) |
+                    ( dev->sector_pos        << 24);
     superdisk_cmd_error(dev);
 }
 
 static void
-superdisk_invalid_field(superdisk_t *dev)
+superdisk_invalid_field(superdisk_t *dev, const uint32_t field)
 {
     superdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     superdisk_asc       = ASC_INV_FIELD_IN_CMD_PACKET;
     superdisk_ascq      = 0;
+    superdisk_info      =  (field >> 24)        |
+                    ((field >> 16) <<  8) |
+                    ((field >> 8)  << 16) |
+                    ( field        << 24);
     superdisk_cmd_error(dev);
     dev->tf->status = 0x53;
 }
 
 static void
-superdisk_invalid_field_pl(superdisk_t *dev)
+superdisk_invalid_field_pl(superdisk_t *dev, const uint32_t field)
 {
     superdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     superdisk_asc       = ASC_INV_FIELD_IN_PARAMETER_LIST;
     superdisk_ascq      = 0;
+    superdisk_info      =  (field >> 24)        |
+                    ((field >> 16) <<  8) |
+                    ((field >> 8)  << 16) |
+                    ( field        << 24);
     superdisk_cmd_error(dev);
     dev->tf->status = 0x53;
 }
 
 static void
-superdisk_data_phase_error(superdisk_t *dev)
+superdisk_data_phase_error(superdisk_t *dev, const uint32_t info)
 {
     superdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     superdisk_asc       = ASC_DATA_PHASE_ERROR;
     superdisk_ascq      = 0;
+    superdisk_info      =  (info >> 24)        |
+                    ((info >> 16) <<  8) |
+                    ((info >> 8)  << 16) |
+                    ( info        << 24);
     superdisk_cmd_error(dev);
 }
 
 static int
-superdisk_blocks(superdisk_t *dev, int32_t *len, UNUSED(int first_batch), int out)
+superdisk_blocks(superdisk_t *dev, int32_t *len, const int out)
 {
-    *len = 0;
+    int ret = 1;
+    *len    = 0;
 
-    if (!dev->sector_len) {
+    if (!dev->sector_len)
         superdisk_command_complete(dev);
-        return -1;
-    }
+    else {
+        superdisk_log("%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
+                dev->requested_blocks, dev->sector_pos);
 
-    superdisk_log("%sing %i blocks starting from %i...\n", out ? "Writ" : "Read", dev->requested_blocks, dev->sector_pos);
-
-    if (dev->sector_pos >= dev->drv->medium_size) {
-        superdisk_log("SuperDisk %i: Trying to %s beyond the end of disk\n", dev->id, out ? "write" : "read");
-        superdisk_lba_out_of_range(dev);
-        return 0;
-    }
-
-    *len = dev->requested_blocks << 9;
-
-    for (int i = 0; i < dev->requested_blocks; i++) {
-        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == -1) {
-            if (out)
-                superdisk_write_error(dev);
-            else
-                superdisk_read_error(dev);
-            return -1;
-        }
-
-        if (feof(dev->drv->fp))
-            break;
-
-        if (out) {
-            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512) {
-                superdisk_log("superdisk_blocks(): Error writing data\n");
-                superdisk_write_error(dev);
-                return -1;
-            }
-
-            fflush(dev->drv->fp);
+        if (dev->sector_pos >= dev->drv->medium_size) {
+            superdisk_log("SuperDisk %i: Trying to %s beyond the end of disk\n", dev->id,
+                    out ? "write" : "read");
+            superdisk_lba_out_of_range(dev);
         } else {
-            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512) {
-                superdisk_log("superdisk_blocks(): Error reading data\n");
-                superdisk_read_error(dev);
-                return -1;
+            *len    = dev->requested_blocks << 9;
+
+            for (int i = 0; i < dev->requested_blocks; i++) {
+                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) +
+                                              (i << 9), SEEK_SET) == -1) {
+                    if (out)
+                        superdisk_write_error(dev);
+                    else
+                        superdisk_read_error(dev);
+                    ret = -1;
+                } else {
+                    if (feof(dev->drv->fp))
+                        break;
+
+                    if (out) {
+                        if (fwrite(dev->buffer + (i << 9), 1,
+                                   512, dev->drv->fp) != 512) {
+                            superdisk_log("superdisk_blocks(): Error writing data\n");
+                            superdisk_write_error(dev);
+                            ret = -1;
+                        } else
+                            fflush(dev->drv->fp);
+                    } else if (fread(dev->buffer + (i << 9), 1,
+                                     512, dev->drv->fp) != 512) {
+                        superdisk_log("superdisk_blocks(): Error reading data\n");
+                        superdisk_read_error(dev);
+                        ret = -1;
+                    }
+                }
+
+                if (ret == -1)
+                    break;
+
+                dev->sector_pos++;
+            }
+
+            if (ret == 1) {
+                superdisk_log("%s %i bytes of blocks...\n", out ? "Written" :
+                        "Read", *len);
+
+                dev->sector_len -= dev->requested_blocks;
             }
         }
     }
 
-    superdisk_log("%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
-
-    dev->sector_pos += dev->requested_blocks;
-    dev->sector_len -= dev->requested_blocks;
-
-    return 1;
+    return ret;
 }
 
 void
 superdisk_insert(superdisk_t *dev)
 {
-    dev->unit_attention = 1;
-}
-
-/*SCSI Sense Initialization*/
-void
-superdisk_sense_code_ok(superdisk_t *dev)
-{
-    superdisk_sense_key = SENSE_NONE;
-    superdisk_asc       = 0;
-    superdisk_ascq      = 0;
+    if ((dev != NULL) && (dev->drv != NULL)) {
+        if (dev->drv->fp == NULL) {
+            dev->unit_attention = 0;
+            dev->transition     = 0;
+            superdisk_log("Media removal\n");
+        } else if (dev->transition) {
+            dev->unit_attention = 1;
+            /* Turn off the medium changed status. */
+            dev->transition     = 0;
+            superdisk_log("Media insert\n");
+        } else {
+            dev->unit_attention = 0;
+            dev->transition     = 1;
+            superdisk_log("Media transition\n");
+        }
+    }
 }
 
 static int
-superdisk_pre_execution_check(superdisk_t *dev, uint8_t *cdb)
+superdisk_pre_execution_check(superdisk_t *dev, const uint8_t *cdb)
 {
-    int ready = 0;
+    int ready;
 
-    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
+    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) &&
+        (cdb[1] & 0xe0)) {
         superdisk_log("SuperDisk %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id,
                 ((dev->tf->request_length >> 5) & 7));
-        superdisk_invalid_lun(dev);
+        superdisk_invalid_lun(dev, cdb[1] >> 5);
         return 0;
     }
 
     if (!(superdisk_command_flags[cdb[0]] & IMPLEMENTED)) {
-        superdisk_log("SuperDisk %i: Attempting to execute unknown command %02X over %s\n", dev->id, cdb[0],
-                (dev->drv->bus_type == SUPERDISK_BUS_SCSI) ? "SCSI" : "ATAPI");
+        superdisk_log("SuperDisk %i: Attempting to execute unknown command %02X over %s\n", dev->id,
+                cdb[0], (dev->drv->bus_type == SUPERDISK_BUS_SCSI) ?
+                "SCSI" : "ATAPI");
 
-        superdisk_illegal_opcode(dev);
+        superdisk_illegal_opcode(dev, cdb[0]);
         return 0;
     }
 
-    if ((dev->drv->bus_type < SUPERDISK_BUS_SCSI) && (superdisk_command_flags[cdb[0]] & SCSI_ONLY)) {
-        superdisk_log("SuperDisk %i: Attempting to execute SCSI-only command %02X over ATAPI\n", dev->id, cdb[0]);
-        superdisk_illegal_opcode(dev);
+    if ((dev->drv->bus_type < SUPERDISK_BUS_SCSI) &&
+        (superdisk_command_flags[cdb[0]] & SCSI_ONLY)) {
+        superdisk_log("SuperDisk %i: Attempting to execute SCSI-only command %02X "
+                "over ATAPI\n",dev->id, cdb[0]);
+        superdisk_illegal_opcode(dev, cdb[0]);
         return 0;
     }
 
-    if ((dev->drv->bus_type == SUPERDISK_BUS_SCSI) && (superdisk_command_flags[cdb[0]] & ATAPI_ONLY)) {
-        superdisk_log("SuperDisk %i: Attempting to execute ATAPI-only command %02X over SCSI\n", dev->id, cdb[0]);
-        superdisk_illegal_opcode(dev);
+    if ((dev->drv->bus_type == SUPERDISK_BUS_SCSI) &&
+        (superdisk_command_flags[cdb[0]] & ATAPI_ONLY)) {
+        superdisk_log("SuperDisk %i: Attempting to execute ATAPI-only command %02X "
+                "over SCSI\n", dev->id, cdb[0]);
+        superdisk_illegal_opcode(dev, cdb[0]);
         return 0;
     }
 
-    ready = (dev->drv->fp != NULL);
+    if (dev->transition) {
+        if ((cdb[0] == GPCMD_TEST_UNIT_READY) || (cdb[0] == GPCMD_REQUEST_SENSE))
+            ready = 0;
+        else {
+            if (!(superdisk_command_flags[cdb[0]] & ALLOW_UA)) {
+                superdisk_log("(ext_medium_changed != 0): superdisk_insert()\n");
+                superdisk_insert((void *) dev);
+            }
 
-    /* If the drive is not ready, there is no reason to keep the
+            ready = (dev->drv->fp != NULL);
+        }
+    } else
+        ready = (dev->drv->fp != NULL);
+
+    /*
+       If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
-       disc changes. */
-    if (!ready && dev->unit_attention)
+       disc changes.
+     */
+    if (!ready && (dev->unit_attention > 0))
         dev->unit_attention = 0;
 
-    /* If the UNIT ATTENTION condition is set and the command does not allow
-       execution under it, error out and report the condition. */
+    /*
+       If the UNIT ATTENTION condition is set and the command does not allow
+       execution under it, error out and report the condition.
+     */
     if (dev->unit_attention == 1) {
-        /* Only increment the unit attention phase if the command can not pass through it. */
+        /*
+           Only increment the unit attention phase if the command can
+           not pass through it.
+         */
         if (!(superdisk_command_flags[cdb[0]] & ALLOW_UA)) {
-#if 0
             superdisk_log("SuperDisk %i: Unit attention now 2\n", dev->id);
-#endif
-            dev->unit_attention = 2;
-            superdisk_log("SuperDisk %i: UNIT ATTENTION: Command %02X not allowed to pass through\n", dev->id, cdb[0]);
+            dev->unit_attention++;
+            superdisk_log("SuperDisk %i: UNIT ATTENTION: Command %02X not allowed to pass through\n", dev->id,
+                    cdb[0]);
             superdisk_unit_attention(dev);
             return 0;
         }
     } else if (dev->unit_attention == 2) {
         if (cdb[0] != GPCMD_REQUEST_SENSE) {
-#if 0
             superdisk_log("SuperDisk %i: Unit attention now 0\n", dev->id);
-#endif
             dev->unit_attention = 0;
         }
     }
 
-    /* Unless the command is REQUEST SENSE, clear the sense. This will *NOT*
-       the UNIT ATTENTION condition if it's set. */
+    /*
+       Unless the command is REQUEST SENSE, clear the sense. This will *NOT* clear
+       the UNIT ATTENTION condition if it's set.
+     */
     if (cdb[0] != GPCMD_REQUEST_SENSE)
         superdisk_sense_clear(dev, cdb[0]);
 
-    /* Next it's time for NOT READY. */
-    if ((superdisk_command_flags[cdb[0]] & CHECK_READY) && !ready) {
+    if (!ready && (superdisk_command_flags[cdb[0]] & CHECK_READY)) {
         superdisk_log("SuperDisk %i: Not ready (%02X)\n", dev->id, cdb[0]);
         superdisk_not_ready(dev);
         return 0;
     }
 
     superdisk_log("SuperDisk %i: Continuing with command %02X\n", dev->id, cdb[0]);
-
     return 1;
 }
 
 static void
-superdisk_seek(superdisk_t *dev, uint32_t pos)
+superdisk_seek(superdisk_t *dev, const uint32_t pos)
 {
-#if 0
-    superdisk_log("SuperDisk %i: Seek %08X\n", dev->id, pos);
-#endif
     dev->sector_pos = pos;
 }
 
@@ -1298,18 +1099,20 @@ superdisk_reset(scsi_common_t *sc)
     superdisk_t *dev = (superdisk_t *) sc;
 
     superdisk_rezero(dev);
-    dev->tf->status = 0;
-    dev->callback   = 0.0;
+    dev->tf->status         = 0;
+    dev->callback           = 0.0;
     superdisk_set_callback(dev);
     dev->tf->phase          = 1;
     dev->tf->request_length = 0xEB14;
     dev->packet_status      = PHASE_NONE;
     dev->unit_attention     = 0;
     dev->cur_lun            = SCSI_LUN_USE_CDB;
+    superdisk_sense_key     = superdisk_asc = superdisk_ascq = dev->unit_attention = dev->transition = 0;
+    superdisk_info          = 0x00000000;
 }
 
 static void
-superdisk_request_sense(superdisk_t *dev, uint8_t *buffer, uint8_t alloc_length, int desc)
+superdisk_request_sense(superdisk_t *dev, uint8_t *buffer, const uint8_t alloc_length, const int desc)
 {
     /*Will return 18 bytes of 0*/
     if (alloc_length != 0) {
@@ -1324,6 +1127,8 @@ superdisk_request_sense(superdisk_t *dev, uint8_t *buffer, uint8_t alloc_length,
     }
 
     buffer[0] = desc ? 0x72 : 0x70;
+    if (!desc)
+        buffer[7] = 10;
 
     if (dev->unit_attention && (superdisk_sense_key == 0)) {
         buffer[desc ? 1 : 2]  = SENSE_UNIT_ATTENTION;
@@ -1331,7 +1136,8 @@ superdisk_request_sense(superdisk_t *dev, uint8_t *buffer, uint8_t alloc_length,
         buffer[desc ? 3 : 13] = 0;
     }
 
-    superdisk_log("SuperDisk %i: Reporting sense: %02X %02X %02X\n", dev->id, buffer[2], buffer[12], buffer[13]);
+    superdisk_log("SuperDisk %i: Reporting sense: %02X %02X %02X\n", dev->id, buffer[2],
+            buffer[12], buffer[13]);
 
     if (buffer[desc ? 1 : 2] == SENSE_UNIT_ATTENTION) {
         /* If the last remaining sense is unit attention, clear
@@ -1341,30 +1147,33 @@ superdisk_request_sense(superdisk_t *dev, uint8_t *buffer, uint8_t alloc_length,
 
     /* Clear the sense stuff as per the spec. */
     superdisk_sense_clear(dev, GPCMD_REQUEST_SENSE);
+
+    if (dev->transition) {
+        superdisk_log("SUPERDISK_TRANSITION: superdisk_insert()\n");
+        superdisk_insert((void *) dev);
+    }
 }
 
 static void
-superdisk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length)
+superdisk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, const uint8_t alloc_length)
 {
     superdisk_t *dev   = (superdisk_t *) sc;
-    int    ready = 0;
-
-    ready = (dev->drv->fp != NULL);
+    const int    ready = (dev->drv->fp != NULL);
 
     if (!ready && dev->unit_attention) {
-        /* If the drive is not ready, there is no reason to keep the
-           UNIT ATTENTION condition present, as we only use it to mark
-           disc changes. */
+        /*
+           If the drive is not ready, there is no reason to keep the UNIT ATTENTION
+           condition present, as we only use it to mark disc changes.
+         */
         dev->unit_attention = 0;
     }
 
     /* Do *NOT* advance the unit attention phase. */
-
     superdisk_request_sense(dev, buffer, alloc_length, 0);
 }
 
 static void
-superdisk_set_buf_len(superdisk_t *dev, int32_t *BufLen, int32_t *src_len)
+superdisk_set_buf_len(const superdisk_t *dev, int32_t *BufLen, int32_t *src_len)
 {
     if (dev->drv->bus_type == SUPERDISK_BUS_SCSI) {
         if (*BufLen == -1)
@@ -1378,23 +1187,22 @@ superdisk_set_buf_len(superdisk_t *dev, int32_t *BufLen, int32_t *src_len)
 }
 
 static void
-superdisk_command(scsi_common_t *sc, uint8_t *cdb)
+superdisk_command(scsi_common_t *sc, const uint8_t *cdb)
 {
-    superdisk_t *dev = (superdisk_t *) sc;
-    int          pos = 0;
-    int          block_desc = 0;
-    int          ret;
-    int32_t      len;
-    int32_t      max_len;
-    int32_t      alloc_length;
-    uint32_t     i = 0;
-    int          size_idx;
-    int          idx = 0;
-    unsigned     preamble_len;
-    int32_t      blen = 0;
-    int32_t     *BufLen;
-    uint8_t      scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
-    uint8_t      scsi_id  = dev->drv->scsi_device_id & 0x0f;
+    superdisk_t  *dev          = (superdisk_t *) sc;
+    const uint8_t scsi_bus     = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    const uint8_t scsi_id      = dev->drv->scsi_device_id & 0x0f;
+    int           pos          = 0;
+    int           idx          = 0;
+    int32_t       blen         = 0;
+    uint32_t      i;
+    unsigned      preamble_len;
+    int32_t       len;
+    int32_t       max_len;
+    int32_t       alloc_length;
+    int           block_desc;
+    int           size_idx;
+    int32_t      *BufLen;
 
     if (dev->drv->bus_type == SUPERDISK_BUS_SCSI) {
         BufLen          = &scsi_devices[scsi_bus][scsi_id].buffer_length;
@@ -1410,11 +1218,13 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
     memcpy(dev->current_cdb, cdb, 12);
 
     if (cdb[0] != 0) {
-        superdisk_log("SuperDisk %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n",
-                dev->id, cdb[0], superdisk_sense_key, superdisk_asc, superdisk_ascq, dev->unit_attention);
+        superdisk_log("SuperDisk %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, "
+                "Unit attention: %i\n", dev->id,
+                cdb[0], superdisk_sense_key, superdisk_asc, superdisk_ascq, dev->unit_attention);
         superdisk_log("SuperDisk %i: Request length: %04X\n", dev->id, dev->tf->request_length);
 
-        superdisk_log("SuperDisk %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", dev->id,
+        superdisk_log("SuperDisk %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X "
+                "%02X %02X %02X %02X\n", dev->id,
                 cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
                 cdb[8], cdb[9], cdb[10], cdb[11]);
     }
@@ -1423,14 +1233,17 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
 
     superdisk_set_phase(dev, SCSI_PHASE_STATUS);
 
-    /* This handles the Not Ready/Unit Attention check if it has to be handled at this point. */
+    /*
+       This handles the Not Ready/Unit Attention check if it has to be handled at
+       this point.
+     */
     if (superdisk_pre_execution_check(dev, cdb) == 0)
         return;
 
     switch (cdb[0]) {
         case GPCMD_SEND_DIAGNOSTIC:
             if (!(cdb[1] & (1 << 2))) {
-                superdisk_invalid_field(dev);
+                superdisk_invalid_field(dev, cdb[1]);
                 return;
             }
             fallthrough;
@@ -1442,13 +1255,12 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
             break;
 
         case GPCMD_FORMAT_UNIT:
-            if (dev->drv->read_only) {
+            if (dev->drv->read_only)
                 superdisk_write_protected(dev);
-                return;
+            else {
+                superdisk_set_phase(dev, SCSI_PHASE_STATUS);
+                superdisk_command_complete(dev);
             }
-
-            superdisk_set_phase(dev, SCSI_PHASE_STATUS);
-            superdisk_command_complete(dev);
             break;
 
         case GPCMD_IMATION_SENSE:
@@ -1458,8 +1270,10 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
             superdisk_set_buf_len(dev, BufLen, &max_len);
             memset(dev->buffer, 0, 256);
             if (cdb[2] == 1) {
-                /* This page is related to disk health status - setting
-                   this page to 0 makes disk health read as "marginal". */
+                /*
+                   This page is related to disk health status - setting
+                   this page to 0 makes disk health read as "marginal".
+                 */
                 dev->buffer[0] = 0x58;
                 dev->buffer[1] = 0x00;
                 for (i = 0x00; i < 0x58; i++)
@@ -1475,7 +1289,7 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                 for (i = 0x00; i < 0x27; i++)
                     dev->buffer[i + 0x16] = 0x00;
             } else {
-                superdisk_invalid_field(dev);
+                superdisk_invalid_field(dev, cdb[2]);
                 superdisk_buf_free(dev);
                 return;
             }
@@ -1489,9 +1303,11 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
             break;
 
         case GPCMD_REQUEST_SENSE:
-            /* If there's a unit attention condition and there's a buffered not
-               ready, a standalone REQUEST SENSE should forget about the not
-               ready, and report unit attention straight away. */
+            /*
+               If there's a unit attention condition and there's a buffered not ready, a
+               standalone REQUEST SENSE should forget about the not ready, and report unit
+               attention straight away.
+             */
             superdisk_set_phase(dev, SCSI_PHASE_DATA_IN);
             max_len = cdb[4];
 
@@ -1544,13 +1360,16 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                     break;
                 case GPCMD_READ_10:
                     dev->sector_len = (cdb[7] << 8) | cdb[8];
-                    dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                    dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) |
+                                      (cdb[4] << 8) | cdb[5];
                     superdisk_log("SuperDisk %i: Length: %i, LBA: %i\n", dev->id, dev->sector_len, dev->sector_pos);
                     break;
                 case GPCMD_READ_12:
-                    dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) |
+                    dev->sector_len = (((uint32_t) cdb[6]) << 24) |
+                                      (((uint32_t) cdb[7]) << 16) |
                                       (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) |
+                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) |
+                                      (((uint32_t) cdb[3]) << 16) |
                                       (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
                     break;
 
@@ -1558,53 +1377,47 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                     break;
             }
 
-            if (dev->sector_pos >= dev->drv->medium_size) {
+            if (dev->sector_pos >= dev->drv->medium_size)
                 superdisk_lba_out_of_range(dev);
-                return;
-            }
+            else if (dev->sector_len) {
+                max_len               = dev->sector_len;
+                dev->requested_blocks = max_len;
 
-            if (!dev->sector_len) {
+                dev->packet_len = max_len * alloc_length;
+                superdisk_buf_alloc(dev, dev->packet_len);
+
+                int ret = 0;
+
+                if (dev->sector_len > 0)
+                    ret = superdisk_blocks(dev, &alloc_length, 0);
+
+                if (ret > 0) {
+                    dev->requested_blocks = max_len;
+                    dev->packet_len       = alloc_length;
+
+                    superdisk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
+
+                    superdisk_data_command_finish(dev, alloc_length, 512,
+                                            alloc_length, 0);
+
+                    ui_sb_update_icon(SB_ZIP | dev->id,
+                                      dev->packet_status != PHASE_COMPLETE);
+                } else {
+                    superdisk_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * SUPERDISK_TIME;
+                    superdisk_set_callback(dev);
+                    superdisk_buf_free(dev);
+                }
+            } else {
                 superdisk_set_phase(dev, SCSI_PHASE_STATUS);
-#if 0
-                superdisk_log("SuperDisk %i: All done - callback set\n", dev->id);
-#endif
+                /* superdisk_log("All done - callback set\n"); */
                 dev->packet_status = PHASE_COMPLETE;
                 dev->callback      = 20.0 * SUPERDISK_TIME;
                 superdisk_set_callback(dev);
                 break;
             }
-
-            max_len               = dev->sector_len;
-            /*
-               If we're reading all blocks in one go for DMA, why not also for
-               PIO, it should NOT matter anyway, this step should be identical
-               and only the way the read dat is transferred to the host should
-               be different.
-             */
-            dev->requested_blocks = max_len;
-
-            dev->packet_len = max_len * alloc_length;
-            superdisk_buf_alloc(dev, dev->packet_len);
-
-            ret = superdisk_blocks(dev, &alloc_length, 1, 0);
-            if (ret <= 0) {
-                superdisk_set_phase(dev, SCSI_PHASE_STATUS);
-                dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
-                dev->callback      = 20.0 * SUPERDISK_TIME;
-                superdisk_set_callback(dev);
-                superdisk_buf_free(dev);
-                return;
-            }
-
-            dev->requested_blocks = max_len;
-            dev->packet_len       = alloc_length;
-
-            superdisk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
-
-            superdisk_data_command_finish(dev, alloc_length, 512, alloc_length, 0);
-
-            ui_sb_update_icon(SB_SUPERDISK | dev->id, dev->packet_status != PHASE_COMPLETE);
-            return;
+            break;
 
         case GPCMD_VERIFY_6:
         case GPCMD_VERIFY_10:
@@ -1625,7 +1438,7 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
 
             if (dev->drv->read_only) {
                 superdisk_write_protected(dev);
-                return;
+                break;
             }
 
             switch (cdb[0]) {
@@ -1645,15 +1458,19 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_WRITE_10:
                 case GPCMD_WRITE_AND_VERIFY_10:
                     dev->sector_len = (cdb[7] << 8) | cdb[8];
-                    dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-                    superdisk_log("SuperDisk %i: Length: %i, LBA: %i\n", dev->id, dev->sector_len, dev->sector_pos);
+                    dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) |
+                                      (cdb[4] << 8) | cdb[5];
+                    superdisk_log("SuperDisk %i: Length: %i, LBA: %i\n", dev->id,
+                            dev->sector_len, dev->sector_pos);
                     break;
                 case GPCMD_VERIFY_12:
                 case GPCMD_WRITE_12:
                 case GPCMD_WRITE_AND_VERIFY_12:
-                    dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) |
+                    dev->sector_len = (((uint32_t) cdb[6]) << 24) |
+                                      (((uint32_t) cdb[7]) << 16) |
                                       (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) |
+                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) |
+                                      (((uint32_t) cdb[3]) << 16) |
                                       (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
                     break;
 
@@ -1661,12 +1478,26 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                     break;
             }
 
-            if (dev->sector_pos >= dev->drv->medium_size) {
+            if (dev->sector_pos >= dev->drv->medium_size)
                 superdisk_lba_out_of_range(dev);
-                return;
-            }
+            if (dev->sector_len) {
+                max_len               = dev->sector_len;
+                dev->requested_blocks = max_len;
 
-            if (!dev->sector_len) {
+                dev->packet_len = max_len * alloc_length;
+                superdisk_buf_alloc(dev, dev->packet_len);
+
+                dev->requested_blocks = max_len;
+                dev->packet_len       = max_len << 9;
+
+                superdisk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
+
+                superdisk_data_command_finish(dev, dev->packet_len, 512,
+                                        dev->packet_len, 1);
+
+                ui_sb_update_icon(SB_ZIP | dev->id,
+                                  dev->packet_status != PHASE_COMPLETE);
+            } else {
                 superdisk_set_phase(dev, SCSI_PHASE_STATUS);
 #if 0
                 superdisk_log("SuperDisk %i: All done - callback set\n", dev->id);
@@ -1674,77 +1505,53 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                 dev->packet_status = PHASE_COMPLETE;
                 dev->callback      = 20.0 * SUPERDISK_TIME;
                 superdisk_set_callback(dev);
-                break;
             }
-
-            max_len               = dev->sector_len;
-            /*
-               If we're writing all blocks in one go for DMA, why not also for
-               PIO, it should NOT matter anyway, this step should be identical
-               and only the way the read dat is transferred to the host should
-               be different.
-             */
-            dev->requested_blocks = max_len;
-
-            dev->packet_len = max_len * alloc_length;
-            superdisk_buf_alloc(dev, dev->packet_len);
-
-            dev->requested_blocks = max_len;
-            dev->packet_len       = max_len << 9;
-
-            superdisk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
-
-            superdisk_data_command_finish(dev, dev->packet_len, 512, dev->packet_len, 1);
-
-            ui_sb_update_icon(SB_SUPERDISK | dev->id, dev->packet_status != PHASE_COMPLETE);
-            return;
+            break;
 
         case GPCMD_WRITE_SAME_10:
+            superdisk_set_phase(dev, SCSI_PHASE_DATA_OUT);
             alloc_length = 512;
 
-            if ((cdb[1] & 6) == 6) {
-                superdisk_invalid_field(dev);
-                return;
-            }
+            if ((cdb[1] & 6) == 6)
+                superdisk_invalid_field(dev, cdb[1]);
+            else {
+                if (dev->drv->read_only)
+                    superdisk_write_protected(dev);
+                else {
+                    dev->sector_len = (cdb[7] << 8) | cdb[8];
+                    dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) |
+                                      (cdb[4] << 8) | cdb[5];
 
-            if (dev->drv->read_only) {
-                superdisk_write_protected(dev);
-                return;
-            }
+                    if (dev->sector_pos >= dev->drv->medium_size)
+                        superdisk_lba_out_of_range(dev);
+                    else if (dev->sector_len) {
+                        superdisk_buf_alloc(dev, alloc_length);
+                        superdisk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 
-            dev->sector_len = (cdb[7] << 8) | cdb[8];
-            dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                        max_len               = 1;
+                        dev->requested_blocks = 1;
 
-            if (dev->sector_pos >= dev->drv->medium_size) {
-                superdisk_lba_out_of_range(dev);
-                return;
-            }
+                        dev->packet_len = alloc_length;
 
-            if (!dev->sector_len) {
-                superdisk_set_phase(dev, SCSI_PHASE_STATUS);
+                        superdisk_set_phase(dev, SCSI_PHASE_DATA_OUT);
+
+                        superdisk_data_command_finish(dev, 512, 512,
+                                                alloc_length, 1);
+
+                        ui_sb_update_icon(SB_ZIP | dev->id,
+                                          dev->packet_status != PHASE_COMPLETE);
+                    } else {
+                        superdisk_set_phase(dev, SCSI_PHASE_STATUS);
 #if 0
-                superdisk_log("SuperDisk %i: All done - callback set\n", dev->id);
+                        superdisk_log("All done - callback set\n");
 #endif
-                dev->packet_status = PHASE_COMPLETE;
-                dev->callback      = 20.0 * SUPERDISK_TIME;
-                superdisk_set_callback(dev);
-                break;
+                        dev->packet_status = PHASE_COMPLETE;
+                        dev->callback      = 20.0 * SUPERDISK_TIME;
+                        superdisk_set_callback(dev);
+                    }
+                }
             }
-
-            superdisk_buf_alloc(dev, alloc_length);
-            superdisk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
-
-            max_len               = 1;
-            dev->requested_blocks = 1;
-
-            dev->packet_len = alloc_length;
-
-            superdisk_set_phase(dev, SCSI_PHASE_DATA_OUT);
-
-            superdisk_data_command_finish(dev, 512, 512, alloc_length, 1);
-
-            ui_sb_update_icon(SB_SUPERDISK | dev->id, dev->packet_status != PHASE_COMPLETE);
-            return;
+            break;
 
         case GPCMD_MODE_SENSE_6:
         case GPCMD_MODE_SENSE_10:
@@ -1763,40 +1570,41 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                 superdisk_buf_alloc(dev, 65536);
             }
 
-            if (!(superdisk_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f)))) {
-                superdisk_invalid_field(dev);
-                superdisk_buf_free(dev);
-                return;
-            }
+            if (superdisk_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f))) {
+                memset(dev->buffer, 0, len);
+                alloc_length = len;
 
-            memset(dev->buffer, 0, len);
-            alloc_length = len;
-
-            if (cdb[0] == GPCMD_MODE_SENSE_6) {
-                len            = superdisk_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
-                len            = MIN(len, alloc_length);
-                dev->buffer[0] = len - 1;
-                dev->buffer[1] = 0;
-                if (block_desc)
-                    dev->buffer[3] = 8;
-            } else {
-                len            = superdisk_mode_sense(dev, dev->buffer, 8, cdb[2], block_desc);
-                len            = MIN(len, alloc_length);
-                dev->buffer[0] = (len - 2) >> 8;
-                dev->buffer[1] = (len - 2) & 255;
-                dev->buffer[2] = 0;
-                if (block_desc) {
-                    dev->buffer[6] = 0;
-                    dev->buffer[7] = 8;
+                if (cdb[0] == GPCMD_MODE_SENSE_6) {
+                    len            = superdisk_mode_sense(dev, dev->buffer, 4, cdb[2],
+                                                    block_desc);
+                    len            = MIN(len, alloc_length);
+                    dev->buffer[0] = len - 1;
+                    dev->buffer[1] = 0;
+                    if (block_desc)
+                        dev->buffer[3] = 8;
+                } else {
+                    len            = superdisk_mode_sense(dev, dev->buffer, 8, cdb[2],
+                                                    block_desc);
+                    len            = MIN(len, alloc_length);
+                    dev->buffer[0] = (len - 2) >> 8;
+                    dev->buffer[1] = (len - 2) & 255;
+                    dev->buffer[2] = 0;
+                    if (block_desc) {
+                        dev->buffer[6] = 0;
+                        dev->buffer[7] = 8;
+                    }
                 }
+
+                superdisk_set_buf_len(dev, BufLen, &len);
+
+                superdisk_log("SuperDisk %i: Reading mode page: %02X...\n", dev->id, cdb[2]);
+
+                superdisk_data_command_finish(dev, len, len, alloc_length, 0);
+            } else {
+                superdisk_invalid_field(dev, cdb[2]);
+                superdisk_buf_free(dev);
             }
-
-            superdisk_set_buf_len(dev, BufLen, &len);
-
-            superdisk_log("SuperDisk %i: Reading mode page: %02X...\n", dev->id, cdb[2]);
-
-            superdisk_data_command_finish(dev, len, len, alloc_length, 0);
-            return;
+            break;
 
         case GPCMD_MODE_SELECT_6:
         case GPCMD_MODE_SELECT_10:
@@ -1869,7 +1677,7 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                         break;
                     case 0x83:
                         if (idx + 24 > max_len) {
-                            superdisk_data_phase_error(dev);
+                            superdisk_data_phase_error(dev, cdb[2]);
                             superdisk_buf_free(dev);
                             return;
                         }
@@ -1887,19 +1695,21 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                         dev->buffer[idx++] = 0x01;
                         dev->buffer[idx++] = 0x00;
                         dev->buffer[idx++] = 68;
-                        ide_padstr8(dev->buffer + idx, 8, "MATSHITA "); /* Vendor */
+                        /* Vendor */
+                        ide_padstr8(dev->buffer + idx, 8, "MATSHITA ");
                         idx += 8;
+                        /* Product */
                         if (dev->drv->is_240)
-                            ide_padstr8(dev->buffer + idx, 40, "LS-240_COSM            "); /* Product */
+                            ide_padstr8(dev->buffer + idx, 40, "LS-240_COSM            ");
                         else
-                            ide_padstr8(dev->buffer + idx, 40, "LS-120_COSM            "); /* Product */
+                            ide_padstr8(dev->buffer + idx, 40, "LS-120_COSM            ");
                         idx += 40;
-                        ide_padstr8(dev->buffer + idx, 20, "    04"); /* Product */
+                        ide_padstr8(dev->buffer + idx, 20, "    04");
                         idx += 20;
                         break;
                     default:
                         superdisk_log("INQUIRY: Invalid page: %02X\n", cdb[2]);
-                        superdisk_invalid_field(dev);
+                        superdisk_invalid_field(dev, cdb[2]);
                         superdisk_buf_free(dev);
                         return;
                 }
@@ -1908,34 +1718,40 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                 size_idx     = 4;
 
                 memset(dev->buffer, 0, 8);
-                if (cdb[1] & 0xe0)
-                    dev->buffer[0] = 0x60; /*No physical device on this LUN*/
+                if ((cdb[1] & 0xe0) || ((dev->cur_lun > 0x00) && (dev->cur_lun < 0xff)))
+                    dev->buffer[0] = 0x7f;    /* No physical device on this LUN */
                 else
-                    dev->buffer[0] = 0x00;                                           /*Hard disk*/
-                dev->buffer[1] = 0x80;                                               /*Removable*/
-                dev->buffer[2] = (dev->drv->bus_type == SUPERDISK_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
+                    dev->buffer[0] = 0x00;    /* Hard disk */
+                dev->buffer[1] = 0x80;        /* Removable */
+                /* SCSI-2 compliant */
+                dev->buffer[2] = (dev->drv->bus_type == SUPERDISK_BUS_SCSI) ? 0x02 : 0x00;
                 dev->buffer[3] = (dev->drv->bus_type == SUPERDISK_BUS_SCSI) ? 0x02 : 0x21;
 #if 0
                 dev->buffer[4] = 31;
 #endif
                 dev->buffer[4] = 0;
                 if (dev->drv->bus_type == SUPERDISK_BUS_SCSI) {
-                    dev->buffer[6] = 1;    /* 16-bit transfers supported */
-                    dev->buffer[7] = 0x20; /* Wide bus supported */
+                    dev->buffer[6] = 1;       /* 16-bit transfers supported */
+                    dev->buffer[7] = 0x20;    /* Wide bus supported */
                 }
                 dev->buffer[7] |= 0x02;
 
-                ide_padstr8(dev->buffer + 8, 8, "MATSHITA "); /* Vendor */
+                ide_padstr8(dev->buffer + 8, 8, "MATSHITA ");    /* Vendor */
                 if (dev->drv->is_240) {
-                    ide_padstr8(dev->buffer + 16, 16, "LS-240_COSM            "); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, "  04");              /* Revision */
+                    /* Product */
+                    ide_padstr8(dev->buffer + 16, 16, "LS-240_COSM            ");
+                    /* Revision */
+                    ide_padstr8(dev->buffer + 32, 4, "  04");
+                    /* Date? */
                     if (max_len >= 44)
-                        ide_padstr8(dev->buffer + 36, 8, "07/01/01"); /* Date? */
+                        ide_padstr8(dev->buffer + 36, 8, "07/01/01");
                     if (max_len >= 122)
                         ide_padstr8(dev->buffer + 96, 26, "(c) Copyright Matshita 2001"); /* Copyright string */
                 } else {
-                    ide_padstr8(dev->buffer + 16, 16, "LS-120_COSM            "); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, "  04");              /* Revision */
+                    /* Product */
+                    ide_padstr8(dev->buffer + 16, 16, "LS-120_COSM            ");
+                    /* Revision */
+                    ide_padstr8(dev->buffer + 32, 4, "  04");
                 }
                 idx = 36;
 
@@ -1987,7 +1803,8 @@ atapi_out:
 
             superdisk_buf_alloc(dev, 8);
 
-            max_len = dev->drv->medium_size - 1; /* IMPORTANT: What's returned is the last LBA block. */
+            /* IMPORTANT: What's returned is the last LBA block. */
+            max_len = dev->drv->medium_size - 1;
             memset(dev->buffer, 0, 8);
             dev->buffer[0] = (max_len >> 24) & 0xff;
             dev->buffer[1] = (max_len >> 16) & 0xff;
@@ -2076,12 +1893,13 @@ atapi_out:
             break;
 
         default:
-            superdisk_illegal_opcode(dev);
+            superdisk_illegal_opcode(dev, cdb[0]);
             break;
     }
 
 #if 0
-    superdisk_log("SuperDisk %i: Phase: %02X, request length: %i\n", dev->id, dev->tf->phase, dev->tf->request_length);
+    superdisk_log("SuperDisk %i: Phase: %02X, request length: %i\n", dev->id,
+            dev->tf->phase, dev->tf->request_length);
 #endif
 
     if ((dev->packet_status == PHASE_COMPLETE) || (dev->packet_status == PHASE_ERROR))
@@ -2101,29 +1919,16 @@ superdisk_command_stop(scsi_common_t *sc)
 static uint8_t
 superdisk_phase_data_out(scsi_common_t *sc)
 {
-    superdisk_t *dev = (superdisk_t *) sc;
-
+    superdisk_t *dev        = (superdisk_t *) sc;
+    int      len            = 0;
+    uint8_t  error          = 0;
+    uint32_t last_to_write;
+    uint32_t i;
     uint16_t block_desc_len;
     uint16_t pos;
     uint16_t param_list_len;
-
-    uint8_t error = 0;
-    uint8_t page;
-    uint8_t page_len;
-
-    uint32_t i = 0;
-
-    uint8_t hdr_len;
-    uint8_t val;
-    uint8_t old_val;
-    uint8_t ch;
-
-    uint32_t last_to_write = 0;
-    uint32_t c;
-    uint32_t h;
-    uint32_t s;
-
-    int len = 0;
+    uint8_t  hdr_len;
+    uint8_t  val;
 
     switch (dev->current_cdb[0]) {
         case GPCMD_VERIFY_6:
@@ -2136,7 +1941,7 @@ superdisk_phase_data_out(scsi_common_t *sc)
         case GPCMD_WRITE_12:
         case GPCMD_WRITE_AND_VERIFY_12:
             if (dev->requested_blocks > 0)
-                superdisk_blocks(dev, &len, 1, 1);
+                superdisk_blocks(dev, &len, 1);
             break;
         case GPCMD_WRITE_SAME_10:
             if (!dev->current_cdb[7] && !dev->current_cdb[8]) {
@@ -2152,19 +1957,20 @@ superdisk_phase_data_out(scsi_common_t *sc)
                     dev->buffer[3] = i & 0xff;
                 } else if (dev->current_cdb[1] & 4) {
                     /* CHS are 963, 2, 32 (LS-120) and 262, 2, 56 (LS-240) */
-                    s              = (i % 2048);
-                    h              = ((i - s) / 2048) % 1;
-                    c              = ((i - s) / 2048) / 1;
-                    dev->buffer[0] = (c >> 16) & 0xff;
-                    dev->buffer[1] = (c >> 8) & 0xff;
-                    dev->buffer[2] = c & 0xff;
-                    dev->buffer[3] = h & 0xff;
-                    dev->buffer[4] = (s >> 24) & 0xff;
-                    dev->buffer[5] = (s >> 16) & 0xff;
-                    dev->buffer[6] = (s >> 8) & 0xff;
-                    dev->buffer[7] = s & 0xff;
+                    const uint32_t s = (i % 2048);
+                    const uint32_t h = ((i - s) / 2048) % 1;
+                    const uint32_t c = ((i - s) / 2048) / 1;
+                    dev->buffer[0]   = (c >> 16) & 0xff;
+                    dev->buffer[1]   = (c >> 8) & 0xff;
+                    dev->buffer[2]   = c & 0xff;
+                    dev->buffer[3]   = h & 0xff;
+                    dev->buffer[4]   = (s >> 24) & 0xff;
+                    dev->buffer[5]   = (s >> 16) & 0xff;
+                    dev->buffer[6]   = (s >> 8) & 0xff;
+                    dev->buffer[7]   = s & 0xff;
                 }
-                if (fseek(dev->drv->fp, dev->drv->base + (i << 9), SEEK_SET) == -1)
+                if (fseek(dev->drv->fp, dev->drv->base + (i << 9),
+                          SEEK_SET) == -1)
                     fatal("superdisk_phase_data_out(): Error seeking\n");
                 if (fwrite(dev->buffer, 1, 512, dev->drv->fp) != 512)
                     fatal("superdisk_phase_data_out(): Error writing data\n");
@@ -2205,23 +2011,23 @@ superdisk_phase_data_out(scsi_common_t *sc)
                     break;
                 }
 
-                page     = dev->buffer[pos] & 0x3F;
-                page_len = dev->buffer[pos + 1];
+                const uint8_t page     = dev->buffer[pos] & 0x3f;
+                const uint8_t page_len = dev->buffer[pos + 1];
 
                 pos += 2;
 
                 if (!(superdisk_mode_sense_page_flags & (1LL << ((uint64_t) page))))
                     error |= 1;
-                else {
-                    for (i = 0; i < page_len; i++) {
-                        ch      = superdisk_mode_sense_pages_changeable.pages[page][i + 2];
-                        val     = dev->buffer[pos + i];
-                        old_val = dev->ms_pages_saved.pages[page][i + 2];
-                        if (val != old_val) {
-                            if (ch)
-                                dev->ms_pages_saved.pages[page][i + 2] = val;
-                            else
-                                error |= 1;
+                else for (i = 0; i < page_len; i++) {
+                    const uint8_t old_val = dev->ms_pages_saved.pages[page][i + 2];
+                    const uint8_t ch      = superdisk_mode_sense_pages_changeable.pages[page][i + 2];
+                    val                   = dev->buffer[pos + i];
+                    if (val != old_val) {
+                        if (ch)
+                            dev->ms_pages_saved.pages[page][i + 2] = val;
+                        else {
+                            error |= 1;
+                            superdisk_invalid_field_pl(dev, val);
                         }
                     }
                 }
@@ -2241,7 +2047,6 @@ superdisk_phase_data_out(scsi_common_t *sc)
 
             if (error) {
                 superdisk_buf_free(dev);
-                superdisk_invalid_field_pl(dev);
                 return 0;
             }
             break;
@@ -2263,7 +2068,7 @@ superdisk_global_init(void)
 }
 
 static int
-superdisk_get_max(int ide_has_dma, int type)
+superdisk_get_max(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 
@@ -2287,7 +2092,7 @@ superdisk_get_max(int ide_has_dma, int type)
 }
 
 static int
-superdisk_get_timings(int ide_has_dma, int type)
+superdisk_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 {
     int ret;
 
@@ -2310,39 +2115,43 @@ superdisk_get_timings(int ide_has_dma, int type)
 }
 
 static void
-superdisk_120_identify(ide_t *ide)
+superdisk_120_identify(const ide_t *ide)
 {
-    ide_padstr((char *) (ide->buffer + 23), "E.08", 8);                  /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), "  04", 8);                  /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), "IMATION SUPERDISK 120 ATAPI", 40); /* Model */
 }
 
 static void
-superdisk_240_identify(ide_t *ide, int ide_has_dma)
+superdisk_240_identify(const ide_t *ide, const int ide_has_dma)
 {
-    ide_padstr((char *) (ide->buffer + 23), "42.S", 8);                         /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), "IMATION SUPERDISK  240       ATAPI", 40); /* Model */
+    /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), "42.S", 8);
+    /* Model */
+    ide_padstr((char *) (ide->buffer + 27), "IMATION SUPERDISK  240       ATAPI", 40);
 
     if (ide_has_dma) {
-        ide->buffer[80] = 0x70; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-6*/
-        ide->buffer[81] = 0x19; /*Maximum ATA revision supported : ATA/ATAPI-6 T13 1410D revision 3a*/
+        ide->buffer[80] = 0x70; /* Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-6 */
+        /* Maximum ATA revision supported : ATA/ATAPI-6 T13 1410D revision 3a */
+        ide->buffer[81] = 0x19;
     }
 }
 
 static void
-superdisk_identify(ide_t *ide, int ide_has_dma)
+superdisk_identify(const ide_t *ide, const int ide_has_dma)
 {
-    const superdisk_t *superdisk;
+    const superdisk_t *superdisk = (superdisk_t *) ide->sc;
 
-    superdisk = (superdisk_t *) ide->sc;
-
-    /* ATAPI device, direct-access device, removable media, interrupt DRQ:
+    /*
+       ATAPI device, direct-access device, removable media, interrupt DRQ:
 
        Using (1 << 5) below makes the ASUS P/I-P54TP4XE misdentify the SuperDisk drive
-       as a ZIP drive. */
+       as a ZIP drive.
+     */
     ide->buffer[0] = 0x8000 | (0 << 8) | 0x80 | (2 << 5);
-    ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
-    ide->buffer[49]  = 0x200;                        /* LBA supported */
-    ide->buffer[126] = 0xfffe;                       /* Interpret zero byte count limit as maximum length */
+    ide_padstr((char *) (ide->buffer + 10), "", 20);    /* Serial Number */
+    ide->buffer[49]  = 0x200;                           /* LBA supported */
+    /* Interpret zero byte count limit as maximum length */
+    ide->buffer[126] = 0xfffe;
 
     if (superdisk_drives[superdisk->id].is_240)
         superdisk_240_identify(ide, ide_has_dma);
@@ -2351,30 +2160,27 @@ superdisk_identify(ide_t *ide, int ide_has_dma)
 }
 
 static void
-superdisk_drive_reset(int c)
+superdisk_drive_reset(const int c)
 {
-    superdisk_t         *dev;
-    scsi_device_t *sd;
-    ide_t         *id;
-    uint8_t        scsi_bus = (superdisk_drives[c].scsi_device_id >> 4) & 0x0f;
-    uint8_t        scsi_id  = superdisk_drives[c].scsi_device_id & 0x0f;
+    const uint8_t scsi_bus = (superdisk_drives[c].scsi_device_id >> 4) & 0x0f;
+    const uint8_t scsi_id  = superdisk_drives[c].scsi_device_id & 0x0f;
 
-    if (!superdisk_drives[c].priv) {
-        superdisk_drives[c].priv = (superdisk_t *) malloc(sizeof(superdisk_t));
-        memset(superdisk_drives[c].priv, 0, sizeof(superdisk_t));
+    if (superdisk_drives[c].priv == NULL) {
+        superdisk_drives[c].priv = (superdisk_t *) calloc(1, sizeof(superdisk_t));
+
     }
 
-    dev = (superdisk_t *) superdisk_drives[c].priv;
+    superdisk_t *dev = (superdisk_t *) superdisk_drives[c].priv;
 
     dev->id      = c;
     dev->cur_lun = SCSI_LUN_USE_CDB;
 
     if (superdisk_drives[c].bus_type == SUPERDISK_BUS_SCSI) {
-        if (!dev->tf)
+        if (dev->tf == NULL)
             dev->tf        = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
 
         /* SCSI SuperDisk, attach to the SCSI bus. */
-        sd = &scsi_devices[scsi_bus][scsi_id];
+        scsi_device_t *sd = &scsi_devices[scsi_bus][scsi_id];
 
         sd->sc             = (scsi_common_t *) dev;
         sd->command        = superdisk_command;
@@ -2385,7 +2191,7 @@ superdisk_drive_reset(int c)
         sd->type           = SCSI_REMOVABLE_DISK;
     } else if (superdisk_drives[c].bus_type == SUPERDISK_BUS_ATAPI) {
         /* ATAPI CD-ROM, attach to the IDE bus. */
-        id = ide_get_drive(superdisk_drives[c].ide_channel);
+        ide_t         *id = ide_get_drive(superdisk_drives[c].ide_channel);
         /* If the IDE channel is initialized, we attach to it,
            otherwise, we do nothing - it's going to be a drive
            that's not attached to anything. */
@@ -2412,17 +2218,12 @@ superdisk_drive_reset(int c)
 void
 superdisk_hard_reset(void)
 {
-    superdisk_t  *dev;
-    uint8_t scsi_id;
-    uint8_t scsi_bus;
-
     for (uint8_t c = 0; c < SUPERDISK_NUM; c++) {
         if ((superdisk_drives[c].bus_type == SUPERDISK_BUS_ATAPI) || (superdisk_drives[c].bus_type == SUPERDISK_BUS_SCSI)) {
-            superdisk_log("SuperDisk hard_reset drive=%d\n", c);
 
             if (superdisk_drives[c].bus_type == SUPERDISK_BUS_SCSI) {
-                scsi_bus = (superdisk_drives[c].scsi_device_id >> 4) & 0x0f;
-                scsi_id  = superdisk_drives[c].scsi_device_id & 0x0f;
+                const uint8_t scsi_bus = (superdisk_drives[c].scsi_device_id >> 4) & 0x0f;
+                const uint8_t scsi_id  = superdisk_drives[c].scsi_device_id & 0x0f;
 
                 /* Make sure to ignore any SCSI SuperDisk drive that has an out of range SCSI bus. */
                 if (scsi_bus >= SCSI_BUS_MAX)
@@ -2439,7 +2240,9 @@ superdisk_hard_reset(void)
 
             superdisk_drive_reset(c);
 
-            dev = (superdisk_t *) superdisk_drives[c].priv;
+            superdisk_t *dev = (superdisk_t *) superdisk_drives[c].priv;
+
+            superdisk_log("SuperDisk hard_reset drive=%d\n", c);
 
             if (dev->tf == NULL)
                 continue;
@@ -2450,14 +2253,16 @@ superdisk_hard_reset(void)
             superdisk_init(dev);
 
             if (strlen(superdisk_drives[c].image_path))
-                superdisk_load(dev, superdisk_drives[c].image_path);
+                superdisk_load(dev, superdisk_drives[c].image_path, 0);
 
             superdisk_mode_sense_load(dev);
 
             if (superdisk_drives[c].bus_type == SUPERDISK_BUS_SCSI)
-                superdisk_log("SCSI SuperDisk drive %i attached to SCSI ID %i\n", c, superdisk_drives[c].scsi_device_id);
+                superdisk_log("SCSI SuperDisk drive %i attached to SCSI ID %i\n",
+                        c, superdisk_drives[c].scsi_device_id);
             else if (superdisk_drives[c].bus_type == SUPERDISK_BUS_ATAPI)
-                superdisk_log("ATAPI SuperDisk drive %i attached to IDE channel %i\n", c, superdisk_drives[c].ide_channel);
+                superdisk_log("ATAPI SuperDisk drive %i attached to IDE channel %i\n",
+                        c, superdisk_drives[c].ide_channel);
         }
     }
 }
@@ -2465,19 +2270,15 @@ superdisk_hard_reset(void)
 void
 superdisk_close(void)
 {
-    superdisk_t *dev;
-    uint8_t      scsi_bus;
-    uint8_t      scsi_id;
-
     for (uint8_t c = 0; c < SUPERDISK_NUM; c++) {
         if (superdisk_drives[c].bus_type == SUPERDISK_BUS_SCSI) {
-            scsi_bus = (superdisk_drives[c].scsi_device_id >> 4) & 0x0f;
-            scsi_id  = superdisk_drives[c].scsi_device_id & 0x0f;
+            const uint8_t scsi_bus = (superdisk_drives[c].scsi_device_id >> 4) & 0x0f;
+            const uint8_t scsi_id  = superdisk_drives[c].scsi_device_id & 0x0f;
 
             memset(&scsi_devices[scsi_bus][scsi_id], 0x00, sizeof(scsi_device_t));
         }
 
-        dev = (superdisk_t *) superdisk_drives[c].priv;
+        superdisk_t *dev = (superdisk_t *) superdisk_drives[c].priv;
 
         if (dev) {
             superdisk_disk_unload(dev);

@@ -169,8 +169,7 @@ superdisk_mount(uint8_t id, char *fn, uint8_t wp)
 
     superdisk_disk_close(dev);
     superdisk_drives[id].read_only = wp;
-    superdisk_load(dev, fn);
-    superdisk_insert(dev);
+    superdisk_load(dev, fn, 0);
 
     ui_sb_update_icon_state(SB_SUPERDISK | id, strlen(superdisk_drives[id].image_path) ? 0 : 1);
 #if 0

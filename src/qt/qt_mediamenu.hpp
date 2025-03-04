@@ -69,9 +69,10 @@ public:
 
     void superdiskNewImage(int i);
     void superdiskSelectImage(int i, bool wp);
-    void superdiskMount(int i, const QString& filename, bool wp);
+    void superdiskMount(int i, const QString &filename, bool wp);
     void superdiskEject(int i);
-    void superdiskReload(int i);
+    void superdiskReloadPrev(int i);
+    void superdiskReload(int index, int slot);
     void superdiskUpdateMenu(int i);
 
     void nicConnect(int i);

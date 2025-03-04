@@ -24,6 +24,7 @@ public:
         Img,
         Fdi,
         Zdi,
+        Sdi,
         Mdi,
     };
     explicit NewFloppyDialog(MediaType type, QWidget *parent = nullptr);
