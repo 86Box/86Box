@@ -1420,7 +1420,6 @@ cpu_set(void)
 #endif /* USE_DYNAREC */
             break;
 
-#ifdef USE_CYRIX_6X86
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
         case CPU_CxGX1:
@@ -1541,7 +1540,6 @@ cpu_set(void)
             else if (CPU_Cx6x86)
                 CPUID = 0; /* Disabled on powerup by default */
             break;
-#endif /* USE_CYRIX_6X86 */
 
 #ifdef USE_AMD_K5
         case CPU_K5:
@@ -2386,7 +2384,6 @@ cpu_CPUID(void)
                 EAX = EBX = ECX = EDX = 0;
             break;
 
-#ifdef USE_CYRIX_6X86
         case CPU_Cx6x86:
             if (!EAX) {
                 EAX = 0x00000001;
@@ -2447,7 +2444,6 @@ cpu_CPUID(void)
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
-#endif /* USE_CYRIX_6X86 */
 
         case CPU_PENTIUMPRO:
             if (!EAX) {
@@ -3124,7 +3120,6 @@ pentium_invalid_rdmsr:
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             break;
 
-#ifdef USE_CYRIX_6X86
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
         case CPU_CxGX1:
@@ -3164,7 +3159,6 @@ pentium_invalid_rdmsr:
             }
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             break;
-#endif /* USE_CYRIX_6X86 */
 
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
@@ -3945,7 +3939,6 @@ pentium_invalid_wrmsr:
             }
             break;
 
-#ifdef USE_CYRIX_6X86
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
         case CPU_CxGX1:
@@ -3979,7 +3972,6 @@ pentium_invalid_wrmsr:
                     break;
             }
             break;
-#endif /* USE_CYRIX_6X86 */
 
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
@@ -4283,14 +4275,12 @@ cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
             case 0xe8: /* CCR4 */
                 if ((ccr3 & 0xf0) == 0x10) {
                     ccr4 = val;
-#ifdef USE_CYRIX_6X86
                     if (cpu_s->cpu_type >= CPU_Cx6x86) {
                         if (val & 0x80)
                             CPUID = cpu_s->cpuid_model;
                         else
                             CPUID = 0;
                     }
-#endif /* USE_CYRIX_6X86 */
                 }
                 break;
             case 0xe9: /* CCR5 */
