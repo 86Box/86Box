@@ -10,7 +10,7 @@
  * 
  *   Notes: There are some known issues that should be corrected.
  *            - Incorrect foreground text color appears on an active window in OS/2 J1.3. 
- *            - BitBlt's text drawing function does not work correctly.
+ *            - Glitches some part of graphics on the Control Panel in OS/2 J2.1 beta. 
  *            - The screen resolution and blanking interval time maybe not correct.
  * 
  *          The code should be tested with following cases.
@@ -253,11 +253,11 @@
 #define LG_SET_RESET_2          0x10
 
 #ifndef RELEASE_BUILD
-#define ENABLE_DA2_LOG 1
+// #define ENABLE_DA2_LOG 1
 #endif
 
 #ifdef ENABLE_DA2_LOG
-#    define ENABLE_DA2_DEBUGBLT 1
+// #    define ENABLE_DA2_DEBUGBLT 1
 #    define ENABLE_DA2_DEBUGVRAM 1
 // #    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
@@ -1228,7 +1228,8 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     break;
                 case LC_START_ADDRESS_HIGH:
                 case LC_START_ADDRESS_LOW:
-                /* OS/2 DOS in MODE 1 read this to set the base line, but it does not work correctly. */
+                /* The DOS J4.0 MODE 4 command and OS/2 driver write 0xFF00.
+                   OS/2 DOS MODE 1 setup reads this to set the base line, but it causes the screen glitch. */
                     val = 0;
                     break;
                 case LC_VERTICAL_TOTALJ:      /* Vertical Total */
@@ -1625,11 +1626,13 @@ da2_inb(uint16_t addr, void *p)
 uint16_t
 da2_inw(uint16_t addr, void *p)
 {
-    // uint16_t temp;
+    uint16_t temp;
     da2_t *da2       = (da2_t *) p;
     da2->inflipflop  = 0;
     da2->outflipflop = 0;
-    return da2_in(addr, da2);
+    temp = da2_in(addr, da2);
+    da2_log("DA2 Inw addr %03X val %04X\n", addr, temp);
+    return temp;
 }
 /* IO 03DAh : Input Status Register 2 for DOSSHELL used by DOS J4.0 */
 uint8_t
@@ -2184,15 +2187,15 @@ da2_updatevidselector(da2_t *da2)
 }
 
 /*
-    Video modes supported by DOS J4.0 for the DA-2 (The DA-2 doesn't have a video BIOS on its card.)
-    Mode (hex)  Type    Colors  Format  Base Address    PELs
-    3           A/N/K   16      80 x 25 B8000h          1040 x 725
-    8           A/N/K   1       80 x 25 E0000h          1040 x 725
-    A           APA     1       78 x 25 A0000h          1024 x 768
-    D           APA     16      78 x 25 A0000h          1024 x 768
-    E           A/N/K   16      80 x 25 E0000h          1040 x 725
-    F           APA     256             A0000h          1024 x 768
-    45 (undoc)  APA     16              A0000h          1040 x 768
+    INT 10h video modes supported in DOS J4.0 (The DA-2 doesn't have a video BIOS on its card.)
+    Mode        Type    Colors  Text    Base Address    PELs        Render
+    3           A/N/K   16      80 x 25 B0000h/B8000h   1040 x 725  textm3
+    8           A/N/K   2       80 x 25 E0000h          1040 x 725  text
+    Ah          APA     1       78 x 25 A0000h          1024 x 768  color_4bpp
+    Dh          APA     16      78 x 25 A0000h          1024 x 768  color_4bpp
+    Eh          A/N/K   16      80 x 25 E0000h          1040 x 725  text
+    Fh          APA     256     NA      A0000h          1024 x 768  color_8bpp
+    45h(undoc)  APA     16      NA      A0000h          1040 x 768  color_4bpp
 */
 void
 da2_recalctimings(da2_t *da2)
@@ -2499,7 +2502,9 @@ da2_mmio_read(uint32_t addr, void *p)
         cycles -= video_timing_read_b;
         for (int i = 0; i < 8; i++)
             da2->gdcla[i] = da2->vram[(addr << 3) | i]; /* read in byte */
+#ifdef ENABLE_DA2_DEBUGVRAM
         da2_log("da2_Rb: %05x=%02x\n", addr, da2->gdcla[da2->readplane]);
+#endif
         if (da2->gdcreg[LG_MODE] & 0x08) { /* compare data across planes if the read mode bit (3EB 05, bit 3) is 1 */
             uint8_t ret = 0;
             for (int i = 0; i < 8; i++) {
@@ -2555,7 +2560,9 @@ da2_mmio_readw(uint32_t addr, void *p)
             }
             return ~ret;
         } else {
+#ifdef ENABLE_DA2_DEBUGVRAM
             da2_log("da2_Rw: %05x(%d) = %04x\n", addr, da2->readplane, da2->gdcla[da2->readplane]);
+#endif
             return da2->gdcla[da2->readplane];
         }
     } else {
@@ -2612,11 +2619,11 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
         }
     } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 color or 256 color mode */
         uint8_t bitmask;
-        /* align bitmask with even address (need to verify the condition with OS/2 J2.x, Win 3.x and A-Train IV Win) */
-        /* With byte align: Win 3.1 (Window Title) - ok, Solitaire 3.1 - ok, A-Train IV (splash): bad,  OS/2 J2.0(cmd) - ok */
+        /* Align bitmask with even address */
+        /* With byte align: Win 3.1 (Window) - ok, Solitaire 3.1 - ok, A-Train IV (splash): bad,  OS/2 J2.0(cmd) - ok */
         // if ((addr & 1)  && !(da2->gdcreg[LG_COMMAND] & 0x08)) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
-        /* Without byte align: Win 3.1 (Window Title) - bad, Solitaire 3.1 - ok, A-Train IV (splash): ok,  OS/2 J2.0(cmd) - ok */
-        /* With byte align: Win 3.1 (Window Title) - ok, Solitaire 3.1 - ok, A-Train IV (splash): ok,  OS/2 J2.0(cmd) - ok, DOS J4.0 MC - ok */
+        /* Without byte align: Win 3.1 (Window) - bad, Solitaire 3.1 - ok, A-Train IV (splash): ok,  OS/2 J2.0(cmd) - ok */
+        /* With byte align: Win 3.1 (Window) - ok, Solitaire 3.1 - ok, A-Train IV (splash): ok, OS/2 J2.0(cmd) - ok */
         if ((addr & 1)) bitmask = da2->gdcreg[LG_BIT_MASK_HIGH];
         else  
         /* No align: Win 3.1 (Window Title) - ok, Solitaire 3.1 - ok, A-Train IV (splash): bad,  OS/2 J2.0(cmd) - bad */
