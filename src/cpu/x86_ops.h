@@ -90,11 +90,9 @@ extern const OpFn dynarec_ops_winchip2_0f[1024];
 extern const OpFn dynarec_ops_pentium_0f[1024];
 extern const OpFn dynarec_ops_pentiummmx_0f[1024];
 
-#    ifdef USE_CYRIX_6X86
 extern const OpFn dynarec_ops_c6x86_0f[1024];
 extern const OpFn dynarec_ops_c6x86l_0f[1024];
 extern const OpFn dynarec_ops_c6x86mx_0f[1024];
-#    endif /* USE_CYRIX_6X86 */
 
 extern const OpFn dynarec_ops_k6_0f[1024];
 extern const OpFn dynarec_ops_k62_0f[1024];
@@ -233,11 +231,9 @@ extern const OpFn ops_winchip2_0f[1024];
 extern const OpFn ops_pentium_0f[1024];
 extern const OpFn ops_pentiummmx_0f[1024];
 
-#ifdef USE_CYRIX_6X86
 extern const OpFn ops_c6x86_0f[1024];
 extern const OpFn ops_c6x86l_0f[1024];
 extern const OpFn ops_c6x86mx_0f[1024];
-#endif /* USE_CYRIX_6X86 */
 
 extern const OpFn ops_k6_0f[1024];
 extern const OpFn ops_k62_0f[1024];

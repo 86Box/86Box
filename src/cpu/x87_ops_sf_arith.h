@@ -801,6 +801,8 @@ next_ins:
     return 0;
 }
 
+#ifndef FPU_8087
+#ifndef OPS_286_386
 static int
 sf_FRINT2(uint32_t fetchdat)
 {
@@ -854,6 +856,7 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
     return 0;
 }
+#endif
 
 static int
 sf_FRICHOP(uint32_t fetchdat)
@@ -881,3 +884,4 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
     return 0;
 }
+#endif

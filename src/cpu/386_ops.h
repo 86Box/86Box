@@ -1385,7 +1385,6 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
     // clang-format on
 };
 
-#    ifdef USE_CYRIX_6X86
 const OpFn OP_TABLE(c6x86_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
@@ -1569,7 +1568,6 @@ const OpFn OP_TABLE(c6x86l_0f)[1024] = {
 /*f0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
     // clang-format on
 };
-#    endif /* USE_CYRIX_6X86 */
 
 const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
     // clang-format off
@@ -1847,7 +1845,6 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
     // clang-format on
 };
 
-#    ifdef USE_CYRIX_6X86
 const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
@@ -1939,7 +1936,6 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
-#    endif /* USE_CYRIX_6X86 */
 
 const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
     // clang-format off

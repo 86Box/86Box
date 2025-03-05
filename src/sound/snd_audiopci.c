@@ -489,7 +489,10 @@ es137x_reset(void *priv)
 
     /* Serial Interface Control Register, Address 20H
        Addressable as byte, word, longword */
-    dev->si_cr = 0xff800000;
+    if (dev->type == AUDIOPCI_ES1370)
+        dev->si_cr = 0x00000000;
+    else
+        dev->si_cr = 0xff800000;
 
     /* DAC1 Channel Sample Count Register, Address 24H
        Addressable as word, longword */
