@@ -2220,14 +2220,7 @@ da2_recalctimings(da2_t *da2)
     if (da2->crtc[LC_START_H_DISPLAY_ENAB] & 1) {
         da2->hdisp--;
         da2->dispend -= 29;
-    } else {
-        // da2->vtotal += 2;
-        da2->dispend--;
-        // da2->vsyncstart++;
-        // da2->split++;
-        // da2->vblankstart++;
-        // da2->hdisp--;
-    }
+    } 
 
     da2->htotal = da2->crtc[LC_HORIZONTAL_TOTAL];
     da2->htotal += 1;
