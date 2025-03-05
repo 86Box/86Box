@@ -338,7 +338,7 @@ typedef struct virge_t {
     event_t *    fifo_not_full_event;
 
     atomic_int   virge_busy;
-    atomic_uint  virge_irq_req;
+    atomic_uint  irq_pending;
 
     uint8_t      subsys_stat;
     uint8_t      subsys_cntl;
@@ -374,39 +374,16 @@ typedef struct virge_t {
     uint32_t     dma_mmio_addr;
     uint32_t     dma_data_type;
 
-    pc_timer_t   wake_timer;
-    pc_timer_t   irq_timer;
-
     int          pci;
     int          is_agp;
+
+    pc_timer_t   irq_timer;
 } virge_t;
 
 static __inline void
 wake_fifo_thread(virge_t *virge) {
     /* Wake up FIFO thread if moving from idle */
     thread_set_event(virge->wake_fifo_thread);
-}
-
-void
-s3_virge_wake_fifo_timer(void* priv)
-{
-    virge_t *virge = (virge_t *) priv;
-
-    thread_set_event(virge->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
-}
-
-void
-s3_virge_wake_fifo_thread(virge_t *virge)
-{
-    if (!timer_is_enabled(&virge->wake_timer)) {
-        /*Don't wake FIFO thread immediately - if we do that it will probably
-          process one word and go back to sleep, requiring it to be woken on
-          almost every write. Instead, wait a short while so that the CPU
-          emulation writes more data so we have more batched-up work.*/
-        timer_on_auto(&virge->wake_timer, 100.0);
-    }
-    if (!timer_is_enabled(&virge->irq_timer))
-        timer_on_auto(&virge->irq_timer, 100.0);
 }
 
 static virge_t         *reset_state = NULL;
@@ -497,13 +474,13 @@ s3_virge_update_irqs(virge_t *virge)
         pci_clear_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
 }
 
-void
+static void
 s3_virge_update_irq_timer(void* priv)
 {
     virge_t *virge = (virge_t *) priv;
 
-    if (virge->virge_irq_req) {
-        virge->virge_irq_req--;
+    if (virge->irq_pending) {
+        virge->irq_pending--;
         s3_virge_update_irqs(virge);
     }
 
@@ -1140,9 +1117,8 @@ static void
 s3_virge_vblank_start(svga_t *svga) {
     virge_t *virge = (virge_t *) svga->priv;
 
-    if (virge->virge_irq_req)
-        virge->virge_irq_req--;
-
+    if (virge->irq_pending)
+        virge->irq_pending--;
     virge->subsys_stat |= INT_VSY;
     s3_virge_update_irqs(virge);
 }
@@ -1826,19 +1802,18 @@ fifo_thread(void *param)
             virge->fifo_read_idx++;
             fifo->addr_type = FIFO_INVALID;
 
-             if (FIFO_ENTRIES > 0xe000)
-                 thread_set_event(virge->fifo_not_full_event);
+            if (FIFO_ENTRIES > 0xe000)
+                thread_set_event(virge->fifo_not_full_event);
 
-             end_time = plat_timer_read();
-             virge_time += end_time - start_time;
-         }
-         virge->virge_busy = 0;
-         virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
-         if (virge->cmd_dma)
-            virge->subsys_stat |= (INT_HOST_DONE | INT_CMD_DONE);
+            end_time = plat_timer_read();
+            virge_time += end_time - start_time;
+        }
+        virge->virge_busy = 0;
+        virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
+        if (virge->cmd_dma)
+           virge->subsys_stat |= (INT_HOST_DONE | INT_CMD_DONE);
 
-         //s3_virge_update_irqs(virge);
-         virge->virge_irq_req++;
+        virge->irq_pending++;
     }
 }
 
@@ -1878,8 +1853,10 @@ s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
 
     virge->fifo_write_idx++;
 
-    if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 16)
-        s3_virge_wake_fifo_thread(virge);
+    if (FIFO_ENTRIES > 0xe000)
+        wake_fifo_thread(virge);
+    if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
+        wake_fifo_thread(virge);
 }
 
 static void
@@ -4445,8 +4422,7 @@ render_thread(void *param)
         }
         virge->s3d_busy = 0;
         virge->subsys_stat |= INT_S3D_DONE;
-        //s3_virge_update_irqs(virge);
-        virge->virge_irq_req++;
+        virge->irq_pending++;
     }
 }
 
@@ -5104,6 +5080,7 @@ s3_virge_disable_handlers(virge_t *dev)
 
     reset_state->svga.timer       = dev->svga.timer;
     reset_state->svga.timer8514   = dev->svga.timer8514;
+    reset_state->irq_timer        = dev->irq_timer;
 }
 
 static void
@@ -5375,8 +5352,7 @@ s3_virge_init(const device_t *info)
     virge->fifo_not_full_event = thread_create_event();
     virge->fifo_thread = thread_create(fifo_thread, virge);
 
-    timer_add(&virge->wake_timer, s3_virge_wake_fifo_timer, virge, 0);
-    timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 0);
+    timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 
     virge->local = info->local;
 
