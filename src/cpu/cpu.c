@@ -1462,22 +1462,16 @@ cpu_set(void)
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
             else if (cpu_s->cpu_type == CPU_Cx6x86L)
-                x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
+                x86_setopcodes(ops_386, ops_c6x86l_0f, dynarec_ops_386, dynarec_ops_c6x86l_0f);
             else
-                x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
-#        if 0
                 x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
-#        endif
 #    else
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
             else if (cpu_s->cpu_type == CPU_Cx6x86L)
-                x86_setopcodes(ops_386, ops_pentium_0f);
+                x86_setopcodes(ops_386, ops_c6x86l_0f);
             else
-                x86_setopcodes(ops_386, ops_c6x86mx_0f);
-#        if 0
                 x86_setopcodes(ops_386, ops_c6x86_0f);
-#        endif
 #    endif /* USE_DYNAREC */
 
             timing_rr  = 1; /* register dest - register src */
