@@ -206,6 +206,7 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    include "x86_ops_mmx_mov.h"
 #    include "x86_ops_mmx_pack.h"
 #    include "x86_ops_mmx_shift.h"
+#    include "x86_ops_mmx_emmi.h"
 #endif
 #include "x86_ops_mov.h"
 #ifdef OPS_286_386
@@ -1857,7 +1858,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        opRDSHR_a16,    opWRSHR_a16,    ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_w_a16,  opCMOVNO_w_a16, opCMOVB_w_a16,  opCMOVNB_w_a16, opCMOVE_w_a16,  opCMOVNE_w_a16, opCMOVBE_w_a16, opCMOVNBE_w_a16,opCMOVS_w_a16,  opCMOVNS_w_a16, opCMOVP_w_a16,  opCMOVNP_w_a16, opCMOVL_w_a16,  opCMOVNL_w_a16, opCMOVLE_w_a16, opCMOVNLE_w_a16,
-/*50*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*50*/  opPAVEB_a16,    opPADDSIW_a16,  opPMAGW_a16,    ILLEGAL,        opPDISTIB_a16,  opPSUBSIW_a16,  ILLEGAL,        ILLEGAL,        opPMVZB_a16,    opPMULHRWC_a16, opPMVNZB_a16,   opPMVLZB_a16,   opPMVGEZB_a16,  opPMULHRIW_a16, opPMACHRIW_a16, ILLEGAL,
 /*60*/  opPUNPCKLBW_a16,opPUNPCKLWD_a16,opPUNPCKLDQ_a16,opPACKSSWB_a16, opPCMPGTB_a16,  opPCMPGTW_a16,  opPCMPGTD_a16,  opPACKUSWB_a16, opPUNPCKHBW_a16,opPUNPCKHWD_a16,opPUNPCKHDQ_a16,opPACKSSDW_a16, ILLEGAL,        ILLEGAL,        opMOVD_l_mm_a16,opMOVQ_q_mm_a16,
 /*70*/  ILLEGAL,        opPSxxW_imm,    opPSxxD_imm,    opPSxxQ_imm,    opPCMPEQB_a16,  opPCMPEQW_a16,  opPCMPEQD_a16,  opEMMS,         opSVDC_a16,     opRSDC_a16,     opSVLDT_a16,    opRSLDT_a16,    opSVTS_a16,     opRSTS_a16,     opMOVD_mm_l_a16_cx,opMOVQ_mm_q_a16,
 
@@ -1879,7 +1880,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        opRDSHR_a16,    opWRSHR_a16,    ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_l_a16,  opCMOVNO_l_a16, opCMOVB_l_a16,  opCMOVNB_l_a16, opCMOVE_l_a16,  opCMOVNE_l_a16, opCMOVBE_l_a16, opCMOVNBE_l_a16,opCMOVS_l_a16,  opCMOVNS_l_a16, opCMOVP_l_a16,  opCMOVNP_l_a16, opCMOVL_l_a16,  opCMOVNL_l_a16, opCMOVLE_l_a16, opCMOVNLE_l_a16,
-/*50*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*50*/  opPAVEB_a16,    opPADDSIW_a16,  opPMAGW_a16,    ILLEGAL,        opPDISTIB_a16,  opPSUBSIW_a16,  ILLEGAL,        ILLEGAL,        opPMVZB_a16,    opPMULHRWC_a16, opPMVNZB_a16,   opPMVLZB_a16,   opPMVGEZB_a16,  opPMULHRIW_a16, opPMACHRIW_a16, ILLEGAL,
 /*60*/  opPUNPCKLBW_a16,opPUNPCKLWD_a16,opPUNPCKLDQ_a16,opPACKSSWB_a16, opPCMPGTB_a16,  opPCMPGTW_a16,  opPCMPGTD_a16,  opPACKUSWB_a16, opPUNPCKHBW_a16,opPUNPCKHWD_a16,opPUNPCKHDQ_a16,opPACKSSDW_a16, ILLEGAL,        ILLEGAL,        opMOVD_l_mm_a16,opMOVQ_q_mm_a16,
 /*70*/  ILLEGAL,        opPSxxW_imm,    opPSxxD_imm,    opPSxxQ_imm,    opPCMPEQB_a16,  opPCMPEQW_a16,  opPCMPEQD_a16,  opEMMS,         opSVDC_a16,     opRSDC_a16,     opSVLDT_a16,    opRSLDT_a16,    opSVTS_a16,     opRSTS_a16,     opMOVD_mm_l_a16_cx,opMOVQ_mm_q_a16,
 
@@ -1901,7 +1902,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        opRDSHR_a32,    opWRSHR_a32,    ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_w_a32,  opCMOVNO_w_a32, opCMOVB_w_a32,  opCMOVNB_w_a32, opCMOVE_w_a32,  opCMOVNE_w_a32, opCMOVBE_w_a32, opCMOVNBE_w_a32,opCMOVS_w_a32,  opCMOVNS_w_a32, opCMOVP_w_a32,  opCMOVNP_w_a32, opCMOVL_w_a32,  opCMOVNL_w_a32, opCMOVLE_w_a32, opCMOVNLE_w_a32,
-/*50*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*50*/  opPAVEB_a32,    opPADDSIW_a32,  opPMAGW_a32,    ILLEGAL,        opPDISTIB_a32,  opPSUBSIW_a32,  ILLEGAL,        ILLEGAL,        opPMVZB_a32,    opPMULHRWC_a32, opPMVNZB_a32,   opPMVLZB_a32,   opPMVGEZB_a32,  opPMULHRIW_a32, opPMACHRIW_a32, ILLEGAL,
 /*60*/  opPUNPCKLBW_a32,opPUNPCKLWD_a32,opPUNPCKLDQ_a32,opPACKSSWB_a32, opPCMPGTB_a32,  opPCMPGTW_a32,  opPCMPGTD_a32,  opPACKUSWB_a32, opPUNPCKHBW_a32,opPUNPCKHWD_a32,opPUNPCKHDQ_a32,opPACKSSDW_a32, ILLEGAL,        ILLEGAL,        opMOVD_l_mm_a32,opMOVQ_q_mm_a32,
 /*70*/  ILLEGAL,        opPSxxW_imm,    opPSxxD_imm,    opPSxxQ_imm,    opPCMPEQB_a32,  opPCMPEQW_a32,  opPCMPEQD_a32,  opEMMS,         opSVDC_a32,     opRSDC_a32,     opSVLDT_a32,    opRSLDT_a32,    opSVTS_a32,     opRSTS_a32,     opMOVD_mm_l_a32_cx,opMOVQ_mm_q_a32,
 
@@ -1923,7 +1924,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        opRDSHR_a32,    opWRSHR_a32,    ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_l_a32,  opCMOVNO_l_a32, opCMOVB_l_a32,  opCMOVNB_l_a32, opCMOVE_l_a32,  opCMOVNE_l_a32, opCMOVBE_l_a32, opCMOVNBE_l_a32,opCMOVS_l_a32,  opCMOVNS_l_a32, opCMOVP_l_a32,  opCMOVNP_l_a32, opCMOVL_l_a32,  opCMOVNL_l_a32, opCMOVLE_l_a32, opCMOVNLE_l_a32,
-/*50*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*50*/  opPAVEB_a32,    opPADDSIW_a32,  opPMAGW_a32,    ILLEGAL,        opPDISTIB_a32,  opPSUBSIW_a32,  ILLEGAL,        ILLEGAL,        opPMVZB_a32,    opPMULHRWC_a32, opPMVNZB_a32,   opPMVLZB_a32,   opPMVGEZB_a32,  opPMULHRIW_a32, opPMACHRIW_a32, ILLEGAL,
 /*60*/  opPUNPCKLBW_a32,opPUNPCKLWD_a32,opPUNPCKLDQ_a32,opPACKSSWB_a32, opPCMPGTB_a32,  opPCMPGTW_a32,  opPCMPGTD_a32,  opPACKUSWB_a32, opPUNPCKHBW_a32,opPUNPCKHWD_a32,opPUNPCKHDQ_a32,opPACKSSDW_a32, ILLEGAL,        ILLEGAL,        opMOVD_l_mm_a32,opMOVQ_q_mm_a32,
 /*70*/  ILLEGAL,        opPSxxW_imm,    opPSxxD_imm,    opPSxxQ_imm,    opPCMPEQB_a32,  opPCMPEQW_a32,  opPCMPEQD_a32,  opEMMS,         opSVDC_a16,     opRSDC_a16,     opSVLDT_a16,    opRSLDT_a16,    opSVTS_a16,     opRSTS_a16,     opMOVD_mm_l_a32_cx,opMOVQ_mm_q_a32,
 

@@ -272,6 +272,10 @@ reset_common(int hard)
     msr.fcr        = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
     msw            = 0;
     new_ne         = 0;
+
+    ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = ccr7 = 0;
+    ccr4 = 0x85;
+
     if (hascache)
         cr0 = 1 << 30;
     else
