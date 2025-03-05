@@ -223,7 +223,6 @@ elseif(APPLE AND NOT QT)
     COMPONENT Runtime)
 endif()
 
-
 # Install the PDB file on Windows builds
 if(MSVC)
     # CMake fully supports PDB files on MSVC-compatible compilers

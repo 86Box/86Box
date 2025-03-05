@@ -2526,7 +2526,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {0xe0, 0x17, 0 }, .brk = { 0xe0, 0xF0, 0x17, 0 } }, /* 15a */
     { .mk = {      0x67, 0 }, .brk = {       0xf0, 0x67, 0 } }, /* 15b 0x33 LGUI->Muhenkan (in emulator only) */
     { .mk = {      0x64, 0 }, .brk = {       0xf0, 0x64, 0 } }, /* 15c 0x35 RGUI->Henkan (in emulator only) */
-    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xf0, 0x11, 0 } }, /* 15d 0x36 APPLICATION->Kana (in emulator 
+    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xf0, 0x11, 0 } }, /* 15d 0x36 APPLICATION->Kana (in emulator only) */
     { .mk = {0xe0, 0x37, 0 }, .brk = { 0xe0, 0xF0, 0x37, 0 } }, /* 15e */
     { .mk = {0xe0, 0x3F, 0 }, .brk = { 0xe0, 0xF0, 0x3F, 0 } }, /* 15f */
     { .mk = {            0 }, .brk = {                   0 } }, /* 160 */

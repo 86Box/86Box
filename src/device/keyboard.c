@@ -332,6 +332,20 @@ keyboard_input(int down, uint16_t scan)
     }
 }
 
+void
+keyboard_all_up(void)
+{
+    for (unsigned short i = 0; i < 0x200; i++) {
+        if (recv_key_ui[i]) {
+            recv_key_ui[i] = 0;
+        }
+        if (recv_key[i]) {
+            recv_key[i] = 0;
+            key_process(i, 0);
+        }
+    }
+}
+
 static uint8_t
 keyboard_do_break(uint16_t scan)
 {

@@ -338,6 +338,7 @@ typedef struct virge_t {
     event_t *    fifo_not_full_event;
 
     atomic_int   virge_busy;
+    atomic_uint  irq_pending;
 
     uint8_t      subsys_stat;
     uint8_t      subsys_cntl;
@@ -375,6 +376,8 @@ typedef struct virge_t {
 
     int          pci;
     int          is_agp;
+
+    pc_timer_t   irq_timer;
 } virge_t;
 
 static __inline void
@@ -469,6 +472,19 @@ s3_virge_update_irqs(virge_t *virge)
         pci_set_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
     else
         pci_clear_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
+}
+
+static void
+s3_virge_update_irq_timer(void* priv)
+{
+    virge_t *virge = (virge_t *) priv;
+
+    if (virge->irq_pending) {
+        virge->irq_pending--;
+        s3_virge_update_irqs(virge);
+    }
+
+    timer_on_auto(&virge->irq_timer, 100.);
 }
 
 static void
@@ -1101,6 +1117,8 @@ static void
 s3_virge_vblank_start(svga_t *svga) {
     virge_t *virge = (virge_t *) svga->priv;
 
+    if (virge->irq_pending)
+        virge->irq_pending--;
     virge->subsys_stat |= INT_VSY;
     s3_virge_update_irqs(virge);
 }
@@ -1784,18 +1802,18 @@ fifo_thread(void *param)
             virge->fifo_read_idx++;
             fifo->addr_type = FIFO_INVALID;
 
-             if (FIFO_ENTRIES > 0xe000)
-                 thread_set_event(virge->fifo_not_full_event);
+            if (FIFO_ENTRIES > 0xe000)
+                thread_set_event(virge->fifo_not_full_event);
 
-             end_time = plat_timer_read();
-             virge_time += end_time - start_time;
-         }
-         virge->virge_busy = 0;
-         virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
-         if (virge->cmd_dma)
-            virge->subsys_stat |= (INT_HOST_DONE | INT_CMD_DONE);
+            end_time = plat_timer_read();
+            virge_time += end_time - start_time;
+        }
+        virge->virge_busy = 0;
+        virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
+        if (virge->cmd_dma)
+           virge->subsys_stat |= (INT_HOST_DONE | INT_CMD_DONE);
 
-         s3_virge_update_irqs(virge);
+        virge->irq_pending++;
     }
 }
 
@@ -2175,19 +2193,781 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
             }                                       \
         } while (0)
 
-#define MIX()                                  \
-    do {                                       \
-        int c;                                 \
-        for (c = 0; c < 24; c++) {             \
-            int d = (dest & (1 << c)) ? 1 : 0; \
-            if (source & (1 << c))             \
-                d |= 2;                        \
-            if (pattern & (1 << c))            \
-                d |= 4;                        \
-            if (virge->s3d.rop & (1 << d))     \
-                out |= (1 << c);               \
-        }                                      \
-    } while (0)
+#define ROPMIX(R, D, P, S, out)                    \
+    {                                              \
+        switch (R) {                               \
+            case 0x00:                             \
+                out = 0;                           \
+                break;                             \
+            case 0x01:                             \
+                out = ~(D | (P | S));              \
+                break;                             \
+            case 0x02:                             \
+                out = D & ~(P | S);                \
+                break;                             \
+            case 0x03:                             \
+                out = ~(P | S);                    \
+                break;                             \
+            case 0x04:                             \
+                out = S & ~(D | P);                \
+                break;                             \
+            case 0x05:                             \
+                out = ~(D | P);                    \
+                break;                             \
+            case 0x06:                             \
+                out = ~(P | ~(D ^ S));             \
+                break;                             \
+            case 0x07:                             \
+                out = ~(P | (D & S));              \
+                break;                             \
+            case 0x08:                             \
+                out = S & (D & ~P);                \
+                break;                             \
+            case 0x09:                             \
+                out = ~(P | (D ^ S));              \
+                break;                             \
+            case 0x0a:                             \
+                out = D & ~P;                      \
+                break;                             \
+            case 0x0b:                             \
+                out = ~(P | (S & ~D));             \
+                break;                             \
+            case 0x0c:                             \
+                out = S & ~P;                      \
+                break;                             \
+            case 0x0d:                             \
+                out = ~(P | (D & ~S));             \
+                break;                             \
+            case 0x0e:                             \
+                out = ~(P | ~(D | S));             \
+                break;                             \
+            case 0x0f:                             \
+                out = ~P;                          \
+                break;                             \
+            case 0x10:                             \
+                out = P & ~(D | S);                \
+                break;                             \
+            case 0x11:                             \
+                out = ~(D | S);                    \
+                break;                             \
+            case 0x12:                             \
+                out = ~(S | ~(D ^ P));             \
+                break;                             \
+            case 0x13:                             \
+                out = ~(S | (D & P));              \
+                break;                             \
+            case 0x14:                             \
+                out = ~(D | ~(P ^ S));             \
+                break;                             \
+            case 0x15:                             \
+                out = ~(D | (P & S));              \
+                break;                             \
+            case 0x16:                             \
+                out = P ^ (S ^ (D & ~(P & S)));    \
+                break;                             \
+            case 0x17:                             \
+                out = ~(S ^ ((S ^ P) & (D ^ S)));  \
+                break;                             \
+            case 0x18:                             \
+                out = (S ^ P) & (P ^ D);           \
+                break;                             \
+            case 0x19:                             \
+                out = ~(S ^ (D & ~(P & S)));       \
+                break;                             \
+            case 0x1a:                             \
+                out = P ^ (D | (S & P));           \
+                break;                             \
+            case 0x1b:                             \
+                out = ~(S ^ (D & (P ^ S)));        \
+                break;                             \
+            case 0x1c:                             \
+                out = P ^ (S | (D & P));           \
+                break;                             \
+            case 0x1d:                             \
+                out = ~(D ^ (S & (P ^ D)));        \
+                break;                             \
+            case 0x1e:                             \
+                out = P ^ (D | S);                 \
+                break;                             \
+            case 0x1f:                             \
+                out = ~(P & (D | S));              \
+                break;                             \
+            case 0x20:                             \
+                out = D & (P & ~S);                \
+                break;                             \
+            case 0x21:                             \
+                out = ~(S | (D ^ P));              \
+                break;                             \
+            case 0x22:                             \
+                out = D & ~S;                      \
+                break;                             \
+            case 0x23:                             \
+                out = ~(S | (P & ~D));             \
+                break;                             \
+            case 0x24:                             \
+                out = (S ^ P) & (D ^ S);           \
+                break;                             \
+            case 0x25:                             \
+                out = ~(P ^ (D & ~(S & P)));       \
+                break;                             \
+            case 0x26:                             \
+                out = S ^ (D | (P & S));           \
+                break;                             \
+            case 0x27:                             \
+                out = S ^ (D | ~(P ^ S));          \
+                break;                             \
+            case 0x28:                             \
+                out = D & (P ^ S);                 \
+                break;                             \
+            case 0x29:                             \
+                out = ~(P ^ (S ^ (D | (P & S))));  \
+                break;                             \
+            case 0x2a:                             \
+                out = D & ~(P & S);                \
+                break;                             \
+            case 0x2b:                             \
+                out = ~(S ^ ((S ^ P) & (P ^ D)));  \
+                break;                             \
+            case 0x2c:                             \
+                out = S ^ (P & (D | S));           \
+                break;                             \
+            case 0x2d:                             \
+                out = P ^ (S | ~D);                \
+                break;                             \
+            case 0x2e:                             \
+                out = P ^ (S | (D ^ P));           \
+                break;                             \
+            case 0x2f:                             \
+                out = ~(P & (S | ~D));             \
+                break;                             \
+            case 0x30:                             \
+                out = P & ~S;                      \
+                break;                             \
+            case 0x31:                             \
+                out = ~(S | (D & ~P));             \
+                break;                             \
+            case 0x32:                             \
+                out = S ^ (D | (P | S));           \
+                break;                             \
+            case 0x33:                             \
+                out = ~S;                          \
+                break;                             \
+            case 0x34:                             \
+                out = S ^ (P | (D & S));           \
+                break;                             \
+            case 0x35:                             \
+                out = S ^ (P | ~(D ^ S));          \
+                break;                             \
+            case 0x36:                             \
+                out = S ^ (D | P);                 \
+                break;                             \
+            case 0x37:                             \
+                out = ~(S & (D | P));              \
+                break;                             \
+            case 0x38:                             \
+                out = P ^ (S & (D | P));           \
+                break;                             \
+            case 0x39:                             \
+                out = S ^ (P | ~D);                \
+                break;                             \
+            case 0x3a:                             \
+                out = S ^ (P | (D ^ S));           \
+                break;                             \
+            case 0x3b:                             \
+                out = ~(S & (P | ~D));             \
+                break;                             \
+            case 0x3c:                             \
+                out = P ^ S;                       \
+                break;                             \
+            case 0x3d:                             \
+                out = S ^ (P | ~(D | S));          \
+                break;                             \
+            case 0x3e:                             \
+                out = S ^ (P | (D & ~S));          \
+                break;                             \
+            case 0x3f:                             \
+                out = ~(P & S);                    \
+                break;                             \
+            case 0x40:                             \
+                out = P & (S & ~D);                \
+                break;                             \
+            case 0x41:                             \
+                out = ~(D | (P ^ S));              \
+                break;                             \
+            case 0x42:                             \
+                out = (S ^ D) & (P ^ D);           \
+                break;                             \
+            case 0x43:                             \
+                out = ~(S ^ (P & ~(D & S)));       \
+                break;                             \
+            case 0x44:                             \
+                out = S & ~D;                      \
+                break;                             \
+            case 0x45:                             \
+                out = ~(D | (P & ~S));             \
+                break;                             \
+            case 0x46:                             \
+                out = D ^ (S | (P & D));           \
+                break;                             \
+            case 0x47:                             \
+                out = ~(P ^ (S & (D ^ P)));        \
+                break;                             \
+            case 0x48:                             \
+                out = S & (D ^ P);                 \
+                break;                             \
+            case 0x49:                             \
+                out = ~(P ^ (D ^ (S | (P & D))));  \
+                break;                             \
+            case 0x4a:                             \
+                out = D ^ (P & (S | D));           \
+                break;                             \
+            case 0x4b:                             \
+                out = P ^ (D | ~S);                \
+                break;                             \
+            case 0x4c:                             \
+                out = S & ~(D & P);                \
+                break;                             \
+            case 0x4d:                             \
+                out = ~(S ^ ((S ^ P) | (D ^ S)));  \
+                break;                             \
+            case 0x4e:                             \
+                out = P ^ (D | (S ^ P));           \
+                break;                             \
+            case 0x4f:                             \
+                out = ~(P & (D | ~S));             \
+                break;                             \
+            case 0x50:                             \
+                out = P & ~D;                      \
+                break;                             \
+            case 0x51:                             \
+                out = ~(D | (S & ~P));             \
+                break;                             \
+            case 0x52:                             \
+                out = D ^ (P | (S & D));           \
+                break;                             \
+            case 0x53:                             \
+                out = ~(S ^ (P & (D ^ S)));        \
+                break;                             \
+            case 0x54:                             \
+                out = ~(D | ~(P | S));             \
+                break;                             \
+            case 0x55:                             \
+                out = ~D;                          \
+                break;                             \
+            case 0x56:                             \
+                out = D ^ (P | S);                 \
+                break;                             \
+            case 0x57:                             \
+                out = ~(D & (P | S));              \
+                break;                             \
+            case 0x58:                             \
+                out = P ^ (D & (S | P));           \
+                break;                             \
+            case 0x59:                             \
+                out = D ^ (P | ~S);                \
+                break;                             \
+            case 0x5a:                             \
+                out = D ^ P;                       \
+                break;                             \
+            case 0x5b:                             \
+                out = D ^ (P | ~(S | D));          \
+                break;                             \
+            case 0x5c:                             \
+                out = D ^ (P | (S ^ D));           \
+                break;                             \
+            case 0x5d:                             \
+                out = ~(D & (P | ~S));             \
+                break;                             \
+            case 0x5e:                             \
+                out = D ^ (P | (S & ~D));          \
+                break;                             \
+            case 0x5f:                             \
+                out = ~(D & P);                    \
+                break;                             \
+            case 0x60:                             \
+                out = P & (D ^ S);                 \
+                break;                             \
+            case 0x61:                             \
+                out = ~(D ^ (S ^ (P | (D & S))));  \
+                break;                             \
+            case 0x62:                             \
+                out = D ^ (S & (P | D));           \
+                break;                             \
+            case 0x63:                             \
+                out = S ^ (D | ~P);                \
+                break;                             \
+            case 0x64:                             \
+                out = S ^ (D & (P | S));           \
+                break;                             \
+            case 0x65:                             \
+                out = D ^ (S | ~P);                \
+                break;                             \
+            case 0x66:                             \
+                out = D ^ S;                       \
+                break;                             \
+            case 0x67:                             \
+                out = S ^ (D | ~(P | S));          \
+                break;                             \
+            case 0x68:                             \
+                out = ~(D ^ (S ^ (P | ~(D | S)))); \
+                break;                             \
+            case 0x69:                             \
+                out = ~(P ^ (D ^ S));              \
+                break;                             \
+            case 0x6a:                             \
+                out = D ^ (P & S);                 \
+                break;                             \
+            case 0x6b:                             \
+                out = ~(P ^ (S ^ (D & (P | S))));  \
+                break;                             \
+            case 0x6c:                             \
+                out = S ^ (D & P);                 \
+                break;                             \
+            case 0x6d:                             \
+                out = ~(P ^ (D ^ (S & (P | D))));  \
+                break;                             \
+            case 0x6e:                             \
+                out = S ^ (D & (P | ~S));          \
+                break;                             \
+            case 0x6f:                             \
+                out = ~(P & ~(D ^ S));             \
+                break;                             \
+            case 0x70:                             \
+                out = P & ~(D & S);                \
+                break;                             \
+            case 0x71:                             \
+                out = ~(S ^ ((S ^ D) & (P ^ D)));  \
+                break;                             \
+            case 0x72:                             \
+                out = S ^ (D | (P ^ S));           \
+                break;                             \
+            case 0x73:                             \
+                out = ~(S & (D | ~P));             \
+                break;                             \
+            case 0x74:                             \
+                out = D ^ (S | (P ^ D));           \
+                break;                             \
+            case 0x75:                             \
+                out = ~(D & (S | ~P));             \
+                break;                             \
+            case 0x76:                             \
+                out = S ^ (D | (P & ~S));          \
+                break;                             \
+            case 0x77:                             \
+                out = ~(D & S);                    \
+                break;                             \
+            case 0x78:                             \
+                out = P ^ (D & S);                 \
+                break;                             \
+            case 0x79:                             \
+                out = ~(D ^ (S ^ (P & (D | S))));  \
+                break;                             \
+            case 0x7a:                             \
+                out = D ^ (P & (S | ~D));          \
+                break;                             \
+            case 0x7b:                             \
+                out = ~(S & ~(D ^ P));             \
+                break;                             \
+            case 0x7c:                             \
+                out = S ^ (P & (D | ~S));          \
+                break;                             \
+            case 0x7d:                             \
+                out = ~(D & ~(P ^ S));             \
+                break;                             \
+            case 0x7e:                             \
+                out = (S ^ P) | (D ^ S);           \
+                break;                             \
+            case 0x7f:                             \
+                out = ~(D & (P & S));              \
+                break;                             \
+            case 0x80:                             \
+                out = D & (P & S);                 \
+                break;                             \
+            case 0x81:                             \
+                out = ~((S ^ P) | (D ^ S));        \
+                break;                             \
+            case 0x82:                             \
+                out = D & ~(P ^ S);                \
+                break;                             \
+            case 0x83:                             \
+                out = ~(S ^ (P & (D | ~S)));       \
+                break;                             \
+            case 0x84:                             \
+                out = S & ~(D ^ P);                \
+                break;                             \
+            case 0x85:                             \
+                out = ~(P ^ (D & (S | ~P)));       \
+                break;                             \
+            case 0x86:                             \
+                out = D ^ (S ^ (P & (D | S)));     \
+                break;                             \
+            case 0x87:                             \
+                out = ~(P ^ (D & S));              \
+                break;                             \
+            case 0x88:                             \
+                out = D & S;                       \
+                break;                             \
+            case 0x89:                             \
+                out = ~(S ^ (D | (P & ~S)));       \
+                break;                             \
+            case 0x8a:                             \
+                out = D & (S | ~P);                \
+                break;                             \
+            case 0x8b:                             \
+                out = ~(D ^ (S | (P ^ D)));        \
+                break;                             \
+            case 0x8c:                             \
+                out = S & (D | ~P);                \
+                break;                             \
+            case 0x8d:                             \
+                out = ~(S ^ (D | (P ^ S)));        \
+                break;                             \
+            case 0x8e:                             \
+                out = S ^ ((S ^ D) & (P ^ D));     \
+                break;                             \
+            case 0x8f:                             \
+                out = ~(P & ~(D & S));             \
+                break;                             \
+            case 0x90:                             \
+                out = P & ~(D ^ S);                \
+                break;                             \
+            case 0x91:                             \
+                out = ~(S ^ (D & (P | ~S)));       \
+                break;                             \
+            case 0x92:                             \
+                out = D ^ (P ^ (S & (D | P)));     \
+                break;                             \
+            case 0x93:                             \
+                out = ~(S ^ (P & D));              \
+                break;                             \
+            case 0x94:                             \
+                out = P ^ (S ^ (D & (P | S)));     \
+                break;                             \
+            case 0x95:                             \
+                out = ~(D ^ (P & S));              \
+                break;                             \
+            case 0x96:                             \
+                out = D ^ (P ^ S);                 \
+                break;                             \
+            case 0x97:                             \
+                out = P ^ (S ^ (D | ~(P | S)));    \
+                break;                             \
+            case 0x98:                             \
+                out = ~(S ^ (D | ~(P | S)));       \
+                break;                             \
+            case 0x99:                             \
+                out = ~(D ^ S);                    \
+                break;                             \
+            case 0x9a:                             \
+                out = D ^ (P & ~S);                \
+                break;                             \
+            case 0x9b:                             \
+                out = ~(S ^ (D & (P | S)));        \
+                break;                             \
+            case 0x9c:                             \
+                out = S ^ (P & ~D);                \
+                break;                             \
+            case 0x9d:                             \
+                out = ~(D ^ (S & (P | D)));        \
+                break;                             \
+            case 0x9e:                             \
+                out = D ^ (S ^ (P | (D & S)));     \
+                break;                             \
+            case 0x9f:                             \
+                out = ~(P & (D ^ S));              \
+                break;                             \
+            case 0xa0:                             \
+                out = D & P;                       \
+                break;                             \
+            case 0xa1:                             \
+                out = ~(P ^ (D | (S & ~P)));       \
+                break;                             \
+            case 0xa2:                             \
+                out = D & (P | ~S);                \
+                break;                             \
+            case 0xa3:                             \
+                out = ~(D ^ (P | (S ^ D)));        \
+                break;                             \
+            case 0xa4:                             \
+                out = ~(P ^ (D | ~(S | P)));       \
+                break;                             \
+            case 0xa5:                             \
+                out = ~(P ^ D);                    \
+                break;                             \
+            case 0xa6:                             \
+                out = D ^ (S & ~P);                \
+                break;                             \
+            case 0xa7:                             \
+                out = ~(P ^ (D & (S | P)));        \
+                break;                             \
+            case 0xa8:                             \
+                out = D & (P | S);                 \
+                break;                             \
+            case 0xa9:                             \
+                out = ~(D ^ (P | S));              \
+                break;                             \
+            case 0xaa:                             \
+                out = D;                           \
+                break;                             \
+            case 0xab:                             \
+                out = D | ~(P | S);                \
+                break;                             \
+            case 0xac:                             \
+                out = S ^ (P & (D ^ S));           \
+                break;                             \
+            case 0xad:                             \
+                out = ~(D ^ (P | (S & D)));        \
+                break;                             \
+            case 0xae:                             \
+                out = D | (S & ~P);                \
+                break;                             \
+            case 0xaf:                             \
+                out = D | ~P;                      \
+                break;                             \
+            case 0xb0:                             \
+                out = P & (D | ~S);                \
+                break;                             \
+            case 0xb1:                             \
+                out = ~(P ^ (D | (S ^ P)));        \
+                break;                             \
+            case 0xb2:                             \
+                out = S ^ ((S ^ P) | (D ^ S));     \
+                break;                             \
+            case 0xb3:                             \
+                out = ~(S & ~(D & P));             \
+                break;                             \
+            case 0xb4:                             \
+                out = P ^ (S & ~D);                \
+                break;                             \
+            case 0xb5:                             \
+                out = ~(D ^ (P & (S | D)));        \
+                break;                             \
+            case 0xb6:                             \
+                out = D ^ (P ^ (S | (D & P)));     \
+                break;                             \
+            case 0xb7:                             \
+                out = ~(S & (D ^ P));              \
+                break;                             \
+            case 0xb8:                             \
+                out = P ^ (S & (D ^ P));           \
+                break;                             \
+            case 0xb9:                             \
+                out = ~(D ^ (S | (P & D)));        \
+                break;                             \
+            case 0xba:                             \
+                out = D | (P & ~S);                \
+                break;                             \
+            case 0xbb:                             \
+                out = D | ~S;                      \
+                break;                             \
+            case 0xbc:                             \
+                out = S ^ (P & ~(D & S));          \
+                break;                             \
+            case 0xbd:                             \
+                out = ~((S ^ D) & (P ^ D));        \
+                break;                             \
+            case 0xbe:                             \
+                out = D | (P ^ S);                 \
+                break;                             \
+            case 0xbf:                             \
+                out = D | ~(P & S);                \
+                break;                             \
+            case 0xc0:                             \
+                out = P & S;                       \
+                break;                             \
+            case 0xc1:                             \
+                out = ~(S ^ (P | (D & ~S)));       \
+                break;                             \
+            case 0xc2:                             \
+                out = ~(S ^ (P | ~(D | S)));       \
+                break;                             \
+            case 0xc3:                             \
+                out = ~(P ^ S);                    \
+                break;                             \
+            case 0xc4:                             \
+                out = S & (P | ~D);                \
+                break;                             \
+            case 0xc5:                             \
+                out = ~(S ^ (P | (D ^ S)));        \
+                break;                             \
+            case 0xc6:                             \
+                out = S ^ (D & ~P);                \
+                break;                             \
+            case 0xc7:                             \
+                out = ~(P ^ (S & (D | P)));        \
+                break;                             \
+            case 0xc8:                             \
+                out = S & (D | P);                 \
+                break;                             \
+            case 0xc9:                             \
+                out = ~(S ^ (P | D));              \
+                break;                             \
+            case 0xca:                             \
+                out = D ^ (P & (S ^ D));           \
+                break;                             \
+            case 0xcb:                             \
+                out = ~(S ^ (P | (D & S)));        \
+                break;                             \
+            case 0xcc:                             \
+                out = S;                           \
+                break;                             \
+            case 0xcd:                             \
+                out = S | ~(D | P);                \
+                break;                             \
+            case 0xce:                             \
+                out = S | (D & ~P);                \
+                break;                             \
+            case 0xcf:                             \
+                out = S | ~P;                      \
+                break;                             \
+            case 0xd0:                             \
+                out = P & (S | ~D);                \
+                break;                             \
+            case 0xd1:                             \
+                out = ~(P ^ (S | (D ^ P)));        \
+                break;                             \
+            case 0xd2:                             \
+                out = P ^ (D & ~S);                \
+                break;                             \
+            case 0xd3:                             \
+                out = ~(S ^ (P & (D | S)));        \
+                break;                             \
+            case 0xd4:                             \
+                out = S ^ ((S ^ P) & (P ^ D));     \
+                break;                             \
+            case 0xd5:                             \
+                out = ~(D & ~(P & S));             \
+                break;                             \
+            case 0xd6:                             \
+                out = P ^ (S ^ (D | (P & S)));     \
+                break;                             \
+            case 0xd7:                             \
+                out = ~(D & (P ^ S));              \
+                break;                             \
+            case 0xd8:                             \
+                out = P ^ (D & (S ^ P));           \
+                break;                             \
+            case 0xd9:                             \
+                out = ~(S ^ (D | (P & S)));        \
+                break;                             \
+            case 0xda:                             \
+                out = D ^ (P & ~(S & D));          \
+                break;                             \
+            case 0xdb:                             \
+                out = ~((S ^ P) & (D ^ S));        \
+                break;                             \
+            case 0xdc:                             \
+                out = S | (P & ~D);                \
+                break;                             \
+            case 0xdd:                             \
+                out = S | ~D;                      \
+                break;                             \
+            case 0xde:                             \
+                out = S | (D ^ P);                 \
+                break;                             \
+            case 0xdf:                             \
+                out = S | ~(D & P);                \
+                break;                             \
+            case 0xe0:                             \
+                out = P & (D | S);                 \
+                break;                             \
+            case 0xe1:                             \
+                out = ~(P ^ (D | S));              \
+                break;                             \
+            case 0xe2:                             \
+                out = D ^ (S & (P ^ D));           \
+                break;                             \
+            case 0xe3:                             \
+                out = ~(P ^ (S | (D & P)));        \
+                break;                             \
+            case 0xe4:                             \
+                out = S ^ (D & (P ^ S));           \
+                break;                             \
+            case 0xe5:                             \
+                out = ~(P ^ (D | (S & P)));        \
+                break;                             \
+            case 0xe6:                             \
+                out = S ^ (D & ~(P & S));          \
+                break;                             \
+            case 0xe7:                             \
+                out = ~((S ^ P) & (P ^ D));        \
+                break;                             \
+            case 0xe8:                             \
+                out = S ^ ((S ^ P) & (D ^ S));     \
+                break;                             \
+            case 0xe9:                             \
+                out = ~(D ^ (S ^ (P & ~(D & S)))); \
+                break;                             \
+            case 0xea:                             \
+                out = D | (P & S);                 \
+                break;                             \
+            case 0xeb:                             \
+                out = D | ~(P ^ S);                \
+                break;                             \
+            case 0xec:                             \
+                out = S | (D & P);                 \
+                break;                             \
+            case 0xed:                             \
+                out = S | ~(D ^ P);                \
+                break;                             \
+            case 0xee:                             \
+                out = D | S;                       \
+                break;                             \
+            case 0xef:                             \
+                out = S | (D | ~P);                \
+                break;                             \
+            case 0xf0:                             \
+                out = P;                           \
+                break;                             \
+            case 0xf1:                             \
+                out = P | ~(D | S);                \
+                break;                             \
+            case 0xf2:                             \
+                out = P | (D & ~S);                \
+                break;                             \
+            case 0xf3:                             \
+                out = P | ~S;                      \
+                break;                             \
+            case 0xf4:                             \
+                out = P | (S & ~D);                \
+                break;                             \
+            case 0xf5:                             \
+                out = P | ~D;                      \
+                break;                             \
+            case 0xf6:                             \
+                out = P | (D ^ S);                 \
+                break;                             \
+            case 0xf7:                             \
+                out = P | ~(D & S);                \
+                break;                             \
+            case 0xf8:                             \
+                out = P | (D & S);                 \
+                break;                             \
+            case 0xf9:                             \
+                out = P | ~(D ^ S);                \
+                break;                             \
+            case 0xfa:                             \
+                out = D | P;                       \
+                break;                             \
+            case 0xfb:                             \
+                out = D | (P | ~S);                \
+                break;                             \
+            case 0xfc:                             \
+                out = P | S;                       \
+                break;                             \
+            case 0xfd:                             \
+                out = P | (S | ~D);                \
+                break;                             \
+            case 0xfe:                             \
+                out = D | (P | S);                 \
+                break;                             \
+            case 0xff:                             \
+                out = ~0;                          \
+                break;                             \
+        }                                          \
+    }
+
+#define MIX() do { ROPMIX(virge->s3d.rop & 0xFF, dest, pattern, source, out); out &= 0xFFFFFF; } while (0)
 
 #define WRITE(addr, val)                                                         \
     do {                                                                         \
@@ -3642,7 +4422,7 @@ render_thread(void *param)
         }
         virge->s3d_busy = 0;
         virge->subsys_stat |= INT_S3D_DONE;
-        s3_virge_update_irqs(virge);
+        virge->irq_pending++;
     }
 }
 
@@ -4300,6 +5080,7 @@ s3_virge_disable_handlers(virge_t *dev)
 
     reset_state->svga.timer       = dev->svga.timer;
     reset_state->svga.timer8514   = dev->svga.timer8514;
+    reset_state->irq_timer        = dev->irq_timer;
 }
 
 static void
@@ -4570,6 +5351,8 @@ s3_virge_init(const device_t *info)
     virge->wake_fifo_thread = thread_create_event();
     virge->fifo_not_full_event = thread_create_event();
     virge->fifo_thread = thread_create(fifo_thread, virge);
+
+    timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 
     virge->local = info->local;
 

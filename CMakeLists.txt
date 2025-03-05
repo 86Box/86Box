@@ -132,12 +132,17 @@ option(RTMIDI       "RtMidi"                                                    
 option(FLUIDSYNTH   "FluidSynth"                                                 ON)
 option(MUNT         "MUNT"                                                       ON)
 option(VNC          "VNC renderer"                                               OFF)
-option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"              OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library" OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                       OFF)
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
+
+if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
+    set(NEW_DYNAREC ON)
+else()
+    option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
+endif()
 
 if(WIN32)
     set(QT ON)

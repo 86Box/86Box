@@ -262,8 +262,10 @@ MainWindow::MainWindow(QWidget *parent)
                 ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
             this->releaseKeyboard();
-            if (ui->stackedWidget->mouse_uncapture_func)
+            if (ui->stackedWidget->mouse_uncapture_func) {
                 ui->stackedWidget->mouse_uncapture_func();
+            }
+            ui->stackedWidget->unsetCursor();
         }
     });
 
@@ -276,6 +278,8 @@ MainWindow::MainWindow(QWidget *parent)
         } else {
             if (mouse_capture)
                 emit setMouseCapture(false);
+
+            keyboard_all_up();
 
             if (do_auto_pause && !dopause) {
                 auto_paused = 1;
