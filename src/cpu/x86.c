@@ -275,6 +275,8 @@ reset_common(int hard)
 
     ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = ccr7 = 0;
     ccr4 = 0x85;
+    cyrix.arr[3].base = 0x30000;
+    cyrix.arr[3].size = 65536;
 
     if (hascache)
         cr0 = 1 << 30;
