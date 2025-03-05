@@ -3444,7 +3444,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->buffer[1] = 0x80;    /* Removable */
 
                 if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-                    dev->buffer[3] = cdrom_get_scsi_std(dev->drv->type);
+                    dev->buffer[2] = (dev->ven_cmd == scsi_cdrom_command_nec) ?
+                                     0x00 : cdrom_get_scsi_std(dev->drv->type);
 
                     if (dev->drv->is_toshiba)
                         /* Linked Command and Relative Addressing supported */
