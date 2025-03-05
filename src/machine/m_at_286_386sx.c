@@ -742,7 +742,7 @@ machine_at_acer100t_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/acer100t/acer386.bin",
+    ret = bios_load_linear("roms/machines/acer100t/acer386.BIN",
                            0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
