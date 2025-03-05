@@ -589,6 +589,16 @@ extern uint32_t _tr[8];
 extern uint32_t cache_index;
 extern uint8_t  _cache[2048];
 
+/* For the Cyrix 6x86(MX) */
+extern uint8_t ccr0;
+extern uint8_t ccr1;
+extern uint8_t ccr2;
+extern uint8_t ccr3;
+extern uint8_t ccr4;
+extern uint8_t ccr5;
+extern uint8_t ccr6;
+extern uint8_t ccr7;
+
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures
   CS,DS,ES,SS is the 16-bit data
