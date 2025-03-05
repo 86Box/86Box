@@ -256,7 +256,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_RUNOUT_GET                            0x2420
 #define NV3_PFIFO_RUNOUT_GET_ADDRESS                    3           // 13:3
 
-#define NV3_PFIFO_RUNOUT_RAMIN_ERR                      28
+#define NV3_PFIFO_RUNOUT_RAMIN_ERR                      28          // bit to or with
 
 #define NV3_PFIFO_CACHE0_SIZE                           1           // This is for software-injected notified only!
 #define NV3_PFIFO_CACHE1_SIZE_REV_AB                    32
@@ -264,7 +264,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_SIZE_MAX                       NV3_PFIFO_CACHE1_SIZE_REV_C
 #define NV3_PFIFO_CACHE_REASSIGNMENT                    0x2500        
 
-#define NV3_PFIFO_CACHE0_PUSH_ACCESS                    0x3000
+#define NV3_PFIFO_CACHE0_DMA_PUSH0                      0x3000
 #define NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID                0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
 #define NV3_PFIFO_CACHE0_STATUS                         0x3014
@@ -275,8 +275,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED         0
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE    4
 #define NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD 8
-#define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY            0x3050
-#define NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY_BOOL       4           // 1=dirty 0=clean
+#define NV3_PFIFO_CACHE0_PULLER_CTX_STATE               0x3050
+#define NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY         4           // 1=dirty 0=clean
 #define NV3_PFIFO_CACHE0_GET                            0x3070
 #define NV3_PFIFO_CACHE0_GET_ADDRESS                    2           // 1 bit
 // Current channel context - cache1
@@ -285,7 +285,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_METHOD                         0x3100
 #define NV3_PFIFO_CACHE0_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE0_METHOD_SUBCHANNEL              13          // 15:13
-#define NV3_PFIFO_CACHE1_PUSH_ACCESS                    0x3200
+#define NV3_PFIFO_CACHE1_DMA_PUSH0                      0x3200
 #define NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID                0x3204
 #define NV3_PFIFO_CACHE1_PUT                            0x3210
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
@@ -298,17 +298,21 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_2                   0x3228
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_3                   0x322C
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE       0           // The type of bus we are sending over
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE_PCI   0x02        // The type of bus we are sending over
+#define NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE_AGP   0x03        // The type of bus we are sending over
+
 // Why does a gpu need its own translation lookaside buffer and pagetable format. Are they crazy
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL                 0x3240
+#define NV3_PFIFO_CACHE1_PULL0                          0x3240
 //todo: merge stuff
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED         0
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_HASH_FAILURE    4
-#define NV3_PFIFO_CACHE1_PULLER_CONTROL_SOFTWARE_METHOD 8           // 0=software, 1=hardware
-#define NV3_PFIFO_CACHE1_PULLER_STATE1                  0x3250
-#define NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY            4
+#define NV3_PFIFO_CACHE1_PULL0_ENABLED                  0
+#define NV3_PFIFO_CACHE1_PULL0_HASH_FAILURE             4
+#define NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD          8           // 0=software, 1=hardware
+#define NV3_PFIFO_CACHE1_PULLER_CTX_STATE               0x3250
+#define NV3_PFIFO_CACHE1_PULLER_CTX_STATE_DIRTY         4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
 #define NV3_PFIFO_CACHE1_GET_ADDRESS                    2           // 6:2
 
@@ -920,7 +924,7 @@ typedef struct nv3_pbus_s
 
 typedef struct nv3_pfifo_cache_s
 {
-    bool access_enabled;                // Can we even access this cache?
+    bool dma_push0;                // Can we even access this cache?
     uint8_t put_address;                // Trigger a DMA into the value you put here.
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
     uint8_t channel;                    // The DMA channel ID of this cache.

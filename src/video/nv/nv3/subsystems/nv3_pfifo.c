@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/rom.h> // DEPENDENT!!!
@@ -43,27 +44,27 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
     { NV3_PFIFO_CACHE_REASSIGNMENT, "PFIFO - Allow Cache Channel Reassignment", NULL, NULL },
     { NV3_PFIFO_CACHE0_PULLER_CONTROL, "PFIFO - Cache0 Puller Control", NULL, NULL},
-    { NV3_PFIFO_CACHE1_PULLER_CONTROL, "PFIFO - Cache1 Puller Control"},
-    { NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
-    { NV3_PFIFO_CACHE1_PULLER_CONTROL, "PFIFO - Cache1 Puller State0", NULL, NULL},
-    { NV3_PFIFO_CACHE1_PULLER_STATE1, "PFIFO - Cache1 Puller State1 (Is context clean?)", NULL, NULL},
-    { NV3_PFIFO_CACHE0_PUSH_ACCESS, "PFIFO - Cache0 Access", NULL, NULL, },
-    { NV3_PFIFO_CACHE1_PUSH_ACCESS, "PFIFO - Cache1 Access", NULL, NULL, },
+    { NV3_PFIFO_CACHE1_PULL0, "PFIFO - Cache1 Puller Control"},
+    { NV3_PFIFO_CACHE0_PULLER_CTX_STATE, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
+    { NV3_PFIFO_CACHE1_PULL0, "PFIFO - Cache1 Puller State0", NULL, NULL},
+    { NV3_PFIFO_CACHE1_PULLER_CTX_STATE, "PFIFO - Cache1 Puller State1 (Is context clean?)", NULL, NULL},
+    { NV3_PFIFO_CACHE0_DMA_PUSH0, "PFIFO - Cache0 Access", NULL, NULL, },
+    { NV3_PFIFO_CACHE1_DMA_PUSH0, "PFIFO - Cache1 Access", NULL, NULL, },
     { NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID, "PFIFO - Cache0 DMA Channel ID", NULL, NULL, },
     { NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID, "PFIFO - Cache1 DMA Channel ID", NULL, NULL, },
     { NV3_PFIFO_CACHE0_ERROR_PENDING, "PFIFO - Cache0 DMA Error Pending?", NULL, NULL, },
     { NV3_PFIFO_CACHE0_STATUS, "PFIFO - Cache0 Status", NULL, NULL},
     { NV3_PFIFO_CACHE1_STATUS, "PFIFO - Cache1 Status", NULL, NULL}, 
-    { NV3_PFIFO_CACHE0_GET, "PFIFO - Cache0 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
-    { NV3_PFIFO_CACHE1_GET, "PFIFO - Cache1 Get MUST TRIGGER DMA NOW TO OBTAIN ENTRY", NULL, NULL },
-    { NV3_PFIFO_CACHE0_PUT, "PFIFO - Cache0 Put MUST TRIGGER DMA NOW TO INSERT ENTRY", NULL, NULL },
-    { NV3_PFIFO_CACHE1_PUT, "PFIFO - Cache1 Put MUST TRIGGER DMA NOW TO INSERT ENTRY", NULL, NULL },
+    { NV3_PFIFO_CACHE0_GET, "PFIFO - Cache0 Get", NULL, NULL },
+    { NV3_PFIFO_CACHE1_GET, "PFIFO - Cache1 Get", NULL, NULL },
+    { NV3_PFIFO_CACHE0_PUT, "PFIFO - Cache0 Put", NULL, NULL },
+    { NV3_PFIFO_CACHE1_PUT, "PFIFO - Cache1 Put", NULL, NULL },
     //Cache1 exclusive stuff
     { NV3_PFIFO_CACHE1_DMA_CONFIG_0, "PFIFO - Cache1 DMA Config0"},
     { NV3_PFIFO_CACHE1_DMA_CONFIG_1, "PFIFO - Cache1 DMA Config1"},
     { NV3_PFIFO_CACHE1_DMA_CONFIG_2, "PFIFO - Cache1 DMA Config2"},
     { NV3_PFIFO_CACHE1_DMA_CONFIG_3, "PFIFO - Cache1 DMA Config3"},
-    { NV3_PFIFO_CACHE1_DMA_STATUS, "PFIFO - Cache1 DMA Status"},
+    { NV3_PFIFO_CACHE1_DMA_STATUS, "PFIFO - Cache1 DMA Status - PROBABLY TRIGGERING DMA"},
     { NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE, "PFIFO - Cache1 DMA Translation Lookaside Buffer - Pagetable Base"},
     { NV3_PFIFO_CACHE1_DMA_TLB_PTE, "PFIFO - Cache1 DMA Status"},
     { NV3_PFIFO_CACHE1_DMA_TLB_TAG, "PFIFO - Cache1 DMA Status"},
@@ -147,20 +148,20 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CACHE0_PULLER_CONTROL:
                     ret = nv3->pfifo.cache0_settings.puller_control;
                     break;
-                case NV3_PFIFO_CACHE1_PULLER_CONTROL:
+                case NV3_PFIFO_CACHE1_PULL0:
                     ret = nv3->pfifo.cache1_settings.puller_control;
                     break;
-                case NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY:
-                    ret = nv3->pfifo.cache0_settings.context_is_dirty;
+                case NV3_PFIFO_CACHE0_PULLER_CTX_STATE:
+                    ret = (nv3->pfifo.cache0_settings.context_is_dirty) ? (1 << NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) : 0;
                     break;
-                case NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY:
-                    ret = nv3->pfifo.cache1_settings.context_is_dirty;
+                case NV3_PFIFO_CACHE1_PULLER_CTX_STATE:
+                    ret = (nv3->pfifo.cache0_settings.context_is_dirty) ? (1 << NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) : 0;
                     break;
-                case NV3_PFIFO_CACHE0_PUSH_ACCESS:
-                    ret = nv3->pfifo.cache0_settings.access_enabled;
+                case NV3_PFIFO_CACHE0_DMA_PUSH0:
+                    ret = nv3->pfifo.cache0_settings.dma_push0;
                     break;
-                case NV3_PFIFO_CACHE1_PUSH_ACCESS:
-                    ret = nv3->pfifo.cache1_settings.access_enabled;
+                case NV3_PFIFO_CACHE1_DMA_PUSH0:
+                    ret = nv3->pfifo.cache1_settings.dma_push0;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
                     ret = nv3->pfifo.cache0_settings.channel;
@@ -219,7 +220,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = nv3->pfifo.cache1_settings.dma_address;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_3:
-                    ret = nv3->pfifo.cache1_settings.dma_target_node;
+                    if (nv3->nvbase.bus_generation == nv_bus_pci)
+                        return NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE_PCI;
+                    else 
+                        return NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE_AGP;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_STATUS:
                     ret = nv3->pfifo.cache1_settings.dma_status;
@@ -292,7 +296,32 @@ uint32_t nv3_pfifo_read(uint32_t address)
 
 void nv3_pfifo_trigger_dma_if_required()
 {
+    // Not a thing for cache0
+    
+    bool cache1_dma = false;
 
+    /* Check that DMA is enabled */
+    if (nv3->pfifo.cache1_settings.dma_state
+    && nv3->pfifo.cache1_settings.dma_enabled)
+    {
+        uint32_t bytes_to_send = nv3->pfifo.cache1_settings.dma_length;
+        uint32_t where_to_send = nv3->pfifo.cache1_settings.dma_address;
+        uint32_t target_node = nv3->pfifo.cache1_settings.dma_target_node; //2=pci, 3=agp. What does this even do
+
+        /* Pagetable information */
+        uint32_t tlb_pt_base = nv3->pfifo.cache1_settings.dma_tlb_pt_base;
+        uint32_t tlb_pt_entry = nv3->pfifo.cache1_settings.dma_tlb_pte;
+        uint32_t tlb_pt_tag = nv3->pfifo.cache1_settings.dma_tlb_tag; // 0xFFFFFFFF usually?
+
+        /* PUSH - System to GPU (?) */
+        if (nv3->pfifo.cache1_settings.dma_push0)
+        {
+
+        }
+
+        /* PULL - GPU to System */
+        nv_log("Initiating NV to System DMA - Probably we are trying to notify");
+    }
 }
 
 void nv3_pfifo_write(uint32_t address, uint32_t value) 
@@ -396,20 +425,20 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 case NV3_PFIFO_CACHE0_PULLER_CONTROL:
                     nv3->pfifo.cache0_settings.puller_control = value; // 8bits meaningful
                     break;
-                case NV3_PFIFO_CACHE1_PULLER_CONTROL:
+                case NV3_PFIFO_CACHE1_PULL0:
                     nv3->pfifo.cache1_settings.puller_control = value; // 8bits meaningful
                     break;
-                case NV3_PFIFO_CACHE0_PULLER_CTX_IS_DIRTY:
-                    nv3->pfifo.cache0_settings.context_is_dirty = value;
+                case NV3_PFIFO_CACHE0_PULLER_CTX_STATE:
+                    nv3->pfifo.cache0_settings.context_is_dirty = (value >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
                     break;
-                case NV3_PFIFO_CACHE1_PULLER_CTX_IS_DIRTY:
-                    nv3->pfifo.cache1_settings.context_is_dirty = value;
+                case NV3_PFIFO_CACHE1_PULLER_CTX_STATE:
+                    nv3->pfifo.cache1_settings.context_is_dirty = (value >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
                     break;
-                case NV3_PFIFO_CACHE0_PUSH_ACCESS:
-                    nv3->pfifo.cache0_settings.access_enabled = value;
+                case NV3_PFIFO_CACHE0_DMA_PUSH0:
+                    nv3->pfifo.cache0_settings.dma_push0 = value;
                     break;
-                case NV3_PFIFO_CACHE1_PUSH_ACCESS:
-                    nv3->pfifo.cache1_settings.access_enabled = value;
+                case NV3_PFIFO_CACHE1_DMA_PUSH0:
+                    nv3->pfifo.cache1_settings.dma_push0 = value;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
                     nv3->pfifo.cache0_settings.channel = value;
@@ -434,9 +463,6 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     break;
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_2:
                     nv3->pfifo.cache1_settings.dma_address = value;
-                    break;
-                case NV3_PFIFO_CACHE1_DMA_CONFIG_3:
-                    nv3->pfifo.cache1_settings.dma_target_node = value;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_STATUS:
                     nv3->pfifo.cache1_settings.dma_status = value;
@@ -484,7 +510,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
         uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
         nv3->pfifo.cache1_settings.context[ctx_entry_id] = value;
 
-        nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x", ctx_entry_id, value);
+        nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, value);
     }
 
     /* Trigger DMA for notifications if we need to */
@@ -599,7 +625,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     uint32_t subchannel = (addr >> NV3_OBJECT_SUBMIT_SUBCHANNEL) & (NV3_DMA_CHANNELS - 1);
 
     // first make sure there is even any cache available
-    if (!nv3->pfifo.cache1_settings.access_enabled)
+    if (!nv3->pfifo.cache1_settings.dma_push0)
     {
         oh_shit = true; 
         oh_shit_reason = nv3_runout_reason_no_cache_available;
@@ -681,7 +707,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
 void nv3_pfifo_cache1_pull()
 {
     // Do nothing if PFIFO CACHE1 is disabled
-    if (!nv3->pfifo.cache1_settings.puller_control & (1 >> NV3_PFIFO_CACHE1_PULLER_CONTROL_ENABLED))
+    if (!nv3->pfifo.cache1_settings.puller_control & (1 >> NV3_PFIFO_CACHE1_PULL0_ENABLED))
         return; 
 
     // Do nothing if there is nothing in cache1 to pull
