@@ -554,6 +554,7 @@ opFTST(UNUSED(uint32_t fetchdat))
     return 0;
 }
 
+#ifndef FPU_8087
 static int
 opFTSTP(UNUSED(uint32_t fetchdat))
 {
@@ -569,6 +570,7 @@ opFTSTP(UNUSED(uint32_t fetchdat))
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ftst) : (x87_concurrency.ftst * cpu_multi));
     return 0;
 }
+#endif
 
 static int
 opFXAM(UNUSED(uint32_t fetchdat))
@@ -854,6 +856,8 @@ opFRNDINT(UNUSED(uint32_t fetchdat))
     return 0;
 }
 
+#ifndef FPU_8087
+#ifndef OPS_286_386
 static int
 opFRINT2(UNUSED(uint32_t fetchdat))
 {
@@ -882,7 +886,6 @@ opFRINT2(UNUSED(uint32_t fetchdat))
 static int
 opFRINEAR(UNUSED(uint32_t fetchdat))
 {
-    double dst0, st0, integral, frac;
     int prevRound;
 
     FP_ENTER();
@@ -896,11 +899,11 @@ opFRINEAR(UNUSED(uint32_t fetchdat))
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
     return 0;
 }
+#endif
 
 static int
 opFRICHOP(UNUSED(uint32_t fetchdat))
 {
-    double dst0, st0, integral, frac;
     int prevRound;
 
     FP_ENTER();
@@ -914,6 +917,7 @@ opFRICHOP(UNUSED(uint32_t fetchdat))
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
     return 0;
 }
+#endif
 
 static int
 opFSCALE(UNUSED(uint32_t fetchdat))

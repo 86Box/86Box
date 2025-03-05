@@ -459,6 +459,7 @@ sf_FTST(uint32_t fetchdat)
     return 0;
 }
 
+#ifndef FPU_8087
 static int
 sf_FTSTP(uint32_t fetchdat)
 {
@@ -484,6 +485,7 @@ sf_FTSTP(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ftst) : (x87_concurrency.ftst * cpu_multi));
     return 0;
 }
+#endif
 
 static int
 sf_FXAM(UNUSED(uint32_t fetchdat))
