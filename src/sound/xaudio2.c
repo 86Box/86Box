@@ -245,7 +245,7 @@ givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const siz
     if (!initialized)
         return;
 
-    (void) IXAudio2MasteringVoice_SetVolume(mastervoice, pow(10.0, (double) sound_gain / 20.0),
+    (void) IXAudio2MasteringVoice_SetVolume(mastervoice, sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0),
                                             XAUDIO2_COMMIT_NOW);
     XAUDIO2_BUFFER buffer = { 0 };
     buffer.Flags          = 0;

@@ -168,6 +168,7 @@ load_general(void)
     kbd_req_capture = ini_section_get_int(cat, "kbd_req_capture", 0);
     hide_status_bar = ini_section_get_int(cat, "hide_status_bar", 0);
     hide_tool_bar   = ini_section_get_int(cat, "hide_tool_bar", 0);
+    sound_muted     = ini_section_get_int(cat, "sound_muted", 0);
 
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
@@ -1845,6 +1846,10 @@ save_general(void)
     char          buffer[512] = { 0 };
 
     const char *va_name;
+
+    ini_section_set_int(cat, "sound_muted", sound_muted);
+    if (sound_muted == 0)
+        ini_section_delete_var(cat, "sound_muted");
 
     ini_section_set_int(cat, "vid_resize", vid_resize);
     if (vid_resize == 0)
