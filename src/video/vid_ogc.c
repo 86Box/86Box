@@ -31,6 +31,7 @@
 #include <86box/io.h>
 #include <86box/video.h>
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/mem.h>
 #include <86box/pit.h>

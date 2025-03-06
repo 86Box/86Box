@@ -39,6 +39,7 @@
 #include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/sound.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
