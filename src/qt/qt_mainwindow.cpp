@@ -122,19 +122,6 @@ extern int qt_nvr_save(void);
 #include "x11_util.h"
 #endif
 
-#ifdef Q_OS_WINDOWS
-#include <dwmapi.h>
-#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
-#define DWMWA_WINDOW_CORNER_PREFERENCE 33
-#endif
-#ifndef DWMWCP_DEFAULT
-#define DWMWCP_DEFAULT 0
-#endif
-#ifndef DWMWCP_DONOTROUND
-#define DWMWCP_DONOTROUND 1
-#endif
-#endif
-
 #ifdef Q_OS_MACOS
 #    include "cocoa_keyboard.hpp"
 // The namespace is required to avoid clashing typedefs; we only use this
@@ -195,8 +182,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 #ifdef Q_OS_WINDOWS
-    auto cornerPreference = (hide_status_bar ? DWMWCP_DONOTROUND : DWMWCP_DEFAULT);
-    DwmSetWindowAttribute((HWND) this->winId(), DWMWA_WINDOW_CORNER_PREFERENCE, (LPCVOID) &cornerPreference, sizeof(cornerPreference));
+    util::setWin11RoundedCorners(this->winId(), (hide_status_bar ? false : true));
 #endif
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
     this->centralWidget()->setStyleSheet("background-color: black;");
@@ -817,8 +803,7 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
         secondaryRenderer->setWindowIcon(this->windowIcon());
 #ifdef Q_OS_WINDOWS
-        auto cornerPreference = DWMWCP_DONOTROUND;
-        DwmSetWindowAttribute((HWND) secondaryRenderer->winId(), DWMWA_WINDOW_CORNER_PREFERENCE, (LPCVOID) &cornerPreference, sizeof(cornerPreference));
+        util::setWin11RoundedCorners(secondaryRenderer->winId(), false);
 #endif
         if (show_second_monitors) {
             secondaryRenderer->show();
@@ -1855,8 +1840,7 @@ MainWindow::on_actionHide_status_bar_triggered()
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
 #ifdef Q_OS_WINDOWS
-    auto cornerPreference = (hide_status_bar ? DWMWCP_DONOTROUND : DWMWCP_DEFAULT);
-    DwmSetWindowAttribute((HWND) main_window->winId(), DWMWA_WINDOW_CORNER_PREFERENCE, (LPCVOID) &cornerPreference, sizeof(cornerPreference));
+    util::setWin11RoundedCorners(main_window->winId(), (hide_status_bar ? false : true));
 #endif
     if (vid_resize >= 2) {
         setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));

@@ -26,6 +26,19 @@
 #include <QUuid>
 #include "qt_util.hpp"
 
+#ifdef Q_OS_WINDOWS
+#    include <dwmapi.h>
+#    ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#        define DWMWA_WINDOW_CORNER_PREFERENCE 33
+#    endif
+#    ifndef DWMWCP_DEFAULT
+#        define DWMWCP_DEFAULT 0
+#    endif
+#    ifndef DWMWCP_DONOTROUND
+#        define DWMWCP_DONOTROUND 1
+#    endif
+#endif
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
@@ -47,6 +60,15 @@ screenOfWidget(QWidget *widget)
     return widget->screen();
 #endif
 }
+
+#ifdef Q_OS_WINDOWS
+void
+setWin11RoundedCorners(WId hwnd, bool enable)
+{
+    auto cornerPreference = (enable ? DWMWCP_DEFAULT : DWMWCP_DONOTROUND);
+    DwmSetWindowAttribute((HWND) hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, (LPCVOID) &cornerPreference, sizeof(cornerPreference));
+}
+#endif
 
 QString
 DlgFilter(std::initializer_list<QString> extensions, bool last)
