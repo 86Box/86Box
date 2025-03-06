@@ -715,27 +715,13 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
                 break;
 
             case 0x42e8:
-                if (val & 0x01)
-                    dev->subsys_stat &= ~0x01;
-                if (val & 0x02)
-                    dev->subsys_stat &= ~0x02;
-                if (val & 0x04)
-                    dev->subsys_stat &= ~0x04;
-                if (val & 0x08)
-                    dev->subsys_stat &= ~0x08;
+                ibm8514_log("VBLANK stat=%02x, val=%02x.\n", dev->subsys_stat, val);
+                dev->subsys_cntl = (dev->subsys_cntl & 0xff00) | val;
+                dev->subsys_stat &= ~val;
                 break;
             case 0x42e9:
-                dev->subsys_cntl = val;
-                if (val & 0x01)
-                    dev->subsys_stat |= 0x01;
-                if (val & 0x02)
-                    dev->subsys_stat |= 0x02;
-                if (val & 0x04)
-                    dev->subsys_stat |= 0x04;
-                if (val & 0x08)
-                    dev->subsys_stat |= 0x08;
-
-                if ((val & 0xc0) == 0xc0) {
+                dev->subsys_cntl = (dev->subsys_cntl & 0xff) | (val << 8);
+                if ((val & 0xc0) == 0x80) {
                     dev->fifo_idx = 0;
                     dev->force_busy = 0;
                     dev->force_busy2 = 0;
@@ -882,10 +868,10 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
 
     switch (port) {
         case 0x2e8:
-            if (dev->vc == dev->v_syncstart)
+            if (dev->vc == dev->dispend)
                 temp |= 0x02;
 
-            ibm8514_log("0x2E8 read: Display Status=%02x.\n", temp);
+            ibm8514_log("Read: Display Status1=%02x.\n", temp);
             break;
 
         case 0x6e8:
@@ -910,21 +896,25 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
 
         case 0x42e8:
         case 0x42e9:
-            if (dev->vc == dev->v_syncstart)
-                dev->subsys_stat |= 0x01;
+            if ((dev->subsys_cntl & 0x01) && !(dev->subsys_stat & 0x01) && (dev->vc == dev->dispend))
+                temp |= 0x01;
 
             if (cmd == 6) {
-                if ((dev->accel.dx >= clip_l) &&
+                if ((dev->subsys_cntl & 0x02) &&
+                    !(dev->subsys_stat & 0x02) &&
+                    (dev->accel.dx >= clip_l) &&
                     (dev->accel.dx <= clip_r_ibm) &&
                     (dev->accel.dy >= clip_t) &&
                     (dev->accel.dy <= clip_b_ibm))
-                    dev->subsys_stat |= 0x02;
+                    temp |= 0x02;
             } else {
-                if ((dev->accel.cx >= clip_l) &&
+                if ((dev->subsys_cntl & 0x02) &&
+                    !(dev->subsys_stat & 0x02) &&
+                    (dev->accel.cx >= clip_l) &&
                     (dev->accel.cx <= clip_r_ibm) &&
                     (dev->accel.cy >= clip_t) &&
                     (dev->accel.cy <= clip_b_ibm))
-                    dev->subsys_stat |= 0x02;
+                    temp |= 0x02;
             }
 
             if (!dev->fifo_idx) {
@@ -932,9 +922,10 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
                     temp |= 0x08;
             }
 
-            if (port & 1)
+            if (port & 1) {
                 temp = dev->vram_512k_8514 ? 0x00 : 0x80;
-            else {
+                temp |= (dev->subsys_cntl >> 8);
+            } else {
                 temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
                 temp |= 0x20;
             }
@@ -1155,6 +1146,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         (dev->accel.cx <= clip_r) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= 0x02;
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                             case 0:
                                 src_dat = bkgd_color;
@@ -1250,6 +1242,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         (dev->accel.cx <= clip_r) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= 0x02;
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                             case 0:
                                 src_dat = bkgd_color;
@@ -1385,6 +1378,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         (dev->accel.cx <= clip_r) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= 0x02;
                         if (ibm8514_cpu_dest(svga) && (pixcntl == 0)) {
                             mix_dat = mix_mask; /* Mix data = forced to foreground register. */
                         } else if (ibm8514_cpu_dest(svga) && (pixcntl == 3)) {
@@ -1543,6 +1537,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             (dev->accel.cx <= clip_r) &&
                             (dev->accel.cy >= clip_t) &&
                             (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= 0x02;
                             if (ibm8514_cpu_dest(svga)) {
                                 READ((dev->accel.cy * dev->pitch) + dev->accel.cx, src_dat);
                             } else
@@ -1634,6 +1629,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             (dev->accel.cx <= clip_r) &&
                             (dev->accel.cy >= clip_t) &&
                             (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= 0x02;
                             if (ibm8514_cpu_dest(svga) && (pixcntl == 0)) {
                                 mix_dat = mix_mask; /* Mix data = forced to foreground register. */
                             } else if (ibm8514_cpu_dest(svga) && (pixcntl == 3)) {
@@ -1832,6 +1828,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 (dev->accel.cx <= clip_r) &&
                                 (dev->accel.cy >= clip_t) &&
                                 (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= 0x02;
                                 switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
@@ -1989,6 +1986,7 @@ skip_vector_rect_write:
                             (dev->accel.cx <= clip_r) &&
                             (dev->accel.cy >= clip_t) &&
                             (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= 0x02;
                             if (ibm8514_cpu_dest(svga) && (pixcntl == 0)) {
                                 mix_dat = mix_mask; /* Mix data = forced to foreground register. */
                             } else if (ibm8514_cpu_dest(svga) && (pixcntl == 3)) {
@@ -2150,6 +2148,7 @@ skip_nibble_rect_write:
                                     (dev->accel.cx <= clip_r) &&
                                     (dev->accel.cy >= clip_t) &&
                                     (dev->accel.cy <= clip_b)) {
+                                    dev->subsys_stat |= 0x02;
                                     switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                                         case 0:
                                             src_dat = bkgd_color;
@@ -2232,6 +2231,7 @@ skip_nibble_rect_write:
                                     (dev->accel.cx <= clip_r) &&
                                     (dev->accel.cy >= clip_t) &&
                                     (dev->accel.cy <= clip_b)) {
+                                    dev->subsys_stat |= 0x02;
                                     switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
                                         case 0:
                                             src_dat = bkgd_color;
@@ -2313,6 +2313,7 @@ skip_nibble_rect_write:
                                 (dev->accel.cx <= clip_r) &&
                                 (dev->accel.cy >= clip_t) &&
                                 (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= 0x02;
                                 switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
@@ -2424,6 +2425,7 @@ skip_nibble_rect_write:
                                 (dev->accel.cx <= clip_r) &&
                                 (dev->accel.cy >= clip_t) &&
                                 (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= 0x02;
                                 switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
@@ -2546,6 +2548,7 @@ skip_nibble_rect_write:
                         (dev->accel.cx <= clip_r) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= 0x02;
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                             case 0:
                                 src_dat = bkgd_color;
@@ -2650,9 +2653,10 @@ skip_nibble_rect_write:
                     dev->accel.cx = CLAMP(dev->accel.cx, clip_l, clip_r);
 
                     if ((dev->accel.cx >= clip_l) &&
-                        (dev->accel.cx < clip_r) &&
+                        (dev->accel.cx <= clip_r) &&
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= 0x02;
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                             case 0:
                                 src_dat = bkgd_color;
@@ -2811,6 +2815,7 @@ skip_nibble_rect_write:
                         (dev->accel.dx <= clip_r) &&
                         (dev->accel.dy >= clip_t) &&
                         (dev->accel.dy <= clip_b)) {
+                        dev->subsys_stat |= 0x02;
                         if (pixcntl == 3) {
                             if (!(dev->accel.cmd & 0x10) && ((frgd_mix != 3) || (bkgd_mix != 3))) {
                                 READ(dev->accel.src + dev->accel.cx, mix_dat);
@@ -2978,6 +2983,7 @@ skip_nibble_bitblt_write:
                                 (dev->accel.dx <= clip_r) &&
                                 (dev->accel.dy >= clip_t) &&
                                 (dev->accel.dy <= clip_b)) {
+                                dev->subsys_stat |= 0x02;
                                 switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
@@ -3075,6 +3081,7 @@ skip_nibble_bitblt_write:
                                 (dev->accel.dx <= clip_r) &&
                                 (dev->accel.dy >= clip_t) &&
                                 (dev->accel.dy <= clip_b)) {
+                                dev->subsys_stat |= 0x02;
                                 switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
@@ -3174,6 +3181,7 @@ skip_nibble_bitblt_write:
                                 (dx <= (((uint64_t)clip_r) * 3)) &&
                                 (dev->accel.dy >= (clip_t << 1)) &&
                                 (dev->accel.dy <= (clip_b << 1))) {
+                                dev->subsys_stat |= 0x02;
 
                                 READ(dev->accel.src + cx, src_dat);
                                 READ(dev->accel.dest + dx, dest_dat);
@@ -3196,6 +3204,7 @@ skip_nibble_bitblt_write:
                                 (dev->accel.dx <= clip_r) &&
                                 (dev->accel.dy >= clip_t) &&
                                 (dev->accel.dy <= clip_b)) {
+                                dev->subsys_stat |= 0x02;
                                 if (pixcntl == 3) {
                                     if (!(dev->accel.cmd & 0x10) && ((frgd_mix != 3) || (bkgd_mix != 3))) {
                                         READ(dev->accel.src + dev->accel.cx, mix_dat);
@@ -3704,6 +3713,8 @@ ibm8514_poll(void *priv)
             dev->vc &= 0xfff;
 
             if (dev->vc == dev->dispend) {
+                dev->subsys_stat |= 0x01;
+                ibm8514_log("VBLANK irq.\n");
                 dev->dispon = 0;
 
                 for (x = 0; x < ((dev->vram_mask + 1) >> 12); x++) {
