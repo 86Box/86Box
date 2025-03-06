@@ -32,12 +32,8 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/nvr.h>
 }
-
-// from nvr.h, which we can't import into CPP code
-#define TIME_SYNC_DISABLED 0
-#define TIME_SYNC_ENABLED  1
-#define TIME_SYNC_UTC      2
 
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
