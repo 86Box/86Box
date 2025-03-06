@@ -15,7 +15,6 @@
  */
 #include <inttypes.h>
 #include <math.h>
-// #define ENABLE_SCSI_CDROM_LOG 2
 #ifdef ENABLE_SCSI_CDROM_LOG
 #include <stdarg.h>
 #endif

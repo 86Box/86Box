@@ -241,7 +241,6 @@ int    ide_qua_enabled = 0;
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
 
-// #define ENABLE_IDE_LOG 1
 #ifdef ENABLE_IDE_LOG
 int ide_do_log = ENABLE_IDE_LOG;
 
@@ -1092,12 +1091,16 @@ ide_atapi_callback(ide_t *ide)
             ide_irq_raise(ide);
             break;
         case PHASE_DATA_IN_DMA:
-            // pclog("Reading block %i... ", ide->sc->sector_len + 1);
+            // pclog("Reading block %i (%i, %i)... ", ide->sc->sector_len + 1, ide->sc->block_len, ide->sc->packet_len);
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
-                if (ide->sc->block_len == 0)
+                if (ide->sc->block_len == 0) {
                     ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 0, bm->priv);
-                else {
+
+                    /* Underrun. */
+                    if (ret == 1)
+                        ret = 3;
+                } else {
                     ret = bm->dma(ide->sc->temp_buffer + ide->sc->buffer_pos -
                                   ide->sc->block_len, ide->sc->block_len,
                                   0, bm->priv);
@@ -1145,9 +1148,13 @@ ide_atapi_callback(ide_t *ide)
         case PHASE_DATA_OUT_DMA:
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
-                if (ide->sc->block_len == 0)
+                if (ide->sc->block_len == 0) {
                     ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 1, bm->priv);
-                else {
+
+                    /* Underrun. */
+                    if (ret == 1)
+                        ret = 3;
+                } else {
                     ret = bm->dma(ide->sc->temp_buffer + ide->sc->buffer_pos,
                                   ide->sc->block_len, 1, bm->priv);
 
