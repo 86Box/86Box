@@ -816,6 +816,10 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
         if (vid_resize == 2)
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
         secondaryRenderer->setWindowIcon(this->windowIcon());
+#ifdef Q_OS_WINDOWS
+        auto cornerPreference = DWMWCP_DONOTROUND;
+        DwmSetWindowAttribute((HWND) secondaryRenderer->winId(), DWMWA_WINDOW_CORNER_PREFERENCE, (LPCVOID) &cornerPreference, sizeof(cornerPreference));
+#endif
         if (show_second_monitors) {
             secondaryRenderer->show();
             if (window_remember) {
