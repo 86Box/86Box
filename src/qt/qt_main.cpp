@@ -86,6 +86,7 @@ extern MainWindow   *main_window;
 
 extern "C" {
 #include <86box/keyboard.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);

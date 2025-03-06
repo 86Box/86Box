@@ -23,6 +23,7 @@
 #include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/mem.h>
 #include <86box/pci.h>

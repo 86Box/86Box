@@ -19,9 +19,6 @@
 #include "qt_machinestatus.hpp"
 
 extern "C" {
-#define EMU_CPU_H // superhack - don't want timer.h to include cpu.h here, and some combo is preventing a compile
-extern uint64_t tsc;
-
 #include <86box/hdd.h>
 #include <86box/timer.h>
 #include <86box/86box.h>
