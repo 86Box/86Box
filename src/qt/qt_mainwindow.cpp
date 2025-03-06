@@ -48,11 +48,10 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
-#if 0
-#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
-#endif
-extern atomic_int acpi_pwrbut_pressed;
-extern int acpi_enabled;
+#include <86box/timer.h>
+#include <86box/apm.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -179,6 +178,7 @@ MainWindow::MainWindow(QWidget *parent)
     extern MainWindow *main_window;
     main_window = this;
     ui->setupUi(this);
+    status->setSoundGainAction(ui->actionSound_gain);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");

@@ -39,6 +39,7 @@
 #include <86box/pci.h>
 #include <86box/snd_ac97.h>
 #include <86box/sound.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/plat_unused.h>
 #include <86box/snd_akm4531.h>

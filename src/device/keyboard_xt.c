@@ -29,6 +29,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/machine.h>

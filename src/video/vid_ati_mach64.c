@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pci.h>
 #include <86box/rom.h>

@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/machine.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
