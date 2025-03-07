@@ -452,6 +452,9 @@ MainWindow::MainWindow(QWidget *parent)
                     endblit();
                 }
 #endif
+            case 6:
+                newVidApi = RendererStack::Renderer::OpenGL3PCem;
+                break;
         }
         ui->stackedWidget->switchRenderer(newVidApi);
         if (!show_second_monitors)

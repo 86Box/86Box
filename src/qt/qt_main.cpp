@@ -389,6 +389,7 @@ main_thread_fn()
     // title_update = 1;
     uint64_t old_time = elapsed_timer.elapsed();
     int drawits = frames = 0;
+    is_cpu_thread = 1;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         const uint64_t new_time = elapsed_timer.elapsed();

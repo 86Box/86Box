@@ -188,6 +188,8 @@ extern FILE *stdlog; /* file to log output to */
 #endif
 extern int config_changed; /* config has changed */
 
+extern __thread int is_cpu_thread; /* Is this the CPU thread? */
+
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
 extern void pclog_ex(const char *fmt, va_list ap);

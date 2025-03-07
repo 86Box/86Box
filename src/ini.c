@@ -157,6 +157,23 @@ find_entry(section_t *section, const char *name)
     return (NULL);
 }
 
+int
+ini_has_entry(ini_section_t self, const char *name)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    int            value = 0;
+
+    if (section == NULL)
+        return 0;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return 0;
+    
+    return 1;
+}
+
 static int
 entries_num(section_t *section)
 {
@@ -592,6 +609,11 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
     entry = find_entry(section, name);
     if (entry == NULL)
         return def;
+
+    if (stricmp(entry->data, "true") == 0)
+        return 1;
+    if (stricmp(entry->data, "false") == 0)
+        return 0;
 
     sscanf(entry->data, "%i", &value);
 

@@ -23,6 +23,7 @@
 
 #include "qt_hardwarerenderer.hpp"
 #include "qt_openglrenderer.hpp"
+#include "qt_openglrenderer_pcem.hpp"
 #include "qt_softwarerenderer.hpp"
 #include "qt_vulkanwindowrenderer.hpp"
 
@@ -337,19 +338,39 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
-        case Renderer::OpenGL3:
+        case Renderer::OpenGL3PCem:
             {
                 this->createWinId();
-                auto hw        = new OpenGLRenderer(this);
+                auto hw        = new OpenGLRendererPCem(this);
                 rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
-                connect(hw, &OpenGLRenderer::initialized, [=]() {
+                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRendererPCem::onBlit, Qt::QueuedConnection);
+                connect(hw, &OpenGLRendererPCem::initialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
                     endblit();
                     emit rendererChanged();
                 });
-                connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
+                connect(hw, &OpenGLRendererPCem::errorInitializing, [=]() {
+                    /* Renderer not could initialize, fallback to software. */
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                current.reset(this->createWindowContainer(hw, this));
+                break;
+            }
+        case Renderer::OpenGL3:
+            {
+                this->createWinId();
+                auto hw        = new OpenGLRendererPCem(this);
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRendererPCem::onBlit, Qt::QueuedConnection);
+                connect(hw, &OpenGLRendererPCem::initialized, [=]() {
+                    /* Buffers are available only after initialization. */
+                    imagebufs = rendererWindow->getBuffers();
+                    endblit();
+                    emit rendererChanged();
+                });
+                connect(hw, &OpenGLRendererPCem::errorInitializing, [=]() {
                     /* Renderer not could initialize, fallback to software. */
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
@@ -406,7 +427,7 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan && renderer != Renderer::OpenGL3PCem) {
         imagebufs = rendererWindow->getBuffers();
         endblit();
         emit rendererChanged();

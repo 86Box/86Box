@@ -58,6 +58,7 @@ extern void     ini_section_set_hex20(ini_section_t section, const char *name, i
 extern void     ini_section_set_mac(ini_section_t section, const char *name, int val);
 extern void     ini_section_set_string(ini_section_t section, const char *name, const char *val);
 extern void     ini_section_set_wstring(ini_section_t section, const char *name, wchar_t *val);
+extern int      ini_has_entry(ini_section_t self, const char *name);
 
 #define ini_delete_var(ini, head, name)       ini_section_delete_var(ini_find_section(ini, head), name)
 
@@ -89,6 +90,33 @@ extern ini_section_t ini_find_section(ini_t ini, const char *name);
 extern ini_section_t ini_find_or_create_section(ini_t ini, const char *name);
 extern void          ini_rename_section(ini_section_t section, const char *name);
 extern void          ini_delete_section_if_empty(ini_t ini, ini_section_t section);
+
+static inline void *wx_config_load(const char *path) { return (void*) ini_read(path); };
+static inline int wx_config_get_string(void *config, const char *name, char *dst, int size, const char *defVal) {
+    int res = ini_has_entry(ini_find_or_create_section((ini_t)config, ""), name);
+    char* str = ini_get_string((ini_t)config, "", name, (char*)defVal);
+    if (size == 0)
+        return res;
+    strncpy(dst, str, size);
+    return res;
+}
+static inline int wx_config_get_int(void *config, const char *name, int *dst, int defVal) {
+    int res = ini_has_entry(ini_find_or_create_section((ini_t)config, ""), name);
+    *dst = ini_get_int((ini_t)config, "", name, defVal);
+    return res;
+}
+static inline int wx_config_get_float(void *config, const char *name, float *dst, float defVal) {
+    int res = ini_has_entry(ini_find_or_create_section((ini_t)config, ""), name);
+    *dst = (float)ini_get_double((ini_t)config, "", name, defVal);
+    return res;
+}
+static inline int wx_config_get_bool(void *config, const char *name, int *dst, int defVal) {
+    int res = ini_has_entry(ini_find_or_create_section((ini_t)config, ""), name);
+    *dst = !!ini_get_int((ini_t)config, "", name, defVal);
+    return res;
+}
+static inline int wx_config_has_entry(void *config, const char *name) { return ini_has_entry(ini_find_or_create_section((ini_t)config, ""), name); }
+static inline void wx_config_free(void *config) { ini_close(config); };
 
 #ifdef __cplusplus
 }

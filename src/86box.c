@@ -252,6 +252,8 @@ int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 #endif
 
+__thread int is_cpu_thread = 0;
+
 static wchar_t mouse_msg[3][200];
 
 static volatile atomic_int do_pause_ack = 0;
