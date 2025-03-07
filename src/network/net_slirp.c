@@ -489,10 +489,47 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     struct in_addr  dhcp       = { .s_addr = htonl(0x0a00000f | (slirp_card_num << 8)) }; /* 10.0.x.15 */
     struct in_addr  dns        = { .s_addr = htonl(0x0a000003 | (slirp_card_num << 8)) }; /* 10.0.x.3 */
     struct in_addr  bind       = { .s_addr = htonl(0x00000000) };                         /* 0.0.0.0 */
-    struct in6_addr ipv6_dummy = { 0 };                                                   /* contents don't matter; we're not using IPv6 */
+
+    const SlirpConfig slirp_config = {
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+        .version = 6,
+#else
+        .version = 1,
+#endif
+        .restricted            = 0,
+        .in_enabled            = 1,
+        .vnetwork              = net,
+        .vnetmask              = mask,
+        .vhost                 = host,
+        .in6_enabled           = 0,
+        .vprefix_addr6         = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }, /* fec0:: - unused */
+        .vprefix_len           = 64,
+        .vhost6                = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02 } }, /* fec0::2 - unused */
+        .vhostname             = "86Box",
+        .tftp_server_name      = NULL,
+        .tftp_path             = NULL,
+        .bootfile              = NULL,
+        .vdhcp_start           = dhcp,
+        .vnameserver           = dns,
+        .vnameserver6          = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x03 } }, /* fec0::3 - unused */
+        .vdnssearch            = NULL,
+        .vdomainname           = NULL,
+        .if_mtu                = 0,
+        .if_mru                = 0,
+        .disable_host_loopback = 0,
+        .enable_emu            = 0,
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+        .outbound_addr         = NULL,
+        .outbound_addr6        = NULL,
+        .disable_dns           = 0,
+        .disable_dhcp          = 0,
+        .mfr_id                = 0,
+        .oob_eth_addr          = { 0, 0, 0, 0, 0, 0 }
+#endif
+    };
 
     /* Initialize SLiRP. */
-    slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6_dummy, 0, ipv6_dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6_dummy, NULL, NULL, &slirp_cb, slirp);
+    slirp->slirp = slirp_new(&slirp_config, &slirp_cb, slirp);
     if (!slirp->slirp) {
         slirp_log("SLiRP: initialization failed\n");
         snprintf(netdrv_errbuf, NET_DRV_ERRBUF_SIZE, "SLiRP initialization failed");
