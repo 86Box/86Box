@@ -259,6 +259,7 @@ MachineStatus::MachineStatus(QObject *parent)
 {
     d = std::make_unique<MachineStatus::States>(this);
     muteUnmuteAction = nullptr;
+    soundMenu = nullptr;
     connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
     refreshTimer->start(75);
 }
