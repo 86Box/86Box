@@ -153,6 +153,8 @@ Settings::Settings(QWidget *parent)
             &SettingsSound::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, network,
             &SettingsNetwork::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, ports,
+            &SettingsPorts::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, storageControllers,
             &SettingsStorageControllers::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,

@@ -181,6 +181,9 @@ MainWindow::MainWindow(QWidget *parent)
     status->setSoundGainAction(ui->actionSound_gain);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
+#ifdef Q_OS_WINDOWS
+    util::setWin11RoundedCorners(this->winId(), (hide_status_bar ? false : true));
+#endif
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
     this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
@@ -799,6 +802,9 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
         if (vid_resize == 2)
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
         secondaryRenderer->setWindowIcon(this->windowIcon());
+#ifdef Q_OS_WINDOWS
+        util::setWin11RoundedCorners(secondaryRenderer->winId(), false);
+#endif
         if (show_second_monitors) {
             secondaryRenderer->show();
             if (window_remember) {
@@ -1833,6 +1839,9 @@ MainWindow::on_actionHide_status_bar_triggered()
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
+#ifdef Q_OS_WINDOWS
+    util::setWin11RoundedCorners(main_window->winId(), (hide_status_bar ? false : true));
+#endif
     if (vid_resize >= 2) {
         setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     } else {
