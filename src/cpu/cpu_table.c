@@ -263,6 +263,50 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        .package       = CPU_PKG_8088_VTECH,
+        .manufacturer  = "Intel",
+        .name          = "8088",
+        .internal_name = "8088_vtech",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_8088,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+
+            {
+                .name               = "10",
+                .cpu_type           = CPU_8088,
+                .fpus               = fpus_8088,
+                .rspeed             = 10000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_8086,
         .manufacturer  = "Intel",
         .name          = "8086",
@@ -390,6 +434,49 @@ const cpu_family_t cpu_families[] = {
                 .cpuid_model        = 0,
                 .cyrix_id           = 0,
                 .cpu_flags          = CPU_ALTERNATE_XTAL,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
+        .package       = CPU_PKG_8086_VTECH,
+        .manufacturer  = "Intel",
+        .name          = "8086",
+        .internal_name = "8086_vtech",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_8086,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            {
+                .name               = "10",
+                .cpu_type           = CPU_8086,
+                .fpus               = fpus_8088,
+                .rspeed             = 10000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
                 .mem_read_cycles    = 0,
                 .mem_write_cycles   = 0,
                 .cache_read_cycles  = 0,
@@ -6008,7 +6095,6 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#ifdef USE_CYRIX_6X86
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Cyrix",
@@ -6368,7 +6454,6 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#endif /* USE_CYRIX_6X86 */
     {
         .package       = CPU_PKG_SOCKET8,
         .manufacturer  = "Intel",

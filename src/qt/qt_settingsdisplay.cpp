@@ -220,9 +220,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         int secondaryFlags = video_card_get_flags(c);
         if (video_card_available(c)
             && device_is_valid(video_dev, machineId)
-            && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SPECIAL))
-            && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SPECIAL))
-            && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SPECIAL) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
+            && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
+            && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
+            && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
             ui->comboBoxVideoSecondary->addItem(name, c);
             if (c == curVideoCard_2)
                 ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
