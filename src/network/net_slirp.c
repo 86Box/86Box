@@ -155,14 +155,22 @@ net_slirp_timer_mod(void *timer, int64_t expire_timer, UNUSED(void *opaque))
 }
 
 static void
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_register_poll_socket(slirp_os_socket fd, void *opaque)
+#else
 net_slirp_register_poll_fd(int fd, void *opaque)
+#endif
 {
     (void) fd;
     (void) opaque;
 }
 
 static void
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_unregister_poll_socket(slirp_os_socket fd, void *opaque)
+#else
 net_slirp_unregister_poll_fd(int fd, void *opaque)
+#endif
 {
     (void) fd;
     (void) opaque;
@@ -198,7 +206,11 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 
 #ifdef _WIN32
 static int
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_add_poll(slirp_os_socket fd, int events, void *opaque)
+#    else
 net_slirp_add_poll(int fd, int events, void *opaque)
+#    endif
 {
     net_slirp_t *slirp   = (net_slirp_t *) opaque;
     long         bitmask = 0;
@@ -216,7 +228,11 @@ net_slirp_add_poll(int fd, int events, void *opaque)
 }
 #else
 static int
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_add_poll(slirp_os_socket fd, int events, void *opaque)
+#    else
 net_slirp_add_poll(int fd, int events, void *opaque)
+#    endif
 {
     net_slirp_t *slirp = (net_slirp_t *) opaque;
 
@@ -307,8 +323,13 @@ static const SlirpCb slirp_cb = {
     .timer_new          = net_slirp_timer_new,
     .timer_free         = net_slirp_timer_free,
     .timer_mod          = net_slirp_timer_mod,
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+    .register_poll_socket   = net_slirp_register_poll_socket,
+    .unregister_poll_socket = net_slirp_unregister_poll_socket,
+#else
     .register_poll_fd   = net_slirp_register_poll_fd,
     .unregister_poll_fd = net_slirp_unregister_poll_fd,
+#endif
     .notify             = net_slirp_notify
 };
 
@@ -362,7 +383,11 @@ net_slirp_thread(void *priv)
     bool run               = true;
     while (run) {
         uint32_t timeout = -1;
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+        slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    else
         slirp_pollfds_fill(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    endif
         if (timeout < 0)
             timeout = INFINITE;
 
@@ -409,7 +434,11 @@ net_slirp_thread(void *priv)
         net_slirp_add_poll(net_event_get_fd(&slirp->stop_event), SLIRP_POLL_IN, slirp);
         net_slirp_add_poll(net_event_get_fd(&slirp->tx_event), SLIRP_POLL_IN, slirp);
 
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+        slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    else
         slirp_pollfds_fill(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    endif
 
         int ret = poll(slirp->pfd, slirp->pfd_len, timeout);
 
