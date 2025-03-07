@@ -554,6 +554,24 @@ opFTST(UNUSED(uint32_t fetchdat))
     return 0;
 }
 
+#ifndef FPU_8087
+static int
+opFTSTP(UNUSED(uint32_t fetchdat))
+{
+    FP_ENTER();
+    cpu_state.pc++;
+    cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+    if (ST(0) == 0.0)
+        cpu_state.npxs |= FPU_SW_C3;
+    else if (ST(0) < 0.0)
+        cpu_state.npxs |= FPU_SW_C0;
+    x87_pop();
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ftst) : (x87_timings.ftst * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ftst) : (x87_concurrency.ftst * cpu_multi));
+    return 0;
+}
+#endif
+
 static int
 opFXAM(UNUSED(uint32_t fetchdat))
 {
@@ -837,6 +855,69 @@ opFRNDINT(UNUSED(uint32_t fetchdat))
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
     return 0;
 }
+
+#ifndef FPU_8087
+#ifndef OPS_286_386
+static int
+opFRINT2(UNUSED(uint32_t fetchdat))
+{
+    double dst0, st0, integral, frac;
+    int prevRound;
+
+    FP_ENTER();
+    cpu_state.pc++;
+    prevRound = fegetround();
+    fesetround(FE_TONEAREST);
+    st0 = ST(0);
+    frac = modf(st0, &integral);
+    if (frac == 0.5 || frac == -0.5) {
+        dst0 = (st0 < 0) ? floor(st0) : ceil(st0);
+    } else {
+        dst0 = round(st0);
+    }
+    fesetround(prevRound);
+    ST(0) = (double) dst0;
+    FP_TAG_VALID;
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
+    return 0;
+}
+
+static int
+opFRINEAR(UNUSED(uint32_t fetchdat))
+{
+    int prevRound;
+
+    FP_ENTER();
+    cpu_state.pc++;
+    prevRound = fegetround();
+    fesetround(FE_TONEAREST);
+    ST(0) = (double) x87_fround_nearest(ST(0));
+    fesetround(prevRound);
+    FP_TAG_VALID;
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
+    return 0;
+}
+#endif
+
+static int
+opFRICHOP(UNUSED(uint32_t fetchdat))
+{
+    int prevRound;
+
+    FP_ENTER();
+    cpu_state.pc++;
+    prevRound = fegetround();
+    fesetround(FE_TONEAREST);
+    ST(0) = (double) ((int64_t)(ST(0)));
+    fesetround(prevRound);
+    FP_TAG_VALID;
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
+    return 0;
+}
+#endif
 
 static int
 opFSCALE(UNUSED(uint32_t fetchdat))

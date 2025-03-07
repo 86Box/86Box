@@ -3,6 +3,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nv/vid_nv_rivatimer.h>
 

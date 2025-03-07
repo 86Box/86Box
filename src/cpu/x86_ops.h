@@ -90,10 +90,9 @@ extern const OpFn dynarec_ops_winchip2_0f[1024];
 extern const OpFn dynarec_ops_pentium_0f[1024];
 extern const OpFn dynarec_ops_pentiummmx_0f[1024];
 
-#    ifdef USE_CYRIX_6X86
 extern const OpFn dynarec_ops_c6x86_0f[1024];
+extern const OpFn dynarec_ops_c6x86l_0f[1024];
 extern const OpFn dynarec_ops_c6x86mx_0f[1024];
-#    endif /* USE_CYRIX_6X86 */
 
 extern const OpFn dynarec_ops_k6_0f[1024];
 extern const OpFn dynarec_ops_k62_0f[1024];
@@ -232,10 +231,9 @@ extern const OpFn ops_winchip2_0f[1024];
 extern const OpFn ops_pentium_0f[1024];
 extern const OpFn ops_pentiummmx_0f[1024];
 
-#ifdef USE_CYRIX_6X86
 extern const OpFn ops_c6x86_0f[1024];
+extern const OpFn ops_c6x86l_0f[1024];
 extern const OpFn ops_c6x86mx_0f[1024];
-#endif /* USE_CYRIX_6X86 */
 
 extern const OpFn ops_k6_0f[1024];
 extern const OpFn ops_k62_0f[1024];
@@ -263,14 +261,20 @@ extern const OpFn ops_sf_fpu_d8_a16[32];
 extern const OpFn ops_sf_fpu_d8_a32[32];
 extern const OpFn ops_sf_fpu_d9_a16[256];
 extern const OpFn ops_sf_fpu_d9_a32[256];
+extern const OpFn ops_sf_fpu_cyrix_d9_a16[256];
+extern const OpFn ops_sf_fpu_cyrix_d9_a32[256];
 extern const OpFn ops_sf_fpu_da_a16[256];
 extern const OpFn ops_sf_fpu_da_a32[256];
 extern const OpFn ops_sf_fpu_db_a16[256];
 extern const OpFn ops_sf_fpu_db_a32[256];
+extern const OpFn ops_sf_fpu_cyrix_686_db_a16[256];
+extern const OpFn ops_sf_fpu_cyrix_686_db_a32[256];
 extern const OpFn ops_sf_fpu_dc_a16[32];
 extern const OpFn ops_sf_fpu_dc_a32[32];
 extern const OpFn ops_sf_fpu_dd_a16[256];
 extern const OpFn ops_sf_fpu_dd_a32[256];
+extern const OpFn ops_sf_fpu_cyrix_dd_a16[256];
+extern const OpFn ops_sf_fpu_cyrix_dd_a32[256];
 extern const OpFn ops_sf_fpu_de_a16[256];
 extern const OpFn ops_sf_fpu_de_a32[256];
 extern const OpFn ops_sf_fpu_df_a16[256];
@@ -295,6 +299,8 @@ extern const OpFn ops_fpu_d8_a16[32];
 extern const OpFn ops_fpu_d8_a32[32];
 extern const OpFn ops_fpu_d9_a16[256];
 extern const OpFn ops_fpu_d9_a32[256];
+extern const OpFn ops_fpu_cyrix_d9_a16[256];
+extern const OpFn ops_fpu_cyrix_d9_a32[256];
 extern const OpFn ops_fpu_da_a16[256];
 extern const OpFn ops_fpu_da_a32[256];
 extern const OpFn ops_fpu_db_a16[256];
@@ -303,6 +309,8 @@ extern const OpFn ops_fpu_dc_a16[32];
 extern const OpFn ops_fpu_dc_a32[32];
 extern const OpFn ops_fpu_dd_a16[256];
 extern const OpFn ops_fpu_dd_a32[256];
+extern const OpFn ops_fpu_cyrix_dd_a16[256];
+extern const OpFn ops_fpu_cyrix_dd_a32[256];
 extern const OpFn ops_fpu_de_a16[256];
 extern const OpFn ops_fpu_de_a32[256];
 extern const OpFn ops_fpu_df_a16[256];
@@ -314,15 +322,23 @@ extern const OpFn ops_sf_fpu_686_da_a16[256];
 extern const OpFn ops_sf_fpu_686_da_a32[256];
 extern const OpFn ops_sf_fpu_686_db_a16[256];
 extern const OpFn ops_sf_fpu_686_db_a32[256];
+extern const OpFn ops_sf_fpu_cyrix_686_db_a16[256];
+extern const OpFn ops_sf_fpu_cyrix_686_db_a32[256];
 extern const OpFn ops_sf_fpu_686_df_a16[256];
 extern const OpFn ops_sf_fpu_686_df_a32[256];
+extern const OpFn ops_sf_fpu_cyrix_686_df_a16[256];
+extern const OpFn ops_sf_fpu_cyrix_686_df_a32[256];
 
 extern const OpFn ops_fpu_686_da_a16[256];
 extern const OpFn ops_fpu_686_da_a32[256];
 extern const OpFn ops_fpu_686_db_a16[256];
 extern const OpFn ops_fpu_686_db_a32[256];
+extern const OpFn ops_fpu_cyrix_686_db_a16[256];
+extern const OpFn ops_fpu_cyrix_686_db_a32[256];
 extern const OpFn ops_fpu_686_df_a16[256];
 extern const OpFn ops_fpu_686_df_a32[256];
+extern const OpFn ops_fpu_cyrix_686_df_a16[256];
+extern const OpFn ops_fpu_cyrix_686_df_a32[256];
 
 extern const OpFn ops_REPE[1024];
 extern const OpFn ops_REPNE[1024];

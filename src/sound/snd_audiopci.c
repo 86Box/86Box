@@ -39,6 +39,7 @@
 #include <86box/pci.h>
 #include <86box/snd_ac97.h>
 #include <86box/sound.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/plat_unused.h>
 #include <86box/snd_akm4531.h>
@@ -489,7 +490,10 @@ es137x_reset(void *priv)
 
     /* Serial Interface Control Register, Address 20H
        Addressable as byte, word, longword */
-    dev->si_cr = 0xff800000;
+    if (dev->type == AUDIOPCI_ES1370)
+        dev->si_cr = 0x00000000;
+    else
+        dev->si_cr = 0xff800000;
 
     /* DAC1 Channel Sample Count Register, Address 24H
        Addressable as word, longword */
