@@ -282,48 +282,103 @@ machine_pc82_init(const machine_t *model)
 static const device_config_t ibmxt_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "ibm5160_1501512_5000027",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "1501512 (11/08/82)", .internal_name = "ibm5160_1501512_5000027", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" } },
-            { .name = "1501512 (11/08/82) (Alt)", .internal_name = "ibm5160_1501512_6359116", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_6359116.BIN", "" } },
-            { .name = "5000026 (08/16/82)", .internal_name = "ibm5160_5000026_5000027", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" } },
-#if 0
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "1501512 (11/08/82)",
+                .internal_name = "ibm5160_1501512_5000027",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+            },
+            {
+                .name          = "1501512 (11/08/82) (Alt)",
+                .internal_name = "ibm5160_1501512_6359116",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_6359116.BIN", "" }
+            },
+            {
+                .name          = "5000026 (08/16/82)",
+                .internal_name = "ibm5160_5000026_5000027",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" }
+            },
+
             // GlaBIOS for IBM XT
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VX.ROM", "" } },
+            {
+                .name          = "GlaBIOS 0.2.5 (8088)",
+                .internal_name = "glabios_025_8088",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 1,
+                .size          = 40960,
+                .files         = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+            },
+            {
+                .name          = "GlaBIOS 0.2.5 (V20)",
+                .internal_name = "glabios_025_v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 1,
+                .size          = 40960,
+                .files         = { "roms/machines/glabios/GLABIOS_0.2.5_VX.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+            },
 
             // The following are Diagnostic ROMs.
-            { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
-            { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_8kb.bin", "" } },
-            { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
-#endif
+            {
+                .name          = "Supersoft Diagnostics",
+                .internal_name = "diag_supersoft",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { "roms/machines/diagnostic/Supersoft_PCXT_32KB.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+            },
+            {
+                .name          = "Ruud's Diagnostic Rom",
+                .internal_name = "diag_ruuds",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_32kb.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+            },
+            {
+                .name          = "XT RAM Test",
+                .internal_name = "diag_xtramtest",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { "roms/machines/diagnostic/xtramtest_32k.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+            },
             { .files_no = 0 }
         },
     },
     {
-        .name = "enable_5161",
+        .name        = "enable_5161",
         .description = "IBM 5161 Expansion Unit",
-        .type = CONFIG_BINARY,
+        .type        = CONFIG_BINARY,
         .default_int = 1
     },
     {
-        .name = "enable_basic",
+        .name        = "enable_basic",
         .description = "IBM Cassette Basic",
-        .type = CONFIG_BINARY,
+        .type        = CONFIG_BINARY,
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
@@ -351,6 +406,8 @@ machine_xt_init(const machine_t *model)
     uint8_t     enable_5161;
     uint8_t     enable_basic;
     const char *fn;
+    uint16_t    offset = 0;
+    uint32_t    local  = 0;
 
     /* No ROMs available. */
     if (!device_available(model->device))
@@ -360,11 +417,17 @@ machine_xt_init(const machine_t *model)
     enable_5161  = machine_get_config_int("enable_5161");
     enable_basic = machine_get_config_int("enable_basic");
     fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret          = bios_load_linear(fn, 0x000fe000, 65536, 0x6000);
+    local        = device_get_bios_local(model->device, device_get_config_bios("bios"));
+ 
+    if (local == 0) // Offset for stock roms
+         offset   = 0x6000;
+    ret          = bios_load_linear(fn, 0x000fe000, 65536, offset);
 
     if (enable_basic && ret) {
-        fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-        (void) bios_load_aux_linear(fn, 0x000f8000, 24576, 0);
+        if (local == 0) { // needed for stock roms
+            fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+            (void) bios_load_aux_linear(fn, 0x000f8000, 24576, 0);
+        }
         fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 1);
         /* On the real machine, the BASIC is repeated. */
         (void) bios_load_aux_linear(fn, 0x000f0000, 8192, 0);
