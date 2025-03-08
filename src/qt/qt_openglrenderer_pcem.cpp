@@ -29,24 +29,13 @@ extern "C" {
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/qt-glslp-parser.h>
+
+char gl3_shader_file[MAX_USER_SHADERS][512];
 }
 
 #define SCALE_SOURCE   0
 #define SCALE_VIEWPORT 1
 #define SCALE_ABSOLUTE 2
-
-float gl3_shader_refresh_rate = 0;
-float gl3_input_scale         = 1.0f;
-int   gl3_input_stretch       = FULLSCR_SCALE_FULL;
-char  gl3_shader_file[MAX_USER_SHADERS][512];
-
-static int max_texture_size = 65536;
-
-static struct shader_texture scene_texture;
-
-static glsl_t *active_shader;
-
-static QOpenGLExtraFunctions glw;
 
 static GLfloat matrix[] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
 
@@ -54,8 +43,6 @@ extern int video_filter_method;
 extern int video_vsync;
 extern int video_focus_dim;
 extern int video_refresh_rate;
-
-static int glsl_version[2];
 
 const char *vertex_shader_default_tex_src = "#version 130\n"
                                             "\n"
@@ -106,7 +93,7 @@ const char *fragment_shader_default_color_src = "#version 130\n"
                                                 "       outColor = color;\n"
                                                 "}\n";
 
-static int
+static inline int
 next_pow2(unsigned int n)
 {
     n--;
@@ -120,8 +107,8 @@ next_pow2(unsigned int n)
     return n;
 }
 
-static int
-create_program(struct shader_program *program)
+int
+OpenGLRendererPCem::create_program(struct shader_program *program)
 {
     GLint status;
     program->id = glw.glCreateProgram();
@@ -151,8 +138,8 @@ create_program(struct shader_program *program)
     return 1;
 }
 
-static int
-compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst)
+int
+OpenGLRendererPCem::compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst)
 {
     const char *source[3];
     char        version[50];
@@ -201,20 +188,20 @@ compile_shader(GLenum shader_type, const char *prepend, const char *program, int
     return 1;
 }
 
-static GLuint
-get_uniform(GLuint program, const char *name)
+GLuint
+OpenGLRendererPCem::get_uniform(GLuint program, const char *name)
 {
     return glw.glGetUniformLocation(program, name);
 }
 
-static GLuint
-get_attrib(GLuint program, const char *name)
+GLuint
+OpenGLRendererPCem::get_attrib(GLuint program, const char *name)
 {
     return glw.glGetAttribLocation(program, name);
 }
 
-static void
-find_uniforms(struct glsl_shader *glsl, int num_pass)
+void
+OpenGLRendererPCem::find_uniforms(struct glsl_shader *glsl, int num_pass)
 {
     int                 i;
     char                s[50];
@@ -298,8 +285,8 @@ setup_scale(struct shader *shader, struct shader_pass *pass)
     pass->scale.value[1] = shader->scale_y;
 }
 
-static void
-create_texture(struct shader_texture *tex)
+void
+OpenGLRendererPCem::create_texture(struct shader_texture *tex)
 {
     if (tex->width > max_texture_size)
         tex->width = max_texture_size;
@@ -318,16 +305,16 @@ create_texture(struct shader_texture *tex)
     glw.glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static void
-delete_texture(struct shader_texture *tex)
+void
+OpenGLRendererPCem::delete_texture(struct shader_texture *tex)
 {
     if (tex->id > 0)
         glw.glDeleteTextures(1, (GLuint *) &tex->id);
     tex->id = 0;
 }
 
-static void
-delete_fbo(struct shader_fbo *fbo)
+void
+OpenGLRendererPCem::delete_fbo(struct shader_fbo *fbo)
 {
     if (fbo->id >= 0) {
         glw.glDeleteFramebuffers(1, (GLuint *) &fbo->id);
@@ -335,8 +322,8 @@ delete_fbo(struct shader_fbo *fbo)
     }
 }
 
-static void
-delete_program(struct shader_program *program)
+void
+OpenGLRendererPCem::delete_program(struct shader_program *program)
 {
     if (program->vertex_shader)
         glw.glDeleteShader(program->vertex_shader);
@@ -345,8 +332,8 @@ delete_program(struct shader_program *program)
     glw.glDeleteProgram(program->id);
 }
 
-static void
-delete_vbo(struct shader_vbo *vbo)
+void
+OpenGLRendererPCem::delete_vbo(struct shader_vbo *vbo)
 {
     if (vbo->color >= 0)
         glw.glDeleteBuffers(1, (GLuint *) &vbo->color);
@@ -354,8 +341,8 @@ delete_vbo(struct shader_vbo *vbo)
     glw.glDeleteBuffers(1, (GLuint *) &vbo->tex_coord);
 }
 
-static void
-delete_pass(struct shader_pass *pass)
+void
+OpenGLRendererPCem::delete_pass(struct shader_pass *pass)
 {
     delete_fbo(&pass->fbo);
     delete_vbo(&pass->vbo);
@@ -363,15 +350,15 @@ delete_pass(struct shader_pass *pass)
     glw.glDeleteVertexArrays(1, (GLuint *) &pass->vertex_array);
 }
 
-static void
-delete_prev(struct shader_prev *prev)
+void
+OpenGLRendererPCem::delete_prev(struct shader_prev *prev)
 {
     delete_fbo(&prev->fbo);
     delete_vbo(&prev->vbo);
 }
 
-static void
-delete_shader(struct glsl_shader *glsl)
+void
+OpenGLRendererPCem::delete_shader(struct glsl_shader *glsl)
 {
     int i;
     for (i = 0; i < glsl->num_passes; ++i)
@@ -385,8 +372,8 @@ delete_shader(struct glsl_shader *glsl)
         delete_texture(&glsl->lut_textures[i].texture);
 }
 
-static void
-delete_glsl(glsl_t *glsl)
+void
+OpenGLRendererPCem::delete_glsl(glsl_t *glsl)
 {
     int i;
     for (i = 0; i < glsl->num_shaders; ++i)
@@ -399,8 +386,8 @@ delete_glsl(glsl_t *glsl)
 #endif
 }
 
-static void
-create_fbo(struct shader_fbo *fbo)
+void
+OpenGLRendererPCem::create_fbo(struct shader_fbo *fbo)
 {
     create_texture(&fbo->texture);
 
@@ -414,14 +401,14 @@ create_fbo(struct shader_fbo *fbo)
     glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-static void
-setup_fbo(struct shader *shader, struct shader_fbo *fbo)
+void
+OpenGLRendererPCem::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
 {
     fbo->texture.internal_format = GL_RGBA8;
     fbo->texture.format          = GL_RGBA;
     fbo->texture.min_filter = fbo->texture.mag_filter = shader->filter_linear ? GL_LINEAR : GL_NEAREST;
-    fbo->texture.width                                = 1024;
-    fbo->texture.height                               = 1024;
+    fbo->texture.width                                = 2048;
+    fbo->texture.height                               = 2048;
     fbo->texture.type                                 = GL_UNSIGNED_BYTE;
     if (!strcmp(shader->wrap_mode, "repeat"))
         fbo->texture.wrap_mode = GL_REPEAT;
@@ -446,8 +433,8 @@ setup_fbo(struct shader *shader, struct shader_fbo *fbo)
     create_fbo(fbo);
 }
 
-static void
-recreate_fbo(struct shader_fbo *fbo, int width, int height)
+void
+OpenGLRendererPCem::recreate_fbo(struct shader_fbo *fbo, int width, int height)
 {
     if (width != fbo->texture.width || height != fbo->texture.height) {
         glw.glDeleteFramebuffers(1, (GLuint *) &fbo->id);
@@ -458,8 +445,8 @@ recreate_fbo(struct shader_fbo *fbo, int width, int height)
     }
 }
 
-static int
-create_default_shader_tex(struct shader_pass *pass)
+int
+OpenGLRendererPCem::create_default_shader_tex(struct shader_pass *pass)
 {
     if (!compile_shader(GL_VERTEX_SHADER, 0, vertex_shader_default_tex_src, &pass->program.vertex_shader) || !compile_shader(GL_FRAGMENT_SHADER, 0, fragment_shader_default_tex_src, &pass->program.fragment_shader) || !create_program(&pass->program))
         return 0;
@@ -478,8 +465,8 @@ create_default_shader_tex(struct shader_pass *pass)
     return 1;
 }
 
-static int
-create_default_shader_color(struct shader_pass *pass)
+int
+OpenGLRendererPCem::create_default_shader_color(struct shader_pass *pass)
 {
     if (!compile_shader(GL_VERTEX_SHADER, 0, vertex_shader_default_color_src, &pass->program.vertex_shader) || !compile_shader(GL_FRAGMENT_SHADER, 0, fragment_shader_default_color_src, &pass->program.fragment_shader) || !create_program(&pass->program))
         return 0;
@@ -498,8 +485,8 @@ create_default_shader_color(struct shader_pass *pass)
 }
 
 /* create the default scene shader */
-static void
-create_scene_shader()
+void
+OpenGLRendererPCem::create_scene_shader()
 {
     struct shader scene_shader_conf;
     memset(&scene_shader_conf, 0, sizeof(struct shader));
@@ -558,8 +545,8 @@ load_texture(const char *f, struct shader_texture *tex)
     return 1;
 }
 
-static glsl_t *
-load_glslp(glsl_t *glsl, int num_shader, const char *f)
+glsl_t *
+OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 {
     int      i, j;
     glslp_t *p = glslp_parse(f);
@@ -706,8 +693,8 @@ load_glslp(glsl_t *glsl, int num_shader, const char *f)
     return 0;
 }
 
-static glsl_t *
-load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
+glsl_t *
+OpenGLRendererPCem::load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
 {
     int     i;
     glsl_t *glsl;
@@ -733,8 +720,8 @@ load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
     return glsl;
 }
 
-static void
-read_shader_config()
+void
+OpenGLRendererPCem::read_shader_config()
 {
     char s[512];
     int  i, j;
@@ -810,19 +797,22 @@ OpenGLRendererPCem::initialize()
 
         glw.initializeOpenGLFunctions();
 
-        QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+        pclog("OpenGL information: [%s] %s (%s)\n", glw.glGetString(GL_VENDOR), glw.glGetString(GL_RENDERER), glw.glGetString(GL_VERSION));
+        glsl_version[0] = glsl_version[1] = -1;
+        glw.glGetIntegerv(GL_MAJOR_VERSION, &glsl_version[0]);
+        glw.glGetIntegerv(GL_MINOR_VERSION, &glsl_version[1]);
+        if (glsl_version[0] < 3) {
+            throw opengl_init_error_pcem(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(glsl_version[0]).arg(glsl_version[1]));
+        }
+        pclog("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
+        pclog("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-        logger->initialize(); // initializes in the current context, i.e. ctx
-        connect(logger, QOpenGLDebugLogger::messageLogged, [this] (const QOpenGLDebugMessage &message) {
-            qDebug() << message;
-            //fprintf(stderr, "OpenGL DBG: %s\n", message.message().toUtf8());
-        });
-        logger->enableMessages();
-        logger->startLogging();
+        glw.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+        pclog("Max texture size: %dx%d\n", max_texture_size, max_texture_size);
 
         glw.glEnable(GL_TEXTURE_2D);
 
-        renderTimer->start(75);
+        //renderTimer->start(75);
 
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;
@@ -1140,18 +1130,8 @@ OpenGLRendererPCem::resizeEvent(QResizeEvent *event)
         destination.height() * devicePixelRatio());
 }
 
-struct render_data {
-    int                 pass;
-    struct glsl_shader *shader;
-    struct shader_pass *shader_pass;
-    GLfloat            *output_size;
-    struct shader_pass *orig_pass;
-    GLint               texture;
-    int                 frame_count;
-};
-
-static void
-render_pass(struct render_data *data)
+void
+OpenGLRendererPCem::render_pass(struct render_data *data)
 {
     int    i;
     GLuint texture_unit = 0;
@@ -1318,8 +1298,16 @@ OpenGLRendererPCem::render()
         uint32_t x, y, w, h;
     } window_rect;
 
-    window_rect.w = this->size().width() * devicePixelRatio();
-    window_rect.h = this->size().height() * devicePixelRatio();
+    window_rect.x = destination.x() * devicePixelRatio();
+    window_rect.y = destination.y() * devicePixelRatio();
+    window_rect.w = destination.width() * devicePixelRatio();
+    window_rect.h = destination.height() * devicePixelRatio();
+
+    glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
+    scene_texture.min_filter = scene_texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
+    glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+    glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+    glw.glBindTexture(GL_TEXTURE_2D, 0);
 
     GLfloat orig_output_size[] = { (GLfloat)window_rect.w, (GLfloat)window_rect.h };
 
@@ -1403,12 +1391,6 @@ OpenGLRendererPCem::render()
     for (s = 0; s < active_shader->num_shaders; ++s) {
         struct glsl_shader *shader = &active_shader->shaders[s];
 
-        //                float refresh_rate = shader->shader_refresh_rate;
-        //                if (refresh_rate < 0)
-        //                        refresh_rate = gl3_shader_refresh_rate;
-        float refresh_rate = gl3_shader_refresh_rate;
-        if (refresh_rate == 0)
-            refresh_rate = video_refresh_rate;
         int frame_count = frameCounter;
 
         /* loop through each pass */
@@ -1675,5 +1657,6 @@ OpenGLRendererPCem::render()
 
     glw.glDisable(GL_FRAMEBUFFER_SRGB);
 
+    frameCounter++;
     context->swapBuffers(this);
 }
