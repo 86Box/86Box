@@ -1335,7 +1335,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 break;
 
             case 0x82:
-                ; /* Empty statement to make compilers happy about the following variable declaration. */
+                /* Empty statement to make compilers happy about the following variable declaration. */
                 /* The Interrupt status register, addressed as register 82h on the Mixer register map,
                    is used by the ISR to determine whether the interrupt is meant for it or for some
                    other ISR, in which case it should chain to the previous routine. */
@@ -1727,6 +1727,7 @@ ess_mixer_read(uint16_t addr, void *priv)
             case 0x32:
             case 0x36:
             case 0x38:
+            case 0x3a:
             case 0x3e:
                 ret = mixer->regs[mixer->index];
                 break;
@@ -2593,10 +2594,10 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
                 ess->dsp.sb_addr = 0x0000;
                 break;
             case 0x08:
-                ess->dsp.sb_addr = 0x0240;
+                ess->dsp.sb_addr = 0x0220;
                 break;
             case 0x0c:
-                ess->dsp.sb_addr = 0x0220;
+                ess->dsp.sb_addr = 0x0240;
                 break;
         }
 
@@ -2750,64 +2751,59 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
 
     ess->pos_regs[port & 7] = val;
 
-    if (ess->pos_regs[2] & 1) {
-        ess->dsp.sb_addr = (ess->pos_regs[2] == 0x51) ? 0x0220 : 0x0000;
+    if (ess->pos_regs[2] & 0x01) {
+        ess->dsp.sb_addr = 0x0220;
 
-        if (ess->dsp.sb_addr != 0x0000) {
-            io_sethandler(ess->dsp.sb_addr, 0x0004,
-                          ess->opl.read, NULL, NULL,
-                          ess->opl.write, NULL, NULL,
-                          ess->opl.priv);
-            io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
-                          ess->opl.read, NULL, NULL,
-                          ess->opl.write, NULL, NULL,
-                          ess->opl.priv);
-            io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
+        io_sethandler(ess->dsp.sb_addr, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
+                      ess_fm_midi_read, NULL, NULL,
+                      ess_fm_midi_write, NULL, NULL,
+                      ess);
+        io_sethandler(0x0388, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL, ess->opl.priv);
+        io_sethandler(0x0388, 0x0004,
+                      ess_fm_midi_read, NULL, NULL,
+                      ess_fm_midi_write, NULL, NULL,
+                      ess);
+        io_sethandler(ess->dsp.sb_addr + 4, 0x0002,
+                      ess_mixer_read, NULL, NULL,
+                      ess_mixer_write, NULL, NULL,
+                      ess);
+
+        io_sethandler(ess->dsp.sb_addr + 2, 0x0004,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+        io_sethandler(ess->dsp.sb_addr + 6, 0x0001,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+        io_sethandler(ess->dsp.sb_addr + 0x0a, 0x0006,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+
+        if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
+            mpu401_change_addr(ess->mpu, 0x0330);
+
+            io_sethandler(0x0330, 0x0002,
                           ess_fm_midi_read, NULL, NULL,
                           ess_fm_midi_write, NULL, NULL,
                           ess);
-            io_sethandler(0x0388, 0x0004,
-                          ess->opl.read, NULL, NULL,
-                          ess->opl.write, NULL, NULL, ess->opl.priv);
-            io_sethandler(0x0388, 0x0004,
-                          ess_fm_midi_read, NULL, NULL,
-                          ess_fm_midi_write, NULL, NULL,
-                          ess);
-            io_sethandler(ess->dsp.sb_addr + 4, 0x0004,
-                          ess_mixer_read, NULL, NULL,
-                          ess_mixer_write, NULL, NULL,
-                          ess);
-
-            io_sethandler(ess->dsp.sb_addr + 2, 0x0004,
-                          ess_base_read, NULL, NULL,
-                          ess_base_write, NULL, NULL,
-                          ess);
-            io_sethandler(ess->dsp.sb_addr + 6, 0x0001,
-                          ess_base_read, NULL, NULL,
-                          ess_base_write, NULL, NULL,
-                          ess);
-            io_sethandler(ess->dsp.sb_addr + 0x0a, 0x0006,
-                          ess_base_read, NULL, NULL,
-                          ess_base_write, NULL, NULL,
-                          ess);
-
-            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
-                mpu401_change_addr(ess->mpu, (ess->pos_regs[2] == 0x51) ? 0x0330 : 0);
-
-                if (ess->pos_regs[2] == 0x51)
-                    io_sethandler(0x0330, 0x0002,
-                                  ess_fm_midi_read, NULL, NULL,
-                                  ess_fm_midi_write, NULL, NULL,
-                                  ess);
-            }
         }
 
         /* DSP I/O handler is activated in sb_dsp_setaddr */
         sb_dsp_setaddr(&ess->dsp, ess->dsp.sb_addr);
-        gameport_remap(ess->gameport, (ess->pos_regs[2] == 0x51) ? 0x200 : 0);
-    }
+        gameport_remap(ess->gameport, 0x0200);
 
-    if (ess->pos_regs[2] == 0x51) {
         sb_dsp_setirq(&ess->dsp, 7);
         mpu401_setirq(ess->mpu, 7);
 
