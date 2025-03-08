@@ -85,7 +85,7 @@ static const device_config_t ibmpc_config[] = {
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
             { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_8kb.bin", "" } },
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_8kb.bin", "" } },
             { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
             { .files_no = 0 }
@@ -195,7 +195,7 @@ static const device_config_t ibmpc82_config[] = {
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
             { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_8kb.bin", "" } },
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_8kb.bin", "" } },
             { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
             { .files_no = 0 }
@@ -355,7 +355,7 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 2,
                 .size          = 65536,
-                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_32kb.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_32kb.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
                 .name          = "XT RAM Test",
@@ -544,7 +544,7 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 2,
                 .size          = 65536,
-                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.3_32kb.bin", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_32kb.bin", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
                 .name          = "XT RAM Test",
