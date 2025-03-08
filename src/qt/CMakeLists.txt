@@ -193,6 +193,10 @@ add_library(ui STATIC
 
     ../qt_resources.qrc
     ./qdarkstyle/dark/darkstyle.qrc
+
+    qt_openglshadermanagerdialog.hpp
+    qt_openglshadermanagerdialog.cpp
+    qt_openglshadermanagerdialog.ui
 )
 
 if(RTMIDI)

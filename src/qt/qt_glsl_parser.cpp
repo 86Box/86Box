@@ -7,8 +7,12 @@ extern "C"
 {
 #include <86box/86box.h>
 #include <86box/ini.h>
+#include <86box/config.h>
 #include <86box/qt-glslp-parser.h>
 #include <86box/path.h>
+
+extern void startblit();
+extern void endblit();
 }
 
 #define safe_strncpy(a, b, n)                                                                                                    \
@@ -303,6 +307,31 @@ void glslp_free(glslp_t *p) {
                 if (p->shaders[i].shader_program)
                         free(p->shaders[i].shader_program);
         free(p);
+}
+
+void glslp_read_shader_config(glslp_t *shader) {
+    char s[512];
+    int i;
+    char *name = shader->name;
+    sprintf(s, "GL3 Shaders - %s", name);
+    for (i = 0; i < shader->num_parameters; ++i) {
+        struct parameter *param = &shader->parameters[i];
+        param->value = config_get_double(s, param->id, param->default_value);
+    }
+}
+
+void glslp_write_shader_config(glslp_t *shader) {
+    char s[512];
+    int i;
+    char *name = shader->name;
+
+    startblit();
+    sprintf(s, "GL3 Shaders - %s", name);
+    for (i = 0; i < shader->num_parameters; ++i) {
+        struct parameter *param = &shader->parameters[i];
+        config_set_double(s, param->id, param->value);
+    }
+    endblit();
 }
 
 }

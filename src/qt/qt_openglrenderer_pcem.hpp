@@ -67,9 +67,9 @@ public:
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
 
     void     finalize() override final;
-    //bool     hasOptions() const override { return true; }
-    //QDialog *getOptions(QWidget *parent) override;
-    //void     reloadOptions() override;
+    bool     hasOptions() const override { return true; }
+    QDialog *getOptions(QWidget *parent) override;
+    bool     reloadRendererOption() { return true; }
 
 signals:
     void initialized();

@@ -77,6 +77,10 @@
 #include <86box/snd_opl.h>
 #include <86box/version.h>
 
+/* Deliberate to not make the 86box.h header kitchen-sink. */
+#include <86box/qt-glsl.h>
+extern char gl3_shader_file[MAX_USER_SHADERS][512];
+
 static int   cx;
 static int   cy;
 static int   cw;
@@ -1714,6 +1718,30 @@ load_other_peripherals(void)
         ini_section_delete_var(cat, temp);
 }
 
+/* Load OpenGL 3.0 renderer options. */
+static void
+load_gl3_shaders(void)
+{
+    ini_section_t cat = ini_find_section(config, "GL3 Shaders");
+    char         *p;
+    char          temp[512];
+    int           i = 0;
+    memset(temp, 0, sizeof(temp));
+    memset(gl3_shader_file, 0, sizeof(gl3_shader_file));
+
+    for (int i = 0; i < MAX_USER_SHADERS; i++) {
+        temp[0] = 0;
+        snprintf(temp, 512, "shader%d", i);
+        p = ini_section_get_string(cat, temp, "");
+        if (p[0]) {
+            strncpy(gl3_shader_file[i], p, 512);
+        } else {
+            gl3_shader_file[i][0] = 0;
+            break;
+        }
+    }
+}
+
 /* Load the specified or a default configuration file. */
 void
 config_load(void)
@@ -1810,6 +1838,7 @@ config_load(void)
         load_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
         load_other_removable_devices(); /* Other removable devices */
         load_other_peripherals();       /* Other peripherals */
+        load_gl3_shaders();             /* GL3 Shaders */
 
         /* Migrate renamed device configurations. */
         c = ini_find_section(config, "MDA");
@@ -2632,6 +2661,34 @@ save_other_peripherals(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+/* Save "GL3 Shaders" section. */
+static void
+save_gl3_shaders(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "GL3 Shaders");
+    char          temp[512];
+    int shaders = 0, i = 0;
+
+    for (i = 0; i < MAX_USER_SHADERS; i++) {
+        if (gl3_shader_file[i][0] == 0)
+            break;
+        shaders++;
+    }
+
+    ini_section_set_int(cat, "shaders", shaders);
+    if (shaders == 0) {
+        ini_section_delete_var(cat, "shaders");
+    } else {
+        for (i = 0; i < shaders; i++) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d");
+            ini_section_set_string(cat, temp, gl3_shader_file[i]);
+        }
+    }
+
+    ini_delete_section_if_empty(config, cat);
+}
+
 /* Save "Hard Disks" section. */
 static void
 save_hard_disks(void)
@@ -2987,6 +3044,7 @@ config_save(void)
     save_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
     save_other_removable_devices(); /* Other removable devices */
     save_other_peripherals();       /* Other peripherals */
+    save_gl3_shaders();             /* GL3 Shaders */
 
     ini_write(config, cfg_path);
 }

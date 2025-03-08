@@ -20,6 +20,7 @@
 #include <cmath>
 
 #include "qt_openglrenderer_pcem.hpp"
+#include "qt_openglshadermanagerdialog.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -1284,6 +1285,12 @@ OpenGLRendererPCem::event(QEvent *event)
     if (!eventDelegate(event, res))
         return QWindow::event(event);
     return res;
+}
+
+QDialog*
+OpenGLRendererPCem::getOptions(QWidget *parent)
+{
+    return new OpenGLShaderManagerDialog(parent);
 }
 
 void

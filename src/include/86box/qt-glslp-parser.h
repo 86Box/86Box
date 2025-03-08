@@ -53,4 +53,7 @@ void get_glslp_name(const char *f, char *s, int size);
 glslp_t *glslp_parse(const char *f);
 void glslp_free(glslp_t *p);
 
+void glslp_read_shader_config(glslp_t *shader);
+void glslp_write_shader_config(glslp_t *shader);
+
 #endif /* SRC_WX_GLSLP_PARSER_H_ */
